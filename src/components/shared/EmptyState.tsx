@@ -2,32 +2,26 @@ import { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface EmptyStateProps {
-  icon?: LucideIcon
+  icon: LucideIcon
   title: string
   description?: string
-  actionLabel?: string
-  onAction?: () => void
+  action?: {
+    label: string
+    onClick: () => void
+  }
 }
 
-export const EmptyState = ({
-  icon: Icon,
-  title,
-  description,
-  actionLabel,
-  onAction,
-}: EmptyStateProps) => {
+export const EmptyState = ({ icon: Icon, title, description, action }: EmptyStateProps) => {
   return (
-    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-      {Icon && (
-        <div className="mb-4 rounded-full bg-muted p-3">
-          <Icon className="h-8 w-8 text-muted-foreground" />
-        </div>
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <Icon className="h-16 w-16 text-muted-foreground/50" />
+      <h3 className="mt-4 text-lg font-semibold">{title}</h3>
+      {description && (
+        <p className="mt-2 text-sm text-muted-foreground">{description}</p>
       )}
-      <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-      {description && <p className="mt-2 text-sm text-muted-foreground max-w-md">{description}</p>}
-      {actionLabel && onAction && (
-        <Button onClick={onAction} className="mt-4">
-          {actionLabel}
+      {action && (
+        <Button onClick={action.onClick} className="mt-6">
+          {action.label}
         </Button>
       )}
     </div>

@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react'
-import { User, Session } from '@supabase/supabase-js'
+import { User as AuthUser, Session } from '@supabase/supabase-js'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 
 export const useAuth = () => {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<AuthUser | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
 
   useEffect(() => {
-    // Set up auth state listener
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session)
@@ -25,7 +25,7 @@ export const useAuth = () => {
       }
     )
 
-    // Check for existing session
+    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
@@ -79,7 +79,7 @@ export const useAuth = () => {
 
       toast({
         title: 'Đăng ký thành công',
-        description: 'Tài khoản của bạn đã được tạo. Vui lòng đăng nhập.',
+        description: 'Vui lòng kiểm tra email để xác thực tài khoản.',
       })
 
       return { data, error: null }
@@ -90,6 +90,54 @@ export const useAuth = () => {
         variant: 'destructive',
       })
       return { data: null, error }
+    }
+  }
+
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      })
+
+      if (error) throw error
+
+      toast({
+        title: 'Email đã gửi',
+        description: 'Vui lòng kiểm tra email để đặt lại mật khẩu.',
+      })
+
+      return { error: null }
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
+      return { error }
+    }
+  }
+
+  const updatePassword = async (newPassword: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      })
+
+      if (error) throw error
+
+      toast({
+        title: 'Cập nhật thành công',
+        description: 'Mật khẩu của bạn đã được thay đổi.',
+      })
+
+      return { error: null }
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
+      return { error }
     }
   }
 
@@ -118,6 +166,8 @@ export const useAuth = () => {
     signIn,
     signUp,
     signOut,
+    resetPassword,
+    updatePassword,
     isAuthenticated: !!user,
   }
 }
