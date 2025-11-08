@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthGuard } from "@/components/auth/AuthGuard";
+import { RoleGuard } from "@/components/auth/RoleGuard";
 import { MainLayout } from "@/components/layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
@@ -15,6 +16,8 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
+import UsersPage from "./pages/users/UsersPage";
+import ProfilePage from "./pages/profile/ProfilePage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,6 +55,19 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/inventory" element={<Inventory />} />
               <Route path="/rooms" element={<Rooms />} />
+              
+              {/* Profile */}
+              <Route path="/profile" element={<ProfilePage />} />
+              
+              {/* User Management - Owner & Super Admin only */}
+              <Route
+                path="/users"
+                element={
+                  <RoleGuard allowedRoles={['owner', 'super_admin']}>
+                    <UsersPage />
+                  </RoleGuard>
+                }
+              />
             </Route>
 
             {/* Catch all */}

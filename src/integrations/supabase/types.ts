@@ -1944,16 +1944,31 @@ export type Database = {
         }
         Returns: undefined
       }
-      setup_new_tenant: {
-        Args: {
-          p_hotel_address: string
-          p_hotel_name: string
-          p_owner_user_id: string
-          p_tenant_id: string
-          p_total_rooms: number
-        }
-        Returns: string
-      }
+      setup_new_tenant:
+        | {
+            Args: {
+              p_hotel_address: string
+              p_hotel_email: string
+              p_hotel_name: string
+              p_hotel_phone: string
+              p_tenant_email: string
+              p_tenant_name: string
+              p_tenant_phone: string
+              p_total_rooms: number
+              p_user_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_hotel_address: string
+              p_hotel_name: string
+              p_owner_user_id: string
+              p_tenant_id: string
+              p_total_rooms: number
+            }
+            Returns: string
+          }
     }
     Enums: {
       app_role:
