@@ -78,13 +78,51 @@ const navigation: NavItem[] = [
 
 export const Sidebar = () => {
   const location = useLocation()
-  const { user, role } = useUser()
-  const { tenant } = useTenant()
+  const { user, role, isLoading: userLoading } = useUser()
+  const { tenant, isLoading: tenantLoading } = useTenant()
+
+  const isLoading = userLoading || tenantLoading
 
   const filteredNavigation = navigation.filter((item) => {
     if (!item.roles) return true
     return item.roles.includes(role || 'staff')
   })
+
+  if (isLoading) {
+    return (
+      <div className="flex w-64 flex-col border-r bg-card">
+        {/* Logo & Tenant Info Skeleton */}
+        <div className="flex h-16 items-center gap-3 border-b px-6">
+          <div className="h-10 w-10 rounded-lg bg-muted animate-pulse" />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 w-24 rounded bg-muted animate-pulse" />
+            <div className="h-3 w-16 rounded bg-muted animate-pulse" />
+          </div>
+        </div>
+
+        {/* Navigation Skeleton */}
+        <nav className="flex-1 space-y-1 overflow-y-auto p-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="flex items-center gap-3 rounded-lg px-3 py-2">
+              <div className="h-5 w-5 rounded bg-muted animate-pulse" />
+              <div className="h-4 flex-1 rounded bg-muted animate-pulse" />
+            </div>
+          ))}
+        </nav>
+
+        {/* User Info Skeleton */}
+        <div className="border-t p-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-24 rounded bg-muted animate-pulse" />
+              <div className="h-3 w-16 rounded bg-muted animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex w-64 flex-col border-r bg-card">
@@ -93,7 +131,7 @@ export const Sidebar = () => {
         {tenant?.logo_url ? (
           <img
             src={tenant.logo_url}
-            alt={tenant.name}
+            alt={tenant.name || 'Tenant'}
             className="h-10 w-10 rounded-lg object-cover"
           />
         ) : (
@@ -102,9 +140,9 @@ export const Sidebar = () => {
           </div>
         )}
         <div className="flex-1 overflow-hidden">
-          <p className="truncate font-semibold text-sm">{tenant?.name}</p>
+          <p className="truncate font-semibold text-sm">{tenant?.name || 'Hotel Management'}</p>
           <Badge variant="outline" className="text-xs">
-            {tenant?.subscription_plan}
+            {tenant?.subscription_plan || 'trial'}
           </Badge>
         </div>
       </div>
@@ -148,11 +186,11 @@ export const Sidebar = () => {
                 ?.split(' ')
                 .map((n) => n[0])
                 .join('')
-                .toUpperCase()}
+                .toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 overflow-hidden">
-            <p className="truncate font-medium text-sm">{user?.full_name}</p>
+            <p className="truncate font-medium text-sm">{user?.full_name || 'User'}</p>
             <p className="truncate text-xs text-muted-foreground">
               {role === 'super_admin' && 'Super Admin'}
               {role === 'owner' && 'Chủ sở hữu'}
