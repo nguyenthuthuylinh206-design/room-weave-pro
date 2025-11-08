@@ -154,6 +154,7 @@ export const Sidebar = () => {
           <div className="flex-1 overflow-hidden">
             <p className="truncate font-medium text-sm">{user?.full_name}</p>
             <p className="truncate text-xs text-muted-foreground">
+              {role === 'super_admin' && 'Super Admin'}
               {role === 'owner' && 'Chủ sở hữu'}
               {role === 'hotel_manager' && 'Quản lý KS'}
               {role === 'department_manager' && 'Quản lý bộ phận'}
