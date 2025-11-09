@@ -1941,6 +1941,10 @@ export type Database = {
       }
     }
     Functions: {
+      bulk_delete_items: {
+        Args: { p_item_ids: string[]; p_user_id: string }
+        Returns: Json
+      }
       complete_registration: {
         Args: {
           p_email: string
@@ -1964,8 +1968,59 @@ export type Database = {
         Args: { column_name: string; prefix: string; table_name: string }
         Returns: string
       }
+      get_categories_with_stats: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          color: string
+          description: string
+          icon: string
+          id: string
+          items_count: number
+          name: string
+          name_en: string
+          sort_order: number
+          total_value: number
+        }[]
+      }
       get_current_user_role: { Args: never; Returns: string }
       get_dashboard_stats: { Args: { p_tenant_id: string }; Returns: Json }
+      get_item_detail: { Args: { p_item_id: string }; Returns: Json }
+      get_items_filtered: {
+        Args: {
+          p_category_id?: string
+          p_hotel_id?: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_status?: string
+          p_stock_status?: string
+          p_tenant_id: string
+        }
+        Returns: {
+          category_color: string
+          category_id: string
+          category_name: string
+          code: string
+          created_at: string
+          id: string
+          minimum_stock: number
+          name: string
+          name_en: string
+          qr_code: string
+          quantity_damaged: number
+          quantity_in_laundry: number
+          quantity_in_stock: number
+          quantity_in_use: number
+          quantity_lost: number
+          quantity_total: number
+          status: string
+          stock_status: string
+          thumbnail: string
+          total_count: number
+          unit: string
+          unit_price: number
+        }[]
+      }
       get_monthly_expenses: {
         Args: { p_months?: number; p_tenant_id: string }
         Returns: {
