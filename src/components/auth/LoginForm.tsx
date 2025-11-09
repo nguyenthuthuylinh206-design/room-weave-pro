@@ -1,23 +1,26 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
-import { useAuth } from '@/hooks/useAuth'
+import { Link, useNavigate } from 'react-router-dom'
+import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { Loader2 } from 'lucide-react'
-
-const loginSchema = z.object({
-  email: z.string().email('Email không hợp lệ'),
-  password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
-})
-
-type LoginFormData = z.infer<typeof loginSchema>
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { useAuth } from '@/hooks/useAuth'
+import { loginSchema, LoginFormData } from '@/lib/validations/auth.schemas'
+import { GoogleAuthButton } from './GoogleAuthButton'
 
 export const LoginForm = () => {
-  const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const { signIn } = useAuth()
   const navigate = useNavigate()
 
@@ -26,76 +29,153 @@ export const LoginForm = () => {
     defaultValues: {
       email: '',
       password: '',
+      rememberMe: false,
     },
   })
 
   const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true)
-    try {
-      const { error } = await signIn(data.email, data.password)
-      if (!error) {
-        navigate('/')
-      }
-    } finally {
-      setIsLoading(false)
+    const { error } = await signIn(data.email, data.password)
+    if (!error) {
+      navigate('/')
     }
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input
-                  type="email"
-                  placeholder="name@example.com"
-                  autoComplete="email"
-                  disabled={isLoading}
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    <div className="w-full space-y-6">
+      <div className="text-center">
+        <h1 className="text-3xl font-bold">Đăng nhập</h1>
+        <p className="mt-2 text-muted-foreground">
+          Chào mừng trở lại! Vui lòng đăng nhập để tiếp tục.
+        </p>
+      </div>
 
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Mật khẩu</FormLabel>
-              <FormControl>
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  disabled={isLoading}
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {/* Email */}
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      {...field}
+                      type="email"
+                      placeholder="email@example.com"
+                      className="pl-10"
+                      autoComplete="email"
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Đăng nhập
-        </Button>
+          {/* Password */}
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mật khẩu</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      {...field}
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      className="pl-10 pr-10"
+                      autoComplete="current-password"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <div className="text-center text-sm">
-          <span className="text-muted-foreground">Chưa có tài khoản? </span>
-          <Link to="/auth/register" className="text-primary hover:underline">
-            Đăng ký ngay
-          </Link>
+          {/* Remember Me & Forgot Password */}
+          <div className="flex items-center justify-between">
+            <FormField
+              control={form.control}
+              name="rememberMe"
+              render={({ field }) => (
+                <FormItem className="flex items-center space-x-2 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <Label className="text-sm font-normal cursor-pointer">
+                    Ghi nhớ đăng nhập
+                  </Label>
+                </FormItem>
+              )}
+            />
+
+            <Link
+              to="/auth/forgot-password"
+              className="text-sm text-primary hover:underline"
+            >
+              Quên mật khẩu?
+            </Link>
+          </div>
+
+          {/* Submit Button */}
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            {form.formState.isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
+          </Button>
+        </form>
+      </Form>
+
+      {/* Divider */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
         </div>
-      </form>
-    </Form>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">
+            Hoặc tiếp tục với
+          </span>
+        </div>
+      </div>
+
+      {/* Google Auth */}
+      <GoogleAuthButton />
+
+      {/* Register Link */}
+      <p className="text-center text-sm text-muted-foreground">
+        Chưa có tài khoản?{' '}
+        <Link to="/auth/register" className="text-primary hover:underline font-medium">
+          Đăng ký ngay
+        </Link>
+      </p>
+    </div>
   )
 }
