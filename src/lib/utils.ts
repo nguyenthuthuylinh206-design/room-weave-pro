@@ -5,6 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function formatNumber(num: number): string {
+  return new Intl.NumberFormat('vi-VN').format(num);
+}
+
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -23,4 +27,19 @@ export function formatRelativeTime(dateString: string): string {
   if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} ngày trước`;
   
   return date.toLocaleDateString('vi-VN');
+}
+
+export function formatDate(dateString: string, format: 'short' | 'long' = 'short'): string {
+  const date = new Date(dateString);
+  
+  if (format === 'short') {
+    return date.toLocaleDateString('vi-VN');
+  }
+  
+  return date.toLocaleDateString('vi-VN', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 }
