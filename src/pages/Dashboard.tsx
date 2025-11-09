@@ -1,14 +1,18 @@
 import { PageHeader } from '@/components/shared/PageHeader'
 import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Package, Hotel, Wind, AlertTriangle } from 'lucide-react'
+import { ExpenseChart } from '@/components/dashboard/ExpenseChart'
+import { TopItemsTable } from '@/components/dashboard/TopItemsTable'
+import { RecentActivity } from '@/components/dashboard/RecentActivity'
+import { QuickActions } from '@/components/dashboard/QuickActions'
+import { Package, Wind, AlertTriangle } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
-import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 export default function Dashboard() {
   const { user } = useUser()
   const { data: stats, isLoading } = useDashboardStats()
+  const isMobile = useIsMobile()
 
   if (isLoading) {
     return (
@@ -19,7 +23,7 @@ export default function Dashboard() {
         />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <DashboardStatCard title="" value="" icon={Package} isLoading />
-          <DashboardStatCard title="" value="" icon={Hotel} isLoading />
+          <DashboardStatCard title="" value="" icon={Package} isLoading />
           <DashboardStatCard title="" value="" icon={Wind} isLoading />
           <DashboardStatCard title="" value="" icon={AlertTriangle} isLoading />
         </div>
@@ -66,18 +70,21 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Placeholder content */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Chào mừng!</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            Dashboard đầy đủ với biểu đồ và dữ liệu thực tế sẽ được xây dựng trong các prompt tiếp theo.
-            Hiện tại đây là layout cơ bản để kiểm tra routing và authentication.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Quick Actions */}
+      <QuickActions />
+
+      {/* Expense Chart */}
+      <ExpenseChart months={12} showBarChart={isMobile} />
+
+      {/* Top Items & Recent Activity */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <TopItemsTable />
+        </div>
+        <div className="lg:col-span-1">
+          <RecentActivity />
+        </div>
+      </div>
     </div>
   )
 }
