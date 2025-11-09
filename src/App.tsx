@@ -12,6 +12,7 @@ import Inventory from "./pages/Inventory";
 import { RoomsPage } from "./pages/rooms/RoomsPage";
 import { RoomDetailPage } from "./pages/rooms/RoomDetailPage";
 import { LaundryDashboardPage } from "./pages/laundry/LaundryDashboardPage";
+import { BatchDetailPage } from "./pages/laundry/BatchDetailPage";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
@@ -59,6 +60,7 @@ const App = () => (
             <Route path="/rooms" element={<RoomsPage />} />
             <Route path="/rooms/:id" element={<RoomDetailPage />} />
             <Route path="/laundry" element={<LaundryDashboardPage />} />
+            <Route path="/laundry/batches/:id" element={<BatchDetailPage />} />
               
               {/* Profile */}
               <Route path="/profile" element={<ProfilePage />} />
