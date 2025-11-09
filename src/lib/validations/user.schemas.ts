@@ -1,33 +1,46 @@
 import { z } from 'zod'
 
+const phoneSchema = z
+  .string()
+  .regex(/^(0|\+84)[0-9]{9}$/, 'Số điện thoại không hợp lệ')
+  .optional()
+  .or(z.literal(''))
+
 export const userFormSchema = z.object({
   fullName: z.string().min(2, 'Họ tên phải có ít nhất 2 ký tự'),
   email: z.string().email('Email không hợp lệ'),
-  phone: z.string().optional(),
-  department: z.enum(['housekeeping', 'laundry', 'inventory', 'maintenance']).optional(),
+  phone: phoneSchema,
+  role: z.enum(['owner', 'hotel_manager', 'department_manager', 'staff'], {
+    required_error: 'Vui lòng chọn vai trò',
+  }),
+  hotelId: z.string().uuid().optional().nullable(),
+  department: z.enum(['housekeeping', 'laundry', 'inventory', 'maintenance']).optional().nullable(),
   status: z.enum(['active', 'inactive']).default('active'),
 })
 
+export type UserFormData = z.infer<typeof userFormSchema>
+
 export const profileFormSchema = z.object({
   fullName: z.string().min(2, 'Họ tên phải có ít nhất 2 ký tự'),
-  phone: z.string().optional(),
-  avatarUrl: z.string().optional(),
+  phone: phoneSchema,
+  avatarUrl: z.string().url().optional().or(z.literal('')),
 })
 
+export type ProfileFormData = z.infer<typeof profileFormSchema>
+
 export const changePasswordSchema = z.object({
-  currentPassword: z.string().min(6, 'Mật khẩu hiện tại không hợp lệ'),
+  currentPassword: z.string().min(1, 'Vui lòng nhập mật khẩu hiện tại'),
   newPassword: z
     .string()
     .min(8, 'Mật khẩu phải có ít nhất 8 ký tự')
     .regex(/[A-Z]/, 'Mật khẩu phải có ít nhất 1 chữ hoa')
     .regex(/[a-z]/, 'Mật khẩu phải có ít nhất 1 chữ thường')
-    .regex(/[0-9]/, 'Mật khẩu phải có ít nhất 1 số'),
+    .regex(/[0-9]/, 'Mật khẩu phải có ít nhất 1 số')
+    .regex(/[^A-Za-z0-9]/, 'Mật khẩu phải có ít nhất 1 ký tự đặc biệt'),
   confirmPassword: z.string(),
 }).refine((data) => data.newPassword === data.confirmPassword, {
-  message: 'Mật khẩu không khớp',
+  message: 'Mật khẩu xác nhận không khớp',
   path: ['confirmPassword'],
 })
 
-export type UserFormData = z.infer<typeof userFormSchema>
-export type ProfileFormData = z.infer<typeof profileFormSchema>
 export type ChangePasswordData = z.infer<typeof changePasswordSchema>
