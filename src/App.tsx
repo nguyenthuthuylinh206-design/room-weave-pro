@@ -10,6 +10,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import { RoomsPage } from "./pages/rooms/RoomsPage";
+import { RoomDetailPage } from "./pages/rooms/RoomDetailPage";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
@@ -55,6 +56,7 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/inventory" element={<Inventory />} />
               <Route path="/rooms" element={<RoomsPage />} />
+              <Route path="/rooms/:id" element={<RoomDetailPage />} />
               
               {/* Profile */}
               <Route path="/profile" element={<ProfilePage />} />

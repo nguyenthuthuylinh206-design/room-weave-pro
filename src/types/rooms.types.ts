@@ -45,3 +45,37 @@ export interface FloorPlanData {
     status: RoomStatus
   }[]
 }
+
+export interface RoomDetailData {
+  room: Room
+  hotel: any
+  items: RoomItemWithDetails[]
+  recent_checks: RoomCheckWithUser[]
+  missing_items?: any[]
+}
+
+export interface RoomItemWithDetails {
+  id: string
+  item_id: string
+  item_code: string
+  item_name: string
+  item_thumbnail?: string
+  category_name?: string
+  quantity: number
+  condition: string
+  standard_quantity?: number
+  quantity_in_laundry?: number
+}
+
+export interface RoomCheckWithUser {
+  id: string
+  check_type: CheckType
+  cleanliness_score?: number
+  items_complete: boolean
+  items_missing: any[]
+  items_damaged: any[]
+  notes?: string
+  checked_at: string
+  checked_by_name: string
+  checked_by_avatar?: string
+}

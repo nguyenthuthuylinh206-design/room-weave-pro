@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { LucideIcon } from 'lucide-react'
+import { ReactNode } from 'react'
 
 interface PageHeaderProps {
   title: string
@@ -9,9 +10,10 @@ interface PageHeaderProps {
     icon?: LucideIcon
     onClick: () => void
   }
+  children?: ReactNode
 }
 
-export const PageHeader = ({ title, description, action }: PageHeaderProps) => {
+export const PageHeader = ({ title, description, action, children }: PageHeaderProps) => {
   return (
     <div className="flex items-center justify-between">
       <div>
@@ -20,12 +22,15 @@ export const PageHeader = ({ title, description, action }: PageHeaderProps) => {
           <p className="mt-2 text-muted-foreground">{description}</p>
         )}
       </div>
-      {action && (
-        <Button onClick={action.onClick}>
-          {action.icon && <action.icon className="mr-2 h-4 w-4" />}
-          {action.label}
-        </Button>
-      )}
+      <div className="flex gap-2">
+        {children}
+        {action && (
+          <Button onClick={action.onClick}>
+            {action.icon && <action.icon className="mr-2 h-4 w-4" />}
+            {action.label}
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

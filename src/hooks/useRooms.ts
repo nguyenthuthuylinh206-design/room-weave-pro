@@ -28,6 +28,22 @@ export function useRooms(filters: RoomFilters = {}) {
   })
 }
 
+export function useRoom(roomId: string | undefined) {
+  return useQuery({
+    queryKey: ['room', roomId],
+    queryFn: async () => {
+      if (!roomId) throw new Error('No room ID')
+      
+      const { data, error } = await supabase
+        .rpc('get_room_detail', { p_room_id: roomId })
+      
+      if (error) throw error
+      return data
+    },
+    enabled: !!roomId,
+  })
+}
+
 export function useRoomStats(tenantId: string | undefined, hotelId: string | undefined) {
   return useQuery({
     queryKey: ['room-stats', tenantId, hotelId],
