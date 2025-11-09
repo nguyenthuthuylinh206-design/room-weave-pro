@@ -1,0 +1,71 @@
+import { useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/integrations/supabase/client'
+import { useUser } from './useUser'
+import { useToast } from './use-toast'
+import type { DashboardActivity } from '@/types/dashboard.types'
+
+export function useRecentActivities(limit: number = 10) {
+  const { tenantId } = useUser()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  
+  // Initial fetch
+  const query = useQuery({
+    queryKey: ['recent-activities', tenantId, limit],
+    queryFn: async () => {
+      if (!tenantId) throw new Error('No tenant')
+      
+      const { data, error } = await supabase
+        .rpc('get_recent_activities', {
+          p_tenant_id: tenantId,
+          p_limit: limit,
+        })
+      
+      if (error) throw error
+      return data as DashboardActivity[]
+    },
+    enabled: !!tenantId,
+  })
+  
+  // Subscribe to real-time updates
+  useEffect(() => {
+    if (!tenantId) return
+    
+    const channel = supabase
+      .channel('activity-logs-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'activity_logs',
+          filter: `tenant_id=eq.${tenantId}`,
+        },
+        (payload) => {
+          console.log('New activity:', payload)
+          
+          // Invalidate and refetch
+          queryClient.invalidateQueries({
+            queryKey: ['recent-activities', tenantId],
+          })
+          
+          // Optional: Show toast for important activities
+          const newActivity = payload.new as any
+          if (newActivity.action === 'create' && newActivity.entity_type === 'maintenance_request') {
+            toast({
+              title: 'Yêu cầu bảo trì mới',
+              description: newActivity.description,
+            })
+          }
+        }
+      )
+      .subscribe()
+    
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [tenantId, queryClient, toast])
+  
+  return query
+}

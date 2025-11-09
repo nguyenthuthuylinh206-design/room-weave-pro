@@ -1808,6 +1808,27 @@ export type Database = {
       }
     }
     Views: {
+      dashboard_activities: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string | null
+          metadata: Json | null
+          tenant_id: string | null
+          type: string | null
+          user_avatar: string | null
+          user_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dashboard_stats: {
         Row: {
           active_laundry_batches: number | null
@@ -1907,6 +1928,17 @@ export type Database = {
           },
         ]
       }
+      monthly_expenses: {
+        Row: {
+          laundry_amount: number | null
+          maintenance_amount: number | null
+          month: string | null
+          purchase_amount: number | null
+          tenant_id: string | null
+          total_amount: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       complete_registration: {
@@ -1933,6 +1965,44 @@ export type Database = {
         Returns: string
       }
       get_current_user_role: { Args: never; Returns: string }
+      get_dashboard_stats: { Args: { p_tenant_id: string }; Returns: Json }
+      get_monthly_expenses: {
+        Args: { p_months?: number; p_tenant_id: string }
+        Returns: {
+          laundry: number
+          maintenance: number
+          month: string
+          purchase: number
+          total: number
+        }[]
+      }
+      get_recent_activities: {
+        Args: { p_limit?: number; p_tenant_id: string }
+        Returns: {
+          created_at: string
+          description: string
+          id: string
+          metadata: Json
+          type: string
+          user_avatar: string
+          user_name: string
+        }[]
+      }
+      get_top_items: {
+        Args: { p_limit?: number; p_tenant_id: string }
+        Returns: {
+          category_color: string
+          category_name: string
+          code: string
+          id: string
+          name: string
+          quantity_in_use: number
+          quantity_total: number
+          stock_status: string
+          thumbnail: string
+          utilization_rate: number
+        }[]
+      }
       get_user_primary_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1959,6 +2029,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      refresh_monthly_expenses: { Args: never; Returns: undefined }
       setup_new_tenant:
         | {
             Args: {

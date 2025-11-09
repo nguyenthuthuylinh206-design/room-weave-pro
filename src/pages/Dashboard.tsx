@@ -1,11 +1,31 @@
 import { PageHeader } from '@/components/shared/PageHeader'
-import { StatCard } from '@/components/ui/stat-card'
+import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Package, Hotel, Wind, AlertTriangle } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'
+import { useDashboardStats } from '@/hooks/useDashboardStats'
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 
 export default function Dashboard() {
   const { user } = useUser()
+  const { data: stats, isLoading } = useDashboardStats()
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title={`Chào mừng trở lại, ${user?.full_name || 'User'}!`}
+          description="Tổng quan hệ thống quản lý tài sản khách sạn"
+        />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <DashboardStatCard title="" value="" icon={Package} isLoading />
+          <DashboardStatCard title="" value="" icon={Hotel} isLoading />
+          <DashboardStatCard title="" value="" icon={Wind} isLoading />
+          <DashboardStatCard title="" value="" icon={AlertTriangle} isLoading />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -16,29 +36,33 @@ export default function Dashboard() {
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Tổng tài sản"
-          value="3,456"
-          description="items"
+        <DashboardStatCard
+          title="Tổng giá trị tài sản"
+          value={new Intl.NumberFormat('vi-VN').format(stats?.total_value || 0)}
           icon={Package}
+          change={{
+            value: stats?.total_value_change_percent || null,
+            label: 'so với tháng trước'
+          }}
+          description="VNĐ"
         />
-        <StatCard
-          title="Tổng phòng"
-          value="125"
-          description="rooms"
-          icon={Hotel}
+        <DashboardStatCard
+          title="Tổng số tài sản"
+          value={new Intl.NumberFormat('vi-VN').format(stats?.total_items || 0)}
+          icon={Package}
+          description={`${stats?.in_stock || 0} trong kho`}
         />
-        <StatCard
+        <DashboardStatCard
           title="Đang giặt"
-          value="456"
-          description="items"
+          value={new Intl.NumberFormat('vi-VN').format(stats?.in_laundry || 0)}
           icon={Wind}
+          description={`${stats?.active_laundry_batches || 0} lô đang xử lý`}
         />
-        <StatCard
-          title="Cảnh báo"
-          value="23"
-          description="items cần bổ sung"
+        <DashboardStatCard
+          title="Cảnh báo tồn kho"
+          value={stats?.low_stock_count || 0}
           icon={AlertTriangle}
+          description="items cần bổ sung"
         />
       </div>
 
