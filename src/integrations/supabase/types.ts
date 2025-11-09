@@ -2043,6 +2043,35 @@ export type Database = {
           user_name: string
         }[]
       }
+      get_room_detail: { Args: { p_room_id: string }; Returns: Json }
+      get_rooms_filtered: {
+        Args: {
+          p_floor?: number
+          p_hotel_id?: string
+          p_missing_items_only?: boolean
+          p_room_type?: string
+          p_search?: string
+          p_status?: string
+          p_tenant_id: string
+        }
+        Returns: {
+          amenities: string[]
+          area_sqm: number
+          base_price: number
+          bed_type: string
+          floor: number
+          id: string
+          items_in_laundry: number
+          last_check_at: string
+          last_check_score: number
+          max_guests: number
+          missing_items: number
+          room_number: string
+          room_type: string
+          status: string
+          total_items: number
+        }[]
+      }
       get_top_items: {
         Args: { p_limit?: number; p_tenant_id: string }
         Returns: {

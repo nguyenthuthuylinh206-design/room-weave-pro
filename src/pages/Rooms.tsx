@@ -1,192 +1,202 @@
-import Layout from "@/components/Layout";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { DoorOpen, Plus } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useState } from 'react'
+import { Plus } from 'lucide-react'
+import { PageHeader } from '@/components/shared/PageHeader'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useRooms, useRoomStats } from '@/hooks/useRooms'
+import { useUser } from '@/hooks/useUser'
+import { cn } from '@/lib/utils'
+import type { RoomStatus, RoomWithStats } from '@/types/rooms.types'
 
-const Rooms = () => {
+export default function RoomsPage() {
+  const { tenantId, hotelId } = useUser()
+  const [filters, setFilters] = useState<{ status?: RoomStatus }>({})
+  
+  const { data: rooms, isLoading: roomsLoading } = useRooms(filters)
+  const { data: stats, isLoading: statsLoading } = useRoomStats(tenantId, hotelId)
+
   return (
-    <Layout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Room Management</h1>
-            <p className="text-muted-foreground">Monitor and manage all hotel rooms</p>
-          </div>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Room
-          </Button>
-        </div>
+    <div className="space-y-6">
+        <PageHeader
+          title="Quản lý Phòng"
+          description="Theo dõi và quản lý tất cả các phòng trong khách sạn"
+          action={{
+            label: 'Thêm phòng',
+            icon: Plus,
+            onClick: () => console.log('Add room'),
+          }}
+        />
 
         {/* Status Overview */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <StatusCard label="Vacant" count={8} color="success" />
-          <StatusCard label="Occupied" count={34} color="primary" />
-          <StatusCard label="Cleaning" count={5} color="warning" />
-          <StatusCard label="Maintenance" count={1} color="destructive" />
-        </div>
-
-        {/* Rooms Grid */}
-        <div>
-          <h2 className="mb-4 text-xl font-semibold text-foreground">All Rooms</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            <RoomCard
-              number="101"
-              type="Standard"
-              status="vacant"
-              floor={1}
-              itemsComplete={true}
+        {statsLoading ? (
+          <div className="grid gap-4 md:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-24" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-4">
+            <StatusCard
+              label="Phòng trống"
+              count={stats?.vacant || 0}
+              color="success"
+              onClick={() => setFilters({ status: 'vacant' })}
+              active={filters.status === 'vacant'}
             />
-            <RoomCard
-              number="102"
-              type="Standard"
-              status="occupied"
-              floor={1}
-              itemsComplete={true}
+            <StatusCard
+              label="Đang ở"
+              count={stats?.occupied || 0}
+              color="primary"
+              onClick={() => setFilters({ status: 'occupied' })}
+              active={filters.status === 'occupied'}
             />
-            <RoomCard
-              number="103"
-              type="Deluxe"
-              status="occupied"
-              floor={1}
-              itemsComplete={true}
+            <StatusCard
+              label="Đang dọn"
+              count={stats?.cleaning || 0}
+              color="warning"
+              onClick={() => setFilters({ status: 'cleaning' })}
+              active={filters.status === 'cleaning'}
             />
-            <RoomCard
-              number="104"
-              type="Standard"
-              status="cleaning"
-              floor={1}
-              itemsComplete={false}
-            />
-            <RoomCard
-              number="201"
-              type="Deluxe"
-              status="occupied"
-              floor={2}
-              itemsComplete={true}
-            />
-            <RoomCard
-              number="202"
-              type="Suite"
-              status="vacant"
-              floor={2}
-              itemsComplete={true}
-            />
-            <RoomCard
-              number="203"
-              type="Deluxe"
-              status="occupied"
-              floor={2}
-              itemsComplete={true}
-            />
-            <RoomCard
-              number="204"
-              type="Standard"
-              status="maintenance"
-              floor={2}
-              itemsComplete={false}
+            <StatusCard
+              label="Bảo trì"
+              count={stats?.maintenance || 0}
+              color="destructive"
+              onClick={() => setFilters({ status: 'maintenance' })}
+              active={filters.status === 'maintenance'}
             />
           </div>
+        )}
+
+        {/* Room Grid */}
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-semibold">
+              {filters.status ? `Phòng ${getStatusLabel(filters.status)}` : 'Tất cả phòng'}
+            </h2>
+            {filters.status && (
+              <button
+                onClick={() => setFilters({})}
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                Xóa bộ lọc
+              </button>
+            )}
+          </div>
+          
+          {roomsLoading ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {[...Array(8)].map((_, i) => (
+                <Skeleton key={i} className="h-48" />
+              ))}
+            </div>
+          ) : rooms && rooms.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {rooms.map((room) => (
+                <RoomCard key={room.id} room={room} />
+              ))}
+            </div>
+          ) : (
+            <Card className="flex flex-col items-center justify-center py-12">
+              <p className="text-muted-foreground">Không tìm thấy phòng nào</p>
+            </Card>
+          )}
+        </div>
+    </div>
+  )
+}
+
+function getStatusLabel(status: RoomStatus): string {
+  const labels: Record<RoomStatus, string> = {
+    vacant: 'trống',
+    occupied: 'đang ở',
+    cleaning: 'đang dọn',
+    maintenance: 'bảo trì',
+    out_of_order: 'ngừng hoạt động',
+  }
+  return labels[status]
+}
+
+interface StatusCardProps {
+  label: string
+  count: number
+  color: 'success' | 'primary' | 'warning' | 'destructive'
+  onClick: () => void
+  active?: boolean
+}
+
+function StatusCard({ label, count, color, onClick, active }: StatusCardProps) {
+  const colorClasses = {
+    success: 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100',
+    primary: 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100',
+    warning: 'border-yellow-200 bg-yellow-50 text-yellow-700 hover:bg-yellow-100',
+    destructive: 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100',
+  }
+
+  return (
+    <Card
+      className={cn(
+        'cursor-pointer border-2 p-6 transition-all',
+        colorClasses[color],
+        active && 'ring-2 ring-offset-2'
+      )}
+      onClick={onClick}
+    >
+      <div className="text-center">
+        <div className="text-4xl font-bold">{count}</div>
+        <div className="mt-2 text-sm font-medium">{label}</div>
+      </div>
+    </Card>
+  )
+}
+
+interface RoomCardProps {
+  room: RoomWithStats
+}
+
+function RoomCard({ room }: RoomCardProps) {
+  const statusConfig = {
+    vacant: { label: 'Phòng trống', color: 'bg-green-100 text-green-800' },
+    occupied: { label: 'Đang ở', color: 'bg-blue-100 text-blue-800' },
+    cleaning: { label: 'Đang dọn', color: 'bg-yellow-100 text-yellow-800' },
+    maintenance: { label: 'Bảo trì', color: 'bg-red-100 text-red-800' },
+    out_of_order: { label: 'Ngừng hoạt động', color: 'bg-gray-100 text-gray-800' },
+  }
+
+  const config = statusConfig[room.status as keyof typeof statusConfig]
+
+  return (
+    <Card className="overflow-hidden transition-shadow hover:shadow-lg cursor-pointer">
+      <div className="p-6">
+        <div className="mb-4 flex items-start justify-between">
+          <div>
+            <h3 className="text-2xl font-bold">Phòng {room.room_number}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Tầng {room.floor} • {room.room_type}
+            </p>
+          </div>
+          <Badge className={config.color}>{config.label}</Badge>
+        </div>
+
+        <div className="space-y-2 text-sm">
+          {room.bed_type && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Loại giường</span>
+              <span className="font-medium capitalize">{room.bed_type}</span>
+            </div>
+          )}
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Tài sản</span>
+            <span className="font-medium">{room.total_items} items</span>
+          </div>
+          {room.missing_items > 0 && (
+            <div className="flex justify-between text-red-600">
+              <span>Thiếu</span>
+              <span className="font-medium">{room.missing_items} items</span>
+            </div>
+          )}
         </div>
       </div>
-    </Layout>
-  );
-};
-
-const StatusCard = ({
-  label,
-  count,
-  color,
-}: {
-  label: string;
-  count: number;
-  color: "success" | "primary" | "warning" | "destructive";
-}) => {
-  const colorClasses = {
-    success: "bg-success/10 border-success/20 text-success",
-    primary: "bg-primary/10 border-primary/20 text-primary",
-    warning: "bg-warning/10 border-warning/20 text-warning",
-    destructive: "bg-destructive/10 border-destructive/20 text-destructive",
-  };
-
-  return (
-    <Card className={cn("border", colorClasses[color])}>
-      <CardContent className="p-4">
-        <div className="text-center">
-          <p className="text-3xl font-bold">{count}</p>
-          <p className="text-sm font-medium opacity-80">{label}</p>
-        </div>
-      </CardContent>
     </Card>
-  );
-};
-
-const RoomCard = ({
-  number,
-  type,
-  status,
-  floor,
-  itemsComplete,
-}: {
-  number: string;
-  type: string;
-  status: "vacant" | "occupied" | "cleaning" | "maintenance";
-  floor: number;
-  itemsComplete: boolean;
-}) => {
-  const statusConfig = {
-    vacant: { label: "Vacant", color: "bg-success text-success-foreground" },
-    occupied: { label: "Occupied", color: "bg-primary text-primary-foreground" },
-    cleaning: { label: "Cleaning", color: "bg-warning text-warning-foreground" },
-    maintenance: { label: "Maintenance", color: "bg-destructive text-destructive-foreground" },
-  };
-
-  const config = statusConfig[status];
-
-  return (
-    <Card className="group cursor-pointer transition-all hover:shadow-md">
-      <CardContent className="p-4">
-        <div className="space-y-3">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2">
-              <div className="rounded-lg bg-secondary p-2">
-                <DoorOpen className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-lg font-bold text-foreground">Room {number}</p>
-                <p className="text-xs text-muted-foreground">Floor {floor}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Type</span>
-              <span className="text-sm font-medium text-foreground">{type}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Status</span>
-              <Badge className={config.color}>{config.label}</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Items</span>
-              <span
-                className={cn(
-                  "text-xs font-medium",
-                  itemsComplete ? "text-success" : "text-warning"
-                )}
-              >
-                {itemsComplete ? "Complete" : "Missing items"}
-              </span>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-export default Rooms;
+  )
+}
