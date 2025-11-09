@@ -2026,6 +2026,45 @@ export type Database = {
           unit_price: number
         }[]
       }
+      get_laundry_batch_detail: { Args: { p_batch_id: string }; Returns: Json }
+      get_laundry_batches_filtered: {
+        Args: {
+          p_from_date?: string
+          p_hotel_id?: string
+          p_limit?: number
+          p_offset?: number
+          p_status?: string
+          p_tenant_id: string
+          p_to_date?: string
+          p_vendor_id?: string
+        }
+        Returns: {
+          actual_cost: number
+          actual_return_date: string
+          batch_code: string
+          created_at: string
+          delivery_date: string
+          estimated_cost: number
+          expected_return_date: string
+          id: string
+          items_damaged: number
+          items_lost: number
+          quality_rating: number
+          status: string
+          timeliness_rating: number
+          total_count: number
+          total_items: number
+          total_weight_kg: number
+          vendor_id: string
+          vendor_logo: string
+          vendor_name: string
+          vendor_rating: number
+        }[]
+      }
+      get_laundry_dashboard_stats: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
       get_monthly_expenses: {
         Args: { p_months?: number; p_tenant_id: string }
         Returns: {
@@ -2034,6 +2073,16 @@ export type Database = {
           month: string
           purchase: number
           total: number
+        }[]
+      }
+      get_monthly_laundry_expenses: {
+        Args: { p_tenant_id: string; p_year?: number }
+        Returns: {
+          actual_cost: number
+          estimated_cost: number
+          month: string
+          total_batches: number
+          total_items: number
         }[]
       }
       get_recent_activities: {
@@ -2108,6 +2157,10 @@ export type Database = {
       get_user_primary_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_vendor_performance: {
+        Args: { p_days?: number; p_vendor_id: string }
+        Returns: Json
       }
       has_role: {
         Args: {
