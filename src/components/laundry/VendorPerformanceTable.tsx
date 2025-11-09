@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Star, TrendingUp, Package } from 'lucide-react'
+import { Star, Eye, Package } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -9,14 +9,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useLaundryVendors } from '@/hooks/useLaundryVendors'
 
 export function VendorPerformanceTable() {
   const navigate = useNavigate()
-  const { data: vendors, isLoading } = useLaundryVendors({ status: 'active' })
+  const { data: vendors, isLoading } = useLaundryVendors()
   
   if (isLoading) {
     return (
@@ -35,24 +36,19 @@ export function VendorPerformanceTable() {
     )
   }
   
-  // Sort by rating
-  const topVendors = vendors?.sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 5) || []
+  // Filter active vendors and sort by rating
+  const activeVendors = vendors
+    ?.filter(v => v.status === 'active')
+    .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+    .slice(0, 5) || []
   
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Hiệu suất đơn vị giặt</CardTitle>
-          <button
-            onClick={() => navigate('/laundry/vendors')}
-            className="text-sm text-primary hover:underline"
-          >
-            Xem tất cả
-          </button>
-        </div>
+        <CardTitle>Đánh giá đơn vị giặt</CardTitle>
       </CardHeader>
       <CardContent>
-        {topVendors.length === 0 ? (
+        {activeVendors.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Package className="h-12 w-12 text-muted-foreground/50" />
             <p className="mt-2 text-sm text-muted-foreground">
@@ -60,48 +56,71 @@ export function VendorPerformanceTable() {
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {topVendors.map((vendor) => (
-              <div
-                key={vendor.id}
-                className="flex items-center gap-4 rounded-lg border p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => navigate(`/laundry/vendors/${vendor.id}`)}
-              >
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={(vendor.contract_info as any)?.logo_url} />
-                  <AvatarFallback>
-                    {vendor.name.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-                
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{vendor.name}</p>
-                      <p className="text-xs text-muted-foreground capitalize">
-                        {vendor.type === 'external' ? 'Bên ngoài' : 'Nội bộ'}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span className="font-semibold">
-                        {vendor.rating?.toFixed(1) || '0.0'}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Hiệu suất</span>
-                      <span className="font-medium">
-                        {vendor.rating ? Math.round((vendor.rating / 5) * 100) : 0}%
-                      </span>
-                    </div>
-                    <Progress value={vendor.rating ? (vendor.rating / 5) * 100 : 0} />
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Đơn vị</TableHead>
+                  <TableHead>Loại</TableHead>
+                  <TableHead>Đánh giá</TableHead>
+                  <TableHead className="w-12"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {activeVendors.map((vendor) => (
+                  <TableRow
+                    key={vendor.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => navigate(`/laundry/vendors/${vendor.id}`)}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={(vendor.contract_info as any)?.logo_url || undefined} />
+                          <AvatarFallback>
+                            {vendor.name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium">{vendor.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {vendor.type === 'external' ? 'Ngoài' : 'Nội bộ'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="flex">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`h-3 w-3 ${
+                                i < Math.floor(vendor.rating || 0)
+                                  ? 'fill-yellow-400 text-yellow-400'
+                                  : 'text-muted'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm font-medium">
+                          {(vendor.rating || 0).toFixed(1)}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/laundry/vendors/${vendor.id}`)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
       </CardContent>
