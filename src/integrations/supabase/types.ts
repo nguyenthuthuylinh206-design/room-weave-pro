@@ -1909,6 +1909,21 @@ export type Database = {
       }
     }
     Functions: {
+      complete_registration: {
+        Args: {
+          p_email: string
+          p_full_name: string
+          p_hotel_address: string
+          p_hotel_email: string
+          p_hotel_name: string
+          p_hotel_phone: string
+          p_phone: string
+          p_tenant_name: string
+          p_total_rooms: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
       create_default_categories: {
         Args: { p_tenant_id: string }
         Returns: undefined

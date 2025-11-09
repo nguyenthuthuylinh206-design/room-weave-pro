@@ -50,7 +50,7 @@ export const RegisterForm = () => {
     setIsSubmitting(true)
 
     try {
-      // 1. Create auth user
+      // 1. Create auth user (trigger will create user profile + role automatically)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: step1Data.email,
         password: step1Data.password,
@@ -66,14 +66,15 @@ export const RegisterForm = () => {
       if (authError) throw authError
       if (!authData.user) throw new Error('Không thể tạo tài khoản')
 
-      // 2. Setup tenant and hotel (trigger will create user profile automatically)
+      // 2. Complete registration in ONE atomic transaction
       const { data: setupData, error: setupError } = await supabase.rpc(
-        'setup_new_tenant',
+        'complete_registration',
         {
           p_user_id: authData.user.id,
+          p_full_name: step1Data.fullName,
+          p_email: step1Data.email,
+          p_phone: step1Data.phone || '',
           p_tenant_name: step2Data.tenantName,
-          p_tenant_email: step1Data.email,
-          p_tenant_phone: step1Data.phone || '',
           p_hotel_name: step2Data.hotelName,
           p_hotel_address: step2Data.hotelAddress,
           p_hotel_phone: step2Data.hotelPhone || '',
