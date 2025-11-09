@@ -9,6 +9,7 @@ export type RoomCheck = Database['public']['Tables']['room_checks']['Row']
 
 export type RoomType = 'standard' | 'deluxe' | 'suite' | 'vip'
 export type RoomStatus = 'vacant' | 'occupied' | 'cleaning' | 'maintenance' | 'out_of_order'
+export type CheckType = 'daily' | 'checkout' | 'checkin' | 'maintenance'
 
 export interface RoomWithStats extends Room {
   total_items: number
@@ -24,4 +25,23 @@ export interface RoomFilters {
   roomType?: RoomType
   status?: RoomStatus
   missingItemsOnly?: boolean
+}
+
+export interface RoomCheckFormData {
+  check_type: CheckType
+  cleanliness_score?: number
+  items_complete: boolean
+  items_missing: any[]
+  items_damaged: any[]
+  notes?: string
+  photos?: string[]
+}
+
+export interface FloorPlanData {
+  [floor: string]: {
+    id: string
+    room_number: string
+    room_type: RoomType
+    status: RoomStatus
+  }[]
 }

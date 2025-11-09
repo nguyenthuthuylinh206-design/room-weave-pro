@@ -1941,6 +1941,10 @@ export type Database = {
       }
     }
     Functions: {
+      apply_room_standards: {
+        Args: { p_room_id: string; p_user_id: string }
+        Returns: Json
+      }
       bulk_delete_items: {
         Args: { p_item_ids: string[]; p_user_id: string }
         Returns: Json
@@ -1984,6 +1988,7 @@ export type Database = {
       }
       get_current_user_role: { Args: never; Returns: string }
       get_dashboard_stats: { Args: { p_tenant_id: string }; Returns: Json }
+      get_floor_plan: { Args: { p_hotel_id: string }; Returns: Json }
       get_item_detail: { Args: { p_item_id: string }; Returns: Json }
       get_items_filtered: {
         Args: {
@@ -2044,6 +2049,19 @@ export type Database = {
         }[]
       }
       get_room_detail: { Args: { p_room_id: string }; Returns: Json }
+      get_room_standards: {
+        Args: { p_hotel_id: string; p_room_type: string }
+        Returns: {
+          category_color: string
+          category_name: string
+          id: string
+          item_code: string
+          item_id: string
+          item_name: string
+          item_thumbnail: string
+          quantity: number
+        }[]
+      }
       get_rooms_filtered: {
         Args: {
           p_floor?: number
