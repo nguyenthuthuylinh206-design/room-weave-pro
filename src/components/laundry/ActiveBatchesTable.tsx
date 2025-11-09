@@ -47,7 +47,7 @@ export function ActiveBatchesTable({ batches, isLoading }: ActiveBatchesTablePro
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Lô giặt đang xử lý</CardTitle>
-          <Button variant="outline" onClick={() => navigate('/laundry/batches')}>
+          <Button onClick={() => navigate('/laundry/batches')}>
             Xem tất cả
           </Button>
         </div>
