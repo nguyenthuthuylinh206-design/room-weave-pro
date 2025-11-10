@@ -12,6 +12,9 @@ import { InventoryDashboardPage } from "./pages/inventory/InventoryDashboardPage
 import { TransactionListPage } from "./pages/inventory/TransactionListPage";
 import { InboundPage } from "./pages/inventory/InboundPage";
 import { OutboundPage } from "./pages/inventory/OutboundPage";
+import { AdjustmentListPage } from "./pages/inventory/AdjustmentListPage";
+import { CreateAdjustmentPage } from "./pages/inventory/CreateAdjustmentPage";
+import { CheckAdjustmentPage } from "./pages/inventory/CheckAdjustmentPage";
 import { ItemsPage } from "./pages/items/ItemsPage";
 import { RoomsPage } from "./pages/rooms/RoomsPage";
 import { RoomDetailPage } from "./pages/rooms/RoomDetailPage";
@@ -73,6 +76,9 @@ const App = () => (
               <Route path="/inventory/transactions" element={<TransactionListPage />} />
               <Route path="/inventory/inbound/new" element={<InboundPage />} />
               <Route path="/inventory/outbound/new" element={<OutboundPage />} />
+              <Route path="/inventory/adjustments" element={<AdjustmentListPage />} />
+              <Route path="/inventory/adjustments/new" element={<CreateAdjustmentPage />} />
+              <Route path="/inventory/adjustments/:id/check" element={<CheckAdjustmentPage />} />
               
               {/* Items */}
               <Route path="/items" element={<ItemsPage />} />
