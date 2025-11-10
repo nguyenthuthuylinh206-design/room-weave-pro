@@ -37,6 +37,9 @@ import {
 import { useState } from 'react'
 import { useTenant } from '@/hooks/useTenant'
 import { supabase } from '@/integrations/supabase/client'
+import { useLatestBackup } from '@/hooks/useBackupLogs'
+import { BackupHistoryDialog } from '@/components/settings/BackupHistoryDialog'
+import { formatDistanceToNow } from 'date-fns'
 
 const securitySchema = z.object({
   // Password Policy
@@ -81,6 +84,8 @@ export default function SystemSecurityPage() {
   const { tenant } = useTenant()
   const [factoryResetDialog, setFactoryResetDialog] = useState(false)
   const [confirmText, setConfirmText] = useState('')
+  const [backupHistoryOpen, setBackupHistoryOpen] = useState(false)
+  const { data: latestBackup } = useLatestBackup()
 
   const form = useForm<SecuritySettings>({
     resolver: zodResolver(securitySchema),
@@ -134,8 +139,45 @@ export default function SystemSecurityPage() {
   }
 
   const handleBackupNow = async () => {
-    toast.info('Backup process started...')
-    // Implementation would trigger backup edge function
+    try {
+      toast.info('Backup process started...')
+      
+      // Create backup log entry
+      const { error } = await supabase
+        .from('backup_logs')
+        .insert({
+          tenant_id: tenant?.id,
+          backup_type: 'manual',
+          backup_scope: [
+            form.getValues('backup_database') ? 'database' : null,
+            form.getValues('backup_files') ? 'files' : null,
+            form.getValues('backup_settings') ? 'settings' : null,
+            form.getValues('backup_logs') ? 'logs' : null,
+          ].filter(Boolean),
+          status: 'in_progress',
+        })
+
+      if (error) throw error
+
+      toast.success('Backup initiated. This may take a few minutes.')
+      // In production, this would trigger an edge function to perform the actual backup
+    } catch (error) {
+      console.error('Backup error:', error)
+      toast.error('Failed to start backup')
+    }
+  }
+
+  const formatFileSize = (bytes: number | null) => {
+    if (!bytes) return 'N/A'
+    const mb = bytes / (1024 * 1024)
+    return `${mb.toFixed(2)} MB`
+  }
+
+  const formatDuration = (seconds: number | null) => {
+    if (!seconds) return 'N/A'
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return minutes > 0 ? `${minutes}m ${remainingSeconds}s` : `${remainingSeconds}s`
   }
 
   const handleFactoryReset = async () => {
@@ -589,23 +631,45 @@ export default function SystemSecurityPage() {
 
               <div className="space-y-4">
                 <h3 className="font-semibold">Backup Status</h3>
-                <div className="rounded-lg border p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Last Backup</span>
-                    <span className="text-sm text-muted-foreground flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      2024-03-10 02:00 AM
-                    </span>
+                {latestBackup ? (
+                  <div className="rounded-lg border p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Last Backup</span>
+                      <span className="text-sm text-muted-foreground flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        {new Date(latestBackup.created_at).toLocaleString('vi-VN', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Size</span>
+                      <span className="text-sm text-muted-foreground">
+                        {formatFileSize(latestBackup.file_size_bytes)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Duration</span>
+                      <span className="text-sm text-muted-foreground">
+                        {formatDuration(latestBackup.duration_seconds)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Status</span>
+                      <span className="text-sm text-muted-foreground">
+                        {formatDistanceToNow(new Date(latestBackup.created_at), { addSuffix: true })}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Size</span>
-                    <span className="text-sm text-muted-foreground">245 MB</span>
+                ) : (
+                  <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
+                    No backups found. Click "Backup Now" to create your first backup.
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Duration</span>
-                    <span className="text-sm text-muted-foreground">3m 45s</span>
-                  </div>
-                </div>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-2 pt-4">
@@ -613,15 +677,20 @@ export default function SystemSecurityPage() {
                   <Download className="h-4 w-4 mr-2" />
                   Backup Now
                 </Button>
-                <Button type="button" variant="outline">
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Latest
-                </Button>
-                <Button type="button" variant="outline">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Backup
-                </Button>
-                <Button type="button" variant="outline">
+                {latestBackup && latestBackup.file_path && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      toast.info('Download would start here')
+                      // TODO: Implement actual download from storage
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Latest
+                  </Button>
+                )}
+                <Button type="button" variant="outline" onClick={() => setBackupHistoryOpen(true)}>
                   View Backup History
                 </Button>
               </div>
@@ -853,6 +922,8 @@ export default function SystemSecurityPage() {
           </div>
         </form>
       </Form>
+
+      <BackupHistoryDialog open={backupHistoryOpen} onOpenChange={setBackupHistoryOpen} />
     </div>
   )
 }
