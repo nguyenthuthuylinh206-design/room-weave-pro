@@ -4,14 +4,14 @@ import { useTenant } from './useTenant'
 import { useUser } from './useUser'
 import type { InventoryDashboardStats, LowStockItem, InventoryValueData } from '@/types/inventory.types'
 
-export function useInventoryDashboardStats() {
+export function useInventoryDashboard() {
   const { tenant } = useTenant()
   const { user } = useUser()
   
   return useQuery({
-    queryKey: ['inventory-dashboard-stats', tenant?.id, user?.hotel_id],
+    queryKey: ['inventory-dashboard', tenant?.id, user?.hotel_id],
     queryFn: async () => {
-      if (!tenant?.id || !user?.hotel_id) throw new Error('Missing tenant or hotel')
+      if (!tenant?.id || !user?.hotel_id) throw new Error('No tenant or hotel')
       
       const { data, error } = await supabase
         .rpc('get_inventory_dashboard_stats', {
@@ -23,7 +23,7 @@ export function useInventoryDashboardStats() {
       return data as unknown as InventoryDashboardStats
     },
     enabled: !!tenant?.id && !!user?.hotel_id,
-    refetchInterval: 30000, // 30 seconds
+    refetchInterval: 60000, // 1 minute
   })
 }
 

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useTenant } from './useTenant'
 import { useUser } from './useUser'
 import { toast } from 'sonner'
+import { useToast } from '@/components/ui/use-toast'
 import type { 
   TransactionWithDetails, 
   InventoryFilters,
@@ -21,21 +22,20 @@ export function useInventoryTransactions(
   return useQuery({
     queryKey: ['inventory-transactions', tenant?.id, user?.hotel_id, filters, page, pageSize],
     queryFn: async () => {
-      if (!tenant?.id) throw new Error('Missing tenant')
+      if (!tenant?.id) throw new Error('No tenant')
       
-      const { data, error } = await supabase
-        .rpc('get_inventory_transactions_filtered', {
-          p_tenant_id: tenant.id,
-          p_hotel_id: user?.hotel_id || null,
-          p_transaction_type: filters.transaction_type || null,
-          p_category_id: filters.category_id || null,
-          p_created_by: filters.created_by || null,
-          p_date_from: filters.date_from?.toISOString().split('T')[0] || null,
-          p_date_to: filters.date_to?.toISOString().split('T')[0] || null,
-          p_search: filters.search || null,
-          p_limit: pageSize,
-          p_offset: (page - 1) * pageSize,
-        })
+      const { data, error } = await supabase.rpc('get_inventory_transactions_filtered', {
+        p_tenant_id: tenant.id,
+        p_hotel_id: user?.hotel_id || null,
+        p_transaction_type: filters.transaction_type || null,
+        p_category_id: filters.category_id || null,
+        p_created_by: filters.created_by || null,
+        p_date_from: filters.date_from?.toISOString().split('T')[0] || null,
+        p_date_to: filters.date_to?.toISOString().split('T')[0] || null,
+        p_search: filters.search || null,
+        p_limit: pageSize,
+        p_offset: (page - 1) * pageSize,
+      })
       
       if (error) throw error
       
@@ -45,115 +45,222 @@ export function useInventoryTransactions(
       return {
         transactions,
         total,
-        pages: Math.ceil(total / pageSize),
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize),
       }
     },
     enabled: !!tenant?.id,
   })
 }
 
+export function useInventoryTransaction(transactionId: string | undefined) {
+  return useQuery({
+    queryKey: ['inventory-transaction', transactionId],
+    queryFn: async () => {
+      if (!transactionId) throw new Error('No transaction ID')
+      
+      const { data, error } = await supabase
+        .from('inventory_transactions')
+        .select(`
+          *,
+          item:items(
+            id, code, name, images, unit_price,
+            category:item_categories(name, color)
+          ),
+          created_by_user:users!inventory_transactions_created_by_fkey(
+            id, full_name, avatar_url
+          )
+        `)
+        .eq('id', transactionId)
+        .single()
+      
+      if (error) throw error
+      return data
+    },
+    enabled: !!transactionId,
+  })
+}
+
 export function useCreateInboundTransaction() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
   const { tenant } = useTenant()
   const { user } = useUser()
-  const queryClient = useQueryClient()
   
   return useMutation({
     mutationFn: async (data: CreateInboundData) => {
       if (!tenant?.id || !user?.hotel_id || !user?.id) {
-        throw new Error('Missing required information')
+        throw new Error('Missing required data')
       }
       
-      const { data: result, error } = await supabase
-        .rpc('create_inbound_transaction', {
-          p_tenant_id: tenant.id,
-          p_hotel_id: user.hotel_id,
-          p_transaction_category: data.transaction_category,
-          p_from_location: data.from_location,
-          p_to_location: data.to_location,
-          p_created_by: user.id,
-          p_items: data.items as any,
-          p_related_type: data.related_type || null,
-          p_related_id: data.related_id || null,
-          p_documents: data.documents || null,
-          p_photos: data.photos || null,
-          p_notes: data.notes || null,
-        })
+      const { data: result, error } = await supabase.rpc('create_inbound_transaction', {
+        p_tenant_id: tenant.id,
+        p_hotel_id: user.hotel_id,
+        p_transaction_category: data.transaction_category,
+        p_from_location: data.from_location,
+        p_to_location: data.to_location,
+        p_created_by: user.id,
+        p_items: data.items as any,
+        p_related_type: data.related_type || null,
+        p_related_id: data.related_id || null,
+        p_documents: data.documents || null,
+        p_photos: data.photos || null,
+        p_notes: data.notes || null,
+      })
       
       if (error) throw error
       
-      const typedResult = result as unknown as { success: boolean; error?: string; transaction_id?: string; transaction_code?: string }
-      if (!typedResult.success) throw new Error(typedResult.error)
+      const response = result as unknown as { 
+        success: boolean
+        error?: string
+        total_items?: number
+        total_value?: number
+      }
       
-      return typedResult
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create transaction')
+      }
+      
+      return response
     },
-    onSuccess: () => {
+    onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
-      queryClient.invalidateQueries({ queryKey: ['inventory-dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory-dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
-      toast.success('Đã tạo phiếu nhập kho thành công')
+      queryClient.invalidateQueries({ queryKey: ['low-stock-items'] })
+      
+      toast({
+        title: 'Thành công',
+        description: `Đã nhập ${result.total_items} loại hàng, tổng giá trị ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(result.total_value)}`,
+      })
     },
     onError: (error: Error) => {
-      toast.error(`Lỗi: ${error.message}`)
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
     },
   })
 }
 
 export function useCreateOutboundTransaction() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
   const { tenant } = useTenant()
   const { user } = useUser()
-  const queryClient = useQueryClient()
   
   return useMutation({
     mutationFn: async (data: CreateOutboundData) => {
       if (!tenant?.id || !user?.hotel_id || !user?.id) {
-        throw new Error('Missing required information')
+        throw new Error('Missing required data')
       }
       
-      const { data: result, error } = await supabase
-        .rpc('create_outbound_transaction', {
-          p_tenant_id: tenant.id,
-          p_hotel_id: user.hotel_id,
-          p_transaction_category: data.transaction_category,
-          p_from_location: data.from_location,
-          p_to_location: data.to_location,
-          p_created_by: user.id,
-          p_items: data.items as any,
-          p_related_type: data.related_type || null,
-          p_related_id: data.related_id || null,
-          p_recipient_name: data.recipient_name || null,
-          p_recipient_signature: data.recipient_signature || null,
-          p_documents: data.documents || null,
-          p_photos: data.photos || null,
-          p_notes: data.notes || null,
-        })
+      const { data: result, error } = await supabase.rpc('create_outbound_transaction', {
+        p_tenant_id: tenant.id,
+        p_hotel_id: user.hotel_id,
+        p_transaction_category: data.transaction_category,
+        p_from_location: data.from_location,
+        p_to_location: data.to_location,
+        p_created_by: user.id,
+        p_items: data.items as any,
+        p_related_type: data.related_type || null,
+        p_related_id: data.related_id || null,
+        p_recipient_name: data.recipient_name || null,
+        p_recipient_signature: data.recipient_signature || null,
+        p_documents: data.documents || null,
+        p_photos: data.photos || null,
+        p_notes: data.notes || null,
+      })
       
       if (error) throw error
       
-      const typedResult = result as unknown as { 
+      const response = result as unknown as { 
         success: boolean
         error?: string
-        transaction_id?: string
-        transaction_code?: string
+        total_items?: number
+        total_value?: number
         low_stock_items?: string[]
       }
       
-      if (!typedResult.success) throw new Error(typedResult.error)
-      
-      if (typedResult.low_stock_items && typedResult.low_stock_items.length > 0) {
-        toast.warning(`Cảnh báo: ${typedResult.low_stock_items.length} mặt hàng sắp hết`)
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create transaction')
       }
       
-      return typedResult
+      return response
+    },
+    onSuccess: (result: any) => {
+      queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory-dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['low-stock-items'] })
+      
+      let description = `Đã xuất ${result.total_items} loại hàng`
+      
+      if (result.low_stock_items && result.low_stock_items.length > 0) {
+        description += `\n⚠️ Cảnh báo: ${result.low_stock_items.join(', ')} đã xuống dưới mức tối thiểu`
+      }
+      
+      toast({
+        title: 'Thành công',
+        description,
+      })
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+}
+
+export function useDeleteTransaction() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  
+  return useMutation({
+    mutationFn: async (transactionId: string) => {
+      const { data: transaction } = await supabase
+        .from('inventory_transactions')
+        .select('created_at')
+        .eq('id', transactionId)
+        .single()
+      
+      if (!transaction) throw new Error('Transaction not found')
+      
+      const hoursSinceCreation = 
+        (Date.now() - new Date(transaction.created_at).getTime()) / (1000 * 60 * 60)
+      
+      if (hoursSinceCreation > 24) {
+        throw new Error('Chỉ có thể hủy giao dịch trong vòng 24 giờ')
+      }
+      
+      const { error } = await supabase
+        .from('inventory_transactions')
+        .delete()
+        .eq('id', transactionId)
+      
+      if (error) throw error
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
-      queryClient.invalidateQueries({ queryKey: ['inventory-dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory-dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
-      queryClient.invalidateQueries({ queryKey: ['low-stock-items'] })
-      toast.success('Đã tạo phiếu xuất kho thành công')
+      
+      toast({
+        title: 'Thành công',
+        description: 'Đã hủy giao dịch',
+      })
     },
     onError: (error: Error) => {
-      toast.error(`Lỗi: ${error.message}`)
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
     },
   })
 }
