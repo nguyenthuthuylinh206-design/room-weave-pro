@@ -13,6 +13,8 @@ import { RoomsPage } from "./pages/rooms/RoomsPage";
 import { RoomDetailPage } from "./pages/rooms/RoomDetailPage";
 import { LaundryDashboardPage } from "./pages/laundry/LaundryDashboardPage";
 import { BatchDetailPage } from "./pages/laundry/BatchDetailPage";
+import { ReceiveBatchPage } from "./pages/laundry/ReceiveBatchPage";
+import { VendorListPage } from "./pages/laundry/VendorListPage";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
@@ -59,8 +61,10 @@ const App = () => (
               <Route path="/inventory" element={<Inventory />} />
             <Route path="/rooms" element={<RoomsPage />} />
             <Route path="/rooms/:id" element={<RoomDetailPage />} />
-            <Route path="/laundry" element={<LaundryDashboardPage />} />
-            <Route path="/laundry/batches/:id" element={<BatchDetailPage />} />
+          <Route path="/laundry" element={<LaundryDashboardPage />} />
+          <Route path="/laundry/batches/:id" element={<BatchDetailPage />} />
+          <Route path="/laundry/batches/:id/receive" element={<ReceiveBatchPage />} />
+          <Route path="/laundry/vendors" element={<VendorListPage />} />
               
               {/* Profile */}
               <Route path="/profile" element={<ProfilePage />} />
