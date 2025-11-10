@@ -1,17 +1,17 @@
+import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, ChevronUp, ChevronDown, X } from 'lucide-react'
-import { WorkflowAction } from '@/hooks/useWorkflows'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Plus, ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
 import { CreateMaintenanceAction } from '../actions/CreateMaintenanceAction'
 import { SendNotificationAction } from '../actions/SendNotificationAction'
-import { Card } from '@/components/ui/card'
+import { UpdateRecordAction } from '../actions/UpdateRecordAction'
+import { CallWebhookAction } from '../actions/CallWebhookAction'
+import { ActionExecutionSettingsComponent } from '../shared/ActionExecutionSettings'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
-interface WorkflowActionsProps {
-  actions: WorkflowAction[]
-  onChange: (actions: WorkflowAction[]) => void
-  triggerType: string
-  triggerEvent?: string
+interface LocalWorkflowAction {
+  type: string
+  config: any
 }
 
 const ACTION_TYPES = [
@@ -19,25 +19,23 @@ const ACTION_TYPES = [
   { value: 'send_notification', label: 'Send Notification' },
   { value: 'send_email', label: 'Send Email' },
   { value: 'update_record', label: 'Update Record' },
-  { value: 'webhook', label: 'Call Webhook' },
-  { value: 'wait', label: 'Wait / Delay' },
+  { value: 'call_webhook', label: 'Call Webhook' },
 ]
 
-export const WorkflowActions = ({
-  actions,
-  onChange,
-  triggerType,
-  triggerEvent
-}: WorkflowActionsProps) => {
+interface WorkflowActionsProps {
+  actions: LocalWorkflowAction[]
+  onChange: (actions: LocalWorkflowAction[]) => void
+  triggerType: string
+  triggerEvent?: string
+}
+
+export const WorkflowActions = ({ actions, onChange, triggerType, triggerEvent }: WorkflowActionsProps) => {
   const addAction = (type: string) => {
-    onChange([
-      ...actions,
-      {
-        action_type: type as any,
-        action_config: {},
-        order_index: actions.length,
-      }
-    ])
+    const newAction: LocalWorkflowAction = {
+      type,
+      config: {}
+    }
+    onChange([...actions, newAction])
   }
 
   const removeAction = (index: number) => {
@@ -50,110 +48,134 @@ export const WorkflowActions = ({
     
     if (targetIndex >= 0 && targetIndex < actions.length) {
       [newActions[index], newActions[targetIndex]] = [newActions[targetIndex], newActions[index]]
-      newActions.forEach((action, i) => {
-        action.order_index = i
-      })
       onChange(newActions)
     }
   }
 
   const updateAction = (index: number, config: any) => {
-    onChange(
-      actions.map((action, i) =>
-        i === index ? { ...action, action_config: config } : action
-      )
-    )
+    const newActions = [...actions]
+    newActions[index] = { ...newActions[index], config }
+    onChange(newActions)
   }
 
-  const renderActionConfig = (action: WorkflowAction, index: number) => {
-    switch (action.action_type) {
+  const getActionLabel = (type: string) => {
+    return ACTION_TYPES.find(t => t.value === type)?.label || type
+  }
+
+  const renderActionConfig = (action: LocalWorkflowAction, index: number) => {
+    switch (action.type) {
       case 'create_maintenance':
         return (
           <CreateMaintenanceAction
-            config={action.action_config}
+            config={action.config}
             onChange={(config) => updateAction(index, config)}
-            triggerEvent={triggerEvent}
           />
         )
       case 'send_notification':
       case 'send_email':
         return (
           <SendNotificationAction
-            config={action.action_config}
+            config={action.config}
             onChange={(config) => updateAction(index, config)}
-            type={action.action_type === 'send_email' ? 'email' : 'notification'}
+            type={action.type === 'send_email' ? 'email' : 'notification'}
+            triggerType={triggerType}
+          />
+        )
+      case 'update_record':
+        return (
+          <UpdateRecordAction
+            config={action.config}
+            onChange={(config) => updateAction(index, config)}
+          />
+        )
+      case 'call_webhook':
+        return (
+          <CallWebhookAction
+            config={action.config}
+            onChange={(config) => updateAction(index, config)}
           />
         )
       default:
-        return <div className="text-sm text-muted-foreground">Configuration coming soon</div>
+        return <div>Unknown action type</div>
     }
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold mb-2">What should happen?</h3>
-        <p className="text-sm text-muted-foreground">
-          Define the actions to execute when conditions are met
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        {actions.map((action, index) => (
-          <Card key={index} className="p-6">
-            <div className="flex items-start justify-between mb-4">
-              <h4 className="font-semibold">
-                Action {index + 1}: {ACTION_TYPES.find(t => t.value === action.action_type)?.label}
-              </h4>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => moveAction(index, 'up')}
-                  disabled={index === 0}
-                >
-                  <ChevronUp className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => moveAction(index, 'down')}
-                  disabled={index === actions.length - 1}
-                >
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeAction(index)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+    <div className="space-y-4">
+      <div className="space-y-3">
+        {actions && actions.length > 0 ? (
+          actions.map((action, index) => (
+            <Card key={index} className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">Action {index + 1}</Badge>
+                  <span className="font-medium">{getActionLabel(action.type)}</span>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => moveAction(index, 'up')}
+                    disabled={index === 0}
+                    title="Move up"
+                  >
+                    <ChevronUp className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => moveAction(index, 'down')}
+                    disabled={index === actions.length - 1}
+                    title="Move down"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeAction(index)}
+                    title="Remove action"
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </div>
               </div>
-            </div>
-
-            <div className="border-t pt-4">
-              {renderActionConfig(action, index)}
-            </div>
-          </Card>
-        ))}
-
-        <div>
-          <Label>Add Action</Label>
-          <Select onValueChange={addAction}>
-            <SelectTrigger className="mt-1.5">
-              <SelectValue placeholder="Select action type" />
-            </SelectTrigger>
-            <SelectContent>
-              {ACTION_TYPES.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
-                  {type.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+              
+              <div className="mt-4">
+                {renderActionConfig(action, index)}
+              </div>
+            </Card>
+          ))
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <p>No actions added yet. Add your first action below.</p>
+          </div>
+        )}
       </div>
+
+      <Select onValueChange={(value) => addAction(value)}>
+        <SelectTrigger className="w-[250px]">
+          <SelectValue placeholder="Add action..." />
+        </SelectTrigger>
+        <SelectContent>
+          {ACTION_TYPES.map((type) => (
+            <SelectItem key={type.value} value={type.value}>
+              {type.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {actions && actions.length > 0 && (
+        <ActionExecutionSettingsComponent
+          settings={{
+            execution_mode: 'sequential',
+            on_failure: 'stop',
+            retry_count: 3
+          }}
+          onChange={() => {}}
+        />
+      )}
     </div>
   )
 }

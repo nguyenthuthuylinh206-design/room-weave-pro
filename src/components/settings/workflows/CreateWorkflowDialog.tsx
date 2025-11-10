@@ -10,12 +10,17 @@ import { WorkflowBasicInfo } from './steps/WorkflowBasicInfo'
 import { WorkflowTrigger } from './steps/WorkflowTrigger'
 import { WorkflowConditions } from './steps/WorkflowConditions'
 import { WorkflowActions } from './steps/WorkflowActions'
-import { useCreateWorkflow, WorkflowCondition, WorkflowAction } from '@/hooks/useWorkflows'
+import { useCreateWorkflow, WorkflowCondition } from '@/hooks/useWorkflows'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface CreateWorkflowDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+}
+
+interface LocalWorkflowAction {
+  type: string
+  config: any
 }
 
 interface WorkflowForm {
@@ -25,7 +30,7 @@ interface WorkflowForm {
   trigger_event?: string
   trigger_schedule?: string
   conditions: WorkflowCondition[]
-  actions: WorkflowAction[]
+  actions: LocalWorkflowAction[]
 }
 
 const INITIAL_FORM: WorkflowForm = {
@@ -61,7 +66,11 @@ export const CreateWorkflowDialog = ({ open, onOpenChange }: CreateWorkflowDialo
           conditions: form.conditions,
           status: 'active',
         },
-        actions: form.actions,
+        actions: form.actions.map((action, index) => ({
+          action_type: action.type as any,
+          action_config: action.config,
+          order_index: index,
+        })),
       })
       onOpenChange(false)
       setStep(1)
