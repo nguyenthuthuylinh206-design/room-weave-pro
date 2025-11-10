@@ -13,7 +13,8 @@ import {
   X,
   Building2,
   FolderTree,
-  Zap
+  Zap,
+  TestTube2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -29,6 +30,7 @@ const settingsNavigation = [
   { name: 'Tự động hóa', href: '/settings/workflows', icon: Zap },
   { name: 'Tích hợp & API', href: '/settings/integrations', icon: Plug },
   { name: 'Hệ thống & Bảo mật', href: '/settings/security', icon: Lock },
+  { name: 'Kiểm thử hệ thống', href: '/settings/system-test', icon: TestTube2 },
 ]
 
 function SettingsSidebar({ className }: { className?: string }) {

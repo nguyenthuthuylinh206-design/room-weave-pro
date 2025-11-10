@@ -114,8 +114,29 @@ const createDemoCategories = async (tenantId: string) => {
     { name: 'Đồ vệ sinh', name_en: 'Cleaning Supplies', icon: 'spray', color: '#06b6d4', sort_order: 5 }
   ]
 
+  // Check existing categories first
+  const { data: existing } = await supabase
+    .from('item_categories')
+    .select('name')
+    .eq('tenant_id', tenantId)
+
+  const existingNames = new Set(existing?.map(c => c.name) || [])
   const created = []
+
   for (const cat of categories) {
+    // Skip if already exists
+    if (existingNames.has(cat.name)) {
+      const { data: existingCat } = await supabase
+        .from('item_categories')
+        .select()
+        .eq('tenant_id', tenantId)
+        .eq('name', cat.name)
+        .single()
+      
+      if (existingCat) created.push(existingCat)
+      continue
+    }
+
     const { data } = await supabase
       .from('item_categories')
       .insert({

@@ -42,6 +42,7 @@ import { NotificationSettingsPage } from "./pages/settings/NotificationSettingsP
 import { BusinessConfigurationPage } from "./pages/settings/BusinessConfigurationPage";
 import CategoryManagementPage from "./pages/settings/CategoryManagementPage";
 import WorkflowsPage from "./pages/settings/WorkflowsPage";
+import { SystemTestPage } from "./pages/settings/SystemTestPage";
 import { ReportsPage } from "./pages/reports/ReportsPage";
 import { ReportsDashboardPage } from "./pages/reports/ReportsDashboardPage";
 import { InventoryReportPage } from "./pages/reports/InventoryReportPage";
@@ -153,6 +154,7 @@ const router = createBrowserRouter([
           },
           { path: "integrations", element: <div className="p-8 text-muted-foreground">Integrations & API - Coming soon</div> },
           { path: "security", element: <SystemSecurityPage /> },
+          { path: "system-test", element: <SystemTestPage /> },
         ],
       },
 

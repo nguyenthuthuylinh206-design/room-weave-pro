@@ -20,6 +20,7 @@ import { Loader2, Save } from 'lucide-react'
 import { UnsavedChangesPrompt } from '@/components/settings/UnsavedChangesPrompt'
 import { useAutoSave } from '@/hooks/useAutoSave'
 import { logUpdate } from '@/lib/activityLogger'
+import { SeedDataButton } from '@/components/settings/SeedDataButton'
 
 const generalSettingsSchema = z.object({
   name: z.string().min(2, 'Tên công ty phải có ít nhất 2 ký tự'),
@@ -273,6 +274,19 @@ export function GeneralSettingsPage() {
                 </Select>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Demo Data Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Dữ liệu Demo</CardTitle>
+            <CardDescription>
+              Tạo dữ liệu mẫu để kiểm thử hệ thống (chỉ dành cho môi trường phát triển)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SeedDataButton />
           </CardContent>
         </Card>
 
