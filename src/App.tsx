@@ -39,6 +39,7 @@ import { VendorDetailPage as VendorManagementDetailPage } from "./pages/vendors/
 import VendorManagementFormPage from "./pages/vendors/VendorFormPage";
 import POListPage from "./pages/purchase-orders/POListPage";
 import PODetailPage from "./pages/purchase-orders/PODetailPage";
+import POFormPage from "./pages/purchase-orders/POFormPage";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
@@ -189,6 +190,14 @@ const App = () => (
                 element={
                   <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
                     <POListPage />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/purchase-orders/new"
+                element={
+                  <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+                    <POFormPage />
                   </RoleGuard>
                 }
               />
