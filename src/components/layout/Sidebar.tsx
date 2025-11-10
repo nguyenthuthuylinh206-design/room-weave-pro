@@ -266,6 +266,10 @@ export const Sidebar = () => {
     )
   }
 
+  // Helper to normalize paths for comparison
+  const normalizePath = (path: string) => path.replace(/\/$/, '')
+  const currentPath = normalizePath(location.pathname)
+
   if (isLoading) {
     return (
       <div className="flex w-64 flex-col border-r bg-card">
@@ -334,7 +338,7 @@ export const Sidebar = () => {
 
           if (hasChildren) {
             const hasActiveChild = item.children!.some(
-              (child) => child.href && location.pathname.startsWith(child.href)
+              (child) => child.href && currentPath.startsWith(normalizePath(child.href))
             )
 
             return (
@@ -366,7 +370,7 @@ export const Sidebar = () => {
                   <div className="ml-4 space-y-1 border-l border-border pl-4">
                     {item.children!.map((child) => {
                       const ChildIcon = child.icon
-                      const isChildActive = child.href && location.pathname === child.href
+                      const isChildActive = child.href && currentPath === normalizePath(child.href)
 
                       return (
                         <Link
@@ -390,7 +394,7 @@ export const Sidebar = () => {
             )
           }
 
-          const isActive = item.href && location.pathname === item.href
+          const isActive = item.href && currentPath === normalizePath(item.href)
 
           return (
             <Link
