@@ -56,7 +56,7 @@ export function CreateBatchStep3({
   })
   
   const onSubmit = (data: Step3FormValues) => {
-    onComplete(data)
+    onComplete(data as CreateBatchStep3Data)
   }
   
   // Calculate summary

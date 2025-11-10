@@ -11,7 +11,7 @@ import { CreateBatchStep3 } from '@/components/laundry/CreateBatchStep3'
 import { useCreateLaundryBatch } from '@/hooks/useLaundryBatches'
 import type { CreateBatchStep1Data, CreateBatchStep2Data, CreateBatchStep3Data } from '@/types/laundry.types'
 
-export default function CreateBatchPage() {
+export function CreateBatchPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [step1Data, setStep1Data] = useState<CreateBatchStep1Data | null>(null)

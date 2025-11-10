@@ -71,7 +71,7 @@ export function CreateBatchStep1({ initialData, onComplete, onBack }: CreateBatc
   })
   
   const onSubmit = (data: Step1FormValues) => {
-    onComplete(data)
+    onComplete(data as CreateBatchStep1Data)
   }
   
   return (

@@ -87,7 +87,7 @@ export function CreateBatchStep2({ initialData, step1Data, onComplete, onBack }:
   const estimatedCost = totalWeight * pricePerKg
   
   const onSubmit = (data: Step2FormValues) => {
-    onComplete(data)
+    onComplete(data as CreateBatchStep2Data)
   }
   
   return (

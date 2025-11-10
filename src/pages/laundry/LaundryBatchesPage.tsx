@@ -35,7 +35,7 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard'
 import { Package, Clock, CheckCircle } from 'lucide-react'
 
-export default function LaundryBatchesPage() {
+export function LaundryBatchesPage() {
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState<{
@@ -154,7 +154,7 @@ export default function LaundryBatchesPage() {
                 <label className="text-sm font-medium mb-1 block">Trạng thái</label>
                 <Select
                   value={filters.status}
-                  onValueChange={(value) => setFilters({ ...filters, status: value })}
+                  onValueChange={(value) => setFilters({ ...filters, status: value as any })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Tất cả" />

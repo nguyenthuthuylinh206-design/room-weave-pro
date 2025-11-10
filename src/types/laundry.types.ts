@@ -26,6 +26,7 @@ export interface LaundryBatchWithVendor extends LaundryBatch {
 export interface LaundryBatchFilters {
   vendorId?: string
   status?: BatchStatus
+  search?: string
   fromDate?: Date
   toDate?: Date
 }
