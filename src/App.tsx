@@ -15,6 +15,7 @@ import { OutboundPage } from "./pages/inventory/OutboundPage";
 import { AdjustmentListPage } from "./pages/inventory/AdjustmentListPage";
 import { CreateAdjustmentPage } from "./pages/inventory/CreateAdjustmentPage";
 import { CheckAdjustmentPage } from "./pages/inventory/CheckAdjustmentPage";
+import { AdjustmentDetailPage } from "./pages/inventory/AdjustmentDetailPage";
 import { ItemsPage } from "./pages/items/ItemsPage";
 import { RoomsPage } from "./pages/rooms/RoomsPage";
 import { RoomDetailPage } from "./pages/rooms/RoomDetailPage";
@@ -78,6 +79,7 @@ const App = () => (
               <Route path="/inventory/outbound/new" element={<OutboundPage />} />
               <Route path="/inventory/adjustments" element={<AdjustmentListPage />} />
               <Route path="/inventory/adjustments/new" element={<CreateAdjustmentPage />} />
+              <Route path="/inventory/adjustments/:id" element={<AdjustmentDetailPage />} />
               <Route path="/inventory/adjustments/:id/check" element={<CheckAdjustmentPage />} />
               
               {/* Items */}
