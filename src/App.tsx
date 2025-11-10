@@ -40,6 +40,7 @@ import HotelsManagementPage from "./pages/settings/HotelsManagementPage";
 import SystemSecurityPage from "./pages/settings/SystemSecurityPage";
 import { NotificationSettingsPage } from "./pages/settings/NotificationSettingsPage";
 import { BusinessConfigurationPage } from "./pages/settings/BusinessConfigurationPage";
+import CategoryManagementPage from "./pages/settings/CategoryManagementPage";
 import { ReportsPage } from "./pages/reports/ReportsPage";
 import { ReportsDashboardPage } from "./pages/reports/ReportsDashboardPage";
 import { InventoryReportPage } from "./pages/reports/InventoryReportPage";
@@ -136,6 +137,7 @@ const router = createBrowserRouter([
           { index: true, element: <Navigate to="/settings/general" replace /> },
           { path: "general", element: <GeneralSettingsPage /> },
           { path: "hotels", element: <HotelsManagementPage /> },
+          { path: "categories", element: <CategoryManagementPage /> },
           { path: "users", element: <UsersPage /> },
           { path: "notifications", element: <NotificationSettingsPage /> },
           { path: "roles", element: <div className="p-8 text-muted-foreground">Roles & Permissions - Coming soon</div> },

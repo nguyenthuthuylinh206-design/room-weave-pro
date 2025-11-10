@@ -375,44 +375,154 @@ export type Database = {
       }
       item_categories: {
         Row: {
+          code: string | null
           color: string | null
           created_at: string | null
+          depreciable: boolean | null
+          depreciation_rate: number | null
           description: string | null
           icon: string | null
           id: string
+          level: number | null
+          max_stock_level: number | null
+          min_stock_level: number | null
           name: string
           name_en: string | null
+          parent_id: string | null
+          preferred_vendor_id: string | null
+          reorder_point: number | null
+          require_inspection: boolean | null
           sort_order: number | null
+          status: string | null
           tenant_id: string
+          track_serial_numbers: boolean | null
+          updated_at: string | null
+          useful_life_months: number | null
+        }
+        Insert: {
+          code?: string | null
+          color?: string | null
+          created_at?: string | null
+          depreciable?: boolean | null
+          depreciation_rate?: number | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          level?: number | null
+          max_stock_level?: number | null
+          min_stock_level?: number | null
+          name: string
+          name_en?: string | null
+          parent_id?: string | null
+          preferred_vendor_id?: string | null
+          reorder_point?: number | null
+          require_inspection?: boolean | null
+          sort_order?: number | null
+          status?: string | null
+          tenant_id: string
+          track_serial_numbers?: boolean | null
+          updated_at?: string | null
+          useful_life_months?: number | null
+        }
+        Update: {
+          code?: string | null
+          color?: string | null
+          created_at?: string | null
+          depreciable?: boolean | null
+          depreciation_rate?: number | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          level?: number | null
+          max_stock_level?: number | null
+          min_stock_level?: number | null
+          name?: string
+          name_en?: string | null
+          parent_id?: string | null
+          preferred_vendor_id?: string | null
+          reorder_point?: number | null
+          require_inspection?: boolean | null
+          sort_order?: number | null
+          status?: string | null
+          tenant_id?: string
+          track_serial_numbers?: boolean | null
+          updated_at?: string | null
+          useful_life_months?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "item_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_categories_preferred_vendor_id_fkey"
+            columns: ["preferred_vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      item_units: {
+        Row: {
+          base_unit_id: string | null
+          code: string
+          conversion_factor: number | null
+          created_at: string | null
+          id: string
+          name: string
+          status: string | null
+          symbol: string | null
+          tenant_id: string
+          type: string
           updated_at: string | null
         }
         Insert: {
-          color?: string | null
+          base_unit_id?: string | null
+          code: string
+          conversion_factor?: number | null
           created_at?: string | null
-          description?: string | null
-          icon?: string | null
           id?: string
           name: string
-          name_en?: string | null
-          sort_order?: number | null
+          status?: string | null
+          symbol?: string | null
           tenant_id: string
+          type: string
           updated_at?: string | null
         }
         Update: {
-          color?: string | null
+          base_unit_id?: string | null
+          code?: string
+          conversion_factor?: number | null
           created_at?: string | null
-          description?: string | null
-          icon?: string | null
           id?: string
           name?: string
-          name_en?: string | null
-          sort_order?: number | null
+          status?: string | null
+          symbol?: string | null
           tenant_id?: string
+          type?: string
           updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "item_categories_tenant_id_fkey"
+            foreignKeyName: "item_units_base_unit_id_fkey"
+            columns: ["base_unit_id"]
+            isOneToOne: false
+            referencedRelation: "item_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_units_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -745,6 +855,71 @@ export type Database = {
           },
         ]
       }
+      laundry_categories: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          express_surcharge: number | null
+          express_turnaround_hours: number | null
+          id: string
+          name: string
+          price_per_item: number | null
+          price_per_kg: number | null
+          require_count_verification: boolean | null
+          require_weight_verification: boolean | null
+          standard_turnaround_hours: number | null
+          status: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          express_surcharge?: number | null
+          express_turnaround_hours?: number | null
+          id?: string
+          name: string
+          price_per_item?: number | null
+          price_per_kg?: number | null
+          require_count_verification?: boolean | null
+          require_weight_verification?: boolean | null
+          standard_turnaround_hours?: number | null
+          status?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          express_surcharge?: number | null
+          express_turnaround_hours?: number | null
+          id?: string
+          name?: string
+          price_per_item?: number | null
+          price_per_kg?: number | null
+          require_count_verification?: boolean | null
+          require_weight_verification?: boolean | null
+          standard_turnaround_hours?: number | null
+          status?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "laundry_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       laundry_vendors: {
         Row: {
           address: string | null
@@ -806,6 +981,81 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "laundry_vendors_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_categories: {
+        Row: {
+          checklist_items: string[] | null
+          code: string
+          color: string | null
+          created_at: string | null
+          default_assignee_id: string | null
+          default_priority: string | null
+          description: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          name: string
+          require_approval: boolean | null
+          require_photos: boolean | null
+          sla_hours: number | null
+          status: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          checklist_items?: string[] | null
+          code: string
+          color?: string | null
+          created_at?: string | null
+          default_assignee_id?: string | null
+          default_priority?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          name: string
+          require_approval?: boolean | null
+          require_photos?: boolean | null
+          sla_hours?: number | null
+          status?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          checklist_items?: string[] | null
+          code?: string
+          color?: string | null
+          created_at?: string | null
+          default_assignee_id?: string | null
+          default_priority?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          name?: string
+          require_approval?: boolean | null
+          require_photos?: boolean | null
+          sla_hours?: number | null
+          status?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_categories_default_assignee_id_fkey"
+            columns: ["default_assignee_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_categories_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1395,6 +1645,100 @@ export type Database = {
           },
           {
             foreignKeyName: "room_type_standards_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_types: {
+        Row: {
+          base_price: number | null
+          bed_type: string | null
+          beds_count: number | null
+          code: string
+          color: string | null
+          created_at: string | null
+          default_items: Json | null
+          description: string | null
+          display_order: number | null
+          has_balcony: boolean | null
+          has_bathtub: boolean | null
+          has_kitchen: boolean | null
+          hotel_id: string | null
+          icon: string | null
+          id: string
+          max_guests: number | null
+          name: string
+          square_meters: number | null
+          status: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          base_price?: number | null
+          bed_type?: string | null
+          beds_count?: number | null
+          code: string
+          color?: string | null
+          created_at?: string | null
+          default_items?: Json | null
+          description?: string | null
+          display_order?: number | null
+          has_balcony?: boolean | null
+          has_bathtub?: boolean | null
+          has_kitchen?: boolean | null
+          hotel_id?: string | null
+          icon?: string | null
+          id?: string
+          max_guests?: number | null
+          name: string
+          square_meters?: number | null
+          status?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          base_price?: number | null
+          bed_type?: string | null
+          beds_count?: number | null
+          code?: string
+          color?: string | null
+          created_at?: string | null
+          default_items?: Json | null
+          description?: string | null
+          display_order?: number | null
+          has_balcony?: boolean | null
+          has_bathtub?: boolean | null
+          has_kitchen?: boolean | null
+          hotel_id?: string | null
+          icon?: string | null
+          id?: string
+          max_guests?: number | null
+          name?: string
+          square_meters?: number | null
+          status?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_types_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "room_types_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_types_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
