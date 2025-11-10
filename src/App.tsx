@@ -35,6 +35,7 @@ import { VendorFormPage } from "./pages/laundry/VendorFormPage";
 import { SettingsPage } from "./pages/settings/SettingsPage";
 import { SettingsLayout } from "./components/settings/SettingsLayout";
 import { GeneralSettingsPage } from "./pages/settings/GeneralSettingsPage";
+import HotelsManagementPage from "./pages/settings/HotelsManagementPage";
 import { NotificationSettingsPage } from "./pages/settings/NotificationSettingsPage";
 import { BusinessConfigurationPage } from "./pages/settings/BusinessConfigurationPage";
 import { ReportsPage } from "./pages/reports/ReportsPage";
@@ -135,6 +136,7 @@ const App = () => (
           <Route path="/settings" element={<SettingsLayout />}>
             <Route index element={<Navigate to="/settings/general" replace />} />
             <Route path="general" element={<GeneralSettingsPage />} />
+            <Route path="hotels" element={<HotelsManagementPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="notifications" element={<NotificationSettingsPage />} />
             {/* Placeholder routes for other settings pages */}

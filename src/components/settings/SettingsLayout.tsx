@@ -10,13 +10,15 @@ import {
   Plug, 
   Lock,
   Menu,
-  X
+  X,
+  Building2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 
 const settingsNavigation = [
   { name: 'Cài đặt chung', href: '/settings/general', icon: Settings },
+  { name: 'Khách sạn', href: '/settings/hotels', icon: Building2 },
   { name: 'Người dùng', href: '/settings/users', icon: Users },
   { name: 'Vai trò & Phân quyền', href: '/settings/roles', icon: Shield },
   { name: 'Thông báo', href: '/settings/notifications', icon: Bell },
