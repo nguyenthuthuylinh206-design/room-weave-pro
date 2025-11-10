@@ -37,6 +37,7 @@ import { HotelsPage } from "./pages/hotels/HotelsPage";
 import { VendorListPage as VendorManagementListPage } from "./pages/vendors/VendorListPage";
 import { VendorDetailPage as VendorManagementDetailPage } from "./pages/vendors/VendorDetailPage";
 import VendorManagementFormPage from "./pages/vendors/VendorFormPage";
+import VendorComparisonPage from "./pages/vendors/VendorComparisonPage";
 import POListPage from "./pages/purchase-orders/POListPage";
 import PODetailPage from "./pages/purchase-orders/PODetailPage";
 import POFormPage from "./pages/purchase-orders/POFormPage";
@@ -180,6 +181,14 @@ const App = () => (
                 element={
                   <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
                     <VendorManagementFormPage />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/vendors/compare"
+                element={
+                  <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+                    <VendorComparisonPage />
                   </RoleGuard>
                 }
               />

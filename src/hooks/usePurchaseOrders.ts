@@ -97,3 +97,121 @@ export function useUpdatePO() {
     },
   });
 }
+
+export function useApprovePO() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (poId: string) => {
+      const { data, error } = await supabase
+        .from('purchase_orders')
+        .update({
+          status: 'approved',
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', poId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, poId) => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-order', poId] });
+      toast({
+        title: 'Thành công',
+        description: 'Đã duyệt đơn hàng',
+      });
+    },
+  });
+}
+
+export function useRejectPO() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const { data, error } = await supabase
+        .from('purchase_orders')
+        .update({
+          status: 'rejected',
+          rejection_reason: reason
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-order', variables.id] });
+      toast({
+        title: 'Thành công',
+        description: 'Đã từ chối đơn hàng',
+      });
+    },
+  });
+}
+
+export function useReceivePO() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ po_id, items, notes }: any) => {
+      // Update received quantities for each item
+      for (const item of items) {
+        const { error } = await supabase
+          .from('purchase_order_items')
+          .update({
+            quantity_received: item.quantity_to_receive,
+            notes: item.notes
+          })
+          .eq('po_id', po_id)
+          .eq('item_id', item.item_id);
+
+        if (error) throw error;
+      }
+
+      // Check if all items received
+      const { data: poItems } = await supabase
+        .from('purchase_order_items')
+        .select('*')
+        .eq('po_id', po_id);
+
+      const allReceived = poItems?.every(
+        item => item.quantity_received >= item.quantity_ordered
+      );
+
+      const someReceived = poItems?.some(item => item.quantity_received > 0);
+
+      const newStatus = allReceived ? 'received' : someReceived ? 'partial' : 'ordered';
+
+      const { error: updateError } = await supabase
+        .from('purchase_orders')
+        .update({
+          status: newStatus,
+          actual_delivery_date: allReceived ? new Date().toISOString() : null,
+          notes: notes
+        })
+        .eq('id', po_id);
+
+      if (updateError) throw updateError;
+
+      return { po_id, status: newStatus };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-order', data.po_id] });
+      toast({
+        title: 'Thành công',
+        description: 'Đã nhận hàng',
+      });
+    },
+  });
+}
