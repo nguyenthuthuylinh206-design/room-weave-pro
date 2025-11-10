@@ -19,6 +19,8 @@ export function SystemTestPage() {
   const { tenantId, hotelId, user } = useUser()
   const [tests, setTests] = useState<TestResult[]>([])
   const [isRunning, setIsRunning] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
+  const [autoRunAfterCreate, setAutoRunAfterCreate] = useState(false)
 
   const updateTest = (name: string, updates: Partial<TestResult>) => {
     setTests(prev => {
@@ -53,6 +55,62 @@ export function SystemTestPage() {
         duration
       })
       throw error
+    }
+  }
+
+  const autoCreateTenantAndHotel = async () => {
+    if (!user?.id) {
+      updateTest('Auto-Create', {
+        status: 'error',
+        message: 'Không có user_id. Vui lòng đăng nhập trước.'
+      })
+      return
+    }
+
+    setIsCreating(true)
+    setTests([])
+    
+    try {
+      updateTest('Auto-Create', { status: 'running', message: 'Đang tạo tenant và hotel...' })
+      
+      // Call the complete_registration function with demo data
+      const { data, error } = await supabase.rpc('complete_registration', {
+        p_user_id: user.id,
+        p_full_name: user.email?.split('@')[0] || 'Demo User',
+        p_email: user.email || 'demo@example.com',
+        p_phone: '0123456789',
+        p_tenant_name: 'Công ty Demo',
+        p_hotel_name: 'Khách sạn Demo',
+        p_hotel_address: '123 Đường Demo, TP.HCM',
+        p_hotel_phone: '0123456789',
+        p_hotel_email: user.email || 'hotel@example.com',
+        p_total_rooms: 50
+      })
+
+      if (error) throw error
+      
+      const result = data as any
+      if (result?.success) {
+        updateTest('Auto-Create', {
+          status: 'success',
+          message: 'Đã tạo tenant và hotel thành công!',
+          details: result
+        })
+        
+        // Reload page to refresh user data
+        setTimeout(() => {
+          window.location.reload()
+        }, 2000)
+      } else {
+        throw new Error(result?.error || 'Không thể tạo tenant/hotel')
+      }
+    } catch (error: any) {
+      updateTest('Auto-Create', {
+        status: 'error',
+        message: error.message
+      })
+    } finally {
+      setIsCreating(false)
     }
   }
 
@@ -286,9 +344,24 @@ export function SystemTestPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {!tenantId || !hotelId ? (
-            <Alert>
+            <Alert variant="destructive">
               <AlertDescription>
-                ⚠️ Thiếu tenant_id hoặc hotel_id. Vui lòng đăng nhập lại.
+                <div className="space-y-3">
+                  <p className="font-semibold">⚠️ Thiếu tenant_id hoặc hotel_id</p>
+                  <p className="text-sm">
+                    Hệ thống cần tenant và hotel để hoạt động. 
+                    Bạn có thể tự động tạo dữ liệu mẫu bên dưới.
+                  </p>
+                  <Button 
+                    onClick={autoCreateTenantAndHotel}
+                    disabled={isCreating}
+                    variant="outline"
+                    size="sm"
+                  >
+                    {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isCreating ? 'Đang tạo...' : 'Tự động tạo Tenant & Hotel'}
+                  </Button>
+                </div>
               </AlertDescription>
             </Alert>
           ) : (
