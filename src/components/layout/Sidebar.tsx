@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/hooks/useUser'
 import { useTenant } from '@/hooks/useTenant'
+import { useState } from 'react'
 import {
   LayoutDashboard,
   Package,
@@ -12,6 +13,8 @@ import {
   Settings,
   Users,
   Building2,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -19,10 +22,11 @@ import { AppRole } from '@/types/database.types'
 
 interface NavItem {
   title: string
-  href: string
+  href?: string
   icon: React.ElementType
   badge?: string
   roles?: AppRole[]
+  children?: Omit<NavItem, 'children'>[]
 }
 
 const navigation: NavItem[] = [
@@ -43,8 +47,24 @@ const navigation: NavItem[] = [
   },
   {
     title: 'Giặt là',
-    href: '/laundry',
     icon: Wind,
+    children: [
+      {
+        title: 'Tổng quan',
+        href: '/laundry',
+        icon: LayoutDashboard,
+      },
+      {
+        title: 'Danh sách lô giặt',
+        href: '/laundry/batches',
+        icon: Package,
+      },
+      {
+        title: 'Nhà cung cấp',
+        href: '/laundry/vendors',
+        icon: Building2,
+      },
+    ],
   },
   {
     title: 'Kho',
@@ -80,6 +100,21 @@ export const Sidebar = () => {
   const location = useLocation()
   const { user, role, isLoading: userLoading } = useUser()
   const { tenant, isLoading: tenantLoading } = useTenant()
+  const [expandedItems, setExpandedItems] = useState<string[]>(() => {
+    // Auto-expand parent if a child route is active
+    const expanded: string[] = []
+    navigation.forEach((item) => {
+      if (item.children) {
+        const hasActiveChild = item.children.some(
+          (child) => child.href && location.pathname.startsWith(child.href)
+        )
+        if (hasActiveChild) {
+          expanded.push(item.title)
+        }
+      }
+    })
+    return expanded
+  })
 
   const isLoading = userLoading || tenantLoading
 
@@ -87,6 +122,12 @@ export const Sidebar = () => {
     if (!item.roles) return true
     return item.roles.includes(role || 'staff')
   })
+
+  const toggleExpanded = (title: string) => {
+    setExpandedItems((prev) =>
+      prev.includes(title) ? prev.filter((t) => t !== title) : [...prev, title]
+    )
+  }
 
   if (isLoading) {
     return (
@@ -151,12 +192,73 @@ export const Sidebar = () => {
       <nav className="flex-1 space-y-1 overflow-y-auto p-4">
         {filteredNavigation.map((item) => {
           const Icon = item.icon
-          const isActive = location.pathname === item.href
+          const isExpanded = expandedItems.includes(item.title)
+          const hasChildren = item.children && item.children.length > 0
+
+          if (hasChildren) {
+            const hasActiveChild = item.children!.some(
+              (child) => child.href && location.pathname.startsWith(child.href)
+            )
+
+            return (
+              <div key={item.title} className="space-y-1">
+                <button
+                  onClick={() => toggleExpanded(item.title)}
+                  className={cn(
+                    'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                    hasActiveChild
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  )}
+                >
+                  <Icon className="h-5 w-5 flex-shrink-0" />
+                  <span className="flex-1 text-left">{item.title}</span>
+                  {item.badge && (
+                    <Badge variant="secondary">
+                      {item.badge}
+                    </Badge>
+                  )}
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                </button>
+
+                {isExpanded && (
+                  <div className="ml-4 space-y-1 border-l border-border pl-4">
+                    {item.children!.map((child) => {
+                      const ChildIcon = child.icon
+                      const isChildActive = child.href && location.pathname === child.href
+
+                      return (
+                        <Link
+                          key={child.href}
+                          to={child.href!}
+                          className={cn(
+                            'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                            isChildActive
+                              ? 'bg-primary text-primary-foreground font-medium'
+                              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                          )}
+                        >
+                          <ChildIcon className="h-4 w-4 flex-shrink-0" />
+                          <span className="flex-1">{child.title}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          }
+
+          const isActive = item.href && location.pathname === item.href
 
           return (
             <Link
               key={item.href}
-              to={item.href}
+              to={item.href!}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 isActive
