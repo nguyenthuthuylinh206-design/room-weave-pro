@@ -15,6 +15,16 @@ import {
   Building2,
   ChevronDown,
   ChevronRight,
+  Plus,
+  List,
+  Grid,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  ClipboardCheck,
+  ShoppingCart,
+  GitCompare,
+  Building,
+  DollarSign,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -37,13 +47,45 @@ const navigation: NavItem[] = [
   },
   {
     title: 'Tài sản',
-    href: '/items',
     icon: Package,
+    children: [
+      {
+        title: 'Danh sách tài sản',
+        href: '/items',
+        icon: List,
+      },
+      {
+        title: 'Danh mục',
+        href: '/items/categories',
+        icon: Grid,
+      },
+      {
+        title: 'Thêm tài sản mới',
+        href: '/items/new',
+        icon: Plus,
+      },
+    ],
   },
   {
     title: 'Phòng',
-    href: '/rooms',
     icon: Hotel,
+    children: [
+      {
+        title: 'Danh sách phòng',
+        href: '/rooms',
+        icon: List,
+      },
+      {
+        title: 'Thiết lập chuẩn',
+        href: '/rooms/standards',
+        icon: Settings,
+      },
+      {
+        title: 'Thêm phòng mới',
+        href: '/rooms/new',
+        icon: Plus,
+      },
+    ],
   },
   {
     title: 'Giặt là',
@@ -60,22 +102,111 @@ const navigation: NavItem[] = [
         icon: Package,
       },
       {
+        title: 'Tạo lô mới',
+        href: '/laundry/batches/new',
+        icon: Plus,
+      },
+      {
         title: 'Nhà cung cấp',
         href: '/laundry/vendors',
         icon: Building2,
+      },
+      {
+        title: 'Thêm đơn vị',
+        href: '/laundry/vendors/new',
+        icon: Plus,
       },
     ],
   },
   {
     title: 'Kho',
-    href: '/inventory',
     icon: Warehouse,
+    children: [
+      {
+        title: 'Dashboard kho',
+        href: '/inventory',
+        icon: LayoutDashboard,
+      },
+      {
+        title: 'Giao dịch',
+        href: '/inventory/transactions',
+        icon: List,
+      },
+      {
+        title: 'Nhập kho',
+        href: '/inventory/inbound',
+        icon: ArrowDownToLine,
+      },
+      {
+        title: 'Xuất kho',
+        href: '/inventory/outbound',
+        icon: ArrowUpFromLine,
+      },
+      {
+        title: 'Kiểm kê',
+        href: '/inventory/adjustments',
+        icon: ClipboardCheck,
+      },
+    ],
+  },
+  {
+    title: 'Nhà Cung Cấp',
+    icon: Building,
+    roles: ['owner', 'hotel_manager', 'super_admin'],
+    children: [
+      {
+        title: 'Danh sách NCC',
+        href: '/vendors',
+        icon: List,
+      },
+      {
+        title: 'Thêm NCC mới',
+        href: '/vendors/new',
+        icon: Plus,
+      },
+      {
+        title: 'So sánh NCC',
+        href: '/vendors/compare',
+        icon: GitCompare,
+      },
+      {
+        title: 'Đơn đặt hàng',
+        href: '/purchase-orders',
+        icon: ShoppingCart,
+      },
+      {
+        title: 'Tạo đơn mới',
+        href: '/purchase-orders/new',
+        icon: Plus,
+      },
+    ],
   },
   {
     title: 'Báo cáo',
-    href: '/reports',
     icon: FileText,
     roles: ['owner', 'hotel_manager', 'super_admin'],
+    children: [
+      {
+        title: 'Dashboard',
+        href: '/reports',
+        icon: LayoutDashboard,
+      },
+      {
+        title: 'Báo cáo Tồn kho',
+        href: '/reports/inventory',
+        icon: Package,
+      },
+      {
+        title: 'Báo cáo Tài chính',
+        href: '/reports/financial',
+        icon: DollarSign,
+      },
+      {
+        title: 'Báo cáo Giặt là',
+        href: '/reports/laundry',
+        icon: Wind,
+      },
+    ],
   },
   {
     title: 'Người dùng',
@@ -91,8 +222,14 @@ const navigation: NavItem[] = [
   },
   {
     title: 'Cài đặt',
-    href: '/settings',
     icon: Settings,
+    children: [
+      {
+        title: 'Tổng quan',
+        href: '/settings',
+        icon: LayoutDashboard,
+      },
+    ],
   },
 ]
 
