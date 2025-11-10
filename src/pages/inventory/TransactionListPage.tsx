@@ -141,16 +141,16 @@ export function TransactionListPage() {
             />
             
             <Select
-              value={filters.transactionType}
+              value={filters.transactionType || "all"}
               onValueChange={(value) => 
-                setFilters({ ...filters, transactionType: value })
+                setFilters({ ...filters, transactionType: value === "all" ? "" : value })
               }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Loại giao dịch" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tất cả</SelectItem>
+                <SelectItem value="all">Tất cả</SelectItem>
                 <SelectItem value="in">Nhập kho</SelectItem>
                 <SelectItem value="out">Xuất kho</SelectItem>
                 <SelectItem value="transfer">Chuyển kho</SelectItem>
@@ -308,7 +308,7 @@ export function TransactionListPage() {
                     setPage(1)
                   }}
                 >
-                  <SelectTrigger className="w-20">
+                  <SelectTrigger className="w-24">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
