@@ -35,16 +35,23 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   return (
     <header className="flex h-16 items-center justify-between border-b bg-card px-4 lg:px-6">
       {/* Mobile Menu Button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="lg:hidden"
-        onClick={onMenuClick}
-      >
-        <Menu className="h-6 w-6" />
-      </Button>
+      <div className="flex items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden"
+          onClick={onMenuClick}
+        >
+          <Menu className="h-6 w-6" />
+        </Button>
+        
+        {/* Mobile Hotel Switcher */}
+        <div className="lg:hidden">
+          <HotelSwitcher />
+        </div>
+      </div>
 
-      {/* Page Title - Hidden on mobile */}
+      {/* Desktop Title & Hotel Switcher */}
       <div className="hidden lg:flex lg:items-center lg:gap-4">
         <h1 className="text-xl font-semibold">Hotel Asset Management</h1>
         <HotelSwitcher />
