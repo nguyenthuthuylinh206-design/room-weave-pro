@@ -34,6 +34,8 @@ import { InventoryReportPage } from "./pages/reports/InventoryReportPage";
 import { FinancialReportPage } from "./pages/reports/FinancialReportPage";
 import { LaundryReportPage } from "./pages/reports/LaundryReportPage";
 import { HotelsPage } from "./pages/hotels/HotelsPage";
+import { VendorListPage as VendorManagementListPage } from "./pages/vendors/VendorListPage";
+import { VendorDetailPage as VendorManagementDetailPage } from "./pages/vendors/VendorDetailPage";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
@@ -140,6 +142,24 @@ const App = () => (
                 element={
                   <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
                     <LaundryReportPage />
+                  </RoleGuard>
+                }
+              />
+              
+              {/* Vendor Management - Owner & Manager */}
+              <Route
+                path="/vendors"
+                element={
+                  <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+                    <VendorManagementListPage />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/vendors/:id"
+                element={
+                  <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+                    <VendorManagementDetailPage />
                   </RoleGuard>
                 }
               />
