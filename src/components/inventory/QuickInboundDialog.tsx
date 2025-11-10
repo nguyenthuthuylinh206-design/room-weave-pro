@@ -1,4 +1,5 @@
 import { Plus, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -43,6 +44,7 @@ interface QuickInboundDialogProps {
 }
 
 export function QuickInboundDialog({ open, onOpenChange }: QuickInboundDialogProps) {
+  const navigate = useNavigate()
   const { mutate: createInbound, isPending: isLoading } = useCreateInboundTransaction()
   
   const form = useForm<QuickInboundFormData>({
@@ -80,7 +82,17 @@ export function QuickInboundDialog({ open, onOpenChange }: QuickInboundDialogPro
         <DialogHeader>
           <DialogTitle>Nhập kho nhanh</DialogTitle>
           <DialogDescription>
-            Ghi nhận nhập kho đơn giản
+            Ghi nhận nhập kho đơn giản. Để nhập chi tiết hơn với tài liệu và ảnh,{' '}
+            <Button
+              variant="link"
+              className="h-auto p-0"
+              onClick={() => {
+                onOpenChange(false)
+                navigate('/inventory/inbound/new')
+              }}
+            >
+              dùng form đầy đủ
+            </Button>
           </DialogDescription>
         </DialogHeader>
         

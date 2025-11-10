@@ -1,4 +1,5 @@
 import { Plus, X, AlertTriangle, Package } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -50,6 +51,7 @@ interface QuickOutboundDialogProps {
 }
 
 export function QuickOutboundDialog({ open, onOpenChange }: QuickOutboundDialogProps) {
+  const navigate = useNavigate()
   const { mutate: createOutbound, isPending: isLoading } = useCreateOutboundTransaction()
   
   const form = useForm<QuickOutboundFormData>({
@@ -88,7 +90,17 @@ export function QuickOutboundDialog({ open, onOpenChange }: QuickOutboundDialogP
         <DialogHeader>
           <DialogTitle>Xuất kho nhanh</DialogTitle>
           <DialogDescription>
-            Ghi nhận xuất kho đơn giản
+            Ghi nhận xuất kho đơn giản. Để xuất chi tiết hơn với chữ ký và ảnh,{' '}
+            <Button
+              variant="link"
+              className="h-auto p-0"
+              onClick={() => {
+                onOpenChange(false)
+                navigate('/inventory/outbound/new')
+              }}
+            >
+              dùng form đầy đủ
+            </Button>
           </DialogDescription>
         </DialogHeader>
         

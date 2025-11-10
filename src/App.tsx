@@ -10,6 +10,8 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import { InventoryDashboardPage } from "./pages/inventory/InventoryDashboardPage";
 import { TransactionListPage } from "./pages/inventory/TransactionListPage";
+import { InboundPage } from "./pages/inventory/InboundPage";
+import { OutboundPage } from "./pages/inventory/OutboundPage";
 import { ItemsPage } from "./pages/items/ItemsPage";
 import { RoomsPage } from "./pages/rooms/RoomsPage";
 import { RoomDetailPage } from "./pages/rooms/RoomDetailPage";
@@ -69,6 +71,8 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/inventory" element={<InventoryDashboardPage />} />
               <Route path="/inventory/transactions" element={<TransactionListPage />} />
+              <Route path="/inventory/inbound/new" element={<InboundPage />} />
+              <Route path="/inventory/outbound/new" element={<OutboundPage />} />
               
               {/* Items */}
               <Route path="/items" element={<ItemsPage />} />
