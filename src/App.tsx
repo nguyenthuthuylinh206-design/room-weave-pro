@@ -143,6 +143,14 @@ const router = createBrowserRouter([
           { path: "notifications", element: <NotificationSettingsPage /> },
           { path: "roles", element: <div className="p-8 text-muted-foreground">Roles & Permissions - Coming soon</div> },
           { path: "business", element: <BusinessConfigurationPage /> },
+          {
+            path: "workflows",
+            element: (
+              <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+                <WorkflowsPage />
+              </RoleGuard>
+            ),
+          },
           { path: "integrations", element: <div className="p-8 text-muted-foreground">Integrations & API - Coming soon</div> },
           { path: "security", element: <SystemSecurityPage /> },
         ],
