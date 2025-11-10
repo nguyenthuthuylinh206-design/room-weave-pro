@@ -1,13 +1,14 @@
-import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
-import { MobileNav } from './MobileNav'
+import { MobileHeader } from './MobileHeader'
+import { BottomNav } from './BottomNav'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 
 export const MainLayout = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { isMobile } = useBreakpoint()
   const { user, loading } = useAuth()
 
   if (loading) {
@@ -19,24 +20,27 @@ export const MainLayout = () => {
   }
 
   if (!user) {
-    return null // AuthGuard sẽ redirect
+    return null // AuthGuard will redirect
+  }
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <MobileHeader />
+        <main className="flex-1 overflow-auto pb-16">
+          <Outlet />
+        </main>
+        <BottomNav />
+      </div>
+    )
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      {/* Sidebar - Desktop */}
-      <div className="hidden lg:flex lg:flex-shrink-0">
-        <Sidebar />
-      </div>
-
-      {/* Mobile Sidebar */}
-      <MobileNav open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
-      {/* Main Content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
-        
-        <main className="flex-1 overflow-y-auto overflow-x-hidden">
+    <div className="min-h-screen flex bg-background">
+      <Sidebar />
+      <div className="flex-1 flex flex-col">
+        <Header />
+        <main className="flex-1 overflow-auto">
           <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
             <Outlet />
           </div>
