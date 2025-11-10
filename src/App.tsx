@@ -43,6 +43,9 @@ import { VendorListPage as VendorManagementListPage } from "./pages/vendors/Vend
 import { VendorDetailPage as VendorManagementDetailPage } from "./pages/vendors/VendorDetailPage";
 import VendorManagementFormPage from "./pages/vendors/VendorFormPage";
 import VendorComparisonPage from "./pages/vendors/VendorComparisonPage";
+import MaintenanceDashboard from "./pages/maintenance/MaintenanceDashboard";
+import MaintenanceRequestList from "./pages/maintenance/MaintenanceRequestList";
+import MaintenanceRequestForm from "./pages/maintenance/MaintenanceRequestForm";
 import POListPage from "./pages/purchase-orders/POListPage";
 import PODetailPage from "./pages/purchase-orders/PODetailPage";
 import POFormPage from "./pages/purchase-orders/POFormPage";
@@ -204,6 +207,11 @@ const App = () => (
                   </RoleGuard>
                 }
               />
+              
+              {/* Maintenance */}
+              <Route path="/maintenance" element={<MaintenanceDashboard />} />
+              <Route path="/maintenance/requests" element={<MaintenanceRequestList />} />
+              <Route path="/maintenance/requests/new" element={<MaintenanceRequestForm />} />
               
               {/* Purchase Orders - Owner & Manager */}
               <Route

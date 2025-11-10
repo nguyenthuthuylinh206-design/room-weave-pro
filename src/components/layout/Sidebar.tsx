@@ -182,6 +182,22 @@ const navigation: NavItem[] = [
     ],
   },
   {
+    title: 'Bảo trì',
+    icon: Settings,
+    children: [
+      {
+        title: 'Dashboard',
+        href: '/maintenance',
+        icon: LayoutDashboard,
+      },
+      {
+        title: 'Yêu cầu bảo trì',
+        href: '/maintenance/requests',
+        icon: ClipboardCheck,
+      },
+    ],
+  },
+  {
     title: 'Báo cáo',
     icon: FileText,
     roles: ['owner', 'hotel_manager', 'super_admin'],
