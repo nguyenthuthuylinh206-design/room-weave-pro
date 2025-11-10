@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { HotelProvider } from "@/contexts/HotelContext";
 import { AuthGuard } from "@/components/auth/AuthGuard";
@@ -76,6 +76,212 @@ const queryClient = new QueryClient({
   },
 });
 
+const router = createBrowserRouter([
+  // Public routes
+  { path: "/auth/login", element: <Login /> },
+  { path: "/auth/register", element: <Register /> },
+  { path: "/auth/forgot-password", element: <ForgotPassword /> },
+  { path: "/auth/reset-password", element: <ResetPassword /> },
+  { path: "/unauthorized", element: <Unauthorized /> },
+
+  // Protected routes
+  {
+    path: "/",
+    element: (
+      <AuthGuard>
+        <MainLayout />
+      </AuthGuard>
+    ),
+    children: [
+      { index: true, element: <Dashboard /> },
+      { path: "inventory", element: <InventoryDashboardPage /> },
+      { path: "inventory/transactions", element: <TransactionListPage /> },
+      { path: "inventory/inbound/new", element: <InboundPage /> },
+      { path: "inventory/outbound/new", element: <OutboundPage /> },
+      { path: "inventory/adjustments", element: <AdjustmentListPage /> },
+      { path: "inventory/adjustments/new", element: <CreateAdjustmentPage /> },
+      { path: "inventory/adjustments/:id", element: <AdjustmentDetailPage /> },
+      { path: "inventory/adjustments/:id/check", element: <CheckAdjustmentPage /> },
+
+      // Items
+      { path: "items", element: <ItemsPage /> },
+      { path: "items/:id", element: <ItemDetailPage /> },
+      { path: "items/new", element: <ItemFormPage /> },
+      { path: "items/:id/edit", element: <ItemFormPage /> },
+      { path: "items/categories", element: <CategoriesPage /> },
+
+      // Rooms
+      { path: "rooms", element: <RoomsPage /> },
+      { path: "rooms/new", element: <RoomFormPage /> },
+      { path: "rooms/:id", element: <RoomDetailPage /> },
+      { path: "rooms/:id/edit", element: <RoomFormPage /> },
+      { path: "rooms/standards", element: <RoomStandardsPage /> },
+
+      // Laundry
+      { path: "laundry", element: <LaundryDashboardPage /> },
+      { path: "laundry/batches", element: <LaundryBatchesPage /> },
+      { path: "laundry/batches/new", element: <CreateBatchPage /> },
+      { path: "laundry/batches/:id", element: <BatchDetailPage /> },
+      { path: "laundry/batches/:id/receive", element: <ReceiveBatchPage /> },
+      { path: "laundry/vendors", element: <VendorListPage /> },
+      { path: "laundry/vendors/new", element: <VendorFormPage /> },
+      { path: "laundry/vendors/:id", element: <VendorDetailPage /> },
+      { path: "laundry/vendors/:id/edit", element: <VendorFormPage /> },
+
+      // Settings
+      {
+        path: "settings",
+        element: <SettingsLayout />,
+        children: [
+          { index: true, element: <Navigate to="/settings/general" replace /> },
+          { path: "general", element: <GeneralSettingsPage /> },
+          { path: "hotels", element: <HotelsManagementPage /> },
+          { path: "users", element: <UsersPage /> },
+          { path: "notifications", element: <NotificationSettingsPage /> },
+          { path: "roles", element: <div className="p-8 text-muted-foreground">Roles & Permissions - Coming soon</div> },
+          { path: "business", element: <BusinessConfigurationPage /> },
+          { path: "integrations", element: <div className="p-8 text-muted-foreground">Integrations & API - Coming soon</div> },
+          { path: "security", element: <SystemSecurityPage /> },
+        ],
+      },
+
+      // Profile
+      { path: "profile", element: <ProfilePage /> },
+
+      // Reports - Owner, Hotel Manager & Super Admin only
+      {
+        path: "reports",
+        element: (
+          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+            <ReportsDashboardPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "reports/inventory",
+        element: (
+          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+            <InventoryReportPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "reports/financial",
+        element: (
+          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+            <FinancialReportPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "reports/laundry",
+        element: (
+          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+            <LaundryReportPage />
+          </RoleGuard>
+        ),
+      },
+
+      // Vendor Management - Owner & Manager
+      {
+        path: "vendors",
+        element: (
+          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+            <VendorManagementListPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "vendors/new",
+        element: (
+          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+            <VendorManagementFormPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "vendors/:id",
+        element: (
+          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+            <VendorManagementDetailPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "vendors/:id/edit",
+        element: (
+          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+            <VendorManagementFormPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "vendors/compare",
+        element: (
+          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+            <VendorComparisonPage />
+          </RoleGuard>
+        ),
+      },
+
+      // Maintenance
+      { path: "maintenance", element: <MaintenanceDashboard /> },
+      { path: "maintenance/requests", element: <MaintenanceRequestList /> },
+      { path: "maintenance/requests/new", element: <MaintenanceRequestForm /> },
+      { path: "maintenance/recurring-issues", element: <RecurringIssuesPage /> },
+
+      // Purchase Orders - Owner & Manager
+      {
+        path: "purchase-orders",
+        element: (
+          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+            <POListPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "purchase-orders/new",
+        element: (
+          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+            <POFormPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "purchase-orders/:id",
+        element: (
+          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+            <PODetailPage />
+          </RoleGuard>
+        ),
+      },
+
+      // Hotels - Owner & Super Admin only
+      {
+        path: "hotels",
+        element: (
+          <RoleGuard allowedRoles={['owner', 'super_admin']}>
+            <HotelsPage />
+          </RoleGuard>
+        ),
+      },
+
+      // User Management - Owner & Super Admin only
+      {
+        path: "users",
+        element: (
+          <RoleGuard allowedRoles={['owner', 'super_admin']}>
+            <UsersPage />
+          </RoleGuard>
+        ),
+      },
+    ],
+  },
+
+  // Catch all
+  { path: "*", element: <NotFound /> },
+]);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="system" storageKey="hotel-theme">
@@ -83,212 +289,11 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/auth/login" element={<Login />} />
-            <Route path="/auth/register" element={<Register />} />
-            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
-            <Route path="/auth/reset-password" element={<ResetPassword />} />
-            <Route path="/unauthorized" element={<Unauthorized />} />
-
-            {/* Protected routes */}
-            <Route
-              element={
-                <AuthGuard>
-                  <MainLayout />
-                </AuthGuard>
-              }
-            >
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/inventory" element={<InventoryDashboardPage />} />
-              <Route path="/inventory/transactions" element={<TransactionListPage />} />
-              <Route path="/inventory/inbound/new" element={<InboundPage />} />
-              <Route path="/inventory/outbound/new" element={<OutboundPage />} />
-              <Route path="/inventory/adjustments" element={<AdjustmentListPage />} />
-              <Route path="/inventory/adjustments/new" element={<CreateAdjustmentPage />} />
-              <Route path="/inventory/adjustments/:id" element={<AdjustmentDetailPage />} />
-              <Route path="/inventory/adjustments/:id/check" element={<CheckAdjustmentPage />} />
-              
-              {/* Items */}
-              <Route path="/items" element={<ItemsPage />} />
-              <Route path="/items/:id" element={<ItemDetailPage />} />
-              <Route path="/items/new" element={<ItemFormPage />} />
-              <Route path="/items/:id/edit" element={<ItemFormPage />} />
-              <Route path="/items/categories" element={<CategoriesPage />} />
-              
-              {/* Rooms */}
-              <Route path="/rooms" element={<RoomsPage />} />
-              <Route path="/rooms/new" element={<RoomFormPage />} />
-              <Route path="/rooms/:id" element={<RoomDetailPage />} />
-              <Route path="/rooms/:id/edit" element={<RoomFormPage />} />
-              <Route path="/rooms/standards" element={<RoomStandardsPage />} />
-              
-              {/* Laundry */}
-              <Route path="/laundry" element={<LaundryDashboardPage />} />
-              <Route path="/laundry/batches" element={<LaundryBatchesPage />} />
-              <Route path="/laundry/batches/new" element={<CreateBatchPage />} />
-              <Route path="/laundry/batches/:id" element={<BatchDetailPage />} />
-              <Route path="/laundry/batches/:id/receive" element={<ReceiveBatchPage />} />
-              <Route path="/laundry/vendors" element={<VendorListPage />} />
-              <Route path="/laundry/vendors/new" element={<VendorFormPage />} />
-              <Route path="/laundry/vendors/:id" element={<VendorDetailPage />} />
-              <Route path="/laundry/vendors/:id/edit" element={<VendorFormPage />} />
-              
-          {/* Settings */}
-          <Route path="/settings" element={<SettingsLayout />}>
-            <Route index element={<Navigate to="/settings/general" replace />} />
-            <Route path="general" element={<GeneralSettingsPage />} />
-            <Route path="hotels" element={<HotelsManagementPage />} />
-            <Route path="users" element={<UsersPage />} />
-            <Route path="notifications" element={<NotificationSettingsPage />} />
-            {/* Placeholder routes for other settings pages */}
-            <Route path="roles" element={<div className="p-8 text-muted-foreground">Roles & Permissions - Coming soon</div>} />
-            <Route path="business" element={<BusinessConfigurationPage />} />
-            <Route path="integrations" element={<div className="p-8 text-muted-foreground">Integrations & API - Coming soon</div>} />
-            <Route path="security" element={<SystemSecurityPage />} />
-          </Route>
-              
-              {/* Profile */}
-              <Route path="/profile" element={<ProfilePage />} />
-              
-              {/* Reports - Owner, Hotel Manager & Super Admin only */}
-              <Route
-                path="/reports"
-                element={
-                  <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
-                    <ReportsDashboardPage />
-                  </RoleGuard>
-                }
-              />
-              <Route
-                path="/reports/inventory"
-                element={
-                  <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
-                    <InventoryReportPage />
-                  </RoleGuard>
-                }
-              />
-              <Route
-                path="/reports/financial"
-                element={
-                  <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
-                    <FinancialReportPage />
-                  </RoleGuard>
-                }
-              />
-              <Route
-                path="/reports/laundry"
-                element={
-                  <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
-                    <LaundryReportPage />
-                  </RoleGuard>
-                }
-              />
-              
-              {/* Vendor Management - Owner & Manager */}
-              <Route
-                path="/vendors"
-                element={
-                  <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
-                    <VendorManagementListPage />
-                  </RoleGuard>
-                }
-              />
-              <Route
-                path="/vendors/new"
-                element={
-                  <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
-                    <VendorManagementFormPage />
-                  </RoleGuard>
-                }
-              />
-              <Route
-                path="/vendors/:id"
-                element={
-                  <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
-                    <VendorManagementDetailPage />
-                  </RoleGuard>
-                }
-              />
-              <Route
-                path="/vendors/:id/edit"
-                element={
-                  <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
-                    <VendorManagementFormPage />
-                  </RoleGuard>
-                }
-              />
-              <Route
-                path="/vendors/compare"
-                element={
-                  <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
-                    <VendorComparisonPage />
-                  </RoleGuard>
-                }
-              />
-              
-              {/* Maintenance */}
-          <Route path="/maintenance" element={<MaintenanceDashboard />} />
-          <Route path="/maintenance/requests" element={<MaintenanceRequestList />} />
-          <Route path="/maintenance/requests/new" element={<MaintenanceRequestForm />} />
-          <Route path="/maintenance/recurring-issues" element={<RecurringIssuesPage />} />
-              
-              {/* Purchase Orders - Owner & Manager */}
-              <Route
-                path="/purchase-orders"
-                element={
-                  <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
-                    <POListPage />
-                  </RoleGuard>
-                }
-              />
-              <Route
-                path="/purchase-orders/new"
-                element={
-                  <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
-                    <POFormPage />
-                  </RoleGuard>
-                }
-              />
-              <Route
-                path="/purchase-orders/:id"
-                element={
-                  <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
-                    <PODetailPage />
-                  </RoleGuard>
-                }
-              />
-              
-              {/* Hotels - Owner & Super Admin only */}
-              <Route
-                path="/hotels"
-                element={
-                  <RoleGuard allowedRoles={['owner', 'super_admin']}>
-                    <HotelsPage />
-                  </RoleGuard>
-                }
-              />
-              
-              {/* User Management - Owner & Super Admin only */}
-              <Route
-                path="/users"
-                element={
-                  <RoleGuard allowedRoles={['owner', 'super_admin']}>
-                    <UsersPage />
-                  </RoleGuard>
-                }
-              />
-            </Route>
-
-            {/* Catch all */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </HotelProvider>
-  </ThemeProvider>
-</QueryClientProvider>
+          <RouterProvider router={router} />
+        </TooltipProvider>
+      </HotelProvider>
+    </ThemeProvider>
+  </QueryClientProvider>
 );
 
 export default App;
