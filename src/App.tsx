@@ -8,7 +8,7 @@ import { AuthGuard } from "@/components/auth/AuthGuard";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { MainLayout } from "@/components/layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
-import Inventory from "./pages/Inventory";
+import { InventoryDashboardPage } from "./pages/inventory/InventoryDashboardPage";
 import { ItemsPage } from "./pages/items/ItemsPage";
 import { RoomsPage } from "./pages/rooms/RoomsPage";
 import { RoomDetailPage } from "./pages/rooms/RoomDetailPage";
@@ -66,7 +66,7 @@ const App = () => (
               }
             >
               <Route path="/" element={<Dashboard />} />
-              <Route path="/inventory" element={<Inventory />} />
+              <Route path="/inventory" element={<InventoryDashboardPage />} />
               
               {/* Items */}
               <Route path="/items" element={<ItemsPage />} />
