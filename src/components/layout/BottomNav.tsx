@@ -4,25 +4,24 @@ import {
   Package, 
   Shirt, 
   Wrench, 
-  MoreHorizontal,
-  LayoutDashboard,
-  Settings
+  MoreHorizontal
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { usePermissions } from '@/hooks/usePermissions'
+import { useUser } from '@/hooks/useUser'
+import { hasPermission, Permission } from '@/lib/permissions'
 
 interface NavTab {
   id: string
   icon: typeof Home
   label: string
   path: string
-  permission?: string
+  permission?: Permission
 }
 
 export const BottomNav = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { can } = usePermissions()
+  const { role } = useUser()
 
   const tabs: NavTab[] = [
     { 
@@ -36,21 +35,21 @@ export const BottomNav = () => {
       icon: Package, 
       label: 'Inventory', 
       path: '/inventory',
-      permission: 'inventory.view'
+      permission: 'view_items'
     },
     { 
       id: 'laundry', 
       icon: Shirt, 
       label: 'Laundry', 
       path: '/laundry',
-      permission: 'laundry.view'
+      permission: 'view_laundry'
     },
     { 
       id: 'maintenance', 
       icon: Wrench, 
       label: 'Maintenance', 
       path: '/maintenance',
-      permission: 'maintenance.view'
+      permission: 'view_maintenance'
     },
     { 
       id: 'more', 
@@ -63,7 +62,7 @@ export const BottomNav = () => {
   // Filter tabs based on permissions
   const visibleTabs = tabs.filter(tab => {
     if (!tab.permission) return true
-    return can(tab.permission)
+    return hasPermission(role, tab.permission)
   })
 
   const isActive = (path: string) => {

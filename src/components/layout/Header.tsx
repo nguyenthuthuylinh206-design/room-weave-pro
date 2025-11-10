@@ -18,7 +18,7 @@ import { ROLES } from '@/lib/constants'
 import { HotelSwitcher } from './HotelSwitcher'
 
 interface HeaderProps {
-  onMenuClick: () => void
+  onMenuClick?: () => void
 }
 
 export const Header = ({ onMenuClick }: HeaderProps) => {

@@ -12,22 +12,21 @@ import {
   Settings,
   HelpCircle,
   LogOut,
-  ChevronRight,
-  User
+  ChevronRight
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
-import { usePermissions } from '@/hooks/usePermissions'
+import { useUser } from '@/hooks/useUser'
+import { hasPermission, Permission } from '@/lib/permissions'
 
 interface MenuItem {
   title: string
   icon: typeof Home
   path: string
-  permission?: string
+  permission?: Permission
   badge?: string
 }
 
@@ -43,8 +42,8 @@ interface MobileSidebarProps {
 export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, signOut } = useAuth()
-  const { can } = usePermissions()
+  const { signOut } = useAuth()
+  const { user, role } = useUser()
 
   const menuSections: MenuSection[] = [
     {
@@ -55,20 +54,20 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
     {
       title: 'Operations',
       items: [
-        { title: 'Inventory', icon: Package, path: '/inventory', permission: 'inventory.view' },
-        { title: 'Items', icon: LayoutDashboard, path: '/items', permission: 'items.view' },
-        { title: 'Laundry', icon: Shirt, path: '/laundry', permission: 'laundry.view' },
-        { title: 'Maintenance', icon: Wrench, path: '/maintenance', permission: 'maintenance.view' },
-        { title: 'Purchase Orders', icon: ShoppingCart, path: '/purchase-orders', permission: 'purchase_orders.view' },
+        { title: 'Inventory', icon: Package, path: '/inventory', permission: 'view_items' },
+        { title: 'Items', icon: LayoutDashboard, path: '/items', permission: 'view_items' },
+        { title: 'Laundry', icon: Shirt, path: '/laundry', permission: 'view_laundry' },
+        { title: 'Maintenance', icon: Wrench, path: '/maintenance', permission: 'view_maintenance' },
+        { title: 'Purchase Orders', icon: ShoppingCart, path: '/purchase-orders', permission: 'view_items' },
       ]
     },
     {
       title: 'Management',
       items: [
-        { title: 'Reports', icon: TrendingUp, path: '/reports', permission: 'reports.view' },
-        { title: 'Hotels', icon: Building2, path: '/hotels', permission: 'hotels.view' },
-        { title: 'Users', icon: Users, path: '/users', permission: 'users.view' },
-        { title: 'Vendors', icon: Users, path: '/vendors', permission: 'vendors.view' },
+        { title: 'Reports', icon: TrendingUp, path: '/reports', permission: 'view_reports' },
+        { title: 'Hotels', icon: Building2, path: '/hotels', permission: 'manage_settings' },
+        { title: 'Users', icon: Users, path: '/users', permission: 'manage_users' },
+        { title: 'Vendors', icon: Users, path: '/vendors', permission: 'view_items' },
       ]
     },
     {
@@ -140,7 +139,7 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
               <div className="space-y-1">
                 {section.items.map((item) => {
                   // Check permission
-                  if (item.permission && !can(item.permission)) {
+                  if (item.permission && !hasPermission(role, item.permission)) {
                     return null
                   }
 

@@ -18,7 +18,8 @@ import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAuth } from '@/hooks/useAuth'
-import { usePermissions } from '@/hooks/usePermissions'
+import { useUser } from '@/hooks/useUser'
+import { hasPermission, Permission } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 
 interface MenuItem {
@@ -26,7 +27,7 @@ interface MenuItem {
   label: string
   description?: string
   path: string
-  permission?: string
+  permission?: Permission
 }
 
 interface MenuSection {
@@ -36,8 +37,8 @@ interface MenuSection {
 
 export default function MorePage() {
   const navigate = useNavigate()
-  const { user } = useAuth()
-  const { can } = usePermissions()
+  const { user, role } = useUser()
+  const { signOut } = useAuth()
 
   const menuSections: MenuSection[] = [
     {
@@ -58,42 +59,42 @@ export default function MorePage() {
           label: 'Purchase Orders',
           description: 'Manage orders',
           path: '/purchase-orders',
-          permission: 'purchase_orders.view'
+          permission: 'view_items'
         },
         {
           icon: Package,
           label: 'Items',
           description: 'Item catalog',
           path: '/items',
-          permission: 'items.view'
+          permission: 'view_items'
         },
         {
           icon: TrendingUp,
           label: 'Reports',
           description: 'Analytics & insights',
           path: '/reports',
-          permission: 'reports.view'
+          permission: 'view_reports'
         },
         {
           icon: Building2,
           label: 'Hotels',
           description: 'Manage properties',
           path: '/hotels',
-          permission: 'hotels.view'
+          permission: 'manage_settings'
         },
         {
           icon: Users,
           label: 'Users',
           description: 'Team management',
           path: '/users',
-          permission: 'users.view'
+          permission: 'manage_users'
         },
         {
           icon: Users,
           label: 'Vendors',
           description: 'Supplier management',
           path: '/vendors',
-          permission: 'vendors.view'
+          permission: 'view_items'
         }
       ]
     },
@@ -162,7 +163,7 @@ export default function MorePage() {
             <Card className="overflow-hidden">
               {section.items.map((item, itemIndex) => {
                 // Check permission
-                if (item.permission && !can(item.permission)) {
+                if (item.permission && !hasPermission(role, item.permission)) {
                   return null
                 }
 
