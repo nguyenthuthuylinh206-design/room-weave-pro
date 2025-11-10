@@ -21,17 +21,17 @@ export function VendorListPage() {
   const [view, setView] = useState<'grid' | 'list'>('grid')
   const [filters, setFilters] = useState({
     search: '',
-    type: '',
+    type: 'all',
     status: 'active',
   })
   
-  const { data: vendors, isLoading } = useLaundryVendors({ status: filters.status })
+  const { data: vendors, isLoading } = useLaundryVendors({ status: filters.status === 'all' ? undefined : filters.status })
   
   const filteredVendors = vendors?.filter(v => {
     const searchMatch = !filters.search || 
       v.name.toLowerCase().includes(filters.search.toLowerCase()) ||
       v.address?.toLowerCase().includes(filters.search.toLowerCase())
-    const typeMatch = !filters.type || v.type === filters.type
+    const typeMatch = filters.type === 'all' || v.type === filters.type
     return searchMatch && typeMatch
   })
   
@@ -67,7 +67,7 @@ export function VendorListPage() {
               <SelectValue placeholder="Loại" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tất cả</SelectItem>
+              <SelectItem value="all">Tất cả</SelectItem>
               <SelectItem value="external">Ngoài</SelectItem>
               <SelectItem value="in_house">Nội bộ</SelectItem>
             </SelectContent>
@@ -81,7 +81,7 @@ export function VendorListPage() {
               <SelectValue placeholder="Trạng thái" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tất cả</SelectItem>
+              <SelectItem value="all">Tất cả</SelectItem>
               <SelectItem value="active">Hoạt động</SelectItem>
               <SelectItem value="inactive">Tạm ngưng</SelectItem>
             </SelectContent>
