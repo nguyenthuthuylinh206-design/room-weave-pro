@@ -49,6 +49,11 @@ export interface PurchaseOrderItem {
   id: string;
   po_id: string;
   item_id: string;
+  item?: {
+    name?: string;
+    code?: string;
+    unit?: string;
+  };
   
   quantity_ordered: number;
   quantity_received: number;
