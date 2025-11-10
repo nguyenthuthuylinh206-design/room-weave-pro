@@ -20,6 +20,9 @@ export default function MaintenanceDashboard() {
     completionRate: 0,
     avgTime: 0,
     costLast30Days: 0,
+    mttr: 0,
+    mtbf: 0,
+    firstTimeFixRate: 0,
   }
 
   return (

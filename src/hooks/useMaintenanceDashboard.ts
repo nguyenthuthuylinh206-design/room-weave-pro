@@ -45,6 +45,46 @@ export function useMaintenanceDashboard() {
         ?.filter((r) => r.status === 'completed' && new Date(r.completed_at || '') >= thirtyDaysAgo)
         .reduce((sum, r) => sum + (r.actual_cost || 0), 0) || 0
 
+      // Calculate KPIs
+      // MTTR - Mean Time To Repair (hours)
+      const mttr = completedRequests.length > 0 ? Math.round(avgTime * 10) / 10 : 0
+
+      // MTBF - Mean Time Between Failures (days) - for recurring issues
+      const itemFailures = requests?.reduce((acc, r) => {
+        if (r.item_id) {
+          if (!acc[r.item_id]) acc[r.item_id] = []
+          acc[r.item_id].push(new Date(r.reported_at).getTime())
+        }
+        return acc
+      }, {} as Record<string, number[]>) || {}
+
+      const mtbfValues = Object.values(itemFailures)
+        .filter(dates => dates.length >= 2)
+        .map(dates => {
+          const sorted = dates.sort((a, b) => a - b)
+          const intervals = []
+          for (let i = 1; i < sorted.length; i++) {
+            intervals.push((sorted[i] - sorted[i-1]) / (1000 * 60 * 60 * 24)) // to days
+          }
+          return intervals.reduce((a, b) => a + b, 0) / intervals.length
+        })
+
+      const mtbf = mtbfValues.length > 0 
+        ? Math.round(mtbfValues.reduce((a, b) => a + b, 0) / mtbfValues.length)
+        : 0
+
+      // First Time Fix Rate - no follow-up within 7 days
+      const firstTimeFixCount = completedRequests.filter(r => {
+        const followUps = requests?.filter(fu => 
+          (fu.item_id === r.item_id || fu.room_id === r.room_id) &&
+          new Date(fu.reported_at) > new Date(r.completed_at!) &&
+          (new Date(fu.reported_at).getTime() - new Date(r.completed_at!).getTime()) / (1000 * 60 * 60 * 24) <= 7
+        ) || []
+        return followUps.length === 0
+      }).length || 0
+
+      const firstTimeFixRate = completed > 0 ? Math.round((firstTimeFixCount / completed) * 100) : 0
+
       // Get active requests by priority
       const activeRequests = requests?.filter((r) => r.status !== 'completed' && r.status !== 'cancelled') || []
       const urgent = activeRequests.filter((r) => r.priority === 'urgent')
@@ -71,8 +111,12 @@ export function useMaintenanceDashboard() {
           completed,
           completedLast30Days,
           completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
-          avgTime: Math.round(avgTime * 10) / 10,
+          avgTime: mttr,
           costLast30Days,
+          // KPIs
+          mttr,
+          mtbf,
+          firstTimeFixRate,
         },
         activeRequests: {
           urgent,

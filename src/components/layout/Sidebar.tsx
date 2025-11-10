@@ -25,6 +25,9 @@ import {
   GitCompare,
   Building,
   DollarSign,
+  Wrench,
+  AlertCircle,
+  TrendingUp,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -183,7 +186,8 @@ const navigation: NavItem[] = [
   },
   {
     title: 'Bảo trì',
-    icon: Settings,
+    icon: Wrench,
+    roles: ['owner', 'hotel_manager', 'department_manager', 'staff', 'super_admin'],
     children: [
       {
         title: 'Dashboard',
@@ -193,7 +197,12 @@ const navigation: NavItem[] = [
       {
         title: 'Yêu cầu bảo trì',
         href: '/maintenance/requests',
-        icon: ClipboardCheck,
+        icon: AlertCircle,
+      },
+      {
+        title: 'Vấn đề lặp lại',
+        href: '/maintenance/recurring-issues',
+        icon: TrendingUp,
       },
     ],
   },

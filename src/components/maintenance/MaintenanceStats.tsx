@@ -12,6 +12,9 @@ interface MaintenanceStatsProps {
     completionRate: number
     avgTime: number
     costLast30Days: number
+    mttr: number
+    mtbf: number
+    firstTimeFixRate: number
   }
   isLoading?: boolean
 }
@@ -37,7 +40,8 @@ export const MaintenanceStats = ({ stats, isLoading }: MaintenanceStatsProps) =>
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-5">
+    <>
+      <div className="grid gap-4 md:grid-cols-5">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Tổng yêu cầu</CardTitle>
@@ -103,5 +107,57 @@ export const MaintenanceStats = ({ stats, isLoading }: MaintenanceStatsProps) =>
         </CardContent>
       </Card>
     </div>
+
+    {/* KPI Metrics */}
+    <div className="grid gap-4 md:grid-cols-3 mt-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">MTTR</CardTitle>
+          <Clock className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.mttr}h</div>
+          <p className="text-xs text-muted-foreground">
+            Mean Time To Repair
+          </p>
+          <p className="text-xs text-success mt-1">
+            Target: &lt; 3h {stats.mttr <= 3 && '✓'}
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">MTBF</CardTitle>
+          <Clock className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.mtbf} ngày</div>
+          <p className="text-xs text-muted-foreground">
+            Mean Time Between Failures
+          </p>
+          <p className="text-xs text-success mt-1">
+            Target: &gt; 30 ngày {stats.mtbf >= 30 && '✓'}
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">First Time Fix</CardTitle>
+          <CheckCircle className="h-4 w-4 text-success" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.firstTimeFixRate}%</div>
+          <p className="text-xs text-muted-foreground">
+            Sửa xong ngay lần đầu
+          </p>
+          <p className="text-xs text-success mt-1">
+            Target: &gt; 85% {stats.firstTimeFixRate >= 85 && '✓'}
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+    </>
   )
 }
