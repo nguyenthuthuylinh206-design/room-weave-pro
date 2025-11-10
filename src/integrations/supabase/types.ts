@@ -2021,6 +2021,22 @@ export type Database = {
         Args: { column_name: string; prefix: string; table_name: string }
         Returns: string
       }
+      get_abc_analysis: {
+        Args: { p_hotel_id: string; p_tenant_id: string }
+        Returns: {
+          abc_class: string
+          category_name: string
+          cumulative_percentage: number
+          cumulative_value: number
+          item_code: string
+          item_id: string
+          item_name: string
+          quantity_in_stock: number
+          recommendation: string
+          total_value: number
+          unit_price: number
+        }[]
+      }
       get_categories_with_stats: {
         Args: { p_tenant_id: string }
         Returns: {
@@ -2037,9 +2053,27 @@ export type Database = {
       }
       get_current_user_role: { Args: never; Returns: string }
       get_dashboard_stats: { Args: { p_tenant_id: string }; Returns: Json }
+      get_financial_report: {
+        Args: {
+          p_end_date: string
+          p_hotel_id: string
+          p_start_date: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       get_floor_plan: { Args: { p_hotel_id: string }; Returns: Json }
       get_inventory_dashboard_stats: {
         Args: { p_hotel_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_inventory_report: {
+        Args: {
+          p_end_date: string
+          p_hotel_id: string
+          p_start_date: string
+          p_tenant_id: string
+        }
         Returns: Json
       }
       get_inventory_transactions_filtered: {
@@ -2163,6 +2197,15 @@ export type Database = {
       }
       get_laundry_dashboard_stats: {
         Args: { p_tenant_id: string }
+        Returns: Json
+      }
+      get_laundry_report: {
+        Args: {
+          p_end_date: string
+          p_hotel_id: string
+          p_start_date: string
+          p_tenant_id: string
+        }
         Returns: Json
       }
       get_low_stock_items: {
@@ -2302,6 +2345,21 @@ export type Database = {
           stock_status: string
           thumbnail: string
           utilization_rate: number
+        }[]
+      }
+      get_turnover_analysis: {
+        Args: { p_hotel_id: string; p_months?: number; p_tenant_id: string }
+        Returns: {
+          avg_stock: number
+          category_name: string
+          classification: string
+          item_code: string
+          item_id: string
+          item_name: string
+          quantity_in: number
+          quantity_out: number
+          recommendation: string
+          turnover_rate: number
         }[]
       }
       get_user_primary_role: {
