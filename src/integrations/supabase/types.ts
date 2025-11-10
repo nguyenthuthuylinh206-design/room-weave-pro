@@ -1968,6 +1968,55 @@ export type Database = {
         Args: { p_tenant_id: string }
         Returns: undefined
       }
+      create_inbound_transaction: {
+        Args: {
+          p_created_by: string
+          p_documents?: string[]
+          p_from_location: string
+          p_hotel_id: string
+          p_items: Json
+          p_notes?: string
+          p_photos?: string[]
+          p_related_id?: string
+          p_related_type?: string
+          p_tenant_id: string
+          p_to_location: string
+          p_transaction_category: string
+        }
+        Returns: Json
+      }
+      create_outbound_transaction: {
+        Args: {
+          p_created_by: string
+          p_documents?: string[]
+          p_from_location: string
+          p_hotel_id: string
+          p_items: Json
+          p_notes?: string
+          p_photos?: string[]
+          p_recipient_name?: string
+          p_recipient_signature?: string
+          p_related_id?: string
+          p_related_type?: string
+          p_tenant_id: string
+          p_to_location: string
+          p_transaction_category: string
+        }
+        Returns: Json
+      }
+      create_stock_adjustment: {
+        Args: {
+          p_adjustment_type: string
+          p_assigned_to: string[]
+          p_created_by: string
+          p_hotel_id: string
+          p_item_ids: string[]
+          p_notes?: string
+          p_scheduled_date: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       generate_unique_code: {
         Args: { column_name: string; prefix: string; table_name: string }
         Returns: string
@@ -1989,6 +2038,57 @@ export type Database = {
       get_current_user_role: { Args: never; Returns: string }
       get_dashboard_stats: { Args: { p_tenant_id: string }; Returns: Json }
       get_floor_plan: { Args: { p_hotel_id: string }; Returns: Json }
+      get_inventory_dashboard_stats: {
+        Args: { p_hotel_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_inventory_transactions_filtered: {
+        Args: {
+          p_category_id?: string
+          p_created_by?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_hotel_id?: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_tenant_id: string
+          p_transaction_type?: string
+        }
+        Returns: {
+          category_name: string
+          created_at: string
+          created_by: string
+          created_by_avatar: string
+          created_by_name: string
+          from_location: string
+          id: string
+          item_code: string
+          item_id: string
+          item_images: string[]
+          item_name: string
+          notes: string
+          quantity: number
+          quantity_after: number
+          quantity_before: number
+          to_location: string
+          total_count: number
+          total_value: number
+          transaction_category: string
+          transaction_code: string
+          transaction_type: string
+          unit_price: number
+        }[]
+      }
+      get_inventory_value_over_time: {
+        Args: { p_hotel_id: string; p_months?: number; p_tenant_id: string }
+        Returns: {
+          month: string
+          stock_value: number
+          value_in: number
+          value_out: number
+        }[]
+      }
       get_item_detail: { Args: { p_item_id: string }; Returns: Json }
       get_items_filtered: {
         Args: {
@@ -2065,6 +2165,23 @@ export type Database = {
         Args: { p_tenant_id: string }
         Returns: Json
       }
+      get_low_stock_items: {
+        Args: { p_hotel_id: string; p_limit?: number; p_tenant_id: string }
+        Returns: {
+          category_id: string
+          category_name: string
+          code: string
+          id: string
+          images: string[]
+          minimum_stock: number
+          name: string
+          quantity_in_stock: number
+          reorder_point: number
+          shortage: number
+          shortage_percent: number
+          unit_price: number
+        }[]
+      }
       get_monthly_expenses: {
         Args: { p_months?: number; p_tenant_id: string }
         Returns: {
@@ -2137,6 +2254,39 @@ export type Database = {
           room_type: string
           status: string
           total_items: number
+        }[]
+      }
+      get_stock_adjustments_filtered: {
+        Args: {
+          p_adjustment_type?: string
+          p_created_by?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_hotel_id?: string
+          p_limit?: number
+          p_offset?: number
+          p_status?: string
+          p_tenant_id: string
+        }
+        Returns: {
+          adjustment_code: string
+          adjustment_type: string
+          approved_by: string
+          approved_by_name: string
+          assigned_to: string[]
+          assigned_to_names: string[]
+          completed_at: string
+          created_by: string
+          created_by_name: string
+          id: string
+          notes: string
+          scheduled_date: string
+          started_at: string
+          status: string
+          total_count: number
+          total_discrepancies: number
+          total_items_checked: number
+          total_value_difference: number
         }[]
       }
       get_top_items: {
