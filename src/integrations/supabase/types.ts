@@ -143,6 +143,283 @@ export type Database = {
           },
         ]
       }
+      custom_field_values: {
+        Row: {
+          entity_id: string
+          entity_type: string
+          tenant_id: string
+          updated_at: string | null
+          values: Json
+        }
+        Insert: {
+          entity_id: string
+          entity_type: string
+          tenant_id: string
+          updated_at?: string | null
+          values?: Json
+        }
+        Update: {
+          entity_id?: string
+          entity_type?: string
+          tenant_id?: string
+          updated_at?: string | null
+          values?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_field_values_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_fields: {
+        Row: {
+          created_at: string | null
+          default_value: string | null
+          description: string | null
+          display_order: number | null
+          entity_type: string
+          field_name: string
+          field_type: string
+          id: string
+          label: string
+          max_length: number | null
+          max_value: number | null
+          min_length: number | null
+          min_value: number | null
+          options: Json | null
+          required: boolean | null
+          show_in_filters: boolean | null
+          show_in_list: boolean | null
+          status: string | null
+          tenant_id: string
+          updated_at: string | null
+          validation_rule: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_value?: string | null
+          description?: string | null
+          display_order?: number | null
+          entity_type: string
+          field_name: string
+          field_type: string
+          id?: string
+          label: string
+          max_length?: number | null
+          max_value?: number | null
+          min_length?: number | null
+          min_value?: number | null
+          options?: Json | null
+          required?: boolean | null
+          show_in_filters?: boolean | null
+          show_in_list?: boolean | null
+          status?: string | null
+          tenant_id: string
+          updated_at?: string | null
+          validation_rule?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_value?: string | null
+          description?: string | null
+          display_order?: number | null
+          entity_type?: string
+          field_name?: string
+          field_type?: string
+          id?: string
+          label?: string
+          max_length?: number | null
+          max_value?: number | null
+          min_length?: number | null
+          min_value?: number | null
+          options?: Json | null
+          required?: boolean | null
+          show_in_filters?: boolean | null
+          show_in_list?: boolean | null
+          status?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+          validation_rule?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_fields_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_logs: {
+        Row: {
+          clicked_at: string | null
+          created_at: string | null
+          delivered_at: string | null
+          error_message: string | null
+          failed_at: string | null
+          id: string
+          metadata: Json | null
+          opened_at: string | null
+          recipient_email: string
+          recipient_name: string | null
+          retry_count: number | null
+          sent_at: string | null
+          status: string
+          subject: string
+          template_id: string | null
+          template_name: string | null
+          tenant_id: string
+        }
+        Insert: {
+          clicked_at?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          failed_at?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          recipient_email: string
+          recipient_name?: string | null
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+          template_id?: string | null
+          template_name?: string | null
+          tenant_id: string
+        }
+        Update: {
+          clicked_at?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          failed_at?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          recipient_email?: string
+          recipient_name?: string | null
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          template_id?: string | null
+          template_name?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_templates: {
+        Row: {
+          attachments: Json | null
+          available_variables: Json | null
+          bcc: Json | null
+          category: string
+          cc: Json | null
+          code: string
+          created_at: string | null
+          description: string | null
+          from_email: string | null
+          from_name: string | null
+          html_body: string
+          id: string
+          is_system: boolean | null
+          last_edited_at: string | null
+          last_edited_by: string | null
+          name: string
+          reply_to: string | null
+          status: string | null
+          subject: string
+          tenant_id: string
+          text_body: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          attachments?: Json | null
+          available_variables?: Json | null
+          bcc?: Json | null
+          category: string
+          cc?: Json | null
+          code: string
+          created_at?: string | null
+          description?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          html_body: string
+          id?: string
+          is_system?: boolean | null
+          last_edited_at?: string | null
+          last_edited_by?: string | null
+          name: string
+          reply_to?: string | null
+          status?: string | null
+          subject: string
+          tenant_id: string
+          text_body?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          attachments?: Json | null
+          available_variables?: Json | null
+          bcc?: Json | null
+          category?: string
+          cc?: Json | null
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          html_body?: string
+          id?: string
+          is_system?: boolean | null
+          last_edited_at?: string | null
+          last_edited_by?: string | null
+          name?: string
+          reply_to?: string | null
+          status?: string | null
+          subject?: string
+          tenant_id?: string
+          text_body?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_templates_last_edited_by_fkey"
+            columns: ["last_edited_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotels: {
         Row: {
           address: string | null
@@ -241,6 +518,90 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_export_history: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          data_type: string
+          duration_seconds: number | null
+          error_message: string | null
+          failed_count: number | null
+          file_name: string | null
+          filters: Json | null
+          format: string | null
+          id: string
+          output_file_url: string | null
+          skipped_count: number | null
+          source_file_url: string | null
+          started_at: string | null
+          status: string
+          success_count: number | null
+          tenant_id: string
+          total_rows: number | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          data_type: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          failed_count?: number | null
+          file_name?: string | null
+          filters?: Json | null
+          format?: string | null
+          id?: string
+          output_file_url?: string | null
+          skipped_count?: number | null
+          source_file_url?: string | null
+          started_at?: string | null
+          status?: string
+          success_count?: number | null
+          tenant_id: string
+          total_rows?: number | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          data_type?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          failed_count?: number | null
+          file_name?: string | null
+          filters?: Json | null
+          format?: string | null
+          id?: string
+          output_file_url?: string | null
+          skipped_count?: number | null
+          source_file_url?: string | null
+          started_at?: string | null
+          status?: string
+          success_count?: number | null
+          tenant_id?: string
+          total_rows?: number | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_export_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_export_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -2064,6 +2425,56 @@ export type Database = {
         }
         Relationships: []
       }
+      user_hotels: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          hotel_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          hotel_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          hotel_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_hotels_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_hotels_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "user_hotels_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_hotels_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -2983,12 +3394,27 @@ export type Database = {
           turnover_rate: number
         }[]
       }
+      get_user_hotels: {
+        Args: { p_user_id: string }
+        Returns: {
+          city: string
+          code: string
+          id: string
+          name: string
+          status: string
+          total_rooms: number
+        }[]
+      }
       get_user_primary_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
       get_vendor_performance: {
         Args: { p_days?: number; p_vendor_id: string }
+        Returns: Json
+      }
+      get_workflow_analytics: {
+        Args: { p_period?: string; p_workflow_id: string }
         Returns: Json
       }
       has_role: {
