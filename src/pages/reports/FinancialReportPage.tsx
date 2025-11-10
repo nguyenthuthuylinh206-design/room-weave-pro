@@ -70,11 +70,19 @@ export function FinancialReportPage() {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Quay lại
           </Button>
-          <Button variant="outline" onClick={() => exportToPDF({}, 'financial')} disabled={isExporting}>
+          <Button variant="outline" onClick={() => exportToPDF({
+            title: 'Báo cáo Tài chính',
+            dateRange: `${dateRange.start.toLocaleDateString('vi-VN')} - ${dateRange.end.toLocaleDateString('vi-VN')}`,
+            summary,
+          }, 'financial')} disabled={isExporting}>
             <FileText className="mr-2 h-4 w-4" />
             Xuất PDF
           </Button>
-          <Button variant="outline" onClick={() => exportToExcel({}, 'financial')} disabled={isExporting}>
+          <Button variant="outline" onClick={() => exportToExcel({
+            title: 'Báo cáo Tài chính',
+            dateRange: `${dateRange.start.toLocaleDateString('vi-VN')} - ${dateRange.end.toLocaleDateString('vi-VN')}`,
+            summary,
+          }, 'financial')} disabled={isExporting}>
             <Download className="mr-2 h-4 w-4" />
             Xuất Excel
           </Button>

@@ -34,7 +34,7 @@ export function InventoryReportPage() {
       {
         title: 'Báo cáo Tồn kho',
         dateRange: `${dateRange.start.toLocaleDateString('vi-VN')} - ${dateRange.end.toLocaleDateString('vi-VN')}`,
-        summary: reportData.summary,
+        summary: reportData.summary as Record<string, any>,
         tables: [
           {
             title: 'Phân bổ theo danh mục',
@@ -60,7 +60,9 @@ export function InventoryReportPage() {
     
     exportToExcel(
       {
-        summary: reportData.summary,
+        title: 'Báo cáo Tồn kho',
+        dateRange: `${dateRange.start.toLocaleDateString('vi-VN')} - ${dateRange.end.toLocaleDateString('vi-VN')}`,
+        summary: reportData.summary as Record<string, any>,
         tables: [
           {
             title: 'Theo danh mục',
