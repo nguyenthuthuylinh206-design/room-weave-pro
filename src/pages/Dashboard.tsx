@@ -4,15 +4,21 @@ import { ExpenseChart } from '@/components/dashboard/ExpenseChart'
 import { TopItemsTable } from '@/components/dashboard/TopItemsTable'
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { QuickActions } from '@/components/dashboard/QuickActions'
+import { MobileDashboard } from '@/components/dashboard/MobileDashboard'
 import { Package, Wind, AlertTriangle } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 
 export default function Dashboard() {
   const { user } = useUser()
   const { data: stats, isLoading } = useDashboardStats()
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
+
+  // Mobile view
+  if (isMobile) {
+    return <MobileDashboard />
+  }
 
   if (isLoading) {
     return (
@@ -74,7 +80,7 @@ export default function Dashboard() {
       <QuickActions />
 
       {/* Expense Chart */}
-      <ExpenseChart months={12} showBarChart={isMobile} />
+      <ExpenseChart months={12} showBarChart={false} />
 
       {/* Top Items & Recent Activity */}
       <div className="grid gap-6 lg:grid-cols-3">
