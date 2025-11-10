@@ -36,6 +36,8 @@ export interface PurchaseOrder {
   approved_at?: string;
   rejection_reason?: string;
   
+  items?: PurchaseOrderItem[];
+  
   notes?: string;
   status: POStatus;
   
