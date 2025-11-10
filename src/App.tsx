@@ -29,6 +29,7 @@ import { VendorDetailPage } from "./pages/laundry/VendorDetailPage";
 import { VendorFormPage } from "./pages/laundry/VendorFormPage";
 import { SettingsPage } from "./pages/settings/SettingsPage";
 import { ReportsPage } from "./pages/reports/ReportsPage";
+import { ReportsDashboardPage } from "./pages/reports/ReportsDashboardPage";
 import { HotelsPage } from "./pages/hotels/HotelsPage";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
@@ -111,7 +112,7 @@ const App = () => (
                 path="/reports"
                 element={
                   <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
-                    <ReportsPage />
+                    <ReportsDashboardPage />
                   </RoleGuard>
                 }
               />
