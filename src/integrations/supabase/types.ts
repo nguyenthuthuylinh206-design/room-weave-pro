@@ -146,50 +146,96 @@ export type Database = {
       hotels: {
         Row: {
           address: string | null
+          city: string | null
           code: string
+          country: string
           created_at: string | null
+          description: string | null
           email: string | null
           id: string
+          inactive_at: string | null
+          inactive_reason: string | null
+          logo_url: string | null
+          manager_email: string | null
+          manager_id: string | null
+          manager_name: string | null
           name: string
           phone: string | null
+          postal_code: string | null
           settings: Json | null
+          state: string | null
           status: string | null
           tenant_id: string
           total_floors: number | null
           total_rooms: number | null
+          type: string
           updated_at: string | null
+          website: string | null
         }
         Insert: {
           address?: string | null
+          city?: string | null
           code: string
+          country?: string
           created_at?: string | null
+          description?: string | null
           email?: string | null
           id?: string
+          inactive_at?: string | null
+          inactive_reason?: string | null
+          logo_url?: string | null
+          manager_email?: string | null
+          manager_id?: string | null
+          manager_name?: string | null
           name: string
           phone?: string | null
+          postal_code?: string | null
           settings?: Json | null
+          state?: string | null
           status?: string | null
           tenant_id: string
           total_floors?: number | null
           total_rooms?: number | null
+          type?: string
           updated_at?: string | null
+          website?: string | null
         }
         Update: {
           address?: string | null
+          city?: string | null
           code?: string
+          country?: string
           created_at?: string | null
+          description?: string | null
           email?: string | null
           id?: string
+          inactive_at?: string | null
+          inactive_reason?: string | null
+          logo_url?: string | null
+          manager_email?: string | null
+          manager_id?: string | null
+          manager_name?: string | null
           name?: string
           phone?: string | null
+          postal_code?: string | null
           settings?: Json | null
+          state?: string | null
           status?: string | null
           tenant_id?: string
           total_floors?: number | null
           total_rooms?: number | null
+          type?: string
           updated_at?: string | null
+          website?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "hotels_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "hotels_tenant_id_fkey"
             columns: ["tenant_id"]
