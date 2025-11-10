@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
+import { toast } from 'sonner'
 import type { RoomWithStats, RoomFilters } from '@/types/rooms.types'
 
 export function useRooms(filters: RoomFilters = {}) {
@@ -73,5 +74,55 @@ export function useRoomStats(tenantId: string | undefined, hotelId: string | und
       }
     },
     enabled: !!tenantId,
+  })
+}
+
+export function useCreateRoom() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async (data: any) => {
+      const { data: room, error } = await supabase
+        .from('rooms')
+        .insert(data)
+        .select()
+        .single()
+      
+      if (error) throw error
+      return room
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+      toast.success('Đã thêm phòng mới')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    },
+  })
+}
+
+export function useUpdateRoom() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const { data: room, error } = await supabase
+        .from('rooms')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single()
+      
+      if (error) throw error
+      return room
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+      queryClient.invalidateQueries({ queryKey: ['room', variables.id] })
+      toast.success('Đã cập nhật phòng')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    },
   })
 }

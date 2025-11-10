@@ -19,6 +19,10 @@ import { AdjustmentDetailPage } from "./pages/inventory/AdjustmentDetailPage";
 import { ItemsPage } from "./pages/items/ItemsPage";
 import { RoomsPage } from "./pages/rooms/RoomsPage";
 import { RoomDetailPage } from "./pages/rooms/RoomDetailPage";
+import { ItemFormPage } from "./pages/items/ItemFormPage";
+import { CategoriesPage } from "./pages/items/CategoriesPage";
+import { RoomFormPage } from "./pages/rooms/RoomFormPage";
+import { RoomStandardsPage } from "./pages/rooms/RoomStandardsPage";
 import { LaundryDashboardPage } from "./pages/laundry/LaundryDashboardPage";
 import { LaundryBatchesPage } from "./pages/laundry/LaundryBatchesPage";
 import { CreateBatchPage } from "./pages/laundry/CreateBatchPage";
@@ -95,10 +99,16 @@ const App = () => (
               
               {/* Items */}
               <Route path="/items" element={<ItemsPage />} />
+              <Route path="/items/new" element={<ItemFormPage />} />
+              <Route path="/items/:id/edit" element={<ItemFormPage />} />
+              <Route path="/items/categories" element={<CategoriesPage />} />
               
               {/* Rooms */}
               <Route path="/rooms" element={<RoomsPage />} />
+              <Route path="/rooms/new" element={<RoomFormPage />} />
               <Route path="/rooms/:id" element={<RoomDetailPage />} />
+              <Route path="/rooms/:id/edit" element={<RoomFormPage />} />
+              <Route path="/rooms/standards" element={<RoomStandardsPage />} />
               
               {/* Laundry */}
               <Route path="/laundry" element={<LaundryDashboardPage />} />

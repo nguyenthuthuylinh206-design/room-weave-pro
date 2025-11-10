@@ -1,0 +1,321 @@
+import { useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { ArrowLeft, Save } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { useRoom, useCreateRoom, useUpdateRoom } from '@/hooks/useRooms'
+import { useUser } from '@/hooks/useUser'
+
+const roomSchema = z.object({
+  room_number: z.string().min(1, 'Số phòng là bắt buộc'),
+  room_type: z.string().min(1, 'Loại phòng là bắt buộc'),
+  floor: z.number().min(1, 'Tầng phải >= 1'),
+  area_sqm: z.number().min(0, 'Diện tích phải >= 0').optional(),
+  max_guests: z.number().min(1, 'Số khách tối đa phải >= 1'),
+  base_price: z.number().min(0, 'Giá cơ bản phải >= 0'),
+  bed_type: z.string().optional(),
+  view_type: z.string().optional(),
+  has_window: z.boolean(),
+  has_balcony: z.boolean(),
+  smoking_allowed: z.boolean(),
+  notes: z.string().optional(),
+})
+
+type RoomFormData = z.infer<typeof roomSchema>
+
+export function RoomFormPage() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const isEdit = !!id
+
+  const { tenantId, hotelId } = useUser()
+  const { data: room, isLoading: roomLoading } = useRoom(id)
+  const createRoom = useCreateRoom()
+  const updateRoom = useUpdateRoom()
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<RoomFormData>({
+    resolver: zodResolver(roomSchema),
+    defaultValues: {
+      max_guests: 2,
+      base_price: 0,
+      has_window: true,
+      has_balcony: false,
+      smoking_allowed: false,
+    },
+  })
+
+  useEffect(() => {
+    if (room && isEdit && typeof room === 'object' && 'room_number' in room) {
+      const roomData = room as any
+      setValue('room_number', roomData.room_number || '')
+      setValue('room_type', roomData.room_type || '')
+      setValue('floor', roomData.floor || 1)
+      setValue('area_sqm', roomData.area_sqm || undefined)
+      setValue('max_guests', roomData.max_guests || 2)
+      setValue('base_price', roomData.base_price || 0)
+      setValue('bed_type', roomData.bed_type || '')
+      setValue('view_type', roomData.view_type || '')
+      setValue('has_window', roomData.has_window ?? true)
+      setValue('has_balcony', roomData.has_balcony ?? false)
+      setValue('smoking_allowed', roomData.smoking_allowed ?? false)
+      setValue('notes', roomData.notes || '')
+    }
+  }, [room, isEdit, setValue])
+
+  const onSubmit = async (data: RoomFormData) => {
+    try {
+      if (isEdit) {
+        await updateRoom.mutateAsync({
+          id: id!,
+          data: {
+            ...data,
+            updated_at: new Date().toISOString(),
+          },
+        })
+      } else {
+        await createRoom.mutateAsync({
+          ...data,
+          tenant_id: tenantId,
+          hotel_id: hotelId,
+          status: 'vacant',
+          amenities: [],
+        })
+      }
+      navigate('/rooms')
+    } catch (error) {
+      // Error handled by mutation
+    }
+  }
+
+  if (roomLoading && isEdit) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/rooms')}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-3xl font-bold">Đang tải...</h1>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/rooms')}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div>
+          <h1 className="text-3xl font-bold">
+            {isEdit ? 'Chỉnh sửa phòng' : 'Thêm phòng mới'}
+          </h1>
+          <p className="text-muted-foreground">
+            {isEdit ? 'Cập nhật thông tin phòng' : 'Nhập thông tin phòng mới'}
+          </p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Thông tin cơ bản</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="room_number">Số phòng *</Label>
+                <Input id="room_number" {...register('room_number')} />
+                {errors.room_number && (
+                  <p className="text-sm text-destructive">{errors.room_number.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="room_type">Loại phòng *</Label>
+                <Select
+                  value={watch('room_type')}
+                  onValueChange={(value) => setValue('room_type', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn loại phòng..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">Standard</SelectItem>
+                    <SelectItem value="superior">Superior</SelectItem>
+                    <SelectItem value="deluxe">Deluxe</SelectItem>
+                    <SelectItem value="suite">Suite</SelectItem>
+                    <SelectItem value="penthouse">Penthouse</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.room_type && (
+                  <p className="text-sm text-destructive">{errors.room_type.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="floor">Tầng *</Label>
+                <Input
+                  id="floor"
+                  type="number"
+                  {...register('floor', { valueAsNumber: true })}
+                />
+                {errors.floor && (
+                  <p className="text-sm text-destructive">{errors.floor.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="area_sqm">Diện tích (m²)</Label>
+                <Input
+                  id="area_sqm"
+                  type="number"
+                  step="0.01"
+                  {...register('area_sqm', { valueAsNumber: true })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="max_guests">Số khách tối đa *</Label>
+                <Input
+                  id="max_guests"
+                  type="number"
+                  {...register('max_guests', { valueAsNumber: true })}
+                />
+                {errors.max_guests && (
+                  <p className="text-sm text-destructive">{errors.max_guests.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="base_price">Giá cơ bản (₫) *</Label>
+                <Input
+                  id="base_price"
+                  type="number"
+                  step="0.01"
+                  {...register('base_price', { valueAsNumber: true })}
+                />
+                {errors.base_price && (
+                  <p className="text-sm text-destructive">{errors.base_price.message}</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Chi tiết phòng</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bed_type">Loại giường</Label>
+                <Select
+                  value={watch('bed_type')}
+                  onValueChange={(value) => setValue('bed_type', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn loại giường..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="single">Đơn</SelectItem>
+                    <SelectItem value="double">Đôi</SelectItem>
+                    <SelectItem value="queen">Queen</SelectItem>
+                    <SelectItem value="king">King</SelectItem>
+                    <SelectItem value="twin">Twin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="view_type">Hướng nhìn</Label>
+                <Select
+                  value={watch('view_type')}
+                  onValueChange={(value) => setValue('view_type', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn hướng nhìn..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="city">Thành phố</SelectItem>
+                    <SelectItem value="sea">Biển</SelectItem>
+                    <SelectItem value="mountain">Núi</SelectItem>
+                    <SelectItem value="garden">Vườn</SelectItem>
+                    <SelectItem value="pool">Hồ bơi</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="has_window"
+                  checked={watch('has_window')}
+                  onCheckedChange={(checked) => setValue('has_window', !!checked)}
+                />
+                <Label htmlFor="has_window" className="cursor-pointer">
+                  Có cửa sổ
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="has_balcony"
+                  checked={watch('has_balcony')}
+                  onCheckedChange={(checked) => setValue('has_balcony', !!checked)}
+                />
+                <Label htmlFor="has_balcony" className="cursor-pointer">
+                  Có ban công
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="smoking_allowed"
+                  checked={watch('smoking_allowed')}
+                  onCheckedChange={(checked) => setValue('smoking_allowed', !!checked)}
+                />
+                <Label htmlFor="smoking_allowed" className="cursor-pointer">
+                  Cho phép hút thuốc
+                </Label>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Ghi chú</Label>
+              <Textarea id="notes" {...register('notes')} rows={3} />
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={() => navigate('/rooms')}>
+            Hủy
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            <Save className="w-4 h-4 mr-2" />
+            {isSubmitting ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Tạo mới'}
+          </Button>
+        </div>
+      </form>
+    </div>
+  )
+}
