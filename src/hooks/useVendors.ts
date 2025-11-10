@@ -141,3 +141,44 @@ export function useVendorPOs(vendorId: string) {
     enabled: !!vendorId,
   });
 }
+
+export function useDeleteVendor() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  
+  return useMutation({
+    mutationFn: async (vendorId: string) => {
+      // Check if vendor has active purchase orders
+      const { count } = await supabase
+        .from('purchase_orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('vendor_id', vendorId)
+        .in('status', ['submitted', 'approved', 'ordered', 'partial'])
+      
+      if (count && count > 0) {
+        throw new Error('Không thể xóa nhà cung cấp có đơn hàng đang xử lý')
+      }
+      
+      const { error } = await supabase
+        .from('vendors')
+        .delete()
+        .eq('id', vendorId)
+      
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vendors'] })
+      toast({
+        title: 'Thành công',
+        description: 'Đã xóa nhà cung cấp',
+      })
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+}

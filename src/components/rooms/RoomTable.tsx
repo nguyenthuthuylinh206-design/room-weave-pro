@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MoreVertical, Eye, Edit, ClipboardCheck, Trash2 } from 'lucide-react'
 import {
@@ -16,12 +17,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import { RoomStatusBadge } from './RoomStatusBadge'
 import { formatCurrency } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
+import { useDeleteRoom } from '@/hooks/useRooms'
 import type { RoomWithStats } from '@/types/rooms.types'
 
 interface RoomTableProps {
@@ -123,33 +135,68 @@ export function RoomTable({ rooms, isLoading }: RoomTableProps) {
 
 function RoomActions({ room }: { room: RoomWithStats }) {
   const navigate = useNavigate()
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const deleteRoom = useDeleteRoom()
+  
+  const handleDelete = () => {
+    deleteRoom.mutate(room.id, {
+      onSuccess: () => setShowDeleteDialog(false)
+    })
+  }
   
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-          <MoreVertical className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => navigate(`/rooms/${room.id}`)}>
-          <Eye className="mr-2 h-4 w-4" />
-          Xem chi tiết
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate(`/rooms/${room.id}/edit`)}>
-          <Edit className="mr-2 h-4 w-4" />
-          Sửa
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate(`/rooms/${room.id}/check`)}>
-          <ClipboardCheck className="mr-2 h-4 w-4" />
-          Kiểm tra phòng
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-destructive">
-          <Trash2 className="mr-2 h-4 w-4" />
-          Xóa
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => navigate(`/rooms/${room.id}`)}>
+            <Eye className="mr-2 h-4 w-4" />
+            Xem chi tiết
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate(`/rooms/${room.id}/edit`)}>
+            <Edit className="mr-2 h-4 w-4" />
+            Sửa
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate(`/rooms/${room.id}/check`)}>
+            <ClipboardCheck className="mr-2 h-4 w-4" />
+            Kiểm tra phòng
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem 
+            className="text-destructive"
+            onClick={() => setShowDeleteDialog(true)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Xóa
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa phòng</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa phòng <strong>{room.room_number}</strong>? 
+              Hành động này không thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteRoom.isPending}
+            >
+              {deleteRoom.isPending ? 'Đang xóa...' : 'Xóa'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }

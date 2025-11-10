@@ -126,3 +126,45 @@ export function useUpdateRoom() {
     },
   })
 }
+
+export function useDeleteRoom() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async (roomId: string) => {
+      // Check if room has room_items
+      const { count: itemsCount } = await supabase
+        .from('room_items')
+        .select('*', { count: 'exact', head: true })
+        .eq('room_id', roomId)
+      
+      if (itemsCount && itemsCount > 0) {
+        throw new Error('Không thể xóa phòng có đồ dùng. Vui lòng xóa đồ dùng trước.')
+      }
+      
+      // Check if room has checks
+      const { count: checksCount } = await supabase
+        .from('room_checks')
+        .select('*', { count: 'exact', head: true })
+        .eq('room_id', roomId)
+      
+      if (checksCount && checksCount > 0) {
+        throw new Error('Không thể xóa phòng có lịch sử kiểm tra')
+      }
+      
+      const { error } = await supabase
+        .from('rooms')
+        .delete()
+        .eq('id', roomId)
+      
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+      toast.success('Đã xóa phòng')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    },
+  })
+}

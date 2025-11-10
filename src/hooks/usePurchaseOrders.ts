@@ -215,3 +215,44 @@ export function useReceivePO() {
     },
   });
 }
+
+export function useDeletePO() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (poId: string) => {
+      // Check if PO status allows deletion
+      const { data: po } = await supabase
+        .from('purchase_orders')
+        .select('status')
+        .eq('id', poId)
+        .single();
+
+      if (po?.status && !['draft', 'rejected', 'cancelled'].includes(po.status)) {
+        throw new Error('Chỉ có thể xóa đơn hàng ở trạng thái nháp, từ chối hoặc đã hủy');
+      }
+
+      const { error } = await supabase
+        .from('purchase_orders')
+        .delete()
+        .eq('id', poId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      toast({
+        title: 'Thành công',
+        description: 'Đã xóa đơn đặt hàng',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+}
