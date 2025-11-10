@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -36,7 +36,9 @@ type ItemFormData = z.infer<typeof itemSchema>
 export function ItemFormPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const isEdit = !!id
+  const copyFrom = location.state?.copyFrom
 
   const { tenantId, hotelId } = useUser()
   const { data: item, isLoading: itemLoading } = useItem(id)
@@ -60,8 +62,27 @@ export function ItemFormPage() {
     },
   })
 
+  // Handle copy mode
   useEffect(() => {
-    if (item && isEdit && typeof item === 'object' && 'code' in item) {
+    if (copyFrom) {
+      setValue('code', `${copyFrom.code}-COPY-${Date.now().toString().slice(-4)}`)
+      setValue('name', `${copyFrom.name} (Copy)`)
+      setValue('name_en', copyFrom.name_en || '')
+      setValue('description', copyFrom.description || '')
+      setValue('category_id', copyFrom.category_id || '')
+      setValue('unit', copyFrom.unit || 'cái')
+      setValue('unit_price', copyFrom.unit_price || 0)
+      setValue('minimum_stock', copyFrom.minimum_stock || 10)
+      setValue('reorder_point', copyFrom.reorder_point || 20)
+      setValue('brand', copyFrom.brand || '')
+      setValue('model', copyFrom.model || '')
+      setValue('max_wash_cycles', copyFrom.max_wash_cycles || undefined)
+      setValue('expected_lifetime_days', copyFrom.expected_lifetime_days || undefined)
+    }
+  }, [copyFrom, setValue])
+
+  useEffect(() => {
+    if (item && isEdit && typeof item === 'object' && 'code' in item && !copyFrom) {
       const itemData = item as any
       setValue('code', itemData.code || '')
       setValue('name', itemData.name || '')
@@ -77,7 +98,7 @@ export function ItemFormPage() {
       setValue('max_wash_cycles', itemData.max_wash_cycles || undefined)
       setValue('expected_lifetime_days', itemData.expected_lifetime_days || undefined)
     }
-  }, [item, isEdit, setValue])
+  }, [item, isEdit, copyFrom, setValue])
 
   const onSubmit = async (data: ItemFormData) => {
     try {

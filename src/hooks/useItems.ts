@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
@@ -10,6 +11,33 @@ export function useItems(
   pageSize: number = 25
 ) {
   const { tenantId, hotelId } = useUser()
+  const queryClient = useQueryClient()
+  
+  // Subscribe to realtime changes
+  useEffect(() => {
+    if (!tenantId) return
+    
+    const channel = supabase
+      .channel('items-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'items',
+          filter: `tenant_id=eq.${tenantId}`,
+        },
+        () => {
+          // Invalidate queries to refetch data
+          queryClient.invalidateQueries({ queryKey: ['items'] })
+        }
+      )
+      .subscribe()
+    
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [tenantId, queryClient])
   
   return useQuery({
     queryKey: ['items', tenantId, hotelId, filters, page, pageSize],

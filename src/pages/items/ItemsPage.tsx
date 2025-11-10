@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -12,10 +12,30 @@ import type { ItemFilters as IItemFilters } from '@/types/items.types'
 
 export function ItemsPage() {
   const navigate = useNavigate()
-  const [filters, setFilters] = useState<IItemFilters>({})
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(25)
+  const [searchParams, setSearchParams] = useSearchParams()
   const [selectedItems, setSelectedItems] = useState<string[]>([])
+  
+  // Initialize state from URL params
+  const [filters, setFilters] = useState<IItemFilters>(() => ({
+    search: searchParams.get('search') || undefined,
+    categoryId: searchParams.get('categoryId') || undefined,
+    stockStatus: (searchParams.get('stockStatus') as any) || undefined,
+    status: (searchParams.get('status') as any) || 'active',
+  }))
+  const [page, setPage] = useState(() => Number(searchParams.get('page')) || 1)
+  const [pageSize, setPageSize] = useState(() => Number(searchParams.get('pageSize')) || 25)
+  
+  // Sync URL params with state
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (filters.search) params.set('search', filters.search)
+    if (filters.categoryId) params.set('categoryId', filters.categoryId)
+    if (filters.stockStatus) params.set('stockStatus', filters.stockStatus)
+    if (filters.status) params.set('status', filters.status)
+    if (page !== 1) params.set('page', page.toString())
+    if (pageSize !== 25) params.set('pageSize', pageSize.toString())
+    setSearchParams(params, { replace: true })
+  }, [filters, page, pageSize, setSearchParams])
   
   const { data, isLoading } = useItems(filters, page, pageSize)
   

@@ -13,6 +13,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { useDeleteItems } from '@/hooks/useItems'
+import { supabase } from '@/integrations/supabase/client'
+import { toast } from '@/hooks/use-toast'
 
 interface BulkActionsBarProps {
   selectedCount: number
@@ -33,15 +35,67 @@ export function BulkActionsBar({
   }
   
   const handleExport = () => {
+    // TODO: Implement Excel export with XLSX library
     console.log('Export selected items:', selectedItems)
   }
   
   const handlePrintQR = () => {
-    console.log('Print QR codes for:', selectedItems)
+    // Generate multiple QR codes and open print dialog
+    const qrCodes = selectedItems.map(id => 
+      `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${id}`
+    ).join(',')
+    
+    // Open in new window for batch printing
+    const printWindow = window.open('', '_blank', 'width=800,height=600')
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>QR Codes - Print</title>
+            <style>
+              body { display: flex; flex-wrap: wrap; gap: 20px; padding: 20px; }
+              .qr-item { page-break-inside: avoid; text-align: center; }
+              img { display: block; margin: 0 auto; }
+              @media print { .no-print { display: none; } }
+            </style>
+          </head>
+          <body>
+            ${selectedItems.map(id => `
+              <div class="qr-item">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${id}" />
+                <p>${id}</p>
+              </div>
+            `).join('')}
+            <button class="no-print" onclick="window.print()">Print All</button>
+          </body>
+        </html>
+      `)
+      printWindow.document.close()
+    }
   }
   
-  const handleDiscontinue = () => {
-    console.log('Discontinue items:', selectedItems)
+  const handleDiscontinue = async () => {
+    // Bulk update items to discontinued status
+    try {
+      const { error } = await supabase
+        .from('items')
+        .update({ status: 'discontinued' })
+        .in('id', selectedItems)
+      
+      if (error) throw error
+      
+      toast({
+        title: 'Thành công',
+        description: `Đã ngừng kinh doanh ${selectedItems.length} items`,
+      })
+      onClearSelection()
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
+    }
   }
   
   return (

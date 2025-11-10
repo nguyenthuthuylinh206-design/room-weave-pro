@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { 
   MoreVertical, 
@@ -11,6 +12,18 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { useDeleteItems, useUpdateItem } from '@/hooks/useItems'
+import { toast } from '@/hooks/use-toast'
 import {
   Table,
   TableBody,
@@ -308,44 +321,130 @@ export function ItemTable({
 
 function ItemActions({ item }: { item: ItemWithCategory }) {
   const navigate = useNavigate()
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const deleteItems = useDeleteItems()
+  const updateItem = useUpdateItem()
+  
+  const handleCopy = async () => {
+    try {
+      const newItem = {
+        ...item,
+        name: `${item.name} (Copy)`,
+        code: `${item.code}-COPY-${Date.now().toString().slice(-4)}`,
+      }
+      // Create via the create hook would be better but we'll use a direct copy approach
+      navigate('/items/new', { state: { copyFrom: item } })
+      toast({
+        title: 'Đang sao chép',
+        description: 'Vui lòng cập nhật thông tin cho item mới',
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
+    }
+  }
+  
+  const handlePrintQR = () => {
+    // Open QR code in new window for printing
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(item.qr_code || item.code)}`
+    const printWindow = window.open(qrUrl, '_blank', 'width=400,height=400')
+    if (printWindow) {
+      printWindow.onload = () => {
+        printWindow.print()
+      }
+    }
+  }
+  
+  const handleDiscontinue = async () => {
+    try {
+      await updateItem.mutateAsync({
+        id: item.id,
+        data: { status: 'discontinued' }
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
+    }
+  }
+  
+  const handleDelete = async () => {
+    try {
+      await deleteItems.mutateAsync([item.id])
+      setShowDeleteDialog(false)
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
+    }
+  }
   
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-          <MoreVertical className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => navigate(`/items/${item.id}`)}>
-          <Eye className="mr-2 h-4 w-4" />
-          Xem chi tiết
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate(`/items/${item.id}/edit`)}>
-          <Edit className="mr-2 h-4 w-4" />
-          Sửa
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => console.log('Copy', item.id)}>
-          <Copy className="mr-2 h-4 w-4" />
-          Sao chép
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => console.log('Print QR', item.id)}>
-          <QrCode className="mr-2 h-4 w-4" />
-          In nhãn QR
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => console.log('Discontinue', item.id)}>
-          <Ban className="mr-2 h-4 w-4" />
-          Ngừng kinh doanh
-        </DropdownMenuItem>
-        <DropdownMenuItem 
-          onClick={() => console.log('Delete', item.id)}
-          className="text-destructive"
-        >
-          <Trash2 className="mr-2 h-4 w-4" />
-          Xóa
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => navigate(`/items/${item.id}`)}>
+            <Eye className="mr-2 h-4 w-4" />
+            Xem chi tiết
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate(`/items/${item.id}/edit`)}>
+            <Edit className="mr-2 h-4 w-4" />
+            Sửa
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleCopy}>
+            <Copy className="mr-2 h-4 w-4" />
+            Sao chép
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handlePrintQR}>
+            <QrCode className="mr-2 h-4 w-4" />
+            In nhãn QR
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleDiscontinue}>
+            <Ban className="mr-2 h-4 w-4" />
+            Ngừng kinh doanh
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={() => setShowDeleteDialog(true)}
+            className="text-destructive"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Xóa
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc muốn xóa "{item.name}"? Hành động này không thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }
