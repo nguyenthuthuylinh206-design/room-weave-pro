@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Shield, Download, Upload, Trash2, Database, AlertTriangle } from 'lucide-react'
+import { Shield, Download, Upload, Trash2, Database, AlertTriangle, HardDrive, Activity, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -65,9 +65,14 @@ const securitySchema = z.object({
   audit_retention_days: z.coerce.number().min(365),
   
   // Backup
+  backup_database: z.boolean(),
+  backup_files: z.boolean(),
+  backup_settings: z.boolean(),
+  backup_logs: z.boolean(),
   backup_frequency: z.enum(['hourly', 'daily', 'weekly']),
   backup_time: z.string(),
   backup_retention_days: z.coerce.number().min(7),
+  backup_location: z.enum(['supabase_storage', 'local']),
 })
 
 type SecuritySettings = z.infer<typeof securitySchema>
@@ -97,9 +102,14 @@ export default function SystemSecurityPage() {
       log_data_access: true,
       log_data_modifications: true,
       audit_retention_days: 730,
+      backup_database: true,
+      backup_files: true,
+      backup_settings: true,
+      backup_logs: false,
       backup_frequency: 'daily',
       backup_time: '02:00',
       backup_retention_days: 30,
+      backup_location: 'supabase_storage',
     },
   })
 
@@ -429,59 +439,176 @@ export default function SystemSecurityPage() {
           <Card>
             <CardHeader>
               <CardTitle>Backup & Restore</CardTitle>
+              <CardDescription>Configure automatic backups and restore data</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <h3 className="font-semibold">Automatic Backups</h3>
-
-              <FormField
-                control={form.control}
-                name="backup_frequency"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Frequency</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="font-semibold">What to Backup</h3>
+                
+                <FormField
+                  control={form.control}
+                  name="backup_database"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between">
+                      <div>
+                        <FormLabel>Database (all tables)</FormLabel>
+                        <FormDescription>All records and data structures</FormDescription>
+                      </div>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="hourly">Hourly</SelectItem>
-                        <SelectItem value="daily">Daily</SelectItem>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="backup_time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Backup Time</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="backup_files"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between">
+                      <div>
+                        <FormLabel>User Uploaded Files</FormLabel>
+                        <FormDescription>Images, documents, and attachments</FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="backup_retention_days"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Retention (days)</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="7" {...field} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="backup_settings"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between">
+                      <div>
+                        <FormLabel>Settings & Configurations</FormLabel>
+                        <FormDescription>System preferences and configurations</FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
 
-              <div className="flex gap-2 pt-4">
+                <FormField
+                  control={form.control}
+                  name="backup_logs"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between">
+                      <div>
+                        <FormLabel>Activity Logs</FormLabel>
+                        <FormDescription>Warning: May significantly increase backup size</FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h3 className="font-semibold">Schedule</h3>
+
+                <FormField
+                  control={form.control}
+                  name="backup_frequency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Frequency</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="hourly">Hourly</SelectItem>
+                          <SelectItem value="daily">Daily</SelectItem>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="backup_time"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Backup Time</FormLabel>
+                      <FormControl>
+                        <Input type="time" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="backup_retention_days"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Retention (days)</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="7" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="backup_location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Backup Location</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="supabase_storage">Supabase Storage</SelectItem>
+                          <SelectItem value="local">Local Download</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h3 className="font-semibold">Backup Status</h3>
+                <div className="rounded-lg border p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Last Backup</span>
+                    <span className="text-sm text-muted-foreground flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      2024-03-10 02:00 AM
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Size</span>
+                    <span className="text-sm text-muted-foreground">245 MB</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Duration</span>
+                    <span className="text-sm text-muted-foreground">3m 45s</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-4">
                 <Button type="button" variant="outline" onClick={handleBackupNow}>
                   <Download className="h-4 w-4 mr-2" />
                   Backup Now
@@ -494,76 +621,227 @@ export default function SystemSecurityPage() {
                   <Upload className="h-4 w-4 mr-2" />
                   Upload Backup
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Data Management */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Data Management</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-2">
                 <Button type="button" variant="outline">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Clear Cache
-                </Button>
-                <Button type="button" variant="outline">
-                  <Database className="h-4 w-4 mr-2" />
-                  Database Statistics
+                  View Backup History
                 </Button>
               </div>
 
               <Separator />
 
-              <div className="space-y-2">
-                <h3 className="font-semibold text-destructive flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5" />
-                  Danger Zone
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Factory reset will permanently delete all data. This action cannot be undone.
-                </p>
-                <AlertDialog open={factoryResetDialog} onOpenChange={setFactoryResetDialog}>
-                  <AlertDialogTrigger asChild>
-                    <Button type="button" variant="destructive">
-                      Factory Reset
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Factory Reset - Are you absolutely sure?</AlertDialogTitle>
-                      <AlertDialogDescription className="space-y-4">
-                        <p>
-                          This will permanently delete ALL data including users, items, rooms,
-                          laundry batches, and all other records. This action cannot be undone.
-                        </p>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">
-                            Type "DELETE ALL DATA" to confirm:
-                          </label>
-                          <Input
-                            value={confirmText}
-                            onChange={(e) => setConfirmText(e.target.value)}
-                            placeholder="DELETE ALL DATA"
-                          />
-                        </div>
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleFactoryReset}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        disabled={confirmText !== 'DELETE ALL DATA'}
-                      >
-                        Delete Everything
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+              <div className="space-y-4">
+                <h3 className="font-semibold">Restore from Backup</h3>
+                <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-4">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-5 w-5 text-orange-500 mt-0.5" />
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Warning</p>
+                      <p className="text-sm text-muted-foreground">
+                        Restoring from backup will overwrite current data. This action cannot be undone.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium">Select Backup</label>
+                    <Select>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="Choose a backup" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">2024-03-10 02:00 AM - 245 MB</SelectItem>
+                        <SelectItem value="2">2024-03-09 02:00 AM - 243 MB</SelectItem>
+                        <SelectItem value="3">2024-03-08 02:00 AM - 240 MB</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Restore Options</label>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Switch id="restore-db" defaultChecked />
+                        <label htmlFor="restore-db" className="text-sm">Database</label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch id="restore-files" defaultChecked />
+                        <label htmlFor="restore-files" className="text-sm">Files</label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch id="restore-settings" defaultChecked />
+                        <label htmlFor="restore-settings" className="text-sm">Settings</label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch id="backup-before-restore" />
+                        <label htmlFor="backup-before-restore" className="text-sm">Create backup before restore</label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button type="button" variant="destructive">
+                    Start Restore
+                  </Button>
+                </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Database Maintenance */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <HardDrive className="h-5 w-5" />
+                Database Maintenance
+              </CardTitle>
+              <CardDescription>Database statistics and maintenance tasks</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="font-semibold">Database Statistics</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="rounded-lg border p-4">
+                    <div className="text-2xl font-bold">2.4 GB</div>
+                    <div className="text-sm text-muted-foreground">Total Size</div>
+                  </div>
+                  <div className="rounded-lg border p-4">
+                    <div className="text-2xl font-bold">21</div>
+                    <div className="text-sm text-muted-foreground">Tables</div>
+                  </div>
+                  <div className="rounded-lg border p-4">
+                    <div className="text-2xl font-bold">1.2M</div>
+                    <div className="text-sm text-muted-foreground">Total Rows</div>
+                  </div>
+                  <div className="rounded-lg border p-4">
+                    <div className="text-sm text-muted-foreground">Last Vacuum</div>
+                    <div className="font-medium">2024-03-09 03:00 AM</div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h3 className="font-semibold">Maintenance Tasks</h3>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline">
+                    <Database className="h-4 w-4 mr-2" />
+                    Vacuum Database
+                  </Button>
+                  <Button type="button" variant="outline">
+                    <Activity className="h-4 w-4 mr-2" />
+                    Analyze Tables
+                  </Button>
+                  <Button type="button" variant="outline">
+                    <HardDrive className="h-4 w-4 mr-2" />
+                    Reindex All
+                  </Button>
+                  <Button type="button" variant="outline">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Clean Old Logs (&gt;90 days)
+                  </Button>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h3 className="font-semibold">Health Check</h3>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-3 rounded-lg border">
+                    <span className="text-sm font-medium">Database Status</span>
+                    <span className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      Healthy
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg border">
+                    <span className="text-sm font-medium">Connections</span>
+                    <span className="text-sm text-muted-foreground">12 / 100</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg border">
+                    <span className="text-sm font-medium">Slow Queries (24h)</span>
+                    <span className="text-sm text-muted-foreground">3</span>
+                  </div>
+                </div>
+                <Button type="button" variant="outline">
+                  View Slow Query Report
+                </Button>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h3 className="font-semibold">Cache & Performance</h3>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Clear Cache
+                  </Button>
+                  <Button type="button" variant="outline">
+                    <Activity className="h-4 w-4 mr-2" />
+                    Performance Report
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Danger Zone */}
+          <Card className="border-destructive">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                Danger Zone
+              </CardTitle>
+              <CardDescription>
+                Irreversible and destructive actions
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Factory reset will permanently delete all data including users, items, rooms,
+                laundry batches, and all other records. This action cannot be undone.
+              </p>
+              
+              <AlertDialog open={factoryResetDialog} onOpenChange={setFactoryResetDialog}>
+                <AlertDialogTrigger asChild>
+                  <Button type="button" variant="destructive">
+                    Factory Reset
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Factory Reset - Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription className="space-y-4">
+                      <p>
+                        This will permanently delete ALL data including users, items, rooms,
+                        laundry batches, and all other records. This action cannot be undone.
+                      </p>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          Type "DELETE ALL DATA" to confirm:
+                        </label>
+                        <Input
+                          value={confirmText}
+                          onChange={(e) => setConfirmText(e.target.value)}
+                          placeholder="DELETE ALL DATA"
+                        />
+                      </div>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleFactoryReset}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      disabled={confirmText !== 'DELETE ALL DATA'}
+                    >
+                      Delete Everything
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardContent>
           </Card>
 

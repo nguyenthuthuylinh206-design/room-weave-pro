@@ -83,6 +83,66 @@ export type Database = {
           },
         ]
       }
+      backup_logs: {
+        Row: {
+          backup_scope: string[]
+          backup_type: string
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          duration_seconds: number | null
+          error_message: string | null
+          file_path: string | null
+          file_size_bytes: number | null
+          id: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          backup_scope: string[]
+          backup_type: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          duration_seconds?: number | null
+          error_message?: string | null
+          file_path?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          status: string
+          tenant_id: string
+        }
+        Update: {
+          backup_scope?: string[]
+          backup_type?: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          duration_seconds?: number | null
+          error_message?: string | null
+          file_path?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backup_logs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "backup_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotels: {
         Row: {
           address: string | null
