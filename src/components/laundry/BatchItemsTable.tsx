@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { Package } from 'lucide-react'
 import {
   Table,
@@ -124,7 +125,12 @@ function ItemsTableContent({
                 </TableCell>
                 <TableCell>
                   <div className="space-y-1">
-                    <p className="font-medium">{item.item_name}</p>
+                    <Link 
+                      to={`/items/${item.item_id}`}
+                      className="font-medium hover:underline"
+                    >
+                      {item.item_name}
+                    </Link>
                     <p className="text-xs text-muted-foreground">{item.item_code}</p>
                     {item.category_name && (
                       <Badge variant="outline" className="text-xs">

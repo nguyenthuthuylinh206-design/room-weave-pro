@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { 
   Edit, 
   Printer, 
@@ -110,7 +110,14 @@ export function BatchDetailPage() {
               <dl className="grid grid-cols-2 gap-4">
                 <div>
                   <dt className="text-sm text-muted-foreground">Đơn vị giặt</dt>
-                  <dd className="font-medium">{vendor?.name || 'N/A'}</dd>
+                  <dd className="font-medium">
+                    <Link 
+                      to={`/laundry/vendors/${batch.vendor_id}`}
+                      className="hover:underline"
+                    >
+                      {vendor?.name || 'N/A'}
+                    </Link>
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-sm text-muted-foreground">Ngày giao</dt>

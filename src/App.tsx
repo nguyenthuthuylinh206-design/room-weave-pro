@@ -17,10 +17,11 @@ import { CreateAdjustmentPage } from "./pages/inventory/CreateAdjustmentPage";
 import { CheckAdjustmentPage } from "./pages/inventory/CheckAdjustmentPage";
 import { AdjustmentDetailPage } from "./pages/inventory/AdjustmentDetailPage";
 import { ItemsPage } from "./pages/items/ItemsPage";
-import { RoomsPage } from "./pages/rooms/RoomsPage";
-import { RoomDetailPage } from "./pages/rooms/RoomDetailPage";
+import ItemDetailPage from "./pages/items/ItemDetailPage";
 import { ItemFormPage } from "./pages/items/ItemFormPage";
 import { CategoriesPage } from "./pages/items/CategoriesPage";
+import { RoomsPage } from "./pages/rooms/RoomsPage";
+import { RoomDetailPage } from "./pages/rooms/RoomDetailPage";
 import { RoomFormPage } from "./pages/rooms/RoomFormPage";
 import { RoomStandardsPage } from "./pages/rooms/RoomStandardsPage";
 import { LaundryDashboardPage } from "./pages/laundry/LaundryDashboardPage";
@@ -99,6 +100,7 @@ const App = () => (
               
               {/* Items */}
               <Route path="/items" element={<ItemsPage />} />
+              <Route path="/items/:id" element={<ItemDetailPage />} />
               <Route path="/items/new" element={<ItemFormPage />} />
               <Route path="/items/:id/edit" element={<ItemFormPage />} />
               <Route path="/items/categories" element={<CategoriesPage />} />

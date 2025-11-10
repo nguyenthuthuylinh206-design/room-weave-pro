@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { 
   Download, 
   Upload, 
@@ -174,7 +174,13 @@ export function RecentTransactions() {
                             />
                           )}
                           <div className="flex-1">
-                            <p className="text-sm font-medium">{transaction.item_name}</p>
+                            <Link
+                              to={`/items/${transaction.item_id}`}
+                              className="text-sm font-medium hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {transaction.item_name}
+                            </Link>
                             <p className="text-xs text-muted-foreground">
                               {transaction.item_code} • {transaction.category_name}
                             </p>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { usePurchaseOrder } from '@/hooks/usePurchaseOrders';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -88,7 +88,12 @@ const PODetailPage: React.FC = () => {
                   <AvatarFallback>{po.vendor?.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold">{po.vendor?.name}</h3>
+                  <Link 
+                    to={`/vendors/${po.vendor_id}`}
+                    className="text-lg font-semibold hover:underline"
+                  >
+                    {po.vendor?.name}
+                  </Link>
                   <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
                     <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4 text-muted-foreground" />
@@ -118,7 +123,14 @@ const PODetailPage: React.FC = () => {
                   {po.items?.map((item, index) => (
                     <TableRow key={item.id}>
                       <TableCell>{index + 1}</TableCell>
-                      <TableCell><div className="font-medium">{item.item?.name || 'N/A'}</div></TableCell>
+                      <TableCell>
+                        <Link 
+                          to={`/items/${item.item_id}`}
+                          className="font-medium hover:underline"
+                        >
+                          {item.item?.name || 'N/A'}
+                        </Link>
+                      </TableCell>
                       <TableCell className="text-right font-medium">{item.quantity_ordered}</TableCell>
                       <TableCell className="text-right">{formatCurrency(item.unit_price)}</TableCell>
                       <TableCell className="text-right font-semibold">{formatCurrency(item.total_price)}</TableCell>
