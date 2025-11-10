@@ -251,7 +251,7 @@ const navigation: NavItem[] = [
     children: [
       {
         title: 'Tổng quan',
-        href: '/settings',
+        href: '/settings/general',
         icon: LayoutDashboard,
       },
     ],

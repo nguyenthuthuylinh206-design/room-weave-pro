@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { RoleGuard } from "@/components/auth/RoleGuard";
@@ -33,6 +33,9 @@ import { VendorListPage } from "./pages/laundry/VendorListPage";
 import { VendorDetailPage } from "./pages/laundry/VendorDetailPage";
 import { VendorFormPage } from "./pages/laundry/VendorFormPage";
 import { SettingsPage } from "./pages/settings/SettingsPage";
+import { SettingsLayout } from "./components/settings/SettingsLayout";
+import { GeneralSettingsPage } from "./pages/settings/GeneralSettingsPage";
+import { NotificationSettingsPage } from "./pages/settings/NotificationSettingsPage";
 import { ReportsPage } from "./pages/reports/ReportsPage";
 import { ReportsDashboardPage } from "./pages/reports/ReportsDashboardPage";
 import { InventoryReportPage } from "./pages/reports/InventoryReportPage";
@@ -127,8 +130,18 @@ const App = () => (
               <Route path="/laundry/vendors/:id" element={<VendorDetailPage />} />
               <Route path="/laundry/vendors/:id/edit" element={<VendorFormPage />} />
               
-              {/* Settings */}
-              <Route path="/settings" element={<SettingsPage />} />
+          {/* Settings */}
+          <Route path="/settings" element={<SettingsLayout />}>
+            <Route index element={<Navigate to="/settings/general" replace />} />
+            <Route path="general" element={<GeneralSettingsPage />} />
+            <Route path="users" element={<UsersPage />} />
+            <Route path="notifications" element={<NotificationSettingsPage />} />
+            {/* Placeholder routes for other settings pages */}
+            <Route path="roles" element={<div className="p-8 text-muted-foreground">Roles & Permissions - Coming soon</div>} />
+            <Route path="business" element={<div className="p-8 text-muted-foreground">Business Configuration - Coming soon</div>} />
+            <Route path="integrations" element={<div className="p-8 text-muted-foreground">Integrations & API - Coming soon</div>} />
+            <Route path="security" element={<div className="p-8 text-muted-foreground">System & Security - Coming soon</div>} />
+          </Route>
               
               {/* Profile */}
               <Route path="/profile" element={<ProfilePage />} />
