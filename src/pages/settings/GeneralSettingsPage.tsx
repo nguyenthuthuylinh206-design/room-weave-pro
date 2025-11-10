@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -16,7 +16,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Save } from 'lucide-react'
+import { UnsavedChangesPrompt } from '@/components/settings/UnsavedChangesPrompt'
+import { useAutoSave } from '@/hooks/useAutoSave'
+import { logUpdate } from '@/lib/activityLogger'
 
 const generalSettingsSchema = z.object({
   name: z.string().min(2, 'Tên công ty phải có ít nhất 2 ký tự'),
@@ -36,13 +39,14 @@ export function GeneralSettingsPage() {
   const { tenant, isLoading } = useTenant()
   const { toast } = useToast()
   const [isSaving, setIsSaving] = useState(false)
+  const [enableAutoSave, setEnableAutoSave] = useState(false)
 
   const {
     register,
     handleSubmit,
     setValue,
     watch,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<GeneralSettingsForm>({
     resolver: zodResolver(generalSettingsSchema),
     values: tenant ? {
@@ -58,11 +62,49 @@ export function GeneralSettingsPage() {
     } : undefined,
   })
 
+  const formData = watch()
+
+  // Auto-save
+  useAutoSave({
+    data: formData,
+    onSave: async (data) => {
+      if (!tenant) return
+      
+      const oldValues = {
+        name: tenant.name,
+        email: tenant.email,
+        phone: tenant.phone,
+        settings: tenant.settings,
+      }
+
+      await supabase
+        .from('tenants')
+        .update({
+          name: data.name,
+          email: data.email,
+          phone: data.phone || null,
+          settings: data.settings,
+        })
+        .eq('id', tenant.id)
+
+      // Log the activity
+      await logUpdate('tenant_settings', tenant.id, 'Cài đặt chung', oldValues, data)
+    },
+    enabled: enableAutoSave && isDirty,
+  })
+
   const onSubmit = async (data: GeneralSettingsForm) => {
     if (!tenant) return
 
     setIsSaving(true)
     try {
+      const oldValues = {
+        name: tenant.name,
+        email: tenant.email,
+        phone: tenant.phone,
+        settings: tenant.settings,
+      }
+
       const { error } = await supabase
         .from('tenants')
         .update({
@@ -74,6 +116,9 @@ export function GeneralSettingsPage() {
         .eq('id', tenant.id)
 
       if (error) throw error
+
+      // Log the activity
+      await logUpdate('tenant_settings', tenant.id, 'Cài đặt chung', oldValues, data)
 
       toast({
         title: 'Đã lưu',
@@ -231,16 +276,34 @@ export function GeneralSettingsPage() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline">
-            Hủy
-          </Button>
-          <Button type="submit" disabled={isSaving}>
-            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Lưu thay đổi
-          </Button>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="auto-save"
+              checked={enableAutoSave}
+              onChange={(e) => setEnableAutoSave(e.target.checked)}
+              className="h-4 w-4 rounded border-input"
+            />
+            <Label htmlFor="auto-save" className="text-sm font-normal cursor-pointer">
+              Tự động lưu thay đổi
+            </Label>
+          </div>
+          
+          <div className="flex gap-3">
+            <Button type="button" variant="outline">
+              Hủy
+            </Button>
+            <Button type="submit" disabled={isSaving || !isDirty}>
+              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {!isSaving && <Save className="mr-2 h-4 w-4" />}
+              Lưu thay đổi
+            </Button>
+          </div>
         </div>
       </form>
+
+      <UnsavedChangesPrompt when={isDirty && !enableAutoSave} />
     </div>
   )
 }
