@@ -9,6 +9,7 @@ import { RoleGuard } from "@/components/auth/RoleGuard";
 import { MainLayout } from "@/components/layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
+import { ItemsPage } from "./pages/items/ItemsPage";
 import { RoomsPage } from "./pages/rooms/RoomsPage";
 import { RoomDetailPage } from "./pages/rooms/RoomDetailPage";
 import { LaundryDashboardPage } from "./pages/laundry/LaundryDashboardPage";
@@ -19,6 +20,9 @@ import { ReceiveBatchPage } from "./pages/laundry/ReceiveBatchPage";
 import { VendorListPage } from "./pages/laundry/VendorListPage";
 import { VendorDetailPage } from "./pages/laundry/VendorDetailPage";
 import { VendorFormPage } from "./pages/laundry/VendorFormPage";
+import { SettingsPage } from "./pages/settings/SettingsPage";
+import { ReportsPage } from "./pages/reports/ReportsPage";
+import { HotelsPage } from "./pages/hotels/HotelsPage";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
@@ -63,20 +67,50 @@ const App = () => (
             >
               <Route path="/" element={<Dashboard />} />
               <Route path="/inventory" element={<Inventory />} />
-            <Route path="/rooms" element={<RoomsPage />} />
-            <Route path="/rooms/:id" element={<RoomDetailPage />} />
-          <Route path="/laundry" element={<LaundryDashboardPage />} />
-          <Route path="/laundry/batches" element={<LaundryBatchesPage />} />
-          <Route path="/laundry/batches/new" element={<CreateBatchPage />} />
-          <Route path="/laundry/batches/:id" element={<BatchDetailPage />} />
-          <Route path="/laundry/batches/:id/receive" element={<ReceiveBatchPage />} />
-          <Route path="/laundry/vendors" element={<VendorListPage />} />
-          <Route path="/laundry/vendors/new" element={<VendorFormPage />} />
-          <Route path="/laundry/vendors/:id" element={<VendorDetailPage />} />
-          <Route path="/laundry/vendors/:id/edit" element={<VendorFormPage />} />
+              
+              {/* Items */}
+              <Route path="/items" element={<ItemsPage />} />
+              
+              {/* Rooms */}
+              <Route path="/rooms" element={<RoomsPage />} />
+              <Route path="/rooms/:id" element={<RoomDetailPage />} />
+              
+              {/* Laundry */}
+              <Route path="/laundry" element={<LaundryDashboardPage />} />
+              <Route path="/laundry/batches" element={<LaundryBatchesPage />} />
+              <Route path="/laundry/batches/new" element={<CreateBatchPage />} />
+              <Route path="/laundry/batches/:id" element={<BatchDetailPage />} />
+              <Route path="/laundry/batches/:id/receive" element={<ReceiveBatchPage />} />
+              <Route path="/laundry/vendors" element={<VendorListPage />} />
+              <Route path="/laundry/vendors/new" element={<VendorFormPage />} />
+              <Route path="/laundry/vendors/:id" element={<VendorDetailPage />} />
+              <Route path="/laundry/vendors/:id/edit" element={<VendorFormPage />} />
+              
+              {/* Settings */}
+              <Route path="/settings" element={<SettingsPage />} />
               
               {/* Profile */}
               <Route path="/profile" element={<ProfilePage />} />
+              
+              {/* Reports - Owner, Hotel Manager & Super Admin only */}
+              <Route
+                path="/reports"
+                element={
+                  <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+                    <ReportsPage />
+                  </RoleGuard>
+                }
+              />
+              
+              {/* Hotels - Owner & Super Admin only */}
+              <Route
+                path="/hotels"
+                element={
+                  <RoleGuard allowedRoles={['owner', 'super_admin']}>
+                    <HotelsPage />
+                  </RoleGuard>
+                }
+              />
               
               {/* User Management - Owner & Super Admin only */}
               <Route
