@@ -41,6 +41,7 @@ import SystemSecurityPage from "./pages/settings/SystemSecurityPage";
 import { NotificationSettingsPage } from "./pages/settings/NotificationSettingsPage";
 import { BusinessConfigurationPage } from "./pages/settings/BusinessConfigurationPage";
 import CategoryManagementPage from "./pages/settings/CategoryManagementPage";
+import WorkflowsPage from "./pages/settings/WorkflowsPage";
 import { ReportsPage } from "./pages/reports/ReportsPage";
 import { ReportsDashboardPage } from "./pages/reports/ReportsDashboardPage";
 import { InventoryReportPage } from "./pages/reports/InventoryReportPage";

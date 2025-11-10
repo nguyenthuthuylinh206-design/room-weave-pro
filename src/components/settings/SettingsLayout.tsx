@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   Building2,
-  FolderTree
+  FolderTree,
+  Zap
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -25,6 +26,7 @@ const settingsNavigation = [
   { name: 'Vai trò & Phân quyền', href: '/settings/roles', icon: Shield },
   { name: 'Thông báo', href: '/settings/notifications', icon: Bell },
   { name: 'Cấu hình nghiệp vụ', href: '/settings/business', icon: Briefcase },
+  { name: 'Tự động hóa', href: '/settings/workflows', icon: Zap },
   { name: 'Tích hợp & API', href: '/settings/integrations', icon: Plug },
   { name: 'Hệ thống & Bảo mật', href: '/settings/security', icon: Lock },
 ]

@@ -2256,6 +2256,177 @@ export type Database = {
           },
         ]
       }
+      workflow_actions: {
+        Row: {
+          action_config: Json
+          action_type: string
+          continue_on_failure: boolean | null
+          created_at: string | null
+          id: string
+          max_retries: number | null
+          order_index: number
+          retry_delay_seconds: number | null
+          updated_at: string | null
+          workflow_id: string
+        }
+        Insert: {
+          action_config?: Json
+          action_type: string
+          continue_on_failure?: boolean | null
+          created_at?: string | null
+          id?: string
+          max_retries?: number | null
+          order_index?: number
+          retry_delay_seconds?: number | null
+          updated_at?: string | null
+          workflow_id: string
+        }
+        Update: {
+          action_config?: Json
+          action_type?: string
+          continue_on_failure?: boolean | null
+          created_at?: string | null
+          id?: string
+          max_retries?: number | null
+          order_index?: number
+          retry_delay_seconds?: number | null
+          updated_at?: string | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_actions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_executions: {
+        Row: {
+          actions_completed: number | null
+          actions_failed: number | null
+          completed_at: string | null
+          created_at: string | null
+          duration_seconds: number | null
+          error_message: string | null
+          execution_log: Json | null
+          id: string
+          started_at: string | null
+          status: string
+          trigger_data: Json | null
+          workflow_id: string
+        }
+        Insert: {
+          actions_completed?: number | null
+          actions_failed?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          error_message?: string | null
+          execution_log?: Json | null
+          id?: string
+          started_at?: string | null
+          status?: string
+          trigger_data?: Json | null
+          workflow_id: string
+        }
+        Update: {
+          actions_completed?: number | null
+          actions_failed?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          error_message?: string | null
+          execution_log?: Json | null
+          id?: string
+          started_at?: string | null
+          status?: string
+          trigger_data?: Json | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_executions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflows: {
+        Row: {
+          conditions: Json | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          failed_count: number | null
+          id: string
+          last_error: string | null
+          last_run_at: string | null
+          last_run_status: string | null
+          name: string
+          status: string | null
+          success_count: number | null
+          tenant_id: string
+          total_executions: number | null
+          trigger_event: string | null
+          trigger_schedule: string | null
+          trigger_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          conditions?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          failed_count?: number | null
+          id?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          last_run_status?: string | null
+          name: string
+          status?: string | null
+          success_count?: number | null
+          tenant_id: string
+          total_executions?: number | null
+          trigger_event?: string | null
+          trigger_schedule?: string | null
+          trigger_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          conditions?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          failed_count?: number | null
+          id?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          last_run_status?: string | null
+          name?: string
+          status?: string | null
+          success_count?: number | null
+          tenant_id?: string
+          total_executions?: number | null
+          trigger_event?: string | null
+          trigger_schedule?: string | null
+          trigger_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflows_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       dashboard_activities: {
