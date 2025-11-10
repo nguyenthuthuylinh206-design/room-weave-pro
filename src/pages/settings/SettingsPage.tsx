@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Settings, Bell, Shield, Palette } from 'lucide-react'
+import { SeedDataButton } from '@/components/settings/SeedDataButton'
 
 export function SettingsPage() {
   return (
@@ -16,6 +17,22 @@ export function SettingsPage() {
       />
 
       <div className="grid gap-6 md:grid-cols-2">
+        {/* Demo Data - Only for owners */}
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-primary" />
+              <CardTitle>Dữ liệu Demo</CardTitle>
+            </div>
+            <CardDescription>
+              Tạo dữ liệu demo để thử nghiệm hệ thống
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SeedDataButton />
+          </CardContent>
+        </Card>
+
         {/* Notifications */}
         <Card>
           <CardHeader>
