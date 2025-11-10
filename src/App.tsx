@@ -11,12 +11,14 @@ import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import { RoomsPage } from "./pages/rooms/RoomsPage";
 import { RoomDetailPage } from "./pages/rooms/RoomDetailPage";
-import { LaundryDashboardPage } from "./pages/laundry/LaundryDashboardPage";
-import { BatchDetailPage } from "./pages/laundry/BatchDetailPage";
-import { ReceiveBatchPage } from "./pages/laundry/ReceiveBatchPage";
-import { VendorListPage } from "./pages/laundry/VendorListPage";
-import { VendorDetailPage } from "./pages/laundry/VendorDetailPage";
-import { VendorFormPage } from "./pages/laundry/VendorFormPage";
+import LaundryDashboardPage from "./pages/laundry/LaundryDashboardPage";
+import LaundryBatchesPage from "./pages/laundry/LaundryBatchesPage";
+import CreateBatchPage from "./pages/laundry/CreateBatchPage";
+import BatchDetailPage from "./pages/laundry/BatchDetailPage";
+import ReceiveBatchPage from "./pages/laundry/ReceiveBatchPage";
+import VendorListPage from "./pages/laundry/VendorListPage";
+import VendorDetailPage from "./pages/laundry/VendorDetailPage";
+import VendorFormPage from "./pages/laundry/VendorFormPage";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
@@ -64,12 +66,14 @@ const App = () => (
             <Route path="/rooms" element={<RoomsPage />} />
             <Route path="/rooms/:id" element={<RoomDetailPage />} />
           <Route path="/laundry" element={<LaundryDashboardPage />} />
+          <Route path="/laundry/batches" element={<LaundryBatchesPage />} />
+          <Route path="/laundry/batches/new" element={<CreateBatchPage />} />
           <Route path="/laundry/batches/:id" element={<BatchDetailPage />} />
           <Route path="/laundry/batches/:id/receive" element={<ReceiveBatchPage />} />
           <Route path="/laundry/vendors" element={<VendorListPage />} />
+          <Route path="/laundry/vendors/new" element={<VendorFormPage />} />
           <Route path="/laundry/vendors/:id" element={<VendorDetailPage />} />
           <Route path="/laundry/vendors/:id/edit" element={<VendorFormPage />} />
-          <Route path="/laundry/vendors/new" element={<VendorFormPage />} />
               
               {/* Profile */}
               <Route path="/profile" element={<ProfilePage />} />
