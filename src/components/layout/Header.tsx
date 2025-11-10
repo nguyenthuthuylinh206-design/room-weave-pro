@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useUser } from '@/hooks/useUser'
 import { useNavigate } from 'react-router-dom'
 import { ROLES } from '@/lib/constants'
+import { HotelSwitcher } from './HotelSwitcher'
 
 interface HeaderProps {
   onMenuClick: () => void
@@ -44,8 +45,9 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
       </Button>
 
       {/* Page Title - Hidden on mobile */}
-      <div className="hidden lg:block">
+      <div className="hidden lg:flex lg:items-center lg:gap-4">
         <h1 className="text-xl font-semibold">Hotel Asset Management</h1>
+        <HotelSwitcher />
       </div>
 
       {/* Right Side Actions */}

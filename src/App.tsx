@@ -36,6 +36,7 @@ import { SettingsPage } from "./pages/settings/SettingsPage";
 import { SettingsLayout } from "./components/settings/SettingsLayout";
 import { GeneralSettingsPage } from "./pages/settings/GeneralSettingsPage";
 import HotelsManagementPage from "./pages/settings/HotelsManagementPage";
+import SystemSecurityPage from "./pages/settings/SystemSecurityPage";
 import { NotificationSettingsPage } from "./pages/settings/NotificationSettingsPage";
 import { BusinessConfigurationPage } from "./pages/settings/BusinessConfigurationPage";
 import { ReportsPage } from "./pages/reports/ReportsPage";
@@ -143,7 +144,7 @@ const App = () => (
             <Route path="roles" element={<div className="p-8 text-muted-foreground">Roles & Permissions - Coming soon</div>} />
             <Route path="business" element={<BusinessConfigurationPage />} />
             <Route path="integrations" element={<div className="p-8 text-muted-foreground">Integrations & API - Coming soon</div>} />
-            <Route path="security" element={<div className="p-8 text-muted-foreground">System & Security - Coming soon</div>} />
+            <Route path="security" element={<SystemSecurityPage />} />
           </Route>
               
               {/* Profile */}
