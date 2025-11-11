@@ -34,7 +34,10 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useUsers } from '@/hooks/useUsers'
 
 const hotelSchema = z.object({
-  code: z.string().min(2, 'Mã phải có ít nhất 2 ký tự'),
+  code: z.string()
+    .min(2, 'Mã phải có ít nhất 2 ký tự')
+    .max(20, 'Mã không được quá 20 ký tự')
+    .regex(/^[A-Z0-9-]+$/, 'Mã chỉ được chứa chữ in hoa, số và dấu gạch ngang'),
   name: z.string().min(2, 'Tên phải có ít nhất 2 ký tự'),
   type: z.enum(['hotel', 'resort', 'apartment', 'hostel', 'other']),
   city: z.string().min(1, 'Thành phố là bắt buộc'),
@@ -196,10 +199,14 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
                     <FormItem>
                       <FormLabel>Mã Khách sạn *</FormLabel>
                       <FormControl>
-                        <Input placeholder="HN001" {...field} />
+                        <Input 
+                          placeholder="VD: HN01, SGN-01, DA001" 
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                        />
                       </FormControl>
                       <FormDescription>
-                        Mã định danh duy nhất cho khách sạn
+                        Mã gồm 2-20 ký tự (chữ in hoa, số, dấu gạch ngang)
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
