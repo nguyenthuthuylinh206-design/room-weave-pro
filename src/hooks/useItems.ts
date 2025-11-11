@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from './use-toast'
 import type { ItemWithCategory, ItemFilters } from '@/types/items.types'
 
@@ -10,7 +11,8 @@ export function useItems(
   page: number = 1,
   pageSize: number = 25
 ) {
-  const { tenantId, hotelId } = useUser()
+  const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const queryClient = useQueryClient()
   
   // Subscribe to realtime changes
@@ -40,13 +42,16 @@ export function useItems(
   }, [tenantId, queryClient])
   
   return useQuery({
-    queryKey: ['items', tenantId, hotelId, filters, page, pageSize],
+    queryKey: ['items', tenantId, selectedHotel?.id, isAllHotelsMode, filters, page, pageSize],
     queryFn: async () => {
       if (!tenantId) throw new Error('No tenant')
       
+      // Use selectedHotel from HotelContext, or null for "All Hotels" mode
+      const hotelIdToFilter = isAllHotelsMode ? null : (filters.hotelId || selectedHotel?.id || null)
+      
       const { data, error } = await supabase.rpc('get_items_filtered', {
         p_tenant_id: tenantId,
-        p_hotel_id: filters.hotelId || hotelId || null,
+        p_hotel_id: hotelIdToFilter,
         p_category_id: filters.categoryId || null,
         p_stock_status: filters.stockStatus || null,
         p_status: filters.status || 'active',

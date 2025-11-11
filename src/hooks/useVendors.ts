@@ -3,40 +3,46 @@ import { supabase } from '@/integrations/supabase/client';
 import { Vendor, VendorFilters, VendorStats } from '@/types/vendor.types';
 import { useToast } from './use-toast';
 import { useUser } from './useUser';
+import { useHotelContext } from '@/contexts/HotelContext';
 
 export function useVendors(filters?: VendorFilters) {
   const { tenantId } = useUser();
+  const { selectedHotel, isAllHotelsMode } = useHotelContext();
 
   return useQuery({
-    queryKey: ['vendors', tenantId, filters],
+    queryKey: ['vendors', tenantId, selectedHotel?.id, isAllHotelsMode, filters],
     queryFn: async () => {
       if (!tenantId) throw new Error('No tenant');
 
-      let query = supabase
+      let queryBuilder: any = supabase
         .from('vendors')
         .select('*')
-        .eq('tenant_id', tenantId)
-        .order(filters?.sort_by || 'name', { 
-          ascending: filters?.sort_order === 'asc' 
-        });
+        .eq('tenant_id', tenantId);
+      
+      // Filter by hotel unless in "All Hotels" mode
+      if (!isAllHotelsMode && selectedHotel?.id) {
+        queryBuilder = queryBuilder.eq('hotel_id', selectedHotel.id);
+      }
 
       if (filters?.search) {
-        query = query.or(`name.ilike.%${filters.search}%,code.ilike.%${filters.search}%`);
+        queryBuilder = queryBuilder.or(`name.ilike.%${filters.search}%,code.ilike.%${filters.search}%`);
       }
 
       if (filters?.category && filters.category !== 'all') {
-        query = query.eq('category', filters.category);
+        queryBuilder = queryBuilder.eq('category', filters.category);
       }
 
       if (filters?.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status);
+        queryBuilder = queryBuilder.eq('status', filters.status);
       }
 
       if (filters?.min_rating) {
-        query = query.gte('rating', filters.min_rating);
+        queryBuilder = queryBuilder.gte('rating', filters.min_rating);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await queryBuilder.order(filters?.sort_by || 'name', { 
+        ascending: filters?.sort_order === 'asc' 
+      });
       
       if (error) throw error;
       return data as Vendor[];

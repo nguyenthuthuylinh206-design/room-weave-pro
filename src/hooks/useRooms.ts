@@ -1,20 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
 import type { RoomWithStats, RoomFilters } from '@/types/rooms.types'
 
 export function useRooms(filters: RoomFilters = {}) {
-  const { tenantId, hotelId } = useUser()
+  const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   
   return useQuery({
-    queryKey: ['rooms', tenantId, hotelId, filters],
+    queryKey: ['rooms', tenantId, selectedHotel?.id, isAllHotelsMode, filters],
     queryFn: async () => {
       if (!tenantId) throw new Error('No tenant')
       
+      const hotelIdToFilter = isAllHotelsMode ? null : (selectedHotel?.id || null)
+      
       const { data, error } = await supabase.rpc('get_rooms_filtered', {
         p_tenant_id: tenantId,
-        p_hotel_id: hotelId || null,
+        p_hotel_id: hotelIdToFilter,
         p_floor: filters.floor || null,
         p_room_type: filters.roomType || null,
         p_status: filters.status || null,

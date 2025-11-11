@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
 
 export interface ItemCategory {
@@ -35,17 +36,26 @@ export interface ItemCategory {
 
 export const useItemCategories = () => {
   const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
 
   return useQuery({
-    queryKey: ['item-categories', tenantId],
+    queryKey: ['item-categories', tenantId, selectedHotel?.id, isAllHotelsMode],
     queryFn: async () => {
       if (!tenantId) throw new Error('No tenant')
 
-      const { data, error } = await supabase
+      let query: any = supabase
         .from('item_categories')
         .select('*')
         .eq('tenant_id', tenantId)
-        .order('sort_order')
+      
+      // Filter by hotel unless in "All Hotels" mode
+      if (!isAllHotelsMode && selectedHotel?.id) {
+        query = query.eq('hotel_id', selectedHotel.id)
+      }
+      
+      query = query.order('sort_order')
+
+      const { data, error } = await query
 
       if (error) throw error
       return data as ItemCategory[]

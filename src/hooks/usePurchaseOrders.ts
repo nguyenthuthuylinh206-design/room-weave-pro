@@ -3,16 +3,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { PurchaseOrder, POFilters } from '@/types/purchase-order.types';
 import { useToast } from './use-toast';
 import { useUser } from './useUser';
+import { useHotelContext } from '@/contexts/HotelContext';
 
 export function usePurchaseOrders(filters?: POFilters) {
-  const { tenantId, hotelId } = useUser();
+  const { tenantId } = useUser();
+  const { selectedHotel, isAllHotelsMode } = useHotelContext();
 
   return useQuery({
-    queryKey: ['purchase-orders', tenantId, hotelId, filters],
+    queryKey: ['purchase-orders', tenantId, selectedHotel?.id, isAllHotelsMode, filters],
     queryFn: async () => {
       if (!tenantId) throw new Error('No tenant');
 
-      let query = supabase
+      const hotelIdToFilter = isAllHotelsMode ? null : (selectedHotel?.id || null);
+
+      let query: any = supabase
         .from('purchase_orders')
         .select(`
           *,
@@ -25,8 +29,8 @@ export function usePurchaseOrders(filters?: POFilters) {
         .eq('tenant_id', tenantId)
         .order('order_date', { ascending: false });
 
-      if (hotelId) {
-        query = query.eq('hotel_id', hotelId);
+      if (hotelIdToFilter) {
+        query = query.eq('hotel_id', hotelIdToFilter);
       }
 
       if (filters?.status && filters.status !== 'all') {

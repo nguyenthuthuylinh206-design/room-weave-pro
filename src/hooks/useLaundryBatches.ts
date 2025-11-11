@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
 import { useTenant } from './useTenant'
 import { toast } from './use-toast'
 import type { 
@@ -18,16 +19,19 @@ export function useLaundryBatches(
   page: number = 1,
   pageSize: number = 25
 ) {
-  const { tenantId, hotelId } = useUser()
+  const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   
   return useQuery({
-    queryKey: ['laundry-batches', tenantId, hotelId, filters, page, pageSize],
+    queryKey: ['laundry-batches', tenantId, selectedHotel?.id, isAllHotelsMode, filters, page, pageSize],
     queryFn: async () => {
       if (!tenantId) throw new Error('No tenant')
       
+      const hotelIdToFilter = isAllHotelsMode ? null : (selectedHotel?.id || null)
+      
       const { data, error } = await supabase.rpc('get_laundry_batches_filtered', {
         p_tenant_id: tenantId,
-        p_hotel_id: hotelId || null,
+        p_hotel_id: hotelIdToFilter,
         p_vendor_id: filters.vendorId || null,
         p_status: filters.status || null,
         p_from_date: filters.fromDate ? filters.fromDate.toISOString().split('T')[0] : null,

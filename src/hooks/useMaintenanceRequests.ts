@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { useUser } from './useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
 
 export interface MaintenanceRequest {
   id: string
@@ -55,14 +56,17 @@ export interface MaintenanceFilters {
 
 export function useMaintenanceRequests(filters: MaintenanceFilters = {}) {
   const { toast } = useToast()
-  const { tenantId, hotelId } = useUser()
+  const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
 
   return useQuery({
-    queryKey: ['maintenance-requests', tenantId, hotelId, filters],
+    queryKey: ['maintenance-requests', tenantId, selectedHotel?.id, isAllHotelsMode, filters],
     queryFn: async () => {
-      if (!tenantId || !hotelId) return []
+      if (!tenantId) return []
 
-      let query = supabase
+      const hotelIdToFilter = isAllHotelsMode ? null : (selectedHotel?.id || null)
+
+      let query: any = supabase
         .from('maintenance_requests')
         .select(`
           *,
@@ -72,7 +76,10 @@ export function useMaintenanceRequests(filters: MaintenanceFilters = {}) {
           assignee:users!maintenance_requests_assigned_to_fkey(id, full_name, avatar_url)
         `)
         .eq('tenant_id', tenantId)
-        .eq('hotel_id', hotelId)
+
+      if (hotelIdToFilter) {
+        query = query.eq('hotel_id', hotelIdToFilter)
+      }
 
       if (filters.search) {
         query = query.or(`request_code.ilike.%${filters.search}%,title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`)
@@ -126,7 +133,7 @@ export function useMaintenanceRequests(filters: MaintenanceFilters = {}) {
       if (error) throw error
       return data as any[]
     },
-    enabled: !!tenantId && !!hotelId,
+    enabled: !!tenantId,
   })
 }
 
