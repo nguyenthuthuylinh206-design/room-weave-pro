@@ -65,8 +65,9 @@ export function useInventoryTransaction(transactionId: string | undefined) {
         .select(`
           *,
           item:items(
-            id, code, name, images, unit_price,
-            category:item_categories(name, color)
+            id, code, name, unit_price,
+            category:item_categories(name, color),
+            item_images(id, url, is_primary, display_order)
           ),
           created_by_user:users!inventory_transactions_created_by_fkey(
             id, full_name, avatar_url

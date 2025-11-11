@@ -37,7 +37,12 @@ export function ItemsPage() {
     setSearchParams(params, { replace: true })
   }, [filters, page, pageSize, setSearchParams])
   
-  const { data, isLoading } = useItems(filters, page, pageSize)
+  const { data, isLoading, error } = useItems(filters, page, pageSize)
+  
+  // Log for debugging
+  if (error) {
+    console.error('Items loading error:', error)
+  }
   
   const handleFilterChange = (newFilters: Partial<IItemFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }))

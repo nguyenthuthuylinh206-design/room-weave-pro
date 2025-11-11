@@ -161,9 +161,9 @@ export function CheckAdjustmentPage() {
         <CardContent className="space-y-6">
           {/* Item Info */}
           <div className="flex items-start gap-4">
-            {currentItem.item?.images?.[0] && (
+            {currentItem.item?.item_images?.[0]?.url && (
               <img
-                src={currentItem.item.images[0]}
+                src={currentItem.item.item_images[0].url}
                 alt={currentItem.item.name}
                 className="h-24 w-24 rounded-lg object-cover"
               />

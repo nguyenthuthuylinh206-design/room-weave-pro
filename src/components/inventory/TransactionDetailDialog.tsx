@@ -197,9 +197,9 @@ export function TransactionDetailDialog({
               <h3 className="font-semibold">Chi tiết đồ dùng</h3>
               <div className="rounded-lg border p-4">
                 <div className="flex items-start gap-4">
-                  {transaction.item?.images?.[0] && (
+                  {transaction.item?.item_images?.[0]?.url && (
                     <img
-                      src={transaction.item.images[0]}
+                      src={transaction.item.item_images[0].url}
                       alt={transaction.item.name}
                       className="h-20 w-20 rounded-lg object-cover"
                     />

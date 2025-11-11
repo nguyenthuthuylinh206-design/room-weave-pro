@@ -55,7 +55,10 @@ export function useItems(
         p_offset: (page - 1) * pageSize,
       })
       
-      if (error) throw error
+      if (error) {
+        console.error('Error fetching items:', error)
+        throw error
+      }
       
       // Return empty result if no data
       if (!data || data.length === 0) {
@@ -88,12 +91,14 @@ export function useItems(
         item.item_images = images?.filter(img => img.item_id === item.id) || []
       })
       
+      const total = Number(data[0]?.total_count) || 0
+      
       return {
         items,
-        total: data[0]?.total_count || data.length,
+        total,
         page,
         pageSize,
-        totalPages: Math.ceil((data[0]?.total_count || data.length) / pageSize),
+        totalPages: Math.ceil(total / pageSize),
       }
     },
     enabled: !!tenantId,

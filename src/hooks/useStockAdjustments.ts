@@ -80,8 +80,9 @@ export function useStockAdjustment(adjustmentId: string | undefined) {
         .select(`
           *,
           item:items(
-            id, code, name, images, unit_price,
-            category:item_categories(name, color)
+            id, code, name, unit_price,
+            category:item_categories(name, color),
+            item_images(id, url, is_primary, display_order)
           ),
           checked_by_user:users(id, full_name, avatar_url)
         `)

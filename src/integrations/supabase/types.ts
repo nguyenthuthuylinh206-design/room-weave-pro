@@ -715,13 +715,6 @@ export type Database = {
             foreignKeyName: "inventory_transactions_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
-            referencedRelation: "item_availability"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inventory_transactions_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
             referencedRelation: "items"
             referencedColumns: ["id"]
           },
@@ -886,13 +879,6 @@ export type Database = {
             foreignKeyName: "item_images_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
-            referencedRelation: "item_availability"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "item_images_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
             referencedRelation: "items"
             referencedColumns: ["id"]
           },
@@ -973,7 +959,6 @@ export type Database = {
           expected_lifetime_days: number | null
           hotel_id: string
           id: string
-          images: string[] | null
           max_wash_cycles: number | null
           minimum_stock: number | null
           model: string | null
@@ -1004,7 +989,6 @@ export type Database = {
           expected_lifetime_days?: number | null
           hotel_id: string
           id?: string
-          images?: string[] | null
           max_wash_cycles?: number | null
           minimum_stock?: number | null
           model?: string | null
@@ -1035,7 +1019,6 @@ export type Database = {
           expected_lifetime_days?: number | null
           hotel_id?: string
           id?: string
-          images?: string[] | null
           max_wash_cycles?: number | null
           minimum_stock?: number | null
           model?: string | null
@@ -1133,13 +1116,6 @@ export type Database = {
             columns: ["batch_id"]
             isOneToOne: false
             referencedRelation: "laundry_batches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "laundry_batch_items_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "item_availability"
             referencedColumns: ["id"]
           },
           {
@@ -1624,13 +1600,6 @@ export type Database = {
             foreignKeyName: "maintenance_requests_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
-            referencedRelation: "item_availability"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "maintenance_requests_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
             referencedRelation: "items"
             referencedColumns: ["id"]
           },
@@ -1797,13 +1766,6 @@ export type Database = {
           unit_price?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "purchase_order_items_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "item_availability"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "purchase_order_items_item_id_fkey"
             columns: ["item_id"]
@@ -2115,13 +2077,6 @@ export type Database = {
             foreignKeyName: "room_items_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
-            referencedRelation: "item_availability"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "room_items_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
             referencedRelation: "items"
             referencedColumns: ["id"]
           },
@@ -2182,13 +2137,6 @@ export type Database = {
             columns: ["hotel_id"]
             isOneToOne: false
             referencedRelation: "hotels"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "room_type_standards_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "item_availability"
             referencedColumns: ["id"]
           },
           {
@@ -2454,13 +2402,6 @@ export type Database = {
             columns: ["checked_by"]
             isOneToOne: false
             referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "stock_adjustment_items_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "item_availability"
             referencedColumns: ["id"]
           },
           {
@@ -3086,74 +3027,6 @@ export type Database = {
           },
         ]
       }
-      item_availability: {
-        Row: {
-          brand: string | null
-          category_id: string | null
-          category_name: string | null
-          code: string | null
-          created_at: string | null
-          current_wash_cycles: number | null
-          description: string | null
-          expected_lifetime_days: number | null
-          hotel_id: string | null
-          hotel_name: string | null
-          id: string | null
-          images: string[] | null
-          max_wash_cycles: number | null
-          minimum_stock: number | null
-          model: string | null
-          name: string | null
-          name_en: string | null
-          qr_code: string | null
-          quantity_damaged: number | null
-          quantity_in_laundry: number | null
-          quantity_in_stock: number | null
-          quantity_in_use: number | null
-          quantity_lost: number | null
-          quantity_total: number | null
-          reorder_point: number | null
-          specifications: Json | null
-          status: string | null
-          stock_status: string | null
-          tenant_id: string | null
-          unit: string | null
-          unit_price: number | null
-          updated_at: string | null
-          utilization_rate: number | null
-          wash_cycle_progress: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "items_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "item_categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "items_hotel_id_fkey"
-            columns: ["hotel_id"]
-            isOneToOne: false
-            referencedRelation: "dashboard_stats"
-            referencedColumns: ["hotel_id"]
-          },
-          {
-            foreignKeyName: "items_hotel_id_fkey"
-            columns: ["hotel_id"]
-            isOneToOne: false
-            referencedRelation: "hotels"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "items_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       monthly_expenses: {
         Row: {
           laundry_amount: number | null
@@ -3362,13 +3235,20 @@ export type Database = {
           p_tenant_id: string
         }
         Returns: {
+          brand: string
           category_color: string
           category_id: string
           category_name: string
           code: string
           created_at: string
+          current_wash_cycles: number
+          description: string
+          expected_lifetime_days: number
+          hotel_id: string
           id: string
+          max_wash_cycles: number
           minimum_stock: number
+          model: string
           name: string
           name_en: string
           qr_code: string
@@ -3378,12 +3258,15 @@ export type Database = {
           quantity_in_use: number
           quantity_lost: number
           quantity_total: number
+          reorder_point: number
+          specifications: Json
           status: string
           stock_status: string
-          thumbnail: string
+          tenant_id: string
           total_count: number
           unit: string
           unit_price: number
+          updated_at: string
         }[]
       }
       get_laundry_batch_detail: { Args: { p_batch_id: string }; Returns: Json }

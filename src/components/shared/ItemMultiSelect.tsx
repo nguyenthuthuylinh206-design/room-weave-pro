@@ -118,9 +118,9 @@ export function ItemMultiSelect({
                     value.includes(item.id) ? 'opacity-100' : 'opacity-0'
                   )}
                 />
-                {item.images?.[0] && (
+                {item.item_images?.[0]?.url && (
                   <img
-                    src={item.images[0]}
+                    src={item.item_images[0].url}
                     alt={item.name}
                     className="mr-2 h-8 w-8 rounded object-cover"
                   />
