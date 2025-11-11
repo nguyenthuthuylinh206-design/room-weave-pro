@@ -102,11 +102,28 @@ export const RegisterForm = () => {
       }, 1000)
     } catch (error: any) {
       console.error('Registration error:', error)
-      toast({
-        title: 'Đăng ký thất bại',
-        description: error.message || 'Có lỗi xảy ra, vui lòng thử lại',
-        variant: 'destructive',
-      })
+      
+      // Handle specific error cases
+      if (error.code === 'user_already_exists' || error.message?.includes('already registered')) {
+        toast({
+          title: 'Email đã được đăng ký',
+          description: 'Email này đã có tài khoản. Vui lòng đăng nhập hoặc sử dụng email khác.',
+          variant: 'destructive',
+          action: (
+            <Link to="/auth/login" className="text-sm underline">
+              Đăng nhập
+            </Link>
+          ),
+        })
+        // Go back to step 1 to allow changing email
+        setCurrentStep(1)
+      } else {
+        toast({
+          title: 'Đăng ký thất bại',
+          description: error.message || 'Có lỗi xảy ra, vui lòng thử lại',
+          variant: 'destructive',
+        })
+      }
     } finally {
       setIsSubmitting(false)
     }
