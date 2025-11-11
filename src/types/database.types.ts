@@ -28,18 +28,17 @@ export type Room = Database['public']['Tables']['rooms']['Row']
 export type RoomInsert = Database['public']['Tables']['rooms']['Insert']
 export type RoomUpdate = Database['public']['Tables']['rooms']['Update']
 
-// Enums
-export type AppRole = 'super_admin' | 'owner' | 'hotel_manager' | 'department_manager' | 'staff'
-export type Department = 'housekeeping' | 'laundry' | 'inventory' | 'maintenance'
-export type SubscriptionPlan = 'basic' | 'professional' | 'enterprise'
-export type SubscriptionStatus = 'trial' | 'active' | 'suspended' | 'cancelled'
-
 // Extended types with relations
 export type UserWithRelations = User & {
   tenant?: Tenant
   hotel?: Hotel
   roles?: UserRole[]
   primaryRole?: AppRole
+  userLevel?: {
+    code: string
+    name: string
+    hierarchy_level: number
+  }
 }
 
 export type ItemWithRelations = Item & {
@@ -50,3 +49,11 @@ export type ItemWithRelations = Item & {
 export type HotelWithRelations = Hotel & {
   tenant?: Tenant
 }
+
+// Enums
+export type AppRole = 'super_admin' | 'owner' | 'hotel_manager' | 'department_manager' | 'staff'
+export type UserLevelCode = 'super_admin' | 'tenant_owner' | 'manager' | 'staff'
+export type Department = 'housekeeping' | 'laundry' | 'inventory' | 'maintenance'
+export type SubscriptionPlan = Database['public']['Tables']['subscription_plans']['Row']
+export type SubscriptionStatus = 'trial' | 'active' | 'suspended' | 'cancelled'
+export type PaymentMethod = 'bank_transfer' | 'credit_card' | 'e_wallet' | 'cash'
