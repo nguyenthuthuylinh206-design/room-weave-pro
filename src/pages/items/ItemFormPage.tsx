@@ -58,6 +58,7 @@ export function ItemFormPage() {
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<ItemFormData>({
     resolver: zodResolver(itemSchema),
@@ -96,29 +97,34 @@ export function ItemFormPage() {
     }
   }, [copyFrom, setValue])
 
+  // Load item data for edit mode
   useEffect(() => {
     if (item && isEdit && !copyFrom) {
-      const itemData = item as any
-      setValue('code', itemData.code || '')
-      setValue('name', itemData.name || '')
-      setValue('name_en', itemData.name_en || '')
-      setValue('description', itemData.description || '')
-      setValue('category_id', itemData.category_id || '')
-      setValue('unit', itemData.unit || 'cái')
-      setValue('unit_price', itemData.unit_price || 0)
-      setValue('minimum_stock', itemData.minimum_stock || 10)
-      setValue('reorder_point', itemData.reorder_point || 20)
-      setValue('brand', itemData.brand || '')
-      setValue('model', itemData.model || '')
-      setValue('max_wash_cycles', itemData.max_wash_cycles || undefined)
-      setValue('expected_lifetime_days', itemData.expected_lifetime_days || undefined)
+      console.log('Loading item data:', item)
+      
+      // Reset form với tất cả dữ liệu
+      reset({
+        code: item.code || '',
+        name: item.name || '',
+        name_en: item.name_en || '',
+        description: item.description || '',
+        category_id: item.category_id || '',
+        unit: item.unit || 'cái',
+        unit_price: item.unit_price || 0,
+        minimum_stock: item.minimum_stock || 10,
+        reorder_point: item.reorder_point || 20,
+        brand: item.brand || '',
+        model: item.model || '',
+        max_wash_cycles: item.max_wash_cycles || undefined,
+        expected_lifetime_days: item.expected_lifetime_days || undefined,
+      })
       
       // Load images
-      if (itemData.images && Array.isArray(itemData.images)) {
-        setImages(itemData.images)
+      if (item.images && Array.isArray(item.images)) {
+        setImages(item.images)
       }
     }
-  }, [item, isEdit, copyFrom, setValue])
+  }, [item, isEdit, copyFrom, reset])
 
   const onSubmit = async (data: ItemFormData) => {
     try {

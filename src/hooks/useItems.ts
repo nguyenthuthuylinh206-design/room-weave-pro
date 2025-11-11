@@ -76,7 +76,10 @@ export function useItem(itemId: string | undefined) {
       if (!itemId) throw new Error('No item ID')
       
       const { data, error } = await supabase
-        .rpc('get_item_detail', { p_item_id: itemId })
+        .from('items')
+        .select('*')
+        .eq('id', itemId)
+        .single()
       
       if (error) throw error
       return data
