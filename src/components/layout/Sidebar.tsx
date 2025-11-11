@@ -28,6 +28,14 @@ import {
   Wrench,
   AlertCircle,
   TrendingUp,
+  Shield,
+  FolderTree,
+  Bell,
+  Briefcase,
+  Zap,
+  Plug,
+  Lock,
+  TestTube2,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -254,6 +262,63 @@ const navigation: NavItem[] = [
         href: '/settings/general',
         icon: LayoutDashboard,
       },
+      {
+        title: 'Khách sạn',
+        href: '/settings/hotels',
+        icon: Building2,
+        roles: ['owner', 'super_admin'],
+      },
+      {
+        title: 'Danh mục',
+        href: '/settings/categories',
+        icon: FolderTree,
+      },
+      {
+        title: 'Người dùng',
+        href: '/settings/users',
+        icon: Users,
+        roles: ['owner', 'super_admin'],
+      },
+      {
+        title: 'Vai trò & Phân quyền',
+        href: '/settings/roles',
+        icon: Shield,
+        roles: ['owner', 'super_admin'],
+      },
+      {
+        title: 'Thông báo',
+        href: '/settings/notifications',
+        icon: Bell,
+      },
+      {
+        title: 'Cấu hình nghiệp vụ',
+        href: '/settings/business',
+        icon: Briefcase,
+      },
+      {
+        title: 'Tự động hóa',
+        href: '/settings/workflows',
+        icon: Zap,
+        roles: ['owner', 'hotel_manager', 'super_admin'],
+      },
+      {
+        title: 'Tích hợp & API',
+        href: '/settings/integrations',
+        icon: Plug,
+        roles: ['owner', 'super_admin'],
+      },
+      {
+        title: 'Hệ thống & Bảo mật',
+        href: '/settings/security',
+        icon: Lock,
+        roles: ['owner', 'super_admin'],
+      },
+      {
+        title: 'Kiểm thử hệ thống',
+        href: '/settings/system-test',
+        icon: TestTube2,
+        roles: ['owner', 'super_admin'],
+      },
     ],
   },
 ]
@@ -393,26 +458,31 @@ export const Sidebar = () => {
 
                 {isExpanded && (
                   <div className="ml-4 space-y-1 border-l border-border pl-4">
-                    {item.children!.map((child) => {
-                      const ChildIcon = child.icon
-                      const isChildActive = child.href && currentPath === normalizePath(child.href)
+                    {item.children!
+                      .filter((child) => {
+                        if (!child.roles) return true
+                        return child.roles.includes(role || 'staff')
+                      })
+                      .map((child) => {
+                        const ChildIcon = child.icon
+                        const isChildActive = child.href && currentPath === normalizePath(child.href)
 
-                      return (
-                        <Link
-                          key={child.href}
-                          to={child.href!}
-                          className={cn(
-                            'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-                            isChildActive
-                              ? 'bg-primary text-primary-foreground font-medium'
-                              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                          )}
-                        >
-                          <ChildIcon className="h-4 w-4 flex-shrink-0" />
-                          <span className="flex-1">{child.title}</span>
-                        </Link>
-                      )
-                    })}
+                        return (
+                          <Link
+                            key={child.href}
+                            to={child.href!}
+                            className={cn(
+                              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                              isChildActive
+                                ? 'bg-primary text-primary-foreground font-medium'
+                                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                            )}
+                          >
+                            <ChildIcon className="h-4 w-4 flex-shrink-0" />
+                            <span className="flex-1">{child.title}</span>
+                          </Link>
+                        )
+                      })}
                   </div>
                 )}
               </div>
