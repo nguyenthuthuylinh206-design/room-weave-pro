@@ -117,37 +117,57 @@ export function HotelCard({ hotel, onEdit, onDelete, onView, onDeactivate }: Hot
               </div>
             </div>
 
-            {/* Stats */}
-            <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm pt-2 border-t">
-              <div className="flex items-center gap-1.5">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{hotel._count?.users || 0}</span>
-                <span className="text-muted-foreground">staff</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Bed className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{hotel._count?.rooms || 0}</span>
-                <span className="text-muted-foreground">rooms</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Package className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{hotel._count?.items || 0}</span>
-                <span className="text-muted-foreground">items</span>
-              </div>
-              {(hotel._count?.laundry_batches || 0) > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <Shirt className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{hotel._count?.laundry_batches}</span>
-                  <span className="text-muted-foreground">laundry</span>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-3 border-t">
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
+                <div className="p-2 rounded-md bg-primary/10">
+                  <Users className="h-4 w-4 text-primary" />
                 </div>
-              )}
-              {(hotel._count?.maintenance_requests || 0) > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <Wrench className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{hotel._count?.maintenance_requests}</span>
-                  <span className="text-muted-foreground">maintenance</span>
+                <div className="flex flex-col">
+                  <span className="text-lg font-bold">{hotel._count?.users || 0}</span>
+                  <span className="text-xs text-muted-foreground">Staff</span>
                 </div>
-              )}
+              </div>
+
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-500/5 border border-blue-500/10">
+                <div className="p-2 rounded-md bg-blue-500/10">
+                  <Bed className="h-4 w-4 text-blue-600" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-lg font-bold">{hotel._count?.rooms || 0}</span>
+                  <span className="text-xs text-muted-foreground">Rooms</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-orange-500/5 border border-orange-500/10">
+                <div className="p-2 rounded-md bg-orange-500/10">
+                  <Package className="h-4 w-4 text-orange-600" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-lg font-bold">{hotel._count?.items || 0}</span>
+                  <span className="text-xs text-muted-foreground">Items</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-purple-500/5 border border-purple-500/10">
+                <div className="p-2 rounded-md bg-purple-500/10">
+                  <Shirt className="h-4 w-4 text-purple-600" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-lg font-bold">{hotel._count?.laundry_batches || 0}</span>
+                  <span className="text-xs text-muted-foreground">Laundry</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/10">
+                <div className="p-2 rounded-md bg-yellow-500/10">
+                  <Wrench className="h-4 w-4 text-yellow-600" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-lg font-bold">{hotel._count?.maintenance_requests || 0}</span>
+                  <span className="text-xs text-muted-foreground">Maintenance</span>
+                </div>
+              </div>
             </div>
 
             {/* Manager */}
