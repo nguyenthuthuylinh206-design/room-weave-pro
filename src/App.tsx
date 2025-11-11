@@ -68,6 +68,7 @@ import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 import UsersPage from "./pages/users/UsersPage";
 import ProfilePage from "./pages/profile/ProfilePage";
+import RolesManagementPage from "./pages/settings/RolesManagementPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -142,7 +143,14 @@ const router = createBrowserRouter([
           { path: "categories", element: <CategoryManagementPage /> },
           { path: "users", element: <UsersPage /> },
           { path: "notifications", element: <NotificationSettingsPage /> },
-          { path: "roles", element: <div className="p-8 text-muted-foreground">Roles & Permissions - Coming soon</div> },
+          { 
+            path: "roles", 
+            element: (
+              <RoleGuard allowedRoles={['owner', 'super_admin']}>
+                <RolesManagementPage />
+              </RoleGuard>
+            )
+          },
           { path: "business", element: <BusinessConfigurationPage /> },
           {
             path: "workflows",
