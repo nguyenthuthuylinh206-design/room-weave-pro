@@ -2035,6 +2035,7 @@ export type Database = {
       payment_transactions: {
         Row: {
           amount: number
+          billing_cycle: string | null
           created_at: string | null
           currency: string
           gateway_transaction_id: string | null
@@ -2046,12 +2047,14 @@ export type Database = {
           payment_gateway: string | null
           payment_method: string | null
           payment_status: string
+          plan_id: string | null
           tenant_id: string
           transaction_reference: string | null
           updated_at: string | null
         }
         Insert: {
           amount: number
+          billing_cycle?: string | null
           created_at?: string | null
           currency?: string
           gateway_transaction_id?: string | null
@@ -2063,12 +2066,14 @@ export type Database = {
           payment_gateway?: string | null
           payment_method?: string | null
           payment_status?: string
+          plan_id?: string | null
           tenant_id: string
           transaction_reference?: string | null
           updated_at?: string | null
         }
         Update: {
           amount?: number
+          billing_cycle?: string | null
           created_at?: string | null
           currency?: string
           gateway_transaction_id?: string | null
@@ -2080,6 +2085,7 @@ export type Database = {
           payment_gateway?: string | null
           payment_method?: string | null
           payment_status?: string
+          plan_id?: string | null
           tenant_id?: string
           transaction_reference?: string | null
           updated_at?: string | null
@@ -2090,6 +2096,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
             referencedColumns: ["id"]
           },
           {

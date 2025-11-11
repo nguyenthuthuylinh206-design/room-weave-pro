@@ -38,6 +38,7 @@ import { SettingsPage } from "./pages/settings/SettingsPage";
 import { SettingsLayout } from "./components/settings/SettingsLayout";
 import { GeneralSettingsPage } from "./pages/settings/GeneralSettingsPage";
 import HotelsManagementPage from "./pages/settings/HotelsManagementPage";
+import SubscriptionPage from "./pages/settings/SubscriptionPage";
 import SystemSecurityPage from "./pages/settings/SystemSecurityPage";
 import { NotificationSettingsPage } from "./pages/settings/NotificationSettingsPage";
 import { BusinessConfigurationPage } from "./pages/settings/BusinessConfigurationPage";
@@ -161,6 +162,7 @@ const router = createBrowserRouter([
           { path: "hotels", element: <HotelsManagementPage /> },
           { path: "categories", element: <CategoryManagementPage /> },
           { path: "users", element: <UsersPage /> },
+          { path: "subscription", element: <SubscriptionPage /> },
           { path: "notifications", element: <NotificationSettingsPage /> },
           { 
             path: "roles", 
