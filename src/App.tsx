@@ -73,6 +73,7 @@ import NotFound from "./pages/NotFound";
 import UsersPage from "./pages/users/UsersPage";
 import ProfilePage from "./pages/profile/ProfilePage";
 import RolesManagementPage from "./pages/settings/RolesManagementPage";
+import PermissionManagementPage from "./pages/settings/PermissionManagementPage";
 import IntegrationsPage from "./pages/settings/IntegrationsPage";
 
 const queryClient = new QueryClient({
@@ -166,6 +167,14 @@ const router = createBrowserRouter([
             element: (
               <RoleGuard allowedRoles={['owner', 'super_admin']}>
                 <RolesManagementPage />
+              </RoleGuard>
+            )
+          },
+          { 
+            path: "permissions", 
+            element: (
+              <RoleGuard allowedRoles={['owner', 'super_admin']}>
+                <PermissionManagementPage />
               </RoleGuard>
             )
           },
