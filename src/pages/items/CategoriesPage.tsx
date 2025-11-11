@@ -1,8 +1,12 @@
 import { useState } from 'react'
-import { ArrowLeft, Plus, Edit, Trash2, Package } from 'lucide-react'
+import { ArrowLeft, Plus, Edit, Trash2, Package, AlertTriangle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { supabase } from '@/integrations/supabase/client'
+import { useAuth } from '@/hooks/useAuth'
+import { toast } from '@/hooks/use-toast'
 import {
   Dialog,
   DialogContent,
@@ -35,6 +39,7 @@ import type { CategoryFormData } from '@/types/items.types'
 
 export function CategoriesPage() {
   const navigate = useNavigate()
+  const { user: authUser } = useAuth()
   const { data: categories, isLoading } = useCategories()
   const createCategory = useCreateCategory()
   const updateCategory = useUpdateCategory()
@@ -44,6 +49,8 @@ export function CategoriesPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<any>(null)
   const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null)
+  const [isFixing, setIsFixing] = useState(false)
+  const [showTenantAlert, setShowTenantAlert] = useState(true)
 
   const [formData, setFormData] = useState<CategoryFormData>({
     name: '',
@@ -111,6 +118,58 @@ export function CategoriesPage() {
     }
   }
 
+  const handleAutoFix = async () => {
+    if (!authUser?.id || !authUser?.email) {
+      toast({
+        title: 'Lỗi',
+        description: 'Không tìm thấy thông tin user. Vui lòng đăng nhập lại.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsFixing(true)
+    
+    try {
+      const { data, error } = await supabase.rpc('complete_registration', {
+        p_user_id: authUser.id,
+        p_full_name: authUser.email.split('@')[0] || 'User',
+        p_email: authUser.email,
+        p_phone: '0123456789',
+        p_tenant_name: 'Công ty của tôi',
+        p_hotel_name: 'Khách sạn của tôi',
+        p_hotel_address: '123 Đường ABC, TP.HCM',
+        p_hotel_phone: '0123456789',
+        p_hotel_email: authUser.email,
+        p_total_rooms: 50
+      })
+
+      if (error) throw error
+      
+      const result = data as any
+      if (result?.success) {
+        toast({
+          title: 'Thành công!',
+          description: 'Đã tạo tenant và hotel. Đang tải lại trang...',
+        })
+        
+        setTimeout(() => {
+          window.location.reload()
+        }, 1500)
+      } else {
+        throw new Error(result?.error || 'Không thể tạo tenant/hotel')
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsFixing(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -141,6 +200,46 @@ export function CategoriesPage() {
           Thêm danh mục
         </Button>
       </div>
+
+      {/* Tenant Missing Alert */}
+      {showTenantAlert && !isLoading && categories?.length === 0 && (
+        <Alert variant="destructive" className="border-orange-500 bg-orange-50 dark:bg-orange-950">
+          <AlertTriangle className="h-4 w-4 text-orange-600" />
+          <AlertTitle className="text-orange-900 dark:text-orange-100">
+            Thiếu dữ liệu tenant và hotel
+          </AlertTitle>
+          <AlertDescription className="text-orange-800 dark:text-orange-200 space-y-3">
+            <p>
+              Hệ thống phát hiện tài khoản của bạn chưa có tenant_id và hotel_id.
+              Điều này có thể xảy ra nếu quá trình đăng ký chưa hoàn tất.
+            </p>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleAutoFix}
+                disabled={isFixing}
+                size="sm"
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                {isFixing ? 'Đang sửa...' : 'Tự động khắc phục'}
+              </Button>
+              <Button 
+                onClick={() => navigate('/settings/system-test')}
+                variant="outline"
+                size="sm"
+              >
+                Đi đến System Test
+              </Button>
+              <Button 
+                onClick={() => setShowTenantAlert(false)}
+                variant="ghost"
+                size="sm"
+              >
+                Đóng
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {categories?.map((category) => (
