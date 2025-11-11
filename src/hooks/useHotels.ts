@@ -102,7 +102,7 @@ export const useHotels = (filters?: {
         .from('hotels')
         .select(`
           *,
-          users:users(count),
+          users:users!users_hotel_id_fkey(count),
           rooms:rooms(count),
           items:items(count),
           laundry_batches:laundry_batches(count),
