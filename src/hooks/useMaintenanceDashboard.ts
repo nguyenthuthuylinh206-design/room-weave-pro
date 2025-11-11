@@ -1,21 +1,29 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
 
 export function useMaintenanceDashboard() {
-  const { tenantId, hotelId } = useUser()
+  const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
 
   return useQuery({
-    queryKey: ['maintenance-dashboard', tenantId, hotelId],
+    queryKey: ['maintenance-dashboard', tenantId, isAllHotelsMode ? 'all' : selectedHotel?.id],
     queryFn: async () => {
-      if (!tenantId || !hotelId) return null
+      if (!tenantId) return null
+      if (!isAllHotelsMode && !selectedHotel?.id) return null
 
       // Get all requests for stats
-      const { data: requests, error } = await supabase
+      let query = supabase
         .from('maintenance_requests')
         .select('*')
         .eq('tenant_id', tenantId)
-        .eq('hotel_id', hotelId)
+      
+      if (!isAllHotelsMode && selectedHotel?.id) {
+        query = query.eq('hotel_id', selectedHotel.id)
+      }
+      
+      const { data: requests, error } = await query
 
       if (error) throw error
 
@@ -131,6 +139,6 @@ export function useMaintenanceDashboard() {
           .slice(0, 10) || [],
       }
     },
-    enabled: !!tenantId && !!hotelId,
+    enabled: !!tenantId && (isAllHotelsMode || !!selectedHotel?.id),
   })
 }

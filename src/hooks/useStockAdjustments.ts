@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useTenant } from './useTenant'
 import { useUser } from './useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
 import { useToast } from '@/components/ui/use-toast'
 import type { 
@@ -17,16 +18,16 @@ export function useStockAdjustments(
   pageSize = 25
 ) {
   const { tenant } = useTenant()
-  const { user } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   
   return useQuery({
-    queryKey: ['stock-adjustments', tenant?.id, user?.hotel_id, filters, page, pageSize],
+    queryKey: ['stock-adjustments', tenant?.id, isAllHotelsMode ? 'all' : selectedHotel?.id, filters, page, pageSize],
     queryFn: async () => {
       if (!tenant?.id) throw new Error('No tenant')
       
       const { data, error } = await supabase.rpc('get_stock_adjustments_filtered', {
         p_tenant_id: tenant.id,
-        p_hotel_id: user?.hotel_id || null,
+        p_hotel_id: isAllHotelsMode ? null : (selectedHotel?.id || null),
         p_status: filters.status || null,
         p_adjustment_type: filters.adjustment_type || null,
         p_created_by: filters.created_by || null,
@@ -105,16 +106,17 @@ export function useCreateStockAdjustment() {
   const { toast } = useToast()
   const { tenant } = useTenant()
   const { user } = useUser()
+  const { selectedHotel } = useHotelContext()
   
   return useMutation({
     mutationFn: async (data: CreateAdjustmentData) => {
-      if (!tenant?.id || !user?.hotel_id || !user?.id) {
+      if (!tenant?.id || !selectedHotel?.id || !user?.id) {
         throw new Error('Missing required data')
       }
       
       const { data: result, error } = await supabase.rpc('create_stock_adjustment', {
         p_tenant_id: tenant.id,
-        p_hotel_id: user.hotel_id,
+        p_hotel_id: selectedHotel.id,
         p_adjustment_type: data.adjustment_type,
         p_scheduled_date: data.scheduled_date.toISOString().split('T')[0],
         p_created_by: user.id,

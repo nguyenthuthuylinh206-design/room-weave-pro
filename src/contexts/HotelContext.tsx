@@ -61,8 +61,21 @@ export function HotelProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error
     },
-    onError: (error) => {
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-preferences'] })
+      
+      // Also update localStorage as backup
+      if (isAllHotelsMode) {
+        localStorage.removeItem('selected_hotel_id')
+        localStorage.setItem('is_all_hotels_mode', 'true')
+      } else if (selectedHotel) {
+        localStorage.setItem('selected_hotel_id', selectedHotel.id)
+        localStorage.removeItem('is_all_hotels_mode')
+      }
+    },
+    onError: (error: any) => {
       console.error('Error saving preference:', error)
+      
       // Fallback to localStorage on error
       if (isAllHotelsMode) {
         localStorage.removeItem('selected_hotel_id')
