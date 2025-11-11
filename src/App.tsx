@@ -39,6 +39,7 @@ import { SettingsLayout } from "./components/settings/SettingsLayout";
 import { GeneralSettingsPage } from "./pages/settings/GeneralSettingsPage";
 import HotelsManagementPage from "./pages/settings/HotelsManagementPage";
 import SubscriptionPage from "./pages/settings/SubscriptionPage";
+import UsageDashboardPage from "./pages/settings/UsageDashboardPage";
 import SystemSecurityPage from "./pages/settings/SystemSecurityPage";
 import { NotificationSettingsPage } from "./pages/settings/NotificationSettingsPage";
 import { BusinessConfigurationPage } from "./pages/settings/BusinessConfigurationPage";
@@ -163,6 +164,7 @@ const router = createBrowserRouter([
           { path: "categories", element: <CategoryManagementPage /> },
           { path: "users", element: <UsersPage /> },
           { path: "subscription", element: <SubscriptionPage /> },
+          { path: "usage", element: <UsageDashboardPage /> },
           { path: "notifications", element: <NotificationSettingsPage /> },
           { 
             path: "roles", 
