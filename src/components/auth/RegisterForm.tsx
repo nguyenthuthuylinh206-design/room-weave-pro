@@ -109,11 +109,6 @@ export const RegisterForm = () => {
           title: 'Email đã được đăng ký',
           description: 'Email này đã có tài khoản. Vui lòng đăng nhập hoặc sử dụng email khác.',
           variant: 'destructive',
-          action: (
-            <Link to="/auth/login" className="text-sm underline">
-              Đăng nhập
-            </Link>
-          ),
         })
         // Go back to step 1 to allow changing email
         setCurrentStep(1)
