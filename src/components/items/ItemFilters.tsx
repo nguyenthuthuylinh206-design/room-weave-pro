@@ -10,6 +10,12 @@ import {
 } from '@/components/ui/select'
 import { useCategories } from '@/hooks/useCategories'
 import type { ItemFilters as IItemFilters } from '@/types/items.types'
+import { supabase } from '@/integrations/supabase/client'
+import { exportItemsToExcel } from '@/lib/exportUtils'
+import { toast } from '@/hooks/use-toast'
+import { useState } from 'react'
+import { useUser } from '@/hooks/useUser'
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 
 interface ItemFiltersProps {
   filters: IItemFilters
@@ -18,15 +24,67 @@ interface ItemFiltersProps {
 
 export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
   const { data: categories } = useCategories()
+  const { tenantId, hotelId } = useUser()
+  const [isExporting, setIsExporting] = useState(false)
   
-  const handleExport = () => {
-    // TODO: Implement export to Excel
-    console.log('Export to Excel')
+  const handleExport = async () => {
+    try {
+      if (!tenantId) {
+        toast({
+          title: 'Lỗi',
+          description: 'Không tìm thấy thông tin tenant',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      setIsExporting(true)
+      
+      // Fetch items with current filters
+      const { data, error } = await supabase.rpc('get_items_filtered', {
+        p_tenant_id: tenantId,
+        p_hotel_id: filters.hotelId || hotelId || null,
+        p_category_id: filters.categoryId || null,
+        p_stock_status: filters.stockStatus || null,
+        p_status: filters.status || 'active',
+        p_search: filters.search || null,
+        p_limit: 10000, // Export all matching items
+        p_offset: 0,
+      })
+      
+      if (error) throw error
+      
+      if (!data || data.length === 0) {
+        toast({
+          title: 'Không có dữ liệu',
+          description: 'Không tìm thấy items phù hợp với bộ lọc',
+        })
+        return
+      }
+      
+      const filename = exportItemsToExcel(data, 'items-export')
+      
+      toast({
+        title: 'Thành công',
+        description: `Đã xuất ${data.length} items ra file ${filename}`,
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsExporting(false)
+    }
   }
   
   const handleScanQR = () => {
     // TODO: Implement QR scanner
-    console.log('Scan QR')
+    toast({
+      title: 'Tính năng đang phát triển',
+      description: 'Chức năng quét QR sẽ sớm được bổ sung',
+    })
   }
   
   return (
@@ -99,8 +157,14 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
       </div>
       
       <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={handleExport}>
-          <FileDown className="mr-2 h-4 w-4" />
+        <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
+          {isExporting ? (
+            <div className="mr-2">
+              <LoadingSpinner size="sm" />
+            </div>
+          ) : (
+            <FileDown className="mr-2 h-4 w-4" />
+          )}
           Xuất Excel
         </Button>
         

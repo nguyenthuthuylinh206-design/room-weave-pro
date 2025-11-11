@@ -15,6 +15,9 @@ import {
 import { useDeleteItems } from '@/hooks/useItems'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
+import { exportItemsToExcel } from '@/lib/exportUtils'
+import { useState } from 'react'
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 
 interface BulkActionsBarProps {
   selectedCount: number
@@ -28,15 +31,56 @@ export function BulkActionsBar({
   onClearSelection,
 }: BulkActionsBarProps) {
   const deleteItems = useDeleteItems()
+  const [isExporting, setIsExporting] = useState(false)
   
   const handleDelete = async () => {
     await deleteItems.mutateAsync(selectedItems)
     onClearSelection()
   }
   
-  const handleExport = () => {
-    // TODO: Implement Excel export with XLSX library
-    console.log('Export selected items:', selectedItems)
+  const handleExport = async () => {
+    try {
+      setIsExporting(true)
+      
+      // Fetch selected items with category info
+      const { data, error } = await supabase
+        .from('items')
+        .select(`
+          *,
+          item_categories!items_category_id_fkey(name)
+        `)
+        .in('id', selectedItems)
+      
+      if (error) throw error
+      
+      // Transform data for export
+      const itemsWithCategory = data.map(item => ({
+        ...item,
+        category_name: item.item_categories?.name || null,
+        stock_status: getStockStatus(item)
+      }))
+      
+      const filename = exportItemsToExcel(itemsWithCategory, 'selected-items')
+      
+      toast({
+        title: 'Thành công',
+        description: `Đã xuất ${selectedItems.length} items ra file ${filename}`,
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsExporting(false)
+    }
+  }
+  
+  const getStockStatus = (item: any): string => {
+    if (item.quantity_available === 0) return 'out_of_stock'
+    if (item.quantity_available <= item.minimum_stock) return 'low_stock'
+    return 'in_stock'
   }
   
   const handlePrintQR = () => {
@@ -118,8 +162,14 @@ export function BulkActionsBar({
         <div className="h-4 w-px bg-border" />
         
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            <FileDown className="mr-2 h-4 w-4" />
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
+            {isExporting ? (
+              <div className="mr-2">
+                <LoadingSpinner size="sm" />
+              </div>
+            ) : (
+              <FileDown className="mr-2 h-4 w-4" />
+            )}
             Xuất Excel
           </Button>
           
