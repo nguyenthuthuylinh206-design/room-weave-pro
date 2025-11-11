@@ -57,30 +57,43 @@ export function useItems(
       
       if (error) throw error
       
-      const items = (data || []) as unknown as ItemWithCategory[]
+      // Return empty result if no data
+      if (!data || data.length === 0) {
+        return {
+          items: [],
+          total: 0,
+          page,
+          pageSize,
+          totalPages: 0,
+        }
+      }
+      
+      const items = data as unknown as ItemWithCategory[]
+      const itemIds = items.map(item => item.id)
       
       // Fetch images for all items in this page
-      if (items.length > 0) {
-        const itemIds = items.map(item => item.id)
-        const { data: images } = await supabase
-          .from('item_images')
-          .select('*')
-          .in('item_id', itemIds)
-          .order('is_primary', { ascending: false })
-          .order('display_order', { ascending: true })
-        
-        // Attach images to items
-        items.forEach(item => {
-          item.item_images = images?.filter(img => img.item_id === item.id) || []
-        })
+      const { data: images, error: imagesError } = await supabase
+        .from('item_images')
+        .select('*')
+        .in('item_id', itemIds)
+        .order('is_primary', { ascending: false })
+        .order('display_order', { ascending: true })
+      
+      if (imagesError) {
+        console.error('Error fetching images:', imagesError)
       }
+      
+      // Attach images to items
+      items.forEach(item => {
+        item.item_images = images?.filter(img => img.item_id === item.id) || []
+      })
       
       return {
         items,
-        total: data?.[0]?.total_count || 0,
+        total: data[0]?.total_count || data.length,
         page,
         pageSize,
-        totalPages: Math.ceil((data?.[0]?.total_count || 0) / pageSize),
+        totalPages: Math.ceil((data[0]?.total_count || data.length) / pageSize),
       }
     },
     enabled: !!tenantId,
