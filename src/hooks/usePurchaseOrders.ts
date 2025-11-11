@@ -2,30 +2,104 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PurchaseOrder, POFilters } from '@/types/purchase-order.types';
 import { useToast } from './use-toast';
+import { useUser } from './useUser';
 
 export function usePurchaseOrders(filters?: POFilters) {
+  const { tenantId, hotelId } = useUser();
+
   return useQuery({
-    queryKey: ['purchase-orders', filters],
+    queryKey: ['purchase-orders', tenantId, hotelId, filters],
     queryFn: async () => {
-      // Mock data for now - TODO: implement actual query
-      const mockPOs: PurchaseOrder[] = [];
-      return mockPOs;
+      if (!tenantId) throw new Error('No tenant');
+
+      let query = supabase
+        .from('purchase_orders')
+        .select(`
+          *,
+          vendor:vendors(id, name, code),
+          items:purchase_order_items(
+            *,
+            item:items(id, name, code, unit)
+          )
+        `)
+        .eq('tenant_id', tenantId)
+        .order('order_date', { ascending: false });
+
+      if (hotelId) {
+        query = query.eq('hotel_id', hotelId);
+      }
+
+      if (filters?.status && filters.status !== 'all') {
+        query = query.eq('status', filters.status);
+      }
+
+      if (filters?.vendor_id) {
+        query = query.eq('vendor_id', filters.vendor_id);
+      }
+
+      if (filters?.date_from) {
+        query = query.gte('order_date', filters.date_from);
+      }
+
+      if (filters?.date_to) {
+        query = query.lte('order_date', filters.date_to);
+      }
+
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      return data as unknown as PurchaseOrder[];
     },
+    enabled: !!tenantId,
   });
 }
 
 export function usePOStats() {
+  const { tenantId, hotelId } = useUser();
+
   return useQuery({
-    queryKey: ['po-stats'],
+    queryKey: ['po-stats', tenantId, hotelId],
     queryFn: async () => {
-      const mockStats = {
-        total_pos: 45,
-        pending_approval: 8,
-        total_value_30d: 250000000,
-        completed_30d: 32
+      if (!tenantId) throw new Error('No tenant');
+
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      let query = supabase
+        .from('purchase_orders')
+        .select('*', { count: 'exact' })
+        .eq('tenant_id', tenantId);
+
+      if (hotelId) {
+        query = query.eq('hotel_id', hotelId);
+      }
+
+      const { count: totalPOs } = await query;
+
+      const { count: pendingApproval } = await supabase
+        .from('purchase_orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('status', 'submitted')
+        .then(res => ({ count: res.count || 0 }));
+
+      const { data: last30Days } = await supabase
+        .from('purchase_orders')
+        .select('total_amount, status')
+        .eq('tenant_id', tenantId)
+        .gte('order_date', thirtyDaysAgo.toISOString());
+
+      const totalValue30d = last30Days?.reduce((sum, po) => sum + (po.total_amount || 0), 0) || 0;
+      const completed30d = last30Days?.filter(po => po.status === 'received').length || 0;
+
+      return {
+        total_pos: totalPOs || 0,
+        pending_approval: pendingApproval || 0,
+        total_value_30d: totalValue30d,
+        completed_30d: completed30d
       };
-      return mockStats;
     },
+    enabled: !!tenantId,
   });
 }
 

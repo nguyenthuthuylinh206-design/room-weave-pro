@@ -2,14 +2,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Vendor, VendorFilters, VendorStats } from '@/types/vendor.types';
 import { useToast } from './use-toast';
+import { useUser } from './useUser';
 
 export function useVendors(filters?: VendorFilters) {
+  const { tenantId } = useUser();
+
   return useQuery({
-    queryKey: ['vendors', filters],
+    queryKey: ['vendors', tenantId, filters],
     queryFn: async () => {
+      if (!tenantId) throw new Error('No tenant');
+
       let query = supabase
         .from('vendors')
         .select('*')
+        .eq('tenant_id', tenantId)
         .order(filters?.sort_by || 'name', { 
           ascending: filters?.sort_order === 'asc' 
         });
@@ -35,6 +41,7 @@ export function useVendors(filters?: VendorFilters) {
       if (error) throw error;
       return data as Vendor[];
     },
+    enabled: !!tenantId,
   });
 }
 
@@ -56,20 +63,71 @@ export function useVendor(id: string) {
 }
 
 export function useVendorStats() {
+  const { tenantId } = useUser();
+
   return useQuery({
-    queryKey: ['vendor-stats'],
+    queryKey: ['vendor-stats', tenantId],
     queryFn: async () => {
-      // Mock data for now - TODO: create database function
-      const mockStats: VendorStats = {
-        total_vendors: 0,
-        active_vendors: 0,
-        new_this_month: 0,
-        average_rating: 0,
-        total_orders_30d: 0,
-        total_value_30d: 0
+      if (!tenantId) throw new Error('No tenant');
+
+      const firstDayOfMonth = new Date();
+      firstDayOfMonth.setDate(1);
+      firstDayOfMonth.setHours(0, 0, 0, 0);
+
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      // Get vendor counts
+      const { count: totalVendors } = await supabase
+        .from('vendors')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId);
+
+      const { count: activeVendors } = await supabase
+        .from('vendors')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('status', 'active');
+
+      const { count: newThisMonth } = await supabase
+        .from('vendors')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .gte('created_at', firstDayOfMonth.toISOString());
+
+      // Get average rating
+      const { data: vendorsWithRating } = await supabase
+        .from('vendors')
+        .select('rating')
+        .eq('tenant_id', tenantId)
+        .gt('rating', 0);
+
+      const averageRating = vendorsWithRating && vendorsWithRating.length > 0
+        ? vendorsWithRating.reduce((sum, v) => sum + (v.rating || 0), 0) / vendorsWithRating.length
+        : 0;
+
+      // Get PO stats for last 30 days
+      const { data: recentPOs } = await supabase
+        .from('purchase_orders')
+        .select('total_amount')
+        .eq('tenant_id', tenantId)
+        .gte('order_date', thirtyDaysAgo.toISOString());
+
+      const totalOrders30d = recentPOs?.length || 0;
+      const totalValue30d = recentPOs?.reduce((sum, po) => sum + (po.total_amount || 0), 0) || 0;
+
+      const stats: VendorStats = {
+        total_vendors: totalVendors || 0,
+        active_vendors: activeVendors || 0,
+        new_this_month: newThisMonth || 0,
+        average_rating: Math.round(averageRating * 10) / 10,
+        total_orders_30d: totalOrders30d,
+        total_value_30d: totalValue30d
       };
-      return mockStats;
+      
+      return stats;
     },
+    enabled: !!tenantId,
   });
 }
 
@@ -78,10 +136,10 @@ export function useCreateVendor() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (vendor: Omit<Vendor, 'id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (vendor: Omit<Vendor, 'id' | 'created_at' | 'updated_at' | 'code'>) => {
       const { data, error } = await supabase
         .from('vendors')
-        .insert(vendor)
+        .insert([vendor as any])
         .select()
         .single();
       
