@@ -1967,6 +1967,71 @@ export type Database = {
           },
         ]
       }
+      payment_methods: {
+        Row: {
+          billing_address: Json | null
+          billing_email: string | null
+          billing_name: string | null
+          card_brand: string | null
+          card_exp_month: number | null
+          card_exp_year: number | null
+          card_last4: string | null
+          created_at: string | null
+          gateway: string
+          gateway_payment_method_id: string
+          id: string
+          is_default: boolean | null
+          is_verified: boolean | null
+          tenant_id: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          billing_address?: Json | null
+          billing_email?: string | null
+          billing_name?: string | null
+          card_brand?: string | null
+          card_exp_month?: number | null
+          card_exp_year?: number | null
+          card_last4?: string | null
+          created_at?: string | null
+          gateway: string
+          gateway_payment_method_id: string
+          id?: string
+          is_default?: boolean | null
+          is_verified?: boolean | null
+          tenant_id: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          billing_address?: Json | null
+          billing_email?: string | null
+          billing_name?: string | null
+          card_brand?: string | null
+          card_exp_month?: number | null
+          card_exp_year?: number | null
+          card_last4?: string | null
+          created_at?: string | null
+          gateway?: string
+          gateway_payment_method_id?: string
+          id?: string
+          is_default?: boolean | null
+          is_verified?: boolean | null
+          tenant_id?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_methods_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_transactions: {
         Row: {
           amount: number
@@ -2035,6 +2100,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_webhook_logs: {
+        Row: {
+          created_at: string | null
+          error: string | null
+          event_id: string | null
+          event_type: string
+          gateway: string
+          id: string
+          payload: Json
+          processed: boolean | null
+          processed_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error?: string | null
+          event_id?: string | null
+          event_type: string
+          gateway: string
+          id?: string
+          payload: Json
+          processed?: boolean | null
+          processed_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error?: string | null
+          event_id?: string | null
+          event_type?: string
+          gateway?: string
+          id?: string
+          payload?: Json
+          processed?: boolean | null
+          processed_at?: string | null
+        }
+        Relationships: []
       }
       permissions: {
         Row: {
@@ -3352,6 +3453,7 @@ export type Database = {
           account_locked: boolean | null
           avatar_url: string | null
           created_at: string | null
+          created_by: string | null
           deactivated_at: string | null
           deactivated_by: string | null
           deleted_at: string | null
@@ -3360,6 +3462,7 @@ export type Database = {
           full_name: string
           hotel_id: string | null
           id: string
+          is_primary_owner: boolean | null
           is_super_admin: boolean | null
           last_login_at: string | null
           last_login_ip: unknown
@@ -3369,6 +3472,7 @@ export type Database = {
           must_change_password: boolean | null
           notes: string | null
           phone: string | null
+          reports_to: string | null
           role: string
           status: string | null
           tenant_id: string | null
@@ -3379,6 +3483,7 @@ export type Database = {
           account_locked?: boolean | null
           avatar_url?: string | null
           created_at?: string | null
+          created_by?: string | null
           deactivated_at?: string | null
           deactivated_by?: string | null
           deleted_at?: string | null
@@ -3387,6 +3492,7 @@ export type Database = {
           full_name: string
           hotel_id?: string | null
           id: string
+          is_primary_owner?: boolean | null
           is_super_admin?: boolean | null
           last_login_at?: string | null
           last_login_ip?: unknown
@@ -3396,6 +3502,7 @@ export type Database = {
           must_change_password?: boolean | null
           notes?: string | null
           phone?: string | null
+          reports_to?: string | null
           role?: string
           status?: string | null
           tenant_id?: string | null
@@ -3406,6 +3513,7 @@ export type Database = {
           account_locked?: boolean | null
           avatar_url?: string | null
           created_at?: string | null
+          created_by?: string | null
           deactivated_at?: string | null
           deactivated_by?: string | null
           deleted_at?: string | null
@@ -3414,6 +3522,7 @@ export type Database = {
           full_name?: string
           hotel_id?: string | null
           id?: string
+          is_primary_owner?: boolean | null
           is_super_admin?: boolean | null
           last_login_at?: string | null
           last_login_ip?: unknown
@@ -3423,6 +3532,7 @@ export type Database = {
           must_change_password?: boolean | null
           notes?: string | null
           phone?: string | null
+          reports_to?: string | null
           role?: string
           status?: string | null
           tenant_id?: string | null
@@ -3430,6 +3540,20 @@ export type Database = {
           user_level_code?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "users_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "users_deactivated_by_fkey"
             columns: ["deactivated_by"]
@@ -3456,6 +3580,20 @@ export type Database = {
             columns: ["hotel_id"]
             isOneToOne: false
             referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_reports_to_fkey"
+            columns: ["reports_to"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_reports_to_fkey"
+            columns: ["reports_to"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -3877,6 +4015,10 @@ export type Database = {
       calculate_tenant_storage: {
         Args: { p_tenant_id: string }
         Returns: number
+      }
+      can_manage_user: {
+        Args: { p_manager_id: string; p_target_user_id: string }
+        Returns: boolean
       }
       check_expiring_subscriptions: { Args: never; Returns: undefined }
       check_tenant_can_add: {
@@ -4349,6 +4491,11 @@ export type Database = {
           total_value_difference: number
         }[]
       }
+      get_super_admin_dashboard_stats: { Args: never; Returns: Json }
+      get_tenant_billing_summary: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
       get_top_items:
         | {
             Args: { p_limit?: number; p_tenant_id: string }
@@ -4438,6 +4585,10 @@ export type Database = {
         Args: { p_period?: string; p_workflow_id: string }
         Returns: Json
       }
+      handle_successful_payment: {
+        Args: { p_transaction_id: string }
+        Returns: undefined
+      }
       has_permission: {
         Args: { _permission_code: string; _user_id: string }
         Returns: boolean
@@ -4452,6 +4603,15 @@ export type Database = {
       has_user_level: {
         Args: { _level_code: string; _user_id: string }
         Returns: boolean
+      }
+      increment_staff_stat: {
+        Args: {
+          p_hotel_id: string
+          p_increment?: number
+          p_stat_type: string
+          p_user_id: string
+        }
+        Returns: undefined
       }
       is_level_higher_or_equal: {
         Args: { _min_level_code: string; _user_id: string }
@@ -4472,6 +4632,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      process_expired_subscriptions: { Args: never; Returns: undefined }
       queue_email_notification: {
         Args: {
           p_body_html: string
@@ -4511,6 +4672,10 @@ export type Database = {
             Returns: string
           }
       update_tenant_usage: { Args: { p_tenant_id: string }; Returns: undefined }
+      validate_plan_change: {
+        Args: { p_new_plan_id: string; p_tenant_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role:
