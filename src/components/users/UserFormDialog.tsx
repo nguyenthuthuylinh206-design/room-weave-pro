@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useQuotaCheck } from '@/hooks/useQuotaCheck'
+import { QuotaExceededDialog } from '@/components/settings/usage/QuotaExceededDialog'
 import {
   Dialog,
   DialogContent,
@@ -47,6 +49,7 @@ export function UserFormDialog({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { data: hotels, isLoading: hotelsLoading } = useHotels({ status: 'active' })
   const { data: userLevels, isLoading: levelsLoading } = useAvailableUserLevels()
+  const quotaCheck = useQuotaCheck('user')
 
   const form = useForm<UserFormData>({
     resolver: zodResolver(userFormSchema),
@@ -92,6 +95,11 @@ export function UserFormDialog({
   }, [open, user, form])
 
   const handleSubmit = async (data: UserFormData) => {
+    // Check quota for new users
+    if (!user && !quotaCheck.checkQuota()) {
+      return
+    }
+
     try {
       setIsSubmitting(true)
       await onSubmit(data)
@@ -108,8 +116,16 @@ export function UserFormDialog({
   const needsDepartment = selectedLevel === 'manager' || selectedLevel === 'staff'
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <>
+      <QuotaExceededDialog
+        open={quotaCheck.showDialog}
+        onOpenChange={quotaCheck.setShowDialog}
+        resourceType="user"
+        currentUsage={quotaCheck.currentUsage}
+        limit={quotaCheck.limit}
+      />
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {user ? 'Chỉnh sửa người dùng' : 'Thêm người dùng mới'}
@@ -332,5 +348,6 @@ export function UserFormDialog({
         </Form>
       </DialogContent>
     </Dialog>
+    </>
   )
 }

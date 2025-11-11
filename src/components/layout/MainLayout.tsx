@@ -6,6 +6,7 @@ import { BottomNav } from './BottomNav'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { QuotaWarningBanner } from '@/components/settings/usage/QuotaWarningBanner'
 
 export const MainLayout = () => {
   const { isMobile } = useBreakpoint()
@@ -28,6 +29,9 @@ export const MainLayout = () => {
       <div className="min-h-screen flex flex-col bg-background">
         <MobileHeader />
         <main className="flex-1 overflow-auto pb-16">
+          <div className="p-4">
+            <QuotaWarningBanner />
+          </div>
           <Outlet />
         </main>
         <BottomNav />
@@ -42,6 +46,9 @@ export const MainLayout = () => {
         <Header onMenuClick={() => {}} />
         <main className="flex-1 overflow-auto">
           <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
+            <div className="mb-4">
+              <QuotaWarningBanner />
+            </div>
             <Outlet />
           </div>
         </main>

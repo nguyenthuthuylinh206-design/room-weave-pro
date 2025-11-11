@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { useQuotaCheck } from '@/hooks/useQuotaCheck'
+import { QuotaExceededDialog } from '@/components/settings/usage/QuotaExceededDialog'
 import {
   Dialog,
   DialogContent,
@@ -68,6 +70,7 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
   const createHotel = useCreateHotel()
   const updateHotel = useUpdateHotel()
   const { users } = useUsers()
+  const quotaCheck = useQuotaCheck('hotel')
 
   // Filter managers from users
   const managers = users?.filter(u => 
@@ -139,6 +142,11 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
   }, [open, hotel, form])
 
   const onSubmit = async (data: HotelFormData) => {
+    // Check quota for new hotels
+    if (!hotel && !quotaCheck.checkQuota()) {
+      return
+    }
+
     if (hotel) {
       await updateHotel.mutateAsync({ id: hotel.id, data })
     } else {
@@ -176,8 +184,16 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
   const progress = (step / totalSteps) * 100
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px]">
+    <>
+      <QuotaExceededDialog
+        open={quotaCheck.showDialog}
+        onOpenChange={quotaCheck.setShowDialog}
+        resourceType="hotel"
+        currentUsage={quotaCheck.currentUsage}
+        limit={quotaCheck.limit}
+      />
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>{hotel ? 'Chỉnh sửa Khách sạn' : 'Thêm Khách sạn Mới'}</DialogTitle>
           <DialogDescription>
@@ -370,5 +386,6 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
         </Form>
       </DialogContent>
     </Dialog>
+    </>
   )
 }

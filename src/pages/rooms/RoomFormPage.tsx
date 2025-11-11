@@ -4,6 +4,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ArrowLeft, Save } from 'lucide-react'
+import { useQuotaCheck } from '@/hooks/useQuotaCheck'
+import { QuotaExceededDialog } from '@/components/settings/usage/QuotaExceededDialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -40,6 +42,7 @@ export function RoomFormPage() {
   const { data: room, isLoading: roomLoading } = useRoom(id)
   const createRoom = useCreateRoom()
   const updateRoom = useUpdateRoom()
+  const quotaCheck = useQuotaCheck('room')
 
   const {
     register,
@@ -77,6 +80,11 @@ export function RoomFormPage() {
   }, [room, isEdit, setValue])
 
   const onSubmit = async (data: RoomFormData) => {
+    // Check quota for new rooms
+    if (!isEdit && !quotaCheck.checkQuota()) {
+      return
+    }
+
     try {
       if (isEdit) {
         await updateRoom.mutateAsync({
@@ -115,8 +123,16 @@ export function RoomFormPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
+    <>
+      <QuotaExceededDialog
+        open={quotaCheck.showDialog}
+        onOpenChange={quotaCheck.setShowDialog}
+        resourceType="room"
+        currentUsage={quotaCheck.currentUsage}
+        limit={quotaCheck.limit}
+      />
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate('/rooms')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
@@ -317,5 +333,6 @@ export function RoomFormPage() {
         </div>
       </form>
     </div>
+    </>
   )
 }

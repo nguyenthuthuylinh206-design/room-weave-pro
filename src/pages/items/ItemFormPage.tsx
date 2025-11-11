@@ -4,6 +4,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ArrowLeft, Save } from 'lucide-react'
+import { useQuotaCheck } from '@/hooks/useQuotaCheck'
+import { QuotaExceededDialog } from '@/components/settings/usage/QuotaExceededDialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -55,6 +57,7 @@ export function ItemFormPage() {
   const updateItem = useUpdateItem()
   const addItemImage = useAddItemImage()
   const deleteItemImage = useDeleteItemImage()
+  const quotaCheck = useQuotaCheck('item')
   
   const [images, setImages] = useState<string[]>([])
 
@@ -135,6 +138,11 @@ export function ItemFormPage() {
   }, [itemImages])
 
   const onSubmit = async (data: ItemFormData) => {
+    // Check quota for new items
+    if (!isEdit && !quotaCheck.checkQuota()) {
+      return
+    }
+
     try {
       console.log('Form data:', data)
       console.log('Images:', images)
@@ -213,8 +221,16 @@ export function ItemFormPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
+    <>
+      <QuotaExceededDialog
+        open={quotaCheck.showDialog}
+        onOpenChange={quotaCheck.setShowDialog}
+        resourceType="item"
+        currentUsage={quotaCheck.currentUsage}
+        limit={quotaCheck.limit}
+      />
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate('/items')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
@@ -410,5 +426,6 @@ export function ItemFormPage() {
         </div>
       </form>
     </div>
+    </>
   )
 }
