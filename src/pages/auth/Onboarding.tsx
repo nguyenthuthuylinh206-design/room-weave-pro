@@ -11,7 +11,9 @@ import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
-import { Building2, CheckCircle } from 'lucide-react'
+import { Building2, CheckCircle, Loader2, AlertCircle } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Progress } from '@/components/ui/progress'
 
 const onboardingSchema = z.object({
   tenantName: z.string().min(2, 'Tên công ty phải có ít nhất 2 ký tự'),
@@ -30,6 +32,9 @@ export default function Onboarding() {
   const { user } = useAuth()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loadingProgress, setLoadingProgress] = useState(0)
+  const [loadingMessage, setLoadingMessage] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   const form = useForm<OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
@@ -46,17 +51,20 @@ export default function Onboarding() {
 
   const onSubmit = async (data: OnboardingFormData) => {
     if (!user?.id) {
-      toast({
-        title: 'Lỗi',
-        description: 'Không tìm thấy thông tin người dùng',
-        variant: 'destructive',
-      })
+      setError('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.')
       return
     }
 
     setIsSubmitting(true)
+    setError(null)
+    setLoadingProgress(0)
+    setLoadingMessage('Đang khởi tạo...')
 
     try {
+      // Progress simulation
+      setLoadingProgress(20)
+      setLoadingMessage('Đang tạo công ty...')
+
       // Call complete_registration function
       const { data: result, error } = await supabase.rpc('complete_registration', {
         p_user_id: user.id,
@@ -71,25 +79,69 @@ export default function Onboarding() {
         p_total_rooms: data.totalRooms,
       })
 
-      if (error) throw error
+      setLoadingProgress(60)
+      setLoadingMessage('Đang cấu hình khách sạn...')
 
-      const resultData = result as { success?: boolean; error?: string } | null
-      if (!resultData?.success) {
-        throw new Error(resultData?.error || 'Đăng ký thất bại')
+      if (error) {
+        throw new Error(`Lỗi kết nối: ${error.message}`)
       }
 
+      // Handle result structure from function
+      const resultData = result as { success?: boolean; error?: string; detail?: string; tenant_id?: string; hotel_id?: string } | null
+      
+      if (!resultData) {
+        throw new Error('Không nhận được phản hồi từ máy chủ')
+      }
+
+      if (!resultData.success) {
+        const errorMsg = resultData.error || 'Đăng ký thất bại'
+        const errorDetail = resultData.detail ? ` (Mã lỗi: ${resultData.detail})` : ''
+        throw new Error(`${errorMsg}${errorDetail}`)
+      }
+
+      setLoadingProgress(80)
+      setLoadingMessage('Đang thiết lập danh mục và phân quyền...')
+
+      // Success! Show success message
+      setLoadingProgress(100)
+      setLoadingMessage('Hoàn tất thiết lập!')
+
       toast({
-        title: 'Hoàn tất thiết lập!',
-        description: 'Khách sạn của bạn đã được tạo thành công.',
+        title: '🎉 Chào mừng bạn!',
+        description: 'Tài khoản và khách sạn của bạn đã sẵn sàng. Đang chuyển hướng...',
       })
 
-      // Refresh page to reload user context
-      window.location.href = '/'
+      // Delay to show success state
+      setTimeout(() => {
+        // Redirect to dashboard
+        window.location.href = '/dashboard'
+      }, 1500)
+      
     } catch (error: any) {
       console.error('Onboarding error:', error)
+      
+      // Extract user-friendly error message
+      let errorMessage = 'Có lỗi xảy ra khi thiết lập tài khoản'
+      
+      if (error.message) {
+        if (error.message.includes('Basic subscription plan not found')) {
+          errorMessage = 'Hệ thống chưa được cấu hình gói dịch vụ. Vui lòng liên hệ quản trị viên.'
+        } else if (error.message.includes('violates check constraint')) {
+          errorMessage = 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại thông tin.'
+        } else if (error.message.includes('duplicate key')) {
+          errorMessage = 'Tài khoản hoặc khách sạn đã tồn tại trong hệ thống.'
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
+      setError(errorMessage)
+      setLoadingProgress(0)
+      setLoadingMessage('')
+      
       toast({
         title: 'Lỗi thiết lập',
-        description: error.message || 'Có lỗi xảy ra khi thiết lập tài khoản',
+        description: errorMessage,
         variant: 'destructive',
       })
     } finally {
@@ -110,6 +162,23 @@ export default function Onboarding() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {isSubmitting && (
+            <div className="mb-6 space-y-2">
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>{loadingMessage}</span>
+                <span>{loadingProgress}%</span>
+              </div>
+              <Progress value={loadingProgress} className="h-2" />
+            </div>
+          )}
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* Tenant Information */}
@@ -226,13 +295,22 @@ export default function Onboarding() {
               <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <div className="flex items-center gap-2">
-                    <LoadingSpinner size="sm" />
-                    <span>Đang thiết lập...</span>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>{loadingMessage || 'Đang xử lý...'}</span>
                   </div>
                 ) : (
-                  'Hoàn tất thiết lập'
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Hoàn tất thiết lập</span>
+                  </div>
                 )}
               </Button>
+              
+              {!isSubmitting && (
+                <p className="text-xs text-center text-muted-foreground mt-4">
+                  Bằng việc tiếp tục, bạn đồng ý với các điều khoản sử dụng và chính sách bảo mật của chúng tôi.
+                </p>
+              )}
             </form>
           </Form>
         </CardContent>
