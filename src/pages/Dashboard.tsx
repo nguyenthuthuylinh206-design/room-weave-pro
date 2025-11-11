@@ -5,13 +5,16 @@ import { TopItemsTable } from '@/components/dashboard/TopItemsTable'
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { QuickActions } from '@/components/dashboard/QuickActions'
 import { MobileDashboard } from '@/components/dashboard/MobileDashboard'
-import { Package, Wind, AlertTriangle } from 'lucide-react'
+import { HotelBreakdownCards } from '@/components/dashboard/HotelBreakdownCards'
+import { Package, Wind, AlertTriangle, BarChart3 } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
+import { useHotelContext } from '@/contexts/HotelContext'
 import { useBreakpoint } from '@/lib/breakpoints'
 
 export default function Dashboard() {
   const { user } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const { data: stats, isLoading } = useDashboardStats()
   const { isMobile } = useBreakpoint()
 
@@ -41,8 +44,19 @@ export default function Dashboard() {
     <div className="space-y-6">
       <PageHeader
         title={`Chào mừng trở lại, ${user?.full_name || 'User'}!`}
-        description="Tổng quan hệ thống quản lý tài sản khách sạn"
-      />
+        description={
+          isAllHotelsMode
+            ? 'Tổng quan toàn bộ hệ thống khách sạn'
+            : `Tổng quan ${selectedHotel?.name || 'khách sạn'}`
+        }
+      >
+        {isAllHotelsMode && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground px-3 py-2 rounded-md bg-secondary">
+            <BarChart3 className="h-4 w-4" />
+            <span>Xem tất cả khách sạn</span>
+          </div>
+        )}
+      </PageHeader>
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -75,6 +89,9 @@ export default function Dashboard() {
           description="items cần bổ sung"
         />
       </div>
+
+      {/* Hotel Breakdown - Only show in All Hotels mode */}
+      {isAllHotelsMode && <HotelBreakdownCards />}
 
       {/* Quick Actions */}
       <QuickActions />

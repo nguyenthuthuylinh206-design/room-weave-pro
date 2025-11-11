@@ -3151,7 +3151,9 @@ export type Database = {
         }[]
       }
       get_current_user_role: { Args: never; Returns: string }
-      get_dashboard_stats: { Args: { p_tenant_id: string }; Returns: Json }
+      get_dashboard_stats:
+        | { Args: { p_tenant_id: string }; Returns: Json }
+        | { Args: { p_hotel_id?: string; p_tenant_id: string }; Returns: Json }
       get_financial_report: {
         Args: {
           p_end_date: string
@@ -3162,6 +3164,20 @@ export type Database = {
         Returns: Json
       }
       get_floor_plan: { Args: { p_hotel_id: string }; Returns: Json }
+      get_hotels_breakdown_stats: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          hotel_code: string
+          hotel_id: string
+          hotel_name: string
+          in_laundry: number
+          in_stock: number
+          in_use: number
+          low_stock_count: number
+          total_items: number
+          total_value: number
+        }[]
+      }
       get_inventory_dashboard_stats: {
         Args: { p_hotel_id: string; p_tenant_id: string }
         Returns: Json
@@ -3334,16 +3350,31 @@ export type Database = {
           unit_price: number
         }[]
       }
-      get_monthly_expenses: {
-        Args: { p_months?: number; p_tenant_id: string }
-        Returns: {
-          laundry: number
-          maintenance: number
-          month: string
-          purchase: number
-          total: number
-        }[]
-      }
+      get_monthly_expenses:
+        | {
+            Args: {
+              p_hotel_id?: string
+              p_months?: number
+              p_tenant_id: string
+            }
+            Returns: {
+              laundry: number
+              maintenance: number
+              month: string
+              purchase: number
+              total: number
+            }[]
+          }
+        | {
+            Args: { p_months?: number; p_tenant_id: string }
+            Returns: {
+              laundry: number
+              maintenance: number
+              month: string
+              purchase: number
+              total: number
+            }[]
+          }
       get_monthly_laundry_expenses: {
         Args: { p_tenant_id: string; p_year?: number }
         Returns: {
@@ -3354,18 +3385,31 @@ export type Database = {
           total_items: number
         }[]
       }
-      get_recent_activities: {
-        Args: { p_limit?: number; p_tenant_id: string }
-        Returns: {
-          created_at: string
-          description: string
-          id: string
-          metadata: Json
-          type: string
-          user_avatar: string
-          user_name: string
-        }[]
-      }
+      get_recent_activities:
+        | {
+            Args: { p_limit?: number; p_tenant_id: string }
+            Returns: {
+              created_at: string
+              description: string
+              id: string
+              metadata: Json
+              type: string
+              user_avatar: string
+              user_name: string
+            }[]
+          }
+        | {
+            Args: { p_hotel_id?: string; p_limit?: number; p_tenant_id: string }
+            Returns: {
+              created_at: string
+              description: string
+              id: string
+              metadata: Json
+              type: string
+              user_avatar: string
+              user_name: string
+            }[]
+          }
       get_room_detail: { Args: { p_room_id: string }; Returns: Json }
       get_room_standards: {
         Args: { p_hotel_id: string; p_room_type: string }
@@ -3441,21 +3485,37 @@ export type Database = {
           total_value_difference: number
         }[]
       }
-      get_top_items: {
-        Args: { p_limit?: number; p_tenant_id: string }
-        Returns: {
-          category_color: string
-          category_name: string
-          code: string
-          id: string
-          name: string
-          quantity_in_use: number
-          quantity_total: number
-          stock_status: string
-          thumbnail: string
-          utilization_rate: number
-        }[]
-      }
+      get_top_items:
+        | {
+            Args: { p_limit?: number; p_tenant_id: string }
+            Returns: {
+              category_color: string
+              category_name: string
+              code: string
+              id: string
+              name: string
+              quantity_in_use: number
+              quantity_total: number
+              stock_status: string
+              thumbnail: string
+              utilization_rate: number
+            }[]
+          }
+        | {
+            Args: { p_hotel_id?: string; p_limit?: number; p_tenant_id: string }
+            Returns: {
+              category_color: string
+              category_name: string
+              code: string
+              id: string
+              name: string
+              quantity_in_use: number
+              quantity_total: number
+              stock_status: string
+              thumbnail: string
+              utilization_rate: number
+            }[]
+          }
       get_turnover_analysis: {
         Args: { p_hotel_id: string; p_months?: number; p_tenant_id: string }
         Returns: {

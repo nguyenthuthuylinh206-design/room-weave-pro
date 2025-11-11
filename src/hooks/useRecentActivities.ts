@@ -2,17 +2,18 @@ import { useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
 import { useToast } from './use-toast'
 import type { DashboardActivity } from '@/types/dashboard.types'
 
 export function useRecentActivities(limit: number = 10) {
   const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const queryClient = useQueryClient()
   const { toast } = useToast()
   
-  // Initial fetch
   const query = useQuery({
-    queryKey: ['recent-activities', tenantId, limit],
+    queryKey: ['recent-activities', tenantId, limit, isAllHotelsMode ? 'all' : selectedHotel?.id],
     queryFn: async () => {
       if (!tenantId) throw new Error('No tenant')
       
@@ -20,6 +21,7 @@ export function useRecentActivities(limit: number = 10) {
         .rpc('get_recent_activities', {
           p_tenant_id: tenantId,
           p_limit: limit,
+          p_hotel_id: isAllHotelsMode ? null : selectedHotel?.id || null,
         })
       
       if (error) throw error
