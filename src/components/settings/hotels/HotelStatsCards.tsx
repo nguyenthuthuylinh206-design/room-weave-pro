@@ -4,9 +4,10 @@ import { Hotel } from '@/hooks/useHotels'
 
 interface HotelStatsCardsProps {
   hotels: Hotel[]
+  viewMode?: 'all' | 'focus'
 }
 
-export function HotelStatsCards({ hotels }: HotelStatsCardsProps) {
+export function HotelStatsCards({ hotels, viewMode = 'all' }: HotelStatsCardsProps) {
   const stats = {
     total: hotels.length,
     active: hotels.filter(h => h.status === 'active').length,
@@ -16,6 +17,8 @@ export function HotelStatsCards({ hotels }: HotelStatsCardsProps) {
     totalItems: hotels.reduce((sum, h) => sum + (h._count?.items || 0), 0),
   }
 
+  const modeLabel = viewMode === 'focus' ? 'Khách sạn này' : 'Tổng cộng'
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
       <Card className="p-4">
@@ -24,7 +27,9 @@ export function HotelStatsCards({ hotels }: HotelStatsCardsProps) {
             <Building2 className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Total Hotels</p>
+            <p className="text-sm text-muted-foreground">
+              {viewMode === 'focus' ? 'Khách sạn' : 'Tổng khách sạn'}
+            </p>
             <p className="text-2xl font-bold">{stats.total}</p>
           </div>
         </div>
@@ -36,8 +41,12 @@ export function HotelStatsCards({ hotels }: HotelStatsCardsProps) {
             <CheckCircle2 className="h-4 w-4 text-green-600" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Active</p>
-            <p className="text-2xl font-bold">{stats.active}</p>
+            <p className="text-sm text-muted-foreground">
+              {viewMode === 'focus' ? 'Trạng thái' : 'Đang hoạt động'}
+            </p>
+            <p className="text-2xl font-bold">
+              {viewMode === 'focus' ? (stats.active > 0 ? 'Hoạt động' : 'Ngừng') : stats.active}
+            </p>
           </div>
         </div>
       </Card>
@@ -48,8 +57,12 @@ export function HotelStatsCards({ hotels }: HotelStatsCardsProps) {
             <XCircle className="h-4 w-4 text-red-600" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Inactive</p>
-            <p className="text-2xl font-bold">{stats.inactive}</p>
+            <p className="text-sm text-muted-foreground">
+              {viewMode === 'focus' ? 'Loại hình' : 'Ngừng hoạt động'}
+            </p>
+            <p className="text-2xl font-bold">
+              {viewMode === 'focus' ? (hotels[0]?.type || 'Hotel') : stats.inactive}
+            </p>
           </div>
         </div>
       </Card>
@@ -60,7 +73,9 @@ export function HotelStatsCards({ hotels }: HotelStatsCardsProps) {
             <Bed className="h-4 w-4 text-blue-600" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Total Rooms</p>
+            <p className="text-sm text-muted-foreground">
+              {modeLabel} - Phòng
+            </p>
             <p className="text-2xl font-bold">{stats.totalRooms}</p>
           </div>
         </div>
@@ -72,7 +87,9 @@ export function HotelStatsCards({ hotels }: HotelStatsCardsProps) {
             <Users className="h-4 w-4 text-purple-600" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Total Staff</p>
+            <p className="text-sm text-muted-foreground">
+              {modeLabel} - Nhân viên
+            </p>
             <p className="text-2xl font-bold">{stats.totalStaff}</p>
           </div>
         </div>
@@ -84,7 +101,9 @@ export function HotelStatsCards({ hotels }: HotelStatsCardsProps) {
             <Package className="h-4 w-4 text-orange-600" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Total Items</p>
+            <p className="text-sm text-muted-foreground">
+              {modeLabel} - Tài sản
+            </p>
             <p className="text-2xl font-bold">{stats.totalItems}</p>
           </div>
         </div>
