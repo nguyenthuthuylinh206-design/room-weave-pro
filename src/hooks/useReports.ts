@@ -64,12 +64,15 @@ export function useFinancialReport(dateRange: DateRange) {
 }
 
 export function useABCAnalysis() {
-  const { tenantId, hotelId } = useUser()
+  const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   
   return useQuery({
-    queryKey: ['abc-analysis', tenantId, hotelId],
+    queryKey: ['abc-analysis', tenantId, isAllHotelsMode ? 'all' : selectedHotel?.id],
     queryFn: async () => {
-      if (!tenantId || !hotelId) throw new Error('No tenant or hotel')
+      if (!tenantId) throw new Error('No tenant')
+      const hotelId = isAllHotelsMode ? null : selectedHotel?.id
+      if (!isAllHotelsMode && !hotelId) throw new Error('No hotel selected')
       
       const { data, error } = await supabase.rpc('get_abc_analysis', {
         p_tenant_id: tenantId,
@@ -79,18 +82,21 @@ export function useABCAnalysis() {
       if (error) throw error
       return data as ABCAnalysisItem[]
     },
-    enabled: !!tenantId && !!hotelId,
+    enabled: !!tenantId && (isAllHotelsMode || !!selectedHotel?.id),
     staleTime: 60 * 60 * 1000, // 1 hour
   })
 }
 
 export function useTurnoverAnalysis(months: number = 3) {
-  const { tenantId, hotelId } = useUser()
+  const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   
   return useQuery({
-    queryKey: ['turnover-analysis', tenantId, hotelId, months],
+    queryKey: ['turnover-analysis', tenantId, isAllHotelsMode ? 'all' : selectedHotel?.id, months],
     queryFn: async () => {
-      if (!tenantId || !hotelId) throw new Error('No tenant or hotel')
+      if (!tenantId) throw new Error('No tenant')
+      const hotelId = isAllHotelsMode ? null : selectedHotel?.id
+      if (!isAllHotelsMode && !hotelId) throw new Error('No hotel selected')
       
       const { data, error } = await supabase.rpc('get_turnover_analysis', {
         p_tenant_id: tenantId,
@@ -101,7 +107,7 @@ export function useTurnoverAnalysis(months: number = 3) {
       if (error) throw error
       return data as TurnoverAnalysisItem[]
     },
-    enabled: !!tenantId && !!hotelId,
+    enabled: !!tenantId && (isAllHotelsMode || !!selectedHotel?.id),
     staleTime: 30 * 60 * 1000, // 30 minutes
   })
 }
@@ -134,50 +140,59 @@ export function useLaundryReport(dateRange: DateRange) {
 
 // Quick reports for dashboard
 export function useQuickReport(period: 'today' | 'week' | 'month') {
-  const { tenantId, hotelId } = useUser()
+  const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   
   const dateRange = getDateRangeForPeriod(period)
   
   return useQuery({
-    queryKey: ['quick-report', tenantId, hotelId, period],
+    queryKey: ['quick-report', tenantId, isAllHotelsMode ? 'all' : selectedHotel?.id, period],
     queryFn: async () => {
-      if (!tenantId || !hotelId) throw new Error('No tenant or hotel')
+      if (!tenantId) throw new Error('No tenant')
+      const hotelId = isAllHotelsMode ? null : selectedHotel?.id
+      if (!isAllHotelsMode && !hotelId) throw new Error('No hotel selected')
       
       // Get quick metrics
+      const inventoryQuery = supabase
+        .from('inventory_transactions')
+        .select('transaction_type, quantity, total_value')
+        .eq('tenant_id', tenantId)
+        .gte('created_at', dateRange.start.toISOString())
+        .lte('created_at', dateRange.end.toISOString())
+      
+      const laundryQuery = supabase
+        .from('laundry_batches')
+        .select('total_items, estimated_cost')
+        .eq('tenant_id', tenantId)
+        .gte('delivery_date', dateRange.start.toISOString())
+        .lte('delivery_date', dateRange.end.toISOString())
+      
+      const adjustmentsQuery = supabase
+        .from('stock_adjustments')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .eq('status', 'completed')
+      
+      if (!isAllHotelsMode && hotelId) {
+        inventoryQuery.eq('hotel_id', hotelId)
+        laundryQuery.eq('hotel_id', hotelId)
+        adjustmentsQuery.eq('hotel_id', hotelId)
+      }
+      
       const [
         inventoryTransactions,
         laundryBatches,
         lowStockItems,
         pendingAdjustments,
       ] = await Promise.all([
-        supabase
-          .from('inventory_transactions')
-          .select('transaction_type, quantity, total_value')
-          .eq('tenant_id', tenantId)
-          .eq('hotel_id', hotelId)
-          .gte('created_at', dateRange.start.toISOString())
-          .lte('created_at', dateRange.end.toISOString()),
-        
-        supabase
-          .from('laundry_batches')
-          .select('total_items, estimated_cost')
-          .eq('tenant_id', tenantId)
-          .eq('hotel_id', hotelId)
-          .gte('delivery_date', dateRange.start.toISOString())
-          .lte('delivery_date', dateRange.end.toISOString()),
-        
+        inventoryQuery,
+        laundryQuery,
         supabase.rpc('get_low_stock_items', {
           p_tenant_id: tenantId,
           p_hotel_id: hotelId,
           p_limit: 1000
         }).then(res => ({ data: res.data || [], error: res.error })),
-        
-        supabase
-          .from('stock_adjustments')
-          .select('id')
-          .eq('tenant_id', tenantId)
-          .eq('hotel_id', hotelId)
-          .eq('status', 'completed'),
+        adjustmentsQuery,
       ])
       
       // Calculate metrics
@@ -206,7 +221,7 @@ export function useQuickReport(period: 'today' | 'week' | 'month') {
         },
       }
     },
-    enabled: !!tenantId && !!hotelId,
+    enabled: !!tenantId && (isAllHotelsMode || !!selectedHotel?.id),
     refetchInterval: 60000, // 1 minute
   })
 }
