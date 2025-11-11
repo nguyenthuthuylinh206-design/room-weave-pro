@@ -327,7 +327,7 @@ export function ItemFormPage() {
               maxImages={10}
             />
             <p className="mt-2 text-xs text-muted-foreground">
-              Ảnh sẽ được tự động nén để giảm dung lượng mà không thay đổi kích thước. Tối đa 10 ảnh.
+              Ảnh sẽ được tự động resize về tối đa 1200x1200px và nén để tối ưu dung lượng. Tối đa 10 ảnh.
             </p>
           </CardContent>
         </Card>

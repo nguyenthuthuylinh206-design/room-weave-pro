@@ -37,19 +37,19 @@ export function ImageUpload({ images, onChange, maxImages = 5, className }: Imag
           continue
         }
         
-        // Nén ảnh với chất lượng 0.8 (giảm 20% dung lượng)
-        const compressed = await compressImage(file, 0.8)
+        // Nén và resize ảnh: quality 0.7, max 1200x1200px
+        const compressed = await compressImage(file, 0.7, 1200, 1200)
         compressedImages.push(compressed)
       }
       
       onChange([...images, ...compressedImages])
       
       if (compressedImages.length > 0) {
-        toast.success(`Đã tải lên ${compressedImages.length} ảnh và nén thành công`)
+        toast.success(`Đã tải lên ${compressedImages.length} ảnh (tối đa 1200x1200px)`)
       }
     } catch (error) {
       console.error('Error compressing images:', error)
-      toast.error('Lỗi khi nén ảnh')
+      toast.error('Lỗi khi xử lý ảnh')
     } finally {
       setIsCompressing(false)
     }
