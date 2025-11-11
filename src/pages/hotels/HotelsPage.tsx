@@ -1,26 +1,40 @@
 import { PageHeader } from '@/components/shared/PageHeader'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Building2, Plus, MapPin, Users, Star } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useHotels } from '@/hooks/useHotels'
+import { HotelFormDialog } from '@/components/settings/hotels/HotelFormDialog'
+import { HotelDetailDialog } from '@/components/settings/hotels/HotelDetailDialog'
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { useState } from 'react'
+import type { Hotel } from '@/hooks/useHotels'
 
 export function HotelsPage() {
-  const navigate = useNavigate()
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null)
+  
+  const { data: hotels, isLoading } = useHotels({})
 
-  // Mock data - sẽ được thay thế bằng dữ liệu thực từ database
-  const hotels = [
-    {
-      id: '1',
-      name: 'Grand Hotel Saigon',
-      address: '123 Nguyễn Huệ, Q1, TP.HCM',
-      rooms: 120,
-      staff: 45,
-      rating: 4.5,
-      status: 'active',
-      logo_url: null,
-    },
-  ]
+  const handleAddNew = () => {
+    setSelectedHotel(null)
+    setIsFormOpen(true)
+  }
+
+  const handleEdit = (hotel: Hotel) => {
+    setSelectedHotel(hotel)
+    setIsFormOpen(true)
+  }
+
+  const handleView = (hotel: Hotel) => {
+    setSelectedHotel(hotel)
+    setIsDetailOpen(true)
+  }
+
+  if (isLoading) {
+    return <LoadingSpinner />
+  }
 
   return (
     <div className="space-y-6">
@@ -30,15 +44,13 @@ export function HotelsPage() {
         action={{
           label: 'Thêm khách sạn',
           icon: Plus,
-          onClick: () => {
-            // TODO: Implement add hotel
-          },
+          onClick: handleAddNew,
         }}
       />
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {hotels.map((hotel) => (
-          <Card key={hotel.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+        {hotels?.map((hotel) => (
+          <Card key={hotel.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
@@ -68,27 +80,35 @@ export function HotelsPage() {
             <CardContent className="space-y-3">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4" />
-                <span className="truncate">{hotel.address}</span>
+                <span className="truncate">{hotel.address || 'Chưa có địa chỉ'}</span>
               </div>
               
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-1">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
-                  <span>{hotel.rooms} phòng</span>
+                  <span>{hotel._count?.rooms || 0} phòng</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Users className="h-4 w-4 text-muted-foreground" />
-                  <span>{hotel.staff} nhân viên</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  <span>{hotel.rating}</span>
+                  <span>{hotel._count?.users || 0} nhân viên</span>
                 </div>
               </div>
 
-              <div className="pt-2">
-                <Button variant="outline" className="w-full" size="sm">
+              <div className="pt-2 flex gap-2">
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  size="sm"
+                  onClick={() => handleView(hotel)}
+                >
                   Xem chi tiết
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => handleEdit(hotel)}
+                >
+                  Sửa
                 </Button>
               </div>
             </CardContent>
@@ -96,7 +116,7 @@ export function HotelsPage() {
         ))}
       </div>
 
-      {hotels.length === 0 && (
+      {(!hotels || hotels.length === 0) && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Building2 className="h-12 w-12 text-muted-foreground" />
@@ -104,13 +124,30 @@ export function HotelsPage() {
             <p className="mt-2 text-sm text-muted-foreground">
               Thêm khách sạn đầu tiên để bắt đầu
             </p>
-            <Button className="mt-4">
+            <Button className="mt-4" onClick={handleAddNew}>
               <Plus className="mr-2 h-4 w-4" />
               Thêm khách sạn
             </Button>
           </CardContent>
         </Card>
       )}
+
+      <HotelFormDialog
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        hotel={selectedHotel}
+      />
+
+      <HotelDetailDialog
+        open={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+        hotel={selectedHotel}
+        onEdit={(hotel) => {
+          setIsDetailOpen(false)
+          setSelectedHotel(hotel)
+          setIsFormOpen(true)
+        }}
+      />
     </div>
   )
 }
