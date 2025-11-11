@@ -322,6 +322,7 @@ export function ItemTable({
 function ItemActions({ item }: { item: ItemWithCategory }) {
   const navigate = useNavigate()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showDiscontinueDialog, setShowDiscontinueDialog] = useState(false)
   const deleteItems = useDeleteItems()
   const updateItem = useUpdateItem()
   
@@ -364,6 +365,7 @@ function ItemActions({ item }: { item: ItemWithCategory }) {
         id: item.id,
         data: { status: 'discontinued' }
       })
+      setShowDiscontinueDialog(false)
     } catch (error: any) {
       toast({
         title: 'Lỗi',
@@ -412,7 +414,7 @@ function ItemActions({ item }: { item: ItemWithCategory }) {
             In nhãn QR
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleDiscontinue}>
+          <DropdownMenuItem onClick={() => setShowDiscontinueDialog(true)}>
             <Ban className="mr-2 h-4 w-4" />
             Ngừng kinh doanh
           </DropdownMenuItem>
@@ -441,6 +443,23 @@ function ItemActions({ item }: { item: ItemWithCategory }) {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDiscontinueDialog} onOpenChange={setShowDiscontinueDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận ngừng kinh doanh</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc muốn ngừng kinh doanh "{item.name}"? Tài sản sẽ được đánh dấu là discontinued.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDiscontinue}>
+              Xác nhận
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

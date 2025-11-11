@@ -82,7 +82,7 @@ export function ItemFormPage() {
   }, [copyFrom, setValue])
 
   useEffect(() => {
-    if (item && isEdit && typeof item === 'object' && 'code' in item && !copyFrom) {
+    if (item && isEdit && !copyFrom) {
       const itemData = item as any
       setValue('code', itemData.code || '')
       setValue('name', itemData.name || '')
