@@ -34,30 +34,24 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useUsers } from '@/hooks/useUsers'
 
 const hotelSchema = z.object({
-  code: z.string().min(2, 'Code must be at least 2 characters'),
-  name: z.string().min(2, 'Name must be at least 2 characters'),
+  code: z.string().min(2, 'Mã phải có ít nhất 2 ký tự'),
+  name: z.string().min(2, 'Tên phải có ít nhất 2 ký tự'),
   type: z.enum(['hotel', 'resort', 'apartment', 'hostel', 'other']),
+  city: z.string().min(1, 'Thành phố là bắt buộc'),
+  country: z.string().min(1, 'Quốc gia là bắt buộc'),
+  total_rooms: z.coerce.number().min(1, 'Phải có ít nhất 1 phòng'),
+  total_floors: z.coerce.number().min(1, 'Phải có ít nhất 1 tầng'),
+  status: z.enum(['active', 'inactive', 'maintenance']),
   
-  // Contact
+  // Optional fields
   address: z.string().optional(),
-  city: z.string().optional(),
   state: z.string().optional(),
-  country: z.string().min(1, 'Country is required'),
   postal_code: z.string().optional(),
   phone: z.string().optional(),
-  email: z.string().email('Invalid email').optional().or(z.literal('')),
-  website: z.string().url('Invalid URL').optional().or(z.literal('')),
-  
-  // Capacity
-  total_rooms: z.coerce.number().min(1, 'Must have at least 1 room'),
-  total_floors: z.coerce.number().min(1, 'Must have at least 1 floor'),
-  
-  // Manager
+  email: z.string().email('Email không hợp lệ').optional().or(z.literal('')),
+  website: z.string().url('URL không hợp lệ').optional().or(z.literal('')),
   manager_id: z.string().optional(),
-  
-  // Metadata
   description: z.string().optional(),
-  status: z.enum(['active', 'inactive', 'maintenance']),
 })
 
 interface HotelFormDialogProps {
@@ -83,19 +77,19 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
       code: hotel?.code || '',
       name: hotel?.name || '',
       type: hotel?.type || 'hotel',
-      address: hotel?.address || '',
       city: hotel?.city || '',
+      country: hotel?.country || 'Việt Nam',
+      total_rooms: hotel?.total_rooms || 1,
+      total_floors: hotel?.total_floors || 1,
+      description: hotel?.description || '',
+      status: hotel?.status || 'active',
+      address: hotel?.address || '',
       state: hotel?.state || '',
-      country: hotel?.country || 'Vietnam',
       postal_code: hotel?.postal_code || '',
       phone: hotel?.phone || '',
       email: hotel?.email || '',
       website: hotel?.website || '',
-      total_rooms: hotel?.total_rooms || 1,
-      total_floors: hotel?.total_floors || 1,
       manager_id: hotel?.manager_id || undefined,
-      description: hotel?.description || '',
-      status: hotel?.status || 'active',
     },
   })
 
@@ -105,38 +99,38 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
         code: hotel.code,
         name: hotel.name,
         type: hotel.type,
-        address: hotel.address || '',
         city: hotel.city || '',
-        state: hotel.state || '',
         country: hotel.country,
+        total_rooms: hotel.total_rooms,
+        total_floors: hotel.total_floors,
+        description: hotel.description || '',
+        status: hotel.status,
+        address: hotel.address || '',
+        state: hotel.state || '',
         postal_code: hotel.postal_code || '',
         phone: hotel.phone || '',
         email: hotel.email || '',
         website: hotel.website || '',
-        total_rooms: hotel.total_rooms,
-        total_floors: hotel.total_floors,
         manager_id: hotel.manager_id || undefined,
-        description: hotel.description || '',
-        status: hotel.status,
       })
     } else if (open && !hotel) {
       form.reset({
         code: '',
         name: '',
         type: 'hotel',
-        address: '',
         city: '',
+        country: 'Việt Nam',
+        total_rooms: 1,
+        total_floors: 1,
+        description: '',
+        status: 'active',
+        address: '',
         state: '',
-        country: 'Vietnam',
         postal_code: '',
         phone: '',
         email: '',
         website: '',
-        total_rooms: 1,
-        total_floors: 1,
         manager_id: undefined,
-        description: '',
-        status: 'active',
       })
     }
   }, [open, hotel, form])
@@ -167,30 +161,24 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
   const getStepFields = (currentStep: number): string[] => {
     switch (currentStep) {
       case 1:
-        return ['code', 'name', 'type']
+        return ['code', 'name', 'type', 'city', 'country']
       case 2:
-        return ['address', 'city', 'state', 'country', 'postal_code']
-      case 3:
-        return ['phone', 'email', 'website']
-      case 4:
-        return ['total_rooms', 'total_floors', 'manager_id']
-      case 5:
-        return ['description', 'status']
+        return ['total_rooms', 'total_floors', 'status']
       default:
         return []
     }
   }
 
-  const totalSteps = 5
+  const totalSteps = 2
   const progress = (step / totalSteps) * 100
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>{hotel ? 'Edit Hotel' : 'Add New Hotel'}</DialogTitle>
+          <DialogTitle>{hotel ? 'Chỉnh sửa Khách sạn' : 'Thêm Khách sạn Mới'}</DialogTitle>
           <DialogDescription>
-            {!hotel && `Step ${step} of ${totalSteps}`}
+            {!hotel && `Bước ${step} / ${totalSteps}`}
           </DialogDescription>
         </DialogHeader>
 
@@ -198,7 +186,7 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Step 1: Basic Info */}
+            {/* Step 1: Thông tin cơ bản */}
             {step === 1 && (
               <div className="space-y-4">
                 <FormField
@@ -206,12 +194,12 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
                   name="code"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Hotel Code *</FormLabel>
+                      <FormLabel>Mã Khách sạn *</FormLabel>
                       <FormControl>
                         <Input placeholder="HN001" {...field} />
                       </FormControl>
                       <FormDescription>
-                        Unique identifier for this hotel
+                        Mã định danh duy nhất cho khách sạn
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -223,7 +211,7 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Hotel Name *</FormLabel>
+                      <FormLabel>Tên Khách sạn *</FormLabel>
                       <FormControl>
                         <Input placeholder="Grand Hotel Hanoi" {...field} />
                       </FormControl>
@@ -237,40 +225,21 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
                   name="type"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Property Type *</FormLabel>
+                      <FormLabel>Loại hình *</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select type" />
+                            <SelectValue placeholder="Chọn loại hình" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="hotel">Hotel</SelectItem>
+                          <SelectItem value="hotel">Khách sạn</SelectItem>
                           <SelectItem value="resort">Resort</SelectItem>
-                          <SelectItem value="apartment">Apartment</SelectItem>
+                          <SelectItem value="apartment">Căn hộ</SelectItem>
                           <SelectItem value="hostel">Hostel</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
+                          <SelectItem value="other">Khác</SelectItem>
                         </SelectContent>
                       </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
-
-            {/* Step 2: Location */}
-            {step === 2 && (
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Street Address</FormLabel>
-                      <FormControl>
-                        <Input placeholder="123 Hoan Kiem St" {...field} />
-                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -282,53 +251,23 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
                     name="city"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>City</FormLabel>
+                        <FormLabel>Thành phố *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Hanoi" {...field} />
+                          <Input placeholder="Hà Nội" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="state"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>State/Province</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Hanoi" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="country"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Country *</FormLabel>
+                        <FormLabel>Quốc gia *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Vietnam" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="postal_code"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Postal Code</FormLabel>
-                        <FormControl>
-                          <Input placeholder="100000" {...field} />
+                          <Input placeholder="Việt Nam" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -338,55 +277,8 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
               </div>
             )}
 
-            {/* Step 3: Contact */}
-            {step === 3 && (
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone</FormLabel>
-                      <FormControl>
-                        <Input placeholder="+84 24 1234 5678" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="info@hotel.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="website"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Website</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://www.grandhotel.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
-
-            {/* Step 4: Capacity & Manager */}
-            {step === 4 && (
+            {/* Step 2: Quy mô & Trạng thái */}
+            {step === 2 && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
@@ -394,7 +286,7 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
                     name="total_rooms"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Total Rooms *</FormLabel>
+                        <FormLabel>Tổng số Phòng *</FormLabel>
                         <FormControl>
                           <Input type="number" min="1" {...field} />
                         </FormControl>
@@ -408,7 +300,7 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
                     name="total_floors"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Total Floors *</FormLabel>
+                        <FormLabel>Tổng số Tầng *</FormLabel>
                         <FormControl>
                           <Input type="number" min="1" {...field} />
                         </FormControl>
@@ -420,72 +312,20 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
 
                 <FormField
                   control={form.control}
-                  name="manager_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Manager (Optional)</FormLabel>
-                      <Select 
-                        onValueChange={(value) => field.onChange(value === 'none' ? undefined : value)} 
-                        value={field.value || 'none'}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select manager" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="none">No manager assigned</SelectItem>
-                          {managers.map((manager) => (
-                            <SelectItem key={manager.id} value={manager.id}>
-                              {manager.full_name} ({manager.email})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
-
-            {/* Step 5: Description & Status */}
-            {step === 5 && (
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Brief description of the hotel..."
-                          rows={4}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name="status"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Status *</FormLabel>
+                      <FormLabel>Trạng thái *</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
+                            <SelectValue placeholder="Chọn trạng thái" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="inactive">Inactive</SelectItem>
-                          <SelectItem value="maintenance">Maintenance</SelectItem>
+                          <SelectItem value="active">Đang hoạt động</SelectItem>
+                          <SelectItem value="inactive">Tạm ngưng</SelectItem>
+                          <SelectItem value="maintenance">Bảo trì</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -500,12 +340,12 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
               {step > 1 && !hotel && (
                 <Button type="button" variant="outline" onClick={prevStep}>
                   <ChevronLeft className="h-4 w-4 mr-2" />
-                  Previous
+                  Quay lại
                 </Button>
               )}
               {step < totalSteps && !hotel && (
                 <Button type="button" onClick={nextStep} className="ml-auto">
-                  Next
+                  Tiếp theo
                   <ChevronRight className="h-4 w-4 ml-2" />
                 </Button>
               )}
@@ -515,7 +355,7 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
                   disabled={createHotel.isPending || updateHotel.isPending}
                   className={!hotel && step > 1 ? 'ml-auto' : ''}
                 >
-                  {hotel ? 'Update' : 'Create'} Hotel
+                  {hotel ? 'Cập nhật' : 'Tạo'} Khách sạn
                 </Button>
               )}
             </div>
