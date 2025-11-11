@@ -37,12 +37,18 @@ export function ImageUpload({ images, onChange, maxImages = 5, className }: Imag
           continue
         }
         
+        console.log(`Compressing ${file.name}, original size: ${file.size} bytes`)
+        
         // Nén và resize ảnh: quality 0.7, max 1200x1200px
         const compressed = await compressImage(file, 0.7, 1200, 1200)
+        
+        console.log(`Compressed ${file.name}, new size: ${compressed.length} bytes`)
         compressedImages.push(compressed)
       }
       
-      onChange([...images, ...compressedImages])
+      const newImages = [...images, ...compressedImages]
+      console.log('Setting images:', newImages.length, 'total images')
+      onChange(newImages)
       
       if (compressedImages.length > 0) {
         toast.success(`Đã tải lên ${compressedImages.length} ảnh (tối đa 1200x1200px)`)

@@ -128,10 +128,15 @@ export function ItemFormPage() {
 
   const onSubmit = async (data: ItemFormData) => {
     try {
+      console.log('Form data:', data)
+      console.log('Images:', images)
+      
       const itemData = {
         ...data,
         images: images,
       }
+      
+      console.log('Submitting item data:', itemData)
       
       if (isEdit) {
         await updateItem.mutateAsync({
@@ -157,7 +162,7 @@ export function ItemFormPage() {
       }
       navigate('/items')
     } catch (error) {
-      // Error handled by mutation
+      console.error('Submit error:', error)
     }
   }
 
