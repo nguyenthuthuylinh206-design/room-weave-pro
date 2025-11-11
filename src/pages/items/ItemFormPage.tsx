@@ -47,7 +47,8 @@ export function ItemFormPage() {
   const copyFrom = location.state?.copyFrom
 
   const { tenantId, hotelId } = useUser()
-  const { data: item, isLoading: itemLoading } = useItem(id)
+  const { data: itemData, isLoading: itemLoading } = useItem(id)
+  const item = itemData?.item // Extract item from response structure
   const { data: itemImages = [] } = useItemImages(id)
   const { data: categories } = useCategories()
   const createItem = useCreateItem()

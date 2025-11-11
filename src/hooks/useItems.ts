@@ -111,7 +111,8 @@ export function useItem(itemId: string | undefined) {
     queryFn: async () => {
       if (!itemId) throw new Error('No item ID')
       
-      const { data, error } = await supabase
+      // Fetch main item data with images and category
+      const { data: item, error: itemError } = await supabase
         .from('items')
         .select(`
           *,
@@ -122,23 +123,87 @@ export function useItem(itemId: string | undefined) {
             file_size,
             is_primary,
             display_order
+          ),
+          item_categories (
+            id,
+            name,
+            color,
+            icon
+          ),
+          hotels (
+            id,
+            name,
+            code
           )
         `)
         .eq('id', itemId)
         .single()
       
-      if (error) throw error
+      if (itemError) throw itemError
+      if (!item) return null
       
       // Sort images by display_order and primary first
-      if (data && data.item_images) {
-        data.item_images = data.item_images.sort((a: any, b: any) => {
+      if (item.item_images) {
+        item.item_images = item.item_images.sort((a: any, b: any) => {
           if (a.is_primary) return -1
           if (b.is_primary) return 1
           return a.display_order - b.display_order
         })
       }
       
-      return data
+      // Fetch recent transactions
+      const { data: transactions } = await supabase
+        .from('inventory_transactions')
+        .select(`
+          id,
+          transaction_code,
+          transaction_type,
+          transaction_category,
+          quantity,
+          transaction_date,
+          created_by,
+          users!inventory_transactions_created_by_fkey (
+            full_name
+          )
+        `)
+        .eq('item_id', itemId)
+        .order('transaction_date', { ascending: false })
+        .limit(10)
+      
+      // Fetch room allocations
+      const { data: roomAllocations } = await supabase
+        .from('room_items')
+        .select(`
+          id,
+          quantity,
+          condition,
+          assigned_at,
+          room_id,
+          rooms (
+            id,
+            room_number,
+            room_type
+          )
+        `)
+        .eq('item_id', itemId)
+        .order('assigned_at', { ascending: false })
+        .limit(20)
+      
+      // Format the response to match ItemDetailPage expectations
+      return {
+        item,
+        category: item.item_categories,
+        hotel: item.hotels,
+        recent_transactions: transactions?.map(t => ({
+          ...t,
+          created_by_name: t.users?.full_name || 'Unknown'
+        })) || [],
+        room_allocations: roomAllocations?.map(ra => ({
+          ...ra,
+          room_number: ra.rooms?.room_number,
+          room_type: ra.rooms?.room_type
+        })) || []
+      }
     },
     enabled: !!itemId,
   })
