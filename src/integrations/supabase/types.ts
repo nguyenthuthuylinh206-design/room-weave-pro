@@ -344,6 +344,82 @@ export type Database = {
           },
         ]
       }
+      email_notifications: {
+        Row: {
+          body_html: string
+          body_text: string | null
+          created_at: string | null
+          failed_at: string | null
+          failure_reason: string | null
+          id: string
+          metadata: Json | null
+          notification_type: string
+          retry_count: number | null
+          sent_at: string | null
+          status: string | null
+          subject: string
+          tenant_id: string | null
+          to_email: string
+          user_id: string | null
+        }
+        Insert: {
+          body_html: string
+          body_text?: string | null
+          created_at?: string | null
+          failed_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          metadata?: Json | null
+          notification_type: string
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: string | null
+          subject: string
+          tenant_id?: string | null
+          to_email: string
+          user_id?: string | null
+        }
+        Update: {
+          body_html?: string
+          body_text?: string | null
+          created_at?: string | null
+          failed_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          metadata?: Json | null
+          notification_type?: string
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string
+          tenant_id?: string | null
+          to_email?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_templates: {
         Row: {
           attachments: Json | null
@@ -2634,6 +2710,77 @@ export type Database = {
           },
         ]
       }
+      staff_statistics: {
+        Row: {
+          average_task_completion_time: unknown
+          hotel_id: string
+          id: string
+          items_checked: number | null
+          last_calculated_at: string | null
+          laundry_batches_processed: number | null
+          maintenance_tasks_completed: number | null
+          on_time_completion_rate: number | null
+          period_end: string
+          period_start: string
+          user_id: string
+        }
+        Insert: {
+          average_task_completion_time?: unknown
+          hotel_id: string
+          id?: string
+          items_checked?: number | null
+          last_calculated_at?: string | null
+          laundry_batches_processed?: number | null
+          maintenance_tasks_completed?: number | null
+          on_time_completion_rate?: number | null
+          period_end: string
+          period_start: string
+          user_id: string
+        }
+        Update: {
+          average_task_completion_time?: unknown
+          hotel_id?: string
+          id?: string
+          items_checked?: number | null
+          last_calculated_at?: string | null
+          laundry_batches_processed?: number | null
+          maintenance_tasks_completed?: number | null
+          on_time_completion_rate?: number | null
+          period_end?: string
+          period_start?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_statistics_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "staff_statistics_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_statistics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_statistics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_adjustment_items: {
         Row: {
           actual_quantity: number
@@ -2884,6 +3031,59 @@ export type Database = {
         }
         Relationships: []
       }
+      tenant_usage: {
+        Row: {
+          current_hotels_count: number | null
+          current_items_count: number | null
+          current_rooms_count: number | null
+          current_storage_bytes: number | null
+          current_users_count: number | null
+          id: string
+          last_calculated_at: string | null
+          peak_hotels_count: number | null
+          peak_storage_bytes: number | null
+          peak_users_count: number | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          current_hotels_count?: number | null
+          current_items_count?: number | null
+          current_rooms_count?: number | null
+          current_storage_bytes?: number | null
+          current_users_count?: number | null
+          id?: string
+          last_calculated_at?: string | null
+          peak_hotels_count?: number | null
+          peak_storage_bytes?: number | null
+          peak_users_count?: number | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          current_hotels_count?: number | null
+          current_items_count?: number | null
+          current_rooms_count?: number | null
+          current_storage_bytes?: number | null
+          current_users_count?: number | null
+          id?: string
+          last_calculated_at?: string | null
+          peak_hotels_count?: number | null
+          peak_storage_bytes?: number | null
+          peak_users_count?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_usage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           auto_renew: boolean | null
@@ -2968,18 +3168,33 @@ export type Database = {
         Row: {
           assigned_at: string | null
           assigned_by: string | null
+          can_approve_requests: boolean | null
+          can_create_managers: boolean | null
+          can_create_staff: boolean | null
+          can_export_data: boolean | null
+          can_view_reports: boolean | null
           hotel_id: string
           user_id: string
         }
         Insert: {
           assigned_at?: string | null
           assigned_by?: string | null
+          can_approve_requests?: boolean | null
+          can_create_managers?: boolean | null
+          can_create_staff?: boolean | null
+          can_export_data?: boolean | null
+          can_view_reports?: boolean | null
           hotel_id: string
           user_id: string
         }
         Update: {
           assigned_at?: string | null
           assigned_by?: string | null
+          can_approve_requests?: boolean | null
+          can_create_managers?: boolean | null
+          can_create_staff?: boolean | null
+          can_export_data?: boolean | null
+          can_view_reports?: boolean | null
           hotel_id?: string
           user_id?: string
         }
@@ -3650,6 +3865,24 @@ export type Database = {
         Args: { p_item_ids: string[]; p_user_id: string }
         Returns: Json
       }
+      calculate_staff_statistics: {
+        Args: {
+          p_hotel_id: string
+          p_period_end: string
+          p_period_start: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      calculate_tenant_storage: {
+        Args: { p_tenant_id: string }
+        Returns: number
+      }
+      check_expiring_subscriptions: { Args: never; Returns: undefined }
+      check_tenant_can_add: {
+        Args: { p_resource_type: string; p_tenant_id: string }
+        Returns: boolean
+      }
       complete_registration: {
         Args: {
           p_email: string
@@ -4239,6 +4472,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      queue_email_notification: {
+        Args: {
+          p_body_html: string
+          p_metadata?: Json
+          p_notification_type: string
+          p_subject: string
+          p_tenant_id: string
+          p_to_email: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       refresh_monthly_expenses: { Args: never; Returns: undefined }
       setup_new_tenant:
         | {
@@ -4265,6 +4510,7 @@ export type Database = {
             }
             Returns: string
           }
+      update_tenant_usage: { Args: { p_tenant_id: string }; Returns: undefined }
     }
     Enums: {
       app_role:
