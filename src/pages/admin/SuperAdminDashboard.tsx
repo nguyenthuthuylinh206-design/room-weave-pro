@@ -5,6 +5,7 @@ import { TenantStatsCards } from '@/components/admin/TenantStatsCards'
 import { RevenueChart } from '@/components/admin/RevenueChart'
 import { SubscriptionDistributionChart } from '@/components/admin/SubscriptionDistributionChart'
 import { TenantListTable } from '@/components/admin/TenantListTable'
+import { TestEmailNotifications } from '@/components/admin/TestEmailNotifications'
 import { useSuperAdminStats } from '@/hooks/useSuperAdminStats'
 import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
@@ -63,6 +64,10 @@ export function SuperAdminDashboard() {
       <div className="grid gap-6 md:grid-cols-2">
         <RevenueChart />
         <SubscriptionDistributionChart />
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <TestEmailNotifications />
       </div>
 
       <TenantListTable />
