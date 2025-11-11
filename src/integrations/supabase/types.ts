@@ -3164,6 +3164,15 @@ export type Database = {
         Returns: Json
       }
       get_floor_plan: { Args: { p_hotel_id: string }; Returns: Json }
+      get_hotel_performance_stats: {
+        Args: {
+          p_from_date: string
+          p_hotel_id: string
+          p_tenant_id: string
+          p_to_date: string
+        }
+        Returns: Json
+      }
       get_hotels_breakdown_stats: {
         Args: { p_tenant_id: string }
         Returns: {
@@ -3176,6 +3185,25 @@ export type Database = {
           low_stock_count: number
           total_items: number
           total_value: number
+        }[]
+      }
+      get_hotels_performance_comparison: {
+        Args: { p_from_date: string; p_tenant_id: string; p_to_date: string }
+        Returns: {
+          cost_per_room: number
+          efficiency_score: number
+          hotel_code: string
+          hotel_id: string
+          hotel_name: string
+          inventory_turnover_rate: number
+          inventory_value: number
+          laundry_cost: number
+          laundry_quality: number
+          maintenance_completion_rate: number
+          maintenance_cost: number
+          purchase_value: number
+          total_operating_cost: number
+          total_rooms: number
         }[]
       }
       get_inventory_dashboard_stats: {

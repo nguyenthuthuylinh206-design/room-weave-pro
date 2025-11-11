@@ -50,6 +50,7 @@ import { InventoryReportPage } from "./pages/reports/InventoryReportPage";
 import { FinancialReportPage } from "./pages/reports/FinancialReportPage";
 import { LaundryReportPage } from "./pages/reports/LaundryReportPage";
 import { HotelsPage } from "./pages/hotels/HotelsPage";
+import HotelPerformancePage from "./pages/hotels/HotelPerformancePage";
 import { VendorListPage as VendorManagementListPage } from "./pages/vendors/VendorListPage";
 import { VendorDetailPage as VendorManagementDetailPage } from "./pages/vendors/VendorDetailPage";
 import VendorManagementFormPage from "./pages/vendors/VendorFormPage";
@@ -307,6 +308,14 @@ const router = createBrowserRouter([
         element: (
           <RoleGuard allowedRoles={['owner', 'super_admin']}>
             <HotelsPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "hotels/performance",
+        element: (
+          <RoleGuard allowedRoles={['owner', 'super_admin']}>
+            <HotelPerformancePage />
           </RoleGuard>
         ),
       },

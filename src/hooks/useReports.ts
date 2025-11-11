@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
 import type {
   InventoryReportData,
   FinancialReportData,
@@ -11,12 +12,15 @@ import type {
 } from '@/types/reports.types'
 
 export function useInventoryReport(dateRange: DateRange) {
-  const { tenantId, hotelId } = useUser()
+  const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   
   return useQuery({
-    queryKey: ['inventory-report', tenantId, hotelId, dateRange],
+    queryKey: ['inventory-report', tenantId, isAllHotelsMode ? 'all' : selectedHotel?.id, dateRange],
     queryFn: async () => {
-      if (!tenantId || !hotelId) throw new Error('No tenant or hotel')
+      if (!tenantId) throw new Error('No tenant')
+      const hotelId = isAllHotelsMode ? null : selectedHotel?.id
+      if (!isAllHotelsMode && !hotelId) throw new Error('No hotel selected')
       
       const { data, error } = await supabase.rpc('get_inventory_report', {
         p_tenant_id: tenantId,
@@ -28,18 +32,21 @@ export function useInventoryReport(dateRange: DateRange) {
       if (error) throw error
       return data as unknown as InventoryReportData
     },
-    enabled: !!tenantId && !!hotelId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!tenantId && (isAllHotelsMode || !!selectedHotel?.id),
+    staleTime: 5 * 60 * 1000,
   })
 }
 
 export function useFinancialReport(dateRange: DateRange) {
-  const { tenantId, hotelId } = useUser()
+  const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   
   return useQuery({
-    queryKey: ['financial-report', tenantId, hotelId, dateRange],
+    queryKey: ['financial-report', tenantId, isAllHotelsMode ? 'all' : selectedHotel?.id, dateRange],
     queryFn: async () => {
-      if (!tenantId || !hotelId) throw new Error('No tenant or hotel')
+      if (!tenantId) throw new Error('No tenant')
+      const hotelId = isAllHotelsMode ? null : selectedHotel?.id
+      if (!isAllHotelsMode && !hotelId) throw new Error('No hotel selected')
       
       const { data, error } = await supabase.rpc('get_financial_report', {
         p_tenant_id: tenantId,
@@ -51,7 +58,7 @@ export function useFinancialReport(dateRange: DateRange) {
       if (error) throw error
       return data as unknown as FinancialReportData
     },
-    enabled: !!tenantId && !!hotelId,
+    enabled: !!tenantId && (isAllHotelsMode || !!selectedHotel?.id),
     staleTime: 5 * 60 * 1000,
   })
 }
@@ -100,12 +107,15 @@ export function useTurnoverAnalysis(months: number = 3) {
 }
 
 export function useLaundryReport(dateRange: DateRange) {
-  const { tenantId, hotelId } = useUser()
+  const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   
   return useQuery({
-    queryKey: ['laundry-report', tenantId, hotelId, dateRange],
+    queryKey: ['laundry-report', tenantId, isAllHotelsMode ? 'all' : selectedHotel?.id, dateRange],
     queryFn: async () => {
-      if (!tenantId || !hotelId) throw new Error('No tenant or hotel')
+      if (!tenantId) throw new Error('No tenant')
+      const hotelId = isAllHotelsMode ? null : selectedHotel?.id
+      if (!isAllHotelsMode && !hotelId) throw new Error('No hotel selected')
       
       const { data, error } = await supabase.rpc('get_laundry_report', {
         p_tenant_id: tenantId,
@@ -117,7 +127,7 @@ export function useLaundryReport(dateRange: DateRange) {
       if (error) throw error
       return data as unknown as LaundryReportData
     },
-    enabled: !!tenantId && !!hotelId,
+    enabled: !!tenantId && (isAllHotelsMode || !!selectedHotel?.id),
     staleTime: 5 * 60 * 1000,
   })
 }
