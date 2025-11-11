@@ -776,6 +776,101 @@ export type Database = {
           },
         ]
       }
+      invoices: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          discount_amount: number
+          due_date: string
+          id: string
+          invoice_date: string
+          invoice_number: string
+          items: Json | null
+          notes: string | null
+          paid_at: string | null
+          period_end: string
+          period_start: string
+          status: string
+          subscription_plan_id: string | null
+          subtotal: number
+          tax_amount: number
+          tenant_id: string
+          total_amount: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          discount_amount?: number
+          due_date: string
+          id?: string
+          invoice_date?: string
+          invoice_number: string
+          items?: Json | null
+          notes?: string | null
+          paid_at?: string | null
+          period_end: string
+          period_start: string
+          status?: string
+          subscription_plan_id?: string | null
+          subtotal?: number
+          tax_amount?: number
+          tenant_id: string
+          total_amount?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          discount_amount?: number
+          due_date?: string
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          items?: Json | null
+          notes?: string | null
+          paid_at?: string | null
+          period_end?: string
+          period_start?: string
+          status?: string
+          subscription_plan_id?: string | null
+          subtotal?: number
+          tax_amount?: number
+          tenant_id?: string
+          total_amount?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_plan_id_fkey"
+            columns: ["subscription_plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       item_categories: {
         Row: {
           code: string | null
@@ -1796,6 +1891,75 @@ export type Database = {
           },
         ]
       }
+      payment_transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string
+          gateway_transaction_id: string | null
+          id: string
+          invoice_id: string | null
+          metadata: Json | null
+          notes: string | null
+          payment_date: string | null
+          payment_gateway: string | null
+          payment_method: string | null
+          payment_status: string
+          tenant_id: string
+          transaction_reference: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency?: string
+          gateway_transaction_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          payment_date?: string | null
+          payment_gateway?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          tenant_id: string
+          transaction_reference?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string
+          gateway_transaction_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          payment_date?: string | null
+          payment_gateway?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          tenant_id?: string
+          transaction_reference?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_payment_invoice"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       permissions: {
         Row: {
           action: string
@@ -2669,50 +2833,136 @@ export type Database = {
           },
         ]
       }
+      subscription_plans: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          max_hotels: number
+          max_storage_gb: number
+          max_users: number
+          name: string
+          price_monthly: number
+          price_yearly: number
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          max_hotels?: number
+          max_storage_gb?: number
+          max_users?: number
+          name: string
+          price_monthly?: number
+          price_yearly?: number
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          max_hotels?: number
+          max_storage_gb?: number
+          max_users?: number
+          name?: string
+          price_monthly?: number
+          price_yearly?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tenants: {
         Row: {
+          auto_renew: boolean | null
+          billing_address: string | null
+          billing_email: string | null
           created_at: string | null
           email: string
           id: string
           logo_url: string | null
           name: string
+          payment_method: string | null
           phone: string | null
           settings: Json | null
+          subscription_end_date: string | null
           subscription_expires_at: string | null
           subscription_plan: string | null
+          subscription_plan_id: string | null
+          subscription_start_date: string | null
           subscription_status: string | null
+          tax_id: string | null
+          trial_end_date: string | null
           trial_ends_at: string | null
           updated_at: string | null
         }
         Insert: {
+          auto_renew?: boolean | null
+          billing_address?: string | null
+          billing_email?: string | null
           created_at?: string | null
           email: string
           id?: string
           logo_url?: string | null
           name: string
+          payment_method?: string | null
           phone?: string | null
           settings?: Json | null
+          subscription_end_date?: string | null
           subscription_expires_at?: string | null
           subscription_plan?: string | null
+          subscription_plan_id?: string | null
+          subscription_start_date?: string | null
           subscription_status?: string | null
+          tax_id?: string | null
+          trial_end_date?: string | null
           trial_ends_at?: string | null
           updated_at?: string | null
         }
         Update: {
+          auto_renew?: boolean | null
+          billing_address?: string | null
+          billing_email?: string | null
           created_at?: string | null
           email?: string
           id?: string
           logo_url?: string | null
           name?: string
+          payment_method?: string | null
           phone?: string | null
           settings?: Json | null
+          subscription_end_date?: string | null
           subscription_expires_at?: string | null
           subscription_plan?: string | null
+          subscription_plan_id?: string | null
+          subscription_start_date?: string | null
           subscription_status?: string | null
+          tax_id?: string | null
+          trial_end_date?: string | null
           trial_ends_at?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tenants_subscription_plan_id_fkey"
+            columns: ["subscription_plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_hotels: {
         Row: {
@@ -3468,6 +3718,7 @@ export type Database = {
         }
         Returns: Json
       }
+      generate_invoice_number: { Args: never; Returns: string }
       generate_unique_code: {
         Args: { column_name: string; prefix: string; table_name: string }
         Returns: string
