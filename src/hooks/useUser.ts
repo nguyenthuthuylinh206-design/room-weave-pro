@@ -17,7 +17,7 @@ export const useUser = () => {
         .select(`
           *,
           tenant:tenants(*),
-          hotel:hotels(*)
+          hotel:hotels!users_hotel_id_fkey(*)
         `)
         .eq('id', authUser.id)
         .single()

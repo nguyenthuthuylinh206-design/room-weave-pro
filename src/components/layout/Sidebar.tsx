@@ -145,12 +145,12 @@ const navigation: NavItem[] = [
       },
       {
         title: 'Nhập kho',
-        href: '/inventory/inbound',
+        href: '/inventory/inbound/new',
         icon: ArrowDownToLine,
       },
       {
         title: 'Xuất kho',
-        href: '/inventory/outbound',
+        href: '/inventory/outbound/new',
         icon: ArrowUpFromLine,
       },
       {

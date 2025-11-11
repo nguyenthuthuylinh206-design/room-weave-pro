@@ -69,6 +69,7 @@ import NotFound from "./pages/NotFound";
 import UsersPage from "./pages/users/UsersPage";
 import ProfilePage from "./pages/profile/ProfilePage";
 import RolesManagementPage from "./pages/settings/RolesManagementPage";
+import IntegrationsPage from "./pages/settings/IntegrationsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -160,7 +161,14 @@ const router = createBrowserRouter([
               </RoleGuard>
             ),
           },
-          { path: "integrations", element: <div className="p-8 text-muted-foreground">Integrations & API - Coming soon</div> },
+          { 
+            path: "integrations", 
+            element: (
+              <RoleGuard allowedRoles={['owner', 'super_admin']}>
+                <IntegrationsPage />
+              </RoleGuard>
+            )
+          },
           { path: "security", element: <SystemSecurityPage /> },
           { path: "system-test", element: <SystemTestPage /> },
         ],
