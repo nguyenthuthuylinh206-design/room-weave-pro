@@ -4142,9 +4142,10 @@ export type Database = {
         }[]
       }
       get_current_user_role: { Args: never; Returns: string }
-      get_dashboard_stats:
-        | { Args: { p_tenant_id: string }; Returns: Json }
-        | { Args: { p_hotel_id?: string; p_tenant_id: string }; Returns: Json }
+      get_dashboard_stats: {
+        Args: { p_hotel_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
       get_financial_report: {
         Args: {
           p_end_date: string
