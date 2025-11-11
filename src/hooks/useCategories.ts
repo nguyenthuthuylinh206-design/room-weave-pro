@@ -30,6 +30,10 @@ export function useCreateCategory() {
   
   return useMutation({
     mutationFn: async (data: CategoryFormData) => {
+      if (!tenantId) {
+        throw new Error('Thiếu tenant_id. Vui lòng đăng nhập lại hoặc tạo tenant từ trang System Test.')
+      }
+      
       const { data: category, error } = await supabase
         .from('item_categories')
         .insert({

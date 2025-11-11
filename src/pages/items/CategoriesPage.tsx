@@ -80,6 +80,10 @@ export function CategoriesPage() {
   }
 
   const handleSubmit = async () => {
+    if (!formData.name.trim()) {
+      return
+    }
+    
     try {
       if (editingCategory) {
         await updateCategory.mutateAsync({
@@ -92,6 +96,7 @@ export function CategoriesPage() {
       setDialogOpen(false)
     } catch (error) {
       // Error handled by mutation
+      console.error('Submit error:', error)
     }
   }
 
