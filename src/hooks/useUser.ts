@@ -20,9 +20,11 @@ export const useUser = () => {
           hotel:hotels!users_hotel_id_fkey(*)
         `)
         .eq('id', authUser.id)
-        .single()
+        .maybeSingle()
 
+      // If user doesn't exist in users table, return null (needs onboarding)
       if (userError) throw userError
+      if (!user) return null
 
       // Fetch user roles
       const { data: roles, error: rolesError } = await supabase
@@ -46,6 +48,8 @@ export const useUser = () => {
     },
     enabled: !!authUser?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1, // Only retry once if query fails
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   })
 
   const hasRole = (role: AppRole): boolean => {
