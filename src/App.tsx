@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { HotelProvider } from "@/contexts/HotelContext";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { RoleGuard } from "@/components/auth/RoleGuard";
+import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
 import { MainLayout } from "@/components/layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import { InventoryDashboardPage } from "./pages/inventory/InventoryDashboardPage";
@@ -64,6 +65,8 @@ import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
+import AuthCallback from "./pages/auth/AuthCallback";
+import Onboarding from "./pages/auth/Onboarding";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 import UsersPage from "./pages/users/UsersPage";
@@ -87,14 +90,27 @@ const router = createBrowserRouter([
   { path: "/auth/register", element: <Register /> },
   { path: "/auth/forgot-password", element: <ForgotPassword /> },
   { path: "/auth/reset-password", element: <ResetPassword /> },
+  { path: "/auth/callback", element: <AuthCallback /> },
   { path: "/unauthorized", element: <Unauthorized /> },
+  
+  // Onboarding - requires authentication but not tenant setup
+  {
+    path: "/onboarding",
+    element: (
+      <AuthGuard>
+        <Onboarding />
+      </AuthGuard>
+    ),
+  },
 
   // Protected routes
   {
     path: "/",
     element: (
       <AuthGuard>
-        <MainLayout />
+        <OnboardingGuard>
+          <MainLayout />
+        </OnboardingGuard>
       </AuthGuard>
     ),
     children: [
