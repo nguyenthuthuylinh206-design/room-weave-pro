@@ -77,6 +77,7 @@ import ProfilePage from "./pages/profile/ProfilePage";
 import RolesManagementPage from "./pages/settings/RolesManagementPage";
 import PermissionManagementPage from "./pages/settings/PermissionManagementPage";
 import IntegrationsPage from "./pages/settings/IntegrationsPage";
+import { SuperAdminDashboard } from "./pages/admin/SuperAdminDashboard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -119,6 +120,17 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <Dashboard /> },
+      
+      // Super Admin Dashboard
+      {
+        path: "admin/dashboard",
+        element: (
+          <RoleGuard allowedRoles={['super_admin']}>
+            <SuperAdminDashboard />
+          </RoleGuard>
+        ),
+      },
+      
       { path: "inventory", element: <InventoryDashboardPage /> },
       { path: "inventory/transactions", element: <TransactionListPage /> },
       { path: "inventory/inbound/new", element: <InboundPage /> },

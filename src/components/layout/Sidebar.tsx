@@ -57,6 +57,12 @@ const navigation: NavItem[] = [
     icon: LayoutDashboard,
   },
   {
+    title: 'Super Admin',
+    href: '/admin/dashboard',
+    icon: Shield,
+    roles: ['super_admin'],
+  },
+  {
     title: 'Tài sản',
     icon: Package,
     children: [
