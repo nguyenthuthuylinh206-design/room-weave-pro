@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ImageUpload } from '@/components/shared/ImageUpload'
 import { useItem, useCreateItem, useUpdateItem } from '@/hooks/useItems'
+import { useItemImages, useAddItemImage, useDeleteItemImage } from '@/hooks/useItemImages'
 import { useCategories } from '@/hooks/useCategories'
 import { useUser } from '@/hooks/useUser'
 import { toast } from 'sonner'
@@ -47,9 +48,12 @@ export function ItemFormPage() {
 
   const { tenantId, hotelId } = useUser()
   const { data: item, isLoading: itemLoading } = useItem(id)
+  const { data: itemImages = [] } = useItemImages(id)
   const { data: categories } = useCategories()
   const createItem = useCreateItem()
   const updateItem = useUpdateItem()
+  const addItemImage = useAddItemImage()
+  const deleteItemImage = useDeleteItemImage()
   
   const [images, setImages] = useState<string[]>([])
 
@@ -118,37 +122,39 @@ export function ItemFormPage() {
         max_wash_cycles: item.max_wash_cycles || undefined,
         expected_lifetime_days: item.expected_lifetime_days || undefined,
       })
-      
-      // Load images
-      if (item.images && Array.isArray(item.images)) {
-        setImages(item.images)
-      }
     }
   }, [item, isEdit, copyFrom, reset])
+  
+  // Load images from item_images table when editing
+  useEffect(() => {
+    if (itemImages && itemImages.length > 0) {
+      const imageUrls = itemImages.map(img => img.url)
+      setImages(imageUrls)
+    }
+  }, [itemImages])
 
   const onSubmit = async (data: ItemFormData) => {
     try {
       console.log('Form data:', data)
       console.log('Images:', images)
       
-      const itemData = {
-        ...data,
-        images: images,
-      }
+      // Remove images from itemData since they're now in separate table
+      const { images: _, ...itemDataWithoutImages } = data as any
       
-      console.log('Submitting item data:', itemData)
+      let savedItemId: string
       
       if (isEdit) {
         await updateItem.mutateAsync({
           id: id!,
           data: {
-            ...itemData,
+            ...itemDataWithoutImages,
             updated_at: new Date().toISOString(),
           },
         })
+        savedItemId = id!
       } else {
-        await createItem.mutateAsync({
-          ...itemData,
+        const result = await createItem.mutateAsync({
+          ...itemDataWithoutImages,
           tenant_id: tenantId,
           hotel_id: hotelId,
           quantity_total: 0,
@@ -159,10 +165,36 @@ export function ItemFormPage() {
           quantity_lost: 0,
           status: 'active',
         })
+        savedItemId = result.id
       }
+      
+      // Handle images in separate table
+      if (images.length > 0) {
+        // Get existing image URLs for this item
+        const existingImageUrls = itemImages.map(img => img.url)
+        
+        // Delete images that are no longer in the list
+        const imagesToDelete = itemImages.filter(img => !images.includes(img.url))
+        for (const img of imagesToDelete) {
+          await deleteItemImage.mutateAsync(img.id)
+        }
+        
+        // Add new images
+        const newImages = images.filter(url => !existingImageUrls.includes(url))
+        for (let i = 0; i < newImages.length; i++) {
+          await addItemImage.mutateAsync({
+            itemId: savedItemId,
+            tenantId: tenantId,
+            url: newImages[i],
+            isPrimary: i === 0 && existingImageUrls.length === 0,
+          })
+        }
+      }
+      
       navigate('/items')
     } catch (error) {
       console.error('Submit error:', error)
+      toast.error('Lỗi khi lưu sản phẩm')
     }
   }
 
@@ -332,7 +364,7 @@ export function ItemFormPage() {
               maxImages={10}
             />
             <p className="mt-2 text-xs text-muted-foreground">
-              Ảnh sẽ được tự động resize về tối đa 1200x1200px và nén để tối ưu dung lượng. Tối đa 10 ảnh.
+              Ảnh sẽ được tự động resize về tối đa 1200x1200px và nén để tối ưu dung lượng (lưu riêng trong database). Tối đa 10 ảnh.
             </p>
           </CardContent>
         </Card>

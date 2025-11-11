@@ -834,6 +834,77 @@ export type Database = {
           },
         ]
       }
+      item_images: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          display_order: number | null
+          file_name: string | null
+          file_size: number | null
+          id: string
+          is_primary: boolean | null
+          item_id: string
+          mime_type: string | null
+          tenant_id: string
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          display_order?: number | null
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          is_primary?: boolean | null
+          item_id: string
+          mime_type?: string | null
+          tenant_id: string
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          display_order?: number | null
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          is_primary?: boolean | null
+          item_id?: string
+          mime_type?: string | null
+          tenant_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_images_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_images_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item_availability"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_images_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_images_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       item_units: {
         Row: {
           base_unit_id: string | null

@@ -77,11 +77,31 @@ export function useItem(itemId: string | undefined) {
       
       const { data, error } = await supabase
         .from('items')
-        .select('*')
+        .select(`
+          *,
+          item_images (
+            id,
+            url,
+            file_name,
+            file_size,
+            is_primary,
+            display_order
+          )
+        `)
         .eq('id', itemId)
         .single()
       
       if (error) throw error
+      
+      // Sort images by display_order and primary first
+      if (data && data.item_images) {
+        data.item_images = data.item_images.sort((a: any, b: any) => {
+          if (a.is_primary) return -1
+          if (b.is_primary) return 1
+          return a.display_order - b.display_order
+        })
+      }
+      
       return data
     },
     enabled: !!itemId,
