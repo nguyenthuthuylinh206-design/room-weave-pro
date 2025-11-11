@@ -158,9 +158,9 @@ export function ItemTable({
                   />
                 </TableCell>
                 <TableCell>
-                  {item.images?.[0] ? (
+                  {item.item_images?.[0]?.url ? (
                     <img
-                      src={item.images[0]}
+                      src={item.item_images[0].url}
                       alt={item.name}
                       className="h-12 w-12 rounded object-cover"
                     />

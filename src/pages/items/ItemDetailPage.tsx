@@ -124,15 +124,21 @@ export default function ItemDetailPage() {
               <CardTitle>Hình ảnh</CardTitle>
             </CardHeader>
             <CardContent>
-              {item.images && item.images.length > 0 ? (
+              {item.item_images && item.item_images.length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {item.images.map((img: string, idx: number) => (
-                    <img
-                      key={idx}
-                      src={img}
-                      alt={`${item.name} ${idx + 1}`}
-                      className="aspect-square w-full rounded-lg object-cover"
-                    />
+                  {item.item_images.map((img: any, idx: number) => (
+                    <div key={img.id} className="relative">
+                      <img
+                        src={img.url}
+                        alt={`${item.name} ${idx + 1}`}
+                        className="aspect-square w-full rounded-lg object-cover"
+                      />
+                      {img.is_primary && (
+                        <Badge className="absolute top-2 left-2" variant="default">
+                          Ảnh chính
+                        </Badge>
+                      )}
+                    </div>
                   ))}
                 </div>
               ) : (

@@ -5,6 +5,7 @@ export type ItemInsert = Database['public']['Tables']['items']['Insert']
 export type ItemUpdate = Database['public']['Tables']['items']['Update']
 
 export type ItemCategory = Database['public']['Tables']['item_categories']['Row']
+export type ItemImage = Database['public']['Tables']['item_images']['Row']
 
 export type StockStatus = 'in_stock' | 'low_stock' | 'out_of_stock'
 export type ItemStatus = 'active' | 'discontinued'
@@ -14,6 +15,7 @@ export interface ItemWithCategory extends Item {
   category_color: string | null
   stock_status: StockStatus
   total_count?: number
+  item_images?: ItemImage[]
 }
 
 export interface ItemFilters {

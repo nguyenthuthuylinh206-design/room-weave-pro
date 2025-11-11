@@ -57,8 +57,26 @@ export function useItems(
       
       if (error) throw error
       
+      const items = (data || []) as unknown as ItemWithCategory[]
+      
+      // Fetch images for all items in this page
+      if (items.length > 0) {
+        const itemIds = items.map(item => item.id)
+        const { data: images } = await supabase
+          .from('item_images')
+          .select('*')
+          .in('item_id', itemIds)
+          .order('is_primary', { ascending: false })
+          .order('display_order', { ascending: true })
+        
+        // Attach images to items
+        items.forEach(item => {
+          item.item_images = images?.filter(img => img.item_id === item.id) || []
+        })
+      }
+      
       return {
-        items: (data || []) as unknown as ItemWithCategory[],
+        items,
         total: data?.[0]?.total_count || 0,
         page,
         pageSize,
