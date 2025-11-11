@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Upload, X, Image as ImageIcon } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Upload, X, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { compressImage } from '@/lib/imageCompression'
+import { toast } from 'sonner'
 
 interface ImageUploadProps {
   images: string[]
@@ -12,23 +13,46 @@ interface ImageUploadProps {
 
 export function ImageUpload({ images, onChange, maxImages = 5, className }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
+  const [isCompressing, setIsCompressing] = useState(false)
   
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     handleFiles(files)
   }
   
-  const handleFiles = (files: File[]) => {
+  const handleFiles = async (files: File[]) => {
     const remainingSlots = maxImages - images.length
     const filesToProcess = files.slice(0, remainingSlots)
     
-    filesToProcess.forEach(file => {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        onChange([...images, reader.result as string])
+    if (filesToProcess.length === 0) return
+    
+    setIsCompressing(true)
+    const compressedImages: string[] = []
+    
+    try {
+      for (const file of filesToProcess) {
+        // Kiểm tra loại file
+        if (!file.type.startsWith('image/')) {
+          toast.error(`${file.name} không phải là file ảnh`)
+          continue
+        }
+        
+        // Nén ảnh với chất lượng 0.8 (giảm 20% dung lượng)
+        const compressed = await compressImage(file, 0.8)
+        compressedImages.push(compressed)
       }
-      reader.readAsDataURL(file)
-    })
+      
+      onChange([...images, ...compressedImages])
+      
+      if (compressedImages.length > 0) {
+        toast.success(`Đã tải lên ${compressedImages.length} ảnh và nén thành công`)
+      }
+    } catch (error) {
+      console.error('Error compressing images:', error)
+      toast.error('Lỗi khi nén ảnh')
+    } finally {
+      setIsCompressing(false)
+    }
   }
   
   const handleDragOver = (e: React.DragEvent) => {
@@ -81,7 +105,8 @@ export function ImageUpload({ images, onChange, maxImages = 5, className }: Imag
           onDrop={handleDrop}
           className={cn(
             'flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors',
-            isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+            isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50',
+            isCompressing && 'pointer-events-none opacity-50'
           )}
         >
           <input
@@ -91,13 +116,23 @@ export function ImageUpload({ images, onChange, maxImages = 5, className }: Imag
             onChange={handleFileInput}
             className="hidden"
             id="image-upload"
+            disabled={isCompressing}
           />
           <label htmlFor="image-upload" className="flex cursor-pointer flex-col items-center gap-2">
-            <Upload className="h-8 w-8 text-muted-foreground" />
+            {isCompressing ? (
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            ) : (
+              <Upload className="h-8 w-8 text-muted-foreground" />
+            )}
             <div className="text-center">
-              <p className="text-sm font-medium">Tải ảnh lên</p>
+              <p className="text-sm font-medium">
+                {isCompressing ? 'Đang nén ảnh...' : 'Tải ảnh lên'}
+              </p>
               <p className="text-xs text-muted-foreground">
-                Kéo thả hoặc nhấp để chọn ({images.length}/{maxImages})
+                {isCompressing 
+                  ? 'Vui lòng đợi...' 
+                  : `Kéo thả hoặc nhấp để chọn (${images.length}/${maxImages})`
+                }
               </p>
             </div>
           </label>

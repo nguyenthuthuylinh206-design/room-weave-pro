@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ImageUpload } from '@/components/shared/ImageUpload'
 import { useItem, useCreateItem, useUpdateItem } from '@/hooks/useItems'
 import { useCategories } from '@/hooks/useCategories'
 import { useUser } from '@/hooks/useUser'
@@ -27,11 +28,15 @@ const itemSchema = z.object({
   reorder_point: z.number().min(0, 'Điểm đặt hàng phải >= 0'),
   brand: z.string().optional(),
   model: z.string().optional(),
+  images: z.array(z.string()).optional(),
   max_wash_cycles: z.number().min(0).optional(),
   expected_lifetime_days: z.number().min(0).optional(),
 })
 
 type ItemFormData = z.infer<typeof itemSchema>
+
+// Danh sách category names cho đồ vải
+const LINEN_CATEGORIES = ['Linen', 'Textile', 'Đồ vải', 'Khăn', 'Ga giường', 'Chăn', 'Gối']
 
 export function ItemFormPage() {
   const { id } = useParams()
@@ -45,6 +50,8 @@ export function ItemFormPage() {
   const { data: categories } = useCategories()
   const createItem = useCreateItem()
   const updateItem = useUpdateItem()
+  
+  const [images, setImages] = useState<string[]>([])
 
   const {
     register,
@@ -61,6 +68,14 @@ export function ItemFormPage() {
       reorder_point: 20,
     },
   })
+  
+  // Kiểm tra xem category hiện tại có phải là đồ vải không
+  const selectedCategoryId = watch('category_id')
+  const selectedCategory = categories?.find(cat => cat.id === selectedCategoryId)
+  const isLinenCategory = selectedCategory ? 
+    LINEN_CATEGORIES.some(linen => 
+      selectedCategory.name.toLowerCase().includes(linen.toLowerCase())
+    ) : false
 
   // Handle copy mode
   useEffect(() => {
@@ -97,22 +112,32 @@ export function ItemFormPage() {
       setValue('model', itemData.model || '')
       setValue('max_wash_cycles', itemData.max_wash_cycles || undefined)
       setValue('expected_lifetime_days', itemData.expected_lifetime_days || undefined)
+      
+      // Load images
+      if (itemData.images && Array.isArray(itemData.images)) {
+        setImages(itemData.images)
+      }
     }
   }, [item, isEdit, copyFrom, setValue])
 
   const onSubmit = async (data: ItemFormData) => {
     try {
+      const itemData = {
+        ...data,
+        images: images,
+      }
+      
       if (isEdit) {
         await updateItem.mutateAsync({
           id: id!,
           data: {
-            ...data,
+            ...itemData,
             updated_at: new Date().toISOString(),
           },
         })
       } else {
         await createItem.mutateAsync({
-          ...data,
+          ...itemData,
           tenant_id: tenantId,
           hotel_id: hotelId,
           quantity_total: 0,
@@ -287,30 +312,48 @@ export function ItemFormPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Thông tin vòng đời (Cho đồ vải)</CardTitle>
+            <CardTitle>Hình ảnh sản phẩm</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="max_wash_cycles">Số lần giặt tối đa</Label>
-                <Input
-                  id="max_wash_cycles"
-                  type="number"
-                  {...register('max_wash_cycles', { valueAsNumber: true })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="expected_lifetime_days">Tuổi thọ dự kiến (ngày)</Label>
-                <Input
-                  id="expected_lifetime_days"
-                  type="number"
-                  {...register('expected_lifetime_days', { valueAsNumber: true })}
-                />
-              </div>
-            </div>
+          <CardContent>
+            <ImageUpload
+              images={images}
+              onChange={setImages}
+              maxImages={10}
+            />
+            <p className="mt-2 text-xs text-muted-foreground">
+              Ảnh sẽ được tự động nén để giảm dung lượng mà không thay đổi kích thước. Tối đa 10 ảnh.
+            </p>
           </CardContent>
         </Card>
+
+        {isLinenCategory && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Thông tin vòng đời (Cho đồ vải)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="max_wash_cycles">Số lần giặt tối đa</Label>
+                  <Input
+                    id="max_wash_cycles"
+                    type="number"
+                    {...register('max_wash_cycles', { valueAsNumber: true })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="expected_lifetime_days">Tuổi thọ dự kiến (ngày)</Label>
+                  <Input
+                    id="expected_lifetime_days"
+                    type="number"
+                    {...register('expected_lifetime_days', { valueAsNumber: true })}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => navigate('/items')}>
