@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
+import { HotelFilterCard } from '@/components/reports/HotelFilterCard'
 import { Badge } from '@/components/ui/badge'
 import {
   LineChart,
@@ -88,6 +89,9 @@ export function FinancialReportPage() {
           </Button>
         </div>
       </PageHeader>
+      
+      {/* Hotel Filter */}
+      <HotelFilterCard />
       
       {/* Date Range */}
       <Card>

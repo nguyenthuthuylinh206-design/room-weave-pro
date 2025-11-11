@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
+import { HotelFilterCard } from '@/components/reports/HotelFilterCard'
 import { InventoryOverviewTab } from '@/components/reports/inventory/InventoryOverviewTab'
 import { InventoryDetailTab } from '@/components/reports/inventory/InventoryDetailTab'
 import { ABCAnalysisTab } from '@/components/reports/inventory/ABCAnalysisTab'
@@ -121,6 +122,9 @@ export function InventoryReportPage() {
           </Button>
         </div>
       </PageHeader>
+      
+      {/* Hotel Filter */}
+      <HotelFilterCard />
       
       {/* Date Range Selector */}
       <Card>
