@@ -424,14 +424,17 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Manager (Optional)</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select 
+                        onValueChange={(value) => field.onChange(value === 'none' ? undefined : value)} 
+                        value={field.value || 'none'}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select manager" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">No manager assigned</SelectItem>
+                          <SelectItem value="none">No manager assigned</SelectItem>
                           {managers.map((manager) => (
                             <SelectItem key={manager.id} value={manager.id}>
                               {manager.full_name} ({manager.email})
