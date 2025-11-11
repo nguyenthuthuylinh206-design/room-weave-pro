@@ -1,19 +1,40 @@
 import { useState } from 'react'
 import { PageHeader } from '@/components/shared/PageHeader'
-import { useUsers } from '@/hooks/useUsers'
+import { useUsers, useCreateUser, useUpdateUser } from '@/hooks/useUsers'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { Users, Plus } from 'lucide-react'
 import { UserTable } from '@/components/users/UserTable'
 import { UserFilters } from '@/components/users/UserFilters'
+import { UserFormDialog } from '@/components/users/UserFormDialog'
+import { User } from '@/types/database.types'
+import { UserFormData } from '@/lib/validations/user.schemas'
 
 export default function UsersPage() {
   const { users, isLoading } = useUsers()
+  const createUser = useCreateUser()
+  const updateUser = useUpdateUser()
+  
   const [filters, setFilters] = useState({
     search: '',
     role: 'all',
     status: 'all',
   })
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+
+  const handleOpenDialog = (user?: User) => {
+    setSelectedUser(user || null)
+    setDialogOpen(true)
+  }
+
+  const handleSubmit = async (data: UserFormData) => {
+    if (selectedUser) {
+      await updateUser.mutateAsync({ id: selectedUser.id, data })
+    } else {
+      await createUser.mutateAsync(data)
+    }
+  }
 
   const filteredUsers = users?.filter((user) => {
     const matchesSearch = user.full_name
@@ -43,9 +64,7 @@ export default function UsersPage() {
         action={{
           label: 'Thêm người dùng',
           icon: Plus,
-          onClick: () => {
-            // TODO: Open add user dialog
-          },
+          onClick: () => handleOpenDialog(),
         }}
       />
 
@@ -58,14 +77,19 @@ export default function UsersPage() {
           description="Bắt đầu bằng cách thêm người dùng mới vào hệ thống"
           action={{
             label: 'Thêm người dùng',
-            onClick: () => {
-              // TODO: Open add user dialog
-            },
+            onClick: () => handleOpenDialog(),
           }}
         />
       ) : (
-        <UserTable users={filteredUsers} />
+        <UserTable users={filteredUsers} onEdit={handleOpenDialog} />
       )}
+
+      <UserFormDialog
+        user={selectedUser}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSubmit={handleSubmit}
+      />
     </div>
   )
 }

@@ -21,10 +21,11 @@ import { User } from '@/types/database.types'
 import { UserAvatar } from './UserAvatar'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { useToast } from '@/hooks/use-toast'
+import { useDeleteUser } from '@/hooks/useUsers'
 
 interface UserTableProps {
   users: User[]
+  onEdit?: (user: User) => void
 }
 
 const roleLabels = {
@@ -35,16 +36,12 @@ const roleLabels = {
   staff: 'Nhân viên',
 }
 
-export function UserTable({ users }: UserTableProps) {
-  const { toast } = useToast()
+export function UserTable({ users, onEdit }: UserTableProps) {
+  const deleteUserMutation = useDeleteUser()
 
   const deleteUser = (id: string) => {
     if (confirm('Bạn có chắc muốn xóa người dùng này?')) {
-      // TODO: Implement delete user API call
-      toast({
-        title: 'Chức năng đang phát triển',
-        description: 'Tính năng xóa người dùng sẽ sớm được bổ sung',
-      })
+      deleteUserMutation.mutate(id)
     }
   }
 
@@ -112,7 +109,7 @@ export function UserTable({ users }: UserTableProps) {
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onEdit?.(user)}>
                       <Pencil className="mr-2 h-4 w-4" />
                       Chỉnh sửa
                     </DropdownMenuItem>
