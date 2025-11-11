@@ -1,6 +1,9 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Hotel, useHotels } from '@/hooks/useHotels'
 import { useUser } from '@/hooks/useUser'
+import { supabase } from '@/integrations/supabase/client'
+import { toast } from 'sonner'
 
 interface HotelContextType {
   selectedHotel: Hotel | null
@@ -14,18 +17,88 @@ interface HotelContextType {
 const HotelContext = createContext<HotelContextType | undefined>(undefined)
 
 export function HotelProvider({ children }: { children: ReactNode }) {
-  const { hotelId } = useUser()
-  const { data: hotels, isLoading } = useHotels()
+  const { user, hotelId } = useUser()
+  const userId = user?.id
+  const { data: hotels, isLoading: hotelsLoading } = useHotels()
   const [selectedHotel, setSelectedHotelState] = useState<Hotel | null>(null)
   const [isAllHotelsMode, setAllHotelsMode] = useState(false)
+  const queryClient = useQueryClient()
 
-  // Initialize selected hotel
+  // Fetch user preference from database
+  const { data: userPreference, isLoading: preferenceLoading } = useQuery({
+    queryKey: ['user-preference', userId],
+    queryFn: async () => {
+      if (!userId) return null
+      
+      const { data, error } = await supabase
+        .from('user_preferences')
+        .select('current_hotel_id, preferences')
+        .eq('user_id', userId)
+        .maybeSingle()
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching user preference:', error)
+        return null
+      }
+      return data
+    },
+    enabled: !!userId,
+  })
+
+  // Save preference mutation
+  const savePreferenceMutation = useMutation({
+    mutationFn: async ({ hotelId: newHotelId, isAllHotels }: { hotelId: string | null, isAllHotels: boolean }) => {
+      if (!userId) throw new Error('No user ID')
+
+      const { error } = await supabase
+        .from('user_preferences')
+        .upsert({
+          user_id: userId,
+          current_hotel_id: isAllHotels ? null : newHotelId,
+          preferences: { is_all_hotels_mode: isAllHotels },
+          updated_at: new Date().toISOString(),
+        })
+
+      if (error) throw error
+    },
+    onError: (error) => {
+      console.error('Error saving preference:', error)
+      // Fallback to localStorage on error
+      if (isAllHotelsMode) {
+        localStorage.removeItem('selected_hotel_id')
+        localStorage.setItem('is_all_hotels_mode', 'true')
+      } else if (selectedHotel) {
+        localStorage.setItem('selected_hotel_id', selectedHotel.id)
+        localStorage.removeItem('is_all_hotels_mode')
+      }
+    },
+  })
+
+  // Initialize selected hotel from preference or fallback
   useEffect(() => {
-    if (!hotels || hotels.length === 0) return
+    if (!hotels || hotels.length === 0 || hotelsLoading || preferenceLoading) return
 
-    // Try to load from localStorage
-    const savedHotelId = localStorage.getItem('selected_hotel_id')
+    // Check for "All Hotels" mode first
+    const preferences = userPreference?.preferences as { is_all_hotels_mode?: boolean } | null
+    const isAllHotelsFromPref = preferences?.is_all_hotels_mode
+    const isAllHotelsFromLocal = localStorage.getItem('is_all_hotels_mode') === 'true'
     
+    if (isAllHotelsFromPref || (isAllHotelsFromLocal && hotels.length > 1)) {
+      setAllHotelsMode(true)
+      return
+    }
+
+    // Try database preference
+    if (userPreference?.current_hotel_id) {
+      const hotel = hotels.find(h => h.id === userPreference.current_hotel_id)
+      if (hotel) {
+        setSelectedHotelState(hotel)
+        return
+      }
+    }
+
+    // Fallback to localStorage
+    const savedHotelId = localStorage.getItem('selected_hotel_id')
     if (savedHotelId) {
       const hotel = hotels.find(h => h.id === savedHotelId)
       if (hotel) {
@@ -47,20 +120,32 @@ export function HotelProvider({ children }: { children: ReactNode }) {
     if (hotels.length > 0) {
       setSelectedHotelState(hotels[0])
     }
-  }, [hotels, hotelId])
+  }, [hotels, hotelId, userPreference, hotelsLoading, preferenceLoading])
 
   const setSelectedHotel = (hotel: Hotel) => {
     setSelectedHotelState(hotel)
     setAllHotelsMode(false)
-    localStorage.setItem('selected_hotel_id', hotel.id)
+    
+    // Save to database
+    savePreferenceMutation.mutate({ hotelId: hotel.id, isAllHotels: false })
+    
+    // Invalidate queries to refresh data with new hotel context
+    queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+    queryClient.invalidateQueries({ queryKey: ['hotels-breakdown-stats'] })
   }
 
   const handleSetAllHotelsMode = (enabled: boolean) => {
     setAllHotelsMode(enabled)
-    if (enabled) {
-      localStorage.removeItem('selected_hotel_id')
-    }
+    
+    // Save to database
+    savePreferenceMutation.mutate({ hotelId: null, isAllHotels: enabled })
+    
+    // Invalidate queries to refresh data
+    queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+    queryClient.invalidateQueries({ queryKey: ['hotels-breakdown-stats'] })
   }
+
+  const isLoading = hotelsLoading || preferenceLoading
 
   return (
     <HotelContext.Provider
