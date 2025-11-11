@@ -10,12 +10,13 @@ export const userFormSchema = z.object({
   fullName: z.string().min(2, 'Họ tên phải có ít nhất 2 ký tự'),
   email: z.string().email('Email không hợp lệ'),
   phone: phoneSchema,
-  role: z.enum(['owner', 'hotel_manager', 'department_manager', 'staff'], {
-    required_error: 'Vui lòng chọn vai trò',
+  userLevelCode: z.enum(['tenant_owner', 'manager', 'staff'], {
+    required_error: 'Vui lòng chọn cấp độ người dùng',
   }),
   hotelId: z.string().uuid().optional().nullable(),
   department: z.enum(['housekeeping', 'laundry', 'inventory', 'maintenance']).optional().nullable(),
   status: z.enum(['active', 'inactive']).default('active'),
+  notes: z.string().optional(),
 })
 
 export type UserFormData = z.infer<typeof userFormSchema>

@@ -28,12 +28,18 @@ interface UserTableProps {
   onEdit?: (user: User) => void
 }
 
-const roleLabels = {
+const userLevelLabels: Record<string, string> = {
   super_admin: 'Super Admin',
-  owner: 'Chủ sở hữu',
-  hotel_manager: 'Quản lý KS',
-  department_manager: 'Quản lý BP',
+  tenant_owner: 'Chủ sở hữu',
+  manager: 'Quản lý',
   staff: 'Nhân viên',
+}
+
+const userLevelColors: Record<string, string> = {
+  super_admin: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
+  tenant_owner: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  manager: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+  staff: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
 }
 
 export function UserTable({ users, onEdit }: UserTableProps) {
@@ -71,9 +77,17 @@ export function UserTable({ users, onEdit }: UserTableProps) {
                 </div>
               </TableCell>
               <TableCell>
-                <Badge variant="outline">
-                  {roleLabels[user.role as keyof typeof roleLabels] || 'N/A'}
+                <Badge 
+                  variant="outline" 
+                  className={userLevelColors[user.user_level_code || 'staff']}
+                >
+                  {userLevelLabels[user.user_level_code || 'staff']}
                 </Badge>
+                {user.is_super_admin && (
+                  <Badge variant="destructive" className="ml-2">
+                    Platform
+                  </Badge>
+                )}
               </TableCell>
               <TableCell>
                 {user.department ? (

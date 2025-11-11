@@ -27,6 +27,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { userFormSchema, type UserFormData } from '@/lib/validations/user.schemas'
 import { useHotels } from '@/hooks/useHotels'
+import { useAvailableUserLevels } from '@/hooks/useUserLevels'
 import { User } from '@/types/database.types'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 
@@ -45,6 +46,7 @@ export function UserFormDialog({
 }: UserFormDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { data: hotels, isLoading: hotelsLoading } = useHotels({ status: 'active' })
+  const { data: userLevels, isLoading: levelsLoading } = useAvailableUserLevels()
 
   const form = useForm<UserFormData>({
     resolver: zodResolver(userFormSchema),
@@ -52,10 +54,11 @@ export function UserFormDialog({
       fullName: '',
       email: '',
       phone: '',
-      role: 'staff',
+      userLevelCode: 'staff',
       hotelId: null,
       department: null,
       status: 'active',
+      notes: '',
     },
   })
 
@@ -67,20 +70,22 @@ export function UserFormDialog({
           fullName: user.full_name,
           email: user.email,
           phone: user.phone || '',
-          role: user.role as any,
+          userLevelCode: (user.user_level_code || 'staff') as any,
           hotelId: user.hotel_id,
           department: user.department as any,
           status: user.status as any,
+          notes: user.notes || '',
         })
       } else {
         form.reset({
           fullName: '',
           email: '',
           phone: '',
-          role: 'staff',
+          userLevelCode: 'staff',
           hotelId: null,
           department: null,
           status: 'active',
+          notes: '',
         })
       }
     }
@@ -99,8 +104,8 @@ export function UserFormDialog({
     }
   }
 
-  const selectedRole = form.watch('role')
-  const needsDepartment = selectedRole === 'department_manager' || selectedRole === 'staff'
+  const selectedLevel = form.watch('userLevelCode')
+  const needsDepartment = selectedLevel === 'manager' || selectedLevel === 'staff'
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -173,26 +178,32 @@ export function UserFormDialog({
               )}
             />
 
-            {/* Role */}
+            {/* User Level */}
             <FormField
               control={form.control}
-              name="role"
+              name="userLevelCode"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Vai trò *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <FormLabel>Cấp độ người dùng *</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    value={field.value}
+                    disabled={levelsLoading}
+                  >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Chọn vai trò" />
+                        <SelectValue placeholder="Chọn cấp độ" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="owner">Chủ sở hữu</SelectItem>
-                      <SelectItem value="hotel_manager">Quản lý khách sạn</SelectItem>
-                      <SelectItem value="department_manager">Quản lý bộ phận</SelectItem>
-                      <SelectItem value="staff">Nhân viên</SelectItem>
+                      {userLevels?.map((level) => (
+                        <SelectItem key={level.code} value={level.code}>
+                          {level.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  {levelsLoading && <LoadingSpinner size="sm" />}
                   <FormMessage />
                 </FormItem>
               )}
@@ -279,6 +290,21 @@ export function UserFormDialog({
                       <SelectItem value="inactive">Không hoạt động</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Internal Notes */}
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Ghi chú nội bộ</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ghi chú về người dùng..." {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

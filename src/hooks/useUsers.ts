@@ -37,10 +37,11 @@ export function useCreateUser() {
           full_name: data.fullName,
           email: data.email,
           phone: data.phone || null,
-          role: data.role,
+          user_level_code: data.userLevelCode,
           hotel_id: data.hotelId || null,
           department: data.department || null,
           status: data.status,
+          notes: data.notes || null,
         } as any)
         .select()
         .single()
@@ -76,10 +77,11 @@ export function useUpdateUser() {
         .update({
           full_name: data.fullName,
           phone: data.phone || null,
-          role: data.role,
+          user_level_code: data.userLevelCode,
           hotel_id: data.hotelId || null,
           department: data.department || null,
           status: data.status,
+          notes: data.notes || null,
         })
         .eq('id', id)
         .select()

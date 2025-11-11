@@ -78,6 +78,13 @@ export type Database = {
             foreignKeyName: "activity_logs_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -127,6 +134,13 @@ export type Database = {
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "backup_logs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "backup_logs_created_by_fkey"
             columns: ["created_by"]
@@ -408,6 +422,13 @@ export type Database = {
             foreignKeyName: "email_templates_last_edited_by_fkey"
             columns: ["last_edited_by"]
             isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_templates_last_edited_by_fkey"
+            columns: ["last_edited_by"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -510,6 +531,13 @@ export type Database = {
             foreignKeyName: "hotels_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hotels_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -595,6 +623,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_export_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
             referencedColumns: ["id"]
           },
           {
@@ -687,7 +722,21 @@ export type Database = {
             foreignKeyName: "inventory_transactions_approved_by_fkey"
             columns: ["approved_by"]
             isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
             referencedColumns: ["id"]
           },
           {
@@ -868,6 +917,13 @@ export type Database = {
           url?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "item_images_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "item_images_created_by_fkey"
             columns: ["created_by"]
@@ -1223,6 +1279,13 @@ export type Database = {
             foreignKeyName: "laundry_batches_delivery_staff_id_fkey"
             columns: ["delivery_staff_id"]
             isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "laundry_batches_delivery_staff_id_fkey"
+            columns: ["delivery_staff_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -1238,6 +1301,13 @@ export type Database = {
             columns: ["hotel_id"]
             isOneToOne: false
             referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "laundry_batches_return_staff_id_fkey"
+            columns: ["return_staff_id"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
             referencedColumns: ["id"]
           },
           {
@@ -1459,6 +1529,13 @@ export type Database = {
             foreignKeyName: "maintenance_categories_default_assignee_id_fkey"
             columns: ["default_assignee_id"]
             isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_categories_default_assignee_id_fkey"
+            columns: ["default_assignee_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -1579,6 +1656,13 @@ export type Database = {
             foreignKeyName: "maintenance_requests_assigned_to_fkey"
             columns: ["assigned_to"]
             isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -1601,6 +1685,13 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_reported_by_fkey"
+            columns: ["reported_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
             referencedColumns: ["id"]
           },
           {
@@ -1687,6 +1778,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
             referencedColumns: ["id"]
           },
           {
@@ -1851,6 +1949,13 @@ export type Database = {
             foreignKeyName: "purchase_orders_approved_by_fkey"
             columns: ["approved_by"]
             isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -1866,6 +1971,13 @@ export type Database = {
             columns: ["hotel_id"]
             isOneToOne: false
             referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
             referencedColumns: ["id"]
           },
           {
@@ -1914,6 +2026,13 @@ export type Database = {
           role_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "role_permissions_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "role_permissions_granted_by_fkey"
             columns: ["granted_by"]
@@ -2026,6 +2145,13 @@ export type Database = {
             foreignKeyName: "room_checks_checked_by_fkey"
             columns: ["checked_by"]
             isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_checks_checked_by_fkey"
+            columns: ["checked_by"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -2078,6 +2204,13 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_items_last_checked_by_fkey"
+            columns: ["last_checked_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
             referencedColumns: ["id"]
           },
           {
@@ -2401,6 +2534,13 @@ export type Database = {
             foreignKeyName: "stock_adjustment_items_checked_by_fkey"
             columns: ["checked_by"]
             isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustment_items_checked_by_fkey"
+            columns: ["checked_by"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -2482,7 +2622,21 @@ export type Database = {
             foreignKeyName: "stock_adjustments_approved_by_fkey"
             columns: ["approved_by"]
             isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustments_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
             referencedColumns: ["id"]
           },
           {
@@ -2584,6 +2738,13 @@ export type Database = {
             foreignKeyName: "user_hotels_assigned_by_fkey"
             columns: ["assigned_by"]
             isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_hotels_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -2605,10 +2766,44 @@ export type Database = {
             foreignKeyName: "user_hotels_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_hotels_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_levels: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          hierarchy_level: number
+          id: string
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          hierarchy_level: number
+          id?: string
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          hierarchy_level?: number
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       user_preferences: {
         Row: {
@@ -2651,6 +2846,13 @@ export type Database = {
             foreignKeyName: "user_preferences_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -2682,54 +2884,101 @@ export type Database = {
       }
       users: {
         Row: {
+          account_locked: boolean | null
           avatar_url: string | null
           created_at: string | null
+          deactivated_at: string | null
+          deactivated_by: string | null
+          deleted_at: string | null
           department: string | null
           email: string
           full_name: string
           hotel_id: string | null
           id: string
+          is_super_admin: boolean | null
           last_login_at: string | null
+          last_login_ip: unknown
+          locked_reason: string | null
+          login_count: number | null
           metadata: Json | null
+          must_change_password: boolean | null
+          notes: string | null
           phone: string | null
           role: string
           status: string | null
           tenant_id: string | null
           updated_at: string | null
+          user_level_code: string | null
         }
         Insert: {
+          account_locked?: boolean | null
           avatar_url?: string | null
           created_at?: string | null
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          deleted_at?: string | null
           department?: string | null
           email: string
           full_name: string
           hotel_id?: string | null
           id: string
+          is_super_admin?: boolean | null
           last_login_at?: string | null
+          last_login_ip?: unknown
+          locked_reason?: string | null
+          login_count?: number | null
           metadata?: Json | null
+          must_change_password?: boolean | null
+          notes?: string | null
           phone?: string | null
           role?: string
           status?: string | null
           tenant_id?: string | null
           updated_at?: string | null
+          user_level_code?: string | null
         }
         Update: {
+          account_locked?: boolean | null
           avatar_url?: string | null
           created_at?: string | null
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          deleted_at?: string | null
           department?: string | null
           email?: string
           full_name?: string
           hotel_id?: string | null
           id?: string
+          is_super_admin?: boolean | null
           last_login_at?: string | null
+          last_login_ip?: unknown
+          locked_reason?: string | null
+          login_count?: number | null
           metadata?: Json | null
+          must_change_password?: boolean | null
+          notes?: string | null
           phone?: string | null
           role?: string
           status?: string | null
           tenant_id?: string | null
           updated_at?: string | null
+          user_level_code?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "users_deactivated_by_fkey"
+            columns: ["deactivated_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_deactivated_by_fkey"
+            columns: ["deactivated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "users_hotel_id_fkey"
             columns: ["hotel_id"]
@@ -2750,6 +2999,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_user_level_code_fkey"
+            columns: ["user_level_code"]
+            isOneToOne: false
+            referencedRelation: "user_levels"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -3083,6 +3339,56 @@ export type Database = {
           total_amount: number | null
         }
         Relationships: []
+      }
+      user_with_levels: {
+        Row: {
+          account_locked: boolean | null
+          avatar_url: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          hierarchy_level: number | null
+          hotel_id: string | null
+          id: string | null
+          is_super_admin: boolean | null
+          last_login_at: string | null
+          login_count: number | null
+          phone: string | null
+          status: string | null
+          tenant_id: string | null
+          user_level_code: string | null
+          user_level_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "users_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "users_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_user_level_code_fkey"
+            columns: ["user_level_code"]
+            isOneToOne: false
+            referencedRelation: "user_levels"
+            referencedColumns: ["code"]
+          },
+        ]
       }
     }
     Functions: {
@@ -3616,6 +3922,17 @@ export type Database = {
           total_rooms: number
         }[]
       }
+      get_user_level: { Args: { _user_id: string }; Returns: string }
+      get_user_levels: {
+        Args: never
+        Returns: {
+          code: string
+          description: string
+          hierarchy_level: number
+          id: string
+          name: string
+        }[]
+      }
       get_user_permissions: {
         Args: { _user_id: string }
         Returns: {
@@ -3646,6 +3963,14 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      has_user_level: {
+        Args: { _level_code: string; _user_id: string }
+        Returns: boolean
+      }
+      is_level_higher_or_equal: {
+        Args: { _min_level_code: string; _user_id: string }
         Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
