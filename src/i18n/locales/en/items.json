@@ -1,0 +1,16 @@
+{
+  "title": "Items Management",
+  "addItem": "Add Item",
+  "editItem": "Edit Item",
+  "deleteItem": "Delete Item",
+  "itemDetails": "Item Details",
+  "itemName": "Item Name",
+  "category": "Category",
+  "unit": "Unit",
+  "price": "Price",
+  "quantity": "Quantity",
+  "reorderLevel": "Reorder Level",
+  "status": "Status",
+  "images": "Images",
+  "description": "Description"
+}

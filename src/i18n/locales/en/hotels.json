@@ -1,0 +1,15 @@
+{
+  "title": "Hotels Management",
+  "addHotel": "Add Hotel",
+  "editHotel": "Edit Hotel",
+  "deleteHotel": "Delete Hotel",
+  "hotelDetails": "Hotel Details",
+  "hotelName": "Hotel Name",
+  "code": "Code",
+  "address": "Address",
+  "city": "City",
+  "phone": "Phone Number",
+  "email": "Email",
+  "totalRooms": "Total Rooms",
+  "status": "Status"
+}

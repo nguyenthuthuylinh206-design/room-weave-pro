@@ -1,0 +1,16 @@
+{
+  "title": "Cài đặt",
+  "general": "Cài đặt chung",
+  "users": "Người dùng",
+  "roles": "Vai trò",
+  "permissions": "Quyền hạn",
+  "notifications": "Thông báo",
+  "business": "Cấu hình doanh nghiệp",
+  "hotels": "Quản lý khách sạn",
+  "categories": "Quản lý danh mục",
+  "integrations": "Tích hợp",
+  "security": "Bảo mật hệ thống",
+  "subscription": "Gói đăng ký",
+  "usage": "Sử dụng",
+  "workflows": "Quy trình tự động"
+}

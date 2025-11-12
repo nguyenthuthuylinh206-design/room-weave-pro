@@ -1,0 +1,11 @@
+{
+  "title": "Hồ sơ cá nhân",
+  "editProfile": "Sửa hồ sơ",
+  "changePassword": "Đổi mật khẩu",
+  "personalInfo": "Thông tin cá nhân",
+  "currentPassword": "Mật khẩu hiện tại",
+  "newPassword": "Mật khẩu mới",
+  "confirmPassword": "Xác nhận mật khẩu",
+  "updateSuccess": "Cập nhật thành công",
+  "updateError": "Cập nhật thất bại"
+}

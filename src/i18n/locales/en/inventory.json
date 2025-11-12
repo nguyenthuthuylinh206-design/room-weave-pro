@@ -1,0 +1,26 @@
+{
+  "title": "Inventory Management",
+  "inbound": "Inbound",
+  "outbound": "Outbound",
+  "adjustment": "Adjustment",
+  "transactions": "Transaction History",
+  "stats": {
+    "totalValue": "Total Inventory Value",
+    "totalItems": "Total Items",
+    "lowStock": "Low Stock Alerts",
+    "reorderNeeded": "Reorder Needed",
+    "dailyTransactions": "Today's Transactions",
+    "monthlyInbound": "Monthly Inbound"
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "inbound": "Inbound",
+    "outbound": "Outbound",
+    "adjustment": "Stock Adjustment",
+    "viewTransactions": "View Transactions",
+    "manageItems": "Manage Items"
+  },
+  "lowStockAlert": "Low Stock Alert",
+  "inventoryValue": "Inventory Value",
+  "recentTransactions": "Recent Transactions"
+}

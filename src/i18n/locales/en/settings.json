@@ -1,0 +1,16 @@
+{
+  "title": "Settings",
+  "general": "General Settings",
+  "users": "Users",
+  "roles": "Roles",
+  "permissions": "Permissions",
+  "notifications": "Notifications",
+  "business": "Business Configuration",
+  "hotels": "Hotels Management",
+  "categories": "Categories Management",
+  "integrations": "Integrations",
+  "security": "System Security",
+  "subscription": "Subscription",
+  "usage": "Usage",
+  "workflows": "Workflows"
+}

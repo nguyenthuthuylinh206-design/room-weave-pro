@@ -1,0 +1,12 @@
+{
+  "title": "Báo cáo",
+  "inventory": "Báo cáo kho",
+  "financial": "Báo cáo tài chính",
+  "laundry": "Báo cáo giặt là",
+  "maintenance": "Báo cáo bảo trì",
+  "operations": "Báo cáo vận hành",
+  "rooms": "Báo cáo phòng",
+  "dateRange": "Khoảng thời gian",
+  "export": "Xuất báo cáo",
+  "print": "In báo cáo"
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Quản lý Tài sản",
+  "addItem": "Thêm tài sản",
+  "editItem": "Sửa tài sản",
+  "deleteItem": "Xóa tài sản",
+  "itemDetails": "Chi tiết tài sản",
+  "itemName": "Tên tài sản",
+  "category": "Danh mục",
+  "unit": "Đơn vị",
+  "price": "Giá",
+  "quantity": "Số lượng",
+  "reorderLevel": "Mức đặt hàng",
+  "status": "Trạng thái",
+  "images": "Hình ảnh",
+  "description": "Mô tả"
+}

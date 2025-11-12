@@ -1,0 +1,14 @@
+{
+  "title": "Quản lý Nhà cung cấp",
+  "addVendor": "Thêm nhà cung cấp",
+  "editVendor": "Sửa nhà cung cấp",
+  "deleteVendor": "Xóa nhà cung cấp",
+  "vendorDetails": "Chi tiết nhà cung cấp",
+  "vendorName": "Tên nhà cung cấp",
+  "contactPerson": "Người liên hệ",
+  "phone": "Số điện thoại",
+  "email": "Email",
+  "address": "Địa chỉ",
+  "type": "Loại",
+  "status": "Trạng thái"
+}
