@@ -210,10 +210,9 @@ export function RoomFormPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="standard">Standard</SelectItem>
-                    <SelectItem value="superior">Superior</SelectItem>
                     <SelectItem value="deluxe">Deluxe</SelectItem>
                     <SelectItem value="suite">Suite</SelectItem>
-                    <SelectItem value="penthouse">Penthouse</SelectItem>
+                    <SelectItem value="vip">VIP</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.room_type && (
