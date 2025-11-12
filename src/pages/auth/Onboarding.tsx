@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { useUser } from '@/hooks/useUser'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -30,6 +31,7 @@ type OnboardingFormData = z.infer<typeof onboardingSchema>
 export default function Onboarding() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { refetch: refetchUser } = useUser()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [loadingProgress, setLoadingProgress] = useState(0)
@@ -111,11 +113,13 @@ export default function Onboarding() {
         description: 'Tài khoản và khách sạn của bạn đã sẵn sàng. Đang chuyển hướng...',
       })
 
-      // Delay to show success state
+      // Refetch user data to update context
+      await refetchUser()
+
+      // Small delay then force full page reload to ensure all contexts are updated
       setTimeout(() => {
-        // Redirect to dashboard
-        window.location.href = '/dashboard'
-      }, 1500)
+        window.location.href = '/'
+      }, 800)
       
     } catch (error: any) {
       console.error('Onboarding error:', error)
