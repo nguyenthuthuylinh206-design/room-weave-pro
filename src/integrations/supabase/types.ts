@@ -3633,6 +3633,7 @@ export type Database = {
         Row: {
           auto_renew: boolean | null
           billing_address: string | null
+          billing_cycle: string | null
           billing_email: string | null
           created_at: string | null
           email: string
@@ -3642,11 +3643,14 @@ export type Database = {
           payment_method: string | null
           phone: string | null
           settings: Json | null
+          subscription_current_period_end: string | null
+          subscription_current_period_start: string | null
           subscription_end_date: string | null
           subscription_expires_at: string | null
           subscription_plan: string | null
           subscription_plan_id: string | null
           subscription_start_date: string | null
+          subscription_started_at: string | null
           subscription_status: string | null
           tax_id: string | null
           trial_end_date: string | null
@@ -3656,6 +3660,7 @@ export type Database = {
         Insert: {
           auto_renew?: boolean | null
           billing_address?: string | null
+          billing_cycle?: string | null
           billing_email?: string | null
           created_at?: string | null
           email: string
@@ -3665,11 +3670,14 @@ export type Database = {
           payment_method?: string | null
           phone?: string | null
           settings?: Json | null
+          subscription_current_period_end?: string | null
+          subscription_current_period_start?: string | null
           subscription_end_date?: string | null
           subscription_expires_at?: string | null
           subscription_plan?: string | null
           subscription_plan_id?: string | null
           subscription_start_date?: string | null
+          subscription_started_at?: string | null
           subscription_status?: string | null
           tax_id?: string | null
           trial_end_date?: string | null
@@ -3679,6 +3687,7 @@ export type Database = {
         Update: {
           auto_renew?: boolean | null
           billing_address?: string | null
+          billing_cycle?: string | null
           billing_email?: string | null
           created_at?: string | null
           email?: string
@@ -3688,11 +3697,14 @@ export type Database = {
           payment_method?: string | null
           phone?: string | null
           settings?: Json | null
+          subscription_current_period_end?: string | null
+          subscription_current_period_start?: string | null
           subscription_end_date?: string | null
           subscription_expires_at?: string | null
           subscription_plan?: string | null
           subscription_plan_id?: string | null
           subscription_start_date?: string | null
+          subscription_started_at?: string | null
           subscription_status?: string | null
           tax_id?: string | null
           trial_end_date?: string | null
