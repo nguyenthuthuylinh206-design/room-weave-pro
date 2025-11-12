@@ -1,5 +1,6 @@
 {
   "title": "Rooms Management",
+  "description": "Track and manage all rooms in the hotel",
   "addRoom": "Add Room",
   "editRoom": "Edit Room",
   "deleteRoom": "Delete Room",
@@ -7,6 +8,20 @@
   "roomNumber": "Room Number",
   "roomType": "Room Type",
   "floor": "Floor",
-  "status": "Status",
+  "room": "Room",
+  "bedType": "Bed Type",
+  "items": "Items",
+  "missing": "Missing",
+  "allRooms": "All Rooms",
+  "roomsByStatus": "{{status}} Rooms",
+  "clearFilter": "Clear Filter",
+  "noRoomsFound": "No rooms found",
+  "status": {
+    "vacant": "Vacant",
+    "occupied": "Occupied",
+    "cleaning": "Cleaning",
+    "maintenance": "Maintenance",
+    "outOfOrder": "Out of Order"
+  },
   "checkRoom": "Check Room"
 }

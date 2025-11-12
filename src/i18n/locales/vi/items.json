@@ -1,6 +1,7 @@
 {
   "title": "Quản lý Tài sản",
-  "addItem": "Thêm tài sản",
+  "description": "Quản lý tất cả tài sản và đồ dùng trong khách sạn",
+  "addItem": "Thêm tài sản mới",
   "editItem": "Sửa tài sản",
   "deleteItem": "Xóa tài sản",
   "itemDetails": "Chi tiết tài sản",

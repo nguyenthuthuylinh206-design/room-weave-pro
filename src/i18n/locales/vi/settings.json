@@ -1,10 +1,29 @@
 {
   "title": "Cài đặt",
+  "description": "Quản lý cài đặt hệ thống và tùy chọn",
   "general": "Cài đặt chung",
   "users": "Người dùng",
   "roles": "Vai trò",
   "permissions": "Quyền hạn",
-  "notifications": "Thông báo",
+  "notifications": {
+    "title": "Thông báo",
+    "description": "Cấu hình các loại thông báo bạn muốn nhận",
+    "email": "Thông báo email",
+    "push": "Thông báo đẩy",
+    "laundry": "Thông báo lô giặt"
+  },
+  "appearance": {
+    "title": "Giao diện",
+    "description": "Tùy chỉnh giao diện ứng dụng",
+    "displayMode": "Chế độ hiển thị",
+    "light": "Sáng",
+    "dark": "Tối",
+    "auto": "Tự động"
+  },
+  "demoData": {
+    "title": "Dữ liệu Demo",
+    "description": "Tạo dữ liệu demo để thử nghiệm hệ thống"
+  },
   "business": "Cấu hình doanh nghiệp",
   "hotels": "Quản lý khách sạn",
   "categories": "Quản lý danh mục",
