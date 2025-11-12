@@ -9,10 +9,19 @@ import {
   CheckCircle,
   Clock,
 } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
 import { RevenueChart } from './analytics/RevenueChart';
 import { MRRChart } from './analytics/MRRChart';
 import { TenantGrowthChart } from './analytics/TenantGrowthChart';
+
+// Format currency as USD for SaaS metrics
+const formatUSD = (value: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+};
 
 export function SuperAdminDashboard() {
   const { data: stats, isLoading } = useSuperAdminStats();
@@ -40,19 +49,19 @@ export function SuperAdminDashboard() {
     },
     {
       title: 'Monthly Revenue',
-      value: formatCurrency(stats?.revenue_this_month || 0),
+      value: formatUSD(stats?.revenue_this_month || 0),
       icon: DollarSign,
       iconClass: 'text-purple-500',
       bgClass: 'bg-purple-500/10',
-      trend: `Last month: ${formatCurrency(stats?.revenue_last_month || 0)}`,
+      trend: `Last month: ${formatUSD(stats?.revenue_last_month || 0)}`,
     },
     {
       title: 'MRR',
-      value: formatCurrency(stats?.mrr || 0),
+      value: formatUSD(stats?.mrr || 0),
       icon: TrendingUp,
       iconClass: 'text-orange-500',
       bgClass: 'bg-orange-500/10',
-      trend: `ARR: ${formatCurrency((stats?.mrr || 0) * 12)}`,
+      trend: `ARR: ${formatUSD((stats?.mrr || 0) * 12)}`,
     },
     {
       title: 'Expiring Soon',
