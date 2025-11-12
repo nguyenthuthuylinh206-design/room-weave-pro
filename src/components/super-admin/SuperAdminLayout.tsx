@@ -16,7 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
+import { useSuperAdminAuth } from '@/hooks/useSuperAdminAuth';
 
 const navigation = [
   { name: 'Dashboard', href: '/super-admin', icon: LayoutDashboard },
@@ -32,7 +32,7 @@ const navigation = [
 export function SuperAdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, isLoading, signOut } = useSuperAdminAuth();
 
   return (
     <div className="flex h-screen overflow-hidden bg-muted/30">

@@ -32,17 +32,16 @@ import {
 import { MoreHorizontal, Search, ArrowUpDown } from 'lucide-react';
 import { useTenants } from '@/hooks/super-admin/useTenants';
 import { TenantDetailsDialog } from './TenantDetailsDialog';
-import type { Tenant } from '@/hooks/super-admin/useTenants';
 
 export function TenantsTable() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+  const [selectedTenant, setSelectedTenant] = useState<any | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   const { data: tenants = [], isLoading } = useTenants();
 
-  const columns: ColumnDef<Tenant>[] = [
+  const columns: ColumnDef<any>[] = [
     {
       accessorKey: 'name',
       header: ({ column }) => {
