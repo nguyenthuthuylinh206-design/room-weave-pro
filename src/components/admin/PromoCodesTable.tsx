@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { PromotionalCode } from '@/types/super-admin.types';
+import { usePromoCodes, useDeletePromoCode } from '@/hooks/super-admin/usePromoCodes';
 import {
   Table,
   TableBody,
@@ -18,37 +17,8 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 
 export function PromoCodesTable() {
-  const queryClient = useQueryClient();
-
-  const { data: promoCodes, isLoading } = useQuery({
-    queryKey: ['promo-codes'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('promotional_codes')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as PromotionalCode[];
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('promotional_codes')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['promo-codes'] });
-      toast.success('Đã xóa mã khuyến mãi');
-    },
-    onError: () => {
-      toast.error('Không thể xóa mã khuyến mãi');
-    },
-  });
+  const { data: promoCodes, isLoading } = usePromoCodes();
+  const deleteMutation = useDeletePromoCode();
 
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code);

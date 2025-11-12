@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { MarketingCampaign } from '@/types/super-admin.types';
+import { useMarketingCampaigns } from '@/hooks/super-admin/useMarketingCampaigns';
 import {
   Table,
   TableBody,
@@ -17,18 +16,7 @@ import { Plus, Edit, Play, Pause, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 
 export function MarketingCampaignsTable() {
-  const { data: campaigns, isLoading } = useQuery({
-    queryKey: ['marketing-campaigns'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('marketing_campaigns')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as MarketingCampaign[];
-    },
-  });
+  const { data: campaigns, isLoading } = useMarketingCampaigns();
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
