@@ -145,9 +145,17 @@ export function HotelProvider({ children }: { children: ReactNode }) {
     // Save to database
     savePreferenceMutation.mutate({ hotelId: hotel.id, isAllHotels: false })
     
-    // Invalidate queries to refresh data with new hotel context
+    // Invalidate ALL queries to refresh data with new hotel context
+    queryClient.invalidateQueries({ queryKey: ['items'] })
+    queryClient.invalidateQueries({ queryKey: ['rooms'] })
+    queryClient.invalidateQueries({ queryKey: ['laundry-batches'] })
+    queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] })
+    queryClient.invalidateQueries({ queryKey: ['vendors'] })
+    queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
+    queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
     queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
     queryClient.invalidateQueries({ queryKey: ['hotels-breakdown-stats'] })
+    queryClient.invalidateQueries({ queryKey: ['categories'] })
   }
 
   const handleSetAllHotelsMode = (enabled: boolean) => {
@@ -156,9 +164,17 @@ export function HotelProvider({ children }: { children: ReactNode }) {
     // Save to database
     savePreferenceMutation.mutate({ hotelId: null, isAllHotels: enabled })
     
-    // Invalidate queries to refresh data
+    // Invalidate ALL queries to refresh data
+    queryClient.invalidateQueries({ queryKey: ['items'] })
+    queryClient.invalidateQueries({ queryKey: ['rooms'] })
+    queryClient.invalidateQueries({ queryKey: ['laundry-batches'] })
+    queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] })
+    queryClient.invalidateQueries({ queryKey: ['vendors'] })
+    queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
+    queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
     queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
     queryClient.invalidateQueries({ queryKey: ['hotels-breakdown-stats'] })
+    queryClient.invalidateQueries({ queryKey: ['categories'] })
   }
 
   const isLoading = hotelsLoading || preferenceLoading
