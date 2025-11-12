@@ -1,0 +1,12 @@
+{
+  "title": "Reports",
+  "inventory": "Inventory Report",
+  "financial": "Financial Report",
+  "laundry": "Laundry Report",
+  "maintenance": "Maintenance Report",
+  "operations": "Operations Report",
+  "rooms": "Rooms Report",
+  "dateRange": "Date Range",
+  "export": "Export Report",
+  "print": "Print Report"
+}

@@ -1,0 +1,59 @@
+{
+  "superAdmin": {
+    "promoCodes": "Mã khuyến mãi",
+    "campaigns": "Chiến dịch Marketing",
+    "reminders": "Nhắc nhở gia hạn"
+  },
+  "items": {
+    "list": "Danh sách tài sản",
+    "categories": "Danh mục",
+    "addNew": "Thêm tài sản mới"
+  },
+  "rooms": {
+    "list": "Danh sách phòng",
+    "standards": "Thiết lập chuẩn",
+    "addNew": "Thêm phòng mới"
+  },
+  "laundry": {
+    "overview": "Tổng quan",
+    "batches": "Danh sách lô giặt",
+    "createBatch": "Tạo lô mới",
+    "vendors": "Nhà cung cấp",
+    "addVendor": "Thêm đơn vị"
+  },
+  "inventory": {
+    "dashboard": "Dashboard kho",
+    "transactions": "Giao dịch",
+    "inbound": "Nhập kho",
+    "outbound": "Xuất kho",
+    "adjustment": "Kiểm kê"
+  },
+  "vendors": {
+    "list": "Danh sách NCC",
+    "addNew": "Thêm NCC mới",
+    "compare": "So sánh NCC",
+    "createOrder": "Tạo đơn mới"
+  },
+  "maintenance": {
+    "requests": "Yêu cầu bảo trì",
+    "recurringIssues": "Vấn đề lặp lại"
+  },
+  "reports": {
+    "inventory": "Báo cáo Tồn kho",
+    "financial": "Báo cáo Tài chính",
+    "laundry": "Báo cáo Giặt là"
+  },
+  "settings": {
+    "general": "Tổng quan",
+    "hotels": "Khách sạn",
+    "categories": "Danh mục",
+    "users": "Người dùng",
+    "rolesPermissions": "Vai trò & Phân quyền",
+    "notifications": "Thông báo",
+    "business": "Cấu hình nghiệp vụ",
+    "workflows": "Tự động hóa",
+    "integrations": "Tích hợp & API",
+    "security": "Hệ thống & Bảo mật",
+    "systemTest": "Kiểm thử hệ thống"
+  }
+}

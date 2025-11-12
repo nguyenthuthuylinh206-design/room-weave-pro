@@ -1,0 +1,12 @@
+{
+  "title": "Quản lý Phòng",
+  "addRoom": "Thêm phòng",
+  "editRoom": "Sửa phòng",
+  "deleteRoom": "Xóa phòng",
+  "roomDetails": "Chi tiết phòng",
+  "roomNumber": "Số phòng",
+  "roomType": "Loại phòng",
+  "floor": "Tầng",
+  "status": "Trạng thái",
+  "checkRoom": "Kiểm tra phòng"
+}

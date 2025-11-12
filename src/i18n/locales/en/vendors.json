@@ -1,0 +1,14 @@
+{
+  "title": "Vendors Management",
+  "addVendor": "Add Vendor",
+  "editVendor": "Edit Vendor",
+  "deleteVendor": "Delete Vendor",
+  "vendorDetails": "Vendor Details",
+  "vendorName": "Vendor Name",
+  "contactPerson": "Contact Person",
+  "phone": "Phone Number",
+  "email": "Email",
+  "address": "Address",
+  "type": "Type",
+  "status": "Status"
+}

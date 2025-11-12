@@ -1,0 +1,13 @@
+{
+  "title": "Users Management",
+  "addUser": "Add User",
+  "editUser": "Edit User",
+  "deleteUser": "Delete User",
+  "userDetails": "User Details",
+  "fullName": "Full Name",
+  "email": "Email",
+  "phone": "Phone Number",
+  "role": "Role",
+  "status": "Status",
+  "hotel": "Hotel"
+}

@@ -1,0 +1,14 @@
+{
+  "title": "Laundry Management",
+  "batches": "Batches",
+  "vendors": "Vendors",
+  "createBatch": "Create Batch",
+  "batchDetails": "Batch Details",
+  "batchNumber": "Batch Number",
+  "vendor": "Vendor",
+  "status": "Status",
+  "sentDate": "Sent Date",
+  "receivedDate": "Received Date",
+  "totalItems": "Total Items",
+  "totalCost": "Total Cost"
+}

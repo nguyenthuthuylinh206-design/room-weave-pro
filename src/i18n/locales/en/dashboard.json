@@ -1,10 +1,18 @@
 {
   "welcome": "Welcome back",
   "overview": "System Overview",
+  "allHotelsOverview": "Overview of all hotels",
+  "hotelOverview": "Overview of {{name}}",
+  "hotel": "hotel",
+  "viewingAllHotels": "Viewing all hotels",
+  "comparedToLastMonth": "compared to last month",
+  "inStockCount": "{{count}} in stock",
+  "activeBatches": "{{count}} batches processing",
+  "itemsToRestock": "items to restock",
   "stats": {
     "totalAssets": "Total Asset Value",
     "totalItems": "Total Items",
-    "inLaundry": "Items in Laundry",
+    "inLaundry": "In Laundry",
     "lowStock": "Low Stock Alerts"
   },
   "quickActions": {

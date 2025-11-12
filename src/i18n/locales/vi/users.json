@@ -1,0 +1,13 @@
+{
+  "title": "Quản lý Người dùng",
+  "addUser": "Thêm người dùng",
+  "editUser": "Sửa người dùng",
+  "deleteUser": "Xóa người dùng",
+  "userDetails": "Chi tiết người dùng",
+  "fullName": "Họ và tên",
+  "email": "Email",
+  "phone": "Số điện thoại",
+  "role": "Vai trò",
+  "status": "Trạng thái",
+  "hotel": "Khách sạn"
+}

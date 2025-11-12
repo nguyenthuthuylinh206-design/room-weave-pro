@@ -1,0 +1,26 @@
+{
+  "title": "Quản lý Kho",
+  "inbound": "Nhập kho",
+  "outbound": "Xuất kho",
+  "adjustment": "Kiểm kê",
+  "transactions": "Lịch sử giao dịch",
+  "stats": {
+    "totalValue": "Tổng giá trị kho",
+    "totalItems": "Tổng số tài sản",
+    "lowStock": "Cảnh báo tồn kho thấp",
+    "reorderNeeded": "Cần đặt hàng",
+    "dailyTransactions": "Giao dịch hôm nay",
+    "monthlyInbound": "Nhập kho tháng này"
+  },
+  "quickActions": {
+    "title": "Thao tác nhanh",
+    "inbound": "Nhập kho",
+    "outbound": "Xuất kho",
+    "adjustment": "Kiểm kê kho",
+    "viewTransactions": "Xem giao dịch",
+    "manageItems": "Quản lý tài sản"
+  },
+  "lowStockAlert": "Cảnh báo tồn kho thấp",
+  "inventoryValue": "Giá trị kho",
+  "recentTransactions": "Giao dịch gần đây"
+}

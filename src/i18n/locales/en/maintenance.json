@@ -1,0 +1,13 @@
+{
+  "title": "Maintenance Management",
+  "requests": "Maintenance Requests",
+  "createRequest": "Create Request",
+  "requestDetails": "Request Details",
+  "requestNumber": "Request Number",
+  "description": "Description",
+  "priority": "Priority",
+  "status": "Status",
+  "assignedTo": "Assigned To",
+  "dueDate": "Due Date",
+  "completedDate": "Completed Date"
+}

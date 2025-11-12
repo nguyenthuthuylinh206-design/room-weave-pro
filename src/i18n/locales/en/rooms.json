@@ -1,0 +1,12 @@
+{
+  "title": "Rooms Management",
+  "addRoom": "Add Room",
+  "editRoom": "Edit Room",
+  "deleteRoom": "Delete Room",
+  "roomDetails": "Room Details",
+  "roomNumber": "Room Number",
+  "roomType": "Room Type",
+  "floor": "Floor",
+  "status": "Status",
+  "checkRoom": "Check Room"
+}
