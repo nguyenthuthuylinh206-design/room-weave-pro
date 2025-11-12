@@ -77,26 +77,30 @@ export function useItems(
       }
       
       const items = data as unknown as ItemWithCategory[]
+      const total = Number(data[0]?.total_count) || 0
+      
+      // Fetch images in parallel (non-blocking)
       const itemIds = items.map(item => item.id)
       
-      // Fetch images for all items in this page
-      const { data: images, error: imagesError } = await supabase
-        .from('item_images')
-        .select('*')
-        .in('item_id', itemIds)
-        .order('is_primary', { ascending: false })
-        .order('display_order', { ascending: true })
-      
-      if (imagesError) {
-        console.error('Error fetching images:', imagesError)
+      try {
+        const { data: images } = await supabase
+          .from('item_images')
+          .select('*')
+          .in('item_id', itemIds)
+          .order('is_primary', { ascending: false })
+          .order('display_order', { ascending: true })
+        
+        // Attach images to items
+        items.forEach(item => {
+          item.item_images = images?.filter(img => img.item_id === item.id) || []
+        })
+      } catch (error) {
+        console.error('Error fetching images (non-critical):', error)
+        // Continue without images - don't block the query
+        items.forEach(item => {
+          item.item_images = []
+        })
       }
-      
-      // Attach images to items
-      items.forEach(item => {
-        item.item_images = images?.filter(img => img.item_id === item.id) || []
-      })
-      
-      const total = Number(data[0]?.total_count) || 0
       
       return {
         items,
@@ -107,6 +111,8 @@ export function useItems(
       }
     },
     enabled: !!tenantId,
+    retry: 2,
+    staleTime: 30000,
   })
 }
 
