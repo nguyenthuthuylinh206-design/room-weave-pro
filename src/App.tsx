@@ -78,9 +78,11 @@ import RolesManagementPage from "./pages/settings/RolesManagementPage";
 import PermissionManagementPage from "./pages/settings/PermissionManagementPage";
 import IntegrationsPage from "./pages/settings/IntegrationsPage";
 import { SuperAdminDashboard } from "./pages/admin/SuperAdminDashboard";
+import { TenantsPage } from "./pages/admin/TenantsPage";
 import { PromoCodesPage } from "./pages/admin/PromoCodesPage";
 import { MarketingCampaignsPage } from "./pages/admin/MarketingCampaignsPage";
 import { RenewalRemindersPage } from "./pages/admin/RenewalRemindersPage";
+import { PricingPlansPage } from "./pages/admin/PricingPlansPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -134,6 +136,14 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: "admin/tenants",
+        element: (
+          <RoleGuard allowedRoles={['super_admin']}>
+            <TenantsPage />
+          </RoleGuard>
+        ),
+      },
+      {
         path: "admin/promo-codes",
         element: (
           <RoleGuard allowedRoles={['super_admin']}>
@@ -154,6 +164,14 @@ const router = createBrowserRouter([
         element: (
           <RoleGuard allowedRoles={['super_admin']}>
             <RenewalRemindersPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "admin/pricing",
+        element: (
+          <RoleGuard allowedRoles={['super_admin']}>
+            <PricingPlansPage />
           </RoleGuard>
         ),
       },

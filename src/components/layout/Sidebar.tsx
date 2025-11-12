@@ -56,6 +56,7 @@ const navigation: NavItem[] = [
     title: 'Dashboard',
     href: '/',
     icon: LayoutDashboard,
+    roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
   },
   {
     title: 'Super Admin',
@@ -66,6 +67,11 @@ const navigation: NavItem[] = [
         title: 'Dashboard',
         href: '/admin/dashboard',
         icon: LayoutDashboard,
+      },
+      {
+        title: 'Tenants',
+        href: '/admin/tenants',
+        icon: Users,
       },
       {
         title: 'Mã khuyến mãi',
@@ -82,11 +88,17 @@ const navigation: NavItem[] = [
         href: '/admin/reminders',
         icon: Bell,
       },
+      {
+        title: 'Pricing Plans',
+        href: '/admin/pricing',
+        icon: DollarSign,
+      },
     ],
   },
   {
     title: 'Tài sản',
     icon: Package,
+    roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
     children: [
       {
         title: 'Danh sách tài sản',
@@ -108,6 +120,7 @@ const navigation: NavItem[] = [
   {
     title: 'Phòng',
     icon: Hotel,
+    roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
     children: [
       {
         title: 'Danh sách phòng',
@@ -129,6 +142,7 @@ const navigation: NavItem[] = [
   {
     title: 'Giặt là',
     icon: Wind,
+    roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
     children: [
       {
         title: 'Tổng quan',
@@ -160,6 +174,7 @@ const navigation: NavItem[] = [
   {
     title: 'Kho',
     icon: Warehouse,
+    roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
     children: [
       {
         title: 'Dashboard kho',
@@ -191,7 +206,7 @@ const navigation: NavItem[] = [
   {
     title: 'Nhà Cung Cấp',
     icon: Building,
-    roles: ['owner', 'hotel_manager', 'super_admin'],
+    roles: ['owner', 'hotel_manager'],
     children: [
       {
         title: 'Danh sách NCC',
@@ -223,7 +238,7 @@ const navigation: NavItem[] = [
   {
     title: 'Bảo trì',
     icon: Wrench,
-    roles: ['owner', 'hotel_manager', 'department_manager', 'staff', 'super_admin'],
+    roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
     children: [
       {
         title: 'Dashboard',
@@ -245,7 +260,7 @@ const navigation: NavItem[] = [
   {
     title: 'Báo cáo',
     icon: FileText,
-    roles: ['owner', 'hotel_manager', 'super_admin'],
+    roles: ['owner', 'hotel_manager'],
     children: [
       {
         title: 'Dashboard',
@@ -273,17 +288,18 @@ const navigation: NavItem[] = [
     title: 'Người dùng',
     href: '/users',
     icon: Users,
-    roles: ['owner', 'super_admin'],
+    roles: ['owner'],
   },
   {
     title: 'Khách sạn',
     href: '/hotels',
     icon: Building2,
-    roles: ['owner', 'super_admin'],
+    roles: ['owner'],
   },
   {
     title: 'Cài đặt',
     icon: Settings,
+    roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
     children: [
       {
         title: 'Tổng quan',
@@ -294,7 +310,7 @@ const navigation: NavItem[] = [
         title: 'Khách sạn',
         href: '/settings/hotels',
         icon: Building2,
-        roles: ['owner', 'super_admin'],
+        roles: ['owner'],
       },
       {
         title: 'Danh mục',
@@ -305,13 +321,13 @@ const navigation: NavItem[] = [
         title: 'Người dùng',
         href: '/settings/users',
         icon: Users,
-        roles: ['owner', 'super_admin'],
+        roles: ['owner'],
       },
       {
         title: 'Vai trò & Phân quyền',
         href: '/settings/roles',
         icon: Shield,
-        roles: ['owner', 'super_admin'],
+        roles: ['owner'],
       },
       {
         title: 'Thông báo',
@@ -327,25 +343,25 @@ const navigation: NavItem[] = [
         title: 'Tự động hóa',
         href: '/settings/workflows',
         icon: Zap,
-        roles: ['owner', 'hotel_manager', 'super_admin'],
+        roles: ['owner', 'hotel_manager'],
       },
       {
         title: 'Tích hợp & API',
         href: '/settings/integrations',
         icon: Plug,
-        roles: ['owner', 'super_admin'],
+        roles: ['owner'],
       },
       {
         title: 'Hệ thống & Bảo mật',
         href: '/settings/security',
         icon: Lock,
-        roles: ['owner', 'super_admin'],
+        roles: ['owner'],
       },
       {
         title: 'Kiểm thử hệ thống',
         href: '/settings/system-test',
         icon: TestTube2,
-        roles: ['owner', 'super_admin'],
+        roles: ['owner'],
       },
     ],
   },
