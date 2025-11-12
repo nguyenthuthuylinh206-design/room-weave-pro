@@ -26,6 +26,7 @@ import { RoomsPage } from "./pages/rooms/RoomsPage";
 import { RoomDetailPage } from "./pages/rooms/RoomDetailPage";
 import { RoomFormPage } from "./pages/rooms/RoomFormPage";
 import { RoomStandardsPage } from "./pages/rooms/RoomStandardsPage";
+import { RoomCheckPage } from "./pages/rooms/RoomCheckPage";
 import { LaundryDashboardPage } from "./pages/laundry/LaundryDashboardPage";
 import { LaundryBatchesPage } from "./pages/laundry/LaundryBatchesPage";
 import { CreateBatchPage } from "./pages/laundry/CreateBatchPage";
@@ -217,6 +218,7 @@ const router = createBrowserRouter([
       { path: "rooms/new", element: <RoomFormPage /> },
       { path: "rooms/:id", element: <RoomDetailPage /> },
       { path: "rooms/:id/edit", element: <RoomFormPage /> },
+      { path: "rooms/:id/check", element: <RoomCheckPage /> },
       { path: "rooms/standards", element: <RoomStandardsPage /> },
 
       // Laundry
