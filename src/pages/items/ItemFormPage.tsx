@@ -188,7 +188,7 @@ export function ItemFormPage() {
           await deleteItemImage.mutateAsync(img.id)
         }
         
-        // Add new images
+        // Add new images (chỉ thêm ảnh chưa có trong database)
         const newImages = images.filter(url => !existingImageUrls.includes(url))
         for (let i = 0; i < newImages.length; i++) {
           await addItemImage.mutateAsync({
@@ -199,6 +199,8 @@ export function ItemFormPage() {
           })
         }
       }
+      
+      toast.success(isEdit ? 'Đã cập nhật sản phẩm' : 'Đã tạo sản phẩm mới')
       
       navigate('/items')
     } catch (error) {
@@ -381,7 +383,7 @@ export function ItemFormPage() {
               maxImages={10}
             />
             <p className="mt-2 text-xs text-muted-foreground">
-              Ảnh sẽ được tự động resize về tối đa 1200x1200px và nén để tối ưu dung lượng (lưu riêng trong database). Tối đa 10 ảnh.
+              Ảnh sẽ được upload lên Supabase Storage. Tối đa 10 ảnh, mỗi ảnh không quá 5MB.
             </p>
           </CardContent>
         </Card>

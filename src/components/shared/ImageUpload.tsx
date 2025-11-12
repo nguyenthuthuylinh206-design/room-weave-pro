@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Upload, X, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { compressImage } from '@/lib/imageCompression'
 import { toast } from 'sonner'
+import { useImageUpload } from '@/hooks/useImageUpload'
+import { useUser } from '@/hooks/useUser'
 
 interface ImageUploadProps {
   images: string[]
@@ -13,7 +14,8 @@ interface ImageUploadProps {
 
 export function ImageUpload({ images, onChange, maxImages = 5, className }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
-  const [isCompressing, setIsCompressing] = useState(false)
+  const { tenantId } = useUser()
+  const { uploadImages, isUploading } = useImageUpload()
   
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -21,43 +23,33 @@ export function ImageUpload({ images, onChange, maxImages = 5, className }: Imag
   }
   
   const handleFiles = async (files: File[]) => {
+    if (!tenantId) {
+      toast.error('Không tìm thấy tenant ID')
+      return
+    }
+
     const remainingSlots = maxImages - images.length
     const filesToProcess = files.slice(0, remainingSlots)
     
     if (filesToProcess.length === 0) return
     
-    setIsCompressing(true)
-    const compressedImages: string[] = []
+    // Kiểm tra loại file
+    const imageFiles = filesToProcess.filter(file => {
+      if (!file.type.startsWith('image/')) {
+        toast.error(`${file.name} không phải là file ảnh`)
+        return false
+      }
+      return true
+    })
+
+    if (imageFiles.length === 0) return
+
+    // Upload lên Supabase Storage
+    const uploadedImages = await uploadImages(imageFiles, tenantId)
     
-    try {
-      for (const file of filesToProcess) {
-        // Kiểm tra loại file
-        if (!file.type.startsWith('image/')) {
-          toast.error(`${file.name} không phải là file ảnh`)
-          continue
-        }
-        
-        console.log(`Compressing ${file.name}, original size: ${file.size} bytes`)
-        
-        // Nén và resize ảnh: quality 0.7, max 1200x1200px
-        const compressed = await compressImage(file, 0.7, 1200, 1200)
-        
-        console.log(`Compressed ${file.name}, new size: ${compressed.length} bytes`)
-        compressedImages.push(compressed)
-      }
-      
-      const newImages = [...images, ...compressedImages]
-      console.log('Setting images:', newImages.length, 'total images')
-      onChange(newImages)
-      
-      if (compressedImages.length > 0) {
-        toast.success(`Đã tải lên ${compressedImages.length} ảnh (tối đa 1200x1200px)`)
-      }
-    } catch (error) {
-      console.error('Error compressing images:', error)
-      toast.error('Lỗi khi xử lý ảnh')
-    } finally {
-      setIsCompressing(false)
+    if (uploadedImages.length > 0) {
+      const imageUrls = uploadedImages.map(img => img.url)
+      onChange([...images, ...imageUrls])
     }
   }
   
@@ -109,10 +101,10 @@ export function ImageUpload({ images, onChange, maxImages = 5, className }: Imag
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={cn(
+            className={cn(
             'flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors',
             isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50',
-            isCompressing && 'pointer-events-none opacity-50'
+            isUploading && 'pointer-events-none opacity-50'
           )}
         >
           <input
@@ -122,20 +114,20 @@ export function ImageUpload({ images, onChange, maxImages = 5, className }: Imag
             onChange={handleFileInput}
             className="hidden"
             id="image-upload"
-            disabled={isCompressing}
+            disabled={isUploading}
           />
           <label htmlFor="image-upload" className="flex cursor-pointer flex-col items-center gap-2">
-            {isCompressing ? (
+            {isUploading ? (
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             ) : (
               <Upload className="h-8 w-8 text-muted-foreground" />
             )}
             <div className="text-center">
               <p className="text-sm font-medium">
-                {isCompressing ? 'Đang nén ảnh...' : 'Tải ảnh lên'}
+                {isUploading ? 'Đang tải ảnh lên...' : 'Tải ảnh lên'}
               </p>
               <p className="text-xs text-muted-foreground">
-                {isCompressing 
+                {isUploading 
                   ? 'Vui lòng đợi...' 
                   : `Kéo thả hoặc nhấp để chọn (${images.length}/${maxImages})`
                 }
