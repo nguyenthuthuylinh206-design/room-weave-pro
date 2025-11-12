@@ -4106,6 +4106,10 @@ export type Database = {
         }
         Returns: Json
       }
+      create_super_admin: {
+        Args: { p_email: string; p_full_name?: string }
+        Returns: Json
+      }
       generate_invoice_number: { Args: never; Returns: string }
       generate_unique_code: {
         Args: { column_name: string; prefix: string; table_name: string }
@@ -4512,7 +4516,7 @@ export type Database = {
       }
       get_top_items:
         | {
-            Args: { p_limit?: number; p_tenant_id: string }
+            Args: { p_hotel_id?: string; p_limit?: number; p_tenant_id: string }
             Returns: {
               category_color: string
               category_name: string
