@@ -69,12 +69,22 @@ export function ChangePlanDialog({
 
       if (error) throw error;
 
+      // Recalculate tenant usage to ensure quotas reflect new plan
+      const { error: usageError } = await supabase.rpc('update_tenant_usage', {
+        p_tenant_id: tenant.id,
+      });
+
+      if (usageError) {
+        console.error('Failed to update tenant usage:', usageError);
+      }
+
       toast({
         title: 'Plan Updated',
         description: `${tenant.name} has been switched to ${selectedPlan?.name}`,
       });
 
       queryClient.invalidateQueries({ queryKey: ['super-admin-tenants'] });
+      queryClient.invalidateQueries({ queryKey: ['tenant-usage', tenant.id] });
       onOpenChange(false);
     } catch (error: any) {
       toast({

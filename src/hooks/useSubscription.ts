@@ -194,6 +194,11 @@ export const useUpdateTenantSubscription = () => {
     }) => {
       if (!tenantId) throw new Error('Tenant ID not found')
 
+      const now = new Date()
+      const periodEnd = billingCycle === 'monthly'
+        ? new Date(now.setMonth(now.getMonth() + 1))
+        : new Date(now.setFullYear(now.getFullYear() + 1))
+
       const { data, error } = await supabase
         .from('tenants')
         .update({
@@ -201,22 +206,24 @@ export const useUpdateTenantSubscription = () => {
           subscription_status: 'active',
           billing_cycle: billingCycle,
           subscription_start_date: new Date().toISOString().split('T')[0],
-          subscription_end_date: billingCycle === 'monthly' 
-            ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-            : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          subscription_end_date: periodEnd.toISOString().split('T')[0],
           subscription_current_period_start: new Date().toISOString(),
-          subscription_current_period_end: billingCycle === 'monthly'
-            ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-            : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-          next_billing_date: billingCycle === 'monthly'
-            ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-            : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          subscription_current_period_end: periodEnd.toISOString(),
+          updated_at: new Date().toISOString(),
         })
         .eq('id', tenantId)
         .select()
         .single()
 
       if (error) throw error
+
+      // Recalculate tenant usage to ensure quotas reflect new plan
+      const { error: usageError } = await supabase.rpc('update_tenant_usage', {
+        p_tenant_id: tenantId,
+      })
+
+      if (usageError) console.error('Failed to update usage:', usageError)
+
       return data
     },
     onSuccess: () => {
