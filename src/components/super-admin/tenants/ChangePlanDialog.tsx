@@ -62,7 +62,6 @@ export function ChangePlanDialog({
           billing_cycle: billingCycle,
           subscription_current_period_start: new Date().toISOString(),
           subscription_current_period_end: periodEnd.toISOString(),
-          next_billing_date: periodEnd.toISOString(),
           subscription_status: 'active',
           updated_at: new Date().toISOString(),
         })
