@@ -165,16 +165,21 @@ export function useMaintenanceRequest(id: string) {
 export function useCreateMaintenanceRequest() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { user, tenantId, hotelId } = useUser()
+  const { user, tenantId } = useUser()
+  const { selectedHotel } = useHotelContext()
 
   return useMutation({
     mutationFn: async (data: any) => {
+      if (!selectedHotel?.id) {
+        throw new Error('Vui lòng chọn khách sạn')
+      }
+
       const { data: request, error } = await supabase
         .from('maintenance_requests')
         .insert({
           ...data,
           tenant_id: tenantId,
-          hotel_id: hotelId,
+          hotel_id: selectedHotel.id,
           reported_by: user?.id,
           reported_at: data.reported_at || new Date().toISOString(),
           status: data.assigned_to ? 'assigned' : 'pending',

@@ -7,6 +7,7 @@ import { useVendors } from '@/hooks/useVendors';
 import { useItems } from '@/hooks/useItems';
 import { useCreatePO } from '@/hooks/usePurchaseOrders';
 import { useUser } from '@/hooks/useUser';
+import { useHotelContext } from '@/contexts/HotelContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -93,7 +94,8 @@ const POForm: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const preselectedVendorId = searchParams.get('vendor');
-  const { user } = useUser();
+  const { user, tenantId } = useUser();
+  const { selectedHotel, isAllHotelsMode } = useHotelContext();
 
   const [step, setStep] = useState(1);
   const [selectedVendor, setSelectedVendor] = useState<any>(null);
@@ -189,9 +191,28 @@ const POForm: React.FC = () => {
       return;
     }
 
+    // Prevent creation when in All Hotels mode
+    if (isAllHotelsMode) {
+      toast.error('Vui lòng chọn một khách sạn cụ thể trước khi tạo đơn hàng');
+      return;
+    }
+
+    // Check if hotel is selected
+    if (!selectedHotel?.id) {
+      toast.error('Vui lòng chọn khách sạn trước khi tạo đơn hàng');
+      return;
+    }
+
+    if (!tenantId) {
+      toast.error('Thiếu thông tin tenant');
+      return;
+    }
+
     try {
       const poData = {
         ...data,
+        tenant_id: tenantId,
+        hotel_id: selectedHotel.id,
         items: cart.map(item => ({
           item_id: item.item_id,
           quantity_ordered: item.quantity,

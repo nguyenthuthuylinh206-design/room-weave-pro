@@ -73,7 +73,8 @@ export function useLaundryBatch(batchId: string | undefined) {
 
 export function useCreateLaundryBatch() {
   const queryClient = useQueryClient()
-  const { tenantId, hotelId } = useUser()
+  const { tenantId } = useUser()
+  const { selectedHotel } = useHotelContext()
   
   return useMutation({
     mutationFn: async ({
@@ -85,6 +86,10 @@ export function useCreateLaundryBatch() {
       step2: CreateBatchStep2Data
       step3: CreateBatchStep3Data
     }) => {
+      if (!tenantId || !selectedHotel?.id) {
+        throw new Error('Thiếu thông tin tenant hoặc hotel')
+      }
+
       // Calculate totals
       const totalItems = step2.items.reduce((sum, item) => sum + item.quantity, 0)
       const totalWeight = step2.items.reduce((sum, item) => sum + item.weight_kg, 0)
@@ -102,8 +107,8 @@ export function useCreateLaundryBatch() {
       
       // 1. Create batch
       const batchData: any = {
-        tenant_id: tenantId!,
-        hotel_id: hotelId!,
+        tenant_id: tenantId,
+        hotel_id: selectedHotel.id,
         vendor_id: step1.vendor_id,
         delivery_date: step1.delivery_date.toISOString(),
         expected_return_date: step1.expected_return_date.toISOString(),

@@ -15,6 +15,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { useRoom, useCreateRoom, useUpdateRoom } from '@/hooks/useRooms'
 import { useUser } from '@/hooks/useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
+import { HotelBadge } from '@/components/layout/HotelBadge'
+import { toast } from 'sonner'
 
 const roomSchema = z.object({
   room_number: z.string().min(1, 'Số phòng là bắt buộc'),
@@ -38,7 +43,8 @@ export function RoomFormPage() {
   const navigate = useNavigate()
   const isEdit = !!id
 
-  const { tenantId, hotelId } = useUser()
+  const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const { data: room, isLoading: roomLoading } = useRoom(id)
   const createRoom = useCreateRoom()
   const updateRoom = useUpdateRoom()
@@ -80,6 +86,18 @@ export function RoomFormPage() {
   }, [room, isEdit, setValue])
 
   const onSubmit = async (data: RoomFormData) => {
+    // Prevent creation when in All Hotels mode
+    if (isAllHotelsMode) {
+      toast.error('Vui lòng chọn một khách sạn cụ thể trước khi tạo phòng')
+      return
+    }
+
+    // Check if hotel is selected
+    if (!selectedHotel?.id) {
+      toast.error('Vui lòng chọn khách sạn trước khi tạo phòng')
+      return
+    }
+
     // Check quota for new rooms
     if (!isEdit && !quotaCheck.checkQuota()) {
       return
@@ -98,7 +116,7 @@ export function RoomFormPage() {
         await createRoom.mutateAsync({
           ...data,
           tenant_id: tenantId,
-          hotel_id: hotelId,
+          hotel_id: selectedHotel.id,
           status: 'vacant',
           amenities: [],
         })
@@ -133,18 +151,38 @@ export function RoomFormPage() {
       />
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/rooms')}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold">
-            {isEdit ? 'Chỉnh sửa phòng' : 'Thêm phòng mới'}
-          </h1>
-          <p className="text-muted-foreground">
-            {isEdit ? 'Cập nhật thông tin phòng' : 'Nhập thông tin phòng mới'}
-          </p>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/rooms')}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold">
+              {isEdit ? 'Chỉnh sửa phòng' : 'Thêm phòng mới'}
+            </h1>
+            <p className="text-muted-foreground">
+              {isEdit ? 'Cập nhật thông tin phòng' : 'Nhập thông tin phòng mới'}
+            </p>
+          </div>
+          <HotelBadge />
         </div>
-      </div>
+
+        {/* Alert for All Hotels Mode */}
+        {isAllHotelsMode && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Bạn đang ở chế độ xem tất cả khách sạn. Vui lòng chọn một khách sạn cụ thể để tạo phòng mới.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {!isAllHotelsMode && !selectedHotel && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Chưa chọn khách sạn. Vui lòng chọn khách sạn từ menu trên cùng.
+            </AlertDescription>
+          </Alert>
+        )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <Card>
@@ -326,7 +364,10 @@ export function RoomFormPage() {
           <Button type="button" variant="outline" onClick={() => navigate('/rooms')}>
             Hủy
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button 
+            type="submit" 
+            disabled={isSubmitting || isAllHotelsMode || !selectedHotel}
+          >
             <Save className="w-4 h-4 mr-2" />
             {isSubmitting ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Tạo mới'}
           </Button>

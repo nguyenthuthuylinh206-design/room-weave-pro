@@ -17,6 +17,10 @@ import { useItem, useCreateItem, useUpdateItem } from '@/hooks/useItems'
 import { useItemImages, useAddItemImage, useDeleteItemImage } from '@/hooks/useItemImages'
 import { useCategories } from '@/hooks/useCategories'
 import { useUser } from '@/hooks/useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
+import { HotelBadge } from '@/components/layout/HotelBadge'
 import { toast } from 'sonner'
 
 const itemSchema = z.object({
@@ -48,7 +52,8 @@ export function ItemFormPage() {
   const isEdit = !!id
   const copyFrom = location.state?.copyFrom
 
-  const { tenantId, hotelId } = useUser()
+  const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const { data: itemData, isLoading: itemLoading } = useItem(id)
   const item = itemData?.item // Extract item from response structure
   const { data: itemImages = [] } = useItemImages(id)
@@ -138,6 +143,18 @@ export function ItemFormPage() {
   }, [itemImages])
 
   const onSubmit = async (data: ItemFormData) => {
+    // Prevent creation when in All Hotels mode
+    if (isAllHotelsMode) {
+      toast.error('Vui lòng chọn một khách sạn cụ thể trước khi tạo sản phẩm')
+      return
+    }
+
+    // Check if hotel is selected
+    if (!selectedHotel?.id) {
+      toast.error('Vui lòng chọn khách sạn trước khi tạo sản phẩm')
+      return
+    }
+
     // Check quota for new items
     if (!isEdit && !quotaCheck.checkQuota()) {
       return
@@ -165,7 +182,7 @@ export function ItemFormPage() {
         const result = await createItem.mutateAsync({
           ...itemDataWithoutImages,
           tenant_id: tenantId,
-          hotel_id: hotelId,
+          hotel_id: selectedHotel.id,
           quantity_total: 0,
           quantity_in_stock: 0,
           quantity_in_use: 0,
@@ -233,18 +250,38 @@ export function ItemFormPage() {
       />
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/items')}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold">
-            {isEdit ? 'Chỉnh sửa tài sản' : 'Thêm tài sản mới'}
-          </h1>
-          <p className="text-muted-foreground">
-            {isEdit ? 'Cập nhật thông tin tài sản' : 'Nhập thông tin tài sản mới'}
-          </p>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/items')}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold">
+              {isEdit ? 'Chỉnh sửa tài sản' : 'Thêm tài sản mới'}
+            </h1>
+            <p className="text-muted-foreground">
+              {isEdit ? 'Cập nhật thông tin tài sản' : 'Nhập thông tin tài sản mới'}
+            </p>
+          </div>
+          <HotelBadge />
         </div>
-      </div>
+
+        {/* Alert for All Hotels Mode */}
+        {isAllHotelsMode && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Bạn đang ở chế độ xem tất cả khách sạn. Vui lòng chọn một khách sạn cụ thể để tạo sản phẩm mới.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {!isAllHotelsMode && !selectedHotel && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Chưa chọn khách sạn. Vui lòng chọn khách sạn từ menu trên cùng.
+            </AlertDescription>
+          </Alert>
+        )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <Card>
@@ -421,7 +458,10 @@ export function ItemFormPage() {
           <Button type="button" variant="outline" onClick={() => navigate('/items')}>
             Hủy
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button 
+            type="submit" 
+            disabled={isSubmitting || isAllHotelsMode || !selectedHotel}
+          >
             <Save className="w-4 h-4 mr-2" />
             {isSubmitting ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Tạo mới'}
           </Button>
