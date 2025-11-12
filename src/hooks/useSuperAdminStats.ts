@@ -40,6 +40,131 @@ export function useSuperAdminStats() {
       if (error) throw error
       return data as unknown as SuperAdminStats
     },
+    refetchInterval: 300000, // Refetch every 5 minutes
+  })
+}
+
+export function useDailyMetrics(startDate: string, endDate: string) {
+  return useQuery({
+    queryKey: ['daily-metrics', startDate, endDate],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payment_transactions')
+        .select('payment_date, amount')
+        .eq('payment_status', 'completed')
+        .gte('payment_date', startDate)
+        .lte('payment_date', endDate)
+        .order('payment_date', { ascending: true })
+
+      if (error) throw error
+      return data as Array<{ payment_date: string; amount: number }>
+    },
+  })
+}
+
+export function useRevenueByPlan() {
+  return useQuery({
+    queryKey: ['revenue-by-plan'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tenants')
+        .select(`
+          subscription_plan_id,
+          subscription_plan:subscription_plans(name, price_monthly, price_yearly),
+          billing_cycle
+        `)
+        .eq('subscription_status', 'active') as any
+
+      if (error) throw error
+
+      const revenueByPlan = (data || []).reduce((acc: any, tenant: any) => {
+        const planId = tenant.subscription_plan_id
+        const planName = tenant.subscription_plan?.name
+        const revenue = tenant.billing_cycle === 'yearly'
+          ? tenant.subscription_plan?.price_yearly
+          : tenant.subscription_plan?.price_monthly
+
+        if (!acc[planId]) {
+          acc[planId] = {
+            planName,
+            totalRevenue: 0,
+            tenantCount: 0,
+          }
+        }
+
+        acc[planId].totalRevenue += revenue || 0
+        acc[planId].tenantCount += 1
+
+        return acc
+      }, {})
+
+      return Object.values(revenueByPlan)
+    },
+  })
+}
+
+export function useTenantGrowth(days: number = 30) {
+  return useQuery({
+    queryKey: ['tenant-growth', days],
+    queryFn: async () => {
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - days)
+
+      const { data, error } = await supabase
+        .from('tenants')
+        .select('created_at')
+        .gte('created_at', startDate.toISOString())
+        .neq('id', '00000000-0000-0000-0000-000000000000')
+        .order('created_at', { ascending: true })
+
+      if (error) throw error
+
+      const growthByDate = data.reduce((acc: any, tenant: any) => {
+        const date = new Date(tenant.created_at).toISOString().split('T')[0]
+        acc[date] = (acc[date] || 0) + 1
+        return acc
+      }, {})
+
+      return Object.entries(growthByDate).map(([date, count]) => ({
+        date,
+        newTenants: count,
+      }))
+    },
+  })
+}
+
+export function useChurnRate(days: number = 30) {
+  return useQuery({
+    queryKey: ['churn-rate', days],
+    queryFn: async () => {
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - days)
+
+      const { count: startCount, error: startError } = await supabase
+        .from('tenants')
+        .select('*', { count: 'exact', head: true })
+        .eq('subscription_status', 'active')
+        .lte('created_at', startDate.toISOString())
+
+      if (startError) throw startError
+
+      const { count: churnedCount, error: churnError } = await supabase
+        .from('tenants')
+        .select('*', { count: 'exact', head: true })
+        .in('subscription_status', ['cancelled', 'suspended'])
+        .gte('cancelled_at', startDate.toISOString())
+
+      if (churnError) throw churnError
+
+      const churnRate = startCount && startCount > 0
+        ? ((churnedCount || 0) / startCount) * 100
+        : 0
+
+      return {
+        churnedTenants: churnedCount || 0,
+        churnRate: churnRate.toFixed(2),
+      }
+    },
   })
 }
 

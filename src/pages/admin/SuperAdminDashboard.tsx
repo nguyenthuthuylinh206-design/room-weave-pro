@@ -4,7 +4,7 @@ import { TenantStatsCards } from '@/components/admin/TenantStatsCards'
 import { RevenueChart } from '@/components/admin/RevenueChart'
 import { SubscriptionDistributionChart } from '@/components/admin/SubscriptionDistributionChart'
 import { TenantListTable } from '@/components/admin/TenantListTable'
-import { TestEmailNotifications } from '@/components/admin/TestEmailNotifications'
+import { SuperAdminQuickActions } from '@/components/admin/SuperAdminQuickActions'
 import { useSuperAdminStats } from '@/hooks/useSuperAdminStats'
 import { useUser } from '@/hooks/useUser'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
@@ -59,6 +59,8 @@ export function SuperAdminDashboard() {
       </div>
 
       <TenantStatsCards stats={stats} />
+
+      <SuperAdminQuickActions />
 
       <div className="grid gap-6 md:grid-cols-2">
         <RevenueChart />
