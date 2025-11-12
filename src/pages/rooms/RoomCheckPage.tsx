@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { Form } from '@/components/ui/form'
 import { useRoom } from '@/hooks/useRooms'
 import { useCreateRoomCheck } from '@/hooks/useRoomChecks'
 import { useUser } from '@/hooks/useUser'
@@ -123,34 +124,36 @@ export function RoomCheckPage() {
         </CardHeader>
         
         <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {currentStep === 1 && <CheckTypeStep form={form} />}
-            {currentStep === 2 && <ItemsCheckStep form={form} items={items} />}
-            {currentStep === 3 && <ReviewStep form={form} room={room} />}
-            
-            <div className="flex items-center justify-between pt-6 border-t">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={currentStep === 1 ? () => navigate(`/rooms/${id}`) : handleBack}
-              >
-                <ChevronLeft className="mr-2 h-4 w-4" />
-                {currentStep === 1 ? 'Hủy' : 'Quay lại'}
-              </Button>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {currentStep === 1 && <CheckTypeStep form={form} />}
+              {currentStep === 2 && <ItemsCheckStep form={form} items={items} />}
+              {currentStep === 3 && <ReviewStep form={form} room={room} />}
               
-              {currentStep < totalSteps ? (
-                <Button type="button" onClick={handleNext}>
-                  Tiếp theo
-                  <ChevronRight className="ml-2 h-4 w-4" />
+              <div className="flex items-center justify-between pt-6 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={currentStep === 1 ? () => navigate(`/rooms/${id}`) : handleBack}
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  {currentStep === 1 ? 'Hủy' : 'Quay lại'}
                 </Button>
-              ) : (
-                <Button type="submit" disabled={createCheck.isPending}>
-                  <Check className="mr-2 h-4 w-4" />
-                  {createCheck.isPending ? 'Đang lưu...' : 'Hoàn thành'}
-                </Button>
-              )}
-            </div>
-          </form>
+                
+                {currentStep < totalSteps ? (
+                  <Button type="button" onClick={handleNext}>
+                    Tiếp theo
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button type="submit" disabled={createCheck.isPending}>
+                    <Check className="mr-2 h-4 w-4" />
+                    {createCheck.isPending ? 'Đang lưu...' : 'Hoàn thành'}
+                  </Button>
+                )}
+              </div>
+            </form>
+          </Form>
         </CardContent>
       </Card>
     </div>
