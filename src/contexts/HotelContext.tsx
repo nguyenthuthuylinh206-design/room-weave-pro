@@ -52,12 +52,15 @@ export function HotelProvider({ children }: { children: ReactNode }) {
 
       const { error } = await supabase
         .from('user_preferences')
-        .upsert({
-          user_id: userId,
-          current_hotel_id: isAllHotels ? null : newHotelId,
-          preferences: { is_all_hotels_mode: isAllHotels },
-          updated_at: new Date().toISOString(),
-        })
+        .upsert(
+          {
+            user_id: userId,
+            current_hotel_id: isAllHotels ? null : newHotelId,
+            preferences: { is_all_hotels_mode: isAllHotels },
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id' }
+        )
 
       if (error) throw error
     },

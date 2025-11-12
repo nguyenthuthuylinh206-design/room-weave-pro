@@ -234,8 +234,12 @@ export function useCreateItem() {
       if (error) throw error
       return item
     },
-    onSuccess: () => {
+    onSuccess: (item) => {
+      // Invalidate items queries for the specific hotel
       queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['check-quota'] })
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
       toast({
         title: 'Thành công',
         description: 'Đã thêm tài sản mới',
@@ -266,9 +270,12 @@ export function useUpdateItem() {
       if (error) throw error
       return item
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (item, variables) => {
+      // Invalidate all related queries
       queryClient.invalidateQueries({ queryKey: ['items'] })
       queryClient.invalidateQueries({ queryKey: ['item', variables.id] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
       toast({
         title: 'Thành công',
         description: 'Đã cập nhật tài sản',
