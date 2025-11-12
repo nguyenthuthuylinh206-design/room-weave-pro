@@ -65,11 +65,16 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
         
         const { error } = await supabase
           .from('user_preferences')
-          .upsert({
-            user_id: user.id,
-            preferences: { ...preferences, language: lng },
-            updated_at: new Date().toISOString(),
-          });
+          .upsert(
+            {
+              user_id: user.id,
+              preferences: { ...preferences, language: lng },
+              updated_at: new Date().toISOString(),
+            },
+            {
+              onConflict: 'user_id',
+            }
+          );
 
         if (error) throw error;
       }
