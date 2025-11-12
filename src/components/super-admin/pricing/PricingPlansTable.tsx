@@ -28,16 +28,22 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, ArrowUpDown, Plus } from 'lucide-react';
-import { usePlansWithTenantCounts } from '@/hooks/super-admin/usePricingManagement';
+import { usePlansWithTenantCounts, useArchivePlan, useReactivatePlan } from '@/hooks/super-admin/usePricingManagement';
 import { PricingEditor } from './PricingEditor';
+import { PlanEditor } from './PlanEditor';
+import { CreatePlanDialog } from './CreatePlanDialog';
 import type { SubscriptionPlan } from '@/types/subscription.types';
 
 export function PricingPlansTable() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
-  const [editorOpen, setEditorOpen] = useState(false);
+  const [pricingEditorOpen, setPricingEditorOpen] = useState(false);
+  const [planEditorOpen, setPlanEditorOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const { data: plans = [], isLoading } = usePlansWithTenantCounts();
+  const archivePlan = useArchivePlan();
+  const reactivatePlan = useReactivatePlan();
 
   const columns: ColumnDef<SubscriptionPlan & { tenant_count?: number }>[] = [
     {
@@ -133,14 +139,30 @@ export function PricingPlansTable() {
               <DropdownMenuItem
                 onClick={() => {
                   setSelectedPlan(plan);
-                  setEditorOpen(true);
+                  setPlanEditorOpen(true);
                 }}
               >
-                Edit Pricing
+                Edit Plan Details
               </DropdownMenuItem>
-              <DropdownMenuItem>Edit Features</DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setSelectedPlan(plan);
+                  setPricingEditorOpen(true);
+                }}
+              >
+                Edit Pricing Only
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-orange-600">
+              <DropdownMenuItem
+                className="text-orange-600"
+                onClick={async () => {
+                  if (plan.is_active) {
+                    await archivePlan.mutateAsync(plan.id);
+                  } else {
+                    await reactivatePlan.mutateAsync(plan.id);
+                  }
+                }}
+              >
                 {plan.is_active ? 'Archive Plan' : 'Reactivate Plan'}
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -171,7 +193,7 @@ export function PricingPlansTable() {
           <h2 className="text-2xl font-bold">Subscription Plans</h2>
           <p className="text-muted-foreground">Manage pricing and plan features</p>
         </div>
-        <Button>
+        <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Create Plan
         </Button>
@@ -249,11 +271,22 @@ export function PricingPlansTable() {
         </div>
       </div>
 
-      {/* Pricing Editor */}
+      {/* Dialogs */}
       <PricingEditor
         plan={selectedPlan}
-        open={editorOpen}
-        onOpenChange={setEditorOpen}
+        open={pricingEditorOpen}
+        onOpenChange={setPricingEditorOpen}
+      />
+      
+      <PlanEditor
+        plan={selectedPlan}
+        open={planEditorOpen}
+        onOpenChange={setPlanEditorOpen}
+      />
+      
+      <CreatePlanDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
       />
     </div>
   );
