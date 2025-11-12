@@ -1,4 +1,4 @@
-import { PromoCodesTable } from '@/components/admin/PromoCodesTable';
+import { PromoCodesTable } from '@/components/super-admin/promo-codes/PromoCodesTable';
 import { Shield } from 'lucide-react';
 
 export function PromoCodesPage() {

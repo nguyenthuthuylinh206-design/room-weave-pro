@@ -1,4 +1,4 @@
-import { MarketingCampaignsTable } from '@/components/admin/MarketingCampaignsTable';
+import { CampaignsTable } from '@/components/super-admin/campaigns/CampaignsTable';
 import { Shield } from 'lucide-react';
 
 export function MarketingCampaignsPage() {
@@ -16,7 +16,7 @@ export function MarketingCampaignsPage() {
         </div>
       </div>
 
-      <MarketingCampaignsTable />
+      <CampaignsTable />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { RenewalRemindersTable } from '@/components/admin/RenewalRemindersTable';
+import { RemindersTable } from '@/components/super-admin/reminders/RemindersTable';
 import { Shield } from 'lucide-react';
 
 export function RenewalRemindersPage() {
@@ -16,7 +16,7 @@ export function RenewalRemindersPage() {
         </div>
       </div>
 
-      <RenewalRemindersTable />
+      <RemindersTable />
     </div>
   );
 }
