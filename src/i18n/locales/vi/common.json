@@ -1,0 +1,65 @@
+{
+  "app": {
+    "name": "Hệ thống Quản lý Khách sạn",
+    "welcome": "Chào mừng"
+  },
+  "actions": {
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "delete": "Xóa",
+    "edit": "Sửa",
+    "add": "Thêm",
+    "create": "Tạo mới",
+    "update": "Cập nhật",
+    "search": "Tìm kiếm",
+    "filter": "Lọc",
+    "export": "Xuất",
+    "import": "Nhập",
+    "refresh": "Làm mới",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "previous": "Trước",
+    "submit": "Gửi",
+    "close": "Đóng",
+    "view": "Xem",
+    "download": "Tải xuống"
+  },
+  "navigation": {
+    "dashboard": "Tổng quan",
+    "inventory": "Kho",
+    "items": "Tài sản",
+    "rooms": "Phòng",
+    "laundry": "Giặt là",
+    "maintenance": "Bảo trì",
+    "vendors": "Nhà cung cấp",
+    "purchaseOrders": "Đơn mua hàng",
+    "reports": "Báo cáo",
+    "settings": "Cài đặt",
+    "users": "Người dùng",
+    "hotels": "Khách sạn",
+    "profile": "Hồ sơ"
+  },
+  "status": {
+    "active": "Hoạt động",
+    "inactive": "Không hoạt động",
+    "pending": "Chờ xử lý",
+    "completed": "Hoàn thành",
+    "cancelled": "Đã hủy",
+    "processing": "Đang xử lý"
+  },
+  "messages": {
+    "success": "Thành công",
+    "error": "Lỗi",
+    "loading": "Đang tải...",
+    "noData": "Không có dữ liệu",
+    "confirmDelete": "Bạn có chắc chắn muốn xóa?",
+    "deleteSuccess": "Xóa thành công",
+    "saveSuccess": "Lưu thành công",
+    "updateSuccess": "Cập nhật thành công"
+  },
+  "language": {
+    "select": "Chọn ngôn ngữ",
+    "english": "English",
+    "vietnamese": "Tiếng Việt"
+  }
+}

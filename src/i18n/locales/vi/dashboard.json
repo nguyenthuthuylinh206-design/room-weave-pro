@@ -1,0 +1,19 @@
+{
+  "welcome": "Chào mừng trở lại",
+  "overview": "Tổng quan hệ thống",
+  "stats": {
+    "totalAssets": "Tổng giá trị tài sản",
+    "totalItems": "Tổng số tài sản",
+    "inLaundry": "Tài sản đang giặt",
+    "lowStock": "Cảnh báo tồn kho thấp"
+  },
+  "quickActions": {
+    "title": "Thao tác nhanh",
+    "inbound": "Nhập kho",
+    "outbound": "Xuất kho",
+    "createBatch": "Tạo lô giặt",
+    "addItem": "Thêm tài sản"
+  },
+  "recentActivity": "Hoạt động gần đây",
+  "topItems": "Tài sản hàng đầu"
+}

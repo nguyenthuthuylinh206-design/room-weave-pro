@@ -1,0 +1,65 @@
+{
+  "app": {
+    "name": "Hotel Management System",
+    "welcome": "Welcome"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "create": "Create",
+    "update": "Update",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "refresh": "Refresh",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "close": "Close",
+    "view": "View",
+    "download": "Download"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "inventory": "Inventory",
+    "items": "Items",
+    "rooms": "Rooms",
+    "laundry": "Laundry",
+    "maintenance": "Maintenance",
+    "vendors": "Vendors",
+    "purchaseOrders": "Purchase Orders",
+    "reports": "Reports",
+    "settings": "Settings",
+    "users": "Users",
+    "hotels": "Hotels",
+    "profile": "Profile"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "processing": "Processing"
+  },
+  "messages": {
+    "success": "Success",
+    "error": "Error",
+    "loading": "Loading...",
+    "noData": "No data available",
+    "confirmDelete": "Are you sure you want to delete?",
+    "deleteSuccess": "Deleted successfully",
+    "saveSuccess": "Saved successfully",
+    "updateSuccess": "Updated successfully"
+  },
+  "language": {
+    "select": "Select Language",
+    "english": "English",
+    "vietnamese": "Tiếng Việt"
+  }
+}

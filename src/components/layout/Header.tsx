@@ -1,6 +1,7 @@
 import { Menu, Bell, Moon, Sun, LogOut, Settings, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTheme } from '@/hooks/useTheme'
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,6 +60,9 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
 
       {/* Right Side Actions */}
       <div className="flex items-center gap-2">
+        {/* Language Switcher */}
+        <LanguageSwitcher />
+
         {/* Theme Toggle */}
         <Button
           variant="ghost"

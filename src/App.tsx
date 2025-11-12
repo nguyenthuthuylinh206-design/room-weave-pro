@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,6 +6,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { HotelProvider } from "@/contexts/HotelContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import "@/i18n/config";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
@@ -426,17 +430,29 @@ const router = createBrowserRouter([
   { path: "*", element: <NotFound /> },
 ]);
 
+function LoadingFallback() {
+  return (
+    <div className="flex h-screen items-center justify-center bg-background">
+      <LoadingSpinner size="lg" />
+    </div>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="system" storageKey="hotel-theme">
-      <HotelProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <RouterProvider router={router} />
-        </TooltipProvider>
-      </HotelProvider>
-    </ThemeProvider>
+    <Suspense fallback={<LoadingFallback />}>
+      <LanguageProvider>
+        <ThemeProvider defaultTheme="system" storageKey="hotel-theme">
+          <HotelProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <RouterProvider router={router} />
+            </TooltipProvider>
+          </HotelProvider>
+        </ThemeProvider>
+      </LanguageProvider>
+    </Suspense>
   </QueryClientProvider>
 );
 

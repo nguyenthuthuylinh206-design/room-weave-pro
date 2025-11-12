@@ -1,0 +1,19 @@
+{
+  "welcome": "Welcome back",
+  "overview": "System Overview",
+  "stats": {
+    "totalAssets": "Total Asset Value",
+    "totalItems": "Total Items",
+    "inLaundry": "Items in Laundry",
+    "lowStock": "Low Stock Alerts"
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "inbound": "Inbound",
+    "outbound": "Outbound",
+    "createBatch": "Create Batch",
+    "addItem": "Add Item"
+  },
+  "recentActivity": "Recent Activity",
+  "topItems": "Top Items"
+}
