@@ -29,11 +29,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, ArrowUpDown, Building2, Users, AlertCircle } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Building2, Users, AlertCircle, Receipt } from 'lucide-react';
 import { useTenants, useSuspendTenant, useReactivateTenant, useDeleteTenant } from '@/hooks/super-admin/useTenants';
 import { TenantDetailsDialog } from './TenantDetailsDialog';
 import { ChangePlanDialog } from './ChangePlanDialog';
 import { DeleteTenantDialog } from './DeleteTenantDialog';
+import { TenantBillingDialog } from './TenantBillingDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -66,6 +67,7 @@ export function TenantsTable({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [changePlanOpen, setChangePlanOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [billingDialogOpen, setBillingDialogOpen] = useState(false);
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
   const [tenantToSuspend, setTenantToSuspend] = useState<any | null>(null);
 
@@ -286,6 +288,15 @@ export function TenantsTable({
               <DropdownMenuItem
                 onClick={() => {
                   setSelectedTenant(tenant);
+                  setBillingDialogOpen(true);
+                }}
+              >
+                <Receipt className="h-4 w-4 mr-2" />
+                View Billing
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setSelectedTenant(tenant);
                   setChangePlanOpen(true);
                 }}
               >
@@ -421,6 +432,12 @@ export function TenantsTable({
         tenant={selectedTenant}
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
+      />
+      
+      <TenantBillingDialog
+        tenant={selectedTenant}
+        open={billingDialogOpen}
+        onOpenChange={setBillingDialogOpen}
       />
       
       <ChangePlanDialog
