@@ -1,31 +1,17 @@
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useRevenueByMonth } from '@/hooks/useSuperAdminStats';
-import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { formatCurrency } from '@/lib/utils';
 
 export function MRRChart() {
-  const { data, isLoading, error } = useRevenueByMonth(6);
+  const { data: revenue, isLoading } = useRevenueByMonth(6);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <LoadingSpinner />
-      </div>
-    );
+    return <Skeleton className="h-64 w-full" />;
   }
 
-  if (error) {
+  if (!revenue || revenue.length === 0) {
     return (
-      <Alert variant="destructive">
-        <AlertDescription>Failed to load MRR data</AlertDescription>
-      </Alert>
-    );
-  }
-
-  if (!data || data.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
+      <div className="h-64 flex items-center justify-center text-muted-foreground">
         No MRR data available
       </div>
     );
@@ -33,13 +19,7 @@ export function MRRChart() {
 
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <AreaChart data={data}>
-        <defs>
-          <linearGradient id="mrrGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-          </linearGradient>
-        </defs>
+      <LineChart data={revenue}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
         <XAxis 
           dataKey="month" 
@@ -47,24 +27,25 @@ export function MRRChart() {
         />
         <YAxis 
           className="text-xs text-muted-foreground"
-          tickFormatter={(value) => formatCurrency(value)}
+          tickFormatter={(value) => `$${value.toLocaleString()}`}
         />
         <Tooltip 
-          formatter={(value: number) => formatCurrency(value)}
+          formatter={(value: number) => `$${value.toLocaleString()}`}
           contentStyle={{
             backgroundColor: 'hsl(var(--card))',
             border: '1px solid hsl(var(--border))',
             borderRadius: '0.5rem',
           }}
         />
-        <Area 
+        <Line 
           type="monotone" 
           dataKey="revenue" 
           stroke="hsl(var(--primary))" 
           strokeWidth={2}
-          fill="url(#mrrGradient)"
+          dot={{ fill: 'hsl(var(--primary))', r: 4 }}
+          activeDot={{ r: 6 }}
         />
-      </AreaChart>
+      </LineChart>
     </ResponsiveContainer>
   );
 }
