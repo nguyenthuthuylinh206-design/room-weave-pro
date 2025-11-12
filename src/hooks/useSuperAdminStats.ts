@@ -2,15 +2,32 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 
 export interface SuperAdminStats {
+  // Tenants
   total_tenants: number
   active_tenants: number
   trial_tenants: number
   suspended_tenants: number
-  expiring_soon_count: number
-  monthly_revenue: number
+  expiring_7_days: number
+  expiring_today: number
+  in_grace_period: number
+  
+  // Revenue
+  revenue_today: number
+  revenue_this_month: number
+  revenue_last_month: number
+  mrr: number
+  
+  // Growth
+  new_signups_today: number
   new_signups_this_month: number
-  total_users: number
-  total_hotels: number
+  churned_this_month: number
+  
+  // Campaigns
+  active_campaigns: number
+  active_promo_codes: number
+  
+  // Actions
+  pending_renewal_reminders: number
 }
 
 export function useSuperAdminStats() {

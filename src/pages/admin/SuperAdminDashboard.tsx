@@ -1,30 +1,29 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PageHeader } from '@/components/shared/PageHeader'
 import { TenantStatsCards } from '@/components/admin/TenantStatsCards'
 import { RevenueChart } from '@/components/admin/RevenueChart'
 import { SubscriptionDistributionChart } from '@/components/admin/SubscriptionDistributionChart'
 import { TenantListTable } from '@/components/admin/TenantListTable'
 import { TestEmailNotifications } from '@/components/admin/TestEmailNotifications'
 import { useSuperAdminStats } from '@/hooks/useSuperAdminStats'
-import { useAuth } from '@/hooks/useAuth'
+import { useUser } from '@/hooks/useUser'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Shield, AlertTriangle } from 'lucide-react'
 
 export function SuperAdminDashboard() {
-  const { user, loading: authLoading } = useAuth()
+  const { role, isLoading: userLoading } = useUser()
   const navigate = useNavigate()
   const { data: stats, isLoading: statsLoading } = useSuperAdminStats()
 
   useEffect(() => {
     // Check if user is super admin
-    if (!authLoading && user && user.role !== 'super_admin') {
+    if (!userLoading && role && role !== 'super_admin') {
       navigate('/dashboard')
     }
-  }, [user, authLoading, navigate])
+  }, [role, userLoading, navigate])
 
-  if (authLoading || statsLoading) {
+  if (userLoading || statsLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <LoadingSpinner size="lg" />
@@ -32,7 +31,7 @@ export function SuperAdminDashboard() {
     )
   }
 
-  if (!user || user.role !== 'super_admin') {
+  if (!role || role !== 'super_admin') {
     return (
       <div className="container mx-auto p-6">
         <Alert variant="destructive">
@@ -54,7 +53,7 @@ export function SuperAdminDashboard() {
         <div>
           <h1 className="text-3xl font-bold">Super Admin Dashboard</h1>
           <p className="text-muted-foreground">
-            Tổng quan toàn hệ thống, quản lý tenant và doanh thu
+            Quản lý SaaS Platform - Tenants, Subscriptions & Marketing
           </p>
         </div>
       </div>
@@ -64,10 +63,6 @@ export function SuperAdminDashboard() {
       <div className="grid gap-6 md:grid-cols-2">
         <RevenueChart />
         <SubscriptionDistributionChart />
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <TestEmailNotifications />
       </div>
 
       <TenantListTable />

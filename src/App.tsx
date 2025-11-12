@@ -78,6 +78,9 @@ import RolesManagementPage from "./pages/settings/RolesManagementPage";
 import PermissionManagementPage from "./pages/settings/PermissionManagementPage";
 import IntegrationsPage from "./pages/settings/IntegrationsPage";
 import { SuperAdminDashboard } from "./pages/admin/SuperAdminDashboard";
+import { PromoCodesPage } from "./pages/admin/PromoCodesPage";
+import { MarketingCampaignsPage } from "./pages/admin/MarketingCampaignsPage";
+import { RenewalRemindersPage } from "./pages/admin/RenewalRemindersPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -127,6 +130,30 @@ const router = createBrowserRouter([
         element: (
           <RoleGuard allowedRoles={['super_admin']}>
             <SuperAdminDashboard />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "admin/promo-codes",
+        element: (
+          <RoleGuard allowedRoles={['super_admin']}>
+            <PromoCodesPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "admin/campaigns",
+        element: (
+          <RoleGuard allowedRoles={['super_admin']}>
+            <MarketingCampaignsPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "admin/reminders",
+        element: (
+          <RoleGuard allowedRoles={['super_admin']}>
+            <RenewalRemindersPage />
           </RoleGuard>
         ),
       },

@@ -157,6 +157,54 @@ export type Database = {
           },
         ]
       }
+      campaign_engagement: {
+        Row: {
+          campaign_id: string
+          clicked_at: string | null
+          conversion_value: number | null
+          converted_at: string | null
+          email_opened_at: string | null
+          email_sent_at: string | null
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          campaign_id: string
+          clicked_at?: string | null
+          conversion_value?: number | null
+          converted_at?: string | null
+          email_opened_at?: string | null
+          email_sent_at?: string | null
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          campaign_id?: string
+          clicked_at?: string | null
+          conversion_value?: number | null
+          converted_at?: string | null
+          email_opened_at?: string | null
+          email_sent_at?: string | null
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_engagement_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_engagement_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_field_values: {
         Row: {
           entity_id: string
@@ -1888,6 +1936,103 @@ export type Database = {
           },
         ]
       }
+      marketing_campaigns: {
+        Row: {
+          banner_text: string | null
+          campaign_type: string
+          clicks: number | null
+          conversions: number | null
+          created_at: string | null
+          created_by: string | null
+          cta_link: string | null
+          cta_text: string | null
+          description: string | null
+          email_subject: string | null
+          email_template: string | null
+          emails_opened: number | null
+          emails_sent: number | null
+          ends_at: string | null
+          id: string
+          name: string
+          promotional_code_id: string | null
+          starts_at: string
+          status: string | null
+          target_audience: string | null
+          target_plan_codes: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          banner_text?: string | null
+          campaign_type: string
+          clicks?: number | null
+          conversions?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          cta_link?: string | null
+          cta_text?: string | null
+          description?: string | null
+          email_subject?: string | null
+          email_template?: string | null
+          emails_opened?: number | null
+          emails_sent?: number | null
+          ends_at?: string | null
+          id?: string
+          name: string
+          promotional_code_id?: string | null
+          starts_at: string
+          status?: string | null
+          target_audience?: string | null
+          target_plan_codes?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          banner_text?: string | null
+          campaign_type?: string
+          clicks?: number | null
+          conversions?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          cta_link?: string | null
+          cta_text?: string | null
+          description?: string | null
+          email_subject?: string | null
+          email_template?: string | null
+          emails_opened?: number | null
+          emails_sent?: number | null
+          ends_at?: string | null
+          id?: string
+          name?: string
+          promotional_code_id?: string | null
+          starts_at?: string
+          status?: string | null
+          target_audience?: string | null
+          target_plan_codes?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_campaigns_promotional_code_id_fkey"
+            columns: ["promotional_code_id"]
+            isOneToOne: false
+            referencedRelation: "promotional_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           action_label: string | null
@@ -2183,6 +2328,191 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_price_history: {
+        Row: {
+          changed_at: string | null
+          changed_by: string | null
+          id: string
+          new_price_monthly: number | null
+          new_price_yearly: number | null
+          old_price_monthly: number | null
+          old_price_yearly: number | null
+          plan_id: string
+          reason: string | null
+        }
+        Insert: {
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string
+          new_price_monthly?: number | null
+          new_price_yearly?: number | null
+          old_price_monthly?: number | null
+          old_price_yearly?: number | null
+          plan_id: string
+          reason?: string | null
+        }
+        Update: {
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string
+          new_price_monthly?: number | null
+          new_price_yearly?: number | null
+          old_price_monthly?: number | null
+          old_price_yearly?: number | null
+          plan_id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_price_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_price_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_price_history_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promo_code_usage: {
+        Row: {
+          discount_applied: number
+          final_amount: number
+          id: string
+          original_amount: number
+          payment_transaction_id: string | null
+          promo_code_id: string
+          tenant_id: string
+          used_at: string | null
+        }
+        Insert: {
+          discount_applied: number
+          final_amount: number
+          id?: string
+          original_amount: number
+          payment_transaction_id?: string | null
+          promo_code_id: string
+          tenant_id: string
+          used_at?: string | null
+        }
+        Update: {
+          discount_applied?: number
+          final_amount?: number
+          id?: string
+          original_amount?: number
+          payment_transaction_id?: string | null
+          promo_code_id?: string
+          tenant_id?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_code_usage_payment_transaction_id_fkey"
+            columns: ["payment_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "payment_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo_code_usage_promo_code_id_fkey"
+            columns: ["promo_code_id"]
+            isOneToOne: false
+            referencedRelation: "promotional_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo_code_usage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promotional_codes: {
+        Row: {
+          applicable_billing_cycles: string[] | null
+          applicable_plans: string[] | null
+          code: string
+          created_at: string | null
+          created_by: string | null
+          current_uses: number | null
+          description: string | null
+          discount_type: string
+          discount_value: number
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+          max_uses_per_tenant: number | null
+          updated_at: string | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          applicable_billing_cycles?: string[] | null
+          applicable_plans?: string[] | null
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          current_uses?: number | null
+          description?: string | null
+          discount_type: string
+          discount_value: number
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          max_uses_per_tenant?: number | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          applicable_billing_cycles?: string[] | null
+          applicable_plans?: string[] | null
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          current_uses?: number | null
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          max_uses_per_tenant?: number | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotional_codes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotional_codes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchase_order_items: {
         Row: {
           created_at: string | null
@@ -2353,6 +2683,53 @@ export type Database = {
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      renewal_reminders: {
+        Row: {
+          created_at: string | null
+          email_body: string | null
+          email_subject: string | null
+          error_message: string | null
+          id: string
+          reminder_type: string
+          scheduled_for: string
+          sent_at: string | null
+          status: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email_body?: string | null
+          email_subject?: string | null
+          error_message?: string | null
+          id?: string
+          reminder_type: string
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email_body?: string | null
+          email_subject?: string | null
+          error_message?: string | null
+          id?: string
+          reminder_type?: string
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "renewal_reminders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -3144,6 +3521,60 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      super_admin_activity_log: {
+        Row: {
+          action: string
+          admin_user_id: string
+          created_at: string | null
+          description: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: unknown
+          new_values: Json | null
+          old_values: Json | null
+        }
+        Insert: {
+          action: string
+          admin_user_id: string
+          created_at?: string | null
+          description: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: unknown
+          new_values?: Json | null
+          old_values?: Json | null
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string
+          created_at?: string | null
+          description?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: unknown
+          new_values?: Json | null
+          old_values?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "super_admin_activity_log_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "super_admin_activity_log_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tenant_usage: {
         Row: {
@@ -4008,6 +4439,14 @@ export type Database = {
       }
     }
     Functions: {
+      apply_promo_code: {
+        Args: {
+          p_original_amount: number
+          p_promo_code: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       apply_room_standards: {
         Args: { p_room_id: string; p_user_id: string }
         Returns: Json
@@ -4665,6 +5104,7 @@ export type Database = {
         Returns: string
       }
       refresh_monthly_expenses: { Args: never; Returns: undefined }
+      schedule_renewal_reminders: { Args: never; Returns: undefined }
       setup_new_tenant:
         | {
             Args: {

@@ -36,6 +36,7 @@ import {
   Plug,
   Lock,
   TestTube2,
+  Tag,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -58,9 +59,30 @@ const navigation: NavItem[] = [
   },
   {
     title: 'Super Admin',
-    href: '/admin/dashboard',
     icon: Shield,
     roles: ['super_admin'],
+    children: [
+      {
+        title: 'Dashboard',
+        href: '/admin/dashboard',
+        icon: LayoutDashboard,
+      },
+      {
+        title: 'Mã khuyến mãi',
+        href: '/admin/promo-codes',
+        icon: Tag,
+      },
+      {
+        title: 'Chiến dịch Marketing',
+        href: '/admin/campaigns',
+        icon: TrendingUp,
+      },
+      {
+        title: 'Nhắc nhở gia hạn',
+        href: '/admin/reminders',
+        icon: Bell,
+      },
+    ],
   },
   {
     title: 'Tài sản',
