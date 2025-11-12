@@ -3481,6 +3481,8 @@ export type Database = {
           id: string
           is_active: boolean | null
           max_hotels: number
+          max_items: number | null
+          max_rooms: number | null
           max_storage_gb: number
           max_users: number
           name: string
@@ -3497,6 +3499,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           max_hotels?: number
+          max_items?: number | null
+          max_rooms?: number | null
           max_storage_gb?: number
           max_users?: number
           name: string
@@ -3513,6 +3517,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           max_hotels?: number
+          max_items?: number | null
+          max_rooms?: number | null
           max_storage_gb?: number
           max_users?: number
           name?: string
