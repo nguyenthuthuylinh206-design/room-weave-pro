@@ -39,7 +39,7 @@ export default function SubscriptionPage() {
           <SubscriptionOverview />
         </TabsContent>
 
-        <TabsContent value="plans" className="space-y-6">
+        <TabsContent value="plans" className="space-y-6" id="plan-comparison">
           <PlanComparison />
         </TabsContent>
 

@@ -187,10 +187,10 @@ export const useUpdateTenantSubscription = () => {
   return useMutation({
     mutationFn: async ({
       planId,
-      status,
+      billingCycle,
     }: {
       planId: string
-      status: 'trial' | 'active' | 'suspended' | 'cancelled'
+      billingCycle: 'monthly' | 'yearly'
     }) => {
       if (!tenantId) throw new Error('Tenant ID not found')
 
@@ -198,8 +198,19 @@ export const useUpdateTenantSubscription = () => {
         .from('tenants')
         .update({
           subscription_plan_id: planId,
-          subscription_status: status,
+          subscription_status: 'active',
+          billing_cycle: billingCycle,
           subscription_start_date: new Date().toISOString().split('T')[0],
+          subscription_end_date: billingCycle === 'monthly' 
+            ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+            : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          subscription_current_period_start: new Date().toISOString(),
+          subscription_current_period_end: billingCycle === 'monthly'
+            ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+            : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+          next_billing_date: billingCycle === 'monthly'
+            ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+            : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         })
         .eq('id', tenantId)
         .select()
@@ -210,6 +221,7 @@ export const useUpdateTenantSubscription = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenant-subscription'] })
+      queryClient.invalidateQueries({ queryKey: ['tenant-usage'] })
       toast({
         title: 'Thành công',
         description: 'Gói đăng ký đã được cập nhật',

@@ -114,11 +114,11 @@ export function SubscriptionOverview() {
           )}
 
           <div className="flex gap-2">
-            <Button>
+            <Button onClick={() => {
+              const plansTab = document.querySelector('[value="plans"]') as HTMLButtonElement;
+              plansTab?.click();
+            }}>
               Nâng cấp gói
-            </Button>
-            <Button variant="outline">
-              Thay đổi chu kỳ thanh toán
             </Button>
           </div>
         </CardContent>
