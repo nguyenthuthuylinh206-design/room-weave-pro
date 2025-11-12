@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   flexRender,
   getCoreRowModel,
@@ -19,8 +19,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,11 +29,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Search, ArrowUpDown } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown } from 'lucide-react';
 import { useTenants } from '@/hooks/super-admin/useTenants';
 import { TenantDetailsDialog } from './TenantDetailsDialog';
 
-export function TenantsTable() {
+interface TenantsTableProps {
+  statusFilter?: string;
+  planFilter?: string;
+  searchQuery?: string;
+  selectedTenants?: string[];
+  onSelectionChange?: (selected: string[]) => void;
+}
+
+export function TenantsTable({
+  statusFilter = 'all',
+  planFilter = 'all',
+  searchQuery = '',
+  selectedTenants = [],
+  onSelectionChange,
+}: TenantsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [selectedTenant, setSelectedTenant] = useState<any | null>(null);
@@ -41,7 +55,54 @@ export function TenantsTable() {
 
   const { data: tenants = [], isLoading } = useTenants();
 
+  // Filter tenants based on props
+  const filteredTenants = useMemo(() => {
+    return tenants.filter((tenant: any) => {
+      const matchesStatus = statusFilter === 'all' || tenant.subscription_status === statusFilter;
+      const matchesSearch = !searchQuery || 
+        tenant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tenant.primary_contact_email.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      return matchesStatus && matchesSearch;
+    });
+  }, [tenants, statusFilter, searchQuery]);
+
+  const handleSelectAll = (checked: boolean) => {
+    if (onSelectionChange) {
+      onSelectionChange(checked ? filteredTenants.map((t: any) => t.id) : []);
+    }
+  };
+
+  const handleSelectRow = (tenantId: string, checked: boolean) => {
+    if (onSelectionChange) {
+      if (checked) {
+        onSelectionChange([...selectedTenants, tenantId]);
+      } else {
+        onSelectionChange(selectedTenants.filter(id => id !== tenantId));
+      }
+    }
+  };
+
   const columns: ColumnDef<any>[] = [
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <Checkbox
+          checked={selectedTenants.length === filteredTenants.length && filteredTenants.length > 0}
+          onCheckedChange={handleSelectAll}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={selectedTenants.includes(row.original.id)}
+          onCheckedChange={(checked) => handleSelectRow(row.original.id, checked as boolean)}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
     {
       accessorKey: 'name',
       header: ({ column }) => {
@@ -167,7 +228,7 @@ export function TenantsTable() {
   ];
 
   const table = useReactTable({
-    data: tenants,
+    data: filteredTenants,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -183,20 +244,6 @@ export function TenantsTable() {
 
   return (
     <div className="space-y-4">
-      {/* Search */}
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search tenants..."
-            value={(table.getColumn('name')?.getFilterValue() as string) ?? ''}
-            onChange={(e) =>
-              table.getColumn('name')?.setFilterValue(e.target.value)
-            }
-            className="pl-9"
-          />
-        </div>
-      </div>
 
       {/* Table */}
       <div className="rounded-md border">
