@@ -19,14 +19,14 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 
 const navigation = [
-  { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
-  { name: 'Tenants', href: '/admin/tenants', icon: Users },
-  { name: 'Promo Codes', href: '/admin/promo-codes', icon: Tag },
-  { name: 'Campaigns', href: '/admin/campaigns', icon: Mail },
-  { name: 'Reminders', href: '/admin/reminders', icon: Bell },
-  { name: 'Pricing', href: '/admin/pricing', icon: DollarSign },
-  { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-  { name: 'Settings', href: '/admin/settings', icon: Settings },
+  { name: 'Dashboard', href: '/super-admin', icon: LayoutDashboard },
+  { name: 'Tenants', href: '/super-admin/tenants', icon: Users },
+  { name: 'Promo Codes', href: '/super-admin/promo-codes', icon: Tag },
+  { name: 'Campaigns', href: '/super-admin/campaigns', icon: Mail },
+  { name: 'Reminders', href: '/super-admin/reminders', icon: Bell },
+  { name: 'Pricing', href: '/super-admin/pricing', icon: DollarSign },
+  { name: 'Analytics', href: '/super-admin/analytics', icon: BarChart3 },
+  { name: 'Settings', href: '/super-admin/settings', icon: Settings },
 ];
 
 export function SuperAdminLayout() {
