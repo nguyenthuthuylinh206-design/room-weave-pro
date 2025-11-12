@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Plus } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -14,6 +15,7 @@ export function ItemsPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedItems, setSelectedItems] = useState<string[]>([])
+  const { t } = useTranslation('items')
   
   // Initialize state from URL params
   const [filters, setFilters] = useState<IItemFilters>(() => ({
@@ -52,10 +54,10 @@ export function ItemsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Quản lý Tài sản"
-        description="Quản lý tất cả tài sản và đồ dùng trong khách sạn"
+        title={t('title')}
+        description={t('description')}
         action={{
-          label: 'Thêm tài sản mới',
+          label: t('addItem'),
           icon: Plus,
           onClick: () => navigate('/items/new'),
         }}

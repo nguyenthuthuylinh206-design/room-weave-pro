@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { 
   DollarSign, 
   Package, 
@@ -34,27 +35,28 @@ export function InventoryDashboardPage() {
   const navigate = useNavigate()
   const [showInboundDialog, setShowInboundDialog] = useState(false)
   const [showOutboundDialog, setShowOutboundDialog] = useState(false)
+  const { t } = useTranslation('inventory')
   
   const { data: stats, isLoading } = useInventoryDashboard()
   
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Quản lý Kho"
-        description="Theo dõi và quản lý tồn kho, nhập xuất hàng"
+        title={t('title')}
+        description={t('dashboardDescription')}
       />
       
       {/* Stats Cards - Row 1 */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <DashboardStatCard
-          title="Tổng giá trị kho"
+          title={t('stats.totalValue')}
           value={stats ? formatCurrency(stats.total_stock_value) : '0 ₫'}
           icon={DollarSign}
           change={
             stats?.stock_value_change_percent
               ? {
                   value: stats.stock_value_change_percent,
-                  label: 'so với tháng trước',
+                  label: t('comparedToLastMonth'),
                 }
               : undefined
           }
@@ -62,23 +64,23 @@ export function InventoryDashboardPage() {
         />
         
         <DashboardStatCard
-          title="Tổng số items"
+          title={t('stats.totalItems')}
           value={stats ? stats.total_items_count.toString() : '0'}
           icon={Package}
           description={
-            stats ? `${stats.total_product_types} loại sản phẩm` : undefined
+            stats ? t('productTypes', { count: stats.total_product_types }) : undefined
           }
           isLoading={isLoading}
         />
         
         <DashboardStatCard
-          title="Cảnh báo tồn kho thấp"
+          title={t('stats.lowStock')}
           value={stats ? stats.low_stock_count.toString() : '0'}
           icon={AlertTriangle}
           description={
             stats && stats.low_stock_count > 0
-              ? 'Cần kiểm tra ngay'
-              : 'Tồn kho ổn định'
+              ? t('needsAttention')
+              : t('stockStable')
           }
           isLoading={isLoading}
           onClick={() => {
@@ -91,10 +93,10 @@ export function InventoryDashboardPage() {
       {/* Stats Cards - Row 2 */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <DashboardStatCard
-          title="Cần đặt hàng lại"
+          title={t('stats.reorderNeeded')}
           value={stats ? stats.reorder_needed_count.toString() : '0'}
           icon={ShoppingCart}
-          description="Items dưới điểm đặt hàng"
+          description={t('belowReorderPoint')}
           isLoading={isLoading}
         />
         
