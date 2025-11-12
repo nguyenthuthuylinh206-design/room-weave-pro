@@ -95,9 +95,9 @@ export function SubscriptionOverview() {
               )}
             </div>
             <div className="space-y-2">
-              <div className="text-sm text-muted-foreground">Gói hiện tại</div>
+              <div className="text-sm text-muted-foreground">Loại gói</div>
               <div className="text-lg font-semibold capitalize">
-                {subscription.subscription_plan || 'N/A'}
+                {subscription.subscription_plan?.code || 'N/A'}
               </div>
             </div>
           </div>
