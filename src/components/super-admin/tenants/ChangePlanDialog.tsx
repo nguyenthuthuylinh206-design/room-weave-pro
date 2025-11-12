@@ -85,6 +85,8 @@ export function ChangePlanDialog({
 
       queryClient.invalidateQueries({ queryKey: ['super-admin-tenants'] });
       queryClient.invalidateQueries({ queryKey: ['tenant-usage', tenant.id] });
+      queryClient.invalidateQueries({ queryKey: ['tenant-subscription', tenant.id] });
+      queryClient.invalidateQueries({ queryKey: ['check-quota', tenant.id] });
       onOpenChange(false);
     } catch (error: any) {
       toast({

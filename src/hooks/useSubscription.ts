@@ -229,6 +229,7 @@ export const useUpdateTenantSubscription = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenant-subscription'] })
       queryClient.invalidateQueries({ queryKey: ['tenant-usage'] })
+      queryClient.invalidateQueries({ queryKey: ['check-quota'] })
       toast({
         title: 'Thành công',
         description: 'Gói đăng ký đã được cập nhật',

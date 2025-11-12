@@ -66,6 +66,8 @@ export function useCheckQuota(resourceType: 'hotel' | 'user' | 'room' | 'item' |
       return data as boolean
     },
     enabled: !!tenant?.id,
+    staleTime: 0, // Always fresh to reflect latest subscription changes
+    gcTime: 0, // Don't cache
   })
 }
 
