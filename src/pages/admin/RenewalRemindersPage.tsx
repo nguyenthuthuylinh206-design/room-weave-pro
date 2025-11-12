@@ -1,22 +1,5 @@
-import { RemindersTable } from '@/components/super-admin/reminders/RemindersTable';
-import { Shield } from 'lucide-react';
+import { AdvancedReminderManagement } from '@/components/super-admin/reminders/AdvancedReminderManagement';
 
 export function RenewalRemindersPage() {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="p-3 rounded-lg bg-primary/10">
-          <Shield className="h-6 w-6 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-bold">Nhắc nhở gia hạn</h1>
-          <p className="text-muted-foreground">
-            Quản lý thông báo tự động cho các đăng ký sắp hết hạn
-          </p>
-        </div>
-      </div>
-
-      <RemindersTable />
-    </div>
-  );
+  return <AdvancedReminderManagement />;
 }
