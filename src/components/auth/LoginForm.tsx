@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,7 +23,6 @@ export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false)
   const { signIn } = useAuth()
   const navigate = useNavigate()
-  const { t } = useTranslation('auth')
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -45,9 +43,9 @@ export const LoginForm = () => {
   return (
     <div className="w-full space-y-6">
       <div className="text-center">
-        <h1 className="text-3xl font-bold">{t('login.title')}</h1>
+        <h1 className="text-3xl font-bold">Đăng nhập</h1>
         <p className="mt-2 text-muted-foreground">
-          {t('login.welcomeMessage')}
+          Chào mừng trở lại! Vui lòng đăng nhập để tiếp tục.
         </p>
       </div>
 
@@ -59,7 +57,7 @@ export const LoginForm = () => {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('login.email')}</FormLabel>
+                <FormLabel>Email</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -83,7 +81,7 @@ export const LoginForm = () => {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('login.password')}</FormLabel>
+                <FormLabel>Mật khẩu</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -128,7 +126,7 @@ export const LoginForm = () => {
                     />
                   </FormControl>
                   <Label className="text-sm font-normal cursor-pointer">
-                    {t('login.rememberMe')}
+                    Ghi nhớ đăng nhập
                   </Label>
                 </FormItem>
               )}
@@ -138,7 +136,7 @@ export const LoginForm = () => {
               to="/auth/forgot-password"
               className="text-sm text-primary hover:underline"
             >
-              {t('login.forgotPassword')}
+              Quên mật khẩu?
             </Link>
           </div>
 
@@ -151,7 +149,7 @@ export const LoginForm = () => {
             {form.formState.isSubmitting && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}
-            {form.formState.isSubmitting ? t('login.loggingIn') : t('login.submit')}
+            {form.formState.isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </Button>
         </form>
       </Form>
@@ -163,7 +161,7 @@ export const LoginForm = () => {
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-background px-2 text-muted-foreground">
-            {t('login.orContinueWith')}
+            Hoặc tiếp tục với
           </span>
         </div>
       </div>
@@ -173,9 +171,9 @@ export const LoginForm = () => {
 
       {/* Register Link */}
       <p className="text-center text-sm text-muted-foreground">
-        {t('login.noAccount')}{' '}
+        Chưa có tài khoản?{' '}
         <Link to="/auth/register" className="text-primary hover:underline font-medium">
-          {t('login.signUp')}
+          Đăng ký ngay
         </Link>
       </p>
     </div>

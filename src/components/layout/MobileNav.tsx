@@ -1,5 +1,4 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -21,21 +20,20 @@ interface MobileNavProps {
   onClose: () => void
 }
 
+const navigation = [
+  { title: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { title: 'Tài sản', href: '/items', icon: Package },
+  { title: 'Phòng', href: '/rooms', icon: Hotel },
+  { title: 'Giặt là', href: '/laundry', icon: Wind },
+  { title: 'Kho', href: '/inventory', icon: Warehouse },
+  { title: 'Báo cáo', href: '/reports', icon: FileText },
+  { title: 'Người dùng', href: '/users', icon: Users },
+  { title: 'Khách sạn', href: '/hotels', icon: Building2 },
+  { title: 'Cài đặt', href: '/settings', icon: Settings },
+]
+
 export function MobileNav({ open, onClose }: MobileNavProps) {
   const location = useLocation()
-  const { t } = useTranslation('common')
-
-  const navigation = [
-    { title: t('navigation.dashboard'), href: '/', icon: LayoutDashboard },
-    { title: t('navigation.items'), href: '/items', icon: Package },
-    { title: t('navigation.rooms'), href: '/rooms', icon: Hotel },
-    { title: t('navigation.laundry'), href: '/laundry', icon: Wind },
-    { title: t('navigation.inventory'), href: '/inventory', icon: Warehouse },
-    { title: t('navigation.reports'), href: '/reports', icon: FileText },
-    { title: t('navigation.users'), href: '/users', icon: Users },
-    { title: t('navigation.hotels'), href: '/hotels', icon: Building2 },
-    { title: t('navigation.settings'), href: '/settings', icon: Settings },
-  ]
 
   return (
     <Sheet open={open} onOpenChange={onClose}>

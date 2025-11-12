@@ -1,5 +1,4 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/hooks/useUser'
 import { useTenant } from '@/hooks/useTenant'
@@ -42,16 +41,336 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { AppRole } from '@/types/database.types'
-import { getSidebarNavigation } from './SidebarConfig'
+
+interface NavItem {
+  title: string
+  href?: string
+  icon: React.ElementType
+  badge?: string
+  roles?: AppRole[]
+  children?: Omit<NavItem, 'children'>[]
+}
+
+const navigation: NavItem[] = [
+  {
+    title: 'Dashboard',
+    href: '/',
+    icon: LayoutDashboard,
+    roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
+  },
+  {
+    title: 'Super Admin',
+    icon: Shield,
+    roles: ['super_admin'],
+    children: [
+      {
+        title: 'Dashboard',
+        href: '/admin/dashboard',
+        icon: LayoutDashboard,
+      },
+      {
+        title: 'Tenants',
+        href: '/admin/tenants',
+        icon: Users,
+      },
+      {
+        title: 'Mã khuyến mãi',
+        href: '/admin/promo-codes',
+        icon: Tag,
+      },
+      {
+        title: 'Chiến dịch Marketing',
+        href: '/admin/campaigns',
+        icon: TrendingUp,
+      },
+      {
+        title: 'Nhắc nhở gia hạn',
+        href: '/admin/reminders',
+        icon: Bell,
+      },
+      {
+        title: 'Pricing Plans',
+        href: '/admin/pricing',
+        icon: DollarSign,
+      },
+    ],
+  },
+  {
+    title: 'Tài sản',
+    icon: Package,
+    roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
+    children: [
+      {
+        title: 'Danh sách tài sản',
+        href: '/items',
+        icon: List,
+      },
+      {
+        title: 'Danh mục',
+        href: '/items/categories',
+        icon: Grid,
+      },
+      {
+        title: 'Thêm tài sản mới',
+        href: '/items/new',
+        icon: Plus,
+      },
+    ],
+  },
+  {
+    title: 'Phòng',
+    icon: Hotel,
+    roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
+    children: [
+      {
+        title: 'Danh sách phòng',
+        href: '/rooms',
+        icon: List,
+      },
+      {
+        title: 'Thiết lập chuẩn',
+        href: '/rooms/standards',
+        icon: Settings,
+      },
+      {
+        title: 'Thêm phòng mới',
+        href: '/rooms/new',
+        icon: Plus,
+      },
+    ],
+  },
+  {
+    title: 'Giặt là',
+    icon: Wind,
+    roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
+    children: [
+      {
+        title: 'Tổng quan',
+        href: '/laundry',
+        icon: LayoutDashboard,
+      },
+      {
+        title: 'Danh sách lô giặt',
+        href: '/laundry/batches',
+        icon: Package,
+      },
+      {
+        title: 'Tạo lô mới',
+        href: '/laundry/batches/new',
+        icon: Plus,
+      },
+      {
+        title: 'Nhà cung cấp',
+        href: '/laundry/vendors',
+        icon: Building2,
+      },
+      {
+        title: 'Thêm đơn vị',
+        href: '/laundry/vendors/new',
+        icon: Plus,
+      },
+    ],
+  },
+  {
+    title: 'Kho',
+    icon: Warehouse,
+    roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
+    children: [
+      {
+        title: 'Dashboard kho',
+        href: '/inventory',
+        icon: LayoutDashboard,
+      },
+      {
+        title: 'Giao dịch',
+        href: '/inventory/transactions',
+        icon: List,
+      },
+      {
+        title: 'Nhập kho',
+        href: '/inventory/inbound/new',
+        icon: ArrowDownToLine,
+      },
+      {
+        title: 'Xuất kho',
+        href: '/inventory/outbound/new',
+        icon: ArrowUpFromLine,
+      },
+      {
+        title: 'Kiểm kê',
+        href: '/inventory/adjustments',
+        icon: ClipboardCheck,
+      },
+    ],
+  },
+  {
+    title: 'Nhà Cung Cấp',
+    icon: Building,
+    roles: ['owner', 'hotel_manager'],
+    children: [
+      {
+        title: 'Danh sách NCC',
+        href: '/vendors',
+        icon: List,
+      },
+      {
+        title: 'Thêm NCC mới',
+        href: '/vendors/new',
+        icon: Plus,
+      },
+      {
+        title: 'So sánh NCC',
+        href: '/vendors/compare',
+        icon: GitCompare,
+      },
+      {
+        title: 'Đơn đặt hàng',
+        href: '/purchase-orders',
+        icon: ShoppingCart,
+      },
+      {
+        title: 'Tạo đơn mới',
+        href: '/purchase-orders/new',
+        icon: Plus,
+      },
+    ],
+  },
+  {
+    title: 'Bảo trì',
+    icon: Wrench,
+    roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
+    children: [
+      {
+        title: 'Dashboard',
+        href: '/maintenance',
+        icon: LayoutDashboard,
+      },
+      {
+        title: 'Yêu cầu bảo trì',
+        href: '/maintenance/requests',
+        icon: AlertCircle,
+      },
+      {
+        title: 'Vấn đề lặp lại',
+        href: '/maintenance/recurring-issues',
+        icon: TrendingUp,
+      },
+    ],
+  },
+  {
+    title: 'Báo cáo',
+    icon: FileText,
+    roles: ['owner', 'hotel_manager'],
+    children: [
+      {
+        title: 'Dashboard',
+        href: '/reports',
+        icon: LayoutDashboard,
+      },
+      {
+        title: 'Báo cáo Tồn kho',
+        href: '/reports/inventory',
+        icon: Package,
+      },
+      {
+        title: 'Báo cáo Tài chính',
+        href: '/reports/financial',
+        icon: DollarSign,
+      },
+      {
+        title: 'Báo cáo Giặt là',
+        href: '/reports/laundry',
+        icon: Wind,
+      },
+    ],
+  },
+  {
+    title: 'Người dùng',
+    href: '/users',
+    icon: Users,
+    roles: ['owner'],
+  },
+  {
+    title: 'Khách sạn',
+    href: '/hotels',
+    icon: Building2,
+    roles: ['owner'],
+  },
+  {
+    title: 'Cài đặt',
+    icon: Settings,
+    roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
+    children: [
+      {
+        title: 'Tổng quan',
+        href: '/settings/general',
+        icon: LayoutDashboard,
+      },
+      {
+        title: 'Khách sạn',
+        href: '/settings/hotels',
+        icon: Building2,
+        roles: ['owner'],
+      },
+      {
+        title: 'Danh mục',
+        href: '/settings/categories',
+        icon: FolderTree,
+      },
+      {
+        title: 'Người dùng',
+        href: '/settings/users',
+        icon: Users,
+        roles: ['owner'],
+      },
+      {
+        title: 'Vai trò & Phân quyền',
+        href: '/settings/roles',
+        icon: Shield,
+        roles: ['owner'],
+      },
+      {
+        title: 'Thông báo',
+        href: '/settings/notifications',
+        icon: Bell,
+      },
+      {
+        title: 'Cấu hình nghiệp vụ',
+        href: '/settings/business',
+        icon: Briefcase,
+      },
+      {
+        title: 'Tự động hóa',
+        href: '/settings/workflows',
+        icon: Zap,
+        roles: ['owner', 'hotel_manager'],
+      },
+      {
+        title: 'Tích hợp & API',
+        href: '/settings/integrations',
+        icon: Plug,
+        roles: ['owner'],
+      },
+      {
+        title: 'Hệ thống & Bảo mật',
+        href: '/settings/security',
+        icon: Lock,
+        roles: ['owner'],
+      },
+      {
+        title: 'Kiểm thử hệ thống',
+        href: '/settings/system-test',
+        icon: TestTube2,
+        roles: ['owner'],
+      },
+    ],
+  },
+]
 
 export const Sidebar = () => {
   const location = useLocation()
   const { user, role, isLoading: userLoading } = useUser()
   const { tenant, isLoading: tenantLoading } = useTenant()
-  const { t } = useTranslation(['common', 'sidebar'])
-  
-  const navigation = getSidebarNavigation(t)
-  
   const [expandedItems, setExpandedItems] = useState<string[]>(() => {
     // Auto-expand parent if a child route is active
     const expanded: string[] = []

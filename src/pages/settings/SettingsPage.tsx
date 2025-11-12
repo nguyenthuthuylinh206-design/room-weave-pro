@@ -1,5 +1,4 @@
 import { PageHeader } from '@/components/shared/PageHeader'
-import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -10,13 +9,11 @@ import { Settings, Bell, Shield, Palette } from 'lucide-react'
 import { SeedDataButton } from '@/components/settings/SeedDataButton'
 
 export function SettingsPage() {
-  const { t } = useTranslation('settings')
-  
   return (
     <div className="space-y-6">
       <PageHeader
-        title={t('title')}
-        description={t('description')}
+        title="Cài đặt"
+        description="Quản lý cài đặt hệ thống và tùy chọn"
       />
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -25,10 +22,10 @@ export function SettingsPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Settings className="h-5 w-5 text-primary" />
-              <CardTitle>{t('demoData.title')}</CardTitle>
+              <CardTitle>Dữ liệu Demo</CardTitle>
             </div>
             <CardDescription>
-              {t('demoData.description')}
+              Tạo dữ liệu demo để thử nghiệm hệ thống
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -41,25 +38,25 @@ export function SettingsPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Bell className="h-5 w-5 text-primary" />
-              <CardTitle>{t('notifications.title')}</CardTitle>
+              <CardTitle>Thông báo</CardTitle>
             </div>
             <CardDescription>
-              {t('notifications.description')}
+              Cấu hình các loại thông báo bạn muốn nhận
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <Label htmlFor="email-notif">{t('notifications.email')}</Label>
+              <Label htmlFor="email-notif">Thông báo email</Label>
               <Switch id="email-notif" />
             </div>
             <Separator />
             <div className="flex items-center justify-between">
-              <Label htmlFor="push-notif">{t('notifications.push')}</Label>
+              <Label htmlFor="push-notif">Thông báo đẩy</Label>
               <Switch id="push-notif" />
             </div>
             <Separator />
             <div className="flex items-center justify-between">
-              <Label htmlFor="batch-notif">{t('notifications.laundry')}</Label>
+              <Label htmlFor="batch-notif">Thông báo lô giặt</Label>
               <Switch id="batch-notif" defaultChecked />
             </div>
           </CardContent>
@@ -70,17 +67,17 @@ export function SettingsPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Palette className="h-5 w-5 text-primary" />
-              <CardTitle>{t('appearance.title')}</CardTitle>
+              <CardTitle>Giao diện</CardTitle>
             </div>
             <CardDescription>
-              {t('appearance.description')}
+              Tùy chỉnh giao diện ứng dụng
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>{t('appearance.displayMode')}</Label>
+              <Label>Chế độ hiển thị</Label>
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1">{t('appearance.light')}</Button>
+                <Button variant="outline" className="flex-1">Sáng</Button>
                 <Button variant="outline" className="flex-1">Tối</Button>
                 <Button variant="default" className="flex-1">Hệ thống</Button>
               </div>
