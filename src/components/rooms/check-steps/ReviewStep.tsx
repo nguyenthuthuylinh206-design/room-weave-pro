@@ -1,5 +1,5 @@
 import { UseFormReturn } from 'react-hook-form'
-import { Upload, X, Star, CheckCircle2, AlertCircle, XCircle } from 'lucide-react'
+import { Upload, X, Star, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useState } from 'react'
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
 import { Textarea } from '@/components/ui/textarea'
@@ -61,6 +61,45 @@ export function ReviewStep({ form, room }: ReviewStepProps) {
   
   return (
     <div className="space-y-6">
+      {/* Cleanliness Score - Moved here */}
+      <FormField
+        control={form.control}
+        name="cleanliness_score"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="text-base">Đánh giá độ sạch sẽ phòng</FormLabel>
+            <div className="pt-2">
+              <div className="flex items-center justify-center gap-3 mb-3">
+                {[1, 2, 3, 4, 5].map((score) => (
+                  <button
+                    key={score}
+                    type="button"
+                    onClick={() => field.onChange(score)}
+                    className="transition-transform hover:scale-110"
+                  >
+                    <Star
+                      className={`h-10 w-10 ${
+                        score <= (cleanlinessScore || 0)
+                          ? 'fill-yellow-400 text-yellow-400'
+                          : 'text-muted-foreground'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+              <p className="text-sm text-center text-muted-foreground font-medium">
+                {cleanlinessScore === 5 && '⭐ Rất tốt - Phòng sạch sẽ hoàn hảo'}
+                {cleanlinessScore === 4 && '⭐ Tốt - Phòng sạch sẽ'}
+                {cleanlinessScore === 3 && '⭐ Trung bình - Cần cải thiện'}
+                {cleanlinessScore === 2 && '⚠️ Kém - Cần dọn dẹp'}
+                {cleanlinessScore === 1 && '❌ Rất kém - Cần dọn dẹp ngay'}
+              </p>
+            </div>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      
       {/* Summary Card */}
       <Card>
         <CardContent className="pt-6">
@@ -76,22 +115,6 @@ export function ReviewStep({ form, room }: ReviewStepProps) {
               <dt className="text-sm text-muted-foreground">Loại kiểm tra</dt>
               <dd>
                 <Badge>{getCheckTypeLabel()}</Badge>
-              </dd>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <dt className="text-sm text-muted-foreground">Điểm vệ sinh</dt>
-              <dd className="flex items-center gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`h-4 w-4 ${
-                      i < (cleanlinessScore || 0)
-                        ? 'fill-yellow-400 text-yellow-400'
-                        : 'text-muted-foreground'
-                    }`}
-                  />
-                ))}
               </dd>
             </div>
             

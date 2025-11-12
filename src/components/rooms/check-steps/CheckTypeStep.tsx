@@ -1,5 +1,5 @@
 import { UseFormReturn } from 'react-hook-form'
-import { Calendar, LogIn, LogOut, Wrench, Star } from 'lucide-react'
+import { Calendar, LogIn, LogOut, Wrench } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Card, CardContent } from '@/components/ui/card'
@@ -38,10 +38,15 @@ const checkTypes: { value: CheckType; label: string; description: string; icon: 
 ]
 
 export function CheckTypeStep({ form }: CheckTypeStepProps) {
-  const cleanlinessScore = form.watch('cleanliness_score')
-  
   return (
     <div className="space-y-6">
+      <div className="rounded-lg bg-muted p-4 mb-6">
+        <p className="text-sm text-muted-foreground">
+          <strong>Nguồn dữ liệu:</strong> Danh sách đồ dùng được lấy từ các items đã được gán vào phòng này. 
+          Kết quả kiểm tra sẽ được lưu vào lịch sử để theo dõi tình trạng phòng theo thời gian.
+        </p>
+      </div>
+      
       <FormField
         control={form.control}
         name="check_type"
@@ -87,44 +92,6 @@ export function CheckTypeStep({ form }: CheckTypeStepProps) {
                 })}
               </RadioGroup>
             </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      
-      <FormField
-        control={form.control}
-        name="cleanliness_score"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="text-base">Điểm vệ sinh</FormLabel>
-            <div className="pt-2">
-              <div className="flex items-center gap-2 mb-2">
-                {[1, 2, 3, 4, 5].map((score) => (
-                  <button
-                    key={score}
-                    type="button"
-                    onClick={() => field.onChange(score)}
-                    className="transition-transform hover:scale-110"
-                  >
-                    <Star
-                      className={`h-8 w-8 ${
-                        score <= (cleanlinessScore || 0)
-                          ? 'fill-yellow-400 text-yellow-400'
-                          : 'text-muted-foreground'
-                      }`}
-                    />
-                  </button>
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {cleanlinessScore === 5 && 'Rất tốt - Phòng sạch sẽ hoàn hảo'}
-                {cleanlinessScore === 4 && 'Tốt - Phòng sạch sẽ'}
-                {cleanlinessScore === 3 && 'Trung bình - Cần cải thiện'}
-                {cleanlinessScore === 2 && 'Kém - Cần dọn dẹp'}
-                {cleanlinessScore === 1 && 'Rất kém - Cần dọn dẹp ngay'}
-              </p>
-            </div>
             <FormMessage />
           </FormItem>
         )}

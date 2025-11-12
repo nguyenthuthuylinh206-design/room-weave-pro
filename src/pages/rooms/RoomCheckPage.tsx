@@ -53,9 +53,11 @@ export function RoomCheckPage() {
     let isValid = false
     
     if (currentStep === 1) {
-      isValid = await form.trigger(['check_type', 'cleanliness_score'])
+      isValid = await form.trigger(['check_type'])
     } else if (currentStep === 2) {
       isValid = await form.trigger(['items_complete', 'items_missing', 'items_damaged'])
+    } else if (currentStep === 3) {
+      isValid = await form.trigger(['cleanliness_score'])
     }
     
     if (isValid && currentStep < totalSteps) {
@@ -102,21 +104,21 @@ export function RoomCheckPage() {
           <div className="space-y-4">
             <CardTitle>
               Bước {currentStep}/{totalSteps}:{' '}
-              {currentStep === 1 && 'Thông tin kiểm tra'}
-              {currentStep === 2 && 'Kiểm tra đồ dùng'}
-              {currentStep === 3 && 'Hoàn tất'}
+              {currentStep === 1 && 'Chọn loại kiểm tra'}
+              {currentStep === 2 && 'Kiểm tra đồ dùng trong phòng'}
+              {currentStep === 3 && 'Đánh giá & Hoàn tất'}
             </CardTitle>
             <div className="space-y-2">
               <Progress value={progress} />
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span className={currentStep === 1 ? 'font-medium text-foreground' : ''}>
-                  Thông tin
+                  Loại kiểm tra
                 </span>
                 <span className={currentStep === 2 ? 'font-medium text-foreground' : ''}>
                   Đồ dùng
                 </span>
                 <span className={currentStep === 3 ? 'font-medium text-foreground' : ''}>
-                  Hoàn tất
+                  Đánh giá
                 </span>
               </div>
             </div>
