@@ -8,6 +8,7 @@ export interface PromotionalCode {
   applicable_billing_cycles: string[];
   max_uses?: number;
   current_uses: number;
+  times_used?: number; // For display/tracking
   max_uses_per_tenant: number;
   valid_from: string;
   valid_until?: string;
@@ -29,9 +30,12 @@ export interface PromoCodeUsage {
   
   // Joined data
   promo_code?: PromotionalCode;
-  tenant?: {
-    id: string;
+  tenants?: {
     name: string;
+  };
+  users?: {
+    full_name: string;
+    email: string;
   };
 }
 
@@ -69,17 +73,13 @@ export interface RenewalReminder {
   email_body?: string;
   error_message?: string;
   created_at: string;
+  days_before_expiry?: number;
   
   // Joined data
-  tenant?: {
-    id: string;
+  tenants?: {
     name: string;
-    subscription_current_period_end?: string;
-  };
-  owner?: {
-    id: string;
-    full_name: string;
-    email: string;
+    primary_contact_email?: string;
+    subscription_end_date?: string;
   };
 }
 
@@ -99,10 +99,11 @@ export interface MarketingCampaign {
   starts_at: string;
   ends_at?: string;
   status: 'draft' | 'scheduled' | 'active' | 'paused' | 'completed';
-  emails_sent: number;
-  emails_opened: number;
-  clicks: number;
-  conversions: number;
+  sent_count?: number;
+  opened_count?: number;
+  clicked_count?: number;
+  converted_count?: number;
+  sent_at?: string;
   created_by?: string;
   created_at: string;
   updated_at: string;

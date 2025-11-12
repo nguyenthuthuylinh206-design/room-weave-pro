@@ -34,6 +34,17 @@ export function SuperAdminLayout() {
   const location = useLocation();
   const { user, isLoading, signOut } = useSuperAdminAuth();
 
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-muted/30">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading Super Admin Portal...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-muted/30">
       {/* Mobile sidebar backdrop */}
@@ -69,7 +80,10 @@ export function SuperAdminLayout() {
           <ScrollArea className="flex-1 px-3 py-4">
             <nav className="space-y-1">
               {navigation.map((item) => {
-                const isActive = location.pathname === item.href;
+                // Fix active state: exact match for dashboard, prefix match for sub-routes
+                const isActive = item.href === '/super-admin' 
+                  ? location.pathname === '/super-admin'
+                  : location.pathname.startsWith(item.href);
                 return (
                   <Link
                     key={item.name}

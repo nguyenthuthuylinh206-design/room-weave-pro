@@ -38,6 +38,8 @@ import { SettingsPage } from "./pages/settings/SettingsPage";
 import { SettingsLayout } from "./components/settings/SettingsLayout";
 import { GeneralSettingsPage } from "./pages/settings/GeneralSettingsPage";
 import HotelsManagementPage from "./pages/settings/HotelsManagementPage";
+import { SuperAdminLayout } from './components/super-admin/SuperAdminLayout';
+import { SuperAdminErrorBoundary } from './components/super-admin/ErrorBoundary';
 import SubscriptionPage from "./pages/settings/SubscriptionPage";
 import UsageDashboardPage from "./pages/settings/UsageDashboardPage";
 import SystemSecurityPage from "./pages/settings/SystemSecurityPage";
@@ -111,6 +113,24 @@ const router = createBrowserRouter([
         <Onboarding />
       </AuthGuard>
     ),
+  },
+
+  // Super Admin Routes
+  {
+    path: "/super-admin",
+    element: (
+      <SuperAdminErrorBoundary>
+        <SuperAdminLayout />
+      </SuperAdminErrorBoundary>
+    ),
+    children: [
+      { index: true, element: <SuperAdminDashboard /> },
+      { path: "tenants", element: <TenantsPage /> },
+      { path: "promo-codes", element: <PromoCodesPage /> },
+      { path: "campaigns", element: <MarketingCampaignsPage /> },
+      { path: "reminders", element: <RenewalRemindersPage /> },
+      { path: "pricing", element: <PricingPlansPage /> },
+    ],
   },
 
   // Protected routes

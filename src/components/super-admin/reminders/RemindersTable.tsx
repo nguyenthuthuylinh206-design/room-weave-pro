@@ -59,9 +59,9 @@ export function RemindersTable() {
       header: 'Tenant',
       cell: ({ row }) => (
         <div>
-          <div className="font-medium">{row.original.tenant?.name || 'N/A'}</div>
+          <div className="font-medium">{row.original.tenants?.name || 'N/A'}</div>
           <div className="text-sm text-muted-foreground">
-            {row.original.owner?.email || 'N/A'}
+            {row.original.tenants?.primary_contact_email || 'N/A'}
           </div>
         </div>
       ),

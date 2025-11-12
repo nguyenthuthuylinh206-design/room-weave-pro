@@ -99,9 +99,9 @@ export function CampaignsTable() {
       accessorKey: 'performance',
       header: 'Performance',
       cell: ({ row }) => {
-        const sent = row.original.emails_sent || 0;
-        const opened = row.original.emails_opened || 0;
-        const clicked = row.original.clicks || 0;
+        const sent = row.original.sent_count || 0;
+        const opened = row.original.opened_count || 0;
+        const clicked = row.original.clicked_count || 0;
         const openRate = sent > 0 ? ((opened / sent) * 100).toFixed(1) : '0';
         
         return (

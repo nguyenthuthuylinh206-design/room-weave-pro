@@ -43,7 +43,7 @@ export function CampaignStats({ campaign, open, onOpenChange }: CampaignStatsPro
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {isLoading ? '...' : stats?.totalSent || campaign.emails_sent || 0}
+                  {isLoading ? '...' : stats?.totalSent || campaign.sent_count || 0}
                 </div>
               </CardContent>
             </Card>
@@ -58,7 +58,7 @@ export function CampaignStats({ campaign, open, onOpenChange }: CampaignStatsPro
                   {isLoading ? '...' : `${stats?.openRate || 0}%`}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {stats?.totalOpened || campaign.emails_opened || 0} opened
+                  {stats?.totalOpened || campaign.opened_count || 0} opened
                 </p>
               </CardContent>
             </Card>
@@ -73,7 +73,7 @@ export function CampaignStats({ campaign, open, onOpenChange }: CampaignStatsPro
                   {isLoading ? '...' : `${stats?.clickRate || 0}%`}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {stats?.totalClicked || campaign.clicks || 0} clicks
+                  {stats?.totalClicked || campaign.clicked_count || 0} clicks
                 </p>
               </CardContent>
             </Card>
@@ -85,7 +85,7 @@ export function CampaignStats({ campaign, open, onOpenChange }: CampaignStatsPro
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {isLoading ? '...' : stats?.totalConverted || campaign.conversions || 0}
+                  {isLoading ? '...' : stats?.totalConverted || campaign.converted_count || 0}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   {stats?.conversionRate || 0}% conversion rate
