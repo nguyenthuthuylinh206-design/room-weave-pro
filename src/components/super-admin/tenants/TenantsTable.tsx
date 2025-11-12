@@ -29,9 +29,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, ArrowUpDown } from 'lucide-react';
-import { useTenants } from '@/hooks/super-admin/useTenants';
+import { MoreHorizontal, ArrowUpDown, Building2, Users, AlertCircle } from 'lucide-react';
+import { useTenants, useSuspendTenant, useReactivateTenant, useDeleteTenant } from '@/hooks/super-admin/useTenants';
 import { TenantDetailsDialog } from './TenantDetailsDialog';
+import { ChangePlanDialog } from './ChangePlanDialog';
+import { DeleteTenantDialog } from './DeleteTenantDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface TenantsTableProps {
   statusFilter?: string;
@@ -52,6 +64,14 @@ export function TenantsTable({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [selectedTenant, setSelectedTenant] = useState<any | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [changePlanOpen, setChangePlanOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
+  const [tenantToSuspend, setTenantToSuspend] = useState<any | null>(null);
+
+  const suspendMutation = useSuspendTenant();
+  const reactivateMutation = useReactivateTenant();
+  const deleteMutation = useDeleteTenant();
 
   const { data: tenants = [], isLoading } = useTenants();
 
@@ -146,7 +166,58 @@ export function TenantsTable({
       accessorKey: 'subscription_plan_id',
       header: 'Plan',
       cell: ({ row }) => {
-        return <span className="font-medium text-foreground">Premium</span>;
+        const plan = row.original.subscription_plan;
+        return (
+          <div>
+            <div className="font-medium text-foreground">{plan?.name || 'No Plan'}</div>
+            <div className="text-xs text-muted-foreground">
+              {row.original.billing_cycle === 'monthly' ? 'Monthly' : 'Yearly'}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      id: 'usage',
+      header: 'Usage',
+      cell: ({ row }) => {
+        const tenant = row.original;
+        const usage = tenant.tenant_usage?.[0];
+        const plan = tenant.subscription_plan;
+        
+        if (!usage) return <span className="text-muted-foreground">-</span>;
+        
+        const hotelsPercent = plan?.max_hotels 
+          ? Math.round((usage.current_hotels_count / plan.max_hotels) * 100)
+          : 0;
+        const usersPercent = plan?.max_users
+          ? Math.round((usage.current_users_count / plan.max_users) * 100)
+          : 0;
+          
+        const isOverLimit = hotelsPercent > 100 || usersPercent > 100;
+        
+        return (
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs">
+              <Building2 className="h-3 w-3" />
+              <span className={isOverLimit ? 'text-destructive' : 'text-foreground'}>
+                {usage.current_hotels_count}/{plan?.max_hotels || '∞'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <Users className="h-3 w-3" />
+              <span className={isOverLimit ? 'text-destructive' : 'text-foreground'}>
+                {usage.current_users_count}/{plan?.max_users || '∞'}
+              </span>
+            </div>
+            {isOverLimit && (
+              <div className="flex items-center gap-1 text-xs text-destructive">
+                <AlertCircle className="h-3 w-3" />
+                Over limit
+              </div>
+            )}
+          </div>
+        );
       },
     },
     {
@@ -212,12 +283,40 @@ export function TenantsTable({
               >
                 View Details
               </DropdownMenuItem>
-              <DropdownMenuItem>Extend Subscription</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-orange-600">
-                Suspend Tenant
+              <DropdownMenuItem
+                onClick={() => {
+                  setSelectedTenant(tenant);
+                  setChangePlanOpen(true);
+                }}
+              >
+                Change Plan
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuSeparator />
+              {tenant.subscription_status === 'suspended' ? (
+                <DropdownMenuItem
+                  className="text-green-600"
+                  onClick={() => reactivateMutation.mutate(tenant.id)}
+                >
+                  Reactivate Tenant
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem
+                  className="text-orange-600"
+                  onClick={() => {
+                    setTenantToSuspend(tenant);
+                    setSuspendDialogOpen(true);
+                  }}
+                >
+                  Suspend Tenant
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={() => {
+                  setSelectedTenant(tenant);
+                  setDeleteDialogOpen(true);
+                }}
+              >
                 Delete Tenant
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -317,12 +416,50 @@ export function TenantsTable({
         </div>
       </div>
 
-      {/* Details Dialog */}
+      {/* Dialogs */}
       <TenantDetailsDialog
         tenant={selectedTenant}
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
       />
+      
+      <ChangePlanDialog
+        tenant={selectedTenant}
+        open={changePlanOpen}
+        onOpenChange={setChangePlanOpen}
+      />
+      
+      <DeleteTenantDialog
+        tenant={selectedTenant}
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+      />
+      
+      {/* Suspend Confirmation Dialog */}
+      <AlertDialog open={suspendDialogOpen} onOpenChange={setSuspendDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Suspend Tenant?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will suspend access for <strong>{tenantToSuspend?.name}</strong>. They will not be able to log in until reactivated.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (tenantToSuspend) {
+                  suspendMutation.mutate(tenantToSuspend.id);
+                  setSuspendDialogOpen(false);
+                  setTenantToSuspend(null);
+                }
+              }}
+            >
+              Suspend
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

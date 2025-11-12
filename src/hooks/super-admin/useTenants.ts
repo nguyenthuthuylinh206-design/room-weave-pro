@@ -14,9 +14,24 @@ export function useTenants() {
         .select(`
           *,
           subscription_plan:subscription_plans(
+            id,
             name,
+            code,
             price_monthly,
-            price_yearly
+            price_yearly,
+            max_hotels,
+            max_users,
+            max_storage_gb
+          ),
+          tenant_usage(
+            current_hotels_count,
+            current_users_count,
+            current_rooms_count,
+            current_items_count,
+            current_storage_bytes,
+            peak_hotels_count,
+            peak_users_count,
+            peak_storage_bytes
           )
         `)
         .order('created_at', { ascending: false });
