@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
-import { User } from '@/types/database.types'
+import { User, UserWithRelations } from '@/types/database.types'
 import { toast } from 'sonner'
 import { UserFormData } from '@/lib/validations/user.schemas'
 import { logCreate, logUpdate, logDelete } from '@/lib/activityLogger'
@@ -11,11 +11,14 @@ export function useUsers() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select(`
+          *,
+          position:positions(id, code, name, user_level_code, department)
+        `)
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      return data as User[]
+      return data as UserWithRelations[]
     },
   })
 
@@ -39,6 +42,7 @@ export function useCreateUser() {
           phone: data.phone || null,
           user_level_code: data.userLevelCode,
           hotel_id: data.hotelId || null,
+          position_id: data.positionId || null,
           department: data.department || null,
           status: data.status,
           notes: data.notes || null,
@@ -79,6 +83,7 @@ export function useUpdateUser() {
           phone: data.phone || null,
           user_level_code: data.userLevelCode,
           hotel_id: data.hotelId || null,
+          position_id: data.positionId || null,
           department: data.department || null,
           status: data.status,
           notes: data.notes || null,

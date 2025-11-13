@@ -30,11 +30,12 @@ import { Button } from '@/components/ui/button'
 import { userFormSchema, type UserFormData } from '@/lib/validations/user.schemas'
 import { useHotels } from '@/hooks/useHotels'
 import { useAvailableUserLevels } from '@/hooks/useUserLevels'
-import { User } from '@/types/database.types'
+import { usePositions } from '@/hooks/usePositions'
+import { User, UserWithRelations } from '@/types/database.types'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 
 interface UserFormDialogProps {
-  user?: User | null
+  user?: UserWithRelations | null
   open: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (data: UserFormData) => Promise<void>
@@ -59,11 +60,17 @@ export function UserFormDialog({
       phone: '',
       userLevelCode: 'staff',
       hotelId: null,
+      positionId: null,
       department: null,
       status: 'active',
       notes: '',
     },
   })
+  
+  const selectedLevel = form.watch('userLevelCode')
+  const { data: positions } = usePositions(
+    selectedLevel === 'tenant_owner' ? undefined : selectedLevel as 'manager' | 'staff'
+  )
 
   // Reset form when user changes or dialog opens
   useEffect(() => {
@@ -112,8 +119,7 @@ export function UserFormDialog({
     }
   }
 
-  const selectedLevel = form.watch('userLevelCode')
-  const needsDepartment = selectedLevel === 'manager' || selectedLevel === 'staff'
+  const needsPosition = selectedLevel === 'manager' || selectedLevel === 'staff'
 
   return (
     <>
@@ -257,8 +263,7 @@ export function UserFormDialog({
               )}
             />
 
-            {/* Department (only if role requires it) */}
-            {needsDepartment && (
+            {needsPosition && selectedLevel === 'staff' && (
               <FormField
                 control={form.control}
                 name="department"
@@ -280,6 +285,8 @@ export function UserFormDialog({
                         <SelectItem value="laundry">Giặt là</SelectItem>
                         <SelectItem value="inventory">Kho</SelectItem>
                         <SelectItem value="maintenance">Bảo trì</SelectItem>
+                        <SelectItem value="accounting">Kế toán</SelectItem>
+                        <SelectItem value="other">Khác</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

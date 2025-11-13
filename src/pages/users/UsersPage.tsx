@@ -3,12 +3,16 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { useUsers, useCreateUser, useUpdateUser } from '@/hooks/useUsers'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { Users, Plus } from 'lucide-react'
+import { Users, Plus, Settings, LayoutGrid, Table as TableIcon } from 'lucide-react'
 import { UserTable } from '@/components/users/UserTable'
+import { UserHierarchyView } from '@/components/users/UserHierarchyView'
 import { UserFilters } from '@/components/users/UserFilters'
 import { UserFormDialog } from '@/components/users/UserFormDialog'
-import { User } from '@/types/database.types'
+import { PositionManagementDialog } from '@/components/users/PositionManagementDialog'
+import { UserWithRelations } from '@/types/database.types'
 import { UserFormData } from '@/lib/validations/user.schemas'
+import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function UsersPage() {
   const { users, isLoading } = useUsers()
@@ -21,9 +25,11 @@ export default function UsersPage() {
     status: 'all',
   })
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [positionDialogOpen, setPositionDialogOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<UserWithRelations | null>(null)
+  const [viewMode, setViewMode] = useState<'hierarchy' | 'table'>('hierarchy')
 
-  const handleOpenDialog = (user?: User) => {
+  const handleOpenDialog = (user?: UserWithRelations) => {
     setSelectedUser(user || null)
     setDialogOpen(true)
   }
@@ -60,15 +66,39 @@ export default function UsersPage() {
     <div className="space-y-6">
       <PageHeader
         title="Quản lý người dùng"
-        description="Quản lý tài khoản và phân quyền người dùng trong hệ thống"
-        action={{
-          label: 'Thêm người dùng',
-          icon: Plus,
-          onClick: () => handleOpenDialog(),
-        }}
-      />
+        description="Quản lý tài khoản và phân quyền người dùng theo cấp bậc: Chủ sở hữu > Quản lý > Nhân viên"
+      >
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setPositionDialogOpen(true)}
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Quản lý chức vụ
+          </Button>
+          <Button onClick={() => handleOpenDialog()}>
+            <Plus className="h-4 w-4 mr-2" />
+            Thêm người dùng
+          </Button>
+        </div>
+      </PageHeader>
 
-      <UserFilters filters={filters} onFiltersChange={setFilters} />
+      <div className="flex items-center justify-between">
+        <UserFilters filters={filters} onFiltersChange={setFilters} />
+        
+        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-auto">
+          <TabsList>
+            <TabsTrigger value="hierarchy" className="gap-2">
+              <LayoutGrid className="h-4 w-4" />
+              Cấp bậc
+            </TabsTrigger>
+            <TabsTrigger value="table" className="gap-2">
+              <TableIcon className="h-4 w-4" />
+              Bảng
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
 
       {!filteredUsers || filteredUsers.length === 0 ? (
         <EmptyState
@@ -80,6 +110,8 @@ export default function UsersPage() {
             onClick: () => handleOpenDialog(),
           }}
         />
+      ) : viewMode === 'hierarchy' ? (
+        <UserHierarchyView users={filteredUsers} onEdit={handleOpenDialog} />
       ) : (
         <UserTable users={filteredUsers} onEdit={handleOpenDialog} />
       )}
@@ -89,6 +121,11 @@ export default function UsersPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSubmit={handleSubmit}
+      />
+
+      <PositionManagementDialog
+        open={positionDialogOpen}
+        onOpenChange={setPositionDialogOpen}
       />
     </div>
   )

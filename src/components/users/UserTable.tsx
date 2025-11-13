@@ -17,15 +17,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
-import { User } from '@/types/database.types'
+import { UserWithRelations } from '@/types/database.types'
 import { UserAvatar } from './UserAvatar'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { useDeleteUser } from '@/hooks/useUsers'
 
 interface UserTableProps {
-  users: User[]
-  onEdit?: (user: User) => void
+  users: UserWithRelations[]
+  onEdit?: (user: UserWithRelations) => void
 }
 
 const userLevelLabels: Record<string, string> = {

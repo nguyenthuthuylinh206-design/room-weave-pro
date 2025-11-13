@@ -39,6 +39,13 @@ export type UserWithRelations = User & {
     name: string
     hierarchy_level: number
   }
+  position?: {
+    id: string
+    code: string
+    name: string
+    user_level_code: string
+    department?: string
+  }
 }
 
 export type ItemWithRelations = Item & {

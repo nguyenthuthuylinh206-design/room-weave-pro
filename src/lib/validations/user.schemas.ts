@@ -14,7 +14,8 @@ export const userFormSchema = z.object({
     required_error: 'Vui lòng chọn cấp độ người dùng',
   }),
   hotelId: z.string().uuid().optional().nullable(),
-  department: z.enum(['housekeeping', 'laundry', 'inventory', 'maintenance']).optional().nullable(),
+  positionId: z.string().uuid().optional().nullable(),
+  department: z.enum(['housekeeping', 'laundry', 'inventory', 'maintenance', 'accounting', 'other']).optional().nullable(),
   status: z.enum(['active', 'inactive']).default('active'),
   notes: z.string().optional(),
 })

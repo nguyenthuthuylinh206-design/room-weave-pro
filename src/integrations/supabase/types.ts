@@ -2386,6 +2386,56 @@ export type Database = {
           },
         ]
       }
+      positions: {
+        Row: {
+          code: string
+          created_at: string | null
+          department: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          name: string
+          status: string | null
+          tenant_id: string
+          updated_at: string | null
+          user_level_code: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          department?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          name: string
+          status?: string | null
+          tenant_id: string
+          updated_at?: string | null
+          user_level_code: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          department?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          name?: string
+          status?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+          user_level_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "positions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       promo_code_usage: {
         Row: {
           discount_applied: number
@@ -3946,6 +3996,7 @@ export type Database = {
           must_change_password: boolean | null
           notes: string | null
           phone: string | null
+          position_id: string | null
           reports_to: string | null
           role: string
           status: string | null
@@ -3976,6 +4027,7 @@ export type Database = {
           must_change_password?: boolean | null
           notes?: string | null
           phone?: string | null
+          position_id?: string | null
           reports_to?: string | null
           role?: string
           status?: string | null
@@ -4006,6 +4058,7 @@ export type Database = {
           must_change_password?: boolean | null
           notes?: string | null
           phone?: string | null
+          position_id?: string | null
           reports_to?: string | null
           role?: string
           status?: string | null
@@ -4054,6 +4107,13 @@ export type Database = {
             columns: ["hotel_id"]
             isOneToOne: false
             referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "positions"
             referencedColumns: ["id"]
           },
           {
