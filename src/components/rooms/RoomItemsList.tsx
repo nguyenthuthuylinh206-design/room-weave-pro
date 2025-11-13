@@ -1,17 +1,10 @@
 import { Link } from 'react-router-dom'
 import { Package, CheckCircle2, AlertCircle } from 'lucide-react'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { useToggleItemVerification } from '@/hooks/useRoomItems'
+import { useState } from 'react'
 import type { RoomItemWithDetails } from '@/types/rooms.types'
 
 interface RoomItemsListProps {
@@ -26,14 +19,9 @@ type ItemStatus = {
 }
 
 export function RoomItemsList({ items }: RoomItemsListProps) {
-  const toggleVerification = useToggleItemVerification()
-
-  const handleToggleVerification = (roomItemId: string, currentStatus: boolean) => {
-    toggleVerification.mutate({ 
-      roomItemId, 
-      isVerified: !currentStatus 
-    })
-  }
+  const [quantities, setQuantities] = useState<Record<string, number>>(
+    items.reduce((acc, item) => ({ ...acc, [item.id]: item.quantity }), {})
+  )
 
   const getItemStatus = (current: number, standard?: number): ItemStatus => {
     if (!standard) return { label: 'Không xác định', variant: 'secondary', color: 'text-muted-foreground' }
@@ -53,142 +41,215 @@ export function RoomItemsList({ items }: RoomItemsListProps) {
     )
   }
 
-  // Calculate unverified and missing items
-  const unverifiedItems = items.filter(item => !item.is_verified)
+  // Calculate missing items
   const missingItems = items.filter(item => {
     const standardQty = item.standard_quantity || 0
-    const currentQty = item.quantity || 0
+    const currentQty = quantities[item.id] || 0
     return standardQty > currentQty
   })
-  
-  // Calculate total missing quantity
-  const totalMissingQuantity = missingItems.reduce((sum, item) => {
-    return sum + Math.max(0, (item.standard_quantity || 0) - item.quantity)
-  }, 0)
-  
+
   return (
     <div className="space-y-4">
-      {unverifiedItems.length > 0 && (
+      {missingItems.length > 0 && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Còn {unverifiedItems.length} loại đồ chưa được xác nhận.
-            {missingItems.length > 0 && (
-              <span className="font-semibold">
-                {' '}Thiếu {missingItems.length} loại đồ ({totalMissingQuantity} món).
-              </span>
-            )}
-            {' '}Hãy tích vào các đồ đã có trong phòng để xác nhận.
+            Phòng đang thiếu {missingItems.length} loại đồ dùng. Vui lòng bổ sung.
           </AlertDescription>
         </Alert>
       )}
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[50px]">Xác nhận</TableHead>
-            <TableHead className="w-16">Ảnh</TableHead>
-            <TableHead>Tên đồ dùng</TableHead>
-            <TableHead className="text-center">Số lượng chuẩn</TableHead>
-            <TableHead className="text-center">Số lượng hiện có</TableHead>
-            <TableHead className="text-center">Còn thiếu</TableHead>
-            <TableHead>Tình trạng</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.map((item) => {
-            const missing = item.standard_quantity 
-              ? item.standard_quantity - item.quantity
-              : 0
-            const isVerified = item.is_verified || false
-            const status = getItemStatus(item.quantity, item.standard_quantity)
-            
-            return (
-              <TableRow 
-                key={item.id}
-                className={!isVerified && missing > 0 ? 'bg-destructive/5' : ''}
-              >
-                <TableCell>
-                  <Checkbox
-                    checked={isVerified}
-                    onCheckedChange={() => handleToggleVerification(item.id, isVerified)}
-                    disabled={toggleVerification.isPending}
-                  />
-                </TableCell>
-                <TableCell>
-                  {item.item_thumbnail ? (
-                    <img
-                      src={item.item_thumbnail}
-                      alt={item.item_name}
-                      className="h-10 w-10 rounded object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-10 w-10 items-center justify-center rounded bg-muted">
-                      <Package className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    <Link 
-                      to={`/items/${item.item_id}`}
-                      className="font-medium hover:underline flex items-center gap-2"
-                    >
-                      {item.item_name}
-                      {isVerified && (
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      )}
-                      {!isVerified && missing > 0 && (
-                        <AlertCircle className="h-4 w-4 text-destructive" />
-                      )}
-                    </Link>
-                    <p className="text-xs text-muted-foreground">{item.item_code}</p>
-                    {item.category_name && (
-                      <Badge variant="outline" className="text-xs">
-                        {item.category_name}
-                      </Badge>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Cột 1: Đồ dùng cần có */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Đồ dùng cần có</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Danh sách đồ chuẩn theo loại phòng
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {items.map((item) => {
+                const status = getItemStatus(quantities[item.id], item.standard_quantity)
+                return (
+                  <div key={item.id} className="flex items-start gap-3 p-3 rounded-lg border bg-card">
+                    {item.item_thumbnail ? (
+                      <img
+                        src={item.item_thumbnail}
+                        alt={item.item_name}
+                        className="h-12 w-12 rounded object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="flex h-12 w-12 items-center justify-center rounded bg-muted flex-shrink-0">
+                        <Package className="h-6 w-6 text-muted-foreground" />
+                      </div>
                     )}
+                    <div className="flex-1 min-w-0">
+                      <Link 
+                        to={`/items/${item.item_id}`}
+                        className="font-medium hover:underline block truncate"
+                      >
+                        {item.item_name}
+                      </Link>
+                      <p className="text-xs text-muted-foreground">{item.item_code}</p>
+                      {item.category_name && (
+                        <Badge variant="outline" className="text-xs mt-1">
+                          {item.category_name}
+                        </Badge>
+                      )}
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-sm font-semibold">
+                          Cần: {item.standard_quantity || 0}
+                        </span>
+                        <Badge variant={status.variant} className="text-xs">
+                          {status.label}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
-                </TableCell>
-                <TableCell className="text-center font-medium">
-                  {item.standard_quantity || '-'}
-                </TableCell>
-                <TableCell className="text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="font-medium">{item.quantity}</span>
-                    <Badge variant={status.variant} className={status.color}>
-                      {status.label}
-                    </Badge>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Cột 2: Đồ dùng đã có trong phòng */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Đồ dùng đã có trong phòng</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Nhập số lượng thực tế
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {items.map((item) => {
+                const currentQty = quantities[item.id]
+                const status = getItemStatus(currentQty, item.standard_quantity)
+                
+                return (
+                  <div key={item.id} className="flex items-start gap-3 p-3 rounded-lg border bg-card">
+                    {item.item_thumbnail ? (
+                      <img
+                        src={item.item_thumbnail}
+                        alt={item.item_name}
+                        className="h-12 w-12 rounded object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="flex h-12 w-12 items-center justify-center rounded bg-muted flex-shrink-0">
+                        <Package className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{item.item_name}</p>
+                      <p className="text-xs text-muted-foreground">{item.item_code}</p>
+                      <div className="mt-2 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            value={currentQty}
+                            onChange={(e) => {
+                              const newQty = parseInt(e.target.value) || 0
+                              setQuantities(prev => ({ ...prev, [item.id]: newQty }))
+                            }}
+                            className="w-20 h-8"
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            / {item.standard_quantity || 0}
+                          </span>
+                        </div>
+                        <Badge variant={status.variant} className="text-xs">
+                          {status.label}
+                        </Badge>
+                        <Badge 
+                          variant={
+                            item.condition === 'good' ? 'default' :
+                            item.condition === 'damaged' ? 'destructive' :
+                            'secondary'
+                          }
+                          className="text-xs ml-2"
+                        >
+                          {item.condition === 'good' && 'Tốt'}
+                          {item.condition === 'fair' && 'Khá'}
+                          {item.condition === 'poor' && 'Kém'}
+                          {item.condition === 'damaged' && 'Hỏng'}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
-                </TableCell>
-                <TableCell className="text-center">
-                  {missing > 0 ? (
-                    <span className="font-medium text-red-600">-{missing}</span>
-                  ) : missing < 0 ? (
-                    <span className="font-medium text-blue-600">+{Math.abs(missing)}</span>
-                  ) : (
-                    <CheckCircle2 className="h-4 w-4 text-green-600 inline" />
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      item.condition === 'good' ? 'default' :
-                      item.condition === 'damaged' ? 'destructive' :
-                      'secondary'
-                    }
-                  >
-                    {item.condition === 'good' && 'Tốt'}
-                    {item.condition === 'fair' && 'Khá'}
-                    {item.condition === 'poor' && 'Kém'}
-                    {item.condition === 'damaged' && 'Hỏng'}
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Cột 3: Số lượng đồ còn thiếu */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Số lượng đồ còn thiếu</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Cần bổ sung
+            </p>
+          </CardHeader>
+          <CardContent>
+            {missingItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <CheckCircle2 className="h-12 w-12 text-green-600" />
+                <p className="mt-2 text-sm font-medium text-green-600">
+                  Đủ đồ dùng
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Phòng đã có đầy đủ đồ dùng theo chuẩn
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {missingItems.map((item) => {
+                  const missing = (item.standard_quantity || 0) - (quantities[item.id] || 0)
+                  
+                  return (
+                    <div key={item.id} className="flex items-start gap-3 p-3 rounded-lg border border-destructive/50 bg-destructive/5">
+                      {item.item_thumbnail ? (
+                        <img
+                          src={item.item_thumbnail}
+                          alt={item.item_name}
+                          className="h-12 w-12 rounded object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded bg-muted flex-shrink-0">
+                          <Package className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <Link 
+                          to={`/items/${item.item_id}`}
+                          className="font-medium hover:underline block truncate"
+                        >
+                          {item.item_name}
+                        </Link>
+                        <p className="text-xs text-muted-foreground">{item.item_code}</p>
+                        {item.category_name && (
+                          <Badge variant="outline" className="text-xs mt-1">
+                            {item.category_name}
+                          </Badge>
+                        )}
+                        <div className="mt-2 flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 text-destructive" />
+                          <span className="text-sm font-semibold text-destructive">
+                            Thiếu: {missing}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
