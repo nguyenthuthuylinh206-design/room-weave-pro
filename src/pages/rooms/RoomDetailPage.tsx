@@ -41,9 +41,10 @@ export function RoomDetailPage() {
     )
   }
   
-  const room = (data as any)?.room
-  const items = (data as any)?.items || []
-  const checks = (data as any)?.recent_checks || []
+  // Data is now the room object directly from the rooms table
+  const room = data
+  const items = [] // TODO: Fetch room items separately
+  const checks = [] // TODO: Fetch room checks separately
   
   const totalItems = items.length
   const completeItems = items.filter(item => 
