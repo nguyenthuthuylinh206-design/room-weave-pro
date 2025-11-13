@@ -33,13 +33,11 @@ function generatePassword(length: number = 12): string {
 interface CreateUserRequest {
   email: string
   fullName: string
-  phone?: string
+  password: string
   tenantId: string
   userLevelCode: 'tenant_owner' | 'manager' | 'staff'
   hotelId?: string
   positionId?: string
-  departments?: string[]
-  status?: 'active' | 'inactive' | 'suspended'
 }
 
 serve(async (req) => {
@@ -72,11 +70,11 @@ serve(async (req) => {
 
     // Parse request body
     const requestData: CreateUserRequest = await req.json()
-    const { email, fullName, phone, tenantId, userLevelCode, hotelId, positionId, departments, status } = requestData
+    const { email, fullName, password, tenantId, userLevelCode, hotelId, positionId } = requestData
 
     // Validate required fields
-    if (!email || !fullName || !tenantId || !userLevelCode) {
-      throw new Error('Missing required fields: email, fullName, tenantId, userLevelCode')
+    if (!email || !fullName || !password || !tenantId || !userLevelCode) {
+      throw new Error('Missing required fields: email, fullName, password, tenantId, userLevelCode')
     }
 
     // Validate email format
@@ -147,15 +145,13 @@ serve(async (req) => {
       }
     }
 
-    // Generate temporary password
-    const tempPassword = generatePassword(12)
-    
+    // Use password from request instead of generating
     console.log('Creating auth user...')
     
     // Create auth user
     const { data: authUser, error: authUserError } = await supabaseAdmin.auth.admin.createUser({
       email: email.toLowerCase(),
-      password: tempPassword,
+      password: password,
       email_confirm: true,
       user_metadata: {
         full_name: fullName,
@@ -188,12 +184,11 @@ serve(async (req) => {
       id: authUser.user.id,
       email: email.toLowerCase(),
       full_name: fullName,
-      phone: phone || null,
       tenant_id: tenantId,
       user_level_code: userLevelCode,
       is_super_admin: false,
       is_primary_owner: isPrimaryOwner,
-      status: status || 'active',
+      status: 'active',
       created_by: userLevelCode === 'tenant_owner' ? null : requestingUser.id,
       must_change_password: true,
       login_count: 0,
@@ -222,7 +217,7 @@ serve(async (req) => {
         .insert({
           user_id: user.id,
           hotel_id: hotelId,
-          departments: departments || [],
+          departments: [],
           is_default: true,
           is_active: true,
           assigned_by: requestingUser.id,
@@ -269,8 +264,7 @@ serve(async (req) => {
           user_level_code: user.user_level_code,
           is_primary_owner: user.is_primary_owner
         },
-        temporaryPassword: tempPassword,
-        message: `Đã tạo tài khoản ${userLevelCode === 'manager' ? 'Quản lý' : 'Nhân viên'} thành công. Mật khẩu tạm thời đã được tạo.`
+        message: `Đã tạo tài khoản ${userLevelCode === 'manager' ? 'Quản lý' : 'Nhân viên'} thành công.`
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -53,13 +53,10 @@ export function useCreateUser() {
         body: {
           email: data.email,
           fullName: data.fullName,
-          phone: data.phone || null,
+          password: data.password,
           userLevelCode: data.userLevelCode,
           hotelId: data.hotelId || null,
           positionId: data.positionId || null,
-          department: data.department || null,
-          status: data.status,
-          notes: data.notes || null,
           tenantId: tenant.id,
         }
       })
@@ -74,16 +71,14 @@ export function useCreateUser() {
       }
 
       const user = result.user
-      const tempPassword = result.temporaryPassword
       await logCreate('user', user.id, user.full_name, data)
-      return { user, tempPassword }
+      return user
     },
-    onSuccess: (result) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
       queryClient.invalidateQueries({ queryKey: ['check-quota'] })
       queryClient.invalidateQueries({ queryKey: ['tenant-usage'] })
-      // Don't show toast here - let the page handle it with password display
-      return result
+      toast.success('Người dùng đã được tạo thành công')
     },
     onError: (error: Error) => {
       const errorMessage = error.message.toLowerCase()
@@ -122,13 +117,9 @@ export function useUpdateUser() {
         .from('users')
         .update({
           full_name: data.fullName,
-          phone: data.phone || null,
           user_level_code: data.userLevelCode,
           hotel_id: data.hotelId || null,
           position_id: data.positionId || null,
-          department: data.department || null,
-          status: data.status,
-          notes: data.notes || null,
         })
         .eq('id', id)
         .select()
