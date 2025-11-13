@@ -7,6 +7,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Wind,
+  RefreshCw,
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -14,17 +15,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
 import { RoomItemsList } from '@/components/rooms/RoomItemsList'
 import { EnhancedCheckHistory } from '@/components/rooms/EnhancedCheckHistory'
 import { RoomHealthScore } from '@/components/rooms/RoomHealthScore'
 import { useRoom } from '@/hooks/useRooms'
+import { useApplyStandards } from '@/hooks/useRoomStandards'
 import { formatCurrency } from '@/lib/utils'
 
 export function RoomDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data, isLoading } = useRoom(id)
+  const applyStandards = useApplyStandards()
   
   if (isLoading) {
     return <RoomDetailSkeleton />
@@ -152,6 +156,17 @@ export function RoomDetailPage() {
               <CardTitle>Đồ dùng trong phòng</CardTitle>
             </CardHeader>
             <CardContent>
+              {/* Alert when no items */}
+              {totalItems === 0 && (
+                <Alert className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Chưa có đồ dùng trong phòng</AlertTitle>
+                  <AlertDescription>
+                    Phòng này chưa có đồ dùng nào. Nhấn nút "Áp dụng chuẩn phòng" ở mục "Thao tác nhanh" bên phải để tự động thêm đồ dùng theo chuẩn của loại phòng <span className="font-semibold capitalize">{room.room_type}</span>.
+                  </AlertDescription>
+                </Alert>
+              )}
+              
               <Tabs defaultValue="all">
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="all">
@@ -270,6 +285,15 @@ export function RoomDetailPage() {
               >
                 <ClipboardCheck className="mr-2 h-4 w-4" />
                 Kiểm tra phòng
+              </Button>
+              <Button 
+                variant={totalItems === 0 ? "default" : "outline"}
+                className="w-full justify-start"
+                onClick={() => applyStandards.mutate(id!)}
+                disabled={applyStandards.isPending}
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${applyStandards.isPending ? 'animate-spin' : ''}`} />
+                {totalItems === 0 ? 'Áp dụng chuẩn phòng' : 'Đồng bộ lại chuẩn'}
               </Button>
               <Button 
                 variant="outline" 
