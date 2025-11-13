@@ -74,14 +74,16 @@ export function useCreateUser() {
       }
 
       const user = result.user
+      const tempPassword = result.temporaryPassword
       await logCreate('user', user.id, user.full_name, data)
-      return user
+      return { user, tempPassword }
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
       queryClient.invalidateQueries({ queryKey: ['check-quota'] })
       queryClient.invalidateQueries({ queryKey: ['tenant-usage'] })
-      toast.success('Người dùng đã được tạo thành công')
+      // Don't show toast here - let the page handle it with password display
+      return result
     },
     onError: (error: Error) => {
       const errorMessage = error.message.toLowerCase()

@@ -6,6 +6,30 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Generate random password
+function generatePassword(length: number = 12): string {
+  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  const lowercase = 'abcdefghijklmnopqrstuvwxyz'
+  const numbers = '0123456789'
+  const symbols = '!@#$%^&*'
+  const allChars = uppercase + lowercase + numbers + symbols
+  
+  let password = ''
+  // Ensure at least one of each type
+  password += uppercase[Math.floor(Math.random() * uppercase.length)]
+  password += lowercase[Math.floor(Math.random() * lowercase.length)]
+  password += numbers[Math.floor(Math.random() * numbers.length)]
+  password += symbols[Math.floor(Math.random() * symbols.length)]
+  
+  // Fill the rest randomly
+  for (let i = password.length; i < length; i++) {
+    password += allChars[Math.floor(Math.random() * allChars.length)]
+  }
+  
+  // Shuffle the password
+  return password.split('').sort(() => Math.random() - 0.5).join('')
+}
+
 interface CreateUserRequest {
   email: string
   fullName: string
@@ -124,7 +148,7 @@ serve(async (req) => {
     }
 
     // Generate temporary password
-    const tempPassword = `Temp${Math.random().toString(36).slice(-8)}!`
+    const tempPassword = generatePassword(12)
     
     console.log('Creating auth user...')
     
@@ -233,20 +257,6 @@ serve(async (req) => {
       console.error('Activity log error:', logError)
     }
 
-    // Send password reset email
-    try {
-      const { error: resetError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'magiclink',
-        email: email.toLowerCase(),
-      })
-
-      if (resetError) {
-        console.error('Password reset email error:', resetError)
-      }
-    } catch (emailError) {
-      console.error('Failed to send password reset email:', emailError)
-    }
-
     console.log('User creation completed successfully')
 
     return new Response(
@@ -259,7 +269,8 @@ serve(async (req) => {
           user_level_code: user.user_level_code,
           is_primary_owner: user.is_primary_owner
         },
-        message: `Đã tạo tài khoản ${userLevelCode === 'manager' ? 'Quản lý' : 'Nhân viên'} thành công. Email hướng dẫn đã được gửi đến ${email}`
+        temporaryPassword: tempPassword,
+        message: `Đã tạo tài khoản ${userLevelCode === 'manager' ? 'Quản lý' : 'Nhân viên'} thành công. Mật khẩu tạm thời đã được tạo.`
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
