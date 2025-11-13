@@ -4951,27 +4951,17 @@ export type Database = {
           area_sqm: number
           base_price: number
           bed_type: string
-          created_at: string
           floor: number
-          has_balcony: boolean
-          has_window: boolean
-          hotel_id: string
-          hotel_name: string
           id: string
           items_in_laundry: number
           last_check_at: string
           last_check_score: number
           max_guests: number
           missing_items: number
-          notes: string
           room_number: string
           room_type: string
-          smoking_allowed: boolean
           status: string
-          tenant_id: string
           total_items: number
-          updated_at: string
-          view_type: string
         }[]
       }
       get_stock_adjustments_filtered: {
