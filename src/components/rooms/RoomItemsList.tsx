@@ -66,25 +66,34 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
   }, 0)
 
   const handleQuantityChange = (itemId: string, value: string) => {
-    const qty = parseInt(value) || 0
+    const qty = value === '' ? 0 : parseInt(value) || 0
     setQuantities(prev => ({ ...prev, [itemId]: qty }))
   }
 
   const handleQuantityBlur = async (item: RoomItem) => {
     const newQty = quantities[item.item_id]
     if (newQty !== undefined && newQty !== item.current_quantity) {
-      await updateQuantity.mutateAsync({
-        roomId,
-        itemId: item.item_id,
-        quantity: newQty,
-        roomItemId: item.room_item_id || null,
-      })
-      // Reset local state after successful update
-      setQuantities(prev => {
-        const newState = { ...prev }
-        delete newState[item.item_id]
-        return newState
-      })
+      try {
+        await updateQuantity.mutateAsync({
+          roomId,
+          itemId: item.item_id,
+          quantity: newQty,
+          roomItemId: item.room_item_id || null,
+        })
+        // Reset local state after successful update
+        setQuantities(prev => {
+          const newState = { ...prev }
+          delete newState[item.item_id]
+          return newState
+        })
+      } catch (error) {
+        // If save fails, revert the local state
+        setQuantities(prev => {
+          const newState = { ...prev }
+          delete newState[item.item_id]
+          return newState
+        })
+      }
     }
   }
 
@@ -194,26 +203,17 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
           )}
         </TabsContent>
 
-        {/* Tab 2: Đồ đã có trong phòng - Chỉ hiển thị đồ có current_quantity > 0 */}
+        {/* Tab 2: Đồ đã có trong phòng - Hiển thị tất cả để dễ thao tác */}
         <TabsContent value="current" className="space-y-3 mt-4">
-          {(() => {
-            const itemsInRoom = standardItems.filter(item => {
-              const currentQty = quantities[item.item_id] ?? item.current_quantity
-              return currentQty > 0
-            })
-            
-            if (itemsInRoom.length === 0) {
-              return (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Chưa có đồ dùng nào trong phòng
-                  </AlertDescription>
-                </Alert>
-              )
-            }
-            
-            return itemsInRoom.map((item) => {
+          {standardItems.length === 0 ? (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Chưa có chuẩn đồ dùng cho loại phòng này.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            standardItems.map((item) => {
               const currentQty = quantities[item.item_id] ?? item.current_quantity
               const diff = currentQty - item.standard_quantity
               
@@ -302,7 +302,7 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
                 </div>
               )
             })
-          })()}
+          )}
         </TabsContent>
 
         {/* Tab 3: Đồ còn thiếu - Chỉ hiển thị đồ có missing_quantity > 0 */}
