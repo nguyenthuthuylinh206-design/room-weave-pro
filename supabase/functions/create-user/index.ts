@@ -172,7 +172,6 @@ serve(async (req) => {
       status: status || 'active',
       created_by: userLevelCode === 'tenant_owner' ? null : requestingUser.id,
       must_change_password: true,
-      phone_verified: false,
       login_count: 0,
       account_locked: false
     }
