@@ -34,9 +34,15 @@ import { useHotels } from '@/hooks/useHotels'
 import { useAvailableUserLevels } from '@/hooks/useUserLevels'
 import { usePositions } from '@/hooks/usePositions'
 import { useUser } from '@/hooks/useUser'
-import { User, UserWithRelations } from '@/types/database.types'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
-import { Info, AlertCircle, Crown, Users as UsersIcon, UserCheck } from 'lucide-react'
+import { Info, AlertCircle, Crown, Users as UsersIcon, UserCheck, HelpCircle } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { UserWithRelations } from '@/types/database.types'
 
 interface UserFormDialogProps {
   user?: UserWithRelations | null
@@ -274,7 +280,24 @@ export function UserFormDialog({
                 name="userLevelCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cấp bậc *</FormLabel>
+                    <FormLabel className="flex items-center gap-2">
+                      Cấp bậc *
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <div className="space-y-2 text-sm">
+                              <p className="font-semibold">Hệ thống phân cấp:</p>
+                              <div>👑 <strong>Chủ sở hữu:</strong> Toàn quyền trong hệ thống</div>
+                              <div>👥 <strong>Quản lý:</strong> Quản lý khách sạn, tạo Quản lý và Nhân viên</div>
+                              <div>👤 <strong>Nhân viên:</strong> Thực hiện công việc hàng ngày</div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
                       value={field.value}
@@ -296,10 +319,15 @@ export function UserFormDialog({
                         ))}
                       </SelectContent>
                     </Select>
-                    {selectedLevel && (
+                    {selectedLevel && !user && (
                       <FormDescription className="flex items-start gap-2 text-xs">
                         <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
                         <span>{getUserLevelDescription(selectedLevel)}</span>
+                      </FormDescription>
+                    )}
+                    {!user && currentUser && (
+                      <FormDescription className="text-xs">
+                        Người này sẽ báo cáo cho: <strong>{currentUser.full_name}</strong>
                       </FormDescription>
                     )}
                     {levelsLoading && <LoadingSpinner size="sm" />}
@@ -320,8 +348,20 @@ export function UserFormDialog({
                   name="hotelId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
+                      <FormLabel className="flex items-center gap-2">
                         Khách sạn {selectedLevel === 'manager' && '*'}
+                        {selectedLevel === 'manager' && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-sm">Quản lý phải được gán cho một khách sạn cụ thể</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </FormLabel>
                       <Select
                         onValueChange={field.onChange}
@@ -342,9 +382,8 @@ export function UserFormDialog({
                         </SelectContent>
                       </Select>
                       {selectedLevel === 'manager' && (
-                        <FormDescription className="flex items-start gap-2 text-xs">
-                          <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0 text-orange-500" />
-                          <span>Quản lý phải được gán cho một khách sạn cụ thể</span>
+                        <FormDescription className="text-xs">
+                          Người dùng sẽ quản lý khách sạn được chọn
                         </FormDescription>
                       )}
                       {hotelsLoading && <LoadingSpinner size="sm" />}
