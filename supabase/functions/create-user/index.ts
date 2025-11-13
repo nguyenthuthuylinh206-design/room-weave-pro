@@ -219,6 +219,50 @@ serve(async (req) => {
 
     console.log('User profile created:', user.id)
 
+    // Map user_level_code to app_role
+    const roleMapping: { [key: string]: string } = {
+      'tenant_owner': 'owner',
+      'manager': 'hotel_manager',
+      'staff': 'staff'
+    }
+
+    // Create role assignment in user_roles
+    const { error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .insert({
+        user_id: user.id,
+        role: roleMapping[userLevelCode],
+        created_by: userLevelCode === 'tenant_owner' ? null : requestingUser.id
+      })
+
+    if (roleError) {
+      console.error('Role assignment error:', roleError)
+      // Cleanup on failure
+      await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
+      await supabaseAdmin.from('users').delete().eq('id', user.id)
+      throw new Error('Không thể gán quyền cho người dùng')
+    }
+
+    console.log('Role assigned:', roleMapping[userLevelCode])
+
+    // Update hotel_id and position_id in users table
+    const updateData: any = {}
+    if (hotelId) updateData.hotel_id = hotelId
+    if (positionId) updateData.position_id = positionId
+
+    if (Object.keys(updateData).length > 0) {
+      const { error: updateError } = await supabaseAdmin
+        .from('users')
+        .update(updateData)
+        .eq('id', user.id)
+
+      if (updateError) {
+        console.error('User update error:', updateError)
+      } else {
+        console.log('User updated with hotel_id/position_id')
+      }
+    }
+
     // Create hotel assignment if hotel_id provided
     if (hotelId) {
       const { error: hotelAssignmentError } = await supabaseAdmin
@@ -226,7 +270,6 @@ serve(async (req) => {
         .insert({
           user_id: user.id,
           hotel_id: hotelId,
-          departments: [],
           is_default: true,
           is_active: true,
           assigned_by: requestingUser.id,
@@ -239,6 +282,8 @@ serve(async (req) => {
 
       if (hotelAssignmentError) {
         console.error('Hotel assignment error:', hotelAssignmentError)
+      } else {
+        console.log('Hotel assignment created')
       }
     }
 
