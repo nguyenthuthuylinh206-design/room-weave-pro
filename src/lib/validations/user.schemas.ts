@@ -1,5 +1,15 @@
 import { z } from 'zod'
 
+// Password validation for user creation
+const passwordSchema = z
+  .string()
+  .min(8, 'Mật khẩu phải có ít nhất 8 ký tự')
+  .regex(/[A-Z]/, 'Mật khẩu phải có ít nhất 1 chữ hoa')
+  .regex(/[a-z]/, 'Mật khẩu phải có ít nhất 1 chữ thường')
+  .regex(/[0-9]/, 'Mật khẩu phải có ít nhất 1 số')
+  .regex(/[^A-Za-z0-9]/, 'Mật khẩu phải có ít nhất 1 ký tự đặc biệt')
+
+// Phone schema for profile form
 const phoneSchema = z
   .string()
   .regex(/^(0|\+84)[0-9]{9}$/, 'Số điện thoại không hợp lệ')
@@ -9,15 +19,12 @@ const phoneSchema = z
 export const userFormSchema = z.object({
   fullName: z.string().min(2, 'Họ tên phải có ít nhất 2 ký tự'),
   email: z.string().email('Email không hợp lệ'),
-  phone: phoneSchema,
+  password: passwordSchema,
   userLevelCode: z.enum(['tenant_owner', 'manager', 'staff'], {
     required_error: 'Vui lòng chọn cấp độ người dùng',
   }),
   hotelId: z.string().uuid().optional().nullable(),
   positionId: z.string().uuid().optional().nullable(),
-  department: z.enum(['housekeeping', 'laundry', 'inventory', 'maintenance', 'accounting', 'other']).optional().nullable(),
-  status: z.enum(['active', 'inactive']).default('active'),
-  notes: z.string().optional(),
 })
 
 export type UserFormData = z.infer<typeof userFormSchema>

@@ -11,7 +11,6 @@ import { UserFilters } from '@/components/users/UserFilters'
 import { UserFormDialog } from '@/components/users/UserFormDialog'
 import { UserStatsCards } from '@/components/users/UserStatsCards'
 import { PositionManagementDialog } from '@/components/users/PositionManagementDialog'
-import { PasswordDisplayDialog } from '@/components/users/PasswordDisplayDialog'
 import { UserWithRelations } from '@/types/database.types'
 import { UserFormData } from '@/lib/validations/user.schemas'
 import { Button } from '@/components/ui/button'
@@ -38,14 +37,6 @@ export default function UsersPage() {
   const [positionDialogOpen, setPositionDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserWithRelations | null>(null)
   const [viewMode, setViewMode] = useState<'hierarchy' | 'table'>('hierarchy')
-  
-  // Password display state
-  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
-  const [newUserCredentials, setNewUserCredentials] = useState<{
-    email: string
-    password: string
-    userName: string
-  } | null>(null)
 
   // Check if current user can add users
   const canAddUser = currentUser?.user_level_code === 'tenant_owner' || currentUser?.user_level_code === 'manager'
@@ -62,15 +53,7 @@ export default function UsersPage() {
         await updateUser.mutateAsync({ id: selectedUser.id, data })
         toast.success('Cập nhật người dùng thành công')
       } else {
-        const result = await createUser.mutateAsync(data)
-        // Show password dialog with credentials
-        setNewUserCredentials({
-          email: data.email,
-          password: result.tempPassword,
-          userName: data.fullName,
-        })
-        setPasswordDialogOpen(true)
-        toast.success('Tạo người dùng thành công')
+        await createUser.mutateAsync(data)
       }
     } catch (error: any) {
       toast.error(error.message || 'Có lỗi xảy ra')
@@ -225,16 +208,6 @@ export default function UsersPage() {
         open={positionDialogOpen}
         onOpenChange={setPositionDialogOpen}
       />
-
-      {newUserCredentials && (
-        <PasswordDisplayDialog
-          open={passwordDialogOpen}
-          onOpenChange={setPasswordDialogOpen}
-          email={newUserCredentials.email}
-          password={newUserCredentials.password}
-          userName={newUserCredentials.userName}
-        />
-      )}
     </div>
   )
 }
