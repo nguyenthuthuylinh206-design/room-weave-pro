@@ -57,7 +57,22 @@ export function useUpdateRoomItemQuantity() {
       quantity: number;
       roomItemId: string | null;
     }) => {
-      // If room_item exists, update it; otherwise insert
+      // If quantity is 0, delete the room_item if it exists
+      if (quantity === 0) {
+        if (roomItemId) {
+          const { error } = await supabase
+            .from('room_items')
+            .delete()
+            .eq('id', roomItemId);
+
+          if (error) throw error;
+          return null; // Successfully deleted
+        }
+        // If no roomItemId, nothing to do (no record to delete)
+        return null;
+      }
+
+      // If room_item exists and quantity > 0, update it
       if (roomItemId) {
         const { data, error } = await supabase
           .from('room_items')
@@ -69,7 +84,7 @@ export function useUpdateRoomItemQuantity() {
         if (error) throw error;
         return data;
       } else {
-        // Create new room_item
+        // Create new room_item with quantity > 0
         const { data, error } = await supabase
           .from('room_items')
           .insert({
