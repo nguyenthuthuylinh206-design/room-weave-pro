@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Package, CheckCircle2, AlertCircle, Minus, ChevronDown } from 'lucide-react'
+import { Package, CheckCircle2, AlertCircle, Minus } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useUpdateRoomItemQuantity } from '@/hooks/useRoomItems'
 
 interface RoomItem {
@@ -32,19 +31,7 @@ interface RoomItemsListProps {
 
 export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
   const [quantities, setQuantities] = useState<Record<string, number>>({})
-  const [openSections, setOpenSections] = useState({
-    required: true,
-    current: true,
-    missing: true,
-  })
   const updateQuantity = useUpdateRoomItemQuantity()
-
-  const toggleSection = (section: 'required' | 'current' | 'missing') => {
-    setOpenSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }))
-  }
 
   if (items.length === 0) {
     return (
@@ -120,86 +107,65 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Column 1: Đồ dùng cần có */}
-        <Card className="shadow-md border-2">
-          <Collapsible open={openSections.required} onOpenChange={() => toggleSection('required')}>
-            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-              <CollapsibleTrigger className="w-full">
-                <CardTitle className="text-lg flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Package className="h-5 w-5 text-primary" />
-                    <span>Đồ dùng cần có</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="font-bold">
-                      {standardItems.length} loại
-                    </Badge>
-                    <ChevronDown className={`h-4 w-4 transition-transform ${openSections.required ? 'rotate-180' : ''}`} />
-                  </div>
-                </CardTitle>
-              </CollapsibleTrigger>
-            </CardHeader>
-            <CollapsibleContent>
-              <CardContent className="space-y-3 pt-0">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Đồ dùng cần có
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
             {standardItems.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
                 Chưa có chuẩn đồ dùng
               </p>
             ) : (
               standardItems.map((item) => (
-                <div key={item.item_id} className="flex items-center gap-3 p-3 rounded-lg border-2 bg-card hover:border-primary/50 transition-colors shadow-sm">
+                <div key={item.item_id} className="flex items-center gap-3 p-2 rounded-lg border bg-card">
                   {item.item_thumbnail ? (
                     <img
                       src={item.item_thumbnail}
                       alt={item.item_name}
-                      className="h-14 w-14 rounded-md object-cover border"
+                      className="h-12 w-12 rounded object-cover"
                     />
                   ) : (
-                    <div className="flex h-14 w-14 items-center justify-center rounded-md bg-primary/10 border border-primary/20">
-                      <Package className="h-7 w-7 text-primary" />
+                    <div className="flex h-12 w-12 items-center justify-center rounded bg-muted">
+                      <Package className="h-6 w-6 text-muted-foreground" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <Link
                       to={`/items/${item.item_id}`}
-                      className="font-semibold text-sm hover:underline block truncate hover:text-primary transition-colors"
+                      className="font-medium text-sm hover:underline block truncate"
                     >
                       {item.item_name}
                     </Link>
-                    <p className="text-xs text-muted-foreground font-mono">{item.item_code}</p>
+                    <p className="text-xs text-muted-foreground">{item.item_code}</p>
                     {item.category_name && (
-                      <Badge variant="outline" className="text-xs mt-1.5">
+                      <Badge variant="outline" className="text-xs mt-1">
                         {item.category_name}
                       </Badge>
                     )}
                   </div>
-                  <div className="text-right bg-primary/5 px-3 py-2 rounded-md">
-                    <div className="font-bold text-2xl text-primary">{item.standard_quantity}</div>
-                    <p className="text-xs text-muted-foreground font-medium">cần có</p>
+                  <div className="text-right">
+                    <div className="font-bold text-lg">{item.standard_quantity}</div>
+                    <p className="text-xs text-muted-foreground">cần có</p>
                   </div>
                 </div>
               ))
             )}
-              </CardContent>
-            </CollapsibleContent>
-          </Collapsible>
+          </CardContent>
         </Card>
 
         {/* Column 2: Đồ dùng đã có trong phòng */}
-        <Card className="shadow-md border-2 border-blue-200">
-          <Collapsible open={openSections.current} onOpenChange={() => toggleSection('current')}>
-            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors bg-blue-50/50">
-              <CollapsibleTrigger className="w-full">
-                <CardTitle className="text-lg flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-blue-600" />
-                    <span>Đồ đã có trong phòng</span>
-                  </div>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${openSections.current ? 'rotate-180' : ''}`} />
-                </CardTitle>
-              </CollapsibleTrigger>
-            </CardHeader>
-            <CollapsibleContent>
-              <CardContent className="space-y-3 pt-0">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5" />
+              Đồ đã có trong phòng
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
             {standardItems.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
                 Chưa có dữ liệu
@@ -208,130 +174,98 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
               standardItems.map((item) => {
                 const currentQty = quantities[item.item_id] ?? item.current_quantity
                 return (
-                  <div key={item.item_id} className="space-y-3 p-3 rounded-lg border-2 bg-card shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-sm truncate flex-1">
+                  <div key={item.item_id} className="space-y-2 p-2 rounded-lg border bg-card">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-sm truncate flex-1">
                         {item.item_name}
                       </span>
                       {getStatusBadge(item)}
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="flex-1">
-                        <Input
-                          type="number"
-                          min="0"
-                          value={currentQty}
-                          onChange={(e) => handleQuantityChange(item.item_id, e.target.value)}
-                          onBlur={() => handleQuantityBlur(item)}
-                          className="h-10 text-base font-semibold text-center border-2"
-                          placeholder="Nhập số lượng"
-                        />
-                        <p className="text-xs text-muted-foreground text-center mt-1">
-                          Chuẩn: {item.standard_quantity}
-                        </p>
-                      </div>
-                      <Badge variant="outline" className="shrink-0 px-2 py-1">
-                        {item.condition === 'good' && '✓ Tốt'}
-                        {item.condition === 'fair' && '~ Khá'}
-                        {item.condition === 'poor' && '− Kém'}
-                        {item.condition === 'damaged' && '✗ Hỏng'}
+                      <Input
+                        type="number"
+                        min="0"
+                        value={currentQty}
+                        onChange={(e) => handleQuantityChange(item.item_id, e.target.value)}
+                        onBlur={() => handleQuantityBlur(item)}
+                        className="h-9"
+                        placeholder="Nhập số lượng"
+                      />
+                      <Badge variant="outline" className="shrink-0">
+                        {item.condition === 'good' && 'Tốt'}
+                        {item.condition === 'fair' && 'Khá'}
+                        {item.condition === 'poor' && 'Kém'}
+                        {item.condition === 'damaged' && 'Hỏng'}
                       </Badge>
                     </div>
                   </div>
                 )
               })
             )}
-              </CardContent>
-            </CollapsibleContent>
-          </Collapsible>
+          </CardContent>
         </Card>
 
         {/* Column 3: Số lượng đồ còn thiếu */}
-        <Card className={`shadow-md border-2 ${missingItems.length > 0 ? 'border-destructive/30' : 'border-success/30'}`}>
-          <Collapsible open={openSections.missing} onOpenChange={() => toggleSection('missing')}>
-            <CardHeader className={`cursor-pointer hover:bg-muted/50 transition-colors ${missingItems.length > 0 ? 'bg-destructive/5' : 'bg-success/5'}`}>
-              <CollapsibleTrigger className="w-full">
-                <CardTitle className="text-lg flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    {missingItems.length > 0 ? (
-                      <AlertCircle className="h-5 w-5 text-destructive" />
-                    ) : (
-                      <CheckCircle2 className="h-5 w-5 text-success" />
-                    )}
-                    <span>Số lượng còn thiếu</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {missingItems.length > 0 && (
-                      <Badge variant="destructive" className="font-bold">
-                        {missingItems.length} loại
-                      </Badge>
-                    )}
-                    <ChevronDown className={`h-4 w-4 transition-transform ${openSections.missing ? 'rotate-180' : ''}`} />
-                  </div>
-                </CardTitle>
-              </CollapsibleTrigger>
-            </CardHeader>
-            <CollapsibleContent>
-              <CardContent className="space-y-3 pt-0">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Số lượng còn thiếu
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
             {missingItems.length === 0 ? (
-              <div className="text-center py-12 bg-success/5 rounded-lg border-2 border-success/20">
-                <CheckCircle2 className="h-16 w-16 text-success mx-auto mb-3" />
-                <p className="font-bold text-lg text-success">Đã đầy đủ!</p>
-                <p className="text-sm text-muted-foreground mt-2">
+              <div className="text-center py-8">
+                <CheckCircle2 className="h-12 w-12 text-success mx-auto mb-2" />
+                <p className="font-medium text-success">Đã đầy đủ</p>
+                <p className="text-xs text-muted-foreground mt-1">
                   Tất cả đồ dùng đã đủ theo chuẩn
                 </p>
               </div>
             ) : (
               <>
-                <div className="bg-destructive/10 p-4 rounded-lg border-2 border-destructive/30 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-base font-bold text-destructive">
-                        Thiếu {missingItems.length} loại đồ
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Tổng cộng: <span className="font-semibold">{totalMissing} món</span>
-                      </p>
-                    </div>
-                    <AlertCircle className="h-8 w-8 text-destructive" />
-                  </div>
+                <div className="bg-destructive/10 p-3 rounded-lg border border-destructive/20">
+                  <p className="text-sm font-medium text-destructive">
+                    Thiếu {missingItems.length} loại đồ
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Tổng cộng: {totalMissing} món
+                  </p>
                 </div>
                 {missingItems.map((item) => {
                   const currentQty = quantities[item.item_id] ?? item.current_quantity
                   const missing = Math.max(0, item.standard_quantity - currentQty)
                   
                   return (
-                    <div key={item.item_id} className="flex items-center gap-3 p-3 rounded-lg border-2 border-destructive/30 bg-destructive/5 shadow-sm hover:shadow-md transition-shadow">
+                    <div key={item.item_id} className="flex items-center gap-3 p-2 rounded-lg border border-destructive/20 bg-destructive/5">
                       {item.item_thumbnail ? (
                         <img
                           src={item.item_thumbnail}
                           alt={item.item_name}
-                          className="h-12 w-12 rounded-md object-cover border-2 border-destructive/20"
+                          className="h-10 w-10 rounded object-cover"
                         />
                       ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-md bg-destructive/10 border-2 border-destructive/20">
-                          <Package className="h-6 w-6 text-destructive" />
+                        <div className="flex h-10 w-10 items-center justify-center rounded bg-muted">
+                          <Package className="h-5 w-5 text-muted-foreground" />
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm truncate">{item.item_name}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{item.item_code}</p>
+                        <p className="font-medium text-sm truncate">{item.item_name}</p>
+                        <p className="text-xs text-muted-foreground">{item.item_code}</p>
                       </div>
-                      <div className="text-right bg-destructive/10 px-3 py-2 rounded-md border border-destructive/20">
-                        <div className="flex items-center justify-end gap-1 text-destructive font-bold text-xl">
-                          <Minus className="h-5 w-5" />
+                      <div className="text-right">
+                        <div className="flex items-center gap-1 text-destructive font-bold">
+                          <Minus className="h-4 w-4" />
                           <span>{missing}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground font-medium">thiếu</p>
+                        <p className="text-xs text-muted-foreground">thiếu</p>
                       </div>
                     </div>
                   )
                 })}
               </>
             )}
-              </CardContent>
-            </CollapsibleContent>
-          </Collapsible>
+          </CardContent>
         </Card>
       </div>
     </div>
