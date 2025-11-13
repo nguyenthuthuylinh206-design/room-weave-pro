@@ -77,3 +77,18 @@ export const resetPasswordSchema = z.object({
 })
 
 export type ResetPasswordData = z.infer<typeof resetPasswordSchema>
+
+// Change password schema
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Vui lòng nhập mật khẩu hiện tại'),
+  newPassword: passwordSchema,
+  confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: 'Mật khẩu xác nhận không khớp',
+  path: ['confirmPassword'],
+}).refine((data) => data.currentPassword !== data.newPassword, {
+  message: 'Mật khẩu mới phải khác mật khẩu hiện tại',
+  path: ['newPassword'],
+})
+
+export type ChangePasswordData = z.infer<typeof changePasswordSchema>
