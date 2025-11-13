@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ArrowLeft, Save } from 'lucide-react'
@@ -57,6 +57,7 @@ export function RoomFormPage() {
     setValue,
     watch,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<RoomFormData>({
     resolver: zodResolver(roomSchema),
@@ -71,22 +72,15 @@ export function RoomFormPage() {
 
   useEffect(() => {
     if (room && isEdit) {
-      // Normalize values to lowercase to match Select options
-      // Return undefined for null/empty values so Select shows placeholder
-      const normalizeValue = (value: string | null | undefined) => {
-        if (!value) return undefined
-        return value.toLowerCase()
-      }
-
       reset({
         room_number: room.room_number || '',
-        room_type: normalizeValue(room.room_type) as any,
+        room_type: room.room_type || 'standard',
         floor: room.floor || 1,
         area_sqm: room.area_sqm || undefined,
         max_guests: room.max_guests || 2,
         base_price: room.base_price || 0,
-        bed_type: normalizeValue(room.bed_type) as any,
-        view_type: normalizeValue(room.view_type) as any,
+        bed_type: room.bed_type || undefined,
+        view_type: room.view_type || undefined,
         has_window: room.has_window ?? true,
         has_balcony: room.has_balcony ?? false,
         smoking_allowed: room.smoking_allowed ?? false,
@@ -236,20 +230,23 @@ export function RoomFormPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="room_type">Loại phòng *</Label>
-                <Select
-                  value={watch('room_type')}
-                  onValueChange={(value) => setValue('room_type', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn loại phòng..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="standard">Standard</SelectItem>
-                    <SelectItem value="deluxe">Deluxe</SelectItem>
-                    <SelectItem value="suite">Suite</SelectItem>
-                    <SelectItem value="vip">VIP</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={control}
+                  name="room_type"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn loại phòng..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standard">Standard</SelectItem>
+                        <SelectItem value="deluxe">Deluxe</SelectItem>
+                        <SelectItem value="suite">Suite</SelectItem>
+                        <SelectItem value="vip">VIP</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 {errors.room_type && (
                   <p className="text-sm text-destructive">{errors.room_type.message}</p>
                 )}
@@ -315,40 +312,46 @@ export function RoomFormPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="bed_type">Loại giường</Label>
-                <Select
-                  value={watch('bed_type')}
-                  onValueChange={(value) => setValue('bed_type', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn loại giường..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="single">Đơn</SelectItem>
-                    <SelectItem value="double">Đôi</SelectItem>
-                    <SelectItem value="queen">Queen</SelectItem>
-                    <SelectItem value="king">King</SelectItem>
-                    <SelectItem value="twin">Twin</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={control}
+                  name="bed_type"
+                  render={({ field }) => (
+                    <Select value={field.value || ''} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn loại giường..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="single">Đơn</SelectItem>
+                        <SelectItem value="double">Đôi</SelectItem>
+                        <SelectItem value="queen">Queen</SelectItem>
+                        <SelectItem value="king">King</SelectItem>
+                        <SelectItem value="twin">Twin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="view_type">Hướng nhìn</Label>
-                <Select
-                  value={watch('view_type')}
-                  onValueChange={(value) => setValue('view_type', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn hướng nhìn..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="city">Thành phố</SelectItem>
-                    <SelectItem value="sea">Biển</SelectItem>
-                    <SelectItem value="mountain">Núi</SelectItem>
-                    <SelectItem value="garden">Vườn</SelectItem>
-                    <SelectItem value="pool">Hồ bơi</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={control}
+                  name="view_type"
+                  render={({ field }) => (
+                    <Select value={field.value || ''} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn hướng nhìn..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="city">Thành phố</SelectItem>
+                        <SelectItem value="sea">Biển</SelectItem>
+                        <SelectItem value="mountain">Núi</SelectItem>
+                        <SelectItem value="garden">Vườn</SelectItem>
+                        <SelectItem value="pool">Hồ bơi</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
             </div>
 
