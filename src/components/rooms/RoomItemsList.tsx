@@ -195,7 +195,7 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
         </TabsContent>
 
         {/* Tab 2: Đồ đã có trong phòng - Chỉ hiển thị đồ có current_quantity > 0 */}
-        <TabsContent value="current" className="space-y-2 mt-4">
+        <TabsContent value="current" className="space-y-3 mt-4">
           {(() => {
             const itemsInRoom = standardItems.filter(item => {
               const currentQty = quantities[item.item_id] ?? item.current_quantity
@@ -215,43 +215,88 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
             
             return itemsInRoom.map((item) => {
               const currentQty = quantities[item.item_id] ?? item.current_quantity
+              const diff = currentQty - item.standard_quantity
+              
               return (
-                <div key={item.item_id} className="p-4 rounded-lg border bg-card hover:shadow-sm transition-shadow">
-                  <div className="flex items-center gap-3 mb-3">
+                <div key={item.item_id} className="p-4 rounded-lg border bg-card hover:shadow-sm transition-shadow space-y-3">
+                  {/* Header with item info and status */}
+                  <div className="flex items-center gap-3">
                     {item.item_thumbnail ? (
                       <img
                         src={item.item_thumbnail}
                         alt={item.item_name}
-                        className="h-14 w-14 rounded object-cover flex-shrink-0"
+                        className="h-16 w-16 rounded object-cover flex-shrink-0"
                       />
                     ) : (
-                      <div className="flex h-14 w-14 items-center justify-center rounded bg-muted flex-shrink-0">
-                        <Package className="h-7 w-7 text-muted-foreground" />
+                      <div className="flex h-16 w-16 items-center justify-center rounded bg-muted flex-shrink-0">
+                        <Package className="h-8 w-8 text-muted-foreground" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{item.item_name}</p>
+                      <p className="font-semibold text-base truncate">{item.item_name}</p>
                       <p className="text-sm text-muted-foreground">{item.item_code}</p>
+                      <Badge variant="outline" className="mt-1">
+                        {item.condition === 'good' && 'Tốt'}
+                        {item.condition === 'fair' && 'Khá'}
+                        {item.condition === 'poor' && 'Kém'}
+                        {item.condition === 'damaged' && 'Hỏng'}
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="flex-shrink-0">
-                      {item.condition === 'good' && 'Tốt'}
-                      {item.condition === 'fair' && 'Khá'}
-                      {item.condition === 'poor' && 'Kém'}
-                      {item.condition === 'damaged' && 'Hỏng'}
-                    </Badge>
+                    {/* Status Badge */}
+                    <div className="flex-shrink-0">
+                      {diff === 0 ? (
+                        <Badge className="bg-success text-white text-base px-3 py-1">
+                          ✓ Đủ
+                        </Badge>
+                      ) : diff > 0 ? (
+                        <Badge className="bg-blue-500 text-white text-base px-3 py-1">
+                          ↑ Dư {diff}
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive" className="text-base px-3 py-1">
+                          ↓ Thiếu {Math.abs(diff)}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min="0"
-                      value={currentQty}
-                      onChange={(e) => handleQuantityChange(item.item_id, e.target.value)}
-                      onBlur={() => handleQuantityBlur(item)}
-                      className="flex-1"
-                      placeholder="Nhập số lượng"
-                    />
-                    <div className="text-sm text-muted-foreground whitespace-nowrap">
-                      / {item.standard_quantity} cần có
+
+                  {/* Quantity comparison and input */}
+                  <div className="flex items-center gap-4 bg-muted/50 p-3 rounded-lg">
+                    {/* Current Quantity Input */}
+                    <div className="flex-1 space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Hiện có</label>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={currentQty}
+                        onChange={(e) => handleQuantityChange(item.item_id, e.target.value)}
+                        onBlur={() => handleQuantityBlur(item)}
+                        className="h-12 text-center text-xl font-bold"
+                        placeholder="0"
+                      />
+                    </div>
+
+                    {/* Separator */}
+                    <div className="text-2xl font-light text-muted-foreground">/</div>
+
+                    {/* Standard Quantity Display */}
+                    <div className="flex-1 space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Cần có</label>
+                      <div className="h-12 flex items-center justify-center rounded-md border bg-background">
+                        <span className="text-xl font-bold text-primary">{item.standard_quantity}</span>
+                      </div>
+                    </div>
+
+                    {/* Difference Display */}
+                    <div className="flex-1 space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Chênh lệch</label>
+                      <div className={`h-12 flex items-center justify-center rounded-md border font-bold text-xl ${
+                        diff === 0 ? 'bg-success/10 text-success border-success/20' :
+                        diff > 0 ? 'bg-blue-500/10 text-blue-600 border-blue-500/20' :
+                        'bg-destructive/10 text-destructive border-destructive/20'
+                      }`}>
+                        {diff === 0 ? '0' : diff > 0 ? `+${diff}` : diff}
+                      </div>
                     </div>
                   </div>
                 </div>
