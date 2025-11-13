@@ -76,10 +76,22 @@ export function useCreateUser() {
       toast.success('Người dùng đã được tạo thành công')
     },
     onError: (error: Error) => {
-      if (error.message?.includes('Quota exceeded')) {
-        toast.error('Đã đạt giới hạn số lượng người dùng. Vui lòng nâng cấp gói dịch vụ.')
+      const errorMessage = error.message.toLowerCase()
+      
+      if (errorMessage.includes('quota exceeded') || errorMessage.includes('quota')) {
+        toast.error('Đã đạt giới hạn số lượng người dùng. Vui lòng nâng cấp gói dịch vụ để tiếp tục.')
+      } else if (errorMessage.includes('duplicate') || errorMessage.includes('already exists')) {
+        toast.error('Email này đã được sử dụng. Vui lòng chọn email khác.')
+      } else if (errorMessage.includes('permission') || errorMessage.includes('not allowed')) {
+        toast.error('Bạn không có quyền tạo người dùng với cấp bậc này.')
+      } else if (errorMessage.includes('hotel') || errorMessage.includes('hotel_id')) {
+        toast.error('Quản lý phải được gán cho một khách sạn. Vui lòng chọn khách sạn.')
+      } else if (errorMessage.includes('tenant not approved')) {
+        toast.error('Tài khoản doanh nghiệp chưa được duyệt. Vui lòng liên hệ quản trị viên.')
+      } else if (errorMessage.includes('primary owner exists')) {
+        toast.error('Chỉ có thể có một Chủ sở hữu chính cho mỗi doanh nghiệp.')
       } else {
-        toast.error('Không thể tạo người dùng: ' + error.message)
+        toast.error(`Không thể tạo người dùng: ${error.message}`)
       }
     },
   })
@@ -122,7 +134,19 @@ export function useUpdateUser() {
       toast.success('Người dùng đã được cập nhật thành công')
     },
     onError: (error: Error) => {
-      toast.error('Không thể cập nhật người dùng: ' + error.message)
+      const errorMessage = error.message.toLowerCase()
+      
+      if (errorMessage.includes('permission') || errorMessage.includes('not allowed') || errorMessage.includes('cannot manage')) {
+        toast.error('Bạn không có quyền cập nhật người dùng này.')
+      } else if (errorMessage.includes('owner') && errorMessage.includes('level')) {
+        toast.error('Không thể thay đổi cấp bậc của Chủ sở hữu chính.')
+      } else if (errorMessage.includes('hotel') || errorMessage.includes('hotel_id')) {
+        toast.error('Quản lý phải được gán cho một khách sạn.')
+      } else if (errorMessage.includes('subordinates') || errorMessage.includes('has subordinates')) {
+        toast.error('Không thể thay đổi cấp bậc vì người dùng này đang quản lý các tài khoản khác.')
+      } else {
+        toast.error(`Không thể cập nhật người dùng: ${error.message}`)
+      }
     },
   })
 }
@@ -154,7 +178,17 @@ export function useDeleteUser() {
       toast.success('Người dùng đã được xóa thành công')
     },
     onError: (error: Error) => {
-      toast.error('Không thể xóa người dùng: ' + error.message)
+      const errorMessage = error.message.toLowerCase()
+      
+      if (errorMessage.includes('primary owner') || errorMessage.includes('is_primary_owner')) {
+        toast.error('Không thể xóa Chủ sở hữu chính của doanh nghiệp.')
+      } else if (errorMessage.includes('permission') || errorMessage.includes('not allowed')) {
+        toast.error('Bạn không có quyền xóa người dùng này.')
+      } else if (errorMessage.includes('foreign key') || errorMessage.includes('violates')) {
+        toast.error('Không thể xóa người dùng vì còn dữ liệu liên quan. Vui lòng chuyển giao công việc trước.')
+      } else {
+        toast.error(`Không thể xóa người dùng: ${error.message}`)
+      }
     },
   })
 }

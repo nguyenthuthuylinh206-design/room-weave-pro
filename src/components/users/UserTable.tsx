@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { DeleteUserDialog } from './DeleteUserDialog'
 import {
   Table,
   TableBody,
@@ -51,21 +52,12 @@ const userLevelColors: Record<string, string> = {
 }
 
 export function UserTable({ users, onEdit }: UserTableProps) {
-  const deleteUserMutation = useDeleteUser()
+  const [userToDelete, setUserToDelete] = useState<UserWithRelations | null>(null)
   const [permissionsUser, setPermissionsUser] = useState<UserWithRelations | null>(null)
   const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false)
 
-  const deleteUser = (user: UserWithRelations) => {
-    const subordinatesCount = users.filter(u => u.created_by === user.id).length
-    
-    let confirmMessage = 'Bạn có chắc muốn xóa người dùng này?'
-    if (subordinatesCount > 0) {
-      confirmMessage = `Người dùng này đã tạo ${subordinatesCount} người dùng khác. Bạn có chắc muốn xóa? Các người dùng dưới quyền sẽ được chuyển cho người quản lý cấp trên.`
-    }
-    
-    if (confirm(confirmMessage)) {
-      deleteUserMutation.mutate(user.id)
-    }
+  const handleDeleteClick = (user: UserWithRelations) => {
+    setUserToDelete(user)
   }
 
   const openPermissionsDialog = (user: UserWithRelations) => {
@@ -186,7 +178,7 @@ export function UserTable({ users, onEdit }: UserTableProps) {
                           <>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              onClick={() => deleteUser(user)}
+                              onClick={() => handleDeleteClick(user)}
                               className="text-destructive"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
@@ -203,6 +195,12 @@ export function UserTable({ users, onEdit }: UserTableProps) {
           </TableBody>
         </Table>
       </div>
+
+      <DeleteUserDialog
+        user={userToDelete}
+        open={!!userToDelete}
+        onOpenChange={(open) => !open && setUserToDelete(null)}
+      />
 
       <UserPermissionsDialog
         user={permissionsUser}

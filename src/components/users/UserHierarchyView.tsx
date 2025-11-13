@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { DeleteUserDialog } from './DeleteUserDialog'
 import { UserWithRelations } from '@/types/database.types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -23,7 +24,7 @@ interface UserHierarchyViewProps {
 }
 
 export function UserHierarchyView({ users, onEdit }: UserHierarchyViewProps) {
-  const deleteUserMutation = useDeleteUser()
+  const [userToDelete, setUserToDelete] = useState<UserWithRelations | null>(null)
   const [permissionsUser, setPermissionsUser] = useState<UserWithRelations | null>(null)
   const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -39,17 +40,8 @@ export function UserHierarchyView({ users, onEdit }: UserHierarchyViewProps) {
     }))
   }
 
-  const deleteUser = (user: UserWithRelations) => {
-    const subordinatesCount = users.filter(u => u.created_by === user.id).length
-    
-    let confirmMessage = 'Bạn có chắc muốn xóa người dùng này?'
-    if (subordinatesCount > 0) {
-      confirmMessage = `Người dùng này đã tạo ${subordinatesCount} người dùng khác. Bạn có chắc muốn xóa? Các người dùng dưới quyền sẽ được chuyển cho người quản lý cấp trên.`
-    }
-    
-    if (confirm(confirmMessage)) {
-      deleteUserMutation.mutate(user.id)
-    }
+  const handleDeleteClick = (user: UserWithRelations) => {
+    setUserToDelete(user)
   }
 
   const openPermissionsDialog = (user: UserWithRelations) => {
@@ -156,7 +148,7 @@ export function UserHierarchyView({ users, onEdit }: UserHierarchyViewProps) {
             </DropdownMenuItem>
             {!user.is_primary_owner && (
               <DropdownMenuItem
-                onClick={() => deleteUser(user)}
+                onClick={() => handleDeleteClick(user)}
                 className="text-destructive"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
@@ -281,6 +273,12 @@ export function UserHierarchyView({ users, onEdit }: UserHierarchyViewProps) {
           )}
         </Card>
       )}
+
+      <DeleteUserDialog
+        user={userToDelete}
+        open={!!userToDelete}
+        onOpenChange={(open) => !open && setUserToDelete(null)}
+      />
 
       <UserPermissionsDialog
         user={permissionsUser}
