@@ -16,7 +16,8 @@ import {
   Zap,
   TestTube2,
   CreditCard,
-  BarChart3
+  BarChart3,
+  KeyRound
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -26,6 +27,7 @@ const settingsNavigation = [
   { name: 'Khách sạn', href: '/settings/hotels', icon: Building2 },
   { name: 'Danh mục', href: '/settings/categories', icon: FolderTree },
   { name: 'Người dùng', href: '/settings/users', icon: Users },
+  { name: 'Đổi mật khẩu', href: '/settings/change-password', icon: KeyRound },
   { name: 'Đăng ký & Thanh toán', href: '/settings/subscription', icon: CreditCard },
   { name: 'Mức sử dụng', href: '/settings/usage', icon: BarChart3 },
   { name: 'Vai trò', href: '/settings/roles', icon: Shield },

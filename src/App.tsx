@@ -49,6 +49,7 @@ import { BusinessConfigurationPage } from "./pages/settings/BusinessConfiguratio
 import CategoryManagementPage from "./pages/settings/CategoryManagementPage";
 import WorkflowsPage from "./pages/settings/WorkflowsPage";
 import { SystemTestPage } from "./pages/settings/SystemTestPage";
+import ChangePasswordPage from "./pages/settings/ChangePasswordPage";
 import { ReportsPage } from "./pages/reports/ReportsPage";
 import { ReportsDashboardPage } from "./pages/reports/ReportsDashboardPage";
 import { InventoryReportPage } from "./pages/reports/InventoryReportPage";
@@ -242,6 +243,7 @@ const router = createBrowserRouter([
           { path: "hotels", element: <HotelsManagementPage /> },
           { path: "categories", element: <CategoryManagementPage /> },
           { path: "users", element: <UsersPage /> },
+          { path: "change-password", element: <ChangePasswordPage /> },
           { path: "subscription", element: <SubscriptionPage /> },
           { path: "usage", element: <UsageDashboardPage /> },
           { path: "notifications", element: <NotificationSettingsPage /> },
