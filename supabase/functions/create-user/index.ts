@@ -84,6 +84,57 @@ serve(async (req) => {
       createdBy = requestUser?.id || null
     }
 
+    // Check if creator has permission to create this user level
+    if (createdBy) {
+      const { data: canCreate, error: permError } = await supabaseAdmin.rpc('can_create_user', {
+        p_creator_id: createdBy,
+        p_new_user_level: userLevelCode || 'staff',
+        p_tenant_id: tenantId
+      })
+
+      if (permError) {
+        console.error('Permission check error:', permError)
+        return new Response(
+          JSON.stringify({ error: 'Không thể kiểm tra quyền tạo người dùng' }),
+          { 
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+
+      if (!canCreate) {
+        return new Response(
+          JSON.stringify({ error: 'Bạn không có quyền tạo loại người dùng này' }),
+          { 
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+    }
+
+    // Check if trying to create another owner (should not be possible except for super admin)
+    if (userLevelCode === 'tenant_owner' && createdBy) {
+      const { data: existingOwner } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .eq('user_level_code', 'tenant_owner')
+        .eq('status', 'active')
+        .maybeSingle()
+
+      if (existingOwner) {
+        return new Response(
+          JSON.stringify({ error: 'Mỗi doanh nghiệp chỉ có thể có một Chủ sở hữu duy nhất' }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+    }
+
     // Wait for trigger to create basic profile
     await new Promise(resolve => setTimeout(resolve, 1000))
 
