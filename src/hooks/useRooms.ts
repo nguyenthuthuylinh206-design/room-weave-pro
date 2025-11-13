@@ -49,6 +49,8 @@ export function useRoom(roomId: string | undefined) {
       return data
     },
     enabled: !!roomId,
+    refetchOnMount: 'always',
+    staleTime: 0,
   })
 }
 

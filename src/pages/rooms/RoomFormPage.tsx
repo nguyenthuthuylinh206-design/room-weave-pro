@@ -143,16 +143,19 @@ export function RoomFormPage() {
             updated_at: new Date().toISOString(),
           },
         })
+        // Navigate back to detail page after editing
+        navigate(`/rooms/${id}`)
       } else {
-        await createRoom.mutateAsync({
+        const newRoom = await createRoom.mutateAsync({
           ...data,
           tenant_id: tenantId,
           hotel_id: selectedHotel.id,
           status: 'vacant',
           amenities: [],
         })
+        // Navigate to new room detail page after creating
+        navigate(`/rooms/${newRoom.id}`)
       }
-      navigate('/rooms')
     } catch (error) {
       // Error handled by mutation
     }
