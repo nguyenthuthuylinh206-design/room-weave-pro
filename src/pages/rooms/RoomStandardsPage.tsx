@@ -20,9 +20,10 @@ import {
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { useRoomStandards, useUpdateStandard, useDeleteStandard } from '@/hooks/useRoomStandards'
+import { useRoomStandards, useUpdateStandard, useDeleteStandard, useAddStandard } from '@/hooks/useRoomStandards'
 import type { RoomType } from '@/types/rooms.types'
 import { useCategories } from '@/hooks/useCategories'
+import { useItems } from '@/hooks/useItems'
 import { toast } from 'sonner'
 
 const ROOM_TYPES = [
@@ -39,6 +40,9 @@ export function RoomStandardsPage() {
 
   const { data: standards, isLoading } = useRoomStandards(selectedRoomType)
   const { data: categories } = useCategories()
+  const { data: itemsData } = useItems({ status: 'active' }, 1, 1000)
+  const items = itemsData?.items || []
+  const addStandard = useAddStandard()
   const updateStandard = useUpdateStandard()
   const deleteStandard = useDeleteStandard()
 
@@ -49,15 +53,15 @@ export function RoomStandardsPage() {
 
   const handleAddItem = async () => {
     if (!newItem.item_id || newItem.quantity < 1) {
-      toast.error('Vui lòng chọn item và nhập số lượng hợp lệ')
+      toast.error('Vui lòng chọn tài sản và nhập số lượng hợp lệ')
       return
     }
 
     try {
-      await updateStandard.mutateAsync({
-        id: newItem.item_id,
-        quantity: newItem.quantity,
+      await addStandard.mutateAsync({
         roomType: selectedRoomType,
+        itemId: newItem.item_id,
+        quantity: newItem.quantity,
       })
       setNewItem({ item_id: '', quantity: 1 })
     } catch (error) {
@@ -204,12 +208,26 @@ export function RoomStandardsPage() {
                           <SelectValue placeholder="Chọn tài sản để thêm..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {categories?.map((category) => (
-                            <SelectItem key={category.id} value={category.id} disabled>
-                              <span className="font-semibold">{category.name}</span>
-                            </SelectItem>
-                          ))}
-                          {/* TODO: Load actual items grouped by category */}
+                          {categories?.map((category) => {
+                            const categoryItems = items.filter(
+                              (item) => item.category_id === category.id
+                            )
+                            
+                            if (categoryItems.length === 0) return null
+                            
+                            return (
+                              <div key={category.id}>
+                                <SelectItem value={category.id} disabled>
+                                  <span className="font-semibold">{category.name}</span>
+                                </SelectItem>
+                                {categoryItems.map((item) => (
+                                  <SelectItem key={item.id} value={item.id} className="pl-6">
+                                    {item.name} ({item.code})
+                                  </SelectItem>
+                                ))}
+                              </div>
+                            )
+                          })}
                         </SelectContent>
                       </Select>
                     </TableCell>
