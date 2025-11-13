@@ -51,7 +51,7 @@ export function useRoom(roomId: string | undefined) {
       
       if (roomError) throw roomError
       
-      // Fetch room items with item details
+      // Fetch room items with item details (non-blocking)
       const { data: roomItems, error: itemsError } = await supabase
         .from('room_items')
         .select(`
@@ -69,9 +69,11 @@ export function useRoom(roomId: string | undefined) {
         `)
         .eq('room_id', roomId)
       
-      if (itemsError) throw itemsError
+      if (itemsError) {
+        console.error('Error fetching room items:', itemsError)
+      }
       
-      // Fetch recent checks
+      // Fetch recent checks (non-blocking)
       const { data: recentChecks, error: checksError } = await supabase
         .from('room_checks')
         .select(`
@@ -89,7 +91,9 @@ export function useRoom(roomId: string | undefined) {
         .order('checked_at', { ascending: false })
         .limit(20)
       
-      if (checksError) throw checksError
+      if (checksError) {
+        console.error('Error fetching room checks:', checksError)
+      }
       
       // Transform items data
       const items = (roomItems || []).map((ri: any) => ({
