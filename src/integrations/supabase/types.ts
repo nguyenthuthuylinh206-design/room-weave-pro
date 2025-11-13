@@ -2900,34 +2900,43 @@ export type Database = {
           assigned_at: string | null
           condition: string | null
           id: string
+          is_verified: boolean | null
           item_id: string
           last_checked_at: string | null
           last_checked_by: string | null
           notes: string | null
           quantity: number
           room_id: string
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           assigned_at?: string | null
           condition?: string | null
           id?: string
+          is_verified?: boolean | null
           item_id: string
           last_checked_at?: string | null
           last_checked_by?: string | null
           notes?: string | null
           quantity?: number
           room_id: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           assigned_at?: string | null
           condition?: string | null
           id?: string
+          is_verified?: boolean | null
           item_id?: string
           last_checked_at?: string | null
           last_checked_by?: string | null
           notes?: string | null
           quantity?: number
           room_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: [
           {

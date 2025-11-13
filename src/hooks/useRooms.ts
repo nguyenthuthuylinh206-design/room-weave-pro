@@ -60,6 +60,9 @@ export function useRoom(roomId: string | undefined) {
           quantity,
           condition,
           standard_quantity,
+          is_verified,
+          verified_at,
+          verified_by,
           items(
             id,
             code,
@@ -106,6 +109,9 @@ export function useRoom(roomId: string | undefined) {
         quantity: ri.quantity,
         condition: ri.condition,
         standard_quantity: ri.standard_quantity,
+        is_verified: ri.is_verified,
+        verified_at: ri.verified_at,
+        verified_by: ri.verified_by,
       }))
       
       // Transform checks data

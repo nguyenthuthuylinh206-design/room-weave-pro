@@ -65,6 +65,9 @@ export interface RoomItemWithDetails {
   condition: string
   standard_quantity?: number
   quantity_in_laundry?: number
+  is_verified?: boolean
+  verified_at?: string
+  verified_by?: string
 }
 
 export interface RoomCheckWithUser {
