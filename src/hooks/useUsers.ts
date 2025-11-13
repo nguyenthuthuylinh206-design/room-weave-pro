@@ -4,6 +4,7 @@ import { User, UserWithRelations } from '@/types/database.types'
 import { toast } from 'sonner'
 import { UserFormData } from '@/lib/validations/user.schemas'
 import { logCreate, logUpdate, logDelete } from '@/lib/activityLogger'
+import { useTenant } from './useTenant'
 
 export function useUsers() {
   const { data: users, isLoading, error } = useQuery({
@@ -31,35 +32,40 @@ export function useUsers() {
 
 export function useCreateUser() {
   const queryClient = useQueryClient()
+  const { tenant } = useTenant()
 
   return useMutation({
     mutationFn: async (data: UserFormData) => {
-      const { data: user, error } = await supabase
-        .from('users')
-        .insert({
-          full_name: data.fullName,
+      if (!tenant?.id) {
+        throw new Error('Tenant ID is required to create a user')
+      }
+
+      // Call edge function to create auth user + profile
+      const { data: result, error } = await supabase.functions.invoke('create-user', {
+        body: {
           email: data.email,
+          fullName: data.fullName,
           phone: data.phone || null,
-          user_level_code: data.userLevelCode,
-          hotel_id: data.hotelId || null,
-          position_id: data.positionId || null,
+          userLevelCode: data.userLevelCode,
+          hotelId: data.hotelId || null,
+          positionId: data.positionId || null,
           department: data.department || null,
           status: data.status,
           notes: data.notes || null,
-        } as any)
-        .select()
-        .single()
+          tenantId: tenant.id,
+        }
+      })
 
       if (error) {
         // Check if it's a quota exceeded error
         if (error.message?.includes('Quota exceeded')) {
-          // Invalidate quota check to refresh
           queryClient.invalidateQueries({ queryKey: ['check-quota'] })
           queryClient.invalidateQueries({ queryKey: ['tenant-usage'] })
         }
         throw error
       }
 
+      const user = result.user
       await logCreate('user', user.id, user.full_name, data)
       return user
     },
