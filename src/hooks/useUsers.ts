@@ -7,20 +7,28 @@ import { logCreate, logUpdate, logDelete } from '@/lib/activityLogger'
 import { useTenant } from './useTenant'
 
 export function useUsers() {
+  const { tenant } = useTenant()
+
   const { data: users, isLoading, error } = useQuery({
-    queryKey: ['users'],
+    queryKey: ['users', tenant?.id],
     queryFn: async () => {
+      if (!tenant?.id) {
+        throw new Error('Tenant ID is required to fetch users')
+      }
+
       const { data, error } = await supabase
         .from('users')
         .select(`
           *,
           position:positions(id, code, name, user_level_code, department)
         `)
+        .eq('tenant_id', tenant.id)
         .order('created_at', { ascending: false })
 
       if (error) throw error
       return data as UserWithRelations[]
     },
+    enabled: !!tenant?.id,
   })
 
   return {
