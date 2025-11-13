@@ -103,8 +103,13 @@ export function UserFormDialog({
 
   const handleSubmit = async (data: UserFormData) => {
     // Check quota for new users
-    if (!user && !quotaCheck.checkQuota()) {
-      return
+    if (!user) {
+      // Force refresh quota check before submit
+      await quotaCheck.refetch?.()
+      
+      if (!quotaCheck.checkQuota()) {
+        return
+      }
     }
 
     try {
@@ -112,7 +117,11 @@ export function UserFormDialog({
       await onSubmit(data)
       onOpenChange(false)
       form.reset()
-    } catch (error) {
+    } catch (error: any) {
+      // Check if it's a quota error from database
+      if (error?.message?.includes('Quota exceeded')) {
+        quotaCheck.setShowDialog(true)
+      }
       console.error('Submit error:', error)
     } finally {
       setIsSubmitting(false)

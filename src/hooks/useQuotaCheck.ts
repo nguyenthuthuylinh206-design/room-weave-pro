@@ -7,7 +7,7 @@ type ResourceType = 'hotel' | 'user' | 'room' | 'item' | 'storage'
 
 export function useQuotaCheck(resourceType: ResourceType) {
   const [showDialog, setShowDialog] = useState(false)
-  const { data: canAdd, isLoading } = useCheckQuota(resourceType)
+  const { data: canAdd, isLoading, refetch } = useCheckQuota(resourceType)
   const { data: usage } = useTenantUsage()
   const { data: subscription } = useTenantSubscription()
 
@@ -73,5 +73,6 @@ export function useQuotaCheck(resourceType: ResourceType) {
     setShowDialog,
     currentUsage: getCurrentUsage(),
     limit: getLimit(),
+    refetch,
   }
 }

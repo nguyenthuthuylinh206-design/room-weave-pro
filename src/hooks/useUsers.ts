@@ -50,17 +50,31 @@ export function useCreateUser() {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        // Check if it's a quota exceeded error
+        if (error.message?.includes('Quota exceeded')) {
+          // Invalidate quota check to refresh
+          queryClient.invalidateQueries({ queryKey: ['check-quota'] })
+          queryClient.invalidateQueries({ queryKey: ['tenant-usage'] })
+        }
+        throw error
+      }
 
       await logCreate('user', user.id, user.full_name, data)
       return user
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
+      queryClient.invalidateQueries({ queryKey: ['check-quota'] })
+      queryClient.invalidateQueries({ queryKey: ['tenant-usage'] })
       toast.success('Người dùng đã được tạo thành công')
     },
     onError: (error: Error) => {
-      toast.error('Không thể tạo người dùng: ' + error.message)
+      if (error.message?.includes('Quota exceeded')) {
+        toast.error('Đã đạt giới hạn số lượng người dùng. Vui lòng nâng cấp gói dịch vụ.')
+      } else {
+        toast.error('Không thể tạo người dùng: ' + error.message)
+      }
     },
   })
 }
