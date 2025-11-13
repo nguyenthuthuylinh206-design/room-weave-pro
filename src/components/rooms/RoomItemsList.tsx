@@ -51,8 +51,19 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
 
   const standardItems = items.filter(item => item.has_standard)
   const unverifiedCount = standardItems.filter(item => !item.is_verified).length
-  const missingItems = standardItems.filter(item => item.missing_quantity > 0)
-  const totalMissing = missingItems.reduce((sum, item) => sum + item.missing_quantity, 0)
+  
+  // Calculate missing items dynamically based on current quantities
+  const missingItems = standardItems.filter(item => {
+    const currentQty = quantities[item.item_id] ?? item.current_quantity
+    const missing = item.standard_quantity - currentQty
+    return missing > 0
+  })
+  
+  const totalMissing = missingItems.reduce((sum, item) => {
+    const currentQty = quantities[item.item_id] ?? item.current_quantity
+    const missing = Math.max(0, item.standard_quantity - currentQty)
+    return sum + missing
+  }, 0)
 
   const handleQuantityChange = (itemId: string, value: string) => {
     const qty = parseInt(value) || 0
