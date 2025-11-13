@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   Table,
   TableBody,
@@ -16,12 +17,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Pencil, Trash2, Shield } from 'lucide-react'
 import { UserWithRelations } from '@/types/database.types'
 import { UserAvatar } from './UserAvatar'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { useDeleteUser } from '@/hooks/useUsers'
+import { UserPermissionsDialog } from './UserPermissionsDialog'
 
 interface UserTableProps {
   users: UserWithRelations[]
@@ -44,11 +46,18 @@ const userLevelColors: Record<string, string> = {
 
 export function UserTable({ users, onEdit }: UserTableProps) {
   const deleteUserMutation = useDeleteUser()
+  const [permissionsUser, setPermissionsUser] = useState<UserWithRelations | null>(null)
+  const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false)
 
   const deleteUser = (id: string) => {
     if (confirm('Bạn có chắc muốn xóa người dùng này?')) {
       deleteUserMutation.mutate(id)
     }
+  }
+
+  const openPermissionsDialog = (user: UserWithRelations) => {
+    setPermissionsUser(user)
+    setPermissionsDialogOpen(true)
   }
 
   return (
@@ -127,6 +136,10 @@ export function UserTable({ users, onEdit }: UserTableProps) {
                       <Pencil className="mr-2 h-4 w-4" />
                       Chỉnh sửa
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openPermissionsDialog(user)}>
+                      <Shield className="mr-2 h-4 w-4" />
+                      Phân quyền
+                    </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive"
                       onClick={() => deleteUser(user.id)}
@@ -141,6 +154,12 @@ export function UserTable({ users, onEdit }: UserTableProps) {
           ))}
         </TableBody>
       </Table>
+
+      <UserPermissionsDialog
+        user={permissionsUser}
+        open={permissionsDialogOpen}
+        onOpenChange={setPermissionsDialogOpen}
+      />
     </div>
   )
 }

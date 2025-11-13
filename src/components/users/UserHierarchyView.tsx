@@ -1,9 +1,10 @@
+import { useState } from 'react'
 import { UserWithRelations } from '@/types/database.types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { UserAvatar } from './UserAvatar'
-import { Crown, Users, User as UserIcon, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { Crown, Users, User as UserIcon, MoreVertical, Pencil, Trash2, Shield } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useDeleteUser } from '@/hooks/useUsers'
+import { UserPermissionsDialog } from './UserPermissionsDialog'
 
 interface UserHierarchyViewProps {
   users: UserWithRelations[]
@@ -19,11 +21,18 @@ interface UserHierarchyViewProps {
 
 export function UserHierarchyView({ users, onEdit }: UserHierarchyViewProps) {
   const deleteUserMutation = useDeleteUser()
+  const [permissionsUser, setPermissionsUser] = useState<UserWithRelations | null>(null)
+  const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false)
 
   const deleteUser = (id: string) => {
     if (confirm('Bạn có chắc muốn xóa người dùng này?')) {
       deleteUserMutation.mutate(id)
     }
+  }
+
+  const openPermissionsDialog = (user: UserWithRelations) => {
+    setPermissionsUser(user)
+    setPermissionsDialogOpen(true)
   }
 
   // Group users by level
@@ -64,6 +73,10 @@ export function UserHierarchyView({ users, onEdit }: UserHierarchyViewProps) {
           <DropdownMenuItem onClick={() => onEdit(user)}>
             <Pencil className="h-4 w-4 mr-2" />
             Chỉnh sửa
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => openPermissionsDialog(user)}>
+            <Shield className="h-4 w-4 mr-2" />
+            Phân quyền
           </DropdownMenuItem>
           {!user.is_primary_owner && (
             <DropdownMenuItem
@@ -147,6 +160,12 @@ export function UserHierarchyView({ users, onEdit }: UserHierarchyViewProps) {
           )}
         </CardContent>
       </Card>
+
+      <UserPermissionsDialog
+        user={permissionsUser}
+        open={permissionsDialogOpen}
+        onOpenChange={setPermissionsDialogOpen}
+      />
     </div>
   )
 }
