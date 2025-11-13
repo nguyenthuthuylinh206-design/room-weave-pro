@@ -70,25 +70,20 @@ export function RoomFormPage() {
 
   useEffect(() => {
     if (room && isEdit) {
-      // Handle both object and array responses from RPC
-      const roomData: any = Array.isArray(room) ? room[0] : room
-      
-      if (roomData && typeof roomData === 'object') {
-        reset({
-          room_number: roomData.room_number || '',
-          room_type: roomData.room_type || '',
-          floor: roomData.floor || 1,
-          area_sqm: roomData.area_sqm || undefined,
-          max_guests: roomData.max_guests || 2,
-          base_price: roomData.base_price || 0,
-          bed_type: roomData.bed_type || '',
-          view_type: roomData.view_type || '',
-          has_window: roomData.has_window ?? true,
-          has_balcony: roomData.has_balcony ?? false,
-          smoking_allowed: roomData.smoking_allowed ?? false,
-          notes: roomData.notes || '',
-        })
-      }
+      reset({
+        room_number: room.room_number || '',
+        room_type: room.room_type || '',
+        floor: room.floor || 1,
+        area_sqm: room.area_sqm || undefined,
+        max_guests: room.max_guests || 2,
+        base_price: room.base_price || 0,
+        bed_type: room.bed_type || '',
+        view_type: room.view_type || '',
+        has_window: room.has_window ?? true,
+        has_balcony: room.has_balcony ?? false,
+        smoking_allowed: room.smoking_allowed ?? false,
+        notes: room.notes || '',
+      })
     }
   }, [room, isEdit, reset])
 

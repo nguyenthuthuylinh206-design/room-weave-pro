@@ -40,7 +40,10 @@ export function useRoom(roomId: string | undefined) {
       if (!roomId) throw new Error('No room ID')
       
       const { data, error } = await supabase
-        .rpc('get_room_detail', { p_room_id: roomId })
+        .from('rooms')
+        .select('*')
+        .eq('id', roomId)
+        .single()
       
       if (error) throw error
       return data
