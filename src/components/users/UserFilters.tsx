@@ -6,65 +6,187 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Search } from 'lucide-react'
+import { Search, Filter } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { useHotels } from '@/hooks/useHotels'
+import { usePositions } from '@/hooks/usePositions'
+import { Badge } from '@/components/ui/badge'
 
 interface UserFiltersProps {
   filters: {
     search: string
-    role: string
+    userLevel: string
     status: string
+    hotelId: string
+    positionId: string
+    department: string
+    createdByMe: boolean
   }
   onFiltersChange: (filters: any) => void
 }
 
 export function UserFilters({ filters, onFiltersChange }: UserFiltersProps) {
+  const { data: hotels } = useHotels()
+  const { data: positions } = usePositions()
+
+  const activeFilterCount = [
+    filters.userLevel !== 'all',
+    filters.status !== 'all',
+    filters.hotelId !== 'all',
+    filters.positionId !== 'all',
+    filters.department !== 'all',
+    filters.createdByMe,
+  ].filter(Boolean).length
+
+  const handleReset = () => {
+    onFiltersChange({
+      search: '',
+      userLevel: 'all',
+      status: 'all',
+      hotelId: 'all',
+      positionId: 'all',
+      department: 'all',
+      createdByMe: false,
+    })
+  }
+
   return (
-    <div className="flex flex-col gap-4 sm:flex-row">
-      <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Tìm kiếm theo tên hoặc email..."
-          value={filters.search}
-          onChange={(e) =>
-            onFiltersChange({ ...filters, search: e.target.value })
+    <div className="space-y-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+        {/* Search */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Tìm kiếm theo tên, email, số điện thoại..."
+            value={filters.search}
+            onChange={(e) =>
+              onFiltersChange({ ...filters, search: e.target.value })
+            }
+            className="pl-10"
+          />
+        </div>
+
+        {/* User Level */}
+        <Select
+          value={filters.userLevel}
+          onValueChange={(value) =>
+            onFiltersChange({ ...filters, userLevel: value })
           }
-          className="pl-10"
-        />
+        >
+          <SelectTrigger className="w-full lg:w-[180px]">
+            <SelectValue placeholder="Cấp bậc" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả cấp bậc</SelectItem>
+            <SelectItem value="tenant_owner">👑 Chủ sở hữu</SelectItem>
+            <SelectItem value="manager">👥 Quản lý</SelectItem>
+            <SelectItem value="staff">👤 Nhân viên</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Status */}
+        <Select
+          value={filters.status}
+          onValueChange={(value) =>
+            onFiltersChange({ ...filters, status: value })
+          }
+        >
+          <SelectTrigger className="w-full lg:w-[160px]">
+            <SelectValue placeholder="Trạng thái" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả</SelectItem>
+            <SelectItem value="active">Hoạt động</SelectItem>
+            <SelectItem value="inactive">Không hoạt động</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <Select
-        value={filters.role}
-        onValueChange={(value) =>
-          onFiltersChange({ ...filters, role: value })
-        }
-      >
-        <SelectTrigger className="w-full sm:w-[180px]">
-          <SelectValue placeholder="Vai trò" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Tất cả vai trò</SelectItem>
-          <SelectItem value="owner">Chủ sở hữu</SelectItem>
-          <SelectItem value="hotel_manager">Quản lý KS</SelectItem>
-          <SelectItem value="department_manager">Quản lý BP</SelectItem>
-          <SelectItem value="staff">Nhân viên</SelectItem>
-        </SelectContent>
-      </Select>
+      {/* Advanced Filters Row */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+        {/* Hotel Filter */}
+        <Select
+          value={filters.hotelId}
+          onValueChange={(value) =>
+            onFiltersChange({ ...filters, hotelId: value })
+          }
+        >
+          <SelectTrigger className="w-full lg:w-[200px]">
+            <SelectValue placeholder="Khách sạn" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả khách sạn</SelectItem>
+            {hotels?.map((hotel) => (
+              <SelectItem key={hotel.id} value={hotel.id}>
+                {hotel.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-      <Select
-        value={filters.status}
-        onValueChange={(value) =>
-          onFiltersChange({ ...filters, status: value })
-        }
-      >
-        <SelectTrigger className="w-full sm:w-[180px]">
-          <SelectValue placeholder="Trạng thái" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Tất cả</SelectItem>
-          <SelectItem value="active">Hoạt động</SelectItem>
-          <SelectItem value="inactive">Không hoạt động</SelectItem>
-        </SelectContent>
-      </Select>
+        {/* Position Filter */}
+        <Select
+          value={filters.positionId}
+          onValueChange={(value) =>
+            onFiltersChange({ ...filters, positionId: value })
+          }
+        >
+          <SelectTrigger className="w-full lg:w-[200px]">
+            <SelectValue placeholder="Chức vụ" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả chức vụ</SelectItem>
+            {positions?.map((position) => (
+              <SelectItem key={position.id} value={position.id}>
+                {position.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Department Filter */}
+        <Select
+          value={filters.department}
+          onValueChange={(value) =>
+            onFiltersChange({ ...filters, department: value })
+          }
+        >
+          <SelectTrigger className="w-full lg:w-[200px]">
+            <SelectValue placeholder="Phòng ban" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả phòng ban</SelectItem>
+            <SelectItem value="housekeeping">Buồng phòng</SelectItem>
+            <SelectItem value="laundry">Giặt là</SelectItem>
+            <SelectItem value="inventory">Kho</SelectItem>
+            <SelectItem value="maintenance">Bảo trì</SelectItem>
+            <SelectItem value="accounting">Kế toán</SelectItem>
+            <SelectItem value="other">Khác</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Created By Me Toggle */}
+        <Button
+          variant={filters.createdByMe ? 'default' : 'outline'}
+          onClick={() =>
+            onFiltersChange({ ...filters, createdByMe: !filters.createdByMe })
+          }
+          className="w-full lg:w-auto"
+        >
+          <Filter className="h-4 w-4 mr-2" />
+          Người tôi tạo
+        </Button>
+
+        {/* Reset Button */}
+        {activeFilterCount > 0 && (
+          <Button variant="ghost" onClick={handleReset} className="w-full lg:w-auto">
+            Xóa bộ lọc
+            <Badge variant="secondary" className="ml-2">
+              {activeFilterCount}
+            </Badge>
+          </Button>
+        )}
+      </div>
     </div>
   )
 }
