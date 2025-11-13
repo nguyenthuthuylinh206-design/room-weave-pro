@@ -49,14 +49,23 @@ export function RoomItemsList({ items, showMissing }: RoomItemsListProps) {
     return standardQty > currentQty
   })
   
+  // Calculate total missing quantity
+  const totalMissingQuantity = missingItems.reduce((sum, item) => {
+    return sum + Math.max(0, (item.standard_quantity || 0) - item.quantity)
+  }, 0)
+  
   return (
     <div className="space-y-4">
       {unverifiedItems.length > 0 && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Còn {unverifiedItems.length} loại đồ chưa được xác nhận. 
-            {missingItems.length > 0 && ` Thiếu ${missingItems.length} loại đồ.`}
+            Còn {unverifiedItems.length} loại đồ chưa được xác nhận.
+            {missingItems.length > 0 && (
+              <span className="font-semibold">
+                {' '}Thiếu {missingItems.length} loại đồ ({totalMissingQuantity} món).
+              </span>
+            )}
             {' '}Hãy tích vào các đồ đã có trong phòng để xác nhận.
           </AlertDescription>
         </Alert>

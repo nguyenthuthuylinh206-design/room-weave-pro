@@ -57,6 +57,14 @@ export function RoomDetailPage() {
     item.standard_quantity && item.quantity < item.standard_quantity
   ).length
   
+  // Calculate total missing quantity (individual items, not just types)
+  const totalMissingQuantity = items.reduce((sum, item) => {
+    const missing = item.standard_quantity 
+      ? Math.max(0, item.standard_quantity - item.quantity)
+      : 0
+    return sum + missing
+  }, 0)
+  
   return (
     <div className="space-y-6">
       <PageHeader
@@ -251,7 +259,8 @@ export function RoomDetailPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Thiếu</p>
-                      <p className="text-2xl font-bold text-red-600">{missingCount}</p>
+                      <p className="text-2xl font-bold text-red-600">{missingCount} loại</p>
+                      <p className="text-xs text-muted-foreground">{totalMissingQuantity} món</p>
                     </div>
                     <div className="rounded-full bg-red-100 p-3">
                       <AlertCircle className="h-6 w-6 text-red-600" />

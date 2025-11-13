@@ -4477,10 +4477,9 @@ export type Database = {
         }
         Returns: Json
       }
-      apply_room_standards: {
-        Args: { p_room_id: string; p_user_id: string }
-        Returns: Json
-      }
+      apply_room_standards:
+        | { Args: { p_room_id: string }; Returns: Json }
+        | { Args: { p_room_id: string; p_user_id: string }; Returns: Json }
       bulk_delete_items: {
         Args: { p_item_ids: string[]; p_user_id: string }
         Returns: Json
