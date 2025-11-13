@@ -104,10 +104,9 @@ export function UserFormDialog({
   const handleSubmit = async (data: UserFormData) => {
     // Check quota for new users
     if (!user) {
-      // Force refresh quota check before submit
-      await quotaCheck.refetch?.()
+      const canProceed = await quotaCheck.checkQuota()
       
-      if (!quotaCheck.checkQuota()) {
+      if (!canProceed) {
         return
       }
     }

@@ -11,12 +11,16 @@ export function useQuotaCheck(resourceType: ResourceType) {
   const { data: usage } = useTenantUsage()
   const { data: subscription } = useTenantSubscription()
 
-  const checkQuota = (): boolean => {
+  const checkQuota = async (): Promise<boolean> => {
+    // Always fetch fresh data before checking
+    const result = await refetch()
+    const freshCanAdd = result.data
+    
     if (isLoading || !usage || !subscription) {
       return true // Allow if still loading
     }
 
-    if (canAdd) {
+    if (freshCanAdd) {
       return true
     }
 
