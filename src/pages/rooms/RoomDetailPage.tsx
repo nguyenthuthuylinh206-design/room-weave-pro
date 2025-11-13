@@ -12,10 +12,9 @@ import {
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
 import { RoomItemsList } from '@/components/rooms/RoomItemsList'
 import { EnhancedCheckHistory } from '@/components/rooms/EnhancedCheckHistory'
@@ -164,53 +163,18 @@ export function RoomDetailPage() {
               <CardTitle>Đồ dùng trong phòng</CardTitle>
             </CardHeader>
             <CardContent>
-              {/* Alert when no items */}
               {totalItems === 0 && (
-                <Alert className="mb-4">
+                <Alert>
                   <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Chưa có đồ dùng trong phòng</AlertTitle>
                   <AlertDescription>
-                    Phòng này chưa có đồ dùng nào. Nhấn nút "Áp dụng chuẩn phòng" ở mục "Thao tác nhanh" bên phải để tự động thêm đồ dùng theo chuẩn của loại phòng <span className="font-semibold capitalize">{room.room_type}</span>.
+                    Phòng này chưa có đồ dùng nào. Hãy áp dụng chuẩn phòng hoặc thêm đồ thủ công.
                   </AlertDescription>
                 </Alert>
               )}
-              
-              <Tabs defaultValue="all">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="all">
-                    Tất cả ({totalItems})
-                  </TabsTrigger>
-                  <TabsTrigger value="complete">
-                    Đầy đủ ({completeItems})
-                  </TabsTrigger>
-                  <TabsTrigger value="missing">
-                    Thiếu ({missingCount})
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="all" className="mt-4">
-                  <RoomItemsList items={items} roomId={id!} />
-                </TabsContent>
-                
-                <TabsContent value="complete" className="mt-4">
-                  <RoomItemsList 
-                    items={items.filter(item => 
-                      !item.standard_quantity || item.quantity >= item.standard_quantity
-                    )} 
-                    roomId={id!}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="missing" className="mt-4">
-                  <RoomItemsList 
-                    items={items.filter(item => 
-                      item.standard_quantity && item.quantity < item.standard_quantity
-                    )} 
-                    roomId={id!}
-                    showMissing
-                  />
-                </TabsContent>
-              </Tabs>
+
+              {totalItems > 0 && (
+                <RoomItemsList items={items} roomId={id!} />
+              )}
             </CardContent>
           </Card>
         </div>

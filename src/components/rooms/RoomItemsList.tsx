@@ -17,10 +17,15 @@ import type { RoomItemWithDetails } from '@/types/rooms.types'
 interface RoomItemsListProps {
   items: RoomItemWithDetails[]
   roomId: string
-  showMissing?: boolean
 }
 
-export function RoomItemsList({ items, showMissing }: RoomItemsListProps) {
+type ItemStatus = {
+  label: string
+  variant: 'default' | 'secondary' | 'destructive'
+  color: string
+}
+
+export function RoomItemsList({ items }: RoomItemsListProps) {
   const toggleVerification = useToggleItemVerification()
 
   const handleToggleVerification = (roomItemId: string, currentStatus: boolean) => {
@@ -28,6 +33,13 @@ export function RoomItemsList({ items, showMissing }: RoomItemsListProps) {
       roomItemId, 
       isVerified: !currentStatus 
     })
+  }
+
+  const getItemStatus = (current: number, standard?: number): ItemStatus => {
+    if (!standard) return { label: 'Không xác định', variant: 'secondary', color: 'text-muted-foreground' }
+    if (current === standard) return { label: 'Đầy đủ', variant: 'default', color: 'text-green-600' }
+    if (current > standard) return { label: 'Dư', variant: 'secondary', color: 'text-blue-600' }
+    return { label: 'Thiếu', variant: 'destructive', color: 'text-red-600' }
   }
 
   if (items.length === 0) {
@@ -77,24 +89,24 @@ export function RoomItemsList({ items, showMissing }: RoomItemsListProps) {
             <TableHead className="w-[50px]">Xác nhận</TableHead>
             <TableHead className="w-16">Ảnh</TableHead>
             <TableHead>Tên đồ dùng</TableHead>
-            {showMissing && <TableHead className="text-center">Chuẩn</TableHead>}
-            <TableHead className="text-center">Hiện có</TableHead>
-            {showMissing && <TableHead className="text-center">Thiếu</TableHead>}
+            <TableHead className="text-center">Số lượng chuẩn</TableHead>
+            <TableHead className="text-center">Số lượng hiện có</TableHead>
+            <TableHead className="text-center">Còn thiếu</TableHead>
             <TableHead>Tình trạng</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {items.map((item) => {
             const missing = item.standard_quantity 
-              ? Math.max(0, item.standard_quantity - item.quantity)
+              ? item.standard_quantity - item.quantity
               : 0
             const isVerified = item.is_verified || false
-            const isMissing = missing > 0
+            const status = getItemStatus(item.quantity, item.standard_quantity)
             
             return (
               <TableRow 
                 key={item.id}
-                className={!isVerified && isMissing ? 'bg-destructive/5' : ''}
+                className={!isVerified && missing > 0 ? 'bg-destructive/5' : ''}
               >
                 <TableCell>
                   <Checkbox
@@ -124,9 +136,9 @@ export function RoomItemsList({ items, showMissing }: RoomItemsListProps) {
                     >
                       {item.item_name}
                       {isVerified && (
-                        <CheckCircle2 className="h-4 w-4 text-success" />
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
                       )}
-                      {!isVerified && isMissing && (
+                      {!isVerified && missing > 0 && (
                         <AlertCircle className="h-4 w-4 text-destructive" />
                       )}
                     </Link>
@@ -138,26 +150,26 @@ export function RoomItemsList({ items, showMissing }: RoomItemsListProps) {
                     )}
                   </div>
                 </TableCell>
-                {showMissing && (
-                  <TableCell className="text-center font-medium">
-                    {item.standard_quantity || '-'}
-                  </TableCell>
-                )}
                 <TableCell className="text-center font-medium">
-                  {item.quantity}
+                  {item.standard_quantity || '-'}
                 </TableCell>
-                {showMissing && (
-                  <TableCell className="text-center">
-                    {missing > 0 ? (
-                      <div className="flex items-center justify-center gap-1">
-                        <AlertCircle className="h-3 w-3 text-destructive" />
-                        <span className="font-medium text-destructive">-{missing}</span>
-                      </div>
-                    ) : (
-                      <CheckCircle2 className="h-4 w-4 text-success inline" />
-                    )}
-                  </TableCell>
-                )}
+                <TableCell className="text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="font-medium">{item.quantity}</span>
+                    <Badge variant={status.variant} className={status.color}>
+                      {status.label}
+                    </Badge>
+                  </div>
+                </TableCell>
+                <TableCell className="text-center">
+                  {missing > 0 ? (
+                    <span className="font-medium text-red-600">-{missing}</span>
+                  ) : missing < 0 ? (
+                    <span className="font-medium text-blue-600">+{Math.abs(missing)}</span>
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4 text-green-600 inline" />
+                  )}
+                </TableCell>
                 <TableCell>
                   <Badge
                     variant={
