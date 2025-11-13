@@ -46,10 +46,12 @@ export function RoomFormPage() {
 
   const { tenantId } = useUser()
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
-  const { data: room, isLoading: roomLoading } = useRoom(id)
+  const { data: roomData, isLoading: roomLoading } = useRoom(id)
   const createRoom = useCreateRoom()
   const updateRoom = useUpdateRoom()
   const quotaCheck = useQuotaCheck('room')
+  
+  const room = roomData?.room
 
   const {
     register,

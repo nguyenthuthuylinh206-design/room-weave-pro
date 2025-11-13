@@ -41,10 +41,8 @@ export function RoomDetailPage() {
     )
   }
   
-  // Data is now the room object directly from the rooms table
-  const room = data
-  const items = [] // TODO: Fetch room items separately
-  const checks = [] // TODO: Fetch room checks separately
+  // Destructure data from useRoom
+  const { room, hotel, items, recent_checks: checks } = data
   
   const totalItems = items.length
   const completeItems = items.filter(item => 

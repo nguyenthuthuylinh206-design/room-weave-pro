@@ -32,12 +32,14 @@ export const roomCheckFormSchema = z.object({
   check_type: z.enum(['daily', 'checkout', 'checkin', 'maintenance'], {
     required_error: 'Vui lòng chọn loại kiểm tra',
   }),
-  cleanliness_score: z.number().int().min(1).max(5).optional(),
+  cleanliness_score: z.number({
+    required_error: 'Vui lòng đánh giá mức độ sạch sẽ',
+  }).int().min(1, 'Điểm phải từ 1-5').max(5, 'Điểm phải từ 1-5'),
   items_complete: z.boolean().default(true),
   items_missing: z.array(z.any()).default([]),
   items_damaged: z.array(z.any()).default([]),
   notes: z.string().max(1000, 'Ghi chú không được quá 1000 ký tự').optional(),
-  photos: z.array(z.string().url('URL ảnh không hợp lệ')).max(10, 'Tối đa 10 ảnh').optional(),
+  photos: z.array(z.string().url('URL ảnh không hợp lệ')).max(10, 'Tối đa 10 ảnh').default([]),
 })
 
 export const standardFormSchema = z.object({

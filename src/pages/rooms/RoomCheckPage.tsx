@@ -40,8 +40,11 @@ export function RoomCheckPage() {
     },
   })
   
-  const room = (roomData as any)?.room
-  const items = (roomData as any)?.items || []
+  // Parse data correctly from useRoom
+  const room = roomData?.room
+  const hotel = roomData?.hotel
+  const items = roomData?.items || []
+  const recentChecks = roomData?.recent_checks || []
   
   useEffect(() => {
     if (!isLoading && !room) {
@@ -86,8 +89,28 @@ export function RoomCheckPage() {
     }
   }
   
-  if (isLoading || !room) {
-    return <div>Đang tải...</div>
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-3">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+          <p className="text-muted-foreground">Đang tải thông tin phòng...</p>
+        </div>
+      </div>
+    )
+  }
+  
+  if (!room) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-3">
+          <p className="text-muted-foreground">Không tìm thấy thông tin phòng</p>
+          <Button onClick={() => navigate('/rooms')} variant="outline">
+            Quay lại danh sách phòng
+          </Button>
+        </div>
+      </div>
+    )
   }
   
   const progress = (currentStep / totalSteps) * 100

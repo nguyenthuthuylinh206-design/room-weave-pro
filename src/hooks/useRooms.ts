@@ -39,14 +39,91 @@ export function useRoom(roomId: string | undefined) {
     queryFn: async () => {
       if (!roomId) throw new Error('No room ID')
       
-      const { data, error } = await supabase
+      // Fetch room basic data
+      const { data: room, error: roomError } = await supabase
         .from('rooms')
-        .select('*')
+        .select(`
+          *,
+          hotels(id, name, code, city)
+        `)
         .eq('id', roomId)
         .single()
       
-      if (error) throw error
-      return data
+      if (roomError) throw roomError
+      
+      // Fetch room items with item details
+      const { data: roomItems, error: itemsError } = await supabase
+        .from('room_items')
+        .select(`
+          id,
+          item_id,
+          quantity,
+          condition,
+          standard_quantity,
+          items(
+            id,
+            code,
+            name,
+            item_categories(name)
+          )
+        `)
+        .eq('room_id', roomId)
+      
+      if (itemsError) throw itemsError
+      
+      // Fetch recent checks
+      const { data: recentChecks, error: checksError } = await supabase
+        .from('room_checks')
+        .select(`
+          id,
+          check_type,
+          cleanliness_score,
+          items_complete,
+          items_missing,
+          items_damaged,
+          notes,
+          checked_at,
+          users(full_name, avatar_url)
+        `)
+        .eq('room_id', roomId)
+        .order('checked_at', { ascending: false })
+        .limit(20)
+      
+      if (checksError) throw checksError
+      
+      // Transform items data
+      const items = (roomItems || []).map((ri: any) => ({
+        id: ri.id,
+        item_id: ri.item_id,
+        item_code: ri.items?.code || '',
+        item_name: ri.items?.name || '',
+        item_thumbnail: undefined,
+        category_name: ri.items?.item_categories?.name,
+        quantity: ri.quantity,
+        condition: ri.condition,
+        standard_quantity: ri.standard_quantity,
+      }))
+      
+      // Transform checks data
+      const recent_checks = (recentChecks || []).map((check: any) => ({
+        id: check.id,
+        check_type: check.check_type,
+        cleanliness_score: check.cleanliness_score,
+        items_complete: check.items_complete,
+        items_missing: check.items_missing,
+        items_damaged: check.items_damaged,
+        notes: check.notes,
+        checked_at: check.checked_at,
+        checked_by_name: check.users?.full_name || 'Unknown',
+        checked_by_avatar: check.users?.avatar_url,
+      }))
+      
+      return {
+        room,
+        hotel: room.hotels,
+        items,
+        recent_checks,
+      }
     },
     enabled: !!roomId,
     refetchOnMount: 'always',
