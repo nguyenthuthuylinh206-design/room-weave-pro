@@ -1,263 +1,284 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+interface CreateUserRequest {
+  email: string
+  fullName: string
+  phone?: string
+  tenantId: string
+  userLevelCode: 'tenant_owner' | 'manager' | 'staff'
+  hotelId?: string
+  positionId?: string
+  departments?: string[]
+  status?: 'active' | 'inactive' | 'suspended'
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    // Create a Supabase client with the service role key (has admin privileges)
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    
+    // Create Supabase admin client
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Get request body
-    const { 
-      email,
-      fullName,
-      phone,
-      userLevelCode,
-      hotelId,
-      positionId,
-      department,
-      status,
-      notes,
-      tenantId
-    } = await req.json()
-
-    // Validate required fields
-    if (!email || !fullName || !tenantId) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields: email, fullName, tenantId' }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
+    // Get the authorization header
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('No authorization header')
     }
 
-    // Generate a random password (user will reset via email)
-    const tempPassword = crypto.randomUUID()
+    // Verify the user making the request
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user: requestingUser }, error: authError } = await supabaseAdmin.auth.getUser(token)
+    
+    if (authError || !requestingUser) {
+      console.error('Auth error:', authError)
+      throw new Error('Unauthorized')
+    }
 
-    // Create auth user (this will trigger handle_new_user which creates the profile)
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
+    // Parse request body
+    const requestData: CreateUserRequest = await req.json()
+    const { email, fullName, phone, tenantId, userLevelCode, hotelId, positionId, departments, status } = requestData
+
+    // Validate required fields
+    if (!email || !fullName || !tenantId || !userLevelCode) {
+      throw new Error('Missing required fields: email, fullName, tenantId, userLevelCode')
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      throw new Error('Email không hợp lệ')
+    }
+
+    // Check for duplicate email in the same tenant
+    const { data: existingUser, error: checkError } = await supabaseAdmin
+      .from('users')
+      .select('id, email')
+      .eq('tenant_id', tenantId)
+      .eq('email', email.toLowerCase())
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Error checking existing user:', checkError)
+      throw new Error('Không thể kiểm tra email trùng lặp')
+    }
+
+    if (existingUser) {
+      throw new Error('Email này đã được sử dụng trong hệ thống')
+    }
+
+    console.log('Requesting user:', requestingUser.id)
+    console.log('Creating user with level:', userLevelCode)
+
+    // Check if requesting user has permission to create this level of user
+    const { data: canCreate, error: permError } = await supabaseAdmin
+      .rpc('can_create_user', {
+        p_creator_id: requestingUser.id,
+        p_new_user_level: userLevelCode,
+        p_tenant_id: tenantId
+      })
+
+    if (permError) {
+      console.error('Permission check error:', permError)
+      throw new Error('Không thể kiểm tra quyền tạo người dùng')
+    }
+
+    if (!canCreate) {
+      if (userLevelCode === 'tenant_owner') {
+        throw new Error('Không thể tạo thêm Chủ sở hữu. Mỗi doanh nghiệp chỉ có một Chủ sở hữu.')
+      } else if (userLevelCode === 'manager') {
+        throw new Error('Bạn không có quyền tạo Quản lý. Chỉ Chủ sở hữu mới có quyền này.')
+      } else {
+        throw new Error('Bạn không có quyền tạo người dùng này')
+      }
+    }
+
+    // Validate manager must have hotel_id
+    if (userLevelCode === 'manager' && !hotelId) {
+      throw new Error('Quản lý phải được gán cho một khách sạn cụ thể')
+    }
+
+    // Validate hotel exists if provided
+    if (hotelId) {
+      const { data: hotel, error: hotelError } = await supabaseAdmin
+        .from('hotels')
+        .select('id')
+        .eq('id', hotelId)
+        .eq('tenant_id', tenantId)
+        .maybeSingle()
+
+      if (hotelError || !hotel) {
+        throw new Error('Khách sạn không tồn tại hoặc không thuộc doanh nghiệp này')
+      }
+    }
+
+    // Generate temporary password
+    const tempPassword = `Temp${Math.random().toString(36).slice(-8)}!`
+    
+    console.log('Creating auth user...')
+    
+    // Create auth user
+    const { data: authUser, error: authUserError } = await supabaseAdmin.auth.admin.createUser({
+      email: email.toLowerCase(),
       password: tempPassword,
-      email_confirm: true, // Auto-confirm email
+      email_confirm: true,
       user_metadata: {
         full_name: fullName,
       }
     })
 
-    if (authError) {
-      console.error('Auth user creation error:', authError)
-      return new Response(
-        JSON.stringify({ error: authError.message }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
+    if (authUserError) {
+      console.error('Auth user creation error:', authUserError)
+      throw new Error(`Không thể tạo tài khoản xác thực: ${authUserError.message}`)
     }
 
-    // Get current authenticated user from request for created_by
-    const authHeader = req.headers.get('authorization')
-    let createdBy: string | null = null
-    
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '')
-      const { data: { user: requestUser } } = await supabaseAdmin.auth.getUser(token)
-      createdBy = requestUser?.id || null
-    }
+    console.log('Auth user created:', authUser.user.id)
+    console.log('Creating user profile...')
 
-    // Check if creator has permission to create this user level
-    if (createdBy) {
-      const { data: canCreate, error: permError } = await supabaseAdmin.rpc('can_create_user', {
-        p_creator_id: createdBy,
-        p_new_user_level: userLevelCode || 'staff',
-        p_tenant_id: tenantId
-      })
-
-      if (permError) {
-        console.error('Permission check error:', permError)
-        return new Response(
-          JSON.stringify({ error: 'Không thể kiểm tra quyền tạo người dùng' }),
-          { 
-            status: 403,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        )
-      }
-
-      if (!canCreate) {
-        return new Response(
-          JSON.stringify({ error: 'Bạn không có quyền tạo loại người dùng này' }),
-          { 
-            status: 403,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        )
-      }
-    }
-
-    // Check if trying to create another owner (should not be possible except for super admin)
-    if (userLevelCode === 'tenant_owner' && createdBy) {
-      const { data: existingOwner } = await supabaseAdmin
+    // Determine if this is primary owner
+    let isPrimaryOwner = false
+    if (userLevelCode === 'tenant_owner') {
+      const { count } = await supabaseAdmin
         .from('users')
-        .select('id')
+        .select('*', { count: 'exact', head: true })
         .eq('tenant_id', tenantId)
         .eq('user_level_code', 'tenant_owner')
-        .eq('status', 'active')
-        .maybeSingle()
-
-      if (existingOwner) {
-        return new Response(
-          JSON.stringify({ error: 'Mỗi doanh nghiệp chỉ có thể có một Chủ sở hữu duy nhất' }),
-          { 
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        )
-      }
+        .eq('is_primary_owner', true)
+      
+      isPrimaryOwner = (count === 0)
     }
 
-    // Wait for trigger to create basic profile
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // Create user profile
+    const userProfile = {
+      id: authUser.user.id,
+      email: email.toLowerCase(),
+      full_name: fullName,
+      phone: phone || null,
+      tenant_id: tenantId,
+      user_level_code: userLevelCode,
+      is_super_admin: false,
+      is_primary_owner: isPrimaryOwner,
+      status: status || 'active',
+      created_by: userLevelCode === 'tenant_owner' ? null : requestingUser.id,
+      must_change_password: true,
+      phone_verified: false,
+      login_count: 0,
+      account_locked: false
+    }
 
-    // Check if user profile was created by trigger
-    const { data: existingProfile } = await supabaseAdmin
+    const { data: user, error: userError } = await supabaseAdmin
       .from('users')
-      .select('id')
-      .eq('id', authUser.user.id)
+      .insert(userProfile)
+      .select()
       .single()
 
-    // If trigger didn't create profile, create it manually
-    if (!existingProfile) {
-      console.log('Trigger did not create profile, creating manually...')
-      const { error: insertError } = await supabaseAdmin
-        .from('users')
+    if (userError) {
+      console.error('User profile creation error:', userError)
+      // Cleanup auth user if profile creation fails
+      await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
+      throw new Error(`Không thể tạo hồ sơ người dùng: ${userError.message}`)
+    }
+
+    console.log('User profile created:', user.id)
+
+    // Create hotel assignment if hotel_id provided
+    if (hotelId) {
+      const { error: hotelAssignmentError } = await supabaseAdmin
+        .from('user_hotels')
         .insert({
-          id: authUser.user.id,
-          tenant_id: tenantId,
-          email: email,
-          full_name: fullName,
-          phone: phone || null,
-          user_level_code: userLevelCode || 'staff',
-          hotel_id: hotelId || null,
-          position_id: positionId || null,
-          department: department || null,
-          status: status || 'active',
-          notes: notes || null,
-          created_by: createdBy,
+          user_id: user.id,
+          hotel_id: hotelId,
+          departments: departments || [],
+          is_default: true,
+          is_active: true,
+          assigned_by: requestingUser.id,
+          can_create_managers: userLevelCode === 'manager',
+          can_create_staff: userLevelCode === 'manager',
+          can_view_reports: userLevelCode === 'manager',
+          can_export_data: userLevelCode === 'manager',
+          can_approve_requests: userLevelCode === 'manager'
         })
 
-      if (insertError) {
-        console.error('Profile creation error:', insertError)
-        await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
-        
-        return new Response(
-          JSON.stringify({ error: insertError.message }),
-          { 
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        )
-      }
-    } else {
-      // Profile exists, just update it
-      console.log('Profile exists, updating...')
-      const { error: updateError } = await supabaseAdmin
-        .from('users')
-        .update({
-          tenant_id: tenantId,
-          phone: phone || null,
-          user_level_code: userLevelCode || 'staff',
-          hotel_id: hotelId || null,
-          position_id: positionId || null,
-          department: department || null,
-          status: status || 'active',
-          notes: notes || null,
-          created_by: createdBy,
-        })
-        .eq('id', authUser.user.id)
-
-      if (updateError) {
-        console.error('Profile update error:', updateError)
-        await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
-        
-        return new Response(
-          JSON.stringify({ error: updateError.message }),
-          { 
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        )
+      if (hotelAssignmentError) {
+        console.error('Hotel assignment error:', hotelAssignmentError)
       }
     }
 
-    // Fetch the complete user profile
-    const { data: finalUser, error: fetchError } = await supabaseAdmin
-      .from('users')
-      .select('*')
-      .eq('id', authUser.user.id)
-      .single()
+    // Log activity
+    const { error: logError } = await supabaseAdmin
+      .from('activity_logs')
+      .insert({
+        tenant_id: tenantId,
+        user_id: requestingUser.id,
+        user_name: fullName,
+        entity_type: 'user',
+        entity_id: user.id,
+        entity_name: fullName,
+        action: 'create',
+        description: `Tạo người dùng mới: ${fullName} (${userLevelCode})`,
+        new_values: { email, user_level_code: userLevelCode }
+      })
 
-    if (fetchError) {
-      console.error('Failed to fetch created user:', fetchError)
-      return new Response(
-        JSON.stringify({ error: 'User created but failed to fetch profile' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
+    if (logError) {
+      console.error('Activity log error:', logError)
     }
 
-    // Send password reset email so user can set their own password
-    const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(
-      email,
-      {
-        redirectTo: `${req.headers.get('origin')}/auth/reset-password`,
+    // Send password reset email
+    try {
+      const { error: resetError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'magiclink',
+        email: email.toLowerCase(),
+      })
+
+      if (resetError) {
+        console.error('Password reset email error:', resetError)
       }
-    )
-
-    if (resetError) {
-      console.warn('Password reset email error:', resetError)
-      // Don't fail the request, just log the warning
+    } catch (emailError) {
+      console.error('Failed to send password reset email:', emailError)
     }
+
+    console.log('User creation completed successfully')
 
     return new Response(
-      JSON.stringify({ 
-        user: finalUser,
-        message: 'User created successfully. Password reset email sent.'
+      JSON.stringify({
+        success: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          full_name: user.full_name,
+          user_level_code: user.user_level_code,
+          is_primary_owner: user.is_primary_owner
+        },
+        message: `Đã tạo tài khoản ${userLevelCode === 'manager' ? 'Quản lý' : 'Nhân viên'} thành công. Email hướng dẫn đã được gửi đến ${email}`
       }),
-      { 
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
 
   } catch (error) {
-    console.error('Unexpected error:', error)
+    console.error('Create user error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Không thể tạo người dùng'
     return new Response(
-      JSON.stringify({ error: (error as Error).message || 'Unknown error occurred' }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      JSON.stringify({
+        success: false,
+        error: errorMessage
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
       }
     )
   }
