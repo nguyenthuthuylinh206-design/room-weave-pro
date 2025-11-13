@@ -1,13 +1,16 @@
 import { UseFormReturn } from 'react-hook-form'
-import { Calendar, LogIn, LogOut, Wrench } from 'lucide-react'
+import { Calendar, LogIn, LogOut, Wrench, Zap } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Card, CardContent } from '@/components/ui/card'
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
+import { Switch } from '@/components/ui/switch'
 import type { RoomCheckFormData, CheckType } from '@/types/rooms.types'
 
 interface CheckTypeStepProps {
   form: UseFormReturn<RoomCheckFormData>
+  quickMode: boolean
+  setQuickMode: (value: boolean) => void
 }
 
 const checkTypes: { value: CheckType; label: string; description: string; icon: any }[] = [
@@ -37,10 +40,32 @@ const checkTypes: { value: CheckType; label: string; description: string; icon: 
   },
 ]
 
-export function CheckTypeStep({ form }: CheckTypeStepProps) {
+export function CheckTypeStep({ form, quickMode, setQuickMode }: CheckTypeStepProps) {
   return (
     <div className="space-y-6">
-      <div className="rounded-lg bg-muted p-4 mb-6">
+      {/* Quick Check Mode Toggle */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className="h-5 w-5 text-primary" />
+                <h4 className="font-semibold">Chế độ kiểm tra nhanh</h4>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Bỏ qua bước kiểm tra từng đồ dùng, chỉ đánh giá độ sạch và ghi chú. 
+                Phù hợp cho kiểm tra hàng ngày nhanh chóng.
+              </p>
+            </div>
+            <Switch
+              checked={quickMode}
+              onCheckedChange={setQuickMode}
+            />
+          </div>
+        </CardContent>
+      </Card>
+      
+      <div className="rounded-lg bg-muted p-4">
         <p className="text-sm text-muted-foreground">
           <strong>Nguồn dữ liệu:</strong> Danh sách đồ dùng được lấy từ các items đã được gán vào phòng này. 
           Kết quả kiểm tra sẽ được lưu vào lịch sử để theo dõi tình trạng phòng theo thời gian.

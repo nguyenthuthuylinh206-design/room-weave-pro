@@ -16,7 +16,8 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
 import { RoomItemsList } from '@/components/rooms/RoomItemsList'
-import { RoomCheckHistory } from '@/components/rooms/RoomCheckHistory'
+import { EnhancedCheckHistory } from '@/components/rooms/EnhancedCheckHistory'
+import { RoomHealthScore } from '@/components/rooms/RoomHealthScore'
 import { useRoom } from '@/hooks/useRooms'
 import { formatCurrency } from '@/lib/utils'
 
@@ -195,6 +196,12 @@ export function RoomDetailPage() {
         <div className="space-y-6">
           {/* Stats Cards */}
           <div className="grid gap-4">
+            <RoomHealthScore 
+              checks={checks}
+              totalItems={totalItems}
+              missingItems={missingCount}
+            />
+            
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -246,7 +253,7 @@ export function RoomDetailPage() {
               <CardTitle>Lịch sử kiểm tra</CardTitle>
             </CardHeader>
             <CardContent>
-              <RoomCheckHistory checks={checks} />
+              <EnhancedCheckHistory checks={checks} />
             </CardContent>
           </Card>
           

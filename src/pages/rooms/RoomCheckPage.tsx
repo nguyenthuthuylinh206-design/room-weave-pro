@@ -36,7 +36,9 @@ export function RoomCheckPage() {
   
   const [currentStep, setCurrentStep] = useState(1)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
-  const totalSteps = 3
+  const [showResumeDialog, setShowResumeDialog] = useState(false)
+  const [quickMode, setQuickMode] = useState(false)
+  const totalSteps = quickMode ? 2 : 3 // Skip items step in quick mode
   
   const form = useForm<RoomCheckFormData>({
     resolver: zodResolver(roomCheckFormSchema),
@@ -63,14 +65,84 @@ export function RoomCheckPage() {
     }
   }, [room, isLoading, navigate])
   
+  // Auto-save to localStorage
+  useEffect(() => {
+    const subscription = form.watch((data) => {
+      if (id && currentStep > 1) {
+        localStorage.setItem(`room-check-${id}`, JSON.stringify({
+          data,
+          step: currentStep,
+          quickMode,
+          timestamp: Date.now(),
+        }))
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [form, id, currentStep, quickMode])
+  
+  // Check for saved progress on mount
+  useEffect(() => {
+    if (id) {
+      const saved = localStorage.getItem(`room-check-${id}`)
+      if (saved) {
+        try {
+          const { data, step, quickMode: savedQuickMode, timestamp } = JSON.parse(saved)
+          // Only resume if less than 1 hour old
+          if (Date.now() - timestamp < 3600000) {
+            setShowResumeDialog(true)
+            form.reset(data)
+            setCurrentStep(step)
+            setQuickMode(savedQuickMode)
+          } else {
+            localStorage.removeItem(`room-check-${id}`)
+          }
+        } catch (e) {
+          localStorage.removeItem(`room-check-${id}`)
+        }
+      }
+    }
+  }, [id, form])
+  
+  const clearSavedProgress = () => {
+    if (id) {
+      localStorage.removeItem(`room-check-${id}`)
+    }
+  }
+  
+  const resumeCheck = () => {
+    setShowResumeDialog(false)
+  }
+  
+  const startFresh = () => {
+    clearSavedProgress()
+    form.reset({
+      check_type: 'daily',
+      cleanliness_score: 5,
+      items_complete: true,
+      items_missing: [],
+      items_damaged: [],
+      notes: '',
+      photos: [],
+    })
+    setCurrentStep(1)
+    setQuickMode(false)
+    setShowResumeDialog(false)
+  }
+  
   const handleNext = async () => {
     let isValid = false
     
     if (currentStep === 1) {
       isValid = await form.trigger(['check_type'])
-    } else if (currentStep === 2) {
+      // In quick mode, mark all items as complete automatically
+      if (isValid && quickMode) {
+        form.setValue('items_complete', true)
+        form.setValue('items_missing', [])
+        form.setValue('items_damaged', [])
+      }
+    } else if (currentStep === 2 && !quickMode) {
       isValid = await form.trigger(['items_complete', 'items_missing', 'items_damaged'])
-    } else if (currentStep === 3) {
+    } else if ((currentStep === 2 && quickMode) || currentStep === 3) {
       isValid = await form.trigger(['cleanliness_score'])
     }
     
@@ -111,6 +183,7 @@ export function RoomCheckPage() {
         data,
       })
       
+      clearSavedProgress()
       navigate(`/rooms/${id}`)
     } catch (error) {
       console.error('Error creating room check:', error)
@@ -145,19 +218,34 @@ export function RoomCheckPage() {
   
   return (
     <>
+      {/* Resume Dialog */}
+      <AlertDialog open={showResumeDialog} onOpenChange={setShowResumeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tiếp tục kiểm tra?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có kiểm tra chưa hoàn thành. Bạn muốn tiếp tục hay bắt đầu lại?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={startFresh}>Bắt đầu lại</AlertDialogCancel>
+            <AlertDialogAction onClick={resumeCheck}>Tiếp tục</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Cancel Dialog */}
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Hủy kiểm tra phòng?</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc muốn hủy? Toàn bộ tiến trình kiểm tra sẽ bị mất.
+              Bạn có chắc muốn hủy? Tiến trình đã lưu sẽ được giữ lại để bạn có thể tiếp tục sau.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Tiếp tục kiểm tra</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmCancel} className="bg-destructive hover:bg-destructive/90">
-              Hủy kiểm tra
-            </AlertDialogAction>
+            <AlertDialogAction onClick={confirmCancel}>Hủy và thoát</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -174,7 +262,8 @@ export function RoomCheckPage() {
             <CardTitle>
               Bước {currentStep}/{totalSteps}:{' '}
               {currentStep === 1 && 'Chọn loại kiểm tra'}
-              {currentStep === 2 && 'Kiểm tra đồ dùng trong phòng'}
+              {currentStep === 2 && !quickMode && 'Kiểm tra đồ dùng trong phòng'}
+              {currentStep === 2 && quickMode && 'Đánh giá & Hoàn tất'}
               {currentStep === 3 && 'Đánh giá & Hoàn tất'}
             </CardTitle>
             <div className="space-y-2">
@@ -183,10 +272,12 @@ export function RoomCheckPage() {
                 <span className={currentStep === 1 ? 'font-medium text-foreground' : ''}>
                   Loại kiểm tra
                 </span>
-                <span className={currentStep === 2 ? 'font-medium text-foreground' : ''}>
-                  Đồ dùng
-                </span>
-                <span className={currentStep === 3 ? 'font-medium text-foreground' : ''}>
+                {!quickMode && (
+                  <span className={currentStep === 2 ? 'font-medium text-foreground' : ''}>
+                    Đồ dùng
+                  </span>
+                )}
+                <span className={currentStep === totalSteps ? 'font-medium text-foreground' : ''}>
                   Đánh giá
                 </span>
               </div>
@@ -197,9 +288,17 @@ export function RoomCheckPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {currentStep === 1 && <CheckTypeStep form={form} />}
-              {currentStep === 2 && <ItemsCheckStep form={form} items={items} />}
-              {currentStep === 3 && <ReviewStep form={form} room={room} />}
+              {currentStep === 1 && (
+                <CheckTypeStep 
+                  form={form} 
+                  quickMode={quickMode}
+                  setQuickMode={setQuickMode}
+                />
+              )}
+              {currentStep === 2 && !quickMode && <ItemsCheckStep form={form} items={items} />}
+              {((currentStep === 2 && quickMode) || currentStep === 3) && (
+                <ReviewStep form={form} room={room} />
+              )}
               
               <div className="flex items-center justify-between pt-6 border-t">
                 <Button
