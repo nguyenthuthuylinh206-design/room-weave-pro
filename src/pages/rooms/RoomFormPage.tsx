@@ -72,20 +72,21 @@ export function RoomFormPage() {
   useEffect(() => {
     if (room && isEdit) {
       // Normalize values to lowercase to match Select options
+      // Return undefined for null/empty values so Select shows placeholder
       const normalizeValue = (value: string | null | undefined) => {
-        if (!value) return ''
+        if (!value) return undefined
         return value.toLowerCase()
       }
 
       reset({
         room_number: room.room_number || '',
-        room_type: normalizeValue(room.room_type),
+        room_type: normalizeValue(room.room_type) as any,
         floor: room.floor || 1,
         area_sqm: room.area_sqm || undefined,
         max_guests: room.max_guests || 2,
         base_price: room.base_price || 0,
-        bed_type: normalizeValue(room.bed_type),
-        view_type: normalizeValue(room.view_type),
+        bed_type: normalizeValue(room.bed_type) as any,
+        view_type: normalizeValue(room.view_type) as any,
         has_window: room.has_window ?? true,
         has_balcony: room.has_balcony ?? false,
         smoking_allowed: room.smoking_allowed ?? false,
