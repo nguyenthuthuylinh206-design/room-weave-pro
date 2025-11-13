@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Package, CheckCircle2, AlertCircle, Minus } from 'lucide-react'
+import { Package, CheckCircle2, AlertCircle, Minus, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -32,6 +32,7 @@ interface RoomItemsListProps {
 
 export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
   const [quantities, setQuantities] = useState<Record<string, number>>({})
+  const [savingItemId, setSavingItemId] = useState<string | null>(null)
   const updateQuantity = useUpdateRoomItemQuantity()
 
   if (items.length === 0) {
@@ -73,6 +74,7 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
   const handleQuantityBlur = async (item: RoomItem) => {
     const newQty = quantities[item.item_id]
     if (newQty !== undefined && newQty !== item.current_quantity) {
+      setSavingItemId(item.item_id)
       try {
         await updateQuantity.mutateAsync({
           roomId,
@@ -93,6 +95,8 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
           delete newState[item.item_id]
           return newState
         })
+      } finally {
+        setSavingItemId(null)
       }
     }
   }
@@ -265,15 +269,23 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
                     {/* Current Quantity Input */}
                     <div className="flex-1 space-y-1">
                       <label className="text-xs font-medium text-muted-foreground">Hiện có</label>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={currentQty}
-                        onChange={(e) => handleQuantityChange(item.item_id, e.target.value)}
-                        onBlur={() => handleQuantityBlur(item)}
-                        className="h-12 text-center text-xl font-bold"
-                        placeholder="0"
-                      />
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          min="0"
+                          value={currentQty}
+                          onChange={(e) => handleQuantityChange(item.item_id, e.target.value)}
+                          onBlur={() => handleQuantityBlur(item)}
+                          disabled={savingItemId === item.item_id}
+                          className="h-12 text-center text-xl font-bold"
+                          placeholder="0"
+                        />
+                        {savingItemId === item.item_id && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-md">
+                            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Separator */}
