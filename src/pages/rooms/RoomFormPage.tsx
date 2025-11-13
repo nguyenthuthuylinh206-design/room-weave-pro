@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { ArrowLeft, Save } from 'lucide-react'
 import { useQuotaCheck } from '@/hooks/useQuotaCheck'
 import { QuotaExceededDialog } from '@/components/settings/usage/QuotaExceededDialog'
+import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -108,6 +109,28 @@ export function RoomFormPage() {
 
     // Check quota for new rooms
     if (!isEdit && !quotaCheck.checkQuota()) {
+      return
+    }
+
+    // Check for duplicate room numbers in the same hotel
+    const { data: existingRooms, error: checkError } = await supabase
+      .from('rooms')
+      .select('id, room_number')
+      .eq('hotel_id', selectedHotel.id)
+      .eq('room_number', data.room_number)
+
+    if (checkError) {
+      toast.error('Lỗi kiểm tra số phòng trùng lặp')
+      return
+    }
+
+    // If editing, exclude current room from duplicate check
+    const duplicateExists = isEdit 
+      ? existingRooms?.some(r => r.id !== id)
+      : existingRooms && existingRooms.length > 0
+
+    if (duplicateExists) {
+      toast.error(`Số phòng "${data.room_number}" đã tồn tại trong khách sạn này`)
       return
     }
 
