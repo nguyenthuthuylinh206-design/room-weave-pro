@@ -25,6 +25,7 @@ export function useToggleItemVerification() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['room'] });
+      queryClient.invalidateQueries({ queryKey: ['rooms'] });
       toast({
         title: variables.isVerified ? 'Đã xác nhận đồ' : 'Đã bỏ xác nhận',
         description: variables.isVerified 
@@ -87,6 +88,7 @@ export function useUpdateRoomItemQuantity() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['room'] });
+      queryClient.invalidateQueries({ queryKey: ['rooms'] });
     },
     onError: (error: Error) => {
       toast({

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
@@ -8,8 +9,9 @@ import type { RoomWithStats, RoomFilters } from '@/types/rooms.types'
 export function useRooms(filters: RoomFilters = {}) {
   const { tenantId } = useUser()
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
+  const queryClient = useQueryClient()
   
-  return useQuery({
+  const query = useQuery({
     queryKey: ['rooms', tenantId, selectedHotel?.id, isAllHotelsMode, filters],
     queryFn: async () => {
       if (!tenantId) throw new Error('No tenant')
@@ -31,6 +33,33 @@ export function useRooms(filters: RoomFilters = {}) {
     },
     enabled: !!tenantId,
   })
+
+  // Realtime subscription for room_items changes
+  useEffect(() => {
+    if (!tenantId) return
+
+    const channel = supabase
+      .channel('room_items_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'room_items'
+        },
+        () => {
+          // Invalidate rooms query to refetch with updated stats
+          queryClient.invalidateQueries({ queryKey: ['rooms'] })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [tenantId, queryClient])
+
+  return query
 }
 
 export function useRoom(roomId: string | undefined) {
