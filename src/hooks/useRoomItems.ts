@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -35,6 +35,62 @@ export function useToggleItemVerification() {
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+}
+
+export function useUpdateRoomItemQuantity() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      roomId,
+      itemId, 
+      quantity,
+      roomItemId
+    }: { 
+      roomId: string;
+      itemId: string;
+      quantity: number;
+      roomItemId: string | null;
+    }) => {
+      // If room_item exists, update it; otherwise insert
+      if (roomItemId) {
+        const { data, error } = await supabase
+          .from('room_items')
+          .update({ quantity })
+          .eq('id', roomItemId)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      } else {
+        // Create new room_item
+        const { data, error } = await supabase
+          .from('room_items')
+          .insert({
+            room_id: roomId,
+            item_id: itemId,
+            quantity,
+            condition: 'good',
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['room'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Lỗi cập nhật số lượng',
         description: error.message,
         variant: 'destructive',
       });

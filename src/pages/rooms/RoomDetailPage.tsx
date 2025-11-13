@@ -2,17 +2,15 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { 
   Edit, 
   ClipboardCheck, 
-  Printer, 
-  Plus,
+  Printer,
   AlertCircle,
   CheckCircle2,
-  Wind,
   RefreshCw,
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -49,20 +47,14 @@ export function RoomDetailPage() {
   // Destructure data from useRoom
   const { room, hotel, items, recent_checks: checks } = data
   
-  const totalItems = items.length
-  const completeItems = items.filter(item => 
-    !item.standard_quantity || item.quantity >= item.standard_quantity
-  ).length
-  const missingCount = items.filter(item => 
-    item.standard_quantity && item.quantity < item.standard_quantity
-  ).length
+  const standardItems = items.filter(item => item.has_standard)
+  const totalItems = standardItems.length
+  const completeItems = standardItems.filter(item => item.missing_quantity === 0).length
+  const missingCount = standardItems.filter(item => item.missing_quantity > 0).length
   
-  // Calculate total missing quantity (individual items, not just types)
-  const totalMissingQuantity = items.reduce((sum, item) => {
-    const missing = item.standard_quantity 
-      ? Math.max(0, item.standard_quantity - item.quantity)
-      : 0
-    return sum + missing
+  // Calculate total missing quantity
+  const totalMissingQuantity = standardItems.reduce((sum, item) => {
+    return sum + item.missing_quantity
   }, 0)
   
   return (
@@ -175,42 +167,7 @@ export function RoomDetailPage() {
                 </Alert>
               )}
               
-              <Tabs defaultValue="all">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="all">
-                    Tất cả ({totalItems})
-                  </TabsTrigger>
-                  <TabsTrigger value="complete">
-                    Đầy đủ ({completeItems})
-                  </TabsTrigger>
-                  <TabsTrigger value="missing">
-                    Thiếu ({missingCount})
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="all" className="mt-4">
-                  <RoomItemsList items={items} roomId={id!} />
-                </TabsContent>
-                
-                <TabsContent value="complete" className="mt-4">
-                  <RoomItemsList 
-                    items={items.filter(item => 
-                      !item.standard_quantity || item.quantity >= item.standard_quantity
-                    )} 
-                    roomId={id!}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="missing" className="mt-4">
-                  <RoomItemsList 
-                    items={items.filter(item => 
-                      item.standard_quantity && item.quantity < item.standard_quantity
-                    )} 
-                    roomId={id!}
-                    showMissing
-                  />
-                </TabsContent>
-              </Tabs>
+              <RoomItemsList items={items} roomId={id!} />
             </CardContent>
           </Card>
         </div>

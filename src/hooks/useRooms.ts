@@ -51,32 +51,15 @@ export function useRoom(roomId: string | undefined) {
       
       if (roomError) throw roomError
       
-      // Fetch room items with item details (non-blocking)
-      const { data: roomItems, error: itemsError } = await supabase
-        .from('room_items')
-        .select(`
-          id,
-          item_id,
-          quantity,
-          condition,
-          standard_quantity,
-          is_verified,
-          verified_at,
-          verified_by,
-          items(
-            id,
-            code,
-            name,
-            item_categories(name)
-          )
-        `)
-        .eq('room_id', roomId)
+      // Fetch room items with standards comparison
+      const { data: itemsWithStandards, error: itemsError } = await supabase
+        .rpc('get_room_items_with_standards', { p_room_id: roomId })
       
       if (itemsError) {
         console.error('Error fetching room items:', itemsError)
       }
       
-      // Fetch recent checks (non-blocking)
+      // Fetch recent checks
       const { data: recentChecks, error: checksError } = await supabase
         .from('room_checks')
         .select(`
@@ -99,19 +82,21 @@ export function useRoom(roomId: string | undefined) {
       }
       
       // Transform items data
-      const items = (roomItems || []).map((ri: any) => ({
-        id: ri.id,
-        item_id: ri.item_id,
-        item_code: ri.items?.code || '',
-        item_name: ri.items?.name || '',
-        item_thumbnail: undefined,
-        category_name: ri.items?.item_categories?.name,
-        quantity: ri.quantity,
-        condition: ri.condition,
-        standard_quantity: ri.standard_quantity,
-        is_verified: ri.is_verified,
-        verified_at: ri.verified_at,
-        verified_by: ri.verified_by,
+      const items = (itemsWithStandards || []).map((item: any) => ({
+        item_id: item.item_id,
+        item_code: item.item_code,
+        item_name: item.item_name,
+        item_thumbnail: item.item_thumbnail,
+        category_name: item.category_name,
+        standard_quantity: item.standard_quantity,
+        current_quantity: item.current_quantity,
+        missing_quantity: item.missing_quantity,
+        condition: item.condition,
+        is_verified: item.is_verified,
+        verified_at: item.verified_at,
+        verified_by: item.verified_by,
+        room_item_id: item.room_item_id,
+        has_standard: item.has_standard,
       }))
       
       // Transform checks data

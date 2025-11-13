@@ -175,7 +175,7 @@ export function ItemsCheckStep({ form, items }: ItemsCheckStepProps) {
             const status = itemStatuses[item.item_id] || 'complete'
             
             return (
-              <Card key={item.id} className="overflow-hidden">
+              <Card key={item.item_id} className="overflow-hidden">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-4">
                     {item.item_thumbnail ? (
@@ -200,8 +200,8 @@ export function ItemsCheckStep({ form, items }: ItemsCheckStepProps) {
                       )}
                       <p className="text-sm mt-1">
                         <span className="text-muted-foreground">Hiện có: </span>
-                        <span className="font-medium">{item.quantity}</span>
-                        {item.standard_quantity && (
+                        <span className="font-medium">{item.current_quantity}</span>
+                        {item.standard_quantity > 0 && (
                           <span className="text-muted-foreground">
                             {' '}/ Chuẩn: {item.standard_quantity}
                           </span>

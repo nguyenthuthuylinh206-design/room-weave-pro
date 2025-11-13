@@ -55,19 +55,20 @@ export interface RoomDetailData {
 }
 
 export interface RoomItemWithDetails {
-  id: string
   item_id: string
   item_code: string
   item_name: string
   item_thumbnail?: string
   category_name?: string
-  quantity: number
+  standard_quantity: number
+  current_quantity: number
+  missing_quantity: number
   condition: string
-  standard_quantity?: number
-  quantity_in_laundry?: number
-  is_verified?: boolean
+  is_verified: boolean
   verified_at?: string
   verified_by?: string
+  room_item_id?: string | null
+  has_standard: boolean
 }
 
 export interface RoomCheckWithUser {
