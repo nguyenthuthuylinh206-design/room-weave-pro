@@ -9,6 +9,16 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Form } from '@/components/ui/form'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { useRoom } from '@/hooks/useRooms'
 import { useCreateRoomCheck } from '@/hooks/useRoomChecks'
 import { useUser } from '@/hooks/useUser'
@@ -25,6 +35,7 @@ export function RoomCheckPage() {
   const createCheck = useCreateRoomCheck()
   
   const [currentStep, setCurrentStep] = useState(1)
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
   const totalSteps = 3
   
   const form = useForm<RoomCheckFormData>({
@@ -70,8 +81,25 @@ export function RoomCheckPage() {
   
   const handleBack = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
+      // Show confirmation dialog for steps 2 and 3
+      if (currentStep >= 2) {
+        setShowCancelDialog(true)
+      } else {
+        setCurrentStep(currentStep - 1)
+      }
     }
+  }
+  
+  const handleCancel = () => {
+    if (currentStep === 1) {
+      navigate(`/rooms/${id}`)
+    } else {
+      setShowCancelDialog(true)
+    }
+  }
+  
+  const confirmCancel = () => {
+    navigate(`/rooms/${id}`)
   }
   
   const onSubmit = async (data: RoomCheckFormData) => {
@@ -116,11 +144,29 @@ export function RoomCheckPage() {
   const progress = (currentStep / totalSteps) * 100
   
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={`Kiểm tra phòng ${room.room_number}`}
-        description={`${room.room_type} - Tầng ${room.floor}`}
-      />
+    <>
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hủy kiểm tra phòng?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc muốn hủy? Toàn bộ tiến trình kiểm tra sẽ bị mất.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Tiếp tục kiểm tra</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCancel} className="bg-destructive hover:bg-destructive/90">
+              Hủy kiểm tra
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      <div className="space-y-6">
+        <PageHeader
+          title={`Kiểm tra phòng ${room.room_number}`}
+          description={`${room.room_type} - Tầng ${room.floor}`}
+        />
       
       <Card>
         <CardHeader>
@@ -159,10 +205,10 @@ export function RoomCheckPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={currentStep === 1 ? () => navigate(`/rooms/${id}`) : handleBack}
+                  onClick={handleCancel}
                 >
                   <ChevronLeft className="mr-2 h-4 w-4" />
-                  {currentStep === 1 ? 'Hủy' : 'Quay lại'}
+                  Hủy
                 </Button>
                 
                 {currentStep < totalSteps ? (
@@ -182,5 +228,6 @@ export function RoomCheckPage() {
         </CardContent>
       </Card>
     </div>
+    </>
   )
 }

@@ -1,10 +1,12 @@
 import { UseFormReturn } from 'react-hook-form'
-import { CheckCircle2, AlertCircle, XCircle, Package, Search } from 'lucide-react'
+import { CheckCircle2, AlertCircle, XCircle, Package, Search, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Progress } from '@/components/ui/progress'
 import type { RoomCheckFormData } from '@/types/rooms.types'
 import type { RoomItemWithDetails } from '@/types/rooms.types'
 
@@ -47,9 +49,57 @@ export function ItemsCheckStep({ form, items }: ItemsCheckStepProps) {
   const completeCount = Object.values(itemStatuses).filter(s => s === 'complete').length
   const missingCount = Object.values(itemStatuses).filter(s => s === 'missing').length
   const damagedCount = Object.values(itemStatuses).filter(s => s === 'damaged').length
+  const totalChecked = completeCount + missingCount + damagedCount
+  const totalItems = items.length
+  const progressPercentage = totalItems > 0 ? (totalChecked / totalItems) * 100 : 0
+  
+  const markAllComplete = () => {
+    const allComplete: Record<string, ItemStatus> = {}
+    items.forEach((item: RoomItemWithDetails) => {
+      allComplete[item.item_id] = 'complete'
+    })
+    setItemStatuses(allComplete)
+    form.setValue('items_missing', [])
+    form.setValue('items_damaged', [])
+    form.setValue('items_complete', true)
+  }
+  
+  const resetAll = () => {
+    setItemStatuses({})
+    form.setValue('items_missing', [])
+    form.setValue('items_damaged', [])
+    form.setValue('items_complete', true)
+  }
   
   return (
     <div className="space-y-6">
+      {/* Progress Indicator */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">
+                Đã kiểm tra {totalChecked}/{totalItems} items
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {Math.round(progressPercentage)}%
+              </span>
+            </div>
+            <Progress value={progressPercentage} className="h-2" />
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Warning if not all checked */}
+      {totalChecked < totalItems && totalChecked > 0 && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Còn {totalItems - totalChecked} items chưa được kiểm tra. Hãy kiểm tra tất cả trước khi tiếp tục.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="flex items-center gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -60,6 +110,24 @@ export function ItemsCheckStep({ form, items }: ItemsCheckStepProps) {
             className="pl-9"
           />
         </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={markAllComplete}
+          disabled={totalItems === 0}
+        >
+          <CheckCircle2 className="mr-2 h-4 w-4" />
+          Đánh dấu tất cả OK
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={resetAll}
+          disabled={totalChecked === 0}
+        >
+          <RotateCcw className="mr-2 h-4 w-4" />
+          Đặt lại
+        </Button>
       </div>
       
       <div className="grid grid-cols-3 gap-4">

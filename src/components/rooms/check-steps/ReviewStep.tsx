@@ -1,6 +1,7 @@
 import { UseFormReturn } from 'react-hook-form'
-import { Upload, X, Star, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Upload, X, Star, CheckCircle2, AlertCircle, XCircle, Loader2 } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
@@ -31,16 +32,22 @@ export function ReviewStep({ form, room }: ReviewStepProps) {
     if (files.length === 0 || !tenantId) return
     
     if (photos.length + files.length > 10) {
-      alert('Tối đa 10 ảnh')
+      toast.error('Tối đa 10 ảnh')
       return
     }
     
-    const uploaded = await uploadImages(files, tenantId)
-    const urls = uploaded.map(img => img.url)
-    const newPhotos = [...photos, ...urls]
-    
-    setPhotos(newPhotos)
-    form.setValue('photos', newPhotos)
+    try {
+      const uploaded = await uploadImages(files, tenantId)
+      const urls = uploaded.map(img => img.url)
+      const newPhotos = [...photos, ...urls]
+      
+      setPhotos(newPhotos)
+      form.setValue('photos', newPhotos)
+      toast.success(`Đã tải lên ${uploaded.length} ảnh`)
+    } catch (error) {
+      toast.error('Lỗi tải ảnh lên. Vui lòng thử lại.')
+      console.error('Upload error:', error)
+    }
   }
   
   const removePhoto = (index: number) => {
@@ -136,16 +143,30 @@ export function ReviewStep({ form, room }: ReviewStepProps) {
             </div>
             
             {itemsMissing.length > 0 && (
-              <div className="flex items-center justify-between">
-                <dt className="text-sm text-muted-foreground">Đồ dùng thiếu</dt>
-                <dd className="text-yellow-600 font-medium">{itemsMissing.length} items</dd>
+              <div className="pt-3 border-t">
+                <dt className="text-sm text-muted-foreground mb-2">Đồ dùng thiếu ({itemsMissing.length} items)</dt>
+                <dd className="space-y-1">
+                  {itemsMissing.map((item: any, idx: number) => (
+                    <div key={idx} className="flex items-center gap-2 text-sm">
+                      <AlertCircle className="h-3 w-3 text-yellow-600" />
+                      <span>{item.item_name || 'Unknown item'}</span>
+                    </div>
+                  ))}
+                </dd>
               </div>
             )}
             
             {itemsDamaged.length > 0 && (
-              <div className="flex items-center justify-between">
-                <dt className="text-sm text-muted-foreground">Đồ dùng hư hỏng</dt>
-                <dd className="text-red-600 font-medium">{itemsDamaged.length} items</dd>
+              <div className="pt-3 border-t">
+                <dt className="text-sm text-muted-foreground mb-2">Đồ dùng hư hỏng ({itemsDamaged.length} items)</dt>
+                <dd className="space-y-1">
+                  {itemsDamaged.map((item: any, idx: number) => (
+                    <div key={idx} className="flex items-center gap-2 text-sm">
+                      <XCircle className="h-3 w-3 text-red-600" />
+                      <span>{item.item_name || 'Unknown item'}</span>
+                    </div>
+                  ))}
+                </dd>
               </div>
             )}
             
@@ -229,8 +250,17 @@ export function ReviewStep({ form, room }: ReviewStepProps) {
                 asChild
               >
                 <div>
-                  <Upload className="mr-2 h-4 w-4" />
-                  {isUploading ? 'Đang tải...' : 'Thêm ảnh'}
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Đang tải lên...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Thêm ảnh
+                    </>
+                  )}
                 </div>
               </Button>
             </label>
