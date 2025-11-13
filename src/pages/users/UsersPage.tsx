@@ -1,21 +1,26 @@
 import { useState } from 'react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { useUsers, useCreateUser, useUpdateUser } from '@/hooks/useUsers'
+import { useUser } from '@/hooks/useUser'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { Users, Plus, Settings, LayoutGrid, Table as TableIcon } from 'lucide-react'
+import { Users, Plus, Settings, LayoutGrid, Table as TableIcon, Info } from 'lucide-react'
 import { UserTable } from '@/components/users/UserTable'
 import { UserHierarchyView } from '@/components/users/UserHierarchyView'
 import { UserFilters } from '@/components/users/UserFilters'
 import { UserFormDialog } from '@/components/users/UserFormDialog'
+import { UserStatsCards } from '@/components/users/UserStatsCards'
 import { PositionManagementDialog } from '@/components/users/PositionManagementDialog'
 import { UserWithRelations } from '@/types/database.types'
 import { UserFormData } from '@/lib/validations/user.schemas'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { toast } from 'sonner'
 
 export default function UsersPage() {
   const { users, isLoading } = useUsers()
+  const { user: currentUser } = useUser()
   const createUser = useCreateUser()
   const updateUser = useUpdateUser()
   
@@ -29,16 +34,23 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<UserWithRelations | null>(null)
   const [viewMode, setViewMode] = useState<'hierarchy' | 'table'>('hierarchy')
 
+  // Check if current user can add users
+  const canAddUser = currentUser?.user_level_code === 'tenant_owner' || currentUser?.user_level_code === 'manager'
+
   const handleOpenDialog = (user?: UserWithRelations) => {
     setSelectedUser(user || null)
     setDialogOpen(true)
   }
 
   const handleSubmit = async (data: UserFormData) => {
-    if (selectedUser) {
-      await updateUser.mutateAsync({ id: selectedUser.id, data })
-    } else {
-      await createUser.mutateAsync(data)
+    try {
+      if (selectedUser) {
+        await updateUser.mutateAsync({ id: selectedUser.id, data })
+      } else {
+        await createUser.mutateAsync(data)
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Có lỗi xảy ra')
     }
   }
 
@@ -76,12 +88,30 @@ export default function UsersPage() {
             <Settings className="h-4 w-4 mr-2" />
             Quản lý chức vụ
           </Button>
-          <Button onClick={() => handleOpenDialog()}>
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm người dùng
-          </Button>
+          {canAddUser && (
+            <Button onClick={() => handleOpenDialog()}>
+              <Plus className="h-4 w-4 mr-2" />
+              Thêm người dùng
+            </Button>
+          )}
         </div>
       </PageHeader>
+
+      {/* Hierarchy Explanation */}
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertTitle>Hệ thống phân cấp</AlertTitle>
+        <AlertDescription>
+          <div className="space-y-1 text-sm mt-2">
+            <div>👑 <strong>Chủ sở hữu</strong> (1 người duy nhất) - Toàn quyền trong hệ thống</div>
+            <div className="ml-4">└─ 👥 <strong>Quản lý</strong> (nhiều người) - Quản lý khách sạn, tạo Quản lý và Nhân viên</div>
+            <div className="ml-8">└─ 👤 <strong>Nhân viên</strong> (nhiều người) - Thực hiện công việc hàng ngày</div>
+          </div>
+        </AlertDescription>
+      </Alert>
+
+      {/* Stats Cards */}
+      {users && users.length > 0 && <UserStatsCards users={users} />}
 
       <div className="flex items-center justify-between">
         <UserFilters filters={filters} onFiltersChange={setFilters} />

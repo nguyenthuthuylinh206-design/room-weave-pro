@@ -17,6 +17,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import {
@@ -27,12 +28,15 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { userFormSchema, type UserFormData } from '@/lib/validations/user.schemas'
 import { useHotels } from '@/hooks/useHotels'
 import { useAvailableUserLevels } from '@/hooks/useUserLevels'
 import { usePositions } from '@/hooks/usePositions'
+import { useUser } from '@/hooks/useUser'
 import { User, UserWithRelations } from '@/types/database.types'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { Info, AlertCircle, Crown, Users as UsersIcon, UserCheck } from 'lucide-react'
 
 interface UserFormDialogProps {
   user?: UserWithRelations | null
@@ -50,6 +54,7 @@ export function UserFormDialog({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { data: hotels, isLoading: hotelsLoading } = useHotels({ status: 'active' })
   const { data: userLevels, isLoading: levelsLoading } = useAvailableUserLevels()
+  const { user: currentUser } = useUser()
   const quotaCheck = useQuotaCheck('user')
 
   const form = useForm<UserFormData>({
@@ -71,6 +76,26 @@ export function UserFormDialog({
   const { data: positions } = usePositions(
     selectedLevel === 'tenant_owner' ? undefined : selectedLevel as 'manager' | 'staff'
   )
+
+  // Determine available user levels based on current user's level
+  const getAvailableUserLevels = () => {
+    if (!currentUser) return []
+    
+    const currentUserLevel = currentUser.user_level_code
+    
+    if (currentUserLevel === 'tenant_owner') {
+      // Owner can create manager and staff
+      return userLevels?.filter(l => l.code === 'manager' || l.code === 'staff') || []
+    } else if (currentUserLevel === 'manager') {
+      // Manager can create manager and staff
+      return userLevels?.filter(l => l.code === 'manager' || l.code === 'staff') || []
+    } else {
+      // Staff cannot create users
+      return []
+    }
+  }
+
+  const availableUserLevels = getAvailableUserLevels()
 
   // Reset form when user changes or dialog opens
   useEffect(() => {
@@ -128,6 +153,31 @@ export function UserFormDialog({
   }
 
   const needsPosition = selectedLevel === 'manager' || selectedLevel === 'staff'
+  const needsHotel = selectedLevel === 'manager'
+
+  const getUserLevelIcon = (code: string) => {
+    switch (code) {
+      case 'tenant_owner':
+        return <Crown className="h-4 w-4 text-yellow-500" />
+      case 'manager':
+        return <UsersIcon className="h-4 w-4 text-green-500" />
+      case 'staff':
+        return <UserCheck className="h-4 w-4 text-gray-500" />
+      default:
+        return null
+    }
+  }
+
+  const getUserLevelDescription = (code: string) => {
+    switch (code) {
+      case 'manager':
+        return 'Quản lý có thể tạo Quản lý khác và Nhân viên, quản lý khách sạn'
+      case 'staff':
+        return 'Nhân viên thực hiện công việc hàng ngày'
+      default:
+        return ''
+    }
+  }
 
   return (
     <>
@@ -140,229 +190,250 @@ export function UserFormDialog({
       />
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {user ? 'Chỉnh sửa người dùng' : 'Thêm người dùng mới'}
-          </DialogTitle>
-          <DialogDescription>
-            {user
-              ? 'Cập nhật thông tin người dùng trong hệ thống'
-              : 'Tạo tài khoản mới cho người dùng và phân quyền truy cập'}
-          </DialogDescription>
-        </DialogHeader>
+          <DialogHeader>
+            <DialogTitle>
+              {user ? 'Chỉnh sửa người dùng' : 'Thêm người dùng mới'}
+            </DialogTitle>
+            <DialogDescription>
+              {user
+                ? 'Cập nhật thông tin người dùng trong hệ thống'
+                : 'Tạo tài khoản mới cho người dùng và phân quyền truy cập'}
+            </DialogDescription>
+          </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            {/* Full Name */}
-            <FormField
-              control={form.control}
-              name="fullName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Họ và tên *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nguyễn Văn A" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          {/* Hierarchy hint */}
+          {!user && currentUser && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                Người dùng mới sẽ báo cáo cho: <strong>{currentUser.full_name}</strong>
+              </AlertDescription>
+            </Alert>
+          )}
 
-            {/* Email */}
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email *</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="email@example.com"
-                      {...field}
-                      disabled={!!user}
-                    />
-                  </FormControl>
-                  {user && (
-                    <p className="text-xs text-muted-foreground">
-                      Email không thể thay đổi sau khi tạo
-                    </p>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Phone */}
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Số điện thoại</FormLabel>
-                  <FormControl>
-                    <Input placeholder="0123456789" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* User Level */}
-            <FormField
-              control={form.control}
-              name="userLevelCode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cấp độ người dùng *</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    value={field.value}
-                    disabled={levelsLoading}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Chọn cấp độ" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {userLevels?.map((level) => (
-                        <SelectItem key={level.code} value={level.code}>
-                          {level.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {levelsLoading && <LoadingSpinner size="sm" />}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Hotel */}
-            <FormField
-              control={form.control}
-              name="hotelId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Khách sạn</FormLabel>
-                  <Select
-                    onValueChange={(value) => field.onChange(value === 'none' ? null : value)}
-                    value={field.value || 'none'}
-                    disabled={hotelsLoading}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Chọn khách sạn" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">Không chọn khách sạn</SelectItem>
-                      {hotels?.map((hotel) => (
-                        <SelectItem key={hotel.id} value={hotel.id}>
-                          {hotel.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {hotelsLoading && <LoadingSpinner size="sm" />}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {needsPosition && selectedLevel === 'staff' && (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+              {/* Full Name */}
               <FormField
                 control={form.control}
-                name="department"
+                name="fullName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Bộ phận</FormLabel>
-                    <Select
-                      onValueChange={(value) => field.onChange(value === 'none' ? null : value)}
-                      value={field.value || 'none'}
+                    <FormLabel>Họ và tên *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nguyễn Văn A" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Email */}
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="email@example.com"
+                        {...field}
+                        disabled={!!user}
+                      />
+                    </FormControl>
+                    {user && (
+                      <FormDescription className="text-xs">
+                        Email không thể thay đổi sau khi tạo
+                      </FormDescription>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Phone */}
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Số điện thoại</FormLabel>
+                    <FormControl>
+                      <Input placeholder="0123456789" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* User Level */}
+              <FormField
+                control={form.control}
+                name="userLevelCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cấp bậc *</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value}
+                      disabled={levelsLoading || !!user}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Chọn bộ phận" />
+                          <SelectValue placeholder="Chọn cấp bậc" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="none">Không chọn bộ phận</SelectItem>
-                        <SelectItem value="housekeeping">Buồng phòng</SelectItem>
-                        <SelectItem value="laundry">Giặt là</SelectItem>
-                        <SelectItem value="inventory">Kho</SelectItem>
-                        <SelectItem value="maintenance">Bảo trì</SelectItem>
-                        <SelectItem value="accounting">Kế toán</SelectItem>
-                        <SelectItem value="other">Khác</SelectItem>
+                        {availableUserLevels.map((level) => (
+                          <SelectItem key={level.code} value={level.code}>
+                            <div className="flex items-center gap-2">
+                              {getUserLevelIcon(level.code)}
+                              {level.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedLevel && (
+                      <FormDescription className="flex items-start gap-2 text-xs">
+                        <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                        <span>{getUserLevelDescription(selectedLevel)}</span>
+                      </FormDescription>
+                    )}
+                    {levelsLoading && <LoadingSpinner size="sm" />}
+                    {user && (
+                      <FormDescription className="text-xs">
+                        Cấp bậc không thể thay đổi sau khi tạo
+                      </FormDescription>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Hotel - Required for Manager */}
+              {(selectedLevel === 'manager' || selectedLevel === 'staff') && (
+                <FormField
+                  control={form.control}
+                  name="hotelId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Khách sạn {selectedLevel === 'manager' && '*'}
+                      </FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || undefined}
+                        disabled={hotelsLoading}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Chọn khách sạn" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {hotels?.map((hotel) => (
+                            <SelectItem key={hotel.id} value={hotel.id}>
+                              {hotel.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selectedLevel === 'manager' && (
+                        <FormDescription className="flex items-start gap-2 text-xs">
+                          <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0 text-orange-500" />
+                          <span>Quản lý phải được gán cho một khách sạn cụ thể</span>
+                        </FormDescription>
+                      )}
+                      {hotelsLoading && <LoadingSpinner size="sm" />}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Position - Required for Manager and Staff */}
+              {needsPosition && (
+                <FormField
+                  control={form.control}
+                  name="positionId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Chức vụ</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || undefined}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Chọn chức vụ" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {positions?.map((position) => (
+                            <SelectItem key={position.id} value={position.id}>
+                              {position.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Status */}
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Trạng thái</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="active">Hoạt động</SelectItem>
+                        <SelectItem value="inactive">Không hoạt động</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            )}
 
-            {/* Status */}
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Trạng thái *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Chọn trạng thái" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="active">Hoạt động</SelectItem>
-                      <SelectItem value="inactive">Không hoạt động</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Internal Notes */}
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ghi chú nội bộ</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ghi chú về người dùng..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end gap-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
-                Hủy
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && (
-                  <div className="mr-2">
-                    <LoadingSpinner size="sm" />
-                  </div>
-                )}
-                {user ? 'Cập nhật' : 'Tạo mới'}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isSubmitting}
+                >
+                  Hủy
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <LoadingSpinner size="sm" />
+                      <span className="ml-2">Đang xử lý...</span>
+                    </>
+                  ) : user ? (
+                    'Cập nhật'
+                  ) : (
+                    'Tạo người dùng'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

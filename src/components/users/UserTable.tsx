@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, Pencil, Trash2, Shield } from 'lucide-react'
+import { MoreHorizontal, Pencil, Trash2, Shield, Crown, Users as UsersIcon, UserCheck } from 'lucide-react'
 import { UserWithRelations } from '@/types/database.types'
 import { UserAvatar } from './UserAvatar'
 import { formatDistanceToNow } from 'date-fns'
@@ -37,9 +37,15 @@ const userLevelLabels: Record<string, string> = {
   staff: 'Nhân viên',
 }
 
+const userLevelIcons: Record<string, any> = {
+  tenant_owner: Crown,
+  manager: UsersIcon,
+  staff: UserCheck,
+}
+
 const userLevelColors: Record<string, string> = {
   super_admin: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-  tenant_owner: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  tenant_owner: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
   manager: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
   staff: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
 }
@@ -49,9 +55,16 @@ export function UserTable({ users, onEdit }: UserTableProps) {
   const [permissionsUser, setPermissionsUser] = useState<UserWithRelations | null>(null)
   const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false)
 
-  const deleteUser = (id: string) => {
-    if (confirm('Bạn có chắc muốn xóa người dùng này?')) {
-      deleteUserMutation.mutate(id)
+  const deleteUser = (user: UserWithRelations) => {
+    const subordinatesCount = users.filter(u => u.created_by === user.id).length
+    
+    let confirmMessage = 'Bạn có chắc muốn xóa người dùng này?'
+    if (subordinatesCount > 0) {
+      confirmMessage = `Người dùng này đã tạo ${subordinatesCount} người dùng khác. Bạn có chắc muốn xóa? Các người dùng dưới quyền sẽ được chuyển cho người quản lý cấp trên.`
+    }
+    
+    if (confirm(confirmMessage)) {
+      deleteUserMutation.mutate(user.id)
     }
   }
 
@@ -60,106 +73,142 @@ export function UserTable({ users, onEdit }: UserTableProps) {
     setPermissionsDialogOpen(true)
   }
 
+  // Get creator name
+  const getCreatorName = (createdBy: string | null) => {
+    if (!createdBy) return '-'
+    const creator = users.find(u => u.id === createdBy)
+    return creator?.full_name || 'Đã xóa'
+  }
+
   return (
-    <div className="rounded-lg border bg-card">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Người dùng</TableHead>
-            <TableHead>Vai trò</TableHead>
-            <TableHead>Bộ phận</TableHead>
-            <TableHead>Trạng thái</TableHead>
-            <TableHead>Đăng nhập gần nhất</TableHead>
-            <TableHead className="text-right">Thao tác</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users.map((user) => (
-            <TableRow key={user.id}>
-              <TableCell>
-                <div className="flex items-center gap-3">
-                  <UserAvatar user={user} />
-                  <div>
-                    <div className="font-medium">{user.full_name}</div>
-                    <div className="text-sm text-muted-foreground">{user.email}</div>
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <Badge 
-                  variant="outline" 
-                  className={userLevelColors[user.user_level_code || 'staff']}
-                >
-                  {userLevelLabels[user.user_level_code || 'staff']}
-                </Badge>
-                {user.is_super_admin && (
-                  <Badge variant="destructive" className="ml-2">
-                    Platform
-                  </Badge>
-                )}
-              </TableCell>
-              <TableCell>
-                {user.department ? (
-                  <Badge variant="secondary">{user.department}</Badge>
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </TableCell>
-              <TableCell>
-                <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
-                  {user.status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                {user.last_login_at ? (
-                  <span className="text-sm">
-                    {formatDistanceToNow(new Date(user.last_login_at), {
-                      addSuffix: true,
-                      locale: vi,
-                    })}
-                  </span>
-                ) : (
-                  <span className="text-sm text-muted-foreground">Chưa đăng nhập</span>
-                )}
-              </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => onEdit?.(user)}>
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Chỉnh sửa
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => openPermissionsDialog(user)}>
-                      <Shield className="mr-2 h-4 w-4" />
-                      Phân quyền
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => deleteUser(user.id)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Xóa
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
+    <>
+      <div className="rounded-lg border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Người dùng</TableHead>
+              <TableHead>Cấp bậc</TableHead>
+              <TableHead>Chức vụ</TableHead>
+              <TableHead>Khách sạn</TableHead>
+              <TableHead>Người tạo</TableHead>
+              <TableHead>Trạng thái</TableHead>
+              <TableHead>Đăng nhập gần nhất</TableHead>
+              <TableHead className="text-right">Thao tác</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {users.map((user) => {
+              const LevelIcon = userLevelIcons[user.user_level_code || 'staff']
+              
+              return (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <UserAvatar user={user} />
+                      <div>
+                        <div className="font-medium flex items-center gap-2">
+                          {user.full_name}
+                          {user.is_primary_owner && (
+                            <Badge variant="default" className="bg-yellow-500 text-xs">
+                              Chính
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground">{user.email}</div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant="outline" 
+                      className={userLevelColors[user.user_level_code || 'staff']}
+                    >
+                      {LevelIcon && <LevelIcon className="h-3 w-3 mr-1" />}
+                      {userLevelLabels[user.user_level_code || 'staff']}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {user.position?.name ? (
+                      <Badge variant="secondary">{user.position.name}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {user.hotel?.name ? (
+                      <span className="text-sm">{user.hotel.name}</span>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">{getCreatorName(user.created_by)}</span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
+                      {user.status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {user.last_login_at ? (
+                      <span className="text-sm text-muted-foreground">
+                        {formatDistanceToNow(new Date(user.last_login_at), {
+                          addSuffix: true,
+                          locale: vi,
+                        })}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Chưa đăng nhập</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Mở menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {onEdit && (
+                          <DropdownMenuItem onClick={() => onEdit(user)}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Chỉnh sửa
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => openPermissionsDialog(user)}>
+                          <Shield className="h-4 w-4 mr-2" />
+                          Phân quyền
+                        </DropdownMenuItem>
+                        {!user.is_primary_owner && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => deleteUser(user)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Xóa
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </div>
 
       <UserPermissionsDialog
         user={permissionsUser}
         open={permissionsDialogOpen}
         onOpenChange={setPermissionsDialogOpen}
       />
-    </div>
+    </>
   )
 }
