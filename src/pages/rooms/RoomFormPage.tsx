@@ -55,6 +55,7 @@ export function RoomFormPage() {
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<RoomFormData>({
     resolver: zodResolver(roomSchema),
@@ -68,22 +69,28 @@ export function RoomFormPage() {
   })
 
   useEffect(() => {
-    if (room && isEdit && typeof room === 'object' && 'room_number' in room) {
-      const roomData = room as any
-      setValue('room_number', roomData.room_number || '')
-      setValue('room_type', roomData.room_type || '')
-      setValue('floor', roomData.floor || 1)
-      setValue('area_sqm', roomData.area_sqm || undefined)
-      setValue('max_guests', roomData.max_guests || 2)
-      setValue('base_price', roomData.base_price || 0)
-      setValue('bed_type', roomData.bed_type || '')
-      setValue('view_type', roomData.view_type || '')
-      setValue('has_window', roomData.has_window ?? true)
-      setValue('has_balcony', roomData.has_balcony ?? false)
-      setValue('smoking_allowed', roomData.smoking_allowed ?? false)
-      setValue('notes', roomData.notes || '')
+    if (room && isEdit) {
+      // Handle both object and array responses from RPC
+      const roomData: any = Array.isArray(room) ? room[0] : room
+      
+      if (roomData && typeof roomData === 'object') {
+        reset({
+          room_number: roomData.room_number || '',
+          room_type: roomData.room_type || '',
+          floor: roomData.floor || 1,
+          area_sqm: roomData.area_sqm || undefined,
+          max_guests: roomData.max_guests || 2,
+          base_price: roomData.base_price || 0,
+          bed_type: roomData.bed_type || '',
+          view_type: roomData.view_type || '',
+          has_window: roomData.has_window ?? true,
+          has_balcony: roomData.has_balcony ?? false,
+          smoking_allowed: roomData.smoking_allowed ?? false,
+          notes: roomData.notes || '',
+        })
+      }
     }
-  }, [room, isEdit, setValue])
+  }, [room, isEdit, reset])
 
   const onSubmit = async (data: RoomFormData) => {
     // Prevent creation when in All Hotels mode
