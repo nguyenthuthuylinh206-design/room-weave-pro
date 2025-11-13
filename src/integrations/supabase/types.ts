@@ -4962,12 +4962,9 @@ export type Database = {
           items_in_laundry: number
           last_check_at: string
           last_check_score: number
-          last_cleaned_at: string
           max_guests: number
-          max_occupancy: number
           missing_items: number
           notes: string
-          qr_code: string
           room_number: string
           room_type: string
           smoking_allowed: boolean
