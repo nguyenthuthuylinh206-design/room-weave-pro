@@ -74,35 +74,103 @@ serve(async (req) => {
       )
     }
 
-    // Wait a bit for the trigger to complete
-    await new Promise(resolve => setTimeout(resolve, 500))
+    // Get current authenticated user from request for created_by
+    const authHeader = req.headers.get('authorization')
+    let createdBy: string | null = null
+    
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '')
+      const { data: { user: requestUser } } = await supabaseAdmin.auth.getUser(token)
+      createdBy = requestUser?.id || null
+    }
 
-    // Update the user profile with additional details
-    const { data: updatedUser, error: updateError } = await supabaseAdmin
+    // Wait for trigger to create basic profile
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    // Check if user profile was created by trigger
+    const { data: existingProfile } = await supabaseAdmin
       .from('users')
-      .update({
-        tenant_id: tenantId,
-        phone: phone || null,
-        user_level_code: userLevelCode || 'staff',
-        hotel_id: hotelId || null,
-        position_id: positionId || null,
-        department: department || null,
-        status: status || 'active',
-        notes: notes || null,
-      })
+      .select('id')
       .eq('id', authUser.user.id)
-      .select()
       .single()
 
-    if (updateError) {
-      console.error('Profile update error:', updateError)
-      // Try to clean up the auth user
-      await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
-      
+    // If trigger didn't create profile, create it manually
+    if (!existingProfile) {
+      console.log('Trigger did not create profile, creating manually...')
+      const { error: insertError } = await supabaseAdmin
+        .from('users')
+        .insert({
+          id: authUser.user.id,
+          tenant_id: tenantId,
+          email: email,
+          full_name: fullName,
+          phone: phone || null,
+          user_level_code: userLevelCode || 'staff',
+          hotel_id: hotelId || null,
+          position_id: positionId || null,
+          department: department || null,
+          status: status || 'active',
+          notes: notes || null,
+          created_by: createdBy,
+        })
+
+      if (insertError) {
+        console.error('Profile creation error:', insertError)
+        await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
+        
+        return new Response(
+          JSON.stringify({ error: insertError.message }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+    } else {
+      // Profile exists, just update it
+      console.log('Profile exists, updating...')
+      const { error: updateError } = await supabaseAdmin
+        .from('users')
+        .update({
+          tenant_id: tenantId,
+          phone: phone || null,
+          user_level_code: userLevelCode || 'staff',
+          hotel_id: hotelId || null,
+          position_id: positionId || null,
+          department: department || null,
+          status: status || 'active',
+          notes: notes || null,
+          created_by: createdBy,
+        })
+        .eq('id', authUser.user.id)
+
+      if (updateError) {
+        console.error('Profile update error:', updateError)
+        await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
+        
+        return new Response(
+          JSON.stringify({ error: updateError.message }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+    }
+
+    // Fetch the complete user profile
+    const { data: finalUser, error: fetchError } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .eq('id', authUser.user.id)
+      .single()
+
+    if (fetchError) {
+      console.error('Failed to fetch created user:', fetchError)
       return new Response(
-        JSON.stringify({ error: updateError.message }),
+        JSON.stringify({ error: 'User created but failed to fetch profile' }),
         { 
-          status: 400,
+          status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
@@ -123,7 +191,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ 
-        user: updatedUser,
+        user: finalUser,
         message: 'User created successfully. Password reset email sent.'
       }),
       { 
