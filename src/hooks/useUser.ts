@@ -12,11 +12,12 @@ export const useUser = () => {
       if (!authUser?.id) return null
 
       // Fetch user data with relations
+      // Specify which relationship to use for tenants (users_tenant_id_fkey)
       const { data: user, error: userError } = await supabase
         .from('users')
         .select(`
           *,
-          tenant:tenants(*),
+          tenant:tenants!users_tenant_id_fkey(*),
           hotel:hotels!users_hotel_id_fkey(*)
         `)
         .eq('id', authUser.id)
