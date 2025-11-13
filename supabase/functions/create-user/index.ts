@@ -100,6 +100,15 @@ serve(async (req) => {
       throw new Error('Email này đã được sử dụng trong hệ thống')
     }
 
+    // Check if email exists in auth.users (orphaned user)
+    const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers()
+    const orphanedAuthUser = authUsers.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
+    
+    if (orphanedAuthUser) {
+      console.log('Found orphaned auth user, deleting:', orphanedAuthUser.id)
+      await supabaseAdmin.auth.admin.deleteUser(orphanedAuthUser.id)
+    }
+
     console.log('Requesting user:', requestingUser.id)
     console.log('Creating user with level:', userLevelCode)
 
