@@ -51,29 +51,12 @@ export function useRoom(roomId: string | undefined) {
       
       if (roomError) throw roomError
       
-      // Fetch room items with item details (non-blocking)
+      // Fetch room items WITH standards using new RPC
       const { data: roomItems, error: itemsError } = await supabase
-        .from('room_items')
-        .select(`
-          id,
-          item_id,
-          quantity,
-          condition,
-          standard_quantity,
-          is_verified,
-          verified_at,
-          verified_by,
-          items(
-            id,
-            code,
-            name,
-            item_categories(name)
-          )
-        `)
-        .eq('room_id', roomId)
+        .rpc('get_room_items_with_standards', { p_room_id: roomId })
       
       if (itemsError) {
-        console.error('Error fetching room items:', itemsError)
+        console.error('Error fetching room items with standards:', itemsError)
       }
       
       // Fetch recent checks (non-blocking)
@@ -98,18 +81,20 @@ export function useRoom(roomId: string | undefined) {
         console.error('Error fetching room checks:', checksError)
       }
       
-      // Transform items data
+      // Transform items data - now includes ALL standards
       const items = (roomItems || []).map((ri: any) => ({
-        id: ri.id,
+        id: ri.room_item_id || ri.standard_id, // Use room_item_id if exists, otherwise standard_id
+        standard_id: ri.standard_id,
+        room_item_id: ri.room_item_id,
         item_id: ri.item_id,
-        item_code: ri.items?.code || '',
-        item_name: ri.items?.name || '',
-        item_thumbnail: undefined,
-        category_name: ri.items?.item_categories?.name,
-        quantity: ri.quantity,
-        condition: ri.condition,
-        standard_quantity: ri.standard_quantity,
-        is_verified: ri.is_verified,
+        item_code: ri.item_code || '',
+        item_name: ri.item_name || '',
+        item_thumbnail: ri.item_thumbnail,
+        category_name: ri.category_name,
+        quantity: ri.current_quantity || 0, // Current quantity from room_items
+        standard_quantity: ri.standard_quantity, // Standard quantity from room_type_standards
+        condition: ri.condition || 'good',
+        is_verified: ri.is_verified || false,
         verified_at: ri.verified_at,
         verified_by: ri.verified_by,
       }))

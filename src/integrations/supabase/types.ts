@@ -4904,6 +4904,24 @@ export type Database = {
             }[]
           }
       get_room_detail: { Args: { p_room_id: string }; Returns: Json }
+      get_room_items_with_standards: {
+        Args: { p_room_id: string }
+        Returns: {
+          category_name: string
+          condition: string
+          current_quantity: number
+          is_verified: boolean
+          item_code: string
+          item_id: string
+          item_name: string
+          item_thumbnail: string
+          room_item_id: string
+          standard_id: string
+          standard_quantity: number
+          verified_at: string
+          verified_by: string
+        }[]
+      }
       get_room_standards: {
         Args: { p_hotel_id: string; p_room_type: string }
         Returns: {

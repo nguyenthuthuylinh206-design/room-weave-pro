@@ -19,12 +19,12 @@ type ItemStatus = {
 }
 
 export function RoomItemsList({ items }: RoomItemsListProps) {
+  // Initialize quantities with current values from database
   const [quantities, setQuantities] = useState<Record<string, number>>(
-    items.reduce((acc, item) => ({ ...acc, [item.id]: item.quantity }), {})
+    items.reduce((acc, item) => ({ ...acc, [item.id]: item.quantity || 0 }), {})
   )
 
-  const getItemStatus = (current: number, standard?: number): ItemStatus => {
-    if (!standard) return { label: 'Không xác định', variant: 'secondary', color: 'text-muted-foreground' }
+  const getItemStatus = (current: number, standard: number): ItemStatus => {
     if (current === standard) return { label: 'Đầy đủ', variant: 'default', color: 'text-green-600' }
     if (current > standard) return { label: 'Dư', variant: 'secondary', color: 'text-blue-600' }
     return { label: 'Thiếu', variant: 'destructive', color: 'text-red-600' }
@@ -41,12 +41,16 @@ export function RoomItemsList({ items }: RoomItemsListProps) {
     )
   }
 
-  // Calculate missing items
+  // Calculate missing items based on input quantities
   const missingItems = items.filter(item => {
-    const standardQty = item.standard_quantity || 0
+    const standardQty = item.standard_quantity
     const currentQty = quantities[item.id] || 0
     return standardQty > currentQty
   })
+  
+  const totalMissingQuantity = missingItems.reduce((sum, item) => {
+    return sum + (item.standard_quantity - (quantities[item.id] || 0))
+  }, 0)
 
   return (
     <div className="space-y-4">
@@ -54,7 +58,7 @@ export function RoomItemsList({ items }: RoomItemsListProps) {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Phòng đang thiếu {missingItems.length} loại đồ dùng. Vui lòng bổ sung.
+            Phòng đang thiếu <strong>{missingItems.length} loại đồ</strong> ({totalMissingQuantity} món). Vui lòng bổ sung.
           </AlertDescription>
         </Alert>
       )}
@@ -71,7 +75,7 @@ export function RoomItemsList({ items }: RoomItemsListProps) {
           <CardContent>
             <div className="space-y-4">
               {items.map((item) => {
-                const status = getItemStatus(quantities[item.id], item.standard_quantity)
+                const status = getItemStatus(quantities[item.id] || 0, item.standard_quantity)
                 return (
                   <div key={item.id} className="flex items-start gap-3 p-3 rounded-lg border bg-card">
                     {item.item_thumbnail ? (
@@ -100,7 +104,7 @@ export function RoomItemsList({ items }: RoomItemsListProps) {
                       )}
                       <div className="mt-2 flex items-center gap-2">
                         <span className="text-sm font-semibold">
-                          Cần: {item.standard_quantity || 0}
+                          Chuẩn: {item.standard_quantity}
                         </span>
                         <Badge variant={status.variant} className="text-xs">
                           {status.label}
@@ -125,7 +129,7 @@ export function RoomItemsList({ items }: RoomItemsListProps) {
           <CardContent>
             <div className="space-y-4">
               {items.map((item) => {
-                const currentQty = quantities[item.id]
+                const currentQty = quantities[item.id] || 0
                 const status = getItemStatus(currentQty, item.standard_quantity)
                 
                 return (
@@ -155,9 +159,10 @@ export function RoomItemsList({ items }: RoomItemsListProps) {
                               setQuantities(prev => ({ ...prev, [item.id]: newQty }))
                             }}
                             className="w-20 h-8"
+                            placeholder="0"
                           />
                           <span className="text-sm text-muted-foreground">
-                            / {item.standard_quantity || 0}
+                            / {item.standard_quantity}
                           </span>
                         </div>
                         <Badge variant={status.variant} className="text-xs">
@@ -207,7 +212,7 @@ export function RoomItemsList({ items }: RoomItemsListProps) {
             ) : (
               <div className="space-y-4">
                 {missingItems.map((item) => {
-                  const missing = (item.standard_quantity || 0) - (quantities[item.id] || 0)
+                  const missing = item.standard_quantity - (quantities[item.id] || 0)
                   
                   return (
                     <div key={item.id} className="flex items-start gap-3 p-3 rounded-lg border border-destructive/50 bg-destructive/5">
