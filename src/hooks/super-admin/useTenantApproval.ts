@@ -15,7 +15,7 @@ export function usePendingTenants() {
   return useQuery({
     queryKey: ['pending-tenants'],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_pending_tenants')
+      const { data, error } = await supabase.rpc('get_pending_tenants' as any)
       
       if (error) throw error
       return data as PendingTenant[]
@@ -28,7 +28,7 @@ export function useApproveTenant() {
 
   return useMutation({
     mutationFn: async ({ tenantId, adminId }: { tenantId: string; adminId: string }) => {
-      const { data, error } = await supabase.rpc('approve_tenant', {
+      const { data, error } = await supabase.rpc('approve_tenant' as any, {
         p_tenant_id: tenantId,
         p_admin_id: adminId,
       })
@@ -64,7 +64,7 @@ export function useRejectTenant() {
       adminId: string
       reason: string 
     }) => {
-      const { data, error } = await supabase.rpc('reject_tenant', {
+      const { data, error } = await supabase.rpc('reject_tenant' as any, {
         p_tenant_id: tenantId,
         p_admin_id: adminId,
         p_reason: reason,
