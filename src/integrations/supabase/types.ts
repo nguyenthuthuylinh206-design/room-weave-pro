@@ -4947,21 +4947,35 @@ export type Database = {
           p_tenant_id: string
         }
         Returns: {
-          amenities: string[]
+          amenities: Json
           area_sqm: number
           base_price: number
           bed_type: string
+          created_at: string
           floor: number
+          has_balcony: boolean
+          has_window: boolean
+          hotel_code: string
+          hotel_id: string
+          hotel_name: string
           id: string
           items_in_laundry: number
           last_check_at: string
           last_check_score: number
+          last_cleaned_at: string
           max_guests: number
+          max_occupancy: number
           missing_items: number
+          notes: string
+          qr_code: string
           room_number: string
           room_type: string
+          smoking_allowed: boolean
           status: string
+          tenant_id: string
           total_items: number
+          updated_at: string
+          view_type: string
         }[]
       }
       get_stock_adjustments_filtered: {
