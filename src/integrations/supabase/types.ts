@@ -4947,7 +4947,7 @@ export type Database = {
           p_tenant_id: string
         }
         Returns: {
-          amenities: Json
+          amenities: string[]
           area_sqm: number
           base_price: number
           bed_type: string
