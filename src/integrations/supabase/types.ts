@@ -2907,6 +2907,7 @@ export type Database = {
           notes: string | null
           quantity: number
           room_id: string
+          standard_quantity: number | null
           verified_at: string | null
           verified_by: string | null
         }
@@ -2921,6 +2922,7 @@ export type Database = {
           notes?: string | null
           quantity?: number
           room_id: string
+          standard_quantity?: number | null
           verified_at?: string | null
           verified_by?: string | null
         }
@@ -2935,6 +2937,7 @@ export type Database = {
           notes?: string | null
           quantity?: number
           room_id?: string
+          standard_quantity?: number | null
           verified_at?: string | null
           verified_by?: string | null
         }
