@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { RoomStatusBadge } from './RoomStatusBadge'
 import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
+import { useUser } from '@/hooks/useUser'
 import { formatCurrency } from '@/lib/utils'
 import type { RoomWithStats, RoomStatus } from '@/types/rooms.types'
 
@@ -24,6 +25,7 @@ interface RoomGridProps {
 export function RoomGrid({ rooms, isLoading }: RoomGridProps) {
   const navigate = useNavigate()
   const checkSessions = useAllRoomCheckSessions()
+  const { user } = useUser()
   
   const getCheckTypeLabel = (type: string) => {
     const labels = {
@@ -155,13 +157,16 @@ export function RoomGrid({ rooms, isLoading }: RoomGridProps) {
             <Button
               size="sm"
               className="flex-1"
-              disabled={!!checkSessions[room.id]}
+              disabled={checkSessions[room.id] && checkSessions[room.id].user_id !== user?.id}
               onClick={(e) => {
                 e.stopPropagation()
                 navigate(`/rooms/${room.id}/check`)
               }}
             >
-              {checkSessions[room.id] ? 'Đang kiểm tra' : 'Kiểm tra'}
+              {checkSessions[room.id] 
+                ? (checkSessions[room.id].user_id === user?.id ? 'Tiếp tục kiểm tra' : 'Đang kiểm tra')
+                : 'Kiểm tra'
+              }
             </Button>
           </CardFooter>
         </Card>
