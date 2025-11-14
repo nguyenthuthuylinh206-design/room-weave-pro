@@ -32,6 +32,7 @@ const settingsNavigation = [
   { name: 'Mức sử dụng', href: '/settings/usage', icon: BarChart3 },
   { name: 'Vai trò', href: '/settings/roles', icon: Shield },
   { name: 'Quyền hạn', href: '/settings/permissions', icon: Shield },
+  { name: 'Cấu hình Quyền', href: '/settings/permission-configuration', icon: Shield },
   { name: 'Thông báo', href: '/settings/notifications', icon: Bell },
   { name: 'Cấu hình nghiệp vụ', href: '/settings/business', icon: Briefcase },
   { name: 'Tự động hóa', href: '/settings/workflows', icon: Zap },
