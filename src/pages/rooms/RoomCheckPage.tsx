@@ -44,6 +44,7 @@ export function RoomCheckPage() {
   const [showResumeDialog, setShowResumeDialog] = useState(false)
   const [quickMode, setQuickMode] = useState(false)
   const [itemQuantities, setItemQuantities] = useState<Record<string, number>>({})
+  const [sessionCompleted, setSessionCompleted] = useState(false)
   const totalSteps = quickMode ? 2 : 3 // Skip items step in quick mode
   
   const form = useForm<RoomCheckFormData>({
@@ -73,20 +74,42 @@ export function RoomCheckPage() {
   
   // Create check session on mount
   useEffect(() => {
-    if (room && user && !existingSession) {
-      const checkType = form.getValues('check_type')
-      createSession(room.id, checkType, user.full_name || user.email, room.tenant_id)
-    }
-  }, [room, user, existingSession])
-  
-  // Cleanup session on unmount or cancel
-  useEffect(() => {
-    return () => {
-      if (id) {
-        deleteSession(id)
+    const initSession = async () => {
+      if (room && user && !existingSession && !isLoading) {
+        const checkType = prefilledType || 'daily'
+        const result = await createSession(
+          room.id,
+          checkType,
+          user.full_name || user.email || 'Unknown',
+          room.tenant_id
+        )
+        
+        if (!result) {
+          navigate('/rooms')
+        }
       }
     }
-  }, [id])
+    
+    initSession()
+  }, [room, user, isLoading])
+  
+  // Cleanup session only when user closes/refreshes tab
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (id && !sessionCompleted) {
+        navigator.sendBeacon(
+          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/room_check_sessions?room_id=eq.${id}`,
+          JSON.stringify({})
+        )
+      }
+    }
+    
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [id, sessionCompleted])
   
   // Auto-save to localStorage
   useEffect(() => {
@@ -193,7 +216,11 @@ export function RoomCheckPage() {
     }
   }
   
-  const confirmCancel = () => {
+  const confirmCancel = async () => {
+    if (id) {
+      await deleteSession(id)
+      setSessionCompleted(true)
+    }
     navigate(`/rooms/${id}`)
   }
   
@@ -206,6 +233,11 @@ export function RoomCheckPage() {
         data,
         itemQuantities: Object.keys(itemQuantities).length > 0 ? itemQuantities : undefined,
       })
+      
+      if (id) {
+        await deleteSession(id)
+        setSessionCompleted(true)
+      }
       
       clearSavedProgress()
       navigate(`/rooms/${id}`)

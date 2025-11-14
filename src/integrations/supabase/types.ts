@@ -4729,6 +4729,7 @@ export type Database = {
         Args: { p_resource_type: string; p_tenant_id: string }
         Returns: boolean
       }
+      cleanup_old_check_sessions: { Args: never; Returns: undefined }
       cleanup_orphaned_auth_users: { Args: never; Returns: number }
       complete_registration: {
         Args: {
