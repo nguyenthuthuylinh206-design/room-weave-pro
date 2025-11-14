@@ -270,8 +270,6 @@ serve(async (req) => {
         .insert({
           user_id: user.id,
           hotel_id: hotelId,
-          is_default: true,
-          is_active: true,
           assigned_by: requestingUser.id,
           can_create_managers: userLevelCode === 'manager',
           can_create_staff: userLevelCode === 'manager',
