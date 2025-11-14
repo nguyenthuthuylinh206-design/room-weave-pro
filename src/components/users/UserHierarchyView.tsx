@@ -14,19 +14,17 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useDeleteUser } from '@/hooks/useUsers'
-import { UserPermissionsDialog } from './UserPermissionsDialog'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 
 interface UserHierarchyViewProps {
   users: UserWithRelations[]
   onEdit: (user: UserWithRelations) => void
+  onManagePermissions?: (userId: string) => void
 }
 
-export function UserHierarchyView({ users, onEdit }: UserHierarchyViewProps) {
+export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHierarchyViewProps) {
   const [userToDelete, setUserToDelete] = useState<UserWithRelations | null>(null)
-  const [permissionsUser, setPermissionsUser] = useState<UserWithRelations | null>(null)
-  const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     owner: true,
     managers: true,
@@ -42,11 +40,6 @@ export function UserHierarchyView({ users, onEdit }: UserHierarchyViewProps) {
 
   const handleDeleteClick = (user: UserWithRelations) => {
     setUserToDelete(user)
-  }
-
-  const openPermissionsDialog = (user: UserWithRelations) => {
-    setPermissionsUser(user)
-    setPermissionsDialogOpen(true)
   }
 
   // Group users by level
@@ -142,10 +135,12 @@ export function UserHierarchyView({ users, onEdit }: UserHierarchyViewProps) {
               <Pencil className="h-4 w-4 mr-2" />
               Chỉnh sửa
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => openPermissionsDialog(user)}>
-              <Shield className="h-4 w-4 mr-2" />
-              Phân quyền
-            </DropdownMenuItem>
+            {onManagePermissions && (
+              <DropdownMenuItem onClick={() => onManagePermissions(user.id)}>
+                <Shield className="h-4 w-4 mr-2" />
+                Phân quyền
+              </DropdownMenuItem>
+            )}
             {!user.is_primary_owner && (
               <DropdownMenuItem
                 onClick={() => handleDeleteClick(user)}
@@ -278,12 +273,6 @@ export function UserHierarchyView({ users, onEdit }: UserHierarchyViewProps) {
         user={userToDelete}
         open={!!userToDelete}
         onOpenChange={(open) => !open && setUserToDelete(null)}
-      />
-
-      <UserPermissionsDialog
-        user={permissionsUser}
-        open={permissionsDialogOpen}
-        onOpenChange={setPermissionsDialogOpen}
       />
     </div>
   )
