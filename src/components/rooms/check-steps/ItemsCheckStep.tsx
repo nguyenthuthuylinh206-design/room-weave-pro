@@ -42,6 +42,39 @@ export function ItemsCheckStep({ form, items, roomId, hotelId, onQuantitiesChang
     setItemQuantities(initial)
   }, [items])
   
+  // Real-time sync for room items quantities
+  useEffect(() => {
+    const channel = supabase
+      .channel(`room-check-${roomId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'room_items',
+          filter: `room_id=eq.${roomId}`
+        },
+        (payload) => {
+          console.log('Real-time update:', payload)
+          if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
+            const newData = payload.new as any
+            setItemQuantities(prev => ({
+              ...prev,
+              [newData.item_id]: {
+                actual: newData.quantity,
+                replenished: prev[newData.item_id]?.replenished
+              }
+            }))
+          }
+        }
+      )
+      .subscribe()
+    
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [roomId])
+  
   // Notify parent of quantity changes
   useEffect(() => {
     if (onQuantitiesChange) {
@@ -67,12 +100,25 @@ export function ItemsCheckStep({ form, items, roomId, hotelId, onQuantitiesChang
     return Math.max(0, item.standard_quantity - actual)
   }
   
-  const handleQuantityChange = (itemId: string, value: string) => {
+  const handleQuantityChange = async (itemId: string, value: string) => {
     const actual = parseInt(value) || 0
     setItemQuantities(prev => ({
       ...prev,
       [itemId]: { ...prev[itemId], actual }
     }))
+    
+    // Update database immediately for real-time sync
+    try {
+      await supabase
+        .from('room_items')
+        .upsert({
+          room_id: roomId,
+          item_id: itemId,
+          quantity: actual,
+        })
+    } catch (error) {
+      console.error('Error updating quantity:', error)
+    }
   }
   
   const handleReplenishFromStock = async (item: RoomItemWithDetails) => {
