@@ -2881,6 +2881,51 @@ export type Database = {
           },
         ]
       }
+      room_check_sessions: {
+        Row: {
+          check_type: string
+          id: string
+          room_id: string
+          started_at: string
+          tenant_id: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          check_type: string
+          id?: string
+          room_id: string
+          started_at?: string
+          tenant_id: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          check_type?: string
+          id?: string
+          room_id?: string
+          started_at?: string
+          tenant_id?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_check_sessions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: true
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_check_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_checks: {
         Row: {
           check_type: string

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Filter } from 'lucide-react'
+import { Search, Filter, Clock } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { CheckTypeSelector } from './CheckTypeSelector'
 import { useRooms } from '@/hooks/useRooms'
 import { useRoomLastCheck } from '@/hooks/useRoomLastCheck'
+import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import type { RoomFilters, RoomStatus } from '@/types/rooms.types'
@@ -20,6 +21,7 @@ export function StaffRoomCheckView() {
   const [showCheckSelector, setShowCheckSelector] = useState(false)
   
   const { data: rooms, isLoading } = useRooms(filters)
+  const checkSessions = useAllRoomCheckSessions()
 
   const handleStartCheck = (roomId: string) => {
     setSelectedRoomId(roomId)
@@ -131,6 +133,7 @@ export function StaffRoomCheckView() {
             <RoomCheckCard
               key={room.id}
               room={room}
+              checkSession={checkSessions[room.id]}
               onStartCheck={handleStartCheck}
               getStatusColor={getStatusColor}
               getStatusLabel={getStatusLabel}
@@ -154,13 +157,24 @@ export function StaffRoomCheckView() {
 
 interface RoomCheckCardProps {
   room: any
+  checkSession?: any
   onStartCheck: (roomId: string) => void
   getStatusColor: (status: RoomStatus) => string
   getStatusLabel: (status: RoomStatus) => string
 }
 
-function RoomCheckCard({ room, onStartCheck, getStatusColor, getStatusLabel }: RoomCheckCardProps) {
+function RoomCheckCard({ room, checkSession, onStartCheck, getStatusColor, getStatusLabel }: RoomCheckCardProps) {
   const { data: lastCheck, isLoading: lastCheckLoading } = useRoomLastCheck(room.id)
+  
+  const getCheckTypeLabel = (type: string) => {
+    const labels = {
+      daily: 'đầu ngày',
+      checkin: 'trước check-in',
+      checkout: 'sau check-out',
+      maintenance: 'bảo trì'
+    }
+    return labels[type as keyof typeof labels] || type
+  }
 
   return (
     <Card className="hover:shadow-lg transition-shadow">
@@ -181,25 +195,59 @@ function RoomCheckCard({ room, onStartCheck, getStatusColor, getStatusLabel }: R
           <p className="font-medium capitalize">{room.room_type}</p>
         </div>
 
-        {/* Last Check Info */}
+        {/* Check Session or Last Check Info */}
         <div className="text-sm border-t pt-3">
-          <p className="text-muted-foreground mb-1">Lần kiểm tra gần nhất</p>
-          {lastCheckLoading ? (
-            <div className="h-10 bg-muted rounded animate-pulse" />
-          ) : lastCheck ? (
-            <div className="space-y-1">
-              <p className="font-medium">
-                {formatDistanceToNow(new Date(lastCheck.checked_at), {
-                  addSuffix: true,
-                  locale: vi,
-                })}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Bởi: {lastCheck.checked_by?.full_name || 'N/A'}
-              </p>
+          {checkSession ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
+                <Clock className="h-4 w-4 animate-pulse" />
+                <p className="font-semibold">Đang kiểm tra</p>
+              </div>
+              <div className="bg-orange-50 dark:bg-orange-950/30 rounded-md p-2 space-y-1">
+                <p className="font-medium text-orange-900 dark:text-orange-100">
+                  {checkSession.user_name}
+                </p>
+                <p className="text-xs text-orange-700 dark:text-orange-300">
+                  Kiểm tra {getCheckTypeLabel(checkSession.check_type)}
+                </p>
+                <p className="text-xs text-orange-600 dark:text-orange-400">
+                  {formatDistanceToNow(new Date(checkSession.started_at), {
+                    addSuffix: true,
+                    locale: vi,
+                  })}
+                </p>
+              </div>
             </div>
           ) : (
-            <p className="text-muted-foreground italic">Chưa có lần kiểm tra nào</p>
+            <>
+              <p className="text-muted-foreground mb-1">Lần kiểm tra gần nhất</p>
+              {lastCheckLoading ? (
+                <div className="h-10 bg-muted rounded animate-pulse" />
+              ) : lastCheck ? (
+                <div className="space-y-1">
+                  <p className="font-medium">
+                    {formatDistanceToNow(new Date(lastCheck.checked_at), {
+                      addSuffix: true,
+                      locale: vi,
+                    })}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Bởi: {lastCheck.checked_by?.full_name || 'N/A'}
+                  </p>
+                  {lastCheck.items_complete ? (
+                    <Badge variant="default" className="bg-success text-white">
+                      Đồ dùng đã đủ
+                    </Badge>
+                  ) : (
+                    <Badge variant="destructive">
+                      Thiếu {Array.isArray(lastCheck.items_missing) ? lastCheck.items_missing.length : 0} items
+                    </Badge>
+                  )}
+                </div>
+              ) : (
+                <p className="text-muted-foreground italic">Chưa có lần kiểm tra nào</p>
+              )}
+            </>
           )}
         </div>
 
@@ -207,8 +255,9 @@ function RoomCheckCard({ room, onStartCheck, getStatusColor, getStatusLabel }: R
           className="w-full" 
           size="lg"
           onClick={() => onStartCheck(room.id)}
+          disabled={!!checkSession}
         >
-          Kiểm tra ngay
+          {checkSession ? 'Đang được kiểm tra' : 'Kiểm tra ngay'}
         </Button>
       </CardContent>
     </Card>
