@@ -22,6 +22,7 @@ import {
 import { useRoom } from '@/hooks/useRooms'
 import { useCreateRoomCheck } from '@/hooks/useRoomChecks'
 import { useUser } from '@/hooks/useUser'
+import { useRoomCheckSession } from '@/hooks/useRoomCheckSession'
 import { CheckTypeStep } from '@/components/rooms/check-steps/CheckTypeStep'
 import { ItemsCheckStep } from '@/components/rooms/check-steps/ItemsCheckStep'
 import { ReviewStep } from '@/components/rooms/check-steps/ReviewStep'
@@ -36,6 +37,7 @@ export function RoomCheckPage() {
   const { user } = useUser()
   const { data: roomData, isLoading } = useRoom(id)
   const createCheck = useCreateRoomCheck()
+  const { session: existingSession, createSession, deleteSession } = useRoomCheckSession(id)
   
   const [currentStep, setCurrentStep] = useState(1)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
@@ -68,6 +70,23 @@ export function RoomCheckPage() {
       navigate('/rooms')
     }
   }, [room, isLoading, navigate])
+  
+  // Create check session on mount
+  useEffect(() => {
+    if (room && user && !existingSession) {
+      const checkType = form.getValues('check_type')
+      createSession(room.id, checkType, user.full_name || user.email, room.tenant_id)
+    }
+  }, [room, user, existingSession])
+  
+  // Cleanup session on unmount or cancel
+  useEffect(() => {
+    return () => {
+      if (id) {
+        deleteSession(id)
+      }
+    }
+  }, [id])
   
   // Auto-save to localStorage
   useEffect(() => {

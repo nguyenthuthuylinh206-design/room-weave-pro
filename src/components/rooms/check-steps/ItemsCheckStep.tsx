@@ -378,7 +378,11 @@ export function ItemsCheckStep({ form, items, roomId, hotelId, onQuantitiesChang
                           <Badge variant="destructive" className="shrink-0">
                             Thiếu {shortage}
                           </Badge>
-                        ) : actualQty >= item.standard_quantity ? (
+                        ) : actualQty > item.standard_quantity ? (
+                          <Badge variant="secondary" className="shrink-0 bg-blue-500 text-white">
+                            Dư {actualQty - item.standard_quantity}
+                          </Badge>
+                        ) : actualQty === item.standard_quantity ? (
                           <Badge variant="default" className="shrink-0 bg-success">
                             <CheckCircle2 className="mr-1 h-3 w-3" />
                             Đủ
