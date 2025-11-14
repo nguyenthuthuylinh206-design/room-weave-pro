@@ -39,11 +39,14 @@ export function useCreateRoomCheck() {
   return useMutation({
     mutationFn: async ({ 
       roomId, 
-      data 
+      data,
+      itemQuantities
     }: { 
       roomId: string
-      data: RoomCheckFormData 
+      data: RoomCheckFormData
+      itemQuantities?: Record<string, number>
     }) => {
+      // Create room check record
       const { data: check, error } = await supabase
         .from('room_checks')
         .insert({
@@ -56,17 +59,37 @@ export function useCreateRoomCheck() {
       
       if (error) throw error
       
-      // Update room_items last_checked_at
-      await supabase
-        .from('room_items')
-        .update({
+      // Update room_items with actual quantities from inspection
+      if (itemQuantities) {
+        const updates = Object.entries(itemQuantities).map(([itemId, quantity]) => ({
+          room_id: roomId,
+          item_id: itemId,
+          quantity: quantity,
           last_checked_at: new Date().toISOString(),
           last_checked_by: user?.id,
-        })
-        .eq('room_id', roomId)
+        }))
+        
+        if (updates.length > 0) {
+          const { error: updateError } = await supabase
+            .from('room_items')
+            .upsert(updates)
+          
+          if (updateError) throw updateError
+        }
+      } else {
+        // Fallback: just update last_checked timestamp
+        await supabase
+          .from('room_items')
+          .update({
+            last_checked_at: new Date().toISOString(),
+            last_checked_by: user?.id,
+          })
+          .eq('room_id', roomId)
+      }
       
-      // If items missing or damaged, create notifications
-      if (data.items_missing.length > 0 || data.items_damaged.length > 0) {
+      // Create notification for managers about check completion
+      const totalIssues = (data.items_missing?.length || 0) + (data.items_damaged?.length || 0)
+      if (totalIssues > 0) {
         await supabase
           .from('notifications')
           .insert({
@@ -74,8 +97,8 @@ export function useCreateRoomCheck() {
             role: 'hotel_manager',
             type: 'warning',
             category: 'room',
-            title: 'Phòng cần bổ sung đồ',
-            message: `Phòng có thiếu hoặc hư hỏng ${data.items_missing.length + data.items_damaged.length} items`,
+            title: 'Kiểm tra phòng phát hiện vấn đề',
+            message: `Phòng có ${totalIssues} vấn đề cần xử lý`,
             related_type: 'room',
             related_id: roomId,
           })
@@ -87,10 +110,11 @@ export function useCreateRoomCheck() {
       queryClient.invalidateQueries({ queryKey: ['room-checks', variables.roomId] })
       queryClient.invalidateQueries({ queryKey: ['room', variables.roomId] })
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
+      queryClient.invalidateQueries({ queryKey: ['items'] })
       
       toast({
         title: 'Thành công',
-        description: 'Đã lưu kiểm tra phòng',
+        description: 'Đã lưu kiểm tra phòng và cập nhật số lượng thực tế',
       })
     },
     onError: (error: Error) => {
