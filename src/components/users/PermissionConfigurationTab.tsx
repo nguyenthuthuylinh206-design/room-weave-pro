@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { PageHeader } from '@/components/shared/PageHeader'
+import { useState, useEffect } from 'react'
 import { useUsers } from '@/hooks/useUsers'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { UserListSidebar } from '@/components/permissions/UserListSidebar'
@@ -9,10 +8,21 @@ import { RefreshCw } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-export default function PermissionConfigurationPage() {
+interface PermissionConfigurationTabProps {
+  preSelectedUserId?: string | null
+}
+
+export function PermissionConfigurationTab({ preSelectedUserId }: PermissionConfigurationTabProps) {
   const { users, isLoading } = useUsers()
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const queryClient = useQueryClient()
+
+  // Set pre-selected user if provided
+  useEffect(() => {
+    if (preSelectedUserId) {
+      setSelectedUserId(preSelectedUserId)
+    }
+  }, [preSelectedUserId])
 
   const selectedUser = users?.find((u) => u.id === selectedUserId) || null
 
@@ -24,28 +34,25 @@ export default function PermissionConfigurationPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-96">
         <LoadingSpinner />
       </div>
     )
   }
 
   return (
-    <div className="h-screen flex flex-col">
-      <div className="border-b bg-background p-6">
-        <div className="flex items-center justify-between">
-          <PageHeader
-            title="Cấu hình Quyền hạn"
-            description="Quản lý quyền truy cập cho tất cả người dùng"
-          />
-          <Button onClick={handleRefresh} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Làm mới
-          </Button>
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Chọn người dùng để cấu hình quyền truy cập module
+        </p>
+        <Button onClick={handleRefresh} variant="outline" size="sm">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Làm mới
+        </Button>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex gap-6 min-h-[600px]">
         {/* Sidebar - 30% */}
         <div className="w-[30%] min-w-[320px]">
           <UserListSidebar

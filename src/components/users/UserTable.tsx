@@ -24,11 +24,11 @@ import { UserAvatar } from './UserAvatar'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { useDeleteUser } from '@/hooks/useUsers'
-import { UserPermissionsDialog } from './UserPermissionsDialog'
 
 interface UserTableProps {
   users: UserWithRelations[]
   onEdit?: (user: UserWithRelations) => void
+  onManagePermissions?: (userId: string) => void
 }
 
 const userLevelLabels: Record<string, string> = {
@@ -51,18 +51,11 @@ const userLevelColors: Record<string, string> = {
   staff: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
 }
 
-export function UserTable({ users, onEdit }: UserTableProps) {
+export function UserTable({ users, onEdit, onManagePermissions }: UserTableProps) {
   const [userToDelete, setUserToDelete] = useState<UserWithRelations | null>(null)
-  const [permissionsUser, setPermissionsUser] = useState<UserWithRelations | null>(null)
-  const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false)
 
   const handleDeleteClick = (user: UserWithRelations) => {
     setUserToDelete(user)
-  }
-
-  const openPermissionsDialog = (user: UserWithRelations) => {
-    setPermissionsUser(user)
-    setPermissionsDialogOpen(true)
   }
 
   // Get creator name
@@ -170,10 +163,12 @@ export function UserTable({ users, onEdit }: UserTableProps) {
                             Chỉnh sửa
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem onClick={() => openPermissionsDialog(user)}>
-                          <Shield className="h-4 w-4 mr-2" />
-                          Phân quyền
-                        </DropdownMenuItem>
+                        {onManagePermissions && (
+                          <DropdownMenuItem onClick={() => onManagePermissions(user.id)}>
+                            <Shield className="h-4 w-4 mr-2" />
+                            Phân quyền
+                          </DropdownMenuItem>
+                        )}
                         {!user.is_primary_owner && (
                           <>
                             <DropdownMenuSeparator />
@@ -200,12 +195,6 @@ export function UserTable({ users, onEdit }: UserTableProps) {
         user={userToDelete}
         open={!!userToDelete}
         onOpenChange={(open) => !open && setUserToDelete(null)}
-      />
-
-      <UserPermissionsDialog
-        user={permissionsUser}
-        open={permissionsDialogOpen}
-        onOpenChange={setPermissionsDialogOpen}
       />
     </>
   )
