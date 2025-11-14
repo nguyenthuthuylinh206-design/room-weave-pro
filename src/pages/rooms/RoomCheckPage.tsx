@@ -23,6 +23,7 @@ import { useRoom } from '@/hooks/useRooms'
 import { useCreateRoomCheck } from '@/hooks/useRoomChecks'
 import { useUser } from '@/hooks/useUser'
 import { useRoomCheckSession } from '@/hooks/useRoomCheckSession'
+import { toast } from '@/hooks/use-toast'
 import { CheckTypeStep } from '@/components/rooms/check-steps/CheckTypeStep'
 import { ItemsCheckStep } from '@/components/rooms/check-steps/ItemsCheckStep'
 import { ReviewStep } from '@/components/rooms/check-steps/ReviewStep'
@@ -85,6 +86,11 @@ export function RoomCheckPage() {
         )
         
         if (!result) {
+          toast({
+            title: 'Không thể tạo session',
+            description: 'Có người khác đang kiểm tra phòng này',
+            variant: 'destructive',
+          })
           navigate('/rooms')
         }
       }
@@ -92,6 +98,39 @@ export function RoomCheckPage() {
     
     initSession()
   }, [room, user, isLoading])
+  
+  // Restore form from existing session
+  useEffect(() => {
+    if (existingSession) {
+      // Check if session belongs to current user
+      if (existingSession.user_id !== user?.id) {
+        toast({
+          title: 'Phòng đang được kiểm tra',
+          description: `${existingSession.user_name} đang kiểm tra phòng này`,
+          variant: 'destructive',
+        })
+        navigate('/rooms')
+        return
+      }
+      
+      // Session belongs to current user - restore check_type
+      form.setValue('check_type', existingSession.check_type)
+      
+      // If no localStorage progress, start fresh with check_type from session
+      const saved = localStorage.getItem(`room-check-${id}`)
+      if (!saved) {
+        form.reset({
+          check_type: existingSession.check_type,
+          cleanliness_score: 5,
+          items_complete: true,
+          items_missing: [],
+          items_damaged: [],
+          notes: '',
+          photos: [],
+        })
+      }
+    }
+  }, [existingSession, user, id, form, navigate])
   
   // Cleanup session only when user closes/refreshes tab
   useEffect(() => {
@@ -128,7 +167,7 @@ export function RoomCheckPage() {
   
   // Check for saved progress on mount
   useEffect(() => {
-    if (id) {
+    if (id && existingSession && existingSession.user_id === user?.id) {
       const saved = localStorage.getItem(`room-check-${id}`)
       if (saved) {
         try {
@@ -136,9 +175,7 @@ export function RoomCheckPage() {
           // Only resume if less than 1 hour old
           if (Date.now() - timestamp < 3600000) {
             setShowResumeDialog(true)
-            form.reset(data)
-            setCurrentStep(step)
-            setQuickMode(savedQuickMode)
+            // Don't reset here, let user choose Resume or Start Fresh
           } else {
             localStorage.removeItem(`room-check-${id}`)
           }
@@ -147,7 +184,7 @@ export function RoomCheckPage() {
         }
       }
     }
-  }, [id, form])
+  }, [id, existingSession, user])
   
   const clearSavedProgress = () => {
     if (id) {
@@ -156,13 +193,33 @@ export function RoomCheckPage() {
   }
   
   const resumeCheck = () => {
+    if (id) {
+      const saved = localStorage.getItem(`room-check-${id}`)
+      if (saved) {
+        try {
+          const { data, step, quickMode: savedQuickMode } = JSON.parse(saved)
+          form.reset(data)
+          setCurrentStep(step)
+          setQuickMode(savedQuickMode)
+        } catch (e) {
+          // If error, start from beginning with check_type from session
+          if (existingSession) {
+            form.setValue('check_type', existingSession.check_type)
+          }
+        }
+      }
+    }
     setShowResumeDialog(false)
   }
   
   const startFresh = () => {
     clearSavedProgress()
+    
+    // Keep check_type from existingSession if available
+    const checkType = existingSession?.check_type || 'daily'
+    
     form.reset({
-      check_type: 'daily',
+      check_type: checkType,
       cleanliness_score: 5,
       items_complete: true,
       items_missing: [],
