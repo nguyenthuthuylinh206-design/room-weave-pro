@@ -131,17 +131,17 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
           </DialogTitle>
           <DialogDescription>
             Quản lý quyền truy cập cho <strong>{user.full_name}</strong>
-            <div className="flex items-center gap-2 mt-2">
-              <Badge variant="outline">{user.email}</Badge>
-              <Badge>
-                {user.user_level_code === 'tenant_owner'
-                  ? 'Chủ sở hữu'
-                  : user.user_level_code === 'manager'
-                  ? 'Quản lý'
-                  : 'Nhân viên'}
-              </Badge>
-            </div>
           </DialogDescription>
+          <div className="flex items-center gap-2 mt-2">
+            <Badge variant="outline">{user.email}</Badge>
+            <Badge>
+              {user.user_level_code === 'tenant_owner'
+                ? 'Chủ sở hữu'
+                : user.user_level_code === 'manager'
+                ? 'Quản lý'
+                : 'Nhân viên'}
+            </Badge>
+          </div>
         </DialogHeader>
 
         {(isSuperAdmin || isOwner) && (
@@ -178,10 +178,14 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => toggleAllActions(module.code, !allEnabled)}
+                        onClick={() => {
+                          const newState = !allEnabled
+                          console.log(`[Permissions] Toggle module ${module.code}: ${allEnabled} → ${newState}`)
+                          toggleAllActions(module.code, newState)
+                        }}
                         disabled={isSuperAdmin || isOwner}
                       >
-                        {allEnabled ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                        {allEnabled ? '❌ Bỏ chọn tất cả quyền' : '✅ Chọn tất cả quyền'}
                       </Button>
                     </div>
 
