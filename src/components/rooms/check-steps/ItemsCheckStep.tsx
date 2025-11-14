@@ -1,75 +1,207 @@
 import { UseFormReturn } from 'react-hook-form'
-import { CheckCircle2, AlertCircle, XCircle, Package, Search, RotateCcw } from 'lucide-react'
-import { useState } from 'react'
+import { CheckCircle2, AlertCircle, Package, Search, RotateCcw, Plus } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
+import { useToast } from '@/hooks/use-toast'
+import { supabase } from '@/integrations/supabase/client'
+import { useUser } from '@/hooks/useUser'
 import type { RoomCheckFormData } from '@/types/rooms.types'
 import type { RoomItemWithDetails } from '@/types/rooms.types'
 
 interface ItemsCheckStepProps {
   form: UseFormReturn<RoomCheckFormData>
   items: RoomItemWithDetails[]
+  roomId: string
+  hotelId: string
+  onQuantitiesChange?: (quantities: Record<string, number>) => void
 }
 
-type ItemStatus = 'complete' | 'missing' | 'damaged'
+interface ItemQuantity {
+  actual: number
+  replenished?: number
+}
 
-export function ItemsCheckStep({ form, items }: ItemsCheckStepProps) {
+export function ItemsCheckStep({ form, items, roomId, hotelId, onQuantitiesChange }: ItemsCheckStepProps) {
   const [search, setSearch] = useState('')
-  const [itemStatuses, setItemStatuses] = useState<Record<string, ItemStatus>>({})
+  const [itemQuantities, setItemQuantities] = useState<Record<string, ItemQuantity>>({})
+  const [replenishingItems, setReplenishingItems] = useState<Record<string, boolean>>({})
+  const { toast } = useToast()
+  const { user } = useUser()
+  
+  // Initialize with current quantities
+  useEffect(() => {
+    const initial: Record<string, ItemQuantity> = {}
+    items.forEach(item => {
+      initial[item.item_id] = { actual: item.current_quantity || 0 }
+    })
+    setItemQuantities(initial)
+  }, [items])
+  
+  // Notify parent of quantity changes
+  useEffect(() => {
+    if (onQuantitiesChange) {
+      const quantities: Record<string, number> = {}
+      Object.entries(itemQuantities).forEach(([id, qty]) => {
+        quantities[id] = qty.actual
+      })
+      onQuantitiesChange(quantities)
+    }
+  }, [itemQuantities, onQuantitiesChange])
   
   const filteredItems = items.filter((item: RoomItemWithDetails) =>
     item.item_name.toLowerCase().includes(search.toLowerCase()) ||
     item.item_code.toLowerCase().includes(search.toLowerCase())
   )
   
-  const handleItemStatus = (itemId: string, status: ItemStatus) => {
-    const newStatuses = { ...itemStatuses, [itemId]: status }
-    setItemStatuses(newStatuses)
-    
-    // Update form values
-    const missing = Object.entries(newStatuses)
-      .filter(([_, s]) => s === 'missing')
-      .map(([id]) => items.find((i: RoomItemWithDetails) => i.item_id === id))
-      .filter(Boolean)
-    
-    const damaged = Object.entries(newStatuses)
-      .filter(([_, s]) => s === 'damaged')
-      .map(([id]) => items.find((i: RoomItemWithDetails) => i.item_id === id))
-      .filter(Boolean)
-    
-    form.setValue('items_missing', missing)
-    form.setValue('items_damaged', damaged)
-    form.setValue('items_complete', missing.length === 0 && damaged.length === 0)
+  const getActualQuantity = (itemId: string) => {
+    return itemQuantities[itemId]?.actual ?? 0
   }
   
-  const completeCount = Object.values(itemStatuses).filter(s => s === 'complete').length
-  const missingCount = Object.values(itemStatuses).filter(s => s === 'missing').length
-  const damagedCount = Object.values(itemStatuses).filter(s => s === 'damaged').length
-  const totalChecked = completeCount + missingCount + damagedCount
+  const getShortage = (item: RoomItemWithDetails) => {
+    const actual = getActualQuantity(item.item_id)
+    return Math.max(0, item.standard_quantity - actual)
+  }
+  
+  const handleQuantityChange = (itemId: string, value: string) => {
+    const actual = parseInt(value) || 0
+    setItemQuantities(prev => ({
+      ...prev,
+      [itemId]: { ...prev[itemId], actual }
+    }))
+  }
+  
+  const handleReplenishFromStock = async (item: RoomItemWithDetails) => {
+    const shortage = getShortage(item)
+    if (shortage <= 0) return
+    
+    setReplenishingItems(prev => ({ ...prev, [item.item_id]: true }))
+    
+    try {
+      // Check stock availability
+      const { data: itemData, error: itemError } = await supabase
+        .from('items')
+        .select('quantity_in_stock, quantity_in_use, tenant_id')
+        .eq('id', item.item_id)
+        .single()
+      
+      if (itemError) throw itemError
+      
+      if (!itemData || itemData.quantity_in_stock < shortage) {
+        toast({
+          title: 'Không đủ hàng trong kho',
+          description: `Kho chỉ còn ${itemData?.quantity_in_stock || 0}, cần ${shortage}`,
+          variant: 'destructive',
+        })
+        return
+      }
+      
+      // Update stock quantities
+      await supabase
+        .from('items')
+        .update({
+          quantity_in_stock: itemData.quantity_in_stock - shortage,
+          quantity_in_use: itemData.quantity_in_use + shortage
+        })
+        .eq('id', item.item_id)
+      
+      // Create transaction record
+      await supabase
+        .from('inventory_transactions')
+        .insert({
+          hotel_id: hotelId,
+          item_id: item.item_id,
+          quantity: shortage,
+          quantity_before: itemData.quantity_in_stock,
+          quantity_after: itemData.quantity_in_stock - shortage,
+          transaction_type: 'outbound',
+          transaction_category: 'room_usage',
+          transaction_code: `OUT-${Date.now()}`,
+          to_location: `Phòng ${roomId}`,
+          notes: `Bổ sung thiếu hụt khi kiểm tra phòng`,
+          created_by: user?.id,
+          tenant_id: itemData.tenant_id,
+        })
+      
+      // Update room_items
+      const newQuantity = getActualQuantity(item.item_id) + shortage
+      await supabase
+        .from('room_items')
+        .upsert({
+          room_id: roomId,
+          item_id: item.item_id,
+          quantity: newQuantity,
+        })
+      
+      // Update local state
+      setItemQuantities(prev => ({
+        ...prev,
+        [item.item_id]: {
+          actual: newQuantity,
+          replenished: (prev[item.item_id]?.replenished || 0) + shortage
+        }
+      }))
+      
+      toast({
+        title: 'Đã bổ sung từ kho',
+        description: `+${shortage} ${item.item_name}`,
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setReplenishingItems(prev => ({ ...prev, [item.item_id]: false }))
+    }
+  }
+  
+  const totalChecked = Object.keys(itemQuantities).length
   const totalItems = items.length
   const progressPercentage = totalItems > 0 ? (totalChecked / totalItems) * 100 : 0
   
-  const markAllComplete = () => {
-    const allComplete: Record<string, ItemStatus> = {}
+  const markAllStandard = () => {
+    const allStandard: Record<string, ItemQuantity> = {}
     items.forEach((item: RoomItemWithDetails) => {
-      allComplete[item.item_id] = 'complete'
+      allStandard[item.item_id] = { actual: item.standard_quantity }
     })
-    setItemStatuses(allComplete)
-    form.setValue('items_missing', [])
-    form.setValue('items_damaged', [])
-    form.setValue('items_complete', true)
+    setItemQuantities(allStandard)
   }
   
   const resetAll = () => {
-    setItemStatuses({})
-    form.setValue('items_missing', [])
-    form.setValue('items_damaged', [])
-    form.setValue('items_complete', true)
+    const initial: Record<string, ItemQuantity> = {}
+    items.forEach(item => {
+      initial[item.item_id] = { actual: item.current_quantity || 0 }
+    })
+    setItemQuantities(initial)
   }
+  
+  // Calculate summary
+  const getMissingSummary = () => {
+    return items
+      .map(item => ({
+        ...item,
+        shortage: getShortage(item)
+      }))
+      .filter(item => item.shortage > 0)
+  }
+  
+  // Update form with quantities data
+  useEffect(() => {
+    const missing = getMissingSummary().map(item => ({
+      item_id: item.item_id,
+      item_name: item.item_name,
+      shortage: item.shortage
+    }))
+    
+    form.setValue('items_missing', missing as any)
+    form.setValue('items_complete', missing.length === 0)
+  }, [itemQuantities, items, form])
   
   return (
     <div className="space-y-6">
@@ -90,155 +222,143 @@ export function ItemsCheckStep({ form, items }: ItemsCheckStepProps) {
         </CardContent>
       </Card>
       
-      {/* Warning if not all checked */}
-      {totalChecked < totalItems && totalChecked > 0 && (
-        <Alert>
+      {/* Warning if items missing */}
+      {getMissingSummary().length > 0 && (
+        <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Còn {totalItems - totalChecked} items chưa được kiểm tra. Hãy kiểm tra tất cả trước khi tiếp tục.
+            Phát hiện {getMissingSummary().length} mặt hàng thiếu hụt. Cần bổ sung tổng cộng{' '}
+            {getMissingSummary().reduce((sum, item) => sum + item.shortage, 0)} items từ kho.
           </AlertDescription>
         </Alert>
       )}
       
       <div className="flex items-center gap-4">
-        <div className="relative flex-1">
+        {/* Search */}
+        <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Tìm đồ dùng..."
+            placeholder="Tìm kiếm đồ dùng..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="pl-10"
           />
         </div>
+        
+        {/* Quick Actions */}
         <Button
           type="button"
           variant="outline"
-          onClick={markAllComplete}
-          disabled={totalItems === 0}
+          size="sm"
+          onClick={markAllStandard}
         >
           <CheckCircle2 className="mr-2 h-4 w-4" />
-          Đánh dấu tất cả OK
+          Đủ chuẩn
         </Button>
+        
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
+          size="sm"
           onClick={resetAll}
-          disabled={totalChecked === 0}
         >
           <RotateCcw className="mr-2 h-4 w-4" />
           Đặt lại
         </Button>
       </div>
       
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <CheckCircle2 className="h-6 w-6 mx-auto mb-2 text-green-600" />
-              <p className="text-2xl font-bold">{completeCount}</p>
-              <p className="text-sm text-muted-foreground">Đầy đủ</p>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <AlertCircle className="h-6 w-6 mx-auto mb-2 text-yellow-600" />
-              <p className="text-2xl font-bold">{missingCount}</p>
-              <p className="text-sm text-muted-foreground">Thiếu</p>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <XCircle className="h-6 w-6 mx-auto mb-2 text-red-600" />
-              <p className="text-2xl font-bold">{damagedCount}</p>
-              <p className="text-sm text-muted-foreground">Hư hỏng</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      
+      {/* Items List */}
       <div className="space-y-3">
         {filteredItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Package className="h-12 w-12 text-muted-foreground/50" />
-            <p className="mt-2 text-sm text-muted-foreground">
-              {search ? 'Không tìm thấy đồ dùng' : 'Phòng chưa có đồ dùng'}
-            </p>
-          </div>
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">
+                {search ? 'Không tìm thấy đồ dùng phù hợp' : 'Chưa có đồ dùng nào'}
+              </p>
+            </CardContent>
+          </Card>
         ) : (
           filteredItems.map((item: RoomItemWithDetails) => {
-            const status = itemStatuses[item.item_id] || 'complete'
+            const actualQty = getActualQuantity(item.item_id)
+            const shortage = getShortage(item)
+            const isReplenishing = replenishingItems[item.item_id]
+            const wasReplenished = (itemQuantities[item.item_id]?.replenished || 0) > 0
             
             return (
-              <Card key={item.item_id} className="overflow-hidden">
+              <Card key={item.item_id}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-4">
-                    {item.item_thumbnail ? (
-                      <img
-                        src={item.item_thumbnail}
+                    {/* Item thumbnail */}
+                    {item.item_thumbnail && (
+                      <img 
+                        src={item.item_thumbnail} 
                         alt={item.item_name}
-                        className="h-16 w-16 rounded object-cover"
+                        className="w-16 h-16 object-cover rounded-lg"
                       />
-                    ) : (
-                      <div className="flex h-16 w-16 items-center justify-center rounded bg-muted">
-                        <Package className="h-8 w-8 text-muted-foreground" />
-                      </div>
                     )}
                     
+                    {/* Item details */}
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium truncate">{item.item_name}</h4>
-                      <p className="text-sm text-muted-foreground">{item.item_code}</p>
-                      {item.category_name && (
-                        <Badge variant="outline" className="mt-1">
-                          {item.category_name}
-                        </Badge>
-                      )}
-                      <p className="text-sm mt-1">
-                        <span className="text-muted-foreground">Hiện có: </span>
-                        <span className="font-medium">{item.current_quantity}</span>
-                        {item.standard_quantity > 0 && (
-                          <span className="text-muted-foreground">
-                            {' '}/ Chuẩn: {item.standard_quantity}
-                          </span>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div>
+                          <h4 className="font-medium truncate">{item.item_name}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {item.item_code}
+                          </p>
+                        </div>
+                        {item.category_name && (
+                          <Badge variant="outline" className="shrink-0">
+                            {item.category_name}
+                          </Badge>
                         )}
-                      </p>
+                      </div>
+                      
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <div className="text-sm text-muted-foreground">
+                          Chuẩn: {item.standard_quantity}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">Thực tế:</span>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={actualQty}
+                            onChange={(e) => handleQuantityChange(item.item_id, e.target.value)}
+                            className="w-20 h-8 text-center"
+                          />
+                        </div>
+                        {shortage > 0 ? (
+                          <Badge variant="destructive" className="shrink-0">
+                            Thiếu {shortage}
+                          </Badge>
+                        ) : actualQty >= item.standard_quantity ? (
+                          <Badge variant="default" className="shrink-0 bg-success">
+                            <CheckCircle2 className="mr-1 h-3 w-3" />
+                            Đủ
+                          </Badge>
+                        ) : null}
+                        {wasReplenished && (
+                          <Badge variant="secondary" className="shrink-0">
+                            Đã bổ sung
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     
-                    <div className="flex gap-2">
+                    {/* Action Button */}
+                    {shortage > 0 && (
                       <Button
                         type="button"
-                        variant={status === 'complete' ? 'default' : 'outline'}
                         size="sm"
-                        onClick={() => handleItemStatus(item.item_id, 'complete')}
-                        className={status === 'complete' ? 'bg-green-600 hover:bg-green-700' : ''}
+                        onClick={() => handleReplenishFromStock(item)}
+                        disabled={isReplenishing}
+                        className="shrink-0"
                       >
-                        <CheckCircle2 className="h-4 w-4" />
+                        <Plus className="mr-1 h-4 w-4" />
+                        {isReplenishing ? 'Đang bổ sung...' : 'Bổ sung'}
                       </Button>
-                      
-                      <Button
-                        type="button"
-                        variant={status === 'missing' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleItemStatus(item.item_id, 'missing')}
-                        className={status === 'missing' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
-                      >
-                        <AlertCircle className="h-4 w-4" />
-                      </Button>
-                      
-                      <Button
-                        type="button"
-                        variant={status === 'damaged' ? 'destructive' : 'outline'}
-                        size="sm"
-                        onClick={() => handleItemStatus(item.item_id, 'damaged')}
-                      >
-                        <XCircle className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

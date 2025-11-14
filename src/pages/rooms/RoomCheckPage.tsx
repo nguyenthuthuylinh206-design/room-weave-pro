@@ -41,6 +41,7 @@ export function RoomCheckPage() {
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [showResumeDialog, setShowResumeDialog] = useState(false)
   const [quickMode, setQuickMode] = useState(false)
+  const [itemQuantities, setItemQuantities] = useState<Record<string, number>>({})
   const totalSteps = quickMode ? 2 : 3 // Skip items step in quick mode
   
   const form = useForm<RoomCheckFormData>({
@@ -184,6 +185,7 @@ export function RoomCheckPage() {
       await createCheck.mutateAsync({
         roomId: id,
         data,
+        itemQuantities: Object.keys(itemQuantities).length > 0 ? itemQuantities : undefined,
       })
       
       clearSavedProgress()
@@ -298,7 +300,15 @@ export function RoomCheckPage() {
                   setQuickMode={setQuickMode}
                 />
               )}
-              {currentStep === 2 && !quickMode && <ItemsCheckStep form={form} items={items} />}
+              {currentStep === 2 && !quickMode && (
+                <ItemsCheckStep 
+                  form={form} 
+                  items={items} 
+                  roomId={id!}
+                  hotelId={room.hotel_id}
+                  onQuantitiesChange={setItemQuantities}
+                />
+              )}
               {((currentStep === 2 && quickMode) || currentStep === 3) && (
                 <ReviewStep form={form} room={room} />
               )}
