@@ -13,23 +13,6 @@ import {
   ACTIONS,
 } from '@/hooks/useUserPermissions'
 import { UserWithRelations } from '@/types/database.types'
-import {
-  LayoutDashboard,
-  Package,
-  DoorClosed,
-  Shirt,
-  Warehouse,
-  Wrench,
-  Store,
-  ShoppingCart,
-  FileText,
-  Users,
-  Settings,
-  Building2,
-  Crown,
-  Shield,
-  User,
-} from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { toast } from '@/hooks/use-toast'
 
@@ -37,21 +20,6 @@ interface UserPermissionsDialogProps {
   user: UserWithRelations | null
   open: boolean
   onOpenChange: (open: boolean) => void
-}
-
-const ICONS: Record<string, any> = {
-  LayoutDashboard,
-  Package,
-  DoorClosed,
-  Shirt,
-  Warehouse,
-  Wrench,
-  Store,
-  ShoppingCart,
-  FileText,
-  Users,
-  Settings,
-  Building2,
 }
 
 export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissionsDialogProps) {
@@ -72,6 +40,20 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
   useEffect(() => {
     if (permissionsSummary) {
       const newPermissions: Record<string, Record<string, boolean>> = {}
+      
+      // Initialize ALL modules with default false values
+      MODULES.forEach((module) => {
+        newPermissions[module.code] = {
+          view: false,
+          create: false,
+          update: false,
+          delete: false,
+          export: false,
+          approve: false,
+        }
+      })
+      
+      // Override with actual permissions from summary
       permissionsSummary.forEach((summary) => {
         newPermissions[summary.module] = {
           view: summary.can_view,
@@ -82,7 +64,9 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
           approve: summary.can_approve,
         }
       })
+      
       setPermissions(newPermissions)
+      console.log('[Permissions] Initialized permissions:', newPermissions)
     }
   }, [permissionsSummary])
 
@@ -155,7 +139,6 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
             Phân quyền chi tiết
           </DialogTitle>
           <DialogDescription>
@@ -175,7 +158,6 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
 
         {(isSuperAdmin || isOwner) && (
           <Alert>
-            <Crown className="h-4 w-4" />
             <AlertDescription>
               {isSuperAdmin
                 ? 'Super Admin có toàn quyền truy cập tất cả modules và không thể thay đổi.'
@@ -186,7 +168,6 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
 
         {/* Hotel Scope Section */}
         <Alert className="bg-accent/50">
-          <Building2 className="h-4 w-4" />
           <AlertDescription>
             <div className="space-y-1">
               <strong>Phạm vi quyền:</strong>
@@ -209,20 +190,15 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
               <LoadingSpinner />
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {MODULES.map((module) => {
-                const Icon = ICONS[module.icon]
                 const modulePermissions = permissions[module.code] || {}
                 const allEnabled = ACTIONS.every((action) => modulePermissions[action.code])
-                const someEnabled = ACTIONS.some((action) => modulePermissions[action.code])
 
                 return (
-                  <div key={module.code} className="border rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-5 w-5 text-primary" />
-                        <span className="font-semibold">{module.name}</span>
-                      </div>
+                  <div key={module.code} className="border rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between pb-2 border-b">
+                      <span className="font-semibold text-sm">{module.name}</span>
                       <Button
                         variant="outline"
                         size="sm"
@@ -231,13 +207,13 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
                           console.log(`[Permissions] Toggle module ${module.code}: ${allEnabled} → ${newState}`)
                           toggleAllActions(module.code, newState)
                         }}
-                        disabled={isSuperAdmin || isOwner}
+                        disabled={isSuperAdmin || isOwner || isSaving}
                       >
-                        {allEnabled ? '❌ Bỏ chọn tất cả quyền' : '✅ Chọn tất cả quyền'}
+                        {allEnabled ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
                       </Button>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {ACTIONS.map((action) => {
                         const isChecked = modulePermissions[action.code] || false
                         const permissionKey = `${module.code}.${action.code}`
@@ -246,7 +222,7 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
                         return (
                           <div
                             key={action.code}
-                            className="flex items-center space-x-2 p-2 rounded border border-border hover:bg-accent/50 transition-all duration-200"
+                            className="flex items-center space-x-2 p-1.5 rounded border border-border hover:bg-accent/30 transition-colors"
                           >
                             <Checkbox
                               id={`${module.code}-${action.code}`}
@@ -256,29 +232,19 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
                               }
                               disabled={isSuperAdmin || isOwner || isSaving}
                             />
-                            <div className="flex-1 flex items-center justify-between gap-2">
+                            <div className="flex-1 flex items-center justify-between gap-1.5 min-w-0">
                               <label
                                 htmlFor={`${module.code}-${action.code}`}
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                className="text-xs font-medium leading-none cursor-pointer truncate"
                               >
                                 {action.name}
                               </label>
                               {isChecked && source && (
                                 <Badge 
                                   variant={source === 'role' ? 'secondary' : 'default'} 
-                                  className="text-[10px] px-1.5 py-0 h-4"
+                                  className="text-[9px] px-1 py-0 h-3.5 shrink-0"
                                 >
-                                  {source === 'role' ? (
-                                    <>
-                                      <Shield className="h-2.5 w-2.5 mr-0.5" />
-                                      Role
-                                    </>
-                                  ) : (
-                                    <>
-                                      <User className="h-2.5 w-2.5 mr-0.5" />
-                                      Custom
-                                    </>
-                                  )}
+                                  {source === 'role' ? 'Role' : 'Custom'}
                                 </Badge>
                               )}
                             </div>
