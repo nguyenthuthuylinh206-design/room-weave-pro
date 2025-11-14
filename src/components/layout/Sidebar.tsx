@@ -1,8 +1,9 @@
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/hooks/useUser'
 import { useTenant } from '@/hooks/useTenant'
-import { useState } from 'react'
+import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
 import {
   LayoutDashboard,
   Package,
@@ -367,10 +368,35 @@ const navigation: NavItem[] = [
   },
 ]
 
+// Map navigation titles to permission modules
+const NAVIGATION_MODULE_MAP: Record<string, string> = {
+  'Dashboard': 'dashboard',
+  'Tài sản': 'items',
+  'Phòng': 'rooms',
+  'Giặt là': 'laundry',
+  'Kho': 'inventory',
+  'Bảo trì': 'maintenance',
+  'Nhà cung cấp': 'vendors',
+  'Đơn mua hàng': 'purchase_orders',
+  'Báo cáo': 'reports',
+  'Khách sạn': 'hotels',
+  'Người dùng': 'users',
+  'Cài đặt': 'settings',
+}
+
+// Map child item keywords to required actions
+const getRequiredAction = (childTitle: string): 'view' | 'create' | null => {
+  const lowerTitle = childTitle.toLowerCase()
+  if (lowerTitle.includes('thêm') || lowerTitle.includes('tạo')) return 'create'
+  if (lowerTitle.includes('danh sách') || lowerTitle.includes('tổng quan')) return 'view'
+  return 'view' // Default: require view permission
+}
+
 export const Sidebar = () => {
   const location = useLocation()
   const { user, role, isLoading: userLoading } = useUser()
   const { tenant, isLoading: tenantLoading } = useTenant()
+  const { data: modulePermissions, isLoading: permissionsLoading } = useUserModulePermissions()
   const [expandedItems, setExpandedItems] = useState<string[]>(() => {
     // Auto-expand parent if a child route is active
     const expanded: string[] = []
@@ -387,11 +413,61 @@ export const Sidebar = () => {
     return expanded
   })
 
-  const isLoading = userLoading || tenantLoading
+  const isLoading = userLoading || tenantLoading || permissionsLoading
 
+  // Check if user has access to a module
+  const hasModuleAccess = (navigationTitle: string): boolean => {
+    // Super admin and owner have full access
+    if (role === 'super_admin' || role === 'owner') return true
+    
+    // Check permission from database
+    const moduleCode = NAVIGATION_MODULE_MAP[navigationTitle]
+    if (!moduleCode) return true // No mapping = show by default
+    
+    const permission = modulePermissions?.find(p => p.module === moduleCode)
+    if (!permission) return false
+    
+    // Has access if has any action permission
+    return permission.can_view || 
+           permission.can_create || 
+           permission.can_update || 
+           permission.can_delete
+  }
+
+  // Check if user has access to a child item
+  const hasChildAccess = (parentTitle: string, childTitle: string): boolean => {
+    // Super admin and owner have full access
+    if (role === 'super_admin' || role === 'owner') return true
+    
+    const moduleCode = NAVIGATION_MODULE_MAP[parentTitle]
+    if (!moduleCode) return true
+    
+    const permission = modulePermissions?.find(p => p.module === moduleCode)
+    if (!permission) return false
+    
+    const requiredAction = getRequiredAction(childTitle)
+    if (requiredAction === 'create') return permission.can_create
+    if (requiredAction === 'view') return permission.can_view
+    
+    return permission.can_view // Default
+  }
+
+  // Filter navigation based on permissions
   const filteredNavigation = navigation.filter((item) => {
-    if (!item.roles) return true
-    return item.roles.includes(role || 'staff')
+    // First check role-based access
+    if (item.roles && !item.roles.includes(role || 'staff')) return false
+    
+    // Then check database permissions
+    return hasModuleAccess(item.title)
+  }).map((item) => {
+    // Filter children based on action permissions
+    if (item.children) {
+      return {
+        ...item,
+        children: item.children.filter(child => hasChildAccess(item.title, child.title))
+      }
+    }
+    return item
   })
 
   const toggleExpanded = (title: string) => {

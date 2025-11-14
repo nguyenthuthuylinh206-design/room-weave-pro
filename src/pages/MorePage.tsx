@@ -19,7 +19,7 @@ import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAuth } from '@/hooks/useAuth'
 import { useUser } from '@/hooks/useUser'
-import { hasPermission, Permission } from '@/lib/permissions'
+import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
 import { cn } from '@/lib/utils'
 
 interface MenuItem {
@@ -27,7 +27,7 @@ interface MenuItem {
   label: string
   description?: string
   path: string
-  permission?: Permission
+  module?: string
 }
 
 interface MenuSection {
@@ -38,6 +38,7 @@ interface MenuSection {
 export default function MorePage() {
   const navigate = useNavigate()
   const { user, role } = useUser()
+  const { data: modulePermissions } = useUserModulePermissions()
   const { signOut } = useAuth()
 
   const menuSections: MenuSection[] = [
@@ -59,42 +60,42 @@ export default function MorePage() {
           label: 'Purchase Orders',
           description: 'Manage orders',
           path: '/purchase-orders',
-          permission: 'view_items'
+          module: 'purchase_orders'
         },
         {
           icon: Package,
           label: 'Items',
           description: 'Item catalog',
           path: '/items',
-          permission: 'view_items'
+          module: 'items'
         },
         {
           icon: TrendingUp,
           label: 'Reports',
           description: 'Analytics & insights',
           path: '/reports',
-          permission: 'view_reports'
+          module: 'reports'
         },
         {
           icon: Building2,
           label: 'Hotels',
           description: 'Manage properties',
           path: '/hotels',
-          permission: 'manage_settings'
+          module: 'hotels'
         },
         {
           icon: Users,
           label: 'Users',
           description: 'Team management',
           path: '/users',
-          permission: 'manage_users'
+          module: 'users'
         },
         {
           icon: Users,
           label: 'Vendors',
           description: 'Supplier management',
           path: '/vendors',
-          permission: 'view_items'
+          module: 'vendors'
         }
       ]
     },
@@ -122,6 +123,17 @@ export default function MorePage() {
       ]
     }
   ]
+
+  // Check if user has module access
+  const hasModuleAccess = (moduleCode?: string): boolean => {
+    if (!moduleCode) return true
+    if (role === 'super_admin' || role === 'owner') return true
+    
+    const permission = modulePermissions?.find(p => p.module === moduleCode)
+    if (!permission) return false
+    
+    return permission.can_view || permission.can_create || permission.can_update || permission.can_delete
+  }
 
   const handleNavigation = (path: string) => {
     navigate(path)
@@ -161,13 +173,10 @@ export default function MorePage() {
               </h2>
             )}
             <Card className="overflow-hidden">
-              {section.items.map((item, itemIndex) => {
-                // Check permission
-                if (item.permission && !hasPermission(role, item.permission)) {
-                  return null
-                }
-
-                const Icon = item.icon
+              {section.items
+                .filter((item) => hasModuleAccess(item.module))
+                .map((item, itemIndex) => {
+                  const Icon = item.icon
                 const isLast = itemIndex === section.items.length - 1
 
                 return (

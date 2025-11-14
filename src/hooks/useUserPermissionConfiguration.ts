@@ -130,6 +130,9 @@ export function useUserPermissionConfiguration(userId?: string) {
       queryClient.invalidateQueries({ 
         queryKey: ['user-permissions-summary', variables.userId] 
       })
+      queryClient.invalidateQueries({ 
+        queryKey: ['user-module-permissions'] 
+      })
     },
   })
 
@@ -185,6 +188,9 @@ export function useUserPermissionConfiguration(userId?: string) {
       })
       queryClient.invalidateQueries({ 
         queryKey: ['user-permissions-summary', variables.userId] 
+      })
+      queryClient.invalidateQueries({ 
+        queryKey: ['user-module-permissions'] 
       })
       toast.success('Đã cập nhật cấu hình quyền')
     },
@@ -244,6 +250,9 @@ export function useUserPermissionConfiguration(userId?: string) {
       })
       queryClient.invalidateQueries({ 
         queryKey: ['user-permissions-summary', variables.userId] 
+      })
+      queryClient.invalidateQueries({ 
+        queryKey: ['user-module-permissions'] 
       })
     },
   })
