@@ -22,9 +22,6 @@ export function StaffRoomCheckView() {
   
   const { data: rooms, isLoading } = useRooms(filters)
   const checkSessions = useAllRoomCheckSessions()
-  
-  console.log('[StaffRoomCheckView] Check sessions:', checkSessions)
-  console.log('[StaffRoomCheckView] Rooms:', rooms)
 
   const handleStartCheck = (roomId: string) => {
     setSelectedRoomId(roomId)

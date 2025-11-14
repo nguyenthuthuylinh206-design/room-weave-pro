@@ -6,11 +6,13 @@ import {
   CheckCircle, 
   AlertTriangle,
   Wind,
+  Clock,
 } from 'lucide-react'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { RoomStatusBadge } from './RoomStatusBadge'
+import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
 import { formatCurrency } from '@/lib/utils'
 import type { RoomWithStats, RoomStatus } from '@/types/rooms.types'
 
@@ -21,6 +23,17 @@ interface RoomGridProps {
 
 export function RoomGrid({ rooms, isLoading }: RoomGridProps) {
   const navigate = useNavigate()
+  const checkSessions = useAllRoomCheckSessions()
+  
+  const getCheckTypeLabel = (type: string) => {
+    const labels = {
+      daily: 'đầu ngày',
+      checkin: 'trước check-in',
+      checkout: 'sau check-out',
+      maintenance: 'bảo trì'
+    }
+    return labels[type as keyof typeof labels] || type
+  }
   
   if (isLoading) {
     return (
@@ -92,7 +105,14 @@ export function RoomGrid({ rooms, isLoading }: RoomGridProps) {
             </div>
             
             <div className="space-y-1 border-t pt-2 text-xs">
-              {room.missing_items === 0 ? (
+              {checkSessions[room.id] ? (
+                <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
+                  <Clock className="h-3 w-3 animate-pulse" />
+                  <span className="font-medium">
+                    {checkSessions[room.id].user_name} đang kiểm tra {getCheckTypeLabel(checkSessions[room.id].check_type)}
+                  </span>
+                </div>
+              ) : room.missing_items === 0 ? (
                 <div className="flex items-center gap-1 text-green-600">
                   <CheckCircle className="h-3 w-3" />
                   <span>Đồ dùng đầy đủ</span>
@@ -135,12 +155,13 @@ export function RoomGrid({ rooms, isLoading }: RoomGridProps) {
             <Button
               size="sm"
               className="flex-1"
+              disabled={!!checkSessions[room.id]}
               onClick={(e) => {
                 e.stopPropagation()
                 navigate(`/rooms/${room.id}/check`)
               }}
             >
-              Kiểm tra
+              {checkSessions[room.id] ? 'Đang kiểm tra' : 'Kiểm tra'}
             </Button>
           </CardFooter>
         </Card>
