@@ -143,17 +143,11 @@ export function useAllRoomCheckSessions() {
   useEffect(() => {
     const fetchSessions = async () => {
       try {
-        console.log('[useAllRoomCheckSessions] Fetching sessions...')
         const { data, error } = await supabase
           .from('room_check_sessions')
           .select('*')
 
-        if (error) {
-          console.error('[useAllRoomCheckSessions] Error:', error)
-          throw error
-        }
-        
-        console.log('[useAllRoomCheckSessions] Fetched data:', data)
+        if (error) throw error
         
         const sessionsMap: Record<string, RoomCheckSession> = {}
         data?.forEach(session => {
@@ -166,11 +160,9 @@ export function useAllRoomCheckSessions() {
             started_at: session.started_at
           }
         })
-        
-        console.log('[useAllRoomCheckSessions] Sessions map:', sessionsMap)
         setSessions(sessionsMap)
       } catch (error: any) {
-        console.error('[useAllRoomCheckSessions] Error fetching check sessions:', error)
+        console.error('Error fetching check sessions:', error)
       }
     }
 
@@ -187,41 +179,30 @@ export function useAllRoomCheckSessions() {
           table: 'room_check_sessions',
         },
         (payload) => {
-          console.log('[useAllRoomCheckSessions] Realtime event:', payload.eventType, payload)
-          
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             const newSession = payload.new as any
-            console.log('[useAllRoomCheckSessions] Adding/updating session:', newSession)
-            setSessions(prev => {
-              const updated = {
-                ...prev,
-                [newSession.room_id]: {
-                  id: newSession.id,
-                  room_id: newSession.room_id,
-                  user_id: newSession.user_id,
-                  user_name: newSession.user_name,
-                  check_type: newSession.check_type as 'daily' | 'checkin' | 'checkout' | 'maintenance',
-                  started_at: newSession.started_at
-                }
+            setSessions(prev => ({
+              ...prev,
+              [newSession.room_id]: {
+                id: newSession.id,
+                room_id: newSession.room_id,
+                user_id: newSession.user_id,
+                user_name: newSession.user_name,
+                check_type: newSession.check_type as 'daily' | 'checkin' | 'checkout' | 'maintenance',
+                started_at: newSession.started_at
               }
-              console.log('[useAllRoomCheckSessions] Updated sessions:', updated)
-              return updated
-            })
+            }))
           } else if (payload.eventType === 'DELETE') {
             const oldSession = payload.old as any
-            console.log('[useAllRoomCheckSessions] Deleting session:', oldSession)
             setSessions(prev => {
               const newSessions = { ...prev }
               delete newSessions[oldSession.room_id]
-              console.log('[useAllRoomCheckSessions] Updated sessions after delete:', newSessions)
               return newSessions
             })
           }
         }
       )
-      .subscribe((status) => {
-        console.log('[useAllRoomCheckSessions] Subscription status:', status)
-      })
+      .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
