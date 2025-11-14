@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -30,6 +30,9 @@ import type { RoomCheckFormData } from '@/types/rooms.types'
 export function RoomCheckPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const prefilledType = searchParams.get('type') as 'daily' | 'checkin' | 'checkout' | 'maintenance' | null
+  
   const { user } = useUser()
   const { data: roomData, isLoading } = useRoom(id)
   const createCheck = useCreateRoomCheck()
@@ -43,7 +46,7 @@ export function RoomCheckPage() {
   const form = useForm<RoomCheckFormData>({
     resolver: zodResolver(roomCheckFormSchema),
     defaultValues: {
-      check_type: 'daily',
+      check_type: prefilledType || 'daily', // Pre-fill from URL
       cleanliness_score: 5,
       items_complete: true,
       items_missing: [],

@@ -1,202 +1,213 @@
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Plus, Bed, AlertCircle } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
-import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRooms, useRoomStats } from '@/hooks/useRooms'
 import { useUser } from '@/hooks/useUser'
-import { cn } from '@/lib/utils'
-import type { RoomStatus, RoomWithStats } from '@/types/rooms.types'
+import { StaffRoomCheckView } from '@/components/rooms/StaffRoomCheckView'
+import { ManagerRoomChecksView } from '@/components/rooms/ManagerRoomChecksView'
+import type { RoomStatus } from '@/types/rooms.types'
 
 export default function RoomsPage() {
-  const { tenantId, hotelId } = useUser()
-  const [filters, setFilters] = useState<{ status?: RoomStatus }>({})
+  const navigate = useNavigate()
+  const { user, role } = useUser()
+  const [statusFilter, setStatusFilter] = useState<RoomStatus | 'all'>('all')
   
-  const { data: rooms, isLoading: roomsLoading } = useRooms(filters)
-  const { data: stats, isLoading: statsLoading } = useRoomStats(tenantId, hotelId)
+  // Staff view - show check interface
+  if (role === 'staff') {
+    return <StaffRoomCheckView />
+  }
+  
+  // Manager/Owner view - show management interface
+  const { data: rooms, isLoading } = useRooms(
+    statusFilter === 'all' ? {} : { status: statusFilter }
+  )
+  const { data: stats } = useRoomStats(user?.tenant_id, user?.hotel_id)
 
   return (
     <div className="space-y-6">
-        <PageHeader
-          title="Quản lý Phòng"
-          description="Theo dõi và quản lý tất cả các phòng trong khách sạn"
-          action={{
-            label: 'Thêm phòng',
-            icon: Plus,
-            onClick: () => console.log('Add room'),
-          }}
-        />
+      <PageHeader
+        title="Quản lý Phòng"
+        description="Quản lý thông tin phòng và trạng thái"
+      >
+        <Button onClick={() => navigate('/rooms/new')}>
+          <Plus className="mr-2 h-4 w-4" />
+          Thêm phòng mới
+        </Button>
+      </PageHeader>
 
-        {/* Status Overview */}
-        {statsLoading ? (
-          <div className="grid gap-4 md:grid-cols-4">
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="h-24" />
-            ))}
-          </div>
-        ) : (
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">Tổng quan phòng</TabsTrigger>
+          <TabsTrigger value="checks">Lịch sử kiểm tra</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          {/* Status Cards */}
           <div className="grid gap-4 md:grid-cols-4">
             <StatusCard
               label="Phòng trống"
               count={stats?.vacant || 0}
-              color="success"
-              onClick={() => setFilters({ status: 'vacant' })}
-              active={filters.status === 'vacant'}
+              status="vacant"
+              active={statusFilter === 'vacant'}
+              onClick={() => setStatusFilter('vacant')}
             />
             <StatusCard
               label="Đang ở"
               count={stats?.occupied || 0}
-              color="primary"
-              onClick={() => setFilters({ status: 'occupied' })}
-              active={filters.status === 'occupied'}
+              status="occupied"
+              active={statusFilter === 'occupied'}
+              onClick={() => setStatusFilter('occupied')}
             />
             <StatusCard
               label="Đang dọn"
               count={stats?.cleaning || 0}
-              color="warning"
-              onClick={() => setFilters({ status: 'cleaning' })}
-              active={filters.status === 'cleaning'}
+              status="cleaning"
+              active={statusFilter === 'cleaning'}
+              onClick={() => setStatusFilter('cleaning')}
             />
             <StatusCard
               label="Bảo trì"
               count={stats?.maintenance || 0}
-              color="destructive"
-              onClick={() => setFilters({ status: 'maintenance' })}
-              active={filters.status === 'maintenance'}
+              status="maintenance"
+              active={statusFilter === 'maintenance'}
+              onClick={() => setStatusFilter('maintenance')}
             />
           </div>
-        )}
 
-        {/* Room Grid */}
-        <div>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-semibold">
-              {filters.status ? `Phòng ${getStatusLabel(filters.status)}` : 'Tất cả phòng'}
-            </h2>
-            {filters.status && (
-              <button
-                onClick={() => setFilters({})}
-                className="text-sm text-muted-foreground hover:text-foreground"
-              >
-                Xóa bộ lọc
-              </button>
+          {/* Rooms Grid */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {isLoading ? (
+              // Loading skeletons
+              Array.from({ length: 8 }).map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader className="space-y-2">
+                    <div className="h-4 bg-muted rounded w-20" />
+                    <div className="h-3 bg-muted rounded w-16" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-20 bg-muted rounded" />
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              rooms?.map((room) => (
+                <RoomCard
+                  key={room.id}
+                  room={room}
+                  onClick={() => navigate(`/rooms/${room.id}`)}
+                />
+              ))
             )}
           </div>
-          
-          {roomsLoading ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {[...Array(8)].map((_, i) => (
-                <Skeleton key={i} className="h-48" />
-              ))}
-            </div>
-          ) : rooms && rooms.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {rooms.map((room) => (
-                <RoomCard key={room.id} room={room} />
-              ))}
-            </div>
-          ) : (
-            <Card className="flex flex-col items-center justify-center py-12">
-              <p className="text-muted-foreground">Không tìm thấy phòng nào</p>
-            </Card>
-          )}
-        </div>
+        </TabsContent>
+
+        <TabsContent value="checks">
+          <ManagerRoomChecksView />
+        </TabsContent>
+      </Tabs>
     </div>
   )
-}
-
-function getStatusLabel(status: RoomStatus): string {
-  const labels: Record<RoomStatus, string> = {
-    vacant: 'trống',
-    occupied: 'đang ở',
-    cleaning: 'đang dọn',
-    maintenance: 'bảo trì',
-    out_of_order: 'ngừng hoạt động',
-  }
-  return labels[status]
 }
 
 interface StatusCardProps {
   label: string
   count: number
-  color: 'success' | 'primary' | 'warning' | 'destructive'
+  status: RoomStatus
+  active: boolean
   onClick: () => void
-  active?: boolean
 }
 
-function StatusCard({ label, count, color, onClick, active }: StatusCardProps) {
-  const colorClasses = {
-    success: 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100',
-    primary: 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100',
-    warning: 'border-yellow-200 bg-yellow-50 text-yellow-700 hover:bg-yellow-100',
-    destructive: 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100',
+function StatusCard({ label, count, status, active, onClick }: StatusCardProps) {
+  const getStatusColor = () => {
+    const colors = {
+      vacant: 'text-green-600 bg-green-50 dark:bg-green-950',
+      occupied: 'text-blue-600 bg-blue-50 dark:bg-blue-950',
+      cleaning: 'text-yellow-600 bg-yellow-50 dark:bg-yellow-950',
+      maintenance: 'text-orange-600 bg-orange-50 dark:bg-orange-950',
+      out_of_order: 'text-red-600 bg-red-50 dark:bg-red-950',
+    }
+    return colors[status]
   }
 
   return (
-    <Card
-      className={cn(
-        'cursor-pointer border-2 p-6 transition-all',
-        colorClasses[color],
-        active && 'ring-2 ring-offset-2'
-      )}
+    <Card 
+      className={`cursor-pointer transition-all hover:shadow-md ${
+        active ? 'ring-2 ring-primary' : ''
+      }`}
       onClick={onClick}
     >
-      <div className="text-center">
-        <div className="text-4xl font-bold">{count}</div>
-        <div className="mt-2 text-sm font-medium">{label}</div>
-      </div>
+      <CardHeader className="pb-3">
+        <CardDescription>{label}</CardDescription>
+        <CardTitle className={`text-3xl ${getStatusColor()}`}>
+          {count}
+        </CardTitle>
+      </CardHeader>
     </Card>
   )
 }
 
 interface RoomCardProps {
-  room: RoomWithStats
+  room: any
+  onClick: () => void
 }
 
-function RoomCard({ room }: RoomCardProps) {
-  const statusConfig = {
-    vacant: { label: 'Phòng trống', color: 'bg-green-100 text-green-800' },
-    occupied: { label: 'Đang ở', color: 'bg-blue-100 text-blue-800' },
-    cleaning: { label: 'Đang dọn', color: 'bg-yellow-100 text-yellow-800' },
-    maintenance: { label: 'Bảo trì', color: 'bg-red-100 text-red-800' },
-    out_of_order: { label: 'Ngừng hoạt động', color: 'bg-gray-100 text-gray-800' },
+function RoomCard({ room, onClick }: RoomCardProps) {
+  const getStatusBadge = (status: RoomStatus) => {
+    const variants = {
+      vacant: 'default',
+      occupied: 'secondary',
+      cleaning: 'outline',
+      maintenance: 'destructive',
+      out_of_order: 'destructive',
+    }
+    const labels = {
+      vacant: 'Trống',
+      occupied: 'Đang ở',
+      cleaning: 'Đang dọn',
+      maintenance: 'Bảo trì',
+      out_of_order: 'Hỏng',
+    }
+    return (
+      <Badge variant={variants[status] as any}>
+        {labels[status]}
+      </Badge>
+    )
   }
 
-  const config = statusConfig[room.status as keyof typeof statusConfig]
-
   return (
-    <Card className="overflow-hidden transition-shadow hover:shadow-lg cursor-pointer">
-      <div className="p-6">
-        <div className="mb-4 flex items-start justify-between">
+    <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={onClick}>
+      <CardHeader>
+        <div className="flex items-start justify-between">
           <div>
-            <h3 className="text-2xl font-bold">Phòng {room.room_number}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Tầng {room.floor} • {room.room_type}
-            </p>
+            <CardTitle className="text-xl">P{room.room_number}</CardTitle>
+            <CardDescription>Tầng {room.floor}</CardDescription>
           </div>
-          <Badge className={config.color}>{config.label}</Badge>
+          {getStatusBadge(room.status)}
         </div>
-
+      </CardHeader>
+      <CardContent>
         <div className="space-y-2 text-sm">
-          {room.bed_type && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Loại giường</span>
-              <span className="font-medium capitalize">{room.bed_type}</span>
-            </div>
-          )}
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Tài sản</span>
-            <span className="font-medium">{room.total_items} items</span>
+          <div className="flex items-center gap-2">
+            <Bed className="h-4 w-4 text-muted-foreground" />
+            <span className="capitalize">{room.room_type}</span>
           </div>
-          {room.missing_items > 0 && (
-            <div className="flex justify-between text-red-600">
-              <span>Thiếu</span>
-              <span className="font-medium">{room.missing_items} items</span>
+          {(room.missing_items > 0 || room.items_in_laundry > 0) && (
+            <div className="flex items-center gap-2 text-orange-600">
+              <AlertCircle className="h-4 w-4" />
+              <span>
+                {room.missing_items > 0 && `${room.missing_items} thiếu`}
+                {room.missing_items > 0 && room.items_in_laundry > 0 && ', '}
+                {room.items_in_laundry > 0 && `${room.items_in_laundry} giặt`}
+              </span>
             </div>
           )}
         </div>
-      </div>
+      </CardContent>
     </Card>
   )
 }
