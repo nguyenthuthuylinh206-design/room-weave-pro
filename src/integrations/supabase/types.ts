@@ -3699,6 +3699,9 @@ export type Database = {
       }
       tenants: {
         Row: {
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
           auto_renew: boolean | null
           billing_address: string | null
           billing_cycle: string | null
@@ -3710,6 +3713,7 @@ export type Database = {
           name: string
           payment_method: string | null
           phone: string | null
+          rejection_reason: string | null
           settings: Json | null
           subscription_current_period_end: string | null
           subscription_current_period_start: string | null
@@ -3726,6 +3730,9 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           auto_renew?: boolean | null
           billing_address?: string | null
           billing_cycle?: string | null
@@ -3737,6 +3744,7 @@ export type Database = {
           name: string
           payment_method?: string | null
           phone?: string | null
+          rejection_reason?: string | null
           settings?: Json | null
           subscription_current_period_end?: string | null
           subscription_current_period_start?: string | null
@@ -3753,6 +3761,9 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           auto_renew?: boolean | null
           billing_address?: string | null
           billing_cycle?: string | null
@@ -3764,6 +3775,7 @@ export type Database = {
           name?: string
           payment_method?: string | null
           phone?: string | null
+          rejection_reason?: string | null
           settings?: Json | null
           subscription_current_period_end?: string | null
           subscription_current_period_start?: string | null
@@ -3780,6 +3792,20 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tenants_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenants_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tenants_subscription_plan_id_fkey"
             columns: ["subscription_plan_id"]
@@ -3894,6 +3920,78 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      user_permissions: {
+        Row: {
+          action: string
+          created_at: string | null
+          created_by: string | null
+          enabled: boolean
+          id: string
+          module: string
+          tenant_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          module: string
+          tenant_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          module?: string
+          tenant_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permissions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permissions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_preferences: {
         Row: {
@@ -4540,6 +4638,18 @@ export type Database = {
       apply_room_standards:
         | { Args: { p_room_id: string }; Returns: Json }
         | { Args: { p_room_id: string; p_user_id: string }; Returns: Json }
+      approve_tenant: {
+        Args: { p_admin_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      assign_default_permissions_to_role: {
+        Args: {
+          p_permission_codes: string[]
+          p_role_code: string
+          p_tenant_id: string
+        }
+        Returns: undefined
+      }
       bulk_delete_items: {
         Args: { p_item_ids: string[]; p_user_id: string }
         Returns: Json
@@ -4556,6 +4666,14 @@ export type Database = {
       calculate_tenant_storage: {
         Args: { p_tenant_id: string }
         Returns: number
+      }
+      can_create_user: {
+        Args: {
+          p_creator_id: string
+          p_new_user_level: string
+          p_tenant_id: string
+        }
+        Returns: boolean
       }
       can_manage_user: {
         Args: { p_manager_id: string; p_target_user_id: string }
@@ -4583,6 +4701,10 @@ export type Database = {
         Returns: Json
       }
       create_default_categories: {
+        Args: { p_tenant_id: string }
+        Returns: undefined
+      }
+      create_default_tenant_roles: {
         Args: { p_tenant_id: string }
         Returns: undefined
       }
@@ -4675,6 +4797,7 @@ export type Database = {
         }[]
       }
       get_current_user_role: { Args: never; Returns: string }
+      get_current_user_tenant_id: { Args: never; Returns: string }
       get_dashboard_stats: {
         Args: { p_hotel_id?: string; p_tenant_id: string }
         Returns: Json
@@ -4938,6 +5061,17 @@ export type Database = {
           total_items: number
         }[]
       }
+      get_pending_tenants: {
+        Args: never
+        Returns: {
+          created_at: string
+          owner_email: string
+          owner_name: string
+          subscription_tier: string
+          tenant_id: string
+          tenant_name: string
+        }[]
+      }
       get_recent_activities:
         | {
             Args: { p_limit?: number; p_tenant_id: string }
@@ -5145,14 +5279,38 @@ export type Database = {
         Args: { _user_id: string }
         Returns: {
           action: string
+          code: string
           module: string
-          permission_code: string
-          permission_name: string
+          name: string
+          source: string
+        }[]
+      }
+      get_user_permissions_summary: {
+        Args: { p_user_id: string }
+        Returns: {
+          can_approve: boolean
+          can_create: boolean
+          can_delete: boolean
+          can_export: boolean
+          can_update: boolean
+          can_view: boolean
+          module: string
         }[]
       }
       get_user_primary_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_user_subordinates: {
+        Args: { p_user_id: string }
+        Returns: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          subordinate_count: number
+          user_level_code: string
+        }[]
       }
       get_vendor_performance: {
         Args: { p_days?: number; p_vendor_id: string }
@@ -5194,7 +5352,9 @@ export type Database = {
         Args: { _min_level_code: string; _user_id: string }
         Returns: boolean
       }
+      is_manager: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      is_tenant_owner: { Args: never; Returns: boolean }
       log_activity: {
         Args: {
           p_action: string
@@ -5222,7 +5382,15 @@ export type Database = {
         }
         Returns: string
       }
+      reassign_subordinates: {
+        Args: { p_new_manager_id: string; p_old_manager_id: string }
+        Returns: number
+      }
       refresh_monthly_expenses: { Args: never; Returns: undefined }
+      reject_tenant: {
+        Args: { p_admin_id: string; p_reason: string; p_tenant_id: string }
+        Returns: Json
+      }
       schedule_renewal_reminders: { Args: never; Returns: undefined }
       setup_new_tenant:
         | {
@@ -5250,6 +5418,11 @@ export type Database = {
             Returns: string
           }
       update_tenant_usage: { Args: { p_tenant_id: string }; Returns: undefined }
+      user_has_hotel_access: {
+        Args: { p_hotel_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      user_has_subordinates: { Args: { p_user_id: string }; Returns: boolean }
       validate_plan_change: {
         Args: { p_new_plan_id: string; p_tenant_id: string }
         Returns: Json
