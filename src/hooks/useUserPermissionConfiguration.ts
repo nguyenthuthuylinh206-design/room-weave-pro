@@ -214,32 +214,20 @@ export function useUserPermissionConfiguration(userId?: string) {
     }) => {
       if (!tenantId) throw new Error('No tenant')
 
-      if (enabled) {
-        // Insert or update the permission
-        const { error } = await supabase
-          .from('user_permissions' as any)
-          .upsert({
-            user_id: userId,
-            tenant_id: tenantId,
-            module,
-            action,
-            enabled: true,
-          }, {
-            onConflict: 'user_id,module,action',
-          })
+      // Always upsert with the enabled value (don't delete)
+      const { error } = await supabase
+        .from('user_permissions' as any)
+        .upsert({
+          user_id: userId,
+          tenant_id: tenantId,
+          module,
+          action,
+          enabled,
+        }, {
+          onConflict: 'user_id,module,action',
+        })
 
-        if (error) throw error
-      } else {
-        // Delete the permission
-        const { error } = await supabase
-          .from('user_permissions' as any)
-          .delete()
-          .eq('user_id', userId)
-          .eq('module', module)
-          .eq('action', action)
-
-        if (error) throw error
-      }
+      if (error) throw error
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ 
@@ -254,6 +242,10 @@ export function useUserPermissionConfiguration(userId?: string) {
       queryClient.invalidateQueries({ 
         queryKey: ['user-module-permissions'] 
       })
+      toast.success('Đã cập nhật quyền thành công')
+    },
+    onError: (error: Error) => {
+      toast.error(`Không thể cập nhật quyền: ${error.message}`)
     },
   })
 
