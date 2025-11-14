@@ -95,11 +95,6 @@ export function useRoomCheckSession(roomId: string | undefined) {
 
       if (error) {
         if (error.code === '23505') { // Unique constraint violation
-          toast({
-            title: 'Phòng đang được kiểm tra',
-            description: 'Một nhân viên khác đang kiểm tra phòng này',
-            variant: 'destructive',
-          })
           return null
         }
         throw error
