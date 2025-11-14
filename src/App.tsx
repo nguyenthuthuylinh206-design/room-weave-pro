@@ -80,6 +80,7 @@ import UsersPage from "./pages/users/UsersPage";
 import ProfilePage from "./pages/profile/ProfilePage";
 import RolesManagementPage from "./pages/settings/RolesManagementPage";
 import PermissionManagementPage from "./pages/settings/PermissionManagementPage";
+import PermissionConfigurationPage from "./pages/settings/PermissionConfigurationPage";
 import IntegrationsPage from "./pages/settings/IntegrationsPage";
 import { SuperAdminDashboard } from "./pages/admin/SuperAdminDashboard";
 import { TenantsPage } from "./pages/admin/TenantsPage";
@@ -260,6 +261,14 @@ const router = createBrowserRouter([
             element: (
               <RoleGuard allowedRoles={['owner', 'super_admin']}>
                 <PermissionManagementPage />
+              </RoleGuard>
+            )
+          },
+          { 
+            path: "permission-configuration", 
+            element: (
+              <RoleGuard allowedRoles={['owner', 'super_admin']}>
+                <PermissionConfigurationPage />
               </RoleGuard>
             )
           },
