@@ -24,6 +24,14 @@ export interface PermissionSummary {
   can_approve: boolean
 }
 
+export interface UserPermissionDetail {
+  code: string
+  name: string
+  module: string
+  action: string
+  source: 'role' | 'user'
+}
+
 export const MODULES = [
   { code: 'dashboard', name: 'Trang chủ', icon: 'LayoutDashboard' },
   { code: 'items', name: 'Tài sản', icon: 'Package' },
@@ -79,6 +87,23 @@ export function useUserPermissionsSummary(userId?: string) {
 
       if (error) throw error
       return data as unknown as PermissionSummary[]
+    },
+    enabled: !!userId,
+  })
+}
+
+export function useUserPermissionsWithSource(userId?: string) {
+  return useQuery({
+    queryKey: ['user-permissions-with-source', userId],
+    queryFn: async () => {
+      if (!userId) throw new Error('No user ID')
+
+      const { data, error } = await supabase.rpc('get_user_permissions' as any, {
+        _user_id: userId,
+      })
+
+      if (error) throw error
+      return data as unknown as UserPermissionDetail[]
     },
     enabled: !!userId,
   })

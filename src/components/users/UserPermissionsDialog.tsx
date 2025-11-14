@@ -7,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import {
   useUserPermissionsSummary,
+  useUserPermissionsWithSource,
   useUpdateUserPermissions,
   MODULES,
   ACTIONS,
@@ -27,8 +28,10 @@ import {
   Building2,
   Crown,
   Shield,
+  User,
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { toast } from '@/hooks/use-toast'
 
 interface UserPermissionsDialogProps {
   user: UserWithRelations | null
@@ -53,9 +56,18 @@ const ICONS: Record<string, any> = {
 
 export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissionsDialogProps) {
   const { data: permissionsSummary, isLoading } = useUserPermissionsSummary(user?.id)
+  const { data: permissionsWithSource } = useUserPermissionsWithSource(user?.id)
   const updatePermissions = useUpdateUserPermissions()
 
   const [permissions, setPermissions] = useState<Record<string, Record<string, boolean>>>({})
+  const [isSaving, setIsSaving] = useState(false)
+
+  // Create a map of permission sources for easy lookup
+  const permissionSourceMap = permissionsWithSource?.reduce((acc, perm) => {
+    const key = `${perm.module}.${perm.action}`
+    acc[key] = perm.source
+    return acc
+  }, {} as Record<string, 'role' | 'user'>) || {}
 
   useEffect(() => {
     if (permissionsSummary) {
@@ -101,19 +113,36 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
   const handleSave = async () => {
     if (!user?.id) return
 
-    const permissionsArray: { module: string; action: string; enabled: boolean }[] = []
+    setIsSaving(true)
+    try {
+      const permissionsArray: { module: string; action: string; enabled: boolean }[] = []
 
-    Object.entries(permissions).forEach(([module, actions]) => {
-      Object.entries(actions).forEach(([action, enabled]) => {
-        permissionsArray.push({ module, action, enabled })
+      Object.entries(permissions).forEach(([module, actions]) => {
+        Object.entries(actions).forEach(([action, enabled]) => {
+          permissionsArray.push({ module, action, enabled })
+        })
       })
-    })
 
-    await updatePermissions.mutateAsync({
-      userId: user.id,
-      permissions: permissionsArray,
-    })
-    onOpenChange(false)
+      await updatePermissions.mutateAsync({
+        userId: user.id,
+        permissions: permissionsArray,
+      })
+
+      toast({
+        title: '✅ Lưu thành công',
+        description: `Đã cập nhật quyền cho ${user.full_name}`,
+      })
+      onOpenChange(false)
+    } catch (error) {
+      console.error('Failed to save permissions:', error)
+      toast({
+        title: '❌ Lỗi khi lưu',
+        description: 'Không thể cập nhật quyền. Vui lòng thử lại.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   if (!user) return null
@@ -155,6 +184,25 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
           </Alert>
         )}
 
+        {/* Hotel Scope Section */}
+        <Alert className="bg-accent/50">
+          <Building2 className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-1">
+              <strong>Phạm vi quyền:</strong>
+              {isOwner ? (
+                <span className="text-sm ml-2">Tất cả khách sạn trong hệ thống</span>
+              ) : user.hotel ? (
+                <Badge variant="outline" className="ml-2">
+                  {user.hotel.name}
+                </Badge>
+              ) : (
+                <span className="text-sm ml-2 text-muted-foreground">Chưa gán khách sạn</span>
+              )}
+            </div>
+          </AlertDescription>
+        </Alert>
+
         <ScrollArea className="flex-1 pr-4">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -192,11 +240,13 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
                     <div className="grid grid-cols-3 gap-3">
                       {ACTIONS.map((action) => {
                         const isChecked = modulePermissions[action.code] || false
+                        const permissionKey = `${module.code}.${action.code}`
+                        const source = permissionSourceMap[permissionKey]
 
                         return (
                           <div
                             key={action.code}
-                            className="flex items-center space-x-2 p-2 rounded border border-border hover:bg-accent/50 transition-colors"
+                            className="flex items-center space-x-2 p-2 rounded border border-border hover:bg-accent/50 transition-all duration-200"
                           >
                             <Checkbox
                               id={`${module.code}-${action.code}`}
@@ -204,14 +254,34 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
                               onCheckedChange={() =>
                                 togglePermission(module.code, action.code)
                               }
-                              disabled={isSuperAdmin || isOwner}
+                              disabled={isSuperAdmin || isOwner || isSaving}
                             />
-                            <label
-                              htmlFor={`${module.code}-${action.code}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
-                            >
-                              {action.name}
-                            </label>
+                            <div className="flex-1 flex items-center justify-between gap-2">
+                              <label
+                                htmlFor={`${module.code}-${action.code}`}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                              >
+                                {action.name}
+                              </label>
+                              {isChecked && source && (
+                                <Badge 
+                                  variant={source === 'role' ? 'secondary' : 'default'} 
+                                  className="text-[10px] px-1.5 py-0 h-4"
+                                >
+                                  {source === 'role' ? (
+                                    <>
+                                      <Shield className="h-2.5 w-2.5 mr-0.5" />
+                                      Role
+                                    </>
+                                  ) : (
+                                    <>
+                                      <User className="h-2.5 w-2.5 mr-0.5" />
+                                      Custom
+                                    </>
+                                  )}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         )
                       })}
@@ -224,14 +294,25 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
         </ScrollArea>
 
         <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)}
+            disabled={isSaving}
+          >
             Hủy
           </Button>
           <Button
             onClick={handleSave}
-            disabled={updatePermissions.isPending || isSuperAdmin || isOwner}
+            disabled={isSaving || isSuperAdmin || isOwner}
           >
-            {updatePermissions.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+            {isSaving ? (
+              <>
+                <LoadingSpinner />
+                <span className="ml-2">Đang lưu...</span>
+              </>
+            ) : (
+              '💾 Lưu thay đổi'
+            )}
           </Button>
         </div>
       </DialogContent>
