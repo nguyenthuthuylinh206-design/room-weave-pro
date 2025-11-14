@@ -184,7 +184,7 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
           </AlertDescription>
         </Alert>
 
-        <ScrollArea className="flex-1 pr-4">
+        <ScrollArea className="flex-1 pr-4 h-full max-h-[calc(90vh-20rem)]">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <LoadingSpinner />
