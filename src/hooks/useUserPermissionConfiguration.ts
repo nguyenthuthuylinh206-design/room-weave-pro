@@ -8,29 +8,39 @@ export interface ModulePermissionState {
   module: string
   enabled: boolean
   source: 'role' | 'custom' | null
+  actions?: Record<string, boolean> // Action-level permissions
 }
 
 export function useUserPermissionConfiguration(userId?: string) {
   const queryClient = useQueryClient()
   const { tenantId } = useUser()
 
-  // Fetch user permissions summary
+  // Fetch user permissions summary with action details
   const { data: permissionsData, isLoading } = useQuery({
     queryKey: ['user-permission-configuration', userId],
     queryFn: async () => {
       if (!userId) throw new Error('No user ID')
 
-      const { data, error } = await supabase.rpc('get_user_permissions_summary' as any, {
+      // Fetch summary for enabled/disabled state
+      const { data: summaryData, error: summaryError } = await supabase.rpc('get_user_permissions_summary' as any, {
         p_user_id: userId,
       })
 
-      if (error) throw error
+      if (summaryError) throw summaryError
+
+      // Fetch detailed permissions for actions
+      const { data: detailData, error: detailError } = await supabase
+        .from('user_permissions' as any)
+        .select('module, action, enabled')
+        .eq('user_id', userId)
+
+      if (detailError) throw detailError
       
       // Transform data to ModulePermissionState
       const moduleStates: Record<string, ModulePermissionState> = {}
       
       MODULES.forEach((module) => {
-        const summary = data?.find((p: any) => p.module === module.code)
+        const summary = summaryData?.find((p: any) => p.module === module.code)
         
         // Check if module has ANY permission enabled
         const hasAnyPermission = summary && (
@@ -41,11 +51,27 @@ export function useUserPermissionConfiguration(userId?: string) {
           summary.can_export || 
           summary.can_approve
         )
+
+        // Get action-level details
+        const modulePermissions = detailData?.filter((p: any) => p.module === module.code) || []
+        const actions: Record<string, boolean> = {
+          view: false,
+          create: false,
+          update: false,
+          delete: false,
+          export: false,
+          approve: false,
+        }
+
+        modulePermissions.forEach((p: any) => {
+          actions[p.action] = p.enabled
+        })
         
         moduleStates[module.code] = {
           module: module.code,
           enabled: hasAnyPermission || false,
           source: null, // Will be determined by comparing with role defaults
+          actions,
         }
       })
       
@@ -167,10 +193,66 @@ export function useUserPermissionConfiguration(userId?: string) {
     },
   })
 
+  // Toggle individual action
+  const toggleAction = useMutation({
+    mutationFn: async ({
+      userId,
+      module,
+      action,
+      enabled,
+    }: {
+      userId: string
+      module: string
+      action: string
+      enabled: boolean
+    }) => {
+      if (!tenantId) throw new Error('No tenant')
+
+      if (enabled) {
+        // Insert or update the permission
+        const { error } = await supabase
+          .from('user_permissions' as any)
+          .upsert({
+            user_id: userId,
+            tenant_id: tenantId,
+            module,
+            action,
+            enabled: true,
+          }, {
+            onConflict: 'user_id,module,action',
+          })
+
+        if (error) throw error
+      } else {
+        // Delete the permission
+        const { error } = await supabase
+          .from('user_permissions' as any)
+          .delete()
+          .eq('user_id', userId)
+          .eq('module', module)
+          .eq('action', action)
+
+        if (error) throw error
+      }
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ 
+        queryKey: ['user-permission-configuration', variables.userId] 
+      })
+      queryClient.invalidateQueries({ 
+        queryKey: ['user-permissions', variables.userId] 
+      })
+      queryClient.invalidateQueries({ 
+        queryKey: ['user-permissions-summary', variables.userId] 
+      })
+    },
+  })
+
   return {
     permissionsData,
     isLoading,
     toggleModule: toggleModule.mutate,
+    toggleAction: toggleAction.mutate,
     saveConfiguration: saveConfiguration.mutate,
     isSaving: saveConfiguration.isPending,
   }

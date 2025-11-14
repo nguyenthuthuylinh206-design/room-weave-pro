@@ -23,19 +23,27 @@ const USER_LEVEL_LABELS: Record<string, string> = {
 }
 
 export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
-  const { permissionsData, isLoading, saveConfiguration, isSaving } =
+  const { permissionsData, isLoading, toggleAction, saveConfiguration, isSaving } =
     useUserPermissionConfiguration(user?.id)
 
   const [localPermissions, setLocalPermissions] = useState<Record<string, boolean>>({})
+  const [localActions, setLocalActions] = useState<Record<string, Record<string, boolean>>>({})
 
   // Initialize local state from fetched data
   useEffect(() => {
     if (permissionsData) {
       const initial: Record<string, boolean> = {}
+      const initialActions: Record<string, Record<string, boolean>> = {}
+      
       Object.entries(permissionsData).forEach(([module, state]) => {
         initial[module] = state.enabled
+        if (state.actions) {
+          initialActions[module] = { ...state.actions }
+        }
       })
+      
       setLocalPermissions(initial)
+      setLocalActions(initialActions)
     }
   }, [permissionsData])
 
@@ -56,6 +64,49 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
       ...prev,
       [module]: enabled,
     }))
+
+    // When enabling module, enable all actions
+    if (enabled) {
+      setLocalActions((prev) => ({
+        ...prev,
+        [module]: {
+          view: true,
+          create: true,
+          update: true,
+          delete: true,
+          export: true,
+          approve: true,
+        },
+      }))
+    } else {
+      // When disabling module, clear actions
+      setLocalActions((prev) => ({
+        ...prev,
+        [module]: {
+          view: false,
+          create: false,
+          update: false,
+          delete: false,
+          export: false,
+          approve: false,
+        },
+      }))
+    }
+  }
+
+  const handleActionToggle = (module: string, action: string, enabled: boolean) => {
+    if (!user) return
+    
+    setLocalActions((prev) => ({
+      ...prev,
+      [module]: {
+        ...prev[module],
+        [action]: enabled,
+      },
+    }))
+
+    // Immediately update in database
+    toggleAction({ userId: user.id, module, action, enabled })
   }
 
   const handleSave = () => {
@@ -115,8 +166,8 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
             <div>
               <h3 className="text-lg font-semibold mb-4">Cấu hình Quyền theo Module</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Bật/tắt quyền truy cập cho từng module. Khi bật một module, người dùng sẽ có toàn quyền
-                (xem, tạo, sửa, xóa, xuất, phê duyệt) đối với module đó.
+                Bật module để cho phép truy cập. Mặc định khi bật sẽ có toàn quyền.
+                Click mũi tên để tùy chỉnh chi tiết từng quyền.
               </p>
             </div>
 
@@ -129,6 +180,8 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
                   source={permissionsData?.[module.code]?.source || null}
                   onChange={(enabled) => handleToggle(module.code, enabled)}
                   disabled={isProtectedUser}
+                  actions={localActions[module.code]}
+                  onActionChange={(action, enabled) => handleActionToggle(module.code, action, enabled)}
                 />
               ))}
             </div>
