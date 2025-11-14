@@ -20,13 +20,13 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useUser } from '@/hooks/useUser'
-import { hasPermission, Permission } from '@/lib/permissions'
+import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
 
 interface MenuItem {
   title: string
   icon: typeof Home
   path: string
-  permission?: Permission
+  module?: string
   badge?: string
 }
 
@@ -44,6 +44,7 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
   const location = useLocation()
   const { signOut } = useAuth()
   const { user, role } = useUser()
+  const { data: modulePermissions } = useUserModulePermissions()
 
   const menuSections: MenuSection[] = [
     {
@@ -54,20 +55,20 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
     {
       title: 'Operations',
       items: [
-        { title: 'Inventory', icon: Package, path: '/inventory', permission: 'view_items' },
-        { title: 'Items', icon: LayoutDashboard, path: '/items', permission: 'view_items' },
-        { title: 'Laundry', icon: Shirt, path: '/laundry', permission: 'view_laundry' },
-        { title: 'Maintenance', icon: Wrench, path: '/maintenance', permission: 'view_maintenance' },
-        { title: 'Purchase Orders', icon: ShoppingCart, path: '/purchase-orders', permission: 'view_items' },
+        { title: 'Inventory', icon: Package, path: '/inventory', module: 'inventory' },
+        { title: 'Items', icon: LayoutDashboard, path: '/items', module: 'items' },
+        { title: 'Laundry', icon: Shirt, path: '/laundry', module: 'laundry' },
+        { title: 'Maintenance', icon: Wrench, path: '/maintenance', module: 'maintenance' },
+        { title: 'Purchase Orders', icon: ShoppingCart, path: '/purchase-orders', module: 'purchase_orders' },
       ]
     },
     {
       title: 'Management',
       items: [
-        { title: 'Reports', icon: TrendingUp, path: '/reports', permission: 'view_reports' },
-        { title: 'Hotels', icon: Building2, path: '/hotels', permission: 'manage_settings' },
-        { title: 'Users', icon: Users, path: '/users', permission: 'manage_users' },
-        { title: 'Vendors', icon: Users, path: '/vendors', permission: 'view_items' },
+        { title: 'Reports', icon: TrendingUp, path: '/reports', module: 'reports' },
+        { title: 'Hotels', icon: Building2, path: '/hotels', module: 'hotels' },
+        { title: 'Users', icon: Users, path: '/users', module: 'users' },
+        { title: 'Vendors', icon: Users, path: '/vendors', module: 'vendors' },
       ]
     },
     {
@@ -87,6 +88,17 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
   const handleSignOut = async () => {
     await signOut()
     onClose()
+  }
+
+  // Check if user has module access
+  const hasModuleAccess = (moduleCode?: string): boolean => {
+    if (!moduleCode) return true
+    if (role === 'super_admin' || role === 'owner') return true
+    
+    const permission = modulePermissions?.find(p => p.module === moduleCode)
+    if (!permission) return false
+    
+    return permission.can_view || permission.can_create || permission.can_update || permission.can_delete
   }
 
   const isActive = (path: string) => {
@@ -137,14 +149,11 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
                 </h3>
               )}
               <div className="space-y-1">
-                {section.items.map((item) => {
-                  // Check permission
-                  if (item.permission && !hasPermission(role, item.permission)) {
-                    return null
-                  }
-
-                  const Icon = item.icon
-                  const active = isActive(item.path)
+                {section.items
+                  .filter((item) => hasModuleAccess(item.module))
+                  .map((item) => {
+                    const Icon = item.icon
+                    const active = isActive(item.path)
 
                   return (
                     <button

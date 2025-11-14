@@ -11,7 +11,8 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { UserWithRelations } from '@/types/database.types'
 import { UserFormData } from '@/lib/validations/user.schemas'
-import { Users } from 'lucide-react'
+import { Users, Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface UserManagementTabProps {
   onManagePermissions?: (userId: string) => void
@@ -86,10 +87,21 @@ export function UserManagementTab({ onManagePermissions }: UserManagementTabProp
     <div className="space-y-6">
       <UserStatsCards users={users || []} />
       
-      <UserFilters 
-        filters={filters} 
-        onFiltersChange={setFilters}
-      />
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1">
+          <UserFilters 
+            filters={filters} 
+            onFiltersChange={setFilters}
+          />
+        </div>
+        
+        {canAddUser && (
+          <Button onClick={() => handleOpenDialog()}>
+            <Plus className="h-4 w-4 mr-2" />
+            Thêm người dùng
+          </Button>
+        )}
+      </div>
 
       <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'hierarchy' | 'table')}>
         <TabsList>

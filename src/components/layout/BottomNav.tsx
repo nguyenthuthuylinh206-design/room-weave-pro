@@ -8,20 +8,21 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/hooks/useUser'
-import { hasPermission, Permission } from '@/lib/permissions'
+import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
 
 interface NavTab {
   id: string
   icon: typeof Home
   label: string
   path: string
-  permission?: Permission
+  module?: string
 }
 
 export const BottomNav = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { role } = useUser()
+  const { data: modulePermissions } = useUserModulePermissions()
 
   const tabs: NavTab[] = [
     { 
@@ -35,21 +36,21 @@ export const BottomNav = () => {
       icon: Package, 
       label: 'Inventory', 
       path: '/inventory',
-      permission: 'view_items'
+      module: 'inventory'
     },
     { 
       id: 'laundry', 
       icon: Shirt, 
       label: 'Laundry', 
       path: '/laundry',
-      permission: 'view_laundry'
+      module: 'laundry'
     },
     { 
       id: 'maintenance', 
       icon: Wrench, 
       label: 'Maintenance', 
       path: '/maintenance',
-      permission: 'view_maintenance'
+      module: 'maintenance'
     },
     { 
       id: 'more', 
@@ -59,11 +60,19 @@ export const BottomNav = () => {
     }
   ]
 
+  // Check if user has module access
+  const hasModuleAccess = (moduleCode?: string): boolean => {
+    if (!moduleCode) return true
+    if (role === 'super_admin' || role === 'owner') return true
+    
+    const permission = modulePermissions?.find(p => p.module === moduleCode)
+    if (!permission) return false
+    
+    return permission.can_view || permission.can_create || permission.can_update || permission.can_delete
+  }
+
   // Filter tabs based on permissions
-  const visibleTabs = tabs.filter(tab => {
-    if (!tab.permission) return true
-    return hasPermission(role, tab.permission)
-  })
+  const visibleTabs = tabs.filter(tab => hasModuleAccess(tab.module))
 
   const isActive = (path: string) => {
     if (path === '/') {
