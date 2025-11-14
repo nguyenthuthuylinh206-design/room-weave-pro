@@ -21,8 +21,15 @@ export const OnboardingGuard = ({ children }: OnboardingGuardProps) => {
     // Skip check if already on onboarding page
     if (location.pathname === '/onboarding') return
 
-    // Check if user needs onboarding (user is null = not in users table, or missing tenant/hotel)
-    if (user === null || (user && (!user.tenant_id || !user.hotel_id))) {
+    // Check if user needs onboarding
+    // - user is null = not in users table
+    // - missing tenant_id
+    // - manager/staff missing hotel_id
+    const needsOnboarding = user === null || 
+      (user && !user.tenant_id) ||
+      (user && (user.user_level_code === 'manager' || user.user_level_code === 'staff') && !user.hotel_id)
+    
+    if (needsOnboarding) {
       navigate('/onboarding', { replace: true })
     }
   }, [isAuthenticated, user, authLoading, userLoading, navigate, location.pathname])
@@ -32,7 +39,11 @@ export const OnboardingGuard = ({ children }: OnboardingGuardProps) => {
   }
 
   // User is authenticated but needs onboarding - let the effect handle navigation
-  if (isAuthenticated && (user === null || (user && (!user.tenant_id || !user.hotel_id)))) {
+  const needsOnboarding = user === null || 
+    (user && !user.tenant_id) ||
+    (user && (user.user_level_code === 'manager' || user.user_level_code === 'staff') && !user.hotel_id)
+  
+  if (isAuthenticated && needsOnboarding) {
     if (location.pathname === '/onboarding') {
       return <>{children}</>
     }

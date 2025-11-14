@@ -102,8 +102,8 @@ export function UserFormDialog({
     }
   }, [open, user, form])
 
-  // Check if hotel is required
-  const isHotelRequired = selectedLevel === 'manager'
+  // Check if hotel is required for both manager and staff
+  const isHotelRequired = selectedLevel === 'manager' || selectedLevel === 'staff'
 
   // Check if position is required
   const isPositionRequired = selectedLevel === 'manager' || selectedLevel === 'staff'
@@ -113,7 +113,7 @@ export function UserFormDialog({
     if (isHotelRequired && !data.hotelId) {
       form.setError('hotelId', {
         type: 'manual',
-        message: 'Quản lý phải được gán cho một khách sạn',
+        message: 'Vui lòng chọn khách sạn',
       })
       return
     }
