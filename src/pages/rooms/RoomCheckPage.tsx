@@ -38,7 +38,12 @@ export function RoomCheckPage() {
   const { user } = useUser()
   const { data: roomData, isLoading } = useRoom(id)
   const createCheck = useCreateRoomCheck()
-  const { session: existingSession, createSession, deleteSession } = useRoomCheckSession(id)
+  const { 
+    session: existingSession, 
+    isLoading: isSessionLoading,
+    createSession, 
+    deleteSession 
+  } = useRoomCheckSession(id)
   
   const [currentStep, setCurrentStep] = useState(1)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
@@ -76,7 +81,7 @@ export function RoomCheckPage() {
   // Create check session on mount
   useEffect(() => {
     const initSession = async () => {
-      if (room && user && !existingSession && !isLoading) {
+      if (room && user && !existingSession && !isLoading && !isSessionLoading) {
         const checkType = prefilledType || 'daily'
         const result = await createSession(
           room.id,
@@ -97,11 +102,11 @@ export function RoomCheckPage() {
     }
     
     initSession()
-  }, [room, user, isLoading])
+  }, [room, user, isLoading, isSessionLoading])
   
   // Restore form from existing session
   useEffect(() => {
-    if (existingSession) {
+    if (!isSessionLoading && existingSession) {
       // Check if session belongs to current user
       if (existingSession.user_id !== user?.id) {
         toast({
@@ -130,7 +135,7 @@ export function RoomCheckPage() {
         })
       }
     }
-  }, [existingSession, user, id, form, navigate])
+  }, [existingSession, user, id, form, navigate, isSessionLoading])
   
   // Cleanup session only when user closes/refreshes tab
   useEffect(() => {
