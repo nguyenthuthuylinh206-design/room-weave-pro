@@ -90,7 +90,6 @@ export function useCreateVendor() {
         email: data.email,
         website: data.website,
         contact_person: data.contact_person,
-        contract_info: data.contract_info,
         notes: data.notes,
       }
       
@@ -125,14 +124,9 @@ export function useUpdateVendor() {
   
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<VendorFormData> }) => {
-      const updateData: any = { ...data }
-      if (data.contract_info) {
-        updateData.contract_info = data.contract_info
-      }
-      
       const { error } = await supabase
         .from('laundry_vendors')
-        .update(updateData)
+        .update(data)
         .eq('id', id)
       
       if (error) throw error
