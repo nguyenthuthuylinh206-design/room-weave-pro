@@ -58,13 +58,49 @@ export function CheckAdjustmentPage() {
       updateStatus({ adjustmentId: adjustment.id, status: 'in_progress' })
     }
   }, [adjustment])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (isCompleted || isApproved) return
+      
+      // Enter key to submit item
+      if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+        const activeElement = document.activeElement
+        if (activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA' || activeElement?.tagName === 'SELECT') {
+          return
+        }
+        e.preventDefault()
+        handleSubmitItem()
+      }
+      
+      // Ctrl+N for next item
+      if (e.ctrlKey && e.key === 'n') {
+        e.preventDefault()
+        if (currentIndex < items.length - 1) {
+          setCurrentIndex(currentIndex + 1)
+        }
+      }
+      
+      // Ctrl+P for previous item
+      if (e.ctrlKey && e.key === 'p') {
+        e.preventDefault()
+        if (currentIndex > 0) {
+          setCurrentIndex(currentIndex - 1)
+        }
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyPress)
+    return () => window.removeEventListener('keydown', handleKeyPress)
+  }, [currentIndex, isCompleted, isApproved, items.length, formData])
   
   if (isLoading || !adjustment || !currentItem) {
     return <div>Loading...</div>
   }
   
-  const progress = ((currentIndex + 1) / items.length) * 100
   const checkedCount = items.filter((i: any) => i.checked_at !== null).length
+  const progress = (checkedCount / items.length) * 100
   
   const handleSubmitItem = () => {
     const data = formData[currentItem.id] || {}
@@ -348,7 +384,7 @@ export function CheckAdjustmentPage() {
           )}
           
           {/* Complete Button */}
-          {!isCompleted && !isApproved && currentIndex === items.length - 1 && checkedCount === items.length && (
+          {!isCompleted && !isApproved && checkedCount === items.length && (
             <Button
               className="w-full"
               size="lg"

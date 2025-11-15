@@ -264,6 +264,27 @@ export function useApproveAdjustment() {
     }) => {
       if (!user?.id) throw new Error('No user')
       
+      // Validation: Check if all items have been checked
+      const { data: uncheckedItems } = await supabase
+        .from('stock_adjustment_items')
+        .select('id')
+        .eq('adjustment_id', adjustmentId)
+        .is('checked_at', null)
+
+      if (uncheckedItems && uncheckedItems.length > 0) {
+        throw new Error('Vẫn còn items chưa được kiểm tra. Vui lòng kiểm tra tất cả items trước khi duyệt.')
+      }
+      
+      // Get adjustment info for transactions
+      const { data: adjustment } = await supabase
+        .from('stock_adjustments')
+        .select('adjustment_code, hotel_id, tenant_id')
+        .eq('id', adjustmentId)
+        .single()
+      
+      if (!adjustment) throw new Error('Không tìm thấy phiếu kiểm kê')
+      
+      // Update items status to approved
       let query = supabase
         .from('stock_adjustment_items')
         .update({ status: 'approved' })
@@ -278,6 +299,54 @@ export function useApproveAdjustment() {
       
       if (itemsError) throw itemsError
       
+      // Fetch all approved items with quantity differences
+      const { data: approvedItems } = await supabase
+        .from('stock_adjustment_items')
+        .select('item_id, system_quantity, actual_quantity, unit_price')
+        .eq('adjustment_id', adjustmentId)
+        .eq('status', 'approved')
+
+      // Update stock quantities and create transactions
+      if (approvedItems && approvedItems.length > 0) {
+        for (const item of approvedItems) {
+          // Update quantity_in_stock in items table
+          const { error: updateError } = await supabase
+            .from('items')
+            .update({ quantity_in_stock: item.actual_quantity })
+            .eq('id', item.item_id)
+          
+          if (updateError) throw updateError
+          
+          // Create transaction only if there's a discrepancy
+          if (item.system_quantity !== item.actual_quantity) {
+            const quantity = item.actual_quantity - item.system_quantity
+            const transactionType = quantity > 0 ? 'in' : 'out'
+            
+            const { error: transactionError } = await supabase
+              .from('inventory_transactions')
+              .insert({
+                hotel_id: adjustment.hotel_id,
+                tenant_id: adjustment.tenant_id,
+                item_id: item.item_id,
+                transaction_type: transactionType,
+                transaction_category: 'adjustment',
+                quantity: Math.abs(quantity),
+                quantity_before: item.system_quantity,
+                quantity_after: item.actual_quantity,
+                transaction_code: `ADJ-${adjustment.adjustment_code}`,
+                related_type: 'stock_adjustment',
+                related_id: adjustmentId,
+                created_by: user.id,
+                unit_price: item.unit_price,
+                total_value: Math.abs(quantity) * (item.unit_price || 0),
+              })
+            
+            if (transactionError) throw transactionError
+          }
+        }
+      }
+      
+      // Check if all items are now approved
       const { data: pendingItems } = await supabase
         .from('stock_adjustment_items')
         .select('id')
