@@ -207,10 +207,9 @@ export function ABCAnalysisTab() {
                 <TableRow>
                   <TableHead>Đồ dùng</TableHead>
                   <TableHead>Danh mục</TableHead>
-                  <TableHead className="text-center">Tồn kho</TableHead>
                   <TableHead className="text-right">Giá trị</TableHead>
+                  <TableHead className="text-right">% Giá trị</TableHead>
                   <TableHead className="text-right">% Tích lũy</TableHead>
-                  <TableHead>Đề xuất</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -223,14 +222,15 @@ export function ABCAnalysisTab() {
                       </div>
                     </TableCell>
                     <TableCell>{item.category_name}</TableCell>
-                    <TableCell className="text-center">{item.quantity_in_stock}</TableCell>
                     <TableCell className="text-right font-bold">
                       {formatCurrency(item.total_value)}
                     </TableCell>
                     <TableCell className="text-right">
+                      {item.percentage.toFixed(1)}%
+                    </TableCell>
+                    <TableCell className="text-right">
                       {item.cumulative_percentage.toFixed(1)}%
                     </TableCell>
-                    <TableCell className="text-xs">{item.recommendation}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

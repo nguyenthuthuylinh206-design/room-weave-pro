@@ -82,13 +82,11 @@ export interface ABCAnalysisItem {
   item_code: string
   item_name: string
   category_name: string
-  quantity_in_stock: number
-  unit_price: number
   total_value: number
   cumulative_value: number
+  percentage: number
   cumulative_percentage: number
   abc_class: 'A' | 'B' | 'C'
-  recommendation: string
 }
 
 export interface TurnoverAnalysisItem {
@@ -96,12 +94,11 @@ export interface TurnoverAnalysisItem {
   item_code: string
   item_name: string
   category_name: string
-  quantity_in: number
-  quantity_out: number
   avg_stock: number
+  total_usage: number
   turnover_rate: number
-  classification: 'Fast' | 'Medium' | 'Slow' | 'Dead'
-  recommendation: string
+  days_in_stock: number
+  status: 'fast' | 'medium' | 'slow'
 }
 
 export interface LaundryReportData {
