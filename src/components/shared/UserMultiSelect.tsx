@@ -119,7 +119,7 @@ export function UserMultiSelect({
                   <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
                 <Badge variant="outline" className="text-xs">
-                  {user.role}
+                  {user.position?.name || user.role}
                 </Badge>
               </CommandItem>
             ))}
