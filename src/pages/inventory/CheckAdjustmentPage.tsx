@@ -25,7 +25,9 @@ import {
   useStockAdjustment, 
   useCheckAdjustmentItem,
   useUpdateAdjustmentStatus,
+  useApproveAdjustment,
 } from '@/hooks/useStockAdjustments'
+import { useUser } from '@/hooks/useUser'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
@@ -39,10 +41,16 @@ export function CheckAdjustmentPage() {
   const { data, isLoading } = useStockAdjustment(id)
   const { mutate: checkItem } = useCheckAdjustmentItem()
   const { mutate: updateStatus } = useUpdateAdjustmentStatus()
+  const { mutate: approveAdjustment } = useApproveAdjustment()
+  const { user } = useUser()
   
   const adjustment = data?.adjustment
   const items = data?.items || []
   const currentItem = items[currentIndex]
+  
+  const canApprove = user?.role === 'hotel_manager' || user?.role === 'owner'
+  const isCompleted = adjustment?.status === 'completed'
+  const isApproved = adjustment?.status === 'approved'
   
   // Start checking if status is draft
   useEffect(() => {
@@ -94,6 +102,17 @@ export function CheckAdjustmentPage() {
       {
         onSuccess: () => {
           navigate(`/inventory/adjustments/${adjustment.id}`)
+        },
+      }
+    )
+  }
+  
+  const handleApprove = () => {
+    approveAdjustment(
+      { adjustmentId: adjustment.id },
+      {
+        onSuccess: () => {
+          navigate('/inventory/adjustments')
         },
       }
     )
@@ -171,11 +190,28 @@ export function CheckAdjustmentPage() {
             <div className="flex-1">
               <h3 className="text-xl font-bold">{currentItem.item?.name}</h3>
               <p className="text-sm text-muted-foreground">{currentItem.item?.code}</p>
-              {currentItem.item?.category && (
-                <Badge variant="outline" className="mt-2">
-                  {currentItem.item.category.name}
-                </Badge>
-              )}
+              <div className="mt-2 flex gap-2">
+                {currentItem.item?.category && (
+                  <Badge variant="outline">
+                    {currentItem.item.category.name}
+                  </Badge>
+                )}
+                {currentItem.checked_at && (
+                  <Badge variant="secondary">
+                    Đã kiểm tra
+                  </Badge>
+                )}
+                {currentItem.status === 'approved' && (
+                  <Badge className="bg-green-500">
+                    Đã duyệt
+                  </Badge>
+                )}
+                {currentItem.status === 'rejected' && (
+                  <Badge variant="destructive">
+                    Từ chối
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
           
@@ -292,25 +328,27 @@ export function CheckAdjustmentPage() {
           </div>
           
           {/* Actions */}
-          <div className="flex gap-2">
-            <Button
-              className="flex-1"
-              onClick={handleSubmitItem}
-              disabled={hasDiscrepancy && !currentData.discrepancy_reason}
-            >
-              <Check className="mr-2 h-4 w-4" />
-              Xác nhận
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleSkip}
-            >
-              Bỏ qua
-            </Button>
-          </div>
+          {!isApproved && !isCompleted && (
+            <div className="flex gap-2">
+              <Button
+                className="flex-1"
+                onClick={handleSubmitItem}
+                disabled={hasDiscrepancy && !currentData.discrepancy_reason}
+              >
+                <Check className="mr-2 h-4 w-4" />
+                Xác nhận
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleSkip}
+              >
+                Bỏ qua
+              </Button>
+            </div>
+          )}
           
           {/* Complete Button */}
-          {currentIndex === items.length - 1 && checkedCount === items.length && (
+          {!isCompleted && !isApproved && currentIndex === items.length - 1 && checkedCount === items.length && (
             <Button
               className="w-full"
               size="lg"
@@ -318,6 +356,34 @@ export function CheckAdjustmentPage() {
             >
               Hoàn thành kiểm kê
             </Button>
+          )}
+          
+          {/* Approve Button */}
+          {isCompleted && !isApproved && canApprove && (
+            <div className="space-y-2">
+              <div className="rounded-lg bg-yellow-50 dark:bg-yellow-950 p-4 border border-yellow-200 dark:border-yellow-800">
+                <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                  Phiếu kiểm kê đã hoàn thành. Vui lòng xem xét và duyệt phiếu.
+                </p>
+              </div>
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={handleApprove}
+              >
+                <Check className="mr-2 h-4 w-4" />
+                Duyệt phiếu kiểm kê
+              </Button>
+            </div>
+          )}
+          
+          {/* Approved Status */}
+          {isApproved && (
+            <div className="rounded-lg bg-green-50 dark:bg-green-950 p-4 border border-green-200 dark:border-green-800">
+              <p className="text-sm font-medium text-green-800 dark:text-green-200 text-center">
+                ✓ Phiếu kiểm kê đã được duyệt
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>
