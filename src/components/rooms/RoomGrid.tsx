@@ -11,7 +11,7 @@ import {
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { RoomStatusBadge } from './RoomStatusBadge'
+import { RoomStatusSelector } from './RoomStatusSelector'
 import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
 import { useUser } from '@/hooks/useUser'
 import { formatCurrency } from '@/lib/utils'
@@ -86,7 +86,12 @@ export function RoomGrid({ rooms, isLoading }: RoomGridProps) {
                   {room.room_type}
                 </p>
               </div>
-              <RoomStatusBadge status={room.status as RoomStatus} />
+              <div onClick={(e) => e.stopPropagation()}>
+                <RoomStatusSelector 
+                  roomId={room.id}
+                  currentStatus={room.status as RoomStatus}
+                />
+              </div>
             </div>
           </CardHeader>
           
