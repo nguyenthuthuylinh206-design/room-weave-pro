@@ -37,10 +37,21 @@ export function RoomStatusSelector({ roomId, currentStatus, className }: RoomSta
   }
 
   return (
-    <div onClick={(e) => e.stopPropagation()}>
+    <div onClick={(e) => {
+      e.stopPropagation()
+      e.preventDefault()
+    }}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className={className} size="sm">
+          <Button 
+            variant="ghost" 
+            className={className} 
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation()
+              e.preventDefault()
+            }}
+          >
             <RoomStatusBadge status={currentStatus} />
           </Button>
         </DropdownMenuTrigger>
