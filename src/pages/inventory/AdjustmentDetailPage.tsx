@@ -71,7 +71,7 @@ export function AdjustmentDetailPage() {
   
   // Calculate stats from items
   const totalItems = items.length
-  const totalItemsChecked = items.filter((i: any) => i.status !== 'pending').length
+  const totalItemsChecked = items.filter((i: any) => i.checked_at !== null).length
   const totalDiscrepancies = discrepancyItems.length
   const totalValueDifference = items.reduce((sum: number, item: any) => {
     const diff = (item.actual_quantity - item.system_quantity) * (item.unit_price || 0)
