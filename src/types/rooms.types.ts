@@ -79,6 +79,7 @@ export interface RoomCheckWithUser {
   items_missing: any[]
   items_damaged: any[]
   notes?: string
+  photos?: string[]
   checked_at: string
   checked_by_name: string
   checked_by_avatar?: string
