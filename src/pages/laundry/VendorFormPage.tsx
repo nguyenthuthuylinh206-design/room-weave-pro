@@ -151,7 +151,9 @@ export function VendorFormPage() {
                         <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4">
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="external" id="external" />
-                            
+                            <label htmlFor="external" className="cursor-pointer">
+                              Đơn vị ngoài
+                            </label>
                           </div>
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="in_house" id="in_house" />
