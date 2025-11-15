@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
 import { useToast } from '@/hooks/use-toast'
+import { useImageUpload } from './useImageUpload'
 import type { RoomCheckFormData } from '@/types/rooms.types'
 
 export function useRoomChecks(roomId: string | undefined) {
@@ -35,6 +36,7 @@ export function useCreateRoomCheck() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const { user, tenantId } = useUser()
+  const { deleteImage } = useImageUpload()
   
   return useMutation({
     mutationFn: async ({ 
@@ -46,6 +48,45 @@ export function useCreateRoomCheck() {
       data: RoomCheckFormData
       itemQuantities?: Record<string, number>
     }) => {
+      // Delete old photos from previous checks (keep only the most recent)
+      const { data: recentChecks } = await supabase
+        .from('room_checks')
+        .select('id, photos')
+        .eq('room_id', roomId)
+        .order('checked_at', { ascending: false })
+        .limit(10)
+      
+      if (recentChecks && recentChecks.length > 1) {
+        // Skip the first (most recent), delete photos from others
+        const oldChecks = recentChecks.slice(1)
+        
+        for (const oldCheck of oldChecks) {
+          if (oldCheck.photos && Array.isArray(oldCheck.photos) && oldCheck.photos.length > 0) {
+            // Delete each photo from storage
+            for (const photoUrl of oldCheck.photos) {
+              try {
+                // Extract path from URL
+                // URL format: https://xxx.supabase.co/storage/v1/object/public/item-images/tenantId/filename.jpg
+                const urlParts = photoUrl.split('/item-images/')
+                if (urlParts.length > 1) {
+                  const path = urlParts[1]
+                  await deleteImage(path)
+                }
+              } catch (error) {
+                console.error('Error deleting old photo:', error)
+                // Don't throw error, continue deleting other photos
+              }
+            }
+            
+            // Update record, clear photos array
+            await supabase
+              .from('room_checks')
+              .update({ photos: [] })
+              .eq('id', oldCheck.id)
+          }
+        }
+      }
+      
       // Create room check record
       const { data: check, error } = await supabase
         .from('room_checks')
