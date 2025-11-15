@@ -18,11 +18,15 @@ const statusConfig: Record<BatchStatus, { label: string; className: string }> = 
   },
   ready: {
     label: 'Sẵn sàng',
-    className: 'bg-green-100 text-green-800 hover:bg-green-200',
+    className: 'bg-purple-100 text-purple-800 hover:bg-purple-200',
   },
   received: {
     label: 'Đã nhận',
-    className: 'bg-gray-100 text-gray-800 hover:bg-gray-200',
+    className: 'bg-orange-100 text-orange-800 hover:bg-orange-200',
+  },
+  stocked: {
+    label: 'Đã nhập kho',
+    className: 'bg-green-100 text-green-800 hover:bg-green-200',
   },
   cancelled: {
     label: 'Đã hủy',

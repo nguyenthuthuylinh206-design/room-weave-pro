@@ -314,3 +314,142 @@ export function useUpdateBatchStatus() {
     },
   })
 }
+
+export function useUpdateBatchCost() {
+  const queryClient = useQueryClient()
+  const { tenant } = useTenant()
+  
+  return useMutation({
+    mutationFn: async ({
+      batchId,
+      total_weight_kg,
+      estimated_cost,
+      actual_cost
+    }: {
+      batchId: string
+      total_weight_kg: number
+      estimated_cost: number
+      actual_cost?: number
+    }) => {
+      if (!tenant?.id) throw new Error('Tenant không tồn tại')
+
+      const { error } = await supabase
+        .from('laundry_batches')
+        .update({ 
+          total_weight_kg,
+          estimated_cost,
+          ...(actual_cost !== undefined && { actual_cost })
+        })
+        .eq('id', batchId)
+        .eq('tenant_id', tenant.id)
+      
+      if (error) throw error
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['laundry-batch', variables.batchId] })
+      queryClient.invalidateQueries({ queryKey: ['laundry-batches'] })
+      toast({
+        title: 'Thành công',
+        description: 'Đã cập nhật chi phí',
+      })
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
+    }
+  })
+}
+
+export function useStockInFromLaundry() {
+  const queryClient = useQueryClient()
+  const { tenant } = useTenant()
+  const { user } = useUser()
+  const { selectedHotel } = useHotelContext()
+  
+  return useMutation({
+    mutationFn: async ({
+      batchId,
+      batchCode,
+      items
+    }: {
+      batchId: string
+      batchCode: string
+      items: Array<{
+        item_id: string
+        quantity_returned: number
+      }>
+    }) => {
+      if (!tenant?.id || !user?.id || !selectedHotel?.id) {
+        throw new Error('Missing required data')
+      }
+      
+      // Format items cho RPC
+      const formattedItems = items.map(item => ({
+        item_id: item.item_id,
+        quantity: item.quantity_returned,
+        unit_price: 0,
+        notes: null
+      }))
+      
+      // Tạo inventory transaction
+      const { error } = await supabase.rpc('create_inbound_transaction', {
+        p_tenant_id: tenant.id,
+        p_hotel_id: selectedHotel.id,
+        p_transaction_category: 'laundry_return',
+        p_from_location: 'Đơn vị giặt',
+        p_to_location: selectedHotel.name,
+        p_created_by: user.id,
+        p_items: formattedItems as any,
+        p_related_type: 'laundry_batch',
+        p_related_id: batchId,
+        p_documents: null,
+        p_photos: null,
+        p_notes: `Nhập kho từ lô giặt ${batchCode}`,
+      })
+      
+      if (error) throw error
+      
+      // Cập nhật status batch sang 'stocked'
+      const { error: updateError } = await supabase
+        .from('laundry_batches')
+        .update({ status: 'stocked' })
+        .eq('id', batchId)
+        .eq('tenant_id', tenant.id)
+      
+      if (updateError) throw updateError
+      
+      // Tạo notification
+      await supabase.from('notifications').insert({
+        tenant_id: tenant.id,
+        user_id: user.id,
+        category: 'inventory',
+        type: 'info',
+        title: 'Đã nhập kho từ giặt là',
+        message: `Lô ${batchCode} đã được nhập vào kho ${selectedHotel.name}`,
+        action_url: `/laundry/batches/${batchId}`
+      })
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['laundry-batch', variables.batchId] })
+      queryClient.invalidateQueries({ queryKey: ['laundry-batches'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+      
+      toast({
+        title: 'Thành công',
+        description: 'Đã nhập kho thành công! Tất cả items đã được cập nhật vào kho',
+      })
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Lỗi nhập kho',
+        description: error.message,
+        variant: 'destructive',
+      })
+    }
+  })
+}
