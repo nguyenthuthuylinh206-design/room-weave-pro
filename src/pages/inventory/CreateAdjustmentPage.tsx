@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { UserMultiSelect } from '@/components/shared/UserMultiSelect'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -198,7 +199,7 @@ export function CreateAdjustmentPage() {
                     )}
                   />
                   
-                  {/* Assigned To - Simplified for now */}
+                  {/* Assigned To */}
                   <FormField
                     control={form.control}
                     name="assigned_to"
@@ -206,14 +207,14 @@ export function CreateAdjustmentPage() {
                       <FormItem>
                         <FormLabel>Người thực hiện *</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="User IDs (comma separated)"
-                            value={field.value.join(',')}
-                            onChange={(e) => field.onChange(e.target.value.split(',').filter(Boolean))}
+                          <UserMultiSelect
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Chọn người thực hiện kiểm kê..."
                           />
                         </FormControl>
                         <FormDescription>
-                          Nhập user IDs cách nhau bởi dấu phẩy
+                          Chọn một hoặc nhiều người sẽ thực hiện kiểm kê
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
