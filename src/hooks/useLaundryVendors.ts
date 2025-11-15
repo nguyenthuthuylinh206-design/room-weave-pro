@@ -88,7 +88,6 @@ export function useCreateVendor() {
         address: data.address,
         phone: data.phone,
         email: data.email,
-        website: data.website,
         contact_person: data.contact_person,
         notes: data.notes,
       }

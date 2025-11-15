@@ -18,7 +18,6 @@ const vendorSchema = z.object({
   address: z.string().min(5, 'Địa chỉ phải có ít nhất 5 ký tự'),
   phone: z.string().min(10, 'Số điện thoại không hợp lệ'),
   email: z.string().email('Email không hợp lệ').optional().or(z.literal('')),
-  website: z.string().url('Website không hợp lệ').optional().or(z.literal('')),
   contact_person: z.string().min(2, 'Tên người liên hệ phải có ít nhất 2 ký tự'),
   notes: z.string().optional()
 });
@@ -51,7 +50,6 @@ export function VendorFormPage() {
       address: '',
       phone: '',
       email: '',
-      website: '',
       contact_person: '',
       notes: ''
     }
@@ -64,7 +62,6 @@ export function VendorFormPage() {
         address: vendor.address || '',
         phone: vendor.phone || '',
         email: vendor.email || '',
-        website: (vendor.contract_info as any)?.website || '',
         contact_person: vendor.contact_person || '',
         notes: vendor.notes || ''
       });
@@ -178,27 +175,15 @@ export function VendorFormPage() {
                     </FormItem>} />
               </div>
               
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField control={form.control} name="website" render={({
-                field
-              }) => <FormItem>
-                      <FormLabel>Website</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="https://example.com" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>} />
-                
-                <FormField control={form.control} name="contact_person" render={({
-                field
-              }) => <FormItem>
-                      <FormLabel>Người liên hệ *</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Nguyễn Văn A" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>} />
-              </div>
+              <FormField control={form.control} name="contact_person" render={({
+              field
+            }) => <FormItem>
+                    <FormLabel>Người liên hệ *</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Nguyễn Văn A" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>} />
             </CardContent>
           </Card>
           
