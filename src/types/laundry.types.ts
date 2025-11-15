@@ -86,7 +86,6 @@ export interface CreateBatchStep2Data {
 }
 
 export interface CreateBatchStep3Data {
-  delivery_photos: string[]
   confirmed: boolean
 }
 

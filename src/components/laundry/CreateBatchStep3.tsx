@@ -20,7 +20,6 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import type { CreateBatchStep1Data, CreateBatchStep2Data, CreateBatchStep3Data } from '@/types/laundry.types'
 
 const step3Schema = z.object({
-  delivery_photos: z.array(z.string()).min(1, 'Vui lòng tải lên ít nhất 1 ảnh'),
   confirmed: z.boolean().refine((val) => val === true, {
     message: 'Vui lòng xác nhận thông tin',
   }),
@@ -50,7 +49,6 @@ export function CreateBatchStep3({
   const form = useForm<Step3FormValues>({
     resolver: zodResolver(step3Schema),
     defaultValues: {
-      delivery_photos: [],
       confirmed: false,
     },
   })
@@ -141,25 +139,6 @@ export function CreateBatchStep3({
                 </div>
               </div>
             </div>
-            
-            {/* Photo Upload */}
-            <FormField
-              control={form.control}
-              name="delivery_photos"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ảnh giao hàng *</FormLabel>
-                  <FormControl>
-                    <ImageUpload
-                      images={field.value}
-                      onChange={field.onChange}
-                      maxImages={5}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             
             {/* Confirmation */}
             <FormField

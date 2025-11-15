@@ -117,7 +117,6 @@ export function useCreateLaundryBatch() {
         total_items: totalItems,
         total_weight_kg: totalWeight,
         estimated_cost: estimatedCost,
-        delivery_photos: step3.delivery_photos,
         notes: step1.notes,
         status: 'delivered',
       }
