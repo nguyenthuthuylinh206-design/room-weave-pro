@@ -17,6 +17,16 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { BatchStatusBadge } from '@/components/laundry/BatchStatusBadge'
 import { BatchStatusTimeline } from '@/components/laundry/BatchStatusTimeline'
 import { BatchItemsTable } from '@/components/laundry/BatchItemsTable'
@@ -38,6 +48,12 @@ export function BatchDetailPage() {
   const navigate = useNavigate()
   const { data, isLoading } = useLaundryBatch(id)
   const [showUpdateCostDialog, setShowUpdateCostDialog] = useState(false)
+  const [statusChangeDialog, setStatusChangeDialog] = useState<{ open: boolean; newStatus: string; label: string }>({
+    open: false,
+    newStatus: '',
+    label: ''
+  })
+  const [stockInDialog, setStockInDialog] = useState(false)
   
   const updateStatusMutation = useUpdateBatchStatus()
   const updateCostMutation = useUpdateBatchCost()
@@ -64,9 +80,16 @@ export function BatchDetailPage() {
       'stocked': 'Đã nhập kho'
     }
     
-    if (confirm(`Xác nhận chuyển sang trạng thái "${statusLabels[newStatus]}"?`)) {
-      updateStatusMutation.mutate({ batchId: id!, status: newStatus as any })
-    }
+    setStatusChangeDialog({
+      open: true,
+      newStatus,
+      label: statusLabels[newStatus]
+    })
+  }
+  
+  const confirmStatusChange = () => {
+    updateStatusMutation.mutate({ batchId: id!, status: statusChangeDialog.newStatus as any })
+    setStatusChangeDialog({ open: false, newStatus: '', label: '' })
   }
   
   const handleUpdateCost = (data: { total_weight_kg: number; estimated_cost: number; actual_cost?: number }) => {
@@ -79,30 +102,32 @@ export function BatchDetailPage() {
   }
   
   const handleStockIn = () => {
+    setStockInDialog(true)
+  }
+  
+  const confirmStockIn = () => {
+    const itemsToStock = items.map((item: any) => ({
+      item_id: item.item_id,
+      quantity_returned: item.quantity_returned || item.quantity_delivered,
+      quantity_lost: item.quantity_lost || 0,
+      quantity_damaged: item.quantity_damaged || 0
+    }))
+    
+    stockInMutation.mutate({
+      batchId: id!,
+      batchCode: batch.batch_code,
+      items: itemsToStock
+    })
+    setStockInDialog(false)
+  }
+  
+  const stockInSummary = useMemo(() => {
+    if (!batch) return null
     const okCount = items.reduce((sum: number, item: any) => sum + (item.quantity_returned || item.quantity_delivered), 0)
     const lostCount = batch.items_lost || 0
     const damagedCount = batch.items_damaged || 0
-    
-    let message = `Xác nhận nhập kho:\n`
-    message += `• ${okCount} items OK\n`
-    if (lostCount > 0) message += `• ${lostCount} items mất (sẽ ghi nhận xuất kho)\n`
-    if (damagedCount > 0) message += `• ${damagedCount} items hỏng (sẽ ghi nhận xuất kho)\n`
-    
-    if (confirm(message)) {
-      const itemsToStock = items.map((item: any) => ({
-        item_id: item.item_id,
-        quantity_returned: item.quantity_returned || item.quantity_delivered,
-        quantity_lost: item.quantity_lost || 0,
-        quantity_damaged: item.quantity_damaged || 0
-      }))
-      
-      stockInMutation.mutate({
-        batchId: id!,
-        batchCode: batch.batch_code,
-        items: itemsToStock
-      })
-    }
-  }
+    return { okCount, lostCount, damagedCount }
+  }, [batch, items])
   
   if (isLoading) {
     return (
@@ -578,6 +603,64 @@ export function BatchDetailPage() {
         onUpdate={handleUpdateCost}
         isPending={updateCostMutation.isPending}
       />
+      
+      {/* Status Change Confirmation Dialog */}
+      <AlertDialog open={statusChangeDialog.open} onOpenChange={(open) => !open && setStatusChangeDialog({ open: false, newStatus: '', label: '' })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận chuyển trạng thái</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn chuyển sang trạng thái <strong>"{statusChangeDialog.label}"</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Huỷ</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmStatusChange}>
+              Xác nhận
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Stock In Confirmation Dialog */}
+      <AlertDialog open={stockInDialog} onOpenChange={setStockInDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận nhập kho</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>Bạn có chắc chắn muốn nhập kho lô hàng này?</p>
+                {stockInSummary && (
+                  <div className="rounded-md bg-muted p-3 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Items OK:</span>
+                      <span className="font-semibold text-green-600">{stockInSummary.okCount}</span>
+                    </div>
+                    {stockInSummary.lostCount > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Items mất (sẽ ghi nhận xuất kho):</span>
+                        <span className="font-semibold text-red-600">{stockInSummary.lostCount}</span>
+                      </div>
+                    )}
+                    {stockInSummary.damagedCount > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Items hỏng (sẽ ghi nhận xuất kho):</span>
+                        <span className="font-semibold text-orange-600">{stockInSummary.damagedCount}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Huỷ</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmStockIn}>
+              Xác nhận nhập kho
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
