@@ -115,7 +115,6 @@ export interface VendorFormData {
   address: string
   phone: string
   email?: string
-  website?: string
   contact_person: string
   notes?: string
 }
