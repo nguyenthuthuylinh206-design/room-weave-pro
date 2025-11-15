@@ -49,7 +49,7 @@ export default function RoomsPage() {
 
         <TabsContent value="overview" className="space-y-6">
           {/* Status Cards */}
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
             <StatusCard
               label="Phòng trống"
               count={stats?.vacant || 0}
@@ -63,6 +63,20 @@ export default function RoomsPage() {
               status="occupied"
               active={statusFilter === 'occupied'}
               onClick={() => setStatusFilter('occupied')}
+            />
+            <StatusCard
+              label="Check In"
+              count={stats?.check_in || 0}
+              status="check_in"
+              active={statusFilter === 'check_in'}
+              onClick={() => setStatusFilter('check_in')}
+            />
+            <StatusCard
+              label="Check Out"
+              count={stats?.check_out || 0}
+              status="check_out"
+              active={statusFilter === 'check_out'}
+              onClick={() => setStatusFilter('check_out')}
             />
             <StatusCard
               label="Đang dọn"
@@ -128,6 +142,8 @@ function StatusCard({ label, count, status, active, onClick }: StatusCardProps) 
     const colors = {
       vacant: 'text-green-600 bg-green-50 dark:bg-green-950',
       occupied: 'text-blue-600 bg-blue-50 dark:bg-blue-950',
+      check_in: 'text-purple-600 bg-purple-50 dark:bg-purple-950',
+      check_out: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950',
       cleaning: 'text-yellow-600 bg-yellow-50 dark:bg-yellow-950',
       maintenance: 'text-orange-600 bg-orange-50 dark:bg-orange-950',
       out_of_order: 'text-red-600 bg-red-50 dark:bg-red-950',

@@ -37,28 +37,30 @@ export function RoomStatusSelector({ roomId, currentStatus, className }: RoomSta
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className={className} size="sm">
-          <RoomStatusBadge status={currentStatus} />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {statusOptions.map((option) => (
-          <DropdownMenuItem
-            key={option.value}
-            onClick={() => handleStatusChange(option.value)}
-            className="cursor-pointer"
-          >
-            <div className="flex items-center justify-between w-full gap-2">
-              <span>{option.label}</span>
-              {currentStatus === option.value && (
-                <Check className="h-4 w-4" />
-              )}
-            </div>
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div onClick={(e) => e.stopPropagation()}>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className={className} size="sm">
+            <RoomStatusBadge status={currentStatus} />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {statusOptions.map((option) => (
+            <DropdownMenuItem
+              key={option.value}
+              onClick={() => handleStatusChange(option.value)}
+              className="cursor-pointer"
+            >
+              <div className="flex items-center justify-between w-full gap-2">
+                <span>{option.label}</span>
+                {currentStatus === option.value && (
+                  <Check className="h-4 w-4" />
+                )}
+              </div>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   )
 }

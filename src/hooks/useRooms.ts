@@ -180,6 +180,8 @@ export function useRoomStats(tenantId: string | undefined, hotelId: string | und
       return {
         vacant: rooms.filter(r => r.status === 'vacant').length,
         occupied: rooms.filter(r => r.status === 'occupied').length,
+        check_in: rooms.filter(r => r.status === 'check_in').length,
+        check_out: rooms.filter(r => r.status === 'check_out').length,
         cleaning: rooms.filter(r => r.status === 'cleaning').length,
         maintenance: rooms.filter(r => r.status === 'maintenance').length,
         total: rooms.length,
