@@ -43,46 +43,17 @@ export function BatchDetailPage() {
   const updateCostMutation = useUpdateBatchCost()
   const stockInMutation = useStockInFromLaundry()
   
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-16 w-full" />
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="space-y-6 lg:col-span-2">
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-96 w-full" />
-          </div>
-          <div className="space-y-6">
-            <Skeleton className="h-48 w-full" />
-            <Skeleton className="h-64 w-full" />
-          </div>
-        </div>
-      </div>
-    )
-  }
-  
-  if (!data) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <AlertCircle className="h-12 w-12 text-muted-foreground" />
-        <h3 className="mt-4 text-lg font-semibold">Không tìm thấy lô giặt</h3>
-        <Button onClick={() => navigate('/laundry')} className="mt-4">
-          Quay lại danh sách
-        </Button>
-      </div>
-    )
-  }
-  
+  // Extract data early for hooks
   const batchData = data as any
-  const batch = batchData.batch
-  const vendor = batchData.vendor
-  const items = batchData.items || []
-  const deliveryStaff = batchData.delivery_staff
-  const returnStaff = batchData.return_staff
+  const batch = batchData?.batch
+  const vendor = batchData?.vendor
+  const items = batchData?.items || []
+  const deliveryStaff = batchData?.delivery_staff
+  const returnStaff = batchData?.return_staff
   
-  // Check if can stock in
+  // Check if can stock in - hooks must be called before any conditional returns
   const canStockIn = useMemo(() => {
-    if (batch.status !== 'received') return false
+    if (!batch || batch.status !== 'received') return false
     return batch.items_lost === 0 && batch.items_damaged === 0
   }, [batch])
   
@@ -124,6 +95,36 @@ export function BatchDetailPage() {
         items: itemsToStock
       })
     }
+  }
+  
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-16 w-full" />
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="space-y-6 lg:col-span-2">
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-96 w-full" />
+          </div>
+          <div className="space-y-6">
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+  
+  if (!data || !batch) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <AlertCircle className="h-12 w-12 text-muted-foreground" />
+        <h3 className="mt-4 text-lg font-semibold">Không tìm thấy lô giặt</h3>
+        <Button onClick={() => navigate('/laundry')} className="mt-4">
+          Quay lại danh sách
+        </Button>
+      </div>
+    )
   }
   
   return (
