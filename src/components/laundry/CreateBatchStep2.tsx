@@ -39,7 +39,7 @@ const step2Schema = z.object({
     z.object({
       item_id: z.string().min(1, 'Vui lòng chọn item'),
       quantity: z.number().min(1, 'Số lượng phải >= 1'),
-      weight_kg: z.number().min(0.1, 'Cân nặng phải >= 0.1 kg'),
+      weight_kg: z.number().min(0, 'Cân nặng phải >= 0 kg'),
       condition_note: z.string().optional(),
     })
   ).min(1, 'Vui lòng thêm ít nhất 1 item'),
@@ -238,7 +238,17 @@ export function CreateBatchStep2({ initialData, step1Data, onComplete, onBack }:
               </div>
               <div>
                 <dt className="text-sm text-muted-foreground">Chi phí ước tính</dt>
-                <dd className="text-2xl font-bold">{formatCurrency(estimatedCost)}</dd>
+                <dd className="text-2xl font-bold">
+                  {estimatedCost > 0 
+                    ? formatCurrency(estimatedCost)
+                    : <span className="text-muted-foreground font-normal text-base">Chưa xác định</span>
+                  }
+                </dd>
+                {estimatedCost === 0 && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    💡 Chi phí sẽ được tính khi có cân nặng và giá từ đơn vị giặt
+                  </p>
+                )}
               </div>
             </dl>
           </CardContent>
