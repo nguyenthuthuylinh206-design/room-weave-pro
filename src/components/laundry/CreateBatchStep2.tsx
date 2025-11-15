@@ -31,10 +31,12 @@ import {
 } from '@/components/ui/select'
 import { useItems } from '@/hooks/useItems'
 import { useLaundryVendor } from '@/hooks/useLaundryVendors'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 import type { CreateBatchStep1Data, CreateBatchStep2Data } from '@/types/laundry.types'
 
-const step2Schema = z.object({
+// Schema will be created dynamically in component with stock validation
+const createStep2Schema = (availableItems: any[]) => z.object({
   items: z.array(
     z.object({
       item_id: z.string().min(1, 'Vui lòng chọn item'),
@@ -43,9 +45,27 @@ const step2Schema = z.object({
       condition_note: z.string().optional(),
     })
   ).min(1, 'Vui lòng thêm ít nhất 1 item'),
+}).superRefine((data, ctx) => {
+  data.items.forEach((item, index) => {
+    const selectedItem = availableItems.find(i => i.id === item.item_id)
+    if (selectedItem && item.quantity > (selectedItem.quantity_in_stock || 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Chỉ còn ${selectedItem.quantity_in_stock} ${selectedItem.unit} trong kho`,
+        path: ['items', index, 'quantity']
+      })
+    }
+  })
 })
 
-type Step2FormValues = z.infer<typeof step2Schema>
+type Step2FormValues = {
+  items: {
+    item_id: string
+    quantity: number
+    weight_kg: number
+    condition_note?: string
+  }[]
+}
 
 interface CreateBatchStep2Props {
   initialData: CreateBatchStep2Data | null
@@ -57,10 +77,10 @@ interface CreateBatchStep2Props {
 export function CreateBatchStep2({ initialData, step1Data, onComplete, onBack }: CreateBatchStep2Props) {
   const itemsQuery = useItems({ status: 'active' }, 1, 1000)
   const { data: vendor } = useLaundryVendor(step1Data.vendor_id)
-  const availableItems = itemsQuery.data?.items?.filter((item) => item.quantity_in_stock > 0) || []
+  const availableItems = itemsQuery.data?.items?.filter((item) => (item.quantity_in_stock || 0) > 0) || []
   
   const form = useForm<Step2FormValues>({
-    resolver: zodResolver(step2Schema),
+    resolver: zodResolver(createStep2Schema(availableItems)),
     defaultValues: initialData ? {
       items: initialData.items.map(item => ({
         item_id: item.item_id,
@@ -114,6 +134,7 @@ export function CreateBatchStep2({ initialData, step1Data, onComplete, onBack }:
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[300px]">Item *</TableHead>
+                    <TableHead className="w-24 text-center">Tồn kho</TableHead>
                     <TableHead className="w-32">Số lượng *</TableHead>
                     <TableHead className="w-32">Cân nặng (kg) *</TableHead>
                     <TableHead>Ghi chú tình trạng</TableHead>
@@ -138,7 +159,19 @@ export function CreateBatchStep2({ initialData, step1Data, onComplete, onBack }:
                                 <SelectContent>
                                   {availableItems.map((item) => (
                                     <SelectItem key={item.id} value={item.id}>
-                                      {item.name} ({item.code})
+                                      <div className="flex justify-between items-center w-full gap-3">
+                                        <span>{item.name} ({item.code})</span>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-xs text-muted-foreground">
+                                            Tồn: {item.quantity_in_stock} {item.unit}
+                                          </span>
+                                          {(item.quantity_in_stock || 0) < 10 && (
+                                            <Badge variant="secondary" className="text-xs">
+                                              Sắp hết
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </div>
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -148,6 +181,26 @@ export function CreateBatchStep2({ initialData, step1Data, onComplete, onBack }:
                           )}
                         />
                       </TableCell>
+                      <TableCell className="text-center">
+                        {(() => {
+                          const selectedItemId = form.watch(`items.${index}.item_id`)
+                          const selectedItem = availableItems.find(i => i.id === selectedItemId)
+                          return selectedItem ? (
+                            <div className="text-sm">
+                              <span className={cn(
+                                "font-medium",
+                                (selectedItem.quantity_in_stock || 0) < 10 && "text-orange-600",
+                                (selectedItem.quantity_in_stock || 0) === 0 && "text-red-600"
+                              )}>
+                                {selectedItem.quantity_in_stock}
+                              </span>
+                              <span className="text-muted-foreground ml-1">{selectedItem.unit}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )
+                        })()}
+                      </TableCell>
                       <TableCell>
                         <FormField
                           control={form.control}
@@ -155,12 +208,29 @@ export function CreateBatchStep2({ initialData, step1Data, onComplete, onBack }:
                           render={({ field }) => (
                             <FormItem>
                               <FormControl>
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                                />
+                                <div className="flex gap-2 items-center">
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    {...field}
+                                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="shrink-0"
+                                    onClick={() => {
+                                      const selectedItemId = form.watch(`items.${index}.item_id`)
+                                      const selectedItem = availableItems.find(i => i.id === selectedItemId)
+                                      if (selectedItem) {
+                                        form.setValue(`items.${index}.quantity`, selectedItem.quantity_in_stock || 0)
+                                      }
+                                    }}
+                                  >
+                                    Max
+                                  </Button>
+                                </div>
                               </FormControl>
                               <FormMessage />
                             </FormItem>
