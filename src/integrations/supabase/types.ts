@@ -4826,10 +4826,8 @@ export type Database = {
           item_code: string
           item_id: string
           item_name: string
-          quantity_in_stock: number
-          recommendation: string
+          percentage: number
           total_value: number
-          unit_price: number
         }[]
       }
       get_categories_with_stats: {
@@ -5295,13 +5293,12 @@ export type Database = {
         Returns: {
           avg_stock: number
           category_name: string
-          classification: string
+          days_in_stock: number
           item_code: string
           item_id: string
           item_name: string
-          quantity_in: number
-          quantity_out: number
-          recommendation: string
+          status: string
+          total_usage: number
           turnover_rate: number
         }[]
       }
