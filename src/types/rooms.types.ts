@@ -8,7 +8,7 @@ export type RoomItem = Database['public']['Tables']['room_items']['Row']
 export type RoomCheck = Database['public']['Tables']['room_checks']['Row']
 
 export type RoomType = 'standard' | 'deluxe' | 'suite' | 'vip'
-export type RoomStatus = 'vacant' | 'occupied' | 'cleaning' | 'maintenance' | 'out_of_order'
+export type RoomStatus = 'vacant' | 'occupied' | 'cleaning' | 'maintenance' | 'out_of_order' | 'check_in' | 'check_out'
 export type CheckType = 'daily' | 'checkout' | 'checkin' | 'maintenance'
 
 export interface RoomWithStats extends Room {

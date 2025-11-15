@@ -13,8 +13,16 @@ const statusConfig: Record<RoomStatus, { label: string; className: string }> = {
     className: 'bg-green-100 text-green-800 hover:bg-green-200',
   },
   occupied: {
-    label: 'Có khách',
+    label: 'Đang ở',
     className: 'bg-blue-100 text-blue-800 hover:bg-blue-200',
+  },
+  check_in: {
+    label: 'Check In',
+    className: 'bg-purple-100 text-purple-800 hover:bg-purple-200',
+  },
+  check_out: {
+    label: 'Check Out',
+    className: 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200',
   },
   cleaning: {
     label: 'Đang dọn',
