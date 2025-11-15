@@ -99,6 +99,7 @@ export function useRoom(roomId: string | undefined) {
           items_missing,
           items_damaged,
           notes,
+          photos,
           checked_at,
           users(full_name, avatar_url)
         `)
@@ -137,6 +138,7 @@ export function useRoom(roomId: string | undefined) {
         items_missing: check.items_missing,
         items_damaged: check.items_damaged,
         notes: check.notes,
+        photos: check.photos,
         checked_at: check.checked_at,
         checked_by_name: check.users?.full_name || 'Unknown',
         checked_by_avatar: check.users?.avatar_url,

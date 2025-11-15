@@ -149,6 +149,54 @@ export function RoomDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Recent Check Photos Card */}
+          {checks && checks.length > 0 && checks[0].photos && Array.isArray(checks[0].photos) && checks[0].photos.length > 0 && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Ảnh kiểm tra gần nhất</CardTitle>
+                  <Badge variant="outline" className="text-xs">
+                    {new Date(checks[0].checked_at).toLocaleDateString('vi-VN')}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Kiểm tra bởi {checks[0].checked_by_name} - {checks[0].check_type === 'daily' ? 'Hàng ngày' : 
+                   checks[0].check_type === 'checkin' ? 'Check-in' : 
+                   checks[0].check_type === 'checkout' ? 'Check-out' : 'Bảo trì'}
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {(checks[0].photos as string[]).map((photo, idx) => (
+                    <a
+                      key={idx}
+                      href={photo}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative aspect-square rounded-lg overflow-hidden border hover:border-primary transition-colors group"
+                    >
+                      <img 
+                        src={photo} 
+                        alt={`Ảnh kiểm tra ${idx + 1}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="text-white text-sm bg-black/50 px-2 py-1 rounded">Xem full</span>
+                        </div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+                {(checks[0].photos as string[]).length > 4 && (
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Và {(checks[0].photos as string[]).length - 4} ảnh khác
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
           
           {/* Room Items */}
           <Card>
