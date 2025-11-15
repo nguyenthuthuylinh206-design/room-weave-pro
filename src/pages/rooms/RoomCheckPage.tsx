@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { roomCheckFormSchema } from '@/lib/validations/rooms.schemas'
@@ -48,6 +48,7 @@ export function RoomCheckPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [showResumeDialog, setShowResumeDialog] = useState(false)
+  const [showSubmitDialog, setShowSubmitDialog] = useState(false)
   const [quickMode, setQuickMode] = useState(false)
   const [itemQuantities, setItemQuantities] = useState<Record<string, number>>({})
   const [sessionCompleted, setSessionCompleted] = useState(false)
@@ -286,6 +287,16 @@ export function RoomCheckPage() {
     navigate(`/rooms/${id}`)
   }
   
+  const getCheckTypeLabel = (type: string) => {
+    const labels = {
+      daily: 'Kiểm tra hàng ngày',
+      checkin: 'Kiểm tra check-in',
+      checkout: 'Kiểm tra check-out',
+      maintenance: 'Kiểm tra bảo trì',
+    }
+    return labels[type as keyof typeof labels] || type
+  }
+  
   const onSubmit = async (data: RoomCheckFormData) => {
     if (!id || !user?.id) return
     
@@ -296,6 +307,9 @@ export function RoomCheckPage() {
         itemQuantities: Object.keys(itemQuantities).length > 0 ? itemQuantities : undefined,
       })
       
+      // Đóng dialog khi thành công
+      setShowSubmitDialog(false)
+      
       if (id) {
         await deleteSession(id)
         setSessionCompleted(true)
@@ -304,7 +318,19 @@ export function RoomCheckPage() {
       clearSavedProgress()
       navigate(`/rooms/${id}`)
     } catch (error) {
+      // Đóng dialog khi lỗi
+      setShowSubmitDialog(false)
+      
       console.error('Error creating room check:', error)
+      
+      // Handle duplicate error
+      if (error instanceof Error && error.message.includes('Duplicate')) {
+        toast({
+          title: 'Lỗi',
+          description: 'Bạn vừa kiểm tra phòng này rồi. Vui lòng đợi 5 phút.',
+          variant: 'destructive',
+        })
+      }
     }
   }
   
@@ -364,6 +390,51 @@ export function RoomCheckPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Tiếp tục kiểm tra</AlertDialogCancel>
             <AlertDialogAction onClick={confirmCancel}>Hủy và thoát</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Submit Confirmation Dialog */}
+      <AlertDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận hoàn tất kiểm tra?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>Vui lòng kiểm tra lại thông tin trước khi hoàn tất:</p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Loại kiểm tra: <strong>{getCheckTypeLabel(form.watch('check_type'))}</strong></li>
+                <li>Đánh giá độ sạch: <strong>{form.watch('cleanliness_score')}/5 sao</strong></li>
+                <li>Trạng thái đồ dùng: <strong>{form.watch('items_complete') ? 'Đầy đủ' : 'Có vấn đề'}</strong></li>
+                {form.watch('items_missing')?.length > 0 && (
+                  <li className="text-orange-600">Thiếu {form.watch('items_missing').length} vật phẩm</li>
+                )}
+                {form.watch('items_damaged')?.length > 0 && (
+                  <li className="text-red-600">Hỏng {form.watch('items_damaged').length} vật phẩm</li>
+                )}
+              </ul>
+              <p className="mt-3 font-medium">Bạn có chắc chắn muốn hoàn tất kiểm tra này?</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={createCheck.isPending}>
+              Kiểm tra lại
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={form.handleSubmit(onSubmit)}
+              disabled={createCheck.isPending}
+            >
+              {createCheck.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang lưu...
+                </>
+              ) : (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  Xác nhận hoàn tất
+                </>
+              )}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -442,7 +513,18 @@ export function RoomCheckPage() {
                     <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button type="submit" disabled={createCheck.isPending}>
+                  <Button 
+                    type="button"
+                    onClick={() => {
+                      // Validate form trước khi mở dialog
+                      form.trigger().then((isValid) => {
+                        if (isValid) {
+                          setShowSubmitDialog(true)
+                        }
+                      })
+                    }}
+                    disabled={createCheck.isPending}
+                  >
                     <Check className="mr-2 h-4 w-4" />
                     {createCheck.isPending ? 'Đang lưu...' : 'Hoàn thành'}
                   </Button>
