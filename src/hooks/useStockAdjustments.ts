@@ -228,7 +228,7 @@ export function useCheckAdjustmentItem() {
           photos: itemData.photos || null,
           checked_by: user.id,
           checked_at: new Date().toISOString(),
-          status: 'pending',
+          status: 'checked',
         })
         .eq('adjustment_id', adjustmentId)
         .eq('item_id', itemData.item_id)
