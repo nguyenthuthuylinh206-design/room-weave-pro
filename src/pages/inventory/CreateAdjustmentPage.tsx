@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Search } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { UserMultiSelect } from '@/components/shared/UserMultiSelect'
+import { CategoryMultiSelect } from '@/components/shared/CategoryMultiSelect'
+import { ItemMultiSelect } from '@/components/shared/ItemMultiSelect'
+import { ItemsPreviewTable } from '@/components/inventory/ItemsPreviewTable'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -40,13 +43,28 @@ const adjustmentSchema = z.object({
   categories: z.array(z.string().uuid()).optional(),
   item_ids: z.array(z.string().uuid()).optional(),
   notes: z.string().optional(),
-})
+}).refine(
+  (data) => {
+    if (data.scope === 'by_category') {
+      return data.categories && data.categories.length > 0
+    }
+    if (data.scope === 'specific_items') {
+      return data.item_ids && data.item_ids.length > 0
+    }
+    return true
+  },
+  {
+    message: 'Vui lòng chọn danh mục hoặc items',
+    path: ['categories'],
+  }
+)
 
 type AdjustmentFormData = z.infer<typeof adjustmentSchema>
 
 export function CreateAdjustmentPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
+  const [searchQuery, setSearchQuery] = useState('')
   const { mutate: createAdjustment, isPending } = useCreateStockAdjustment()
   
   const form = useForm<AdjustmentFormData>({
@@ -66,14 +84,31 @@ export function CreateAdjustmentPage() {
   const selectedCategories = form.watch('categories')
   const selectedItems = form.watch('item_ids')
   
-  // Get items count based on scope
-  const { data: itemsData } = useItems(
-    scope === 'by_category' && selectedCategories
-      ? { categoryId: selectedCategories[0] }
-      : {},
+  // Get items based on scope with search
+  const itemsFilters = 
+    scope === 'all'
+      ? { search: searchQuery }
+      : scope === 'by_category' && selectedCategories && selectedCategories.length > 0
+      ? { categoryId: selectedCategories[0], search: searchQuery }
+      : scope === 'specific_items' && selectedItems && selectedItems.length > 0
+      ? { search: searchQuery }
+      : undefined
+  
+  const { data: itemsData, isLoading: isLoadingItems } = useItems(
+    itemsFilters,
     1,
     1000
   )
+  
+  // Calculate display items
+  const displayItems = 
+    scope === 'all'
+      ? itemsData?.items || []
+      : scope === 'by_category'
+      ? itemsData?.items || []
+      : scope === 'specific_items'
+      ? (itemsData?.items || []).filter(item => selectedItems?.includes(item.id))
+      : []
   
   const itemsCount = 
     scope === 'all' 
@@ -315,13 +350,124 @@ export function CreateAdjustmentPage() {
                     )}
                   />
                   
-                  {/* Preview */}
+                  {/* Scope-specific UI */}
+                  {scope === 'all' && (
+                    <div className="space-y-4">
+                      {/* Search bar */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          placeholder="Tìm kiếm items theo tên, mã..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                      
+                      {/* Items table */}
+                      <ItemsPreviewTable
+                        items={displayItems}
+                        isLoading={isLoadingItems}
+                        emptyMessage="Không tìm thấy items nào"
+                      />
+                    </div>
+                  )}
+                  
+                  {scope === 'by_category' && (
+                    <div className="space-y-4">
+                      {/* Category selector */}
+                      <FormField
+                        control={form.control}
+                        name="categories"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Chọn danh mục *</FormLabel>
+                            <FormControl>
+                              <CategoryMultiSelect
+                                value={field.value || []}
+                                onChange={field.onChange}
+                                placeholder="Chọn một hoặc nhiều danh mục..."
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Tất cả items thuộc các danh mục này sẽ được kiểm kê
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      {/* Search bar and table - only if categories selected */}
+                      {selectedCategories && selectedCategories.length > 0 && (
+                        <>
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              placeholder="Tìm kiếm items trong danh mục..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="pl-10"
+                            />
+                          </div>
+                          
+                          <ItemsPreviewTable
+                            items={displayItems}
+                            isLoading={isLoadingItems}
+                            emptyMessage="Không có items nào trong danh mục này"
+                          />
+                        </>
+                      )}
+                    </div>
+                  )}
+                  
+                  {scope === 'specific_items' && (
+                    <div className="space-y-4">
+                      {/* Item selector */}
+                      <FormField
+                        control={form.control}
+                        name="item_ids"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Chọn items *</FormLabel>
+                            <FormControl>
+                              <ItemMultiSelect
+                                value={field.value || []}
+                                onChange={field.onChange}
+                                placeholder="Chọn items cần kiểm kê..."
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Tìm và chọn các items cần kiểm kê
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      {/* Items table - only if items selected */}
+                      {selectedItems && selectedItems.length > 0 && (
+                        <ItemsPreviewTable
+                          items={displayItems}
+                          isLoading={isLoadingItems}
+                          emptyMessage="Chưa chọn items nào"
+                        />
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Preview Card */}
                   <Card className="bg-muted/50">
                     <CardContent className="pt-6">
                       <div className="text-center">
                         <p className="text-sm text-muted-foreground">Sẽ kiểm kê</p>
                         <p className="text-4xl font-bold">{itemsCount}</p>
                         <p className="text-sm text-muted-foreground">items</p>
+                        
+                        {scope === 'by_category' && selectedCategories && selectedCategories.length > 0 && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Từ {selectedCategories.length} danh mục
+                          </p>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -337,7 +483,15 @@ export function CreateAdjustmentPage() {
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Quay lại
                 </Button>
-                <Button type="submit" disabled={isPending || itemsCount === 0}>
+                <Button 
+                  type="submit" 
+                  disabled={
+                    isPending || 
+                    itemsCount === 0 ||
+                    (scope === 'by_category' && (!selectedCategories || selectedCategories.length === 0)) ||
+                    (scope === 'specific_items' && (!selectedItems || selectedItems.length === 0))
+                  }
+                >
                   {isPending ? 'Đang tạo...' : 'Tạo phiếu kiểm kê'}
                 </Button>
               </div>
