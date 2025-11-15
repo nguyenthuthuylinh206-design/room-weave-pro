@@ -72,7 +72,7 @@ export function useCreateRoomCheck() {
         if (updates.length > 0) {
           const { error: updateError } = await supabase
             .from('room_items')
-            .upsert(updates)
+            .upsert(updates, { onConflict: 'room_id,item_id' })
           
           if (updateError) throw updateError
         }

@@ -400,7 +400,7 @@ export function RoomCheckPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Xác nhận hoàn tất kiểm tra?</AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
-              <p>Vui lòng kiểm tra lại thông tin trước khi hoàn tất:</p>
+              <div>Vui lòng kiểm tra lại thông tin trước khi hoàn tất:</div>
               <ul className="list-disc list-inside space-y-1 text-sm">
                 <li>Loại kiểm tra: <strong>{getCheckTypeLabel(form.watch('check_type'))}</strong></li>
                 <li>Đánh giá độ sạch: <strong>{form.watch('cleanliness_score')}/5 sao</strong></li>
@@ -412,7 +412,7 @@ export function RoomCheckPage() {
                   <li className="text-red-600">Hỏng {form.watch('items_damaged').length} vật phẩm</li>
                 )}
               </ul>
-              <p className="mt-3 font-medium">Bạn có chắc chắn muốn hoàn tất kiểm tra này?</p>
+              <div className="mt-3 font-medium">Bạn có chắc chắn muốn hoàn tất kiểm tra này?</div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
