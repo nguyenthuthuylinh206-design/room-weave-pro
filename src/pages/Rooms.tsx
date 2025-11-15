@@ -10,6 +10,7 @@ import { useRooms, useRoomStats } from '@/hooks/useRooms'
 import { useUser } from '@/hooks/useUser'
 import { StaffRoomCheckView } from '@/components/rooms/StaffRoomCheckView'
 import { ManagerRoomChecksView } from '@/components/rooms/ManagerRoomChecksView'
+import { RoomStatusSelector } from '@/components/rooms/RoomStatusSelector'
 import type { RoomStatus } from '@/types/rooms.types'
 
 export default function RoomsPage() {
@@ -157,28 +158,6 @@ interface RoomCardProps {
 }
 
 function RoomCard({ room, onClick }: RoomCardProps) {
-  const getStatusBadge = (status: RoomStatus) => {
-    const variants = {
-      vacant: 'default',
-      occupied: 'secondary',
-      cleaning: 'outline',
-      maintenance: 'destructive',
-      out_of_order: 'destructive',
-    }
-    const labels = {
-      vacant: 'Trống',
-      occupied: 'Đang ở',
-      cleaning: 'Đang dọn',
-      maintenance: 'Bảo trì',
-      out_of_order: 'Hỏng',
-    }
-    return (
-      <Badge variant={variants[status] as any}>
-        {labels[status]}
-      </Badge>
-    )
-  }
-
   return (
     <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={onClick}>
       <CardHeader>
@@ -187,7 +166,10 @@ function RoomCard({ room, onClick }: RoomCardProps) {
             <CardTitle className="text-xl">P{room.room_number}</CardTitle>
             <CardDescription>Tầng {room.floor}</CardDescription>
           </div>
-          {getStatusBadge(room.status)}
+          <RoomStatusSelector 
+            roomId={room.id} 
+            currentStatus={room.status}
+          />
         </div>
       </CardHeader>
       <CardContent>
