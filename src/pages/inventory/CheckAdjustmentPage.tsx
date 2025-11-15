@@ -56,7 +56,7 @@ export function CheckAdjustmentPage() {
   }
   
   const progress = ((currentIndex + 1) / items.length) * 100
-  const checkedCount = items.filter((i: any) => i.status !== 'pending').length
+  const checkedCount = items.filter((i: any) => i.checked_at !== null).length
   
   const handleSubmitItem = () => {
     const data = formData[currentItem.id] || {}
