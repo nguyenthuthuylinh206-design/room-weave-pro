@@ -5239,6 +5239,7 @@ export type Database = {
           assigned_to: string[]
           assigned_to_names: string[]
           completed_at: string
+          created_at: string
           created_by: string
           created_by_name: string
           id: string
@@ -5250,6 +5251,7 @@ export type Database = {
           total_discrepancies: number
           total_items_checked: number
           total_value_difference: number
+          updated_at: string
         }[]
       }
       get_super_admin_dashboard_stats: { Args: never; Returns: Json }
