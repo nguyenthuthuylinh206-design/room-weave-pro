@@ -169,13 +169,7 @@ export function VendorFormPage() {
               
               <FormField control={form.control} name="contract_info.logo_url" render={({
               field
-            }) => <FormItem>
-                    <FormLabel>Logo</FormLabel>
-                    <FormControl>
-                      <ImageUpload images={field.value ? [field.value] : []} onChange={images => field.onChange(images[0] || '')} maxImages={1} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>} />
+            }) => {}} />
             </CardContent>
           </Card>
           
