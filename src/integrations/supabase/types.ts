@@ -4787,6 +4787,7 @@ export type Database = {
           p_tenant_id: string
           p_to_location: string
           p_transaction_category: string
+          p_transaction_type?: string
         }
         Returns: Json
       }
