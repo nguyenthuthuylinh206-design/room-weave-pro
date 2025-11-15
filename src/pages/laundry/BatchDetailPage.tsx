@@ -54,7 +54,7 @@ export function BatchDetailPage() {
   // Check if can stock in - hooks must be called before any conditional returns
   const canStockIn = useMemo(() => {
     if (!batch || batch.status !== 'received') return false
-    return batch.items_lost === 0 && batch.items_damaged === 0
+    return true // Có thể nhập kho kể cả khi có mất/hỏng vì đã xử lý riêng
   }, [batch])
   
   const handleStatusChange = (newStatus: string) => {
@@ -79,14 +79,21 @@ export function BatchDetailPage() {
   }
   
   const handleStockIn = () => {
-    if (!canStockIn) {
-      return
-    }
+    const okCount = items.reduce((sum: number, item: any) => sum + (item.quantity_returned || item.quantity_delivered), 0)
+    const lostCount = batch.items_lost || 0
+    const damagedCount = batch.items_damaged || 0
     
-    if (confirm(`Xác nhận nhập ${items.length} items vào kho?`)) {
+    let message = `Xác nhận nhập kho:\n`
+    message += `• ${okCount} items OK\n`
+    if (lostCount > 0) message += `• ${lostCount} items mất (sẽ ghi nhận xuất kho)\n`
+    if (damagedCount > 0) message += `• ${damagedCount} items hỏng (sẽ ghi nhận xuất kho)\n`
+    
+    if (confirm(message)) {
       const itemsToStock = items.map((item: any) => ({
         item_id: item.item_id,
-        quantity_returned: item.quantity_returned || item.quantity_delivered
+        quantity_returned: item.quantity_returned || item.quantity_delivered,
+        quantity_lost: item.quantity_lost || 0,
+        quantity_damaged: item.quantity_damaged || 0
       }))
       
       stockInMutation.mutate({

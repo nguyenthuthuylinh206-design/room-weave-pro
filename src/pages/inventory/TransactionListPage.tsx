@@ -158,6 +158,28 @@ export function TransactionListPage() {
               </SelectContent>
             </Select>
             
+            <Select
+              value={filters.categoryId || "all"}
+              onValueChange={(value) => 
+                setFilters({ ...filters, categoryId: value === "all" ? "" : value })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Danh mục" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả danh mục</SelectItem>
+                <SelectItem value="purchase">Mua hàng</SelectItem>
+                <SelectItem value="return">Trả hàng</SelectItem>
+                <SelectItem value="laundry_return">Nhận từ giặt là</SelectItem>
+                <SelectItem value="room_assign">Giao phòng</SelectItem>
+                <SelectItem value="laundry">Gửi giặt</SelectItem>
+                <SelectItem value="maintenance">Bảo trì</SelectItem>
+                <SelectItem value="disposal">Thanh lý</SelectItem>
+                <SelectItem value="other">Khác</SelectItem>
+              </SelectContent>
+            </Select>
+            
             <Button
               variant="outline"
               onClick={() => setFilters({
