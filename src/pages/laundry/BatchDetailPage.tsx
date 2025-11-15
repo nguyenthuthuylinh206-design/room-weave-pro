@@ -1,4 +1,5 @@
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useState, useMemo } from 'react'
 import { 
   Edit, 
   Printer, 
@@ -6,6 +7,8 @@ import {
   CheckCircle,
   AlertCircle,
   ArrowLeft,
+  DollarSign,
+  AlertTriangle,
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -13,12 +16,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { BatchStatusBadge } from '@/components/laundry/BatchStatusBadge'
 import { BatchStatusTimeline } from '@/components/laundry/BatchStatusTimeline'
 import { BatchItemsTable } from '@/components/laundry/BatchItemsTable'
 import { PhotoGallery } from '@/components/shared/PhotoGallery'
 import { QRCodeDisplay } from '@/components/shared/QRCodeDisplay'
-import { useLaundryBatch } from '@/hooks/useLaundryBatches'
+import { UpdateCostDialog } from '@/components/laundry/UpdateCostDialog'
+import { 
+  useLaundryBatch, 
+  useUpdateBatchStatus, 
+  useUpdateBatchCost,
+  useStockInFromLaundry 
+} from '@/hooks/useLaundryBatches'
 import { formatCurrency } from '@/lib/utils'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
@@ -27,6 +37,11 @@ export function BatchDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data, isLoading } = useLaundryBatch(id)
+  const [showUpdateCostDialog, setShowUpdateCostDialog] = useState(false)
+  
+  const updateStatusMutation = useUpdateBatchStatus()
+  const updateCostMutation = useUpdateBatchCost()
+  const stockInMutation = useStockInFromLaundry()
   
   if (isLoading) {
     return (
@@ -65,21 +80,94 @@ export function BatchDetailPage() {
   const deliveryStaff = batchData.delivery_staff
   const returnStaff = batchData.return_staff
   
+  // Check if can stock in
+  const canStockIn = useMemo(() => {
+    if (batch.status !== 'received') return false
+    return batch.items_lost === 0 && batch.items_damaged === 0
+  }, [batch])
+  
+  const handleStatusChange = (newStatus: string) => {
+    const statusLabels: Record<string, string> = {
+      'ready': 'Sẵn sàng nhận',
+      'received': 'Đã nhận về',
+      'stocked': 'Đã nhập kho'
+    }
+    
+    if (confirm(`Xác nhận chuyển sang trạng thái "${statusLabels[newStatus]}"?`)) {
+      updateStatusMutation.mutate({ batchId: id!, status: newStatus as any })
+    }
+  }
+  
+  const handleUpdateCost = (data: { total_weight_kg: number; estimated_cost: number; actual_cost?: number }) => {
+    updateCostMutation.mutate(
+      { batchId: id!, ...data },
+      {
+        onSuccess: () => setShowUpdateCostDialog(false)
+      }
+    )
+  }
+  
+  const handleStockIn = () => {
+    if (!canStockIn) {
+      return
+    }
+    
+    if (confirm(`Xác nhận nhập ${items.length} items vào kho?`)) {
+      const itemsToStock = items.map((item: any) => ({
+        item_id: item.item_id,
+        quantity_returned: item.quantity_returned || item.quantity_delivered
+      }))
+      
+      stockInMutation.mutate({
+        batchId: id!,
+        batchCode: batch.batch_code,
+        items: itemsToStock
+      })
+    }
+  }
+  
   return (
     <div className="space-y-6">
       <PageHeader
         title={batch.batch_code}
         description={`Lô giặt - ${vendor?.name || ''}`}
       >
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={() => navigate('/laundry')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Quay lại
           </Button>
+          
+          {/* Update Cost Button */}
+          {['delivered', 'washing', 'ready'].includes(batch.status) && (
+            <Button 
+              variant="outline"
+              onClick={() => setShowUpdateCostDialog(true)}
+            >
+              <DollarSign className="mr-2 h-4 w-4" />
+              {batch.estimated_cost > 0 ? 'Cập nhật chi phí' : 'Thêm chi phí'}
+            </Button>
+          )}
+          
+          {/* Status Change Buttons */}
+          {batch.status === 'delivered' && (
+            <Button onClick={() => handleStatusChange('ready')}>
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Đánh dấu sẵn sàng
+            </Button>
+          )}
+          
           {batch.status === 'ready' && (
             <Button onClick={() => navigate(`/laundry/batches/${id}/receive`)}>
-              <CheckCircle className="mr-2 h-4 w-4" />
+              <PackageIcon className="mr-2 h-4 w-4" />
               Nhận đồ về
+            </Button>
+          )}
+          
+          {batch.status === 'received' && canStockIn && (
+            <Button onClick={handleStockIn} disabled={stockInMutation.isPending}>
+              <CheckCircle className="mr-2 h-4 w-4" />
+              {stockInMutation.isPending ? 'Đang nhập...' : 'Nhập vào kho'}
             </Button>
           )}
         </div>
@@ -100,6 +188,42 @@ export function BatchDetailPage() {
               <BatchStatusTimeline batch={batch} />
             </CardContent>
           </Card>
+          
+          {/* Alert for lost/damaged items */}
+          {batch.status === 'received' && (batch.items_lost > 0 || batch.items_damaged > 0) && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Không thể nhập kho tự động</AlertTitle>
+              <AlertDescription>
+                Lô này có {batch.items_lost} items mất và {batch.items_damaged} items hỏng.
+                Vui lòng xử lý bồi thường trước khi nhập kho.
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {/* Stocked Info */}
+          {batch.status === 'stocked' && (
+            <Card className="border-green-200 bg-green-50">
+              <CardHeader>
+                <CardTitle className="text-green-900">Đã nhập kho</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2 text-green-700 mb-3">
+                  <CheckCircle className="h-5 w-5" />
+                  <span className="font-medium">
+                    Đã nhập {batch.total_items} items vào kho
+                  </span>
+                </div>
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-green-700"
+                  onClick={() => navigate('/inventory/transactions?search=' + batch.batch_code)}
+                >
+                  Xem lịch sử giao dịch kho →
+                </Button>
+              </CardContent>
+            </Card>
+          )}
           
           {/* Delivery Info */}
           <Card>
@@ -431,6 +555,21 @@ export function BatchDetailPage() {
           <BatchItemsTable items={items} batchStatus={batch.status} />
         </CardContent>
       </Card>
+      
+      {/* Update Cost Dialog */}
+      <UpdateCostDialog
+        open={showUpdateCostDialog}
+        onOpenChange={setShowUpdateCostDialog}
+        batch={{
+          id: batch.id,
+          batch_code: batch.batch_code,
+          total_weight_kg: batch.total_weight_kg,
+          estimated_cost: batch.estimated_cost,
+          actual_cost: batch.actual_cost
+        }}
+        onUpdate={handleUpdateCost}
+        isPending={updateCostMutation.isPending}
+      />
     </div>
   )
 }

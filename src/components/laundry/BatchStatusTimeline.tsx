@@ -18,23 +18,29 @@ export function BatchStatusTimeline({ batch }: BatchStatusTimelineProps) {
     {
       key: 'washing',
       label: 'Đang giặt',
-      date: batch.status === 'washing' || batch.status === 'ready' || batch.status === 'received' 
+      date: batch.status === 'washing' || batch.status === 'ready' || batch.status === 'received' || batch.status === 'stocked'
         ? batch.delivery_date 
         : null,
-      completed: ['washing', 'ready', 'received'].includes(batch.status),
+      completed: ['washing', 'ready', 'received', 'stocked'].includes(batch.status),
     },
     {
       key: 'ready',
       label: 'Sẵn sàng nhận',
       date: batch.expected_return_date,
-      completed: ['ready', 'received'].includes(batch.status),
-      isExpected: batch.status !== 'received',
+      completed: ['ready', 'received', 'stocked'].includes(batch.status),
+      isExpected: !['received', 'stocked'].includes(batch.status),
     },
     {
       key: 'received',
       label: 'Đã nhận về',
       date: batch.actual_return_date,
-      completed: batch.status === 'received',
+      completed: ['received', 'stocked'].includes(batch.status),
+    },
+    {
+      key: 'stocked',
+      label: 'Đã nhập kho',
+      date: batch.status === 'stocked' ? batch.actual_return_date : null,
+      completed: batch.status === 'stocked',
     },
   ]
   
