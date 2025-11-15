@@ -5045,7 +5045,7 @@ export type Database = {
         }[]
       }
       get_laundry_dashboard_stats: {
-        Args: { p_tenant_id: string }
+        Args: { p_hotel_id?: string; p_tenant_id: string }
         Returns: Json
       }
       get_laundry_report: {
@@ -5100,7 +5100,7 @@ export type Database = {
             }[]
           }
       get_monthly_laundry_expenses: {
-        Args: { p_tenant_id: string; p_year?: number }
+        Args: { p_hotel_id?: string; p_tenant_id: string; p_year?: number }
         Returns: {
           actual_cost: number
           estimated_cost: number
