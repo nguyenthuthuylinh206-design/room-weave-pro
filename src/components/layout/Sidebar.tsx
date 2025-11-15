@@ -97,10 +97,15 @@ const navigation: NavItem[] = [
     ],
   },
   {
-    title: 'Tài sản',
-    icon: Package,
+    title: 'Kho & Tài sản',
+    icon: Warehouse,
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
     children: [
+      {
+        title: 'Dashboard',
+        href: '/inventory',
+        icon: LayoutDashboard,
+      },
       {
         title: 'Danh sách tài sản',
         href: '/items',
@@ -115,6 +120,26 @@ const navigation: NavItem[] = [
         title: 'Thêm tài sản mới',
         href: '/items/new',
         icon: Plus,
+      },
+      {
+        title: 'Giao dịch kho',
+        href: '/inventory/transactions',
+        icon: List,
+      },
+      {
+        title: 'Nhập kho',
+        href: '/inventory/inbound/new',
+        icon: ArrowDownToLine,
+      },
+      {
+        title: 'Xuất kho',
+        href: '/inventory/outbound/new',
+        icon: ArrowUpFromLine,
+      },
+      {
+        title: 'Kiểm kê',
+        href: '/inventory/adjustments',
+        icon: ClipboardCheck,
       },
     ],
   },
@@ -169,38 +194,6 @@ const navigation: NavItem[] = [
         title: 'Thêm đơn vị',
         href: '/laundry/vendors/new',
         icon: Plus,
-      },
-    ],
-  },
-  {
-    title: 'Kho',
-    icon: Warehouse,
-    roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
-    children: [
-      {
-        title: 'Dashboard kho',
-        href: '/inventory',
-        icon: LayoutDashboard,
-      },
-      {
-        title: 'Giao dịch',
-        href: '/inventory/transactions',
-        icon: List,
-      },
-      {
-        title: 'Nhập kho',
-        href: '/inventory/inbound/new',
-        icon: ArrowDownToLine,
-      },
-      {
-        title: 'Xuất kho',
-        href: '/inventory/outbound/new',
-        icon: ArrowUpFromLine,
-      },
-      {
-        title: 'Kiểm kê',
-        href: '/inventory/adjustments',
-        icon: ClipboardCheck,
       },
     ],
   },
@@ -371,10 +364,9 @@ const navigation: NavItem[] = [
 // Map navigation titles to permission modules
 const NAVIGATION_MODULE_MAP: Record<string, string> = {
   'Dashboard': 'dashboard',
-  'Tài sản': 'items',
+  'Kho & Tài sản': 'inventory,items',
   'Phòng': 'rooms',
   'Giặt là': 'laundry',
-  'Kho': 'inventory',
   'Bảo trì': 'maintenance',
   'Nhà cung cấp': 'vendors',
   'Đơn mua hàng': 'purchase_orders',
@@ -424,14 +416,18 @@ export const Sidebar = () => {
     const moduleCode = NAVIGATION_MODULE_MAP[navigationTitle]
     if (!moduleCode) return true // No mapping = show by default
     
-    const permission = modulePermissions?.find(p => p.module === moduleCode)
-    if (!permission) return false
-    
-    // Has access if has any action permission
-    return permission.can_view || 
-           permission.can_create || 
-           permission.can_update || 
-           permission.can_delete
+    // Support multiple modules separated by comma
+    const modules = moduleCode.split(',')
+    return modules.some(module => {
+      const permission = modulePermissions?.find(p => p.module === module)
+      if (!permission) return false
+      
+      // Has access if has any action permission
+      return permission.can_view || 
+             permission.can_create || 
+             permission.can_update || 
+             permission.can_delete
+    })
   }
 
   // Check if user has access to a child item

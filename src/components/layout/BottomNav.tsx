@@ -34,7 +34,7 @@ export const BottomNav = () => {
     { 
       id: 'inventory', 
       icon: Package, 
-      label: 'Inventory', 
+      label: 'Kho', 
       path: '/inventory',
       module: 'inventory'
     },
