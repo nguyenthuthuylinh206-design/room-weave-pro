@@ -90,6 +90,34 @@ export function useCreateLaundryBatch() {
         throw new Error('Thiếu thông tin tenant hoặc hotel')
       }
 
+      // Validate stock availability
+      const itemIds = step2.items.map(i => i.item_id)
+      const { data: stockItems, error: stockError } = await supabase
+        .from('items')
+        .select('id, code, name, quantity_in_stock, unit')
+        .in('id', itemIds)
+      
+      if (stockError) throw stockError
+
+      // Check each item
+      const insufficientItems: string[] = []
+      step2.items.forEach(orderItem => {
+        const stockItem = stockItems?.find(s => s.id === orderItem.item_id)
+        if (!stockItem) {
+          insufficientItems.push(`Item ID ${orderItem.item_id} không tồn tại`)
+        } else if (orderItem.quantity > (stockItem.quantity_in_stock || 0)) {
+          insufficientItems.push(
+            `${stockItem.name} (${stockItem.code}): Cần ${orderItem.quantity} nhưng chỉ còn ${stockItem.quantity_in_stock || 0} ${stockItem.unit}`
+          )
+        }
+      })
+
+      if (insufficientItems.length > 0) {
+        throw new Error(
+          `Không đủ hàng trong kho:\n${insufficientItems.join('\n')}`
+        )
+      }
+
       // Calculate totals
       const totalItems = step2.items.reduce((sum, item) => sum + item.quantity, 0)
       const totalWeight = step2.items.reduce((sum, item) => sum + item.weight_kg, 0)
