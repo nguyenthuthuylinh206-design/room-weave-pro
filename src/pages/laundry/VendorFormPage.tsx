@@ -11,7 +11,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ImageUpload } from '@/components/shared/ImageUpload';
 import { useLaundryVendor, useCreateVendor, useUpdateVendor } from '@/hooks/useLaundryVendors';
 const vendorSchema = z.object({
   name: z.string().min(2, 'Tên đơn vị phải có ít nhất 2 ký tự'),
@@ -28,7 +27,6 @@ const vendorSchema = z.object({
     delivery_time: z.string().optional(),
     contract_start: z.string().optional(),
     contract_end: z.string().optional(),
-    logo_url: z.string().optional()
   }),
   notes: z.string().optional()
 });
@@ -70,7 +68,6 @@ export function VendorFormPage() {
         delivery_time: '2 ngày',
         contract_start: '',
         contract_end: '',
-        logo_url: ''
       },
       notes: ''
     }
@@ -93,7 +90,6 @@ export function VendorFormPage() {
           delivery_time: contractInfo?.delivery_time || '',
           contract_start: contractInfo?.contract_start || '',
           contract_end: contractInfo?.contract_end || '',
-          logo_url: contractInfo?.logo_url || ''
         },
         notes: vendor.notes || ''
       });
@@ -166,10 +162,6 @@ export function VendorFormPage() {
                       <FormMessage />
                     </FormItem>} />
               </div>
-              
-              <FormField control={form.control} name="contract_info.logo_url" render={({
-              field
-            }) => {}} />
             </CardContent>
           </Card>
           
@@ -237,8 +229,77 @@ export function VendorFormPage() {
           
           {/* Section 3: Thông tin hợp đồng */}
           <Card>
-            
-            
+            <CardHeader>
+              <CardTitle>Thông tin hợp đồng</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField control={form.control} name="contract_info.price_per_kg" render={({
+                field
+              }) => <FormItem>
+                      <FormLabel>Giá/kg *</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} placeholder="15000" />
+                      </FormControl>
+                      <FormDescription>Đơn vị: VNĐ</FormDescription>
+                      <FormMessage />
+                    </FormItem>} />
+                
+                <FormField control={form.control} name="contract_info.minimum_order_kg" render={({
+                field
+              }) => <FormItem>
+                      <FormLabel>Đơn hàng tối thiểu (kg)</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} placeholder="50" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>} />
+              </div>
+              
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField control={form.control} name="contract_info.payment_terms" render={({
+                field
+              }) => <FormItem>
+                      <FormLabel>Điều khoản thanh toán</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Thanh toán cuối tháng" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>} />
+                
+                <FormField control={form.control} name="contract_info.delivery_time" render={({
+                field
+              }) => <FormItem>
+                      <FormLabel>Thời gian giao hàng</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="2 ngày" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>} />
+              </div>
+              
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField control={form.control} name="contract_info.contract_start" render={({
+                field
+              }) => <FormItem>
+                      <FormLabel>Ngày bắt đầu hợp đồng</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>} />
+                
+                <FormField control={form.control} name="contract_info.contract_end" render={({
+                field
+              }) => <FormItem>
+                      <FormLabel>Ngày kết thúc hợp đồng</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>} />
+              </div>
+            </CardContent>
           </Card>
           
           {/* Section 4: Ghi chú */}

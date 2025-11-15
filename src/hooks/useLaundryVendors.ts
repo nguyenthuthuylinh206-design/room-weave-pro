@@ -75,8 +75,14 @@ export function useCreateVendor() {
   
   return useMutation({
     mutationFn: async (data: VendorFormData) => {
+      // Auto-generate vendor code
+      const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+      const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0')
+      const code = `LV-${timestamp}-${random}`
+      
       const vendorData: any = {
         tenant_id: tenant?.id,
+        code: code,
         name: data.name,
         type: data.type,
         address: data.address,
