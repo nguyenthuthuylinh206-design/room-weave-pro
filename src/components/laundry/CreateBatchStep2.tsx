@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   Form,
   FormControl,
@@ -34,6 +35,9 @@ import { useLaundryVendor } from '@/hooks/useLaundryVendors'
 import { formatCurrency, cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import type { CreateBatchStep1Data, CreateBatchStep2Data } from '@/types/laundry.types'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/integrations/supabase/client'
+import { useUser } from '@/hooks/useUser'
 
 // Schema will be created dynamically in component with stock validation
 const createStep2Schema = (availableItems: any[]) => z.object({
@@ -75,9 +79,35 @@ interface CreateBatchStep2Props {
 }
 
 export function CreateBatchStep2({ initialData, step1Data, onComplete, onBack }: CreateBatchStep2Props) {
+  const { tenantId } = useUser()
   const itemsQuery = useItems({ status: 'active' }, 1, 1000)
   const { data: vendor } = useLaundryVendor(step1Data.vendor_id)
-  const availableItems = itemsQuery.data?.items?.filter((item) => (item.quantity_in_stock || 0) > 0) || []
+  
+  // Fetch launderable categories
+  const { data: launderableCategories } = useQuery({
+    queryKey: ['launderable-categories', tenantId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('item_categories')
+        .select('id')
+        .eq('is_launderable', true)
+        .eq('status', 'active')
+      
+      if (error) throw error
+      return data?.map(cat => cat.id) || []
+    },
+    enabled: !!tenantId,
+  })
+  
+  const availableItems = itemsQuery.data?.items?.filter((item) => {
+    const hasStock = (item.quantity_in_stock || 0) > 0
+    const isLaunderable = item.category_id && launderableCategories?.includes(item.category_id)
+    return hasStock && isLaunderable
+  }) || []
+
+  const hasNoLaunderableItems = itemsQuery.data?.items && 
+    itemsQuery.data.items.length > 0 && 
+    availableItems.length === 0
   
   const form = useForm<Step2FormValues>({
     resolver: zodResolver(createStep2Schema(availableItems)),

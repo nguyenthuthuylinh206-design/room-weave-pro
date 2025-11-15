@@ -1005,6 +1005,7 @@ export type Database = {
           description: string | null
           icon: string | null
           id: string
+          is_launderable: boolean | null
           level: number | null
           max_stock_level: number | null
           min_stock_level: number | null
@@ -1030,6 +1031,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          is_launderable?: boolean | null
           level?: number | null
           max_stock_level?: number | null
           min_stock_level?: number | null
@@ -1055,6 +1057,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          is_launderable?: boolean | null
           level?: number | null
           max_stock_level?: number | null
           min_stock_level?: number | null
