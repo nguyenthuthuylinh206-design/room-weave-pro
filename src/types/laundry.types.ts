@@ -117,13 +117,5 @@ export interface VendorFormData {
   email?: string
   website?: string
   contact_person: string
-  contract_info: {
-    price_per_kg: number
-    minimum_order_kg: number
-    payment_terms: string
-    delivery_time: string
-    contract_start?: Date
-    contract_end?: Date
-  }
   notes?: string
 }

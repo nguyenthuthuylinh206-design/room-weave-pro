@@ -20,14 +20,6 @@ const vendorSchema = z.object({
   email: z.string().email('Email không hợp lệ').optional().or(z.literal('')),
   website: z.string().url('Website không hợp lệ').optional().or(z.literal('')),
   contact_person: z.string().min(2, 'Tên người liên hệ phải có ít nhất 2 ký tự'),
-  contract_info: z.object({
-    price_per_kg: z.number().min(0, 'Giá phải lớn hơn 0'),
-    minimum_order_kg: z.number().min(0).optional(),
-    payment_terms: z.string().optional(),
-    delivery_time: z.string().optional(),
-    contract_start: z.string().optional(),
-    contract_end: z.string().optional(),
-  }),
   notes: z.string().optional()
 });
 type VendorFormValues = z.infer<typeof vendorSchema>;
@@ -61,36 +53,19 @@ export function VendorFormPage() {
       email: '',
       website: '',
       contact_person: '',
-      contract_info: {
-        price_per_kg: 15000,
-        minimum_order_kg: 50,
-        payment_terms: '',
-        delivery_time: '2 ngày',
-        contract_start: '',
-        contract_end: '',
-      },
       notes: ''
     }
   });
   useEffect(() => {
     if (vendor) {
-      const contractInfo = vendor.contract_info as any;
       form.reset({
         name: vendor.name,
         type: vendor.type as 'external' | 'in_house',
-        address: vendor.address,
-        phone: vendor.phone,
+        address: vendor.address || '',
+        phone: vendor.phone || '',
         email: vendor.email || '',
-        website: contractInfo?.website || '',
-        contact_person: vendor.contact_person,
-        contract_info: {
-          price_per_kg: contractInfo?.price_per_kg || 0,
-          minimum_order_kg: contractInfo?.minimum_order_kg || 0,
-          payment_terms: contractInfo?.payment_terms || '',
-          delivery_time: contractInfo?.delivery_time || '',
-          contract_start: contractInfo?.contract_start || '',
-          contract_end: contractInfo?.contract_end || '',
-        },
+        website: (vendor.contract_info as any)?.website || '',
+        contact_person: vendor.contact_person || '',
         notes: vendor.notes || ''
       });
     }
@@ -227,82 +202,7 @@ export function VendorFormPage() {
             </CardContent>
           </Card>
           
-          {/* Section 3: Thông tin hợp đồng */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Thông tin hợp đồng</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField control={form.control} name="contract_info.price_per_kg" render={({
-                field
-              }) => <FormItem>
-                      <FormLabel>Giá/kg *</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} placeholder="15000" />
-                      </FormControl>
-                      <FormDescription>Đơn vị: VNĐ</FormDescription>
-                      <FormMessage />
-                    </FormItem>} />
-                
-                <FormField control={form.control} name="contract_info.minimum_order_kg" render={({
-                field
-              }) => <FormItem>
-                      <FormLabel>Đơn hàng tối thiểu (kg)</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} placeholder="50" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>} />
-              </div>
-              
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField control={form.control} name="contract_info.payment_terms" render={({
-                field
-              }) => <FormItem>
-                      <FormLabel>Điều khoản thanh toán</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Thanh toán cuối tháng" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>} />
-                
-                <FormField control={form.control} name="contract_info.delivery_time" render={({
-                field
-              }) => <FormItem>
-                      <FormLabel>Thời gian giao hàng</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="2 ngày" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>} />
-              </div>
-              
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField control={form.control} name="contract_info.contract_start" render={({
-                field
-              }) => <FormItem>
-                      <FormLabel>Ngày bắt đầu hợp đồng</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>} />
-                
-                <FormField control={form.control} name="contract_info.contract_end" render={({
-                field
-              }) => <FormItem>
-                      <FormLabel>Ngày kết thúc hợp đồng</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>} />
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Section 4: Ghi chú */}
+          {/* Section 3: Ghi chú */}
           <Card>
             <CardHeader>
               <CardTitle>Ghi chú</CardTitle>
