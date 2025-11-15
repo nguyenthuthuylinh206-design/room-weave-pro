@@ -47,6 +47,17 @@ const transactionLabels: Record<string, string> = {
   lost: 'MẤT MÁT',
 }
 
+const categoryLabels: Record<string, string> = {
+  purchase: 'Mua hàng',
+  return: 'Trả hàng',
+  laundry_return: 'Nhận từ giặt',
+  room_assign: 'Giao phòng',
+  laundry: 'Gửi giặt',
+  maintenance: 'Bảo trì',
+  disposal: 'Thanh lý',
+  other: 'Khác',
+}
+
 export function RecentTransactions() {
   const navigate = useNavigate()
   const [filter, setFilter] = useState<string>('all')
@@ -139,6 +150,11 @@ export function RecentTransactions() {
                               <Badge variant="outline" className={cn('text-xs', colorClass)}>
                                 {label}
                               </Badge>
+                              {transaction.transaction_category && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {categoryLabels[transaction.transaction_category] || transaction.transaction_category}
+                                </Badge>
+                              )}
                             </div>
                             <p className="text-sm text-muted-foreground">
                               {formatDistanceToNow(new Date(transaction.created_at), {

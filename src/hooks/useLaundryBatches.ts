@@ -281,6 +281,21 @@ export function useReceiveLaundryBatch() {
 export function useUpdateBatchStatus() {
   const queryClient = useQueryClient()
   
+  const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+    delivered: ['ready'],
+    washing: ['ready'],
+    ready: ['received'],
+    received: ['stocked']
+  }
+  
+  const statusLabels: Record<string, string> = {
+    delivered: 'Đã giao',
+    washing: 'Đang giặt',
+    ready: 'Sẵn sàng nhận',
+    received: 'Đã nhận về',
+    stocked: 'Đã nhập kho'
+  }
+  
   return useMutation({
     mutationFn: async ({
       batchId,
@@ -289,6 +304,26 @@ export function useUpdateBatchStatus() {
       batchId: string
       status: BatchStatus
     }) => {
+      // Lấy status hiện tại
+      const { data: batch, error: fetchError } = await supabase
+        .from('laundry_batches')
+        .select('status')
+        .eq('id', batchId)
+        .single()
+      
+      if (fetchError) throw fetchError
+      
+      // Validate transition
+      const currentStatus = batch.status
+      const allowedNext = ALLOWED_TRANSITIONS[currentStatus] || []
+      
+      if (!allowedNext.includes(status)) {
+        throw new Error(
+          `Không thể chuyển từ "${statusLabels[currentStatus] || currentStatus}" sang "${statusLabels[status] || status}". ` +
+          `Trạng thái hợp lệ: ${allowedNext.map(s => statusLabels[s] || s).join(', ')}`
+        )
+      }
+      
       const { error } = await supabase
         .from('laundry_batches')
         .update({ status })
@@ -380,39 +415,138 @@ export function useStockInFromLaundry() {
       items: Array<{
         item_id: string
         quantity_returned: number
+        quantity_lost?: number
+        quantity_damaged?: number
       }>
     }) => {
       if (!tenant?.id || !user?.id || !selectedHotel?.id) {
         throw new Error('Missing required data')
       }
       
-      // Format items cho RPC
-      const formattedItems = items.map(item => ({
-        item_id: item.item_id,
-        quantity: item.quantity_returned,
-        unit_price: 0,
-        notes: null
-      }))
+      // 1. LẤY THÔNG TIN BATCH
+      const { data: batchData, error: batchError } = await supabase
+        .from('laundry_batches')
+        .select('items_lost, items_damaged, status')
+        .eq('id', batchId)
+        .single()
       
-      // Tạo inventory transaction
-      const { error } = await supabase.rpc('create_inbound_transaction', {
-        p_tenant_id: tenant.id,
-        p_hotel_id: selectedHotel.id,
-        p_transaction_category: 'laundry_return',
-        p_from_location: 'Đơn vị giặt',
-        p_to_location: selectedHotel.name,
-        p_created_by: user.id,
-        p_items: formattedItems as any,
-        p_related_type: 'laundry_batch',
-        p_related_id: batchId,
-        p_documents: null,
-        p_photos: null,
-        p_notes: `Nhập kho từ lô giặt ${batchCode}`,
-      })
+      if (batchError) throw batchError
       
-      if (error) throw error
+      // 2. VALIDATE STATUS (phải là 'received')
+      if (batchData.status !== 'received') {
+        throw new Error('Batch phải ở trạng thái "Đã nhận về" mới có thể nhập kho')
+      }
       
-      // Cập nhật status batch sang 'stocked'
+      // 3. LẤY GIÁ TỪ DATABASE
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('items')
+        .select('id, unit_price, name')
+        .in('id', items.map(i => i.item_id))
+      
+      if (itemsError) throw itemsError
+      
+      // 4. FORMAT ITEMS VỚI GIÁ ĐÚNG - chỉ items OK
+      const okItems = items
+        .filter(item => item.quantity_returned > 0)
+        .map(item => {
+          const itemData = itemsData?.find(i => i.id === item.item_id)
+          return {
+            item_id: item.item_id,
+            quantity: item.quantity_returned,
+            unit_price: itemData?.unit_price || 0,
+            notes: null
+          }
+        })
+      
+      // 5. TẠO INBOUND TRANSACTION (items OK)
+      if (okItems.length > 0) {
+        const { error: inboundError } = await supabase.rpc('create_inbound_transaction', {
+          p_tenant_id: tenant.id,
+          p_hotel_id: selectedHotel.id,
+          p_transaction_category: 'laundry_return',
+          p_from_location: 'Đơn vị giặt',
+          p_to_location: selectedHotel.name,
+          p_created_by: user.id,
+          p_items: okItems as any,
+          p_related_type: 'laundry_batch',
+          p_related_id: batchId,
+          p_documents: null,
+          p_photos: null,
+          p_notes: `Nhập kho từ lô giặt ${batchCode}`,
+        })
+        
+        if (inboundError) throw inboundError
+      }
+      
+      // 6. XỬ LÝ ITEMS MẤT (nếu có)
+      const lostItems = items
+        .filter(item => item.quantity_lost && item.quantity_lost > 0)
+        .map(item => {
+          const itemData = itemsData?.find(i => i.id === item.item_id)
+          return {
+            item_id: item.item_id,
+            quantity: item.quantity_lost!,
+            unit_price: itemData?.unit_price || 0,
+            notes: `Mất trong quá trình giặt - Lô ${batchCode}`
+          }
+        })
+      
+      if (lostItems.length > 0) {
+        const { error: lostError } = await supabase.rpc('create_outbound_transaction', {
+          p_tenant_id: tenant.id,
+          p_hotel_id: selectedHotel.id,
+          p_transaction_category: 'laundry',
+          p_from_location: selectedHotel.name,
+          p_to_location: 'Mất mát',
+          p_created_by: user.id,
+          p_items: lostItems as any,
+          p_related_type: 'laundry_batch',
+          p_related_id: batchId,
+          p_notes: `Items mất từ lô giặt ${batchCode}`,
+          p_recipient_name: null,
+          p_recipient_signature: null,
+          p_documents: null,
+          p_photos: null
+        })
+        
+        if (lostError) throw lostError
+      }
+      
+      // 7. XỬ LÝ ITEMS HƯ HỎNG (nếu có)
+      const damagedItems = items
+        .filter(item => item.quantity_damaged && item.quantity_damaged > 0)
+        .map(item => {
+          const itemData = itemsData?.find(i => i.id === item.item_id)
+          return {
+            item_id: item.item_id,
+            quantity: item.quantity_damaged!,
+            unit_price: itemData?.unit_price || 0,
+            notes: `Hư hỏng trong quá trình giặt - Lô ${batchCode}`
+          }
+        })
+      
+      if (damagedItems.length > 0) {
+        const { error: damagedError } = await supabase.rpc('create_outbound_transaction', {
+          p_tenant_id: tenant.id,
+          p_hotel_id: selectedHotel.id,
+          p_transaction_category: 'laundry',
+          p_from_location: selectedHotel.name,
+          p_to_location: 'Hư hỏng',
+          p_created_by: user.id,
+          p_items: damagedItems as any,
+          p_related_type: 'laundry_batch',
+          p_related_id: batchId,
+          p_notes: `Items hư hỏng từ lô giặt ${batchCode}`,
+          p_recipient_name: null,
+          p_recipient_signature: null,
+          p_documents: null,
+          p_photos: null
+        })
+        
+        if (damagedError) throw damagedError
+      }
+      
+      // 8. CẬP NHẬT STATUS BATCH
       const { error: updateError } = await supabase
         .from('laundry_batches')
         .update({ status: 'stocked' })

@@ -8,6 +8,7 @@ export type TransactionType = 'in' | 'out' | 'transfer' | 'adjust' | 'damaged' |
 export type TransactionCategory = 
   | 'purchase' 
   | 'return' 
+  | 'laundry_return'
   | 'room_assign' 
   | 'laundry' 
   | 'maintenance' 

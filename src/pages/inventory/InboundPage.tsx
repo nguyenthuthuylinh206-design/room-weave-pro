@@ -25,7 +25,7 @@ import { useCreateInboundTransaction } from '@/hooks/useInventoryTransactions'
 import { formatCurrency } from '@/lib/utils'
 
 const inboundSchema = z.object({
-  transaction_category: z.enum(['purchase', 'return', 'other']),
+  transaction_category: z.enum(['purchase', 'return', 'laundry_return', 'other']),
   from_location: z.string().min(1, 'Vui lòng nhập vị trí'),
   to_location: z.string().min(1, 'Vui lòng nhập vị trí'),
   items: z.array(z.object({
@@ -125,7 +125,13 @@ export function InboundPage() {
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="return" id="return" />
                           <label htmlFor="return" className="cursor-pointer">
-                            🔙 Trả về từ phòng/giặt là
+                            🔙 Trả về từ phòng
+                          </label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="laundry_return" id="laundry_return" />
+                          <label htmlFor="laundry_return" className="cursor-pointer">
+                            🧺 Nhận từ giặt là
                           </label>
                         </div>
                         <div className="flex items-center space-x-2">
