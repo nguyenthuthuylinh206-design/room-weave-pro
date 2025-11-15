@@ -317,7 +317,12 @@ export function BatchDetailPage() {
             <CardContent className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Ước tính</span>
-                <span className="font-medium">{formatCurrency(batch.estimated_cost)}</span>
+                <span className="font-medium">
+                  {batch.estimated_cost > 0 
+                    ? formatCurrency(batch.estimated_cost)
+                    : <span className="text-muted-foreground italic">Chưa cập nhật</span>
+                  }
+                </span>
               </div>
               
               {batch.actual_cost && (

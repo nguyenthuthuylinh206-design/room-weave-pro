@@ -208,7 +208,10 @@ export function LaundryBatchesPage() {
                         <TableCell>{formatDate(batch.expected_return_date)}</TableCell>
                         <TableCell className="text-center">{batch.total_items}</TableCell>
                         <TableCell className="text-right">
-                          {formatCurrency(batch.actual_cost || batch.estimated_cost)}
+                          {(batch.actual_cost || batch.estimated_cost) > 0
+                            ? formatCurrency(batch.actual_cost || batch.estimated_cost)
+                            : <span className="text-muted-foreground italic">Chưa cập nhật</span>
+                          }
                         </TableCell>
                         <TableCell>
                           <BatchStatusBadge status={batch.status as any} />

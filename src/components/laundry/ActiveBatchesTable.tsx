@@ -140,7 +140,10 @@ export function ActiveBatchesTable({ batches, isLoading }: ActiveBatchesTablePro
                         {batch.total_weight_kg} kg
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        {formatCurrency(batch.actual_cost || batch.estimated_cost)}
+                        {(batch.actual_cost || batch.estimated_cost) > 0
+                          ? formatCurrency(batch.actual_cost || batch.estimated_cost)
+                          : <span className="text-muted-foreground italic">Chưa cập nhật</span>
+                        }
                       </TableCell>
                       <TableCell>
                         <BatchStatusBadge status={batch.status as BatchStatus} />
