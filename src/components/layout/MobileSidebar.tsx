@@ -55,8 +55,7 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
     {
       title: 'Operations',
       items: [
-        { title: 'Inventory', icon: Package, path: '/inventory', module: 'inventory' },
-        { title: 'Items', icon: LayoutDashboard, path: '/items', module: 'items' },
+        { title: 'Kho & Tài sản', icon: Package, path: '/inventory', module: 'inventory,items' },
         { title: 'Laundry', icon: Shirt, path: '/laundry', module: 'laundry' },
         { title: 'Maintenance', icon: Wrench, path: '/maintenance', module: 'maintenance' },
         { title: 'Purchase Orders', icon: ShoppingCart, path: '/purchase-orders', module: 'purchase_orders' },
@@ -95,10 +94,14 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
     if (!moduleCode) return true
     if (role === 'super_admin' || role === 'owner') return true
     
-    const permission = modulePermissions?.find(p => p.module === moduleCode)
-    if (!permission) return false
-    
-    return permission.can_view || permission.can_create || permission.can_update || permission.can_delete
+    // Support multiple modules separated by comma
+    const modules = moduleCode.split(',')
+    return modules.some(module => {
+      const permission = modulePermissions?.find(p => p.module === module)
+      if (!permission) return false
+      
+      return permission.can_view || permission.can_create || permission.can_update || permission.can_delete
+    })
   }
 
   const isActive = (path: string) => {
