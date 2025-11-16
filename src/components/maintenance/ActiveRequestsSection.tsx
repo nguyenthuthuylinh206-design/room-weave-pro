@@ -66,7 +66,7 @@ export const ActiveRequestsSection = ({ requests }: ActiveRequestsSectionProps) 
             </div>
             <div className="flex items-center gap-1">
               <User className="h-3 w-3" />
-              <span>{request.assignee?.full_name || 'Chưa gán'}</span>
+              <span>{request.reporter?.full_name || 'N/A'}</span>
             </div>
           </div>
 
@@ -74,11 +74,6 @@ export const ActiveRequestsSection = ({ requests }: ActiveRequestsSectionProps) 
             <Button size="sm" variant="outline" asChild>
               <Link to={`/maintenance/requests/${request.id}`}>Xem chi tiết</Link>
             </Button>
-            {!request.assigned_to && (
-              <Button size="sm" variant="default">
-                Gán thợ
-              </Button>
-            )}
           </div>
         </div>
       </CardContent>
