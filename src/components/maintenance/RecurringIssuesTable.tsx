@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { AlertTriangle, TrendingUp, Wrench } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import { RecurringIssueAnalysisDialog } from './RecurringIssueAnalysisDialog'
 
 interface RecurringIssue {
   id: string
@@ -32,6 +34,8 @@ const issueTypeLabels: Record<string, string> = {
 }
 
 export const RecurringIssuesTable = ({ issues }: RecurringIssuesTableProps) => {
+  const [selectedIssue, setSelectedIssue] = useState<RecurringIssue | null>(null)
+
   if (!issues || issues.length === 0) {
     return (
       <Card>
@@ -133,7 +137,12 @@ export const RecurringIssuesTable = ({ issues }: RecurringIssuesTableProps) => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" className="gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="gap-2"
+                    onClick={() => setSelectedIssue(issue)}
+                  >
                     <Wrench className="h-4 w-4" />
                     Phân tích
                   </Button>
@@ -162,6 +171,12 @@ export const RecurringIssuesTable = ({ issues }: RecurringIssuesTableProps) => {
           </Card>
         ))}
       </div>
+
+      <RecurringIssueAnalysisDialog
+        issue={selectedIssue}
+        open={!!selectedIssue}
+        onOpenChange={(open) => !open && setSelectedIssue(null)}
+      />
     </div>
   )
 }

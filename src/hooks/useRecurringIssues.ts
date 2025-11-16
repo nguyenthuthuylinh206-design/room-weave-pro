@@ -72,6 +72,11 @@ export function useRecurringIssues(days: number = 90) {
 
           const primaryIssue = Object.entries(issueTypes).sort((a, b) => (b[1] as number) - (a[1] as number))[0]
 
+          // Sort requests by reported_at descending for display in dialog
+          const sortedRequests = g.requests
+            .slice()
+            .sort((a: any, b: any) => new Date(b.reported_at).getTime() - new Date(a.reported_at).getTime())
+
           return {
             ...g,
             count30d: last30Days,
@@ -80,6 +85,7 @@ export function useRecurringIssues(days: number = 90) {
             issueCount: (primaryIssue?.[1] as number) || 0,
             frequency: Number((g.requests.length / (days / 30)).toFixed(1)), // per month
             avgCost: Math.round(g.totalCost / g.requests.length),
+            requests: sortedRequests
           }
         })
         .sort((a, b) => b.count30d - a.count30d)
