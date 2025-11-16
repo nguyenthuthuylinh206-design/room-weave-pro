@@ -142,8 +142,7 @@ export function useMaintenanceRequest(id: string) {
           *,
           room:rooms(*),
           item:items(*),
-          reporter:users!maintenance_requests_reported_by_fkey(*),
-          assignee:users!maintenance_requests_assigned_to_fkey(*)
+          reporter:users!maintenance_requests_reported_by_fkey(*)
         `)
         .eq('id', id)
         .single()
