@@ -72,7 +72,7 @@ export function useMaintenanceRequests(filters: MaintenanceFilters = {}) {
         .select(`
           *,
           room:rooms(id, room_number, floor, room_type),
-          item:items(id, code, name, images),
+          item:items(id, code, name),
           reporter:users!maintenance_requests_reported_by_fkey(id, full_name, avatar_url),
           assignee:users!maintenance_requests_assigned_to_fkey(id, full_name, avatar_url)
         `)
