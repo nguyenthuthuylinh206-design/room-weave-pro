@@ -12,9 +12,7 @@ import {
   Menu,
   X,
   Building2,
-  FolderTree,
   Zap,
-  TestTube2,
   CreditCard,
   BarChart3,
   KeyRound
@@ -25,7 +23,6 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 const settingsNavigation = [
   { name: 'Cài đặt chung', href: '/settings/general', icon: Settings },
   { name: 'Khách sạn', href: '/settings/hotels', icon: Building2 },
-  { name: 'Danh mục', href: '/settings/categories', icon: FolderTree },
   { name: 'Người dùng & Phân quyền', href: '/settings/users', icon: Users },
   { name: 'Đổi mật khẩu', href: '/settings/change-password', icon: KeyRound },
   { name: 'Đăng ký & Thanh toán', href: '/settings/subscription', icon: CreditCard },
@@ -35,7 +32,6 @@ const settingsNavigation = [
   { name: 'Tự động hóa', href: '/settings/workflows', icon: Zap },
   { name: 'Tích hợp & API', href: '/settings/integrations', icon: Plug },
   { name: 'Hệ thống & Bảo mật', href: '/settings/security', icon: Lock },
-  { name: 'Kiểm thử hệ thống', href: '/settings/system-test', icon: TestTube2 },
 ]
 
 function SettingsSidebar({ className }: { className?: string }) {
