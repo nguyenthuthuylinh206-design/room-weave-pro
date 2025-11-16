@@ -9,11 +9,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useNavigate } from 'react-router-dom'
-import { useCreateMaintenanceRequest } from '@/hooks/useMaintenanceRequests'
+import { useNavigate, useParams } from 'react-router-dom'
+import { 
+  useCreateMaintenanceRequest, 
+  useMaintenanceRequest, 
+  useUpdateMaintenanceRequest 
+} from '@/hooks/useMaintenanceRequests'
 import { useRooms } from '@/hooks/useRooms'
 import { useItems } from '@/hooks/useItems'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useEffect } from 'react'
 
 const requestSchema = z.object({
   issue_type: z.enum(['repair', 'replace', 'inspection', 'cleaning', 'other']),
@@ -31,7 +37,12 @@ type RequestFormData = z.infer<typeof requestSchema>
 
 export default function MaintenanceRequestForm() {
   const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+  const isEditMode = !!id
+  
   const createRequest = useCreateMaintenanceRequest()
+  const updateRequest = useUpdateMaintenanceRequest()
+  const { data: existingRequest, isLoading } = useMaintenanceRequest(id || '')
   const { data: rooms } = useRooms({})
   const { data: items } = useItems({})
 
@@ -46,16 +57,46 @@ export default function MaintenanceRequestForm() {
     },
   })
 
+  // Populate form when editing
+  useEffect(() => {
+    if (isEditMode && existingRequest) {
+      form.reset({
+        issue_type: existingRequest.issue_type as any,
+        priority: existingRequest.priority as any,
+        title: existingRequest.title,
+        description: existingRequest.description,
+        location: existingRequest.location,
+        room_id: existingRequest.room_id || undefined,
+        item_id: existingRequest.item_id || undefined,
+        expected_completion_date: existingRequest.expected_completion_date || undefined,
+        estimated_cost: existingRequest.estimated_cost || undefined,
+      })
+    }
+  }, [isEditMode, existingRequest, form])
+
   const onSubmit = async (data: RequestFormData) => {
-    await createRequest.mutateAsync(data)
+    if (isEditMode && id) {
+      await updateRequest.mutateAsync({ id, data })
+    } else {
+      await createRequest.mutateAsync(data)
+    }
     navigate('/maintenance/requests')
+  }
+
+  if (isEditMode && (isLoading || !existingRequest)) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Tạo yêu cầu bảo trì"
-        description="Báo cáo sự cố và yêu cầu bảo trì"
+        title={isEditMode ? 'Sửa yêu cầu bảo trì' : 'Tạo yêu cầu bảo trì'}
+        description={isEditMode ? 'Cập nhật thông tin yêu cầu bảo trì' : 'Báo cáo sự cố và yêu cầu bảo trì'}
       />
 
       <Form {...form}>

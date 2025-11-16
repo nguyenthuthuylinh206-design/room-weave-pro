@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { PriorityBadge } from './PriorityBadge'
 import { StatusBadge } from './StatusBadge'
@@ -13,6 +14,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { AssignTechnicianDialog } from './AssignTechnicianDialog'
+import { CompleteRequestDialog } from './CompleteRequestDialog'
+import { CancelRequestDialog } from './CancelRequestDialog'
+import { useStartRequest } from '@/hooks/useMaintenanceRequests'
+import { toast } from '@/hooks/use-toast'
 
 interface MaintenanceRequestTableProps {
   requests: any[]
@@ -20,12 +26,49 @@ interface MaintenanceRequestTableProps {
 }
 
 export const MaintenanceRequestTable = ({ requests, isLoading }: MaintenanceRequestTableProps) => {
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
+  const [showAssignDialog, setShowAssignDialog] = useState(false)
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false)
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const startRequest = useStartRequest()
+
   const issueTypeLabels: Record<string, string> = {
     repair: '🔧 Sửa chữa',
     replace: '🔄 Thay thế',
     inspection: '🔍 Kiểm tra',
     cleaning: '🧹 Vệ sinh',
     other: '➕ Khác',
+  }
+
+  const handleStartRequest = async (id: string) => {
+    try {
+      await startRequest.mutateAsync(id)
+      toast({
+        title: 'Đã bắt đầu xử lý',
+        description: 'Yêu cầu bảo trì đang được xử lý',
+      })
+    } catch (error) {
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể bắt đầu xử lý yêu cầu',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleOpenAssignDialog = (id: string) => {
+    setSelectedRequestId(id)
+    setShowAssignDialog(true)
+  }
+
+  const handleOpenCompleteDialog = (id: string) => {
+    setSelectedRequestId(id)
+    setShowCompleteDialog(true)
+  }
+
+  const handleOpenCancelDialog = (id: string) => {
+    setSelectedRequestId(id)
+    setShowCancelDialog(true)
   }
 
   if (isLoading) {
@@ -126,6 +169,27 @@ export const MaintenanceRequestTable = ({ requests, isLoading }: MaintenanceRequ
           ))}
         </TableBody>
       </Table>
+
+      {/* Dialogs */}
+      {selectedRequestId && (
+        <>
+          <AssignTechnicianDialog
+            open={showAssignDialog}
+            onOpenChange={setShowAssignDialog}
+            requestId={selectedRequestId}
+          />
+          <CompleteRequestDialog
+            open={showCompleteDialog}
+            onOpenChange={setShowCompleteDialog}
+            requestId={selectedRequestId}
+          />
+          <CancelRequestDialog
+            open={showCancelDialog}
+            onOpenChange={setShowCancelDialog}
+            requestId={selectedRequestId}
+          />
+        </>
+      )}
     </div>
   )
 }

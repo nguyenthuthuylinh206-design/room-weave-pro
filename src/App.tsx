@@ -64,6 +64,7 @@ import VendorComparisonPage from "./pages/vendors/VendorComparisonPage";
 import MaintenanceDashboard from "./pages/maintenance/MaintenanceDashboard";
 import MaintenanceRequestList from "./pages/maintenance/MaintenanceRequestList";
 import MaintenanceRequestForm from "./pages/maintenance/MaintenanceRequestForm";
+import MaintenanceRequestDetail from "./pages/maintenance/MaintenanceRequestDetail";
 import RecurringIssuesPage from "./pages/maintenance/RecurringIssuesPage";
 import POListPage from "./pages/purchase-orders/POListPage";
 import PODetailPage from "./pages/purchase-orders/PODetailPage";
@@ -350,6 +351,8 @@ const router = createBrowserRouter([
       { path: "maintenance", element: <MaintenanceDashboard /> },
       { path: "maintenance/requests", element: <MaintenanceRequestList /> },
       { path: "maintenance/requests/new", element: <MaintenanceRequestForm /> },
+      { path: "maintenance/requests/:id", element: <MaintenanceRequestDetail /> },
+      { path: "maintenance/requests/edit/:id", element: <MaintenanceRequestForm /> },
       { path: "maintenance/recurring-issues", element: <RecurringIssuesPage /> },
 
       // Purchase Orders - Owner & Manager
