@@ -4301,6 +4301,7 @@ export type Database = {
           code: string
           contact_person: string | null
           created_at: string | null
+          created_by: string | null
           delivery_time: string | null
           documents: string[] | null
           email: string | null
@@ -4329,6 +4330,7 @@ export type Database = {
           code: string
           contact_person?: string | null
           created_at?: string | null
+          created_by?: string | null
           delivery_time?: string | null
           documents?: string[] | null
           email?: string | null
@@ -4357,6 +4359,7 @@ export type Database = {
           code?: string
           contact_person?: string | null
           created_at?: string | null
+          created_by?: string | null
           delivery_time?: string | null
           documents?: string[] | null
           email?: string | null
