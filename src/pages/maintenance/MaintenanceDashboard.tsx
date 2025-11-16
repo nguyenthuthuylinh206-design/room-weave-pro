@@ -102,63 +102,6 @@ export default function MaintenanceDashboard() {
           <ActiveRequestsSection requests={data.activeRequests} />
         )}
 
-        {/* Technician Status */}
-        {data?.technicians && data.technicians.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Kỹ thuật viên</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {data.technicians.slice(0, 5).map((tech: any) => {
-                  const taskCount = tech.assigned_requests?.[0]?.count || 0
-                  const status =
-                    taskCount === 0 ? 'available' : taskCount <= 2 ? 'busy' : 'overloaded'
-
-                  return (
-                    <div
-                      key={tech.id}
-                      className="flex items-center justify-between p-3 rounded-lg border"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Users className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{tech.full_name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {taskCount} công việc
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {status === 'available' && (
-                          <span className="inline-flex items-center gap-1 text-sm text-green-600">
-                            <span className="w-2 h-2 rounded-full bg-green-600" />
-                            Sẵn sàng
-                          </span>
-                        )}
-                        {status === 'busy' && (
-                          <span className="inline-flex items-center gap-1 text-sm text-yellow-600">
-                            <span className="w-2 h-2 rounded-full bg-yellow-600" />
-                            Bận
-                          </span>
-                        )}
-                        {status === 'overloaded' && (
-                          <span className="inline-flex items-center gap-1 text-sm text-red-600">
-                            <span className="w-2 h-2 rounded-full bg-red-600" />
-                            Quá tải
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Recent Completions */}
         {data?.recentCompletions && data.recentCompletions.length > 0 && (
           <Card>
