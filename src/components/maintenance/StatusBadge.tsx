@@ -2,22 +2,18 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 interface StatusBadgeProps {
-  status: 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled'
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
   className?: string
 }
 
 export const StatusBadge = ({ status, className }: StatusBadgeProps) => {
   const config = {
     pending: {
-      label: 'Chờ xử lý',
-      className: 'bg-gray-500 text-white',
-    },
-    assigned: {
-      label: 'Đã gán',
+      label: 'Tiếp nhận',
       className: 'bg-blue-500 text-white',
     },
     in_progress: {
-      label: 'Đang xử lý',
+      label: 'Đang kiểm tra',
       className: 'bg-yellow-500 text-white',
     },
     completed: {

@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useMaintenanceRequest } from '@/hooks/useMaintenanceRequests'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -9,13 +8,13 @@ import { Badge } from '@/components/ui/badge'
 import { PriorityBadge } from '@/components/maintenance/PriorityBadge'
 import { StatusBadge } from '@/components/maintenance/StatusBadge'
 import { MaintenanceTimeline } from '@/components/maintenance/MaintenanceTimeline'
-import { AssignTechnicianDialog } from '@/components/maintenance/AssignTechnicianDialog'
 import { CompleteRequestDialog } from '@/components/maintenance/CompleteRequestDialog'
 import { CancelRequestDialog } from '@/components/maintenance/CancelRequestDialog'
 import { UpdateProgressDialog } from '@/components/maintenance/UpdateProgressDialog'
 import { useStartRequest } from '@/hooks/useMaintenanceRequests'
 import { toast } from '@/hooks/use-toast'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useState } from 'react'
 import { 
   ArrowLeft, 
   Calendar, 
@@ -26,7 +25,9 @@ import {
   FileText,
   Image as ImageIcon,
   Edit,
-  Shield
+  Shield,
+  XCircle,
+  CheckCircle
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
@@ -37,7 +38,6 @@ export default function MaintenanceRequestDetail() {
   const { data: request, isLoading } = useMaintenanceRequest(id!)
   const startRequest = useStartRequest()
   
-  const [showAssignDialog, setShowAssignDialog] = useState(false)
   const [showCompleteDialog, setShowCompleteDialog] = useState(false)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [showUpdateDialog, setShowUpdateDialog] = useState(false)
@@ -46,13 +46,13 @@ export default function MaintenanceRequestDetail() {
     try {
       await startRequest.mutateAsync(id!)
       toast({
-        title: 'Đã bắt đầu xử lý',
-        description: 'Yêu cầu bảo trì đang được xử lý',
+        title: 'Đã bắt đầu kiểm tra',
+        description: 'Yêu cầu bảo trì đang được kiểm tra',
       })
     } catch (error) {
       toast({
         title: 'Lỗi',
-        description: 'Không thể bắt đầu xử lý yêu cầu',
+        description: 'Không thể bắt đầu kiểm tra yêu cầu',
         variant: 'destructive',
       })
     }
@@ -109,9 +109,9 @@ export default function MaintenanceRequestDetail() {
       <div className="flex flex-wrap gap-2">
         {request.status === 'pending' && (
           <>
-            <Button onClick={() => setShowAssignDialog(true)}>
-              <User className="h-4 w-4 mr-2" />
-              Gán thợ
+            <Button onClick={handleStartRequest}>
+              <Wrench className="h-4 w-4 mr-2" />
+              Bắt đầu kiểm tra
             </Button>
             <Button variant="outline" asChild>
               <Link to={`/maintenance/requests/edit/${id}`}>
@@ -119,14 +119,11 @@ export default function MaintenanceRequestDetail() {
                 Sửa
               </Link>
             </Button>
+            <Button variant="destructive" onClick={() => setShowCancelDialog(true)}>
+              <XCircle className="h-4 w-4 mr-2" />
+              Hủy
+            </Button>
           </>
-        )}
-        
-        {request.status === 'assigned' && (
-          <Button onClick={handleStartRequest}>
-            <Wrench className="h-4 w-4 mr-2" />
-            Bắt đầu xử lý
-          </Button>
         )}
         
         {request.status === 'in_progress' && (
@@ -168,7 +165,7 @@ export default function MaintenanceRequestDetail() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Trạng thái</p>
-                  <StatusBadge status={request.status as 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled'} />
+                  <StatusBadge status={request.status as 'pending' | 'in_progress' | 'completed' | 'cancelled'} />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Mã yêu cầu</p>
@@ -345,21 +342,8 @@ export default function MaintenanceRequestDetail() {
               <Separator />
 
               <div>
-                <p className="text-sm text-muted-foreground">Người xử lý</p>
-                {request.assignee ? (
-                  <div className="flex items-center gap-2 mt-1">
-                    {request.assignee.avatar_url && (
-                      <img
-                        src={request.assignee.avatar_url}
-                        alt={request.assignee.full_name}
-                        className="w-8 h-8 rounded-full"
-                      />
-                    )}
-                    <p className="font-medium">{request.assignee.full_name}</p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground mt-1">Chưa gán</p>
-                )}
+                <p className="text-sm text-muted-foreground">Người báo cáo</p>
+                <p className="font-medium mt-1">{request.reporter?.full_name || 'N/A'}</p>
               </div>
             </CardContent>
           </Card>
@@ -485,11 +469,6 @@ export default function MaintenanceRequestDetail() {
       </div>
 
       {/* Dialogs */}
-      <AssignTechnicianDialog
-        open={showAssignDialog}
-        onOpenChange={setShowAssignDialog}
-        requestId={id!}
-      />
       <CompleteRequestDialog
         open={showCompleteDialog}
         onOpenChange={setShowCompleteDialog}

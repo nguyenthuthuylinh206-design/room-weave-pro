@@ -16,11 +16,9 @@ export interface MaintenanceRequest {
   priority: 'low' | 'medium' | 'high' | 'urgent'
   title: string
   description: string
-  status: 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled'
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
   reported_by: string
   reported_at: string
-  assigned_to?: string
-  assigned_at?: string
   started_at?: string
   completed_at?: string
   expected_completion_date?: string
@@ -46,7 +44,6 @@ export interface MaintenanceFilters {
   issue_type?: string
   room_id?: string
   item_id?: string
-  assigned_to?: string
   reported_by?: string
   under_warranty?: boolean
   overdue?: boolean
@@ -73,8 +70,7 @@ export function useMaintenanceRequests(filters: MaintenanceFilters = {}) {
           *,
           room:rooms(id, room_number, floor, room_type),
           item:items(id, code, name),
-          reporter:users!maintenance_requests_reported_by_fkey(id, full_name, avatar_url),
-          assignee:users!maintenance_requests_assigned_to_fkey(id, full_name, avatar_url)
+          reporter:users!maintenance_requests_reported_by_fkey(id, full_name, avatar_url)
         `)
         .eq('tenant_id', tenantId)
 
@@ -104,10 +100,6 @@ export function useMaintenanceRequests(filters: MaintenanceFilters = {}) {
 
       if (filters.item_id) {
         query = query.eq('item_id', filters.item_id)
-      }
-
-      if (filters.assigned_to) {
-        query = query.eq('assigned_to', filters.assigned_to)
       }
 
       if (filters.reported_by) {
@@ -189,15 +181,6 @@ export function useCreateMaintenanceRequest() {
         .single()
 
       if (error) throw error
-
-      // If assigned, update assigned_at
-      if (data.assigned_to) {
-        await supabase
-          .from('maintenance_requests')
-          .update({ assigned_at: new Date().toISOString() })
-          .eq('id', request.id)
-      }
-
       return request
     },
     onSuccess: () => {
@@ -246,36 +229,6 @@ export function useUpdateMaintenanceRequest() {
         title: 'Lỗi',
         description: error.message,
         variant: 'destructive',
-      })
-    },
-  })
-}
-
-export function useAssignRequest() {
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async ({ id, assigned_to }: { id: string; assigned_to: string }) => {
-      const { data, error } = await supabase
-        .from('maintenance_requests')
-        .update({
-          assigned_to,
-          assigned_at: new Date().toISOString(),
-          status: 'assigned',
-        })
-        .eq('id', id)
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] })
-      toast({
-        title: 'Thành công',
-        description: 'Đã gán thợ xử lý',
       })
     },
   })

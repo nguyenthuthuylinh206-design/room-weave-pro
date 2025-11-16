@@ -1773,8 +1773,6 @@ export type Database = {
       maintenance_requests: {
         Row: {
           actual_cost: number | null
-          assigned_at: string | null
-          assigned_to: string | null
           completed_at: string | null
           completion_notes: string | null
           completion_photos: string[] | null
@@ -1807,8 +1805,6 @@ export type Database = {
         }
         Insert: {
           actual_cost?: number | null
-          assigned_at?: string | null
-          assigned_to?: string | null
           completed_at?: string | null
           completion_notes?: string | null
           completion_photos?: string[] | null
@@ -1841,8 +1837,6 @@ export type Database = {
         }
         Update: {
           actual_cost?: number | null
-          assigned_at?: string | null
-          assigned_to?: string | null
           completed_at?: string | null
           completion_notes?: string | null
           completion_photos?: string[] | null
@@ -1874,20 +1868,6 @@ export type Database = {
           warranty_info?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "maintenance_requests_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "user_with_levels"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "maintenance_requests_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "maintenance_requests_hotel_id_fkey"
             columns: ["hotel_id"]

@@ -14,7 +14,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { AssignTechnicianDialog } from './AssignTechnicianDialog'
 import { CompleteRequestDialog } from './CompleteRequestDialog'
 import { CancelRequestDialog } from './CancelRequestDialog'
 import { useStartRequest } from '@/hooks/useMaintenanceRequests'
@@ -27,7 +26,6 @@ interface MaintenanceRequestTableProps {
 
 export const MaintenanceRequestTable = ({ requests, isLoading }: MaintenanceRequestTableProps) => {
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
-  const [showAssignDialog, setShowAssignDialog] = useState(false)
   const [showCompleteDialog, setShowCompleteDialog] = useState(false)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const startRequest = useStartRequest()
@@ -44,21 +42,16 @@ export const MaintenanceRequestTable = ({ requests, isLoading }: MaintenanceRequ
     try {
       await startRequest.mutateAsync(id)
       toast({
-        title: 'Đã bắt đầu xử lý',
-        description: 'Yêu cầu bảo trì đang được xử lý',
+        title: 'Đã bắt đầu kiểm tra',
+        description: 'Yêu cầu bảo trì đang được kiểm tra',
       })
     } catch (error) {
       toast({
         title: 'Lỗi',
-        description: 'Không thể bắt đầu xử lý yêu cầu',
+        description: 'Không thể bắt đầu kiểm tra yêu cầu',
         variant: 'destructive',
       })
     }
-  }
-
-  const handleOpenAssignDialog = (id: string) => {
-    setSelectedRequestId(id)
-    setShowAssignDialog(true)
   }
 
   const handleOpenCompleteDialog = (id: string) => {
@@ -100,7 +93,6 @@ export const MaintenanceRequestTable = ({ requests, isLoading }: MaintenanceRequ
             <TableHead>Tiêu đề</TableHead>
             <TableHead>Vị trí</TableHead>
             <TableHead>Người báo cáo</TableHead>
-            <TableHead>Người xử lý</TableHead>
             <TableHead>Thời gian</TableHead>
             <TableHead>Trạng thái</TableHead>
             <TableHead className="w-[50px]"></TableHead>
@@ -126,7 +118,6 @@ export const MaintenanceRequestTable = ({ requests, isLoading }: MaintenanceRequ
                 {request.room ? `Phòng ${request.room.room_number}` : request.location}
               </TableCell>
               <TableCell>{request.reporter?.full_name || 'N/A'}</TableCell>
-              <TableCell>{request.assignee?.full_name || 'Chưa gán'}</TableCell>
               <TableCell className="text-sm text-muted-foreground">
                 {formatDistanceToNow(new Date(request.reported_at), { addSuffix: true, locale: vi })}
               </TableCell>
@@ -146,21 +137,32 @@ export const MaintenanceRequestTable = ({ requests, isLoading }: MaintenanceRequ
                     </DropdownMenuItem>
                     {request.status === 'pending' && (
                       <>
-                        <DropdownMenuItem>Gán thợ</DropdownMenuItem>
-                        <DropdownMenuItem>Sửa</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleStartRequest(request.id)}>
+                          Bắt đầu kiểm tra
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to={`/maintenance/requests/edit/${request.id}`}>Sửa</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={() => handleOpenCancelDialog(request.id)}
+                        >
+                          Hủy
+                        </DropdownMenuItem>
                       </>
-                    )}
-                    {request.status === 'assigned' && (
-                      <DropdownMenuItem>Bắt đầu xử lý</DropdownMenuItem>
                     )}
                     {request.status === 'in_progress' && (
                       <>
-                        <DropdownMenuItem>Cập nhật tiến độ</DropdownMenuItem>
-                        <DropdownMenuItem>Hoàn thành</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOpenCompleteDialog(request.id)}>
+                          Hoàn thành
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={() => handleOpenCancelDialog(request.id)}
+                        >
+                          Hủy
+                        </DropdownMenuItem>
                       </>
-                    )}
-                    {(request.status === 'pending' || request.status === 'assigned') && (
-                      <DropdownMenuItem className="text-destructive">Hủy</DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -173,11 +175,6 @@ export const MaintenanceRequestTable = ({ requests, isLoading }: MaintenanceRequ
       {/* Dialogs */}
       {selectedRequestId && (
         <>
-          <AssignTechnicianDialog
-            open={showAssignDialog}
-            onOpenChange={setShowAssignDialog}
-            requestId={selectedRequestId}
-          />
           <CompleteRequestDialog
             open={showCompleteDialog}
             onOpenChange={setShowCompleteDialog}
