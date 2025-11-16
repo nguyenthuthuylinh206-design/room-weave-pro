@@ -37,7 +37,6 @@ const vendorSchema = z.object({
   products_services: z.array(z.string()).min(1, 'Chọn ít nhất 1 sản phẩm/dịch vụ'),
   
   address: z.string().min(10, 'Địa chỉ phải có ít nhất 10 ký tự'),
-  country: z.string().default('Vietnam'),
   phone: z.string().regex(/^[\d\s\+\-\(\)]+$/, 'Số điện thoại không hợp lệ'),
   email: z.string().email('Email không hợp lệ').optional().or(z.literal('')),
   contact_person: z.string().min(3, 'Tên người liên hệ phải có ít nhất 3 ký tự'),
@@ -79,7 +78,6 @@ const VendorFormPage: React.FC = () => {
     resolver: zodResolver(vendorSchema),
     defaultValues: vendor || {
       category: 'supplier',
-      country: 'Vietnam',
       products_services: [],
       status: 'active',
       payment_terms: '30_days'
@@ -101,7 +99,6 @@ const VendorFormPage: React.FC = () => {
         category: data.category,
         products_services: data.products_services,
         address: data.address,
-        country: data.country,
         phone: data.phone,
         email: data.email || '',
         contact_person: data.contact_person,

@@ -12,7 +12,6 @@ export interface Vendor {
   
   address: string;
   city?: string;
-  country: string;
   phone: string;
   email?: string;
   website?: string;
