@@ -32,7 +32,11 @@ export function useMaintenanceDashboard() {
 
       // Calculate stats
       const total = requests?.length || 0
-      const inProgress = requests?.filter((r) => r.status === 'in_progress' || r.status === 'assigned').length || 0
+      const inProgress = requests?.filter((r) => 
+        r.status === 'waiting' || 
+        r.status === 'pending' || 
+        r.status === 'in_progress'
+      ).length || 0
       const completed = requests?.filter((r) => r.status === 'completed').length || 0
       const completedLast30Days = requests?.filter(
         (r) => r.status === 'completed' && new Date(r.completed_at || '') >= thirtyDaysAgo
@@ -100,17 +104,6 @@ export function useMaintenanceDashboard() {
       const medium = activeRequests.filter((r) => r.priority === 'medium')
       const low = activeRequests.filter((r) => r.priority === 'low')
 
-      // Get technicians with their workload
-      const { data: technicians } = await supabase
-        .from('users')
-        .select(`
-          *,
-          assigned_requests:maintenance_requests!maintenance_requests_assigned_to_fkey(count)
-        `)
-        .eq('tenant_id', tenantId)
-        .eq('department', 'maintenance')
-        .eq('status', 'active')
-
       return {
         stats: {
           total,
@@ -132,7 +125,6 @@ export function useMaintenanceDashboard() {
           medium,
           low,
         },
-        technicians: technicians || [],
         recentCompletions: requests
           ?.filter((r) => r.status === 'completed')
           .sort((a, b) => new Date(b.completed_at!).getTime() - new Date(a.completed_at!).getTime())
