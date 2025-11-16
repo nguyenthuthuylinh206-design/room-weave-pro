@@ -18,8 +18,9 @@ export default function MaintenanceRequestList() {
 
   const counts = {
     all: requests?.length || 0,
+    waiting: requests?.filter((r: any) => r.status === 'waiting').length || 0,
     pending: requests?.filter((r: any) => r.status === 'pending').length || 0,
-    in_progress: requests?.filter((r: any) => r.status === 'in_progress' || r.status === 'assigned').length || 0,
+    in_progress: requests?.filter((r: any) => r.status === 'in_progress').length || 0,
     completed: requests?.filter((r: any) => r.status === 'completed').length || 0,
     cancelled: requests?.filter((r: any) => r.status === 'cancelled').length || 0,
   }
@@ -39,8 +40,9 @@ export default function MaintenanceRequestList() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="all">Tất cả ({counts.all})</TabsTrigger>
-          <TabsTrigger value="pending">Chờ xử lý ({counts.pending})</TabsTrigger>
-          <TabsTrigger value="in_progress">Đang xử lý ({counts.in_progress})</TabsTrigger>
+          <TabsTrigger value="waiting">Đang chờ ({counts.waiting})</TabsTrigger>
+          <TabsTrigger value="pending">Tiếp nhận ({counts.pending})</TabsTrigger>
+          <TabsTrigger value="in_progress">Đang kiểm tra ({counts.in_progress})</TabsTrigger>
           <TabsTrigger value="completed">Hoàn thành ({counts.completed})</TabsTrigger>
           <TabsTrigger value="cancelled">Đã hủy ({counts.cancelled})</TabsTrigger>
         </TabsList>

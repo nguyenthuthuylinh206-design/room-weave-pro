@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { CompleteRequestDialog } from './CompleteRequestDialog'
 import { CancelRequestDialog } from './CancelRequestDialog'
-import { useStartRequest } from '@/hooks/useMaintenanceRequests'
+import { useStartRequest, useAcceptRequest } from '@/hooks/useMaintenanceRequests'
 import { toast } from '@/hooks/use-toast'
 
 interface MaintenanceRequestTableProps {
@@ -29,6 +29,7 @@ export const MaintenanceRequestTable = ({ requests, isLoading }: MaintenanceRequ
   const [showCompleteDialog, setShowCompleteDialog] = useState(false)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const startRequest = useStartRequest()
+  const acceptRequest = useAcceptRequest()
 
   const issueTypeLabels: Record<string, string> = {
     repair: '🔧 Sửa chữa',
@@ -36,6 +37,22 @@ export const MaintenanceRequestTable = ({ requests, isLoading }: MaintenanceRequ
     inspection: '🔍 Kiểm tra',
     cleaning: '🧹 Vệ sinh',
     other: '➕ Khác',
+  }
+
+  const handleAcceptRequest = async (id: string) => {
+    try {
+      await acceptRequest.mutateAsync(id)
+      toast({
+        title: 'Đã tiếp nhận',
+        description: 'Yêu cầu bảo trì đã được tiếp nhận',
+      })
+    } catch (error) {
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể tiếp nhận yêu cầu',
+        variant: 'destructive',
+      })
+    }
   }
 
   const handleStartRequest = async (id: string) => {
@@ -135,6 +152,22 @@ export const MaintenanceRequestTable = ({ requests, isLoading }: MaintenanceRequ
                     <DropdownMenuItem asChild>
                       <Link to={`/maintenance/requests/${request.id}`}>Xem chi tiết</Link>
                     </DropdownMenuItem>
+                    {request.status === 'waiting' && (
+                      <>
+                        <DropdownMenuItem onClick={() => handleAcceptRequest(request.id)}>
+                          Tiếp nhận
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to={`/maintenance/requests/edit/${request.id}`}>Sửa</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={() => handleOpenCancelDialog(request.id)}
+                        >
+                          Hủy
+                        </DropdownMenuItem>
+                      </>
+                    )}
                     {request.status === 'pending' && (
                       <>
                         <DropdownMenuItem onClick={() => handleStartRequest(request.id)}>
