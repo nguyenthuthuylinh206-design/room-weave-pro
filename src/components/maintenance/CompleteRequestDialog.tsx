@@ -87,9 +87,10 @@ export const CompleteRequestDialog = ({
       form.reset()
       setPartsUsed([''])
     } catch (error) {
+      console.error('Complete request error:', error)
       toast({
         title: 'Lỗi',
-        description: 'Không thể hoàn thành yêu cầu',
+        description: error?.message || 'Không thể hoàn thành yêu cầu',
         variant: 'destructive',
       })
     }
