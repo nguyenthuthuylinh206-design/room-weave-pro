@@ -308,7 +308,6 @@ export function useCompleteRequest() {
           solution: data.solution,
           actual_cost: data.actual_cost,
           parts_used: data.parts_used,
-          completion_photos: data.completion_photos,
           completion_notes: data.completion_notes,
         })
         .eq('id', id)
@@ -320,6 +319,7 @@ export function useCompleteRequest() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['maintenance-request'] })
       toast({
         title: 'Thành công',
         description: 'Đã hoàn thành yêu cầu',
