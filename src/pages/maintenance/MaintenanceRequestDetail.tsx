@@ -1,5 +1,5 @@
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { useMaintenanceRequest } from '@/hooks/useMaintenanceRequests'
+import { useMaintenanceRequest, useAcceptRequest } from '@/hooks/useMaintenanceRequests'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -27,7 +27,8 @@ import {
   Edit,
   Shield,
   XCircle,
-  CheckCircle
+  CheckCircle,
+  ClipboardCheck
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
@@ -36,11 +37,28 @@ export default function MaintenanceRequestDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: request, isLoading } = useMaintenanceRequest(id!)
+  const acceptRequest = useAcceptRequest()
   const startRequest = useStartRequest()
   
   const [showCompleteDialog, setShowCompleteDialog] = useState(false)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [showUpdateDialog, setShowUpdateDialog] = useState(false)
+
+  const handleAcceptRequest = async () => {
+    try {
+      await acceptRequest.mutateAsync(id!)
+      toast({
+        title: 'Đã tiếp nhận',
+        description: 'Yêu cầu bảo trì đã được tiếp nhận',
+      })
+    } catch (error) {
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể tiếp nhận yêu cầu',
+        variant: 'destructive',
+      })
+    }
+  }
 
   const handleStartRequest = async () => {
     try {
@@ -107,6 +125,25 @@ export default function MaintenanceRequestDetail() {
 
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-2">
+        {request.status === 'waiting' && (
+          <>
+            <Button onClick={handleAcceptRequest}>
+              <ClipboardCheck className="h-4 w-4 mr-2" />
+              Tiếp nhận
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to={`/maintenance/requests/edit/${id}`}>
+                <Edit className="h-4 w-4 mr-2" />
+                Sửa
+              </Link>
+            </Button>
+            <Button variant="destructive" onClick={() => setShowCancelDialog(true)}>
+              <XCircle className="h-4 w-4 mr-2" />
+              Hủy
+            </Button>
+          </>
+        )}
+
         {request.status === 'pending' && (
           <>
             <Button onClick={handleStartRequest}>
@@ -136,12 +173,6 @@ export default function MaintenanceRequestDetail() {
               Hoàn thành
             </Button>
           </>
-        )}
-
-        {(request.status === 'pending' || request.status === 'assigned') && (
-          <Button onClick={() => setShowCancelDialog(true)} variant="destructive">
-            Hủy yêu cầu
-          </Button>
         )}
       </div>
 

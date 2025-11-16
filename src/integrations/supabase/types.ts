@@ -1772,6 +1772,7 @@ export type Database = {
       }
       maintenance_requests: {
         Row: {
+          accepted_at: string | null
           actual_cost: number | null
           completed_at: string | null
           completion_notes: string | null
@@ -1804,6 +1805,7 @@ export type Database = {
           warranty_info: string | null
         }
         Insert: {
+          accepted_at?: string | null
           actual_cost?: number | null
           completed_at?: string | null
           completion_notes?: string | null
@@ -1836,6 +1838,7 @@ export type Database = {
           warranty_info?: string | null
         }
         Update: {
+          accepted_at?: string | null
           actual_cost?: number | null
           completed_at?: string | null
           completion_notes?: string | null

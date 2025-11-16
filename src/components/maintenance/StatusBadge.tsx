@@ -2,12 +2,16 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 interface StatusBadgeProps {
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
+  status: 'waiting' | 'pending' | 'in_progress' | 'completed' | 'cancelled'
   className?: string
 }
 
 export const StatusBadge = ({ status, className }: StatusBadgeProps) => {
   const config = {
+    waiting: {
+      label: 'Đang chờ',
+      className: 'bg-gray-500 text-white',
+    },
     pending: {
       label: 'Tiếp nhận',
       className: 'bg-blue-500 text-white',

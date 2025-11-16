@@ -10,15 +10,21 @@ interface MaintenanceTimelineProps {
 export const MaintenanceTimeline = ({ request }: MaintenanceTimelineProps) => {
   const steps = [
     {
-      label: 'Tiếp nhận',
+      label: 'Đang chờ',
       date: request.reported_at,
-      completed: true,
-      current: false,
+      completed: request.status !== 'waiting',
+      current: request.status === 'waiting',
+    },
+    {
+      label: 'Tiếp nhận',
+      date: request.accepted_at,
+      completed: ['pending', 'in_progress', 'completed'].includes(request.status),
+      current: request.status === 'pending',
     },
     {
       label: 'Đang kiểm tra',
       date: request.started_at,
-      completed: !!request.started_at,
+      completed: ['in_progress', 'completed'].includes(request.status),
       current: request.status === 'in_progress',
     },
     {

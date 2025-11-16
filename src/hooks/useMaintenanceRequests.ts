@@ -16,9 +16,10 @@ export interface MaintenanceRequest {
   priority: 'low' | 'medium' | 'high' | 'urgent'
   title: string
   description: string
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
+  status: 'waiting' | 'pending' | 'in_progress' | 'completed' | 'cancelled'
   reported_by: string
   reported_at: string
+  accepted_at?: string
   started_at?: string
   completed_at?: string
   expected_completion_date?: string
@@ -174,7 +175,7 @@ export function useCreateMaintenanceRequest() {
           hotel_id: selectedHotel.id,
           reported_by: user?.id,
           reported_at: data.reported_at || new Date().toISOString(),
-          status: data.assigned_to ? 'assigned' : 'pending',
+          status: 'waiting',
         })
         .select()
         .single()
@@ -233,6 +234,36 @@ export function useUpdateMaintenanceRequest() {
   })
 }
 
+export function useAcceptRequest() {
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from('maintenance_requests')
+        .update({
+          status: 'pending',
+          accepted_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['maintenance-request'] })
+      toast({
+        title: 'Thành công',
+        description: 'Đã tiếp nhận yêu cầu',
+      })
+    },
+  })
+}
+
 export function useStartRequest() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -254,9 +285,10 @@ export function useStartRequest() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['maintenance-request'] })
       toast({
         title: 'Thành công',
-        description: 'Đã bắt đầu xử lý',
+        description: 'Đã bắt đầu kiểm tra',
       })
     },
   })
