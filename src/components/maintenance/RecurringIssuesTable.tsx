@@ -35,8 +35,18 @@ export const RecurringIssuesTable = ({ issues }: RecurringIssuesTableProps) => {
   if (!issues || issues.length === 0) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-muted-foreground">
-          Không có vấn đề lặp lại nào được phát hiện
+        <CardContent className="py-12 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+              <AlertTriangle className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="font-medium mb-1">Không có vấn đề lặp lại</p>
+              <p className="text-sm text-muted-foreground">
+                Chưa phát hiện thiết bị hoặc phòng nào có sự cố lặp lại trong khoảng thời gian này
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     )
@@ -60,13 +70,9 @@ export const RecurringIssuesTable = ({ issues }: RecurringIssuesTableProps) => {
                   <CardTitle className="text-lg">
                     {issue.type === 'item' ? (
                       <div className="flex items-center gap-2">
-                        {issue.item?.images?.[0] && (
-                          <img
-                            src={issue.item.images[0]}
-                            alt={issue.item.name}
-                            className="h-10 w-10 rounded object-cover"
-                          />
-                        )}
+                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                          <Wrench className="h-5 w-5 text-muted-foreground" />
+                        </div>
                         <div>
                           <div>{issue.item?.name || 'Thiết bị'}</div>
                           <div className="text-sm text-muted-foreground font-normal">
@@ -134,14 +140,19 @@ export const RecurringIssuesTable = ({ issues }: RecurringIssuesTableProps) => {
                 </div>
               </div>
 
-              {issue.count30d >= 3 && (
+              {issue.count30d >= 2 && (
                 <div className="mt-4 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
                     <div className="text-sm">
-                      <div className="font-medium text-destructive">Cảnh báo: Tần suất cao bất thường</div>
+                      <div className="font-medium text-destructive">
+                        {issue.count30d >= 3 ? 'Cảnh báo: Tần suất cao bất thường' : 'Lưu ý: Vấn đề lặp lại'}
+                      </div>
                       <div className="text-muted-foreground mt-1">
-                        Đề xuất: Xem xét thay thế thiết bị hoặc điều tra nguyên nhân gốc rễ
+                        {issue.count30d >= 3 
+                          ? 'Đề xuất: Xem xét thay thế thiết bị hoặc điều tra nguyên nhân gốc rễ'
+                          : 'Theo dõi thêm để xác định xu hướng và nguyên nhân'
+                        }
                       </div>
                     </div>
                   </div>

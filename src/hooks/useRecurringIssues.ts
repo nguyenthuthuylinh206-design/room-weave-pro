@@ -1,29 +1,37 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
 
 export function useRecurringIssues(days: number = 90) {
-  const { tenantId, hotelId } = useUser()
+  const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
 
   return useQuery({
-    queryKey: ['recurring-issues', tenantId, hotelId, days],
+    queryKey: ['recurring-issues', tenantId, isAllHotelsMode ? 'all' : selectedHotel?.id, days],
     queryFn: async () => {
-      if (!tenantId || !hotelId) return []
+      if (!tenantId) return []
+      if (!isAllHotelsMode && !selectedHotel?.id) return []
 
       const cutoffDate = new Date()
       cutoffDate.setDate(cutoffDate.getDate() - days)
 
       // Get all maintenance requests
-      const { data: requests, error } = await supabase
+      let query = supabase
         .from('maintenance_requests')
         .select(`
           *,
           room:rooms(id, room_number),
-          item:items(id, code, name, unit_price, images)
+          item:items(id, code, name, unit_price)
         `)
         .eq('tenant_id', tenantId)
-        .eq('hotel_id', hotelId)
         .gte('reported_at', cutoffDate.toISOString())
+      
+      if (!isAllHotelsMode && selectedHotel?.id) {
+        query = query.eq('hotel_id', selectedHotel.id)
+      }
+      
+      const { data: requests, error } = await query
 
       if (error) throw error
 
@@ -48,7 +56,7 @@ export function useRecurringIssues(days: number = 90) {
 
       // Filter and format
       const recurring = Object.values(grouped)
-        .filter(g => g.requests.length >= 3) // At least 3 issues
+        .filter(g => g.requests.length >= 2) // At least 2 issues to detect pattern
         .map(g => {
           const last30Days = g.requests.filter((r: any) => {
             const reported = new Date(r.reported_at)
@@ -78,6 +86,6 @@ export function useRecurringIssues(days: number = 90) {
 
       return recurring
     },
-    enabled: !!tenantId && !!hotelId,
+    enabled: !!tenantId && (isAllHotelsMode || !!selectedHotel?.id),
   })
 }
