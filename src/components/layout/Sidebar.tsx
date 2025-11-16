@@ -292,72 +292,9 @@ const navigation: NavItem[] = [
   },
   {
     title: 'Cài đặt',
+    href: '/settings/general',
     icon: Settings,
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
-    children: [
-      {
-        title: 'Tổng quan',
-        href: '/settings/general',
-        icon: LayoutDashboard,
-      },
-      {
-        title: 'Khách sạn',
-        href: '/settings/hotels',
-        icon: Building2,
-        roles: ['owner'],
-      },
-      {
-        title: 'Danh mục',
-        href: '/settings/categories',
-        icon: FolderTree,
-      },
-      {
-        title: 'Người dùng',
-        href: '/settings/users',
-        icon: Users,
-        roles: ['owner'],
-      },
-      {
-        title: 'Vai trò & Phân quyền',
-        href: '/settings/roles',
-        icon: Shield,
-        roles: ['owner'],
-      },
-      {
-        title: 'Thông báo',
-        href: '/settings/notifications',
-        icon: Bell,
-      },
-      {
-        title: 'Cấu hình nghiệp vụ',
-        href: '/settings/business',
-        icon: Briefcase,
-      },
-      {
-        title: 'Tự động hóa',
-        href: '/settings/workflows',
-        icon: Zap,
-        roles: ['owner', 'hotel_manager'],
-      },
-      {
-        title: 'Tích hợp & API',
-        href: '/settings/integrations',
-        icon: Plug,
-        roles: ['owner'],
-      },
-      {
-        title: 'Hệ thống & Bảo mật',
-        href: '/settings/security',
-        icon: Lock,
-        roles: ['owner'],
-      },
-      {
-        title: 'Kiểm thử hệ thống',
-        href: '/settings/system-test',
-        icon: TestTube2,
-        roles: ['owner'],
-      },
-    ],
   },
 ]
 
