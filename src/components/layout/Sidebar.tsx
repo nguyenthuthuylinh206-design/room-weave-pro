@@ -279,18 +279,6 @@ const navigation: NavItem[] = [
     ],
   },
   {
-    title: 'Người dùng',
-    href: '/users',
-    icon: Users,
-    roles: ['owner'],
-  },
-  {
-    title: 'Khách sạn',
-    href: '/hotels',
-    icon: Building2,
-    roles: ['owner'],
-  },
-  {
     title: 'Cài đặt',
     href: '/settings/general',
     icon: Settings,
