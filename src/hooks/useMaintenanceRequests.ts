@@ -61,6 +61,7 @@ export function useMaintenanceRequests(filters: MaintenanceFilters = {}) {
 
   return useQuery({
     queryKey: ['maintenance-requests', tenantId, selectedHotel?.id, isAllHotelsMode, filters],
+    staleTime: 0,
     queryFn: async () => {
       if (!tenantId) return []
 
