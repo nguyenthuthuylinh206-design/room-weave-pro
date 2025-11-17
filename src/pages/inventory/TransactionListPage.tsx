@@ -173,7 +173,7 @@ export function TransactionListPage() {
                           quantity: transaction.quantity,
                           unit_price: transaction.unit_price,
                           total_value: transaction.total_value,
-                          transaction_date: transaction.transaction_date,
+                          created_at: transaction.created_at,
                           created_by_name: transaction.created_by_name,
                           from_location: transaction.from_location,
                           to_location: transaction.to_location,
@@ -401,7 +401,7 @@ export function TransactionListPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-sm">
-                      {format(new Date(transaction.transaction_date), 'dd/MM/yyyy HH:mm', { locale: vi })}
+                      {transaction.created_at ? format(new Date(transaction.created_at), 'dd/MM/yyyy HH:mm', { locale: vi }) : 'N/A'}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
