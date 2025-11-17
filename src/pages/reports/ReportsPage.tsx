@@ -11,8 +11,15 @@ import {
   BarChart3,
   PieChart
 } from 'lucide-react'
+import { MobileReportsDashboard } from '@/components/reports/MobileReportsDashboard'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 export function ReportsPage() {
+  const isMobile = useIsMobile()
+
+  if (isMobile) {
+    return <MobileReportsDashboard />
+  }
   const reports = [
     {
       id: 'inventory',

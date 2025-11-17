@@ -5,14 +5,21 @@ import { UserManagementTab } from '@/components/users/UserManagementTab'
 import { RolesOverviewTab } from '@/components/users/RolesOverviewTab'
 import { PermissionConfigurationTab } from '@/components/users/PermissionConfigurationTab'
 import { Users, Shield, Settings } from 'lucide-react'
+import { MobileUserManagementPage } from '@/components/settings/MobileUserManagementPage'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 export default function UsersPage() {
+  const isMobile = useIsMobile()
   const [activeTab, setActiveTab] = useState('users')
   const [preSelectedUserId, setPreSelectedUserId] = useState<string | null>(null)
 
   const handleManagePermissions = (userId: string) => {
     setPreSelectedUserId(userId)
     setActiveTab('permissions')
+  }
+
+  if (isMobile) {
+    return <MobileUserManagementPage />
   }
 
   return (
