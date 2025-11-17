@@ -22,6 +22,7 @@ export { MobileItemsPage } from '../items/MobileItemsPage'
 export { MobileCategoriesPage } from '../items/MobileCategoriesPage'
 export { MobileCategoryCard } from '../items/MobileCategoryCard'
 export { CategoryFormSheet } from '../items/CategoryFormSheet'
+export { MobileHotelSwitcher } from './MobileHotelSwitcher'
 
 // Export all mobile pages
 export * from './mobile-pages'
