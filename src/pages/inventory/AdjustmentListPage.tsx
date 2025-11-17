@@ -8,6 +8,8 @@ import {
   CheckCircle,
   XCircle,
   Eye,
+  CheckSquare,
+  Trash2
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -29,6 +31,11 @@ import { formatCurrency } from '@/lib/utils'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { PullToRefresh } from '@/components/mobile/PullToRefresh'
+import { SwipeableCard } from '@/components/mobile/SwipeableCard'
+import { MobileAdjustmentCard } from '@/components/inventory/MobileAdjustmentCard'
+import { toast } from 'sonner'
 
 const statusConfig = {
   draft: {
@@ -67,6 +74,7 @@ const typeLabels = {
 
 export function AdjustmentListPage() {
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const [status, setStatus] = useState<string>('all')
   const [filters, setFilters] = useState({
     date_from: null as Date | null,
@@ -74,7 +82,7 @@ export function AdjustmentListPage() {
   })
   const [page, setPage] = useState(1)
   
-  const { data, isLoading } = useStockAdjustments(
+  const { data, isLoading, refetch } = useStockAdjustments(
     {
       status: status === 'all' ? undefined : (status as any),
       date_from: filters.date_from || undefined,
@@ -85,7 +93,145 @@ export function AdjustmentListPage() {
   )
   
   const adjustments = data?.adjustments || []
+
+  const handleRefresh = async () => {
+    await refetch()
+  }
+
+  const handleViewAdjustment = (adjustmentId: string) => {
+    navigate(`/inventory/adjustments/${adjustmentId}`)
+  }
+
+  const handleCheckAdjustment = (adjustmentId: string) => {
+    navigate(`/inventory/adjustments/${adjustmentId}/check`)
+  }
+
+  const handleDeleteAdjustment = (adjustmentId: string) => {
+    // TODO: Implement delete functionality
+    toast.info('Chức năng xóa đang được phát triển')
+  }
+
+  const getSwipeActions = (adjustment: any) => {
+    const status = adjustment.status
+    
+    if (status === 'draft') {
+      return {
+        left: () => handleCheckAdjustment(adjustment.id),
+        right: () => handleDeleteAdjustment(adjustment.id),
+        leftLabel: 'Bắt đầu',
+        rightLabel: 'Xóa'
+      }
+    }
+    
+    if (status === 'in_progress') {
+      return {
+        left: () => handleCheckAdjustment(adjustment.id),
+        leftLabel: 'Tiếp tục'
+      }
+    }
+    
+    return null
+  }
+
+  // Mobile view
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <PullToRefresh onRefresh={handleRefresh}>
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => navigate('/inventory')}
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <h1 className="text-lg font-semibold">Kiểm kê kho</h1>
+                <Button 
+                  size="icon"
+                  onClick={() => navigate('/inventory/adjustments/new')}
+                >
+                  <Plus className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Horizontal Tabs */}
+            <div className="overflow-x-auto px-4 -mx-4">
+              <Tabs value={status} onValueChange={setStatus} className="w-full">
+                <TabsList className="inline-flex w-auto min-w-full">
+                  <TabsTrigger value="all" className="flex-shrink-0">Tất cả</TabsTrigger>
+                  <TabsTrigger value="draft" className="flex-shrink-0">Nháp</TabsTrigger>
+                  <TabsTrigger value="in_progress" className="flex-shrink-0">Đang kiểm</TabsTrigger>
+                  <TabsTrigger value="completed" className="flex-shrink-0">Hoàn thành</TabsTrigger>
+                  <TabsTrigger value="approved" className="flex-shrink-0">Đã duyệt</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+
+            {/* Date Filter */}
+            <div className="px-4">
+              <DateRangePicker
+                value={{
+                  from: filters.date_from,
+                  to: filters.date_to,
+                }}
+                onChange={(range) => 
+                  setFilters({
+                    date_from: range?.from || null,
+                    date_to: range?.to || null,
+                  })
+                }
+              />
+            </div>
+
+            {/* Adjustment Cards */}
+            <div className="px-4 space-y-2">
+              {isLoading ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Đang tải...
+                </div>
+              ) : adjustments.length === 0 ? (
+                <div className="text-center py-12">
+                  <ClipboardCheck className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">Không có phiếu kiểm kê nào</p>
+                </div>
+              ) : (
+                adjustments.map((adjustment) => {
+                  const actions = getSwipeActions(adjustment)
+                  
+                  return actions ? (
+                    <SwipeableCard
+                      key={adjustment.id}
+                      onSwipeLeft={actions.left}
+                      onSwipeRight={actions.right}
+                      swipeThreshold={100}
+                    >
+                      <MobileAdjustmentCard
+                        adjustment={adjustment}
+                        onClick={() => handleViewAdjustment(adjustment.id)}
+                      />
+                    </SwipeableCard>
+                  ) : (
+                    <MobileAdjustmentCard
+                      key={adjustment.id}
+                      adjustment={adjustment}
+                      onClick={() => handleViewAdjustment(adjustment.id)}
+                    />
+                  )
+                })
+              )}
+            </div>
+          </div>
+        </PullToRefresh>
+      </div>
+    )
+  }
   
+  // Desktop view
   return (
     <div className="space-y-6">
       <PageHeader
