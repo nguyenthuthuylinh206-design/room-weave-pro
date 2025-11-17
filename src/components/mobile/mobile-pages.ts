@@ -9,6 +9,9 @@ export { MobilePOListPage } from '../purchase-orders/MobilePOListPage'
 
 export { MobileVendorManagementListPage } from '../vendors/MobileVendorManagementListPage'
 export { MobileVendorManagementDetailPage } from '../vendors/MobileVendorManagementDetailPage'
+export { MobileVendorListPage } from '../vendors/MobileVendorListPage'
+
+export { MobileRoomsPage } from '../rooms/MobileRoomsPage'
 
 export { MobileInventoryReportPage } from '../reports/MobileInventoryReportPage'
 export { MobileFinancialReportPage } from '../reports/MobileFinancialReportPage'

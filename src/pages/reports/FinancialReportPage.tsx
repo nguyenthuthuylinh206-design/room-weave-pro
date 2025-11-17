@@ -33,11 +33,14 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { useFinancialReport } from '@/hooks/useReports'
 import { useReportExport } from '@/hooks/useReportExport'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { MobileFinancialReportPage } from '@/components/reports/MobileFinancialReportPage'
 import { formatCurrency } from '@/lib/utils'
 import { subDays } from 'date-fns'
 import { cn } from '@/lib/utils'
 
 export function FinancialReportPage() {
+  const isMobile = useIsMobile()
   const navigate = useNavigate()
   const chartRefs = useRef<HTMLElement[]>([])
   
@@ -48,6 +51,10 @@ export function FinancialReportPage() {
   
   const { data: reportData, isLoading } = useFinancialReport(dateRange)
   const { exportToPDF, exportToExcel, isExporting } = useReportExport()
+
+  if (isMobile) {
+    return <MobileFinancialReportPage />
+  }
   
   if (isLoading || !reportData) {
     return <div>Loading...</div>
