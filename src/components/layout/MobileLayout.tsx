@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom'
 import { MobileBottomNav } from './MobileBottomNav'
+import { InstallPWA } from '@/components/pwa/InstallPWA'
 
 export const MobileLayout = () => {
   return (
@@ -8,6 +9,7 @@ export const MobileLayout = () => {
         <Outlet />
       </main>
       <MobileBottomNav />
+      <InstallPWA />
     </div>
   )
 }
