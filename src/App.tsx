@@ -61,6 +61,7 @@ import { VendorListPage as VendorManagementListPage } from "./pages/vendors/Vend
 import { VendorDetailPage as VendorManagementDetailPage } from "./pages/vendors/VendorDetailPage";
 import VendorManagementFormPage from "./pages/vendors/VendorFormPage";
 import VendorComparisonPage from "./pages/vendors/VendorComparisonPage";
+import { MorePage } from "./pages/mobile/MorePage";
 import MaintenanceDashboard from "./pages/maintenance/MaintenanceDashboard";
 import MaintenanceRequestList from "./pages/maintenance/MaintenanceRequestList";
 import MaintenanceRequestForm from "./pages/maintenance/MaintenanceRequestForm";
@@ -146,6 +147,7 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <Dashboard /> },
+      { path: "more", element: <MorePage /> },
       
       // Super Admin Dashboard
       {

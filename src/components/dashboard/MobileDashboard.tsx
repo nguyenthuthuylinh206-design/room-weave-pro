@@ -13,7 +13,10 @@ import {
   Activity,
   ChevronRight,
   Trash2,
-  Edit
+  Edit,
+  DoorOpen,
+  DoorClosed,
+  Users
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -29,7 +32,7 @@ import { useUser } from '@/hooks/useUser'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
 import { useRecentActivities } from '@/hooks/useRecentActivities'
 import { useTopItems } from '@/hooks/useTopItems'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { 
   PullToRefresh, 
   MobileStatCard, 
@@ -38,14 +41,95 @@ import {
   TouchButton
 } from '@/components/mobile'
 import { toast } from 'sonner'
+import { MobileHotelSwitcher } from '@/components/mobile/MobileHotelSwitcher'
+import { useHotelContext } from '@/contexts/HotelContext'
+import { supabase } from '@/integrations/supabase/client'
 
 export function MobileDashboard() {
   const navigate = useNavigate()
   const { user, tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const { data: stats, isLoading } = useDashboardStats()
   const { data: recentActivities } = useRecentActivities(5)
   const { data: topItems } = useTopItems(5)
   const queryClient = useQueryClient()
+
+  // Get room stats
+  const { data: roomStats } = useQuery({
+    queryKey: ['room-stats', tenantId, selectedHotel?.id],
+    queryFn: async () => {
+      let query = supabase
+        .from('rooms')
+        .select('status', { count: 'exact' })
+        .eq('tenant_id', tenantId!)
+
+      if (!isAllHotelsMode && selectedHotel?.id) {
+        query = query.eq('hotel_id', selectedHotel.id)
+      }
+
+      const [total, available, occupied, maintenance] = await Promise.all([
+        query,
+        query.eq('status', 'available'),
+        query.eq('status', 'occupied'),
+        query.eq('status', 'maintenance')
+      ])
+
+      return {
+        total: total.count || 0,
+        available: available.count || 0,
+        occupied: occupied.count || 0,
+        maintenance: maintenance.count || 0
+      }
+    },
+    enabled: !!tenantId
+  })
+
+  // Get pending maintenance
+  const { data: maintenanceStats } = useQuery({
+    queryKey: ['maintenance-stats', tenantId, selectedHotel?.id],
+    queryFn: async () => {
+      let query = supabase
+        .from('maintenance_requests')
+        .select('status', { count: 'exact' })
+        .eq('tenant_id', tenantId!)
+
+      if (!isAllHotelsMode && selectedHotel?.id) {
+        query = query.eq('hotel_id', selectedHotel.id)
+      }
+
+      const [pending, inProgress] = await Promise.all([
+        query.eq('status', 'pending'),
+        query.eq('status', 'in_progress')
+      ])
+
+      return {
+        pending: pending.count || 0,
+        inProgress: inProgress.count || 0,
+        total: (pending.count || 0) + (inProgress.count || 0)
+      }
+    },
+    enabled: !!tenantId
+  })
+
+  // Get active laundry batches
+  const { data: laundryStats } = useQuery({
+    queryKey: ['laundry-stats', tenantId, selectedHotel?.id],
+    queryFn: async () => {
+      let query = supabase
+        .from('laundry_batches')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId!)
+        .eq('status', 'in_progress')
+
+      if (!isAllHotelsMode && selectedHotel?.id) {
+        query = query.eq('hotel_id', selectedHotel.id)
+      }
+
+      const result = await query
+      return result.count || 0
+    },
+    enabled: !!tenantId
+  })
 
   const handleRefresh = async () => {
     await Promise.all([
@@ -59,39 +143,45 @@ export function MobileDashboard() {
   const quickActions = [
     { 
       icon: Plus, 
-      label: 'Add Item', 
+      label: 'Thêm tài sản', 
       path: '/items/new',
-      color: 'text-primary'
+      color: 'text-primary',
+      category: 'Items'
+    },
+    { 
+      icon: DoorOpen, 
+      label: 'Kiểm phòng', 
+      path: '/rooms',
+      color: 'text-green-600',
+      category: 'Operations'
     },
     { 
       icon: Shirt, 
-      label: 'Send Laundry', 
+      label: 'Gửi giặt', 
       path: '/laundry/create-batch',
-      color: 'text-blue-600'
+      color: 'text-blue-600',
+      category: 'Operations'
     },
     { 
       icon: Wrench, 
-      label: 'Report Issue', 
+      label: 'Báo hỏng hóc', 
       path: '/maintenance/new',
-      color: 'text-orange-600'
-    },
-    { 
-      icon: Scan, 
-      label: 'Scan QR', 
-      onClick: () => toast.info('QR Scanner coming soon!'),
-      color: 'text-green-600'
+      color: 'text-orange-600',
+      category: 'Operations'
     },
     { 
       icon: ShoppingCart, 
-      label: 'Purchase Order', 
+      label: 'Tạo đơn hàng', 
       path: '/purchase-orders/new',
-      color: 'text-purple-600'
+      color: 'text-purple-600',
+      category: 'Items'
     },
     { 
       icon: FileText, 
-      label: 'Reports', 
+      label: 'Báo cáo', 
       path: '/reports',
-      color: 'text-indigo-600'
+      color: 'text-indigo-600',
+      category: 'Reports'
     },
   ]
 
@@ -111,17 +201,39 @@ export function MobileDashboard() {
     )
   }
 
+  // Alerts and pending tasks
+  const alerts = []
+  if (stats && stats.low_stock_count > 0) {
+    alerts.push({
+      type: 'warning' as const,
+      title: 'Tài sản sắp hết',
+      message: `${stats.low_stock_count} mặt hàng cần bổ sung`,
+      action: () => navigate('/inventory?filter=low_stock')
+    })
+  }
+  if (maintenanceStats && maintenanceStats.pending > 0) {
+    alerts.push({
+      type: 'error' as const,
+      title: 'Yêu cầu bảo trì',
+      message: `${maintenanceStats.pending} yêu cầu đang chờ`,
+      action: () => navigate('/maintenance?status=pending')
+    })
+  }
+
   return (
     <PullToRefresh onRefresh={handleRefresh}>
       <div className="pb-4 space-y-4">
-        {/* Header */}
-        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background p-4 pb-6">
-          <h1 className="text-2xl font-bold mb-1">
-            Welcome back, {user?.full_name?.split(' ')[0] || 'User'}!
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Hotel Asset Management System
-          </p>
+        {/* Header with Hotel Switcher */}
+        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background p-4 pb-6 space-y-3">
+          <div>
+            <h1 className="text-2xl font-bold mb-1">
+              Chào {user?.full_name?.split(' ')[0] || 'bạn'}!
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Hệ thống quản lý tài sản khách sạn
+            </p>
+          </div>
+          <MobileHotelSwitcher />
         </div>
 
         {/* Stats - Horizontal Scroll */}
@@ -172,7 +284,7 @@ export function MobileDashboard() {
                   key={action.label}
                   variant="ghost"
                   className="flex flex-col h-auto py-3 px-2 gap-2"
-                  onClick={action.onClick || (() => navigate(action.path!))}
+                  onClick={() => navigate(action.path)}
                 >
                   <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-secondary">
                     <action.icon className={`h-5 w-5 ${action.color}`} />

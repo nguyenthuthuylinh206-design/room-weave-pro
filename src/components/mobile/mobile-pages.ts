@@ -27,3 +27,5 @@ export { MobileSettingsPage } from '../settings/MobileSettingsPage'
 export { MobileUserProfilePage } from '../settings/MobileUserProfilePage'
 export { MobileUserManagementPage } from '../settings/MobileUserManagementPage'
 export { MobileHotelManagementPage } from '../settings/MobileHotelManagementPage'
+
+export { MorePage } from '../../pages/mobile/MorePage'

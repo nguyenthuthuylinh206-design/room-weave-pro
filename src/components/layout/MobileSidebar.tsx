@@ -12,15 +12,22 @@ import {
   Settings,
   HelpCircle,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  DoorOpen,
+  Boxes,
+  List
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useUser } from '@/hooks/useUser'
 import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
+import { useHotelContext } from '@/contexts/HotelContext'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/integrations/supabase/client'
 
 interface MenuItem {
   title: string
@@ -43,8 +50,34 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
   const navigate = useNavigate()
   const location = useLocation()
   const { signOut } = useAuth()
-  const { user, role } = useUser()
+  const { user, role, tenantId } = useUser()
   const { data: modulePermissions } = useUserModulePermissions()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
+
+  // Get pending counts
+  const { data: pendingCounts } = useQuery({
+    queryKey: ['pending-counts', tenantId],
+    queryFn: async () => {
+      const [maintenance, laundry] = await Promise.all([
+        supabase
+          .from('maintenance_requests')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', tenantId!)
+          .eq('status', 'pending'),
+        supabase
+          .from('laundry_batches')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', tenantId!)
+          .eq('status', 'in_progress')
+      ])
+      return {
+        maintenance: maintenance.count || 0,
+        laundry: laundry.count || 0
+      }
+    },
+    enabled: !!tenantId,
+    refetchInterval: 30000
+  })
 
   const menuSections: MenuSection[] = [
     {
@@ -53,28 +86,29 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
       ]
     },
     {
-      title: 'Operations',
+      title: 'Vận hành',
       items: [
         { title: 'Kho & Tài sản', icon: Package, path: '/inventory', module: 'inventory,items' },
-        { title: 'Laundry', icon: Shirt, path: '/laundry', module: 'laundry' },
-        { title: 'Maintenance', icon: Wrench, path: '/maintenance', module: 'maintenance' },
-        { title: 'Purchase Orders', icon: ShoppingCart, path: '/purchase-orders', module: 'purchase_orders' },
+        { title: 'Phòng', icon: DoorOpen, path: '/rooms', module: 'rooms' },
+        { title: 'Laundry', icon: Shirt, path: '/laundry', module: 'laundry', badge: 'laundry' },
+        { title: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badge: 'maintenance' },
+        { title: 'Đơn mua hàng', icon: ShoppingCart, path: '/purchase-orders', module: 'purchase_orders' },
       ]
     },
     {
-      title: 'Management',
+      title: 'Quản lý',
       items: [
-        { title: 'Reports', icon: TrendingUp, path: '/reports', module: 'reports' },
-        { title: 'Hotels', icon: Building2, path: '/hotels', module: 'hotels' },
-        { title: 'Users', icon: Users, path: '/users', module: 'users' },
-        { title: 'Vendors', icon: Users, path: '/vendors', module: 'vendors' },
+        { title: 'Báo cáo', icon: TrendingUp, path: '/reports', module: 'reports' },
+        { title: 'Khách sạn', icon: Building2, path: '/hotels', module: 'hotels' },
+        { title: 'Nhân viên', icon: Users, path: '/users', module: 'users' },
+        { title: 'Nhà cung cấp', icon: Users, path: '/vendors', module: 'vendors' },
       ]
     },
     {
-      title: 'Settings',
+      title: 'Cài đặt',
       items: [
-        { title: 'Settings', icon: Settings, path: '/settings' },
-        { title: 'Help & Support', icon: HelpCircle, path: '/help' },
+        { title: 'Cài đặt', icon: Settings, path: '/settings' },
+        { title: 'Hỗ trợ', icon: HelpCircle, path: '/help' },
       ]
     }
   ]
@@ -111,6 +145,13 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
     return location.pathname.startsWith(path)
   }
 
+  const getBadgeCount = (badgeType?: string): number => {
+    if (!badgeType || !pendingCounts) return 0
+    if (badgeType === 'maintenance') return pendingCounts.maintenance
+    if (badgeType === 'laundry') return pendingCounts.laundry
+    return 0
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* User Profile Section */}
@@ -126,19 +167,37 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
             <p className="font-semibold truncate">
               {user?.full_name || 'User'}
             </p>
-            <p className="text-sm text-muted-foreground truncate">
-              {user?.email}
+            <p className="text-xs text-muted-foreground capitalize">
+              {role?.replace('_', ' ') || 'User'}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {isAllHotelsMode ? 'Tất cả khách sạn' : selectedHotel?.name || 'Chưa chọn khách sạn'}
             </p>
           </div>
-          <Button
-            variant="ghost"
+          <Button 
+            variant="ghost" 
             size="icon"
-            onClick={() => handleNavigation('/profile')}
-            aria-label="View profile"
+            onClick={() => handleNavigation('/settings/profile')}
+            className="h-8 w-8"
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
+
+        {/* Hotel Switcher Button */}
+        <Button
+          variant="outline"
+          className="w-full mt-3 justify-between"
+          onClick={() => handleNavigation('/hotels')}
+        >
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4" />
+            <span className="text-sm">
+              {isAllHotelsMode ? 'Tất cả khách sạn' : selectedHotel?.name || 'Chọn khách sạn'}
+            </span>
+          </div>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Menu Items */}
@@ -175,10 +234,13 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
                         active ? "text-primary" : "text-muted-foreground"
                       )} />
                       <span className="flex-1 text-left">{item.title}</span>
-                      {item.badge && (
-                        <span className="px-2 py-0.5 text-xs font-medium bg-primary text-primary-foreground rounded-full">
-                          {item.badge}
-                        </span>
+                      {item.badge && getBadgeCount(item.badge) > 0 && (
+                        <Badge variant="destructive" className="ml-auto">
+                          {getBadgeCount(item.badge)}
+                        </Badge>
+                      )}
+                      {active && (
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r" />
                       )}
                     </button>
                   )
