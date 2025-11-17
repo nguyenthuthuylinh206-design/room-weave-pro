@@ -26,9 +26,9 @@ export const MainLayout = () => {
 
   if (isMobile) {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
+      <div className="min-h-screen flex flex-col bg-background overflow-x-hidden">
         <MobileHeader />
-        <main className="flex-1 overflow-auto pb-16">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden pb-16">
           <div className="p-4">
             <QuotaWarningBanner />
           </div>

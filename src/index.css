@@ -219,4 +219,23 @@ All colors MUST be HSL.
   .touch-pan-x {
     touch-action: pan-x;
   }
+
+  /* Prevent horizontal overflow on mobile */
+  @media screen and (max-width: 768px) {
+    html, body {
+      overflow-x: hidden;
+      max-width: 100vw;
+    }
+    
+    * {
+      /* Prevent any element from causing overflow */
+      max-width: 100%;
+    }
+    
+    /* Allow specific scroll containers */
+    .overflow-x-auto,
+    .overflow-x-scroll {
+      max-width: 100vw !important;
+    }
+  }
 }
