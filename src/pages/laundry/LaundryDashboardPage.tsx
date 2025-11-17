@@ -5,18 +5,26 @@ import { StatCard } from '@/components/ui/stat-card'
 import { LaundryExpenseChart } from '@/components/laundry/LaundryExpenseChart'
 import { ActiveBatchesTable } from '@/components/laundry/ActiveBatchesTable'
 import { VendorPerformanceTable } from '@/components/laundry/VendorPerformanceTable'
+import { MobileLaundryDashboard } from '@/components/laundry/MobileLaundryDashboard'
 import { useLaundryDashboardStats } from '@/hooks/useLaundryDashboard'
 import { useLaundryBatches } from '@/hooks/useLaundryBatches'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { formatCurrency, formatNumber } from '@/lib/utils'
 
 export function LaundryDashboardPage() {
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const { data: stats, isLoading: statsLoading } = useLaundryDashboardStats()
   const { data: activeBatches, isLoading: batchesLoading } = useLaundryBatches({})
   
   const activeBatchesData = activeBatches?.batches.filter(
     b => ['delivered', 'washing', 'ready'].includes(b.status)
   ) || []
+
+  // Mobile view
+  if (isMobile) {
+    return <MobileLaundryDashboard />
+  }
   
   return (
     <div className="space-y-6">

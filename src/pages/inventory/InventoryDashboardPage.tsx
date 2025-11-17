@@ -21,7 +21,9 @@ import { RecentTransactions } from '@/components/inventory/RecentTransactions'
 import { InventoryValueChart } from '@/components/inventory/InventoryValueChart'
 import { QuickInboundDialog } from '@/components/inventory/QuickInboundDialog'
 import { QuickOutboundDialog } from '@/components/inventory/QuickOutboundDialog'
+import { MobileInventoryDashboard } from '@/components/inventory/MobileInventoryDashboard'
 import { useInventoryDashboard } from '@/hooks/useInventoryDashboard'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('vi-VN', {
@@ -32,10 +34,16 @@ function formatCurrency(amount: number) {
 
 export function InventoryDashboardPage() {
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const [showInboundDialog, setShowInboundDialog] = useState(false)
   const [showOutboundDialog, setShowOutboundDialog] = useState(false)
   
   const { data: stats, isLoading } = useInventoryDashboard()
+
+  // Mobile view
+  if (isMobile) {
+    return <MobileInventoryDashboard />
+  }
   
   return (
     <div className="space-y-6">
