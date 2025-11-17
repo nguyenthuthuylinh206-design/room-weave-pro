@@ -32,6 +32,8 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useCreateStockAdjustment } from '@/hooks/useStockAdjustments'
 import { useItems } from '@/hooks/useItems'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { MobileAdjustmentForm } from '@/components/inventory/MobileAdjustmentForm'
 
 const adjustmentSchema = z.object({
   adjustment_type: z.enum(['inventory_check', 'damage', 'loss', 'correction']),
@@ -63,9 +65,15 @@ type AdjustmentFormData = z.infer<typeof adjustmentSchema>
 
 export function CreateAdjustmentPage() {
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const [step, setStep] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
   const { mutate: createAdjustment, isPending } = useCreateStockAdjustment()
+  
+  // Mobile view
+  if (isMobile) {
+    return <MobileAdjustmentForm />
+  }
   
   const form = useForm<AdjustmentFormData>({
     resolver: zodResolver(adjustmentSchema),

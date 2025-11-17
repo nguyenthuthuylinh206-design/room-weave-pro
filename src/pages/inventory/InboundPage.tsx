@@ -23,6 +23,8 @@ import { ImageUpload } from '@/components/shared/ImageUpload'
 import { FileUpload } from '@/components/shared/FileUpload'
 import { useCreateInboundTransaction } from '@/hooks/useInventoryTransactions'
 import { formatCurrency } from '@/lib/utils'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { MobileInboundForm } from '@/components/inventory/MobileInboundForm'
 
 const inboundSchema = z.object({
   transaction_category: z.enum(['purchase', 'return', 'laundry_return', 'other']),
@@ -43,8 +45,14 @@ type InboundFormData = z.infer<typeof inboundSchema>
 
 export function InboundPage() {
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const [searchParams] = useSearchParams()
   const poId = searchParams.get('po_id')
+  
+  // Mobile view
+  if (isMobile) {
+    return <MobileInboundForm />
+  }
   
   const { mutate: createInbound, isPending: isLoading } = useCreateInboundTransaction()
   
