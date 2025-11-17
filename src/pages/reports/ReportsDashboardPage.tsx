@@ -14,7 +14,9 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { QuickReportMetrics } from '@/components/reports/QuickReportMetrics'
 import { FavoriteReports } from '@/components/reports/FavoriteReports'
 import { ScheduledReports } from '@/components/reports/ScheduledReports'
+import { MobileReportsDashboard } from '@/components/reports/MobileReportsDashboard'
 import { useQuickReport } from '@/hooks/useReports'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 const reportCategories = [
   {
@@ -69,8 +71,14 @@ const reportCategories = [
 
 export function ReportsDashboardPage() {
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const [period, setPeriod] = useState<'today' | 'week' | 'month'>('today')
   const { data: quickReport } = useQuickReport(period)
+
+  // Mobile view
+  if (isMobile) {
+    return <MobileReportsDashboard />
+  }
   
   return (
     <div className="space-y-6">
