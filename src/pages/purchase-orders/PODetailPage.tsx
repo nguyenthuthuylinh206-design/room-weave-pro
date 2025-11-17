@@ -12,12 +12,19 @@ import { differenceInDays } from 'date-fns';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { MobilePODetail } from '@/components/purchase-orders/MobilePODetail';
 
 const PODetailPage: React.FC = () => {
+  const isMobile = useIsMobile()
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const { data: po, isLoading } = usePurchaseOrder(id!);
+
+  if (isMobile) {
+    return <MobilePODetail />
+  }
 
   if (isLoading) return <LoadingSpinner />;
   if (!po) return <div className="text-center py-12">Không tìm thấy đơn hàng</div>;
