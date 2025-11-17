@@ -25,7 +25,7 @@ interface TransactionData {
   quantity: number
   unit_price?: number
   total_value: number
-  transaction_date: string
+  created_at: string
   created_by_name?: string
   created_by_avatar?: string
   from_location?: string
@@ -165,7 +165,7 @@ export function MobileTransactionCard({
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Calendar className="h-3 w-3" />
               <span>
-                {format(new Date(transaction.transaction_date), 'dd/MM HH:mm', { locale: vi })}
+                {transaction.created_at ? format(new Date(transaction.created_at), 'dd/MM HH:mm', { locale: vi }) : 'N/A'}
               </span>
             </div>
           </div>
