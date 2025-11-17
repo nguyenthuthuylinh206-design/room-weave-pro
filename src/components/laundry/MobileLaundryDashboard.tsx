@@ -6,6 +6,8 @@ import { SwipeableCard } from '@/components/mobile/TouchOptimized'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import { MobileLaundryExpenseChart } from '@/components/laundry/MobileLaundryExpenseChart'
+import { MobileLaundryVendorPerformance } from '@/components/laundry/MobileLaundryVendorPerformance'
 import { useLaundryDashboardStats } from '@/hooks/useLaundryDashboard'
 import { useLaundryBatches } from '@/hooks/useLaundryBatches'
 import { useQueryClient } from '@tanstack/react-query'
@@ -199,12 +201,22 @@ export function MobileLaundryDashboard() {
           </div>
         )}
 
+        {/* Expense Chart */}
+        <div className="px-4">
+          <MobileLaundryExpenseChart />
+        </div>
+
+        {/* Vendor Performance */}
+        <div className="px-4">
+          <MobileLaundryVendorPerformance />
+        </div>
+
         {/* Tips */}
         <div className="px-4 pb-4">
           <Card className="bg-muted/50">
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">
-                💡 <strong>Mẹo:</strong> Vuốt sang trái để xem chi tiết lô giặt, vuốt sang phải để nhận hàng
+                💡 <strong>Mẹo:</strong> Vuốt sang trái trên thẻ vendor hoặc lô giặt để xem chi tiết nhanh
               </p>
             </CardContent>
           </Card>
