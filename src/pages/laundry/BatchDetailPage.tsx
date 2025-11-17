@@ -42,8 +42,11 @@ import {
 import { formatCurrency } from '@/lib/utils'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { MobileBatchDetail } from '@/components/laundry/MobileBatchDetail'
 
 export function BatchDetailPage() {
+  const isMobile = useIsMobile()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data, isLoading } = useLaundryBatch(id)
@@ -72,6 +75,10 @@ export function BatchDetailPage() {
     if (!batch || batch.status !== 'received') return false
     return true // Có thể nhập kho kể cả khi có mất/hỏng vì đã xử lý riêng
   }, [batch])
+
+  if (isMobile) {
+    return <MobileBatchDetail />
+  }
   
   const handleStatusChange = (newStatus: string) => {
     const statusLabels: Record<string, string> = {

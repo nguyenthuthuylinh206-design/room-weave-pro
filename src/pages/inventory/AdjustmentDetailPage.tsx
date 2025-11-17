@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { MobileAdjustmentDetail } from '@/components/inventory/MobileAdjustmentDetail'
 import { 
   ArrowLeft, 
   CheckCircle, 
@@ -45,6 +47,7 @@ import { vi } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 
 export function AdjustmentDetailPage() {
+  const isMobile = useIsMobile()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -56,6 +59,10 @@ export function AdjustmentDetailPage() {
   const { data, isLoading } = useStockAdjustment(id)
   const { mutate: approve, isPending: isApproving } = useApproveAdjustment()
   const { mutate: reject, isPending: isRejecting } = useRejectAdjustment()
+  
+  if (isMobile) {
+    return <MobileAdjustmentDetail />
+  }
   
   if (isLoading || !data) {
     return <div>Loading...</div>
