@@ -5,11 +5,18 @@ import { useNavigate } from 'react-router-dom'
 import { useMaintenanceDashboard } from '@/hooks/useMaintenanceDashboard'
 import { MaintenanceStats } from '@/components/maintenance/MaintenanceStats'
 import { ActiveRequestsSection } from '@/components/maintenance/ActiveRequestsSection'
+import { MobileMaintenanceDashboard } from '@/components/maintenance/MobileMaintenanceDashboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useBreakpoint } from '@/lib/breakpoints'
 
 export default function MaintenanceDashboard() {
   const navigate = useNavigate()
+  const { isMobile } = useBreakpoint()
   const { data, isLoading } = useMaintenanceDashboard()
+
+  if (isMobile) {
+    return <MobileMaintenanceDashboard />
+  }
 
   const defaultStats = {
     total: 0,

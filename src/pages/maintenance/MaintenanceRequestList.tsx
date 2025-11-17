@@ -7,11 +7,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useMaintenanceRequests } from '@/hooks/useMaintenanceRequests'
 import { MaintenanceRequestTable } from '@/components/maintenance/MaintenanceRequestTable'
 import { MaintenanceFilters } from '@/components/maintenance/MaintenanceFilters'
+import { MobileMaintenanceRequestList } from '@/components/maintenance/MobileMaintenanceRequestList'
+import { useBreakpoint } from '@/lib/breakpoints'
 
 export default function MaintenanceRequestList() {
   const navigate = useNavigate()
+  const { isMobile } = useBreakpoint()
   const [tab, setTab] = useState('all')
   const [filters, setFilters] = useState({})
+
+  if (isMobile) {
+    return <MobileMaintenanceRequestList />
+  }
 
   const statusFilter = tab !== 'all' ? { ...filters, status: tab } : filters
   const { data: requests, isLoading } = useMaintenanceRequests(statusFilter)

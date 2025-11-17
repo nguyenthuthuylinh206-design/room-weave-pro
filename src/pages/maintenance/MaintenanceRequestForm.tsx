@@ -17,9 +17,11 @@ import {
 } from '@/hooks/useMaintenanceRequests'
 import { useRooms } from '@/hooks/useRooms'
 import { useItems } from '@/hooks/useItems'
+import { MobileMaintenanceRequestForm } from '@/components/maintenance/MobileMaintenanceRequestForm'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useEffect } from 'react'
+import { useBreakpoint } from '@/lib/breakpoints'
 
 const requestSchema = z.object({
   issue_type: z.enum(['repair', 'replace', 'inspection', 'cleaning', 'other']),
@@ -38,6 +40,7 @@ type RequestFormData = z.infer<typeof requestSchema>
 export default function MaintenanceRequestForm() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
+  const { isMobile } = useBreakpoint()
   const isEditMode = !!id
   
   const createRequest = useCreateMaintenanceRequest()
@@ -45,6 +48,10 @@ export default function MaintenanceRequestForm() {
   const { data: existingRequest, isLoading } = useMaintenanceRequest(id || '')
   const { data: rooms } = useRooms({})
   const { data: items } = useItems({})
+
+  if (isMobile) {
+    return <MobileMaintenanceRequestForm />
+  }
 
   const form = useForm<RequestFormData>({
     resolver: zodResolver(requestSchema),

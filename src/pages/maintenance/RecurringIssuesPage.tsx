@@ -5,10 +5,17 @@ import { useRecurringIssues } from '@/hooks/useRecurringIssues'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
+import { MobileRecurringIssuesPage } from '@/components/maintenance/MobileRecurringIssuesPage'
+import { useBreakpoint } from '@/lib/breakpoints'
 
 export default function RecurringIssuesPage() {
+  const { isMobile } = useBreakpoint()
   const [period, setPeriod] = useState(90)
   const { data: issues, isLoading } = useRecurringIssues(period)
+
+  if (isMobile) {
+    return <MobileRecurringIssuesPage />
+  }
 
   return (
     <div className="space-y-6">
