@@ -4,7 +4,7 @@ import {
   Package, 
   Shirt, 
   Wrench, 
-  MoreHorizontal
+  Settings
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/hooks/useUser'
@@ -53,10 +53,10 @@ export const BottomNav = () => {
       module: 'maintenance'
     },
     { 
-      id: 'more', 
-      icon: MoreHorizontal, 
-      label: 'More', 
-      path: '/more' 
+      id: 'settings', 
+      icon: Settings, 
+      label: 'Cài đặt', 
+      path: '/settings' 
     }
   ]
 

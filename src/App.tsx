@@ -199,7 +199,9 @@ const router = createBrowserRouter([
       
       { path: "inventory", element: <InventoryDashboardPage /> },
       { path: "inventory/transactions", element: <TransactionListPage /> },
+      { path: "inventory/inbound", element: <Navigate to="/inventory/transactions" replace /> },
       { path: "inventory/inbound/new", element: <InboundPage /> },
+      { path: "inventory/outbound", element: <Navigate to="/inventory/transactions" replace /> },
       { path: "inventory/outbound/new", element: <OutboundPage /> },
       { path: "inventory/adjustments", element: <AdjustmentListPage /> },
       { path: "inventory/adjustments/new", element: <CreateAdjustmentPage /> },
