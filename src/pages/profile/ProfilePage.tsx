@@ -4,8 +4,15 @@ import { ProfileForm } from '@/components/profile/ProfileForm'
 import { ChangePasswordForm } from '@/components/profile/ChangePasswordForm'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { User, KeyRound } from 'lucide-react'
+import { MobileUserProfilePage } from '@/components/settings/MobileUserProfilePage'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 export default function ProfilePage() {
+  const isMobile = useIsMobile()
+
+  if (isMobile) {
+    return <MobileUserProfilePage />
+  }
   return (
     <div className="space-y-6">
       <PageHeader

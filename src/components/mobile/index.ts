@@ -23,3 +23,6 @@ export { MobileCategoriesPage } from '../items/MobileCategoriesPage'
 export { MobileCategoryCard } from '../items/MobileCategoryCard'
 export { CategoryFormSheet } from '../items/CategoryFormSheet'
 
+// Export all mobile pages
+export * from './mobile-pages'
+
