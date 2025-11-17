@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Download, Search, Eye } from 'lucide-react'
+import { ArrowLeft, Download, Search, Eye, Package, TrendingUp, TrendingDown } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,9 +28,19 @@ import { useInventoryTransactions } from '@/hooks/useInventoryTransactions'
 import { formatCurrency } from '@/lib/utils'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { useQueryClient } from '@tanstack/react-query'
+import type { TransactionType } from '@/types/inventory.types'
+import { PullToRefresh } from '@/components/mobile/PullToRefresh'
+import { StatScrollContainer, MobileStatCard } from '@/components/mobile/MobileDashboardStats'
+import { MobileFilterSheet } from '@/components/inventory/MobileFilterSheet'
+import { SwipeableCard } from '@/components/mobile/SwipeableCard'
+import { MobileTransactionCard } from '@/components/inventory/MobileTransactionCard'
 
 export function TransactionListPage() {
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
+  const queryClient = useQueryClient()
   const [selectedTransaction, setSelectedTransaction] = useState<string | null>(null)
   const [filters, setFilters] = useState({
     search: '',
@@ -61,7 +71,136 @@ export function TransactionListPage() {
     },
     { totalIn: 0, totalOut: 0, valueIn: 0, valueOut: 0 }
   )
-  
+
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
+  }
+
+  const handleFilterByCategory = (category: string) => {
+    setFilters({ ...filters, categoryId: category })
+  }
+
+  // Mobile View
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <PullToRefresh onRefresh={handleRefresh}>
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
+              <div className="flex items-center gap-2 mb-3">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => navigate('/inventory')}
+                  className="h-10 w-10"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <div>
+                  <h1 className="text-lg font-semibold">Lịch sử giao dịch</h1>
+                  <p className="text-xs text-muted-foreground">
+                    {data?.total || 0} giao dịch
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats Scroll */}
+            <StatScrollContainer>
+              <MobileStatCard
+                icon={Package}
+                title="Tổng giao dịch"
+                value={data?.total || 0}
+              />
+              <MobileStatCard
+                icon={TrendingDown}
+                title="Tổng nhập"
+                value={formatCurrency(summary.valueIn)}
+                variant="success"
+              />
+              <MobileStatCard
+                icon={TrendingUp}
+                title="Tổng xuất"
+                value={formatCurrency(summary.valueOut)}
+                variant="default"
+              />
+            </StatScrollContainer>
+
+            {/* Mobile Filter */}
+            <div className="px-4">
+              <MobileFilterSheet filters={filters} onFiltersChange={setFilters} />
+            </div>
+
+            {/* Transaction Cards */}
+            <div className="px-4 space-y-2">
+              {isLoading ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">Đang tải...</p>
+                </div>
+              ) : transactions.length === 0 ? (
+                <div className="text-center py-12">
+                  <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">Không có giao dịch nào</p>
+                </div>
+              ) : (
+                transactions.map((transaction) => (
+                  <SwipeableCard
+                    key={transaction.id}
+                    onSwipeLeft={() => setSelectedTransaction(transaction.id)}
+                    onSwipeRight={() => transaction.transaction_category && handleFilterByCategory(transaction.transaction_category)}
+                  >
+                    <MobileTransactionCard
+                      transaction={{
+                        id: transaction.id,
+                        transaction_code: transaction.transaction_code,
+                        transaction_type: transaction.transaction_type as 'in' | 'out' | 'adjustment',
+                        transaction_category: transaction.transaction_category,
+                        item_name: transaction.item_name,
+                        item_code: transaction.item_code,
+                        quantity: transaction.quantity,
+                        unit_price: transaction.unit_price,
+                        total_value: transaction.total_value,
+                        transaction_date: transaction.transaction_date,
+                        created_by_name: transaction.created_by_name,
+                        from_location: transaction.from_location,
+                        to_location: transaction.to_location,
+                      }}
+                      onClick={() => setSelectedTransaction(transaction.id)}
+                    />
+                  </SwipeableCard>
+                ))
+              )}
+            </div>
+
+            {/* Load More */}
+            {transactions.length > 0 && page < totalPages && (
+              <div className="px-4 pb-4">
+                <Button
+                  variant="outline"
+                  className="w-full h-12"
+                  onClick={() => setPage(page + 1)}
+                >
+                  Tải thêm
+                </Button>
+              </div>
+            )}
+          </div>
+        </PullToRefresh>
+
+        {/* Transaction Detail Dialog */}
+        {selectedTransaction && (
+          <TransactionDetailDialog
+            transactionId={selectedTransaction}
+            open={!!selectedTransaction}
+            onOpenChange={(open) => !open && setSelectedTransaction(null)}
+          />
+        )}
+      </div>
+    )
+  }
+
+  // Desktop View
   return (
     <div className="space-y-6">
       <PageHeader
@@ -153,8 +292,7 @@ export function TransactionListPage() {
                 <SelectItem value="all">Tất cả</SelectItem>
                 <SelectItem value="in">Nhập kho</SelectItem>
                 <SelectItem value="out">Xuất kho</SelectItem>
-                <SelectItem value="transfer">Chuyển kho</SelectItem>
-                <SelectItem value="adjust">Điều chỉnh</SelectItem>
+                <SelectItem value="adjustment">Điều chỉnh</SelectItem>
               </SelectContent>
             </Select>
             
@@ -168,213 +306,168 @@ export function TransactionListPage() {
                 <SelectValue placeholder="Danh mục" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tất cả danh mục</SelectItem>
+                <SelectItem value="all">Tất cả</SelectItem>
                 <SelectItem value="purchase">Mua hàng</SelectItem>
-                <SelectItem value="return">Trả hàng</SelectItem>
-                <SelectItem value="laundry_return">Nhận từ giặt là</SelectItem>
-                <SelectItem value="room_assign">Giao phòng</SelectItem>
-                <SelectItem value="laundry">Gửi giặt</SelectItem>
-                <SelectItem value="maintenance">Bảo trì</SelectItem>
-                <SelectItem value="disposal">Thanh lý</SelectItem>
-                <SelectItem value="other">Khác</SelectItem>
+                <SelectItem value="sale">Bán hàng</SelectItem>
+                <SelectItem value="transfer_in">Chuyển kho nhập</SelectItem>
+                <SelectItem value="transfer_out">Chuyển kho xuất</SelectItem>
+                <SelectItem value="internal_use">Sử dụng nội bộ</SelectItem>
+                <SelectItem value="loss">Hao hụt</SelectItem>
+                <SelectItem value="damaged">Hư hỏng</SelectItem>
               </SelectContent>
             </Select>
-            
-            <Button
-              variant="outline"
-              onClick={() => setFilters({
-                search: '',
-                transactionType: '',
-                categoryId: '',
-                createdBy: '',
-                dateFrom: null,
-                dateTo: null,
-              })}
-            >
-              Reset
-            </Button>
           </div>
         </CardContent>
       </Card>
       
       <Card>
-        <CardContent className="pt-6">
-          <div className="rounded-md border">
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <p>Đang tải...</p>
+            </div>
+          ) : transactions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Package className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">Không có giao dịch nào</p>
+            </div>
+          ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Mã giao dịch</TableHead>
+                  <TableHead>Mã GD</TableHead>
                   <TableHead>Loại</TableHead>
                   <TableHead>Đồ dùng</TableHead>
-                  <TableHead className="text-center">Số lượng</TableHead>
-                  <TableHead className="text-right">Giá trị</TableHead>
-                  <TableHead>Vị trí</TableHead>
-                  <TableHead>Người thực hiện</TableHead>
-                  <TableHead>Thời gian</TableHead>
-                  <TableHead className="w-20"></TableHead>
+                  <TableHead>Số lượng</TableHead>
+                  <TableHead>Giá trị</TableHead>
+                  <TableHead>Địa điểm</TableHead>
+                  <TableHead>Người tạo</TableHead>
+                  <TableHead>Ngày</TableHead>
+                  <TableHead className="text-right">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
-                      Đang tải...
+                {transactions.map((transaction) => (
+                  <TableRow key={transaction.id}>
+                    <TableCell className="font-mono text-xs">
+                      {transaction.transaction_code}
+                    </TableCell>
+                    <TableCell>
+                      <TransactionTypeBadge type={transaction.transaction_type === 'adjustment' ? 'adjust' : transaction.transaction_type as TransactionType} />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {transaction.item_images?.[0] && (
+                          <img 
+                            src={transaction.item_images[0]} 
+                            alt={transaction.item_name}
+                            className="h-8 w-8 rounded object-cover"
+                          />
+                        )}
+                        <div>
+                          <p className="font-medium">{transaction.item_name}</p>
+                          <p className="text-xs text-muted-foreground">{transaction.item_code}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className={transaction.transaction_type === 'in' ? 'text-green-600 font-medium' : 'text-blue-600 font-medium'}>
+                        {transaction.transaction_type === 'in' ? '+' : '-'}{Math.abs(transaction.quantity)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="font-semibold">
+                      {formatCurrency(transaction.total_value)}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {transaction.from_location && <div>Từ: {transaction.from_location}</div>}
+                      {transaction.to_location && <div>Đến: {transaction.to_location}</div>}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={transaction.created_by_avatar} />
+                          <AvatarFallback className="text-xs">
+                            {transaction.created_by_name?.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">{transaction.created_by_name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {format(new Date(transaction.transaction_date), 'dd/MM/yyyy HH:mm', { locale: vi })}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedTransaction(transaction.id)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
-                ) : transactions.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
-                      Không có giao dịch nào
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  transactions.map((transaction) => (
-                    <TableRow
-                      key={transaction.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => setSelectedTransaction(transaction.id)}
-                    >
-                      <TableCell className="font-medium">
-                        {transaction.transaction_code}
-                      </TableCell>
-                      <TableCell>
-                        <TransactionTypeBadge type={transaction.transaction_type as any} />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {transaction.item_images?.[0] && (
-                            <img
-                              src={transaction.item_images[0]}
-                              alt={transaction.item_name}
-                              className="h-8 w-8 rounded object-cover"
-                            />
-                          )}
-                          <div>
-                            <p className="font-medium">{transaction.item_name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {transaction.item_code}
-                            </p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className={
-                          transaction.quantity > 0 
-                            ? 'font-bold text-green-600' 
-                            : 'font-bold text-red-600'
-                        }>
-                          {transaction.quantity > 0 ? '+' : ''}{transaction.quantity}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatCurrency(transaction.total_value)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <p className="text-muted-foreground">
-                            {transaction.from_location}
-                          </p>
-                          {transaction.to_location && (
-                            <p>→ {transaction.to_location}</p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-6 w-6">
-                            <AvatarImage src={transaction.created_by_avatar} />
-                            <AvatarFallback>
-                              {transaction.created_by_name?.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm">{transaction.created_by_name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <p>{format(new Date(transaction.created_at), 'dd/MM/yyyy', { locale: vi })}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {format(new Date(transaction.created_at), 'HH:mm')}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedTransaction(transaction.id)
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                ))}
               </TableBody>
             </Table>
-          </div>
-          
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  Hiển thị
-                </span>
-                <Select
-                  value={pageSize.toString()}
-                  onValueChange={(value) => {
-                    setPageSize(parseInt(value))
-                    setPage(1)
-                  }}
-                >
-                  <SelectTrigger className="w-24">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
-                  </SelectContent>
-                </Select>
-                <span className="text-sm text-muted-foreground">
-                  trên trang
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(page - 1)}
-                  disabled={page === 1}
-                >
-                  Trước
-                </Button>
-                <span className="text-sm">
-                  Trang {page} / {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(page + 1)}
-                  disabled={page === totalPages}
-                >
-                  Sau
-                </Button>
-              </div>
-            </div>
           )}
         </CardContent>
       </Card>
       
-      <TransactionDetailDialog
-        transactionId={selectedTransaction}
-        open={!!selectedTransaction}
-        onOpenChange={(open) => !open && setSelectedTransaction(null)}
-      />
+      {/* Pagination */}
+      {transactions.length > 0 && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-muted-foreground">
+              Hiển thị {(page - 1) * pageSize + 1} - {Math.min(page * pageSize, data?.total || 0)} của {data?.total || 0}
+            </p>
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(value) => {
+                setPageSize(parseInt(value))
+                setPage(1)
+              }}
+            >
+              <SelectTrigger className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page === 1}
+            >
+              Trước
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(Math.min(totalPages, page + 1))}
+              disabled={page >= totalPages}
+            >
+              Sau
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Transaction Detail Dialog */}
+      {selectedTransaction && (
+        <TransactionDetailDialog
+          transactionId={selectedTransaction}
+          open={!!selectedTransaction}
+          onOpenChange={(open) => !open && setSelectedTransaction(null)}
+        />
+      )}
     </div>
   )
 }
