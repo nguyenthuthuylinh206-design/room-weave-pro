@@ -6,22 +6,25 @@ import {
   Upload,
   Settings,
   AlertCircle,
-  User,
   MapPin,
   Calendar,
   FileText,
-  Image as ImageIcon,
+  Package,
+  DollarSign,
 } from 'lucide-react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { ResponsiveDialog } from '@/components/mobile/ResponsiveDialog'
 import { Button } from '@/components/ui/button'
+import { TouchButton } from '@/components/mobile/TouchOptimized'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,21 +39,14 @@ import { useState } from 'react'
 import { useInventoryTransaction, useDeleteTransaction } from '@/hooks/useInventoryTransactions'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 interface TransactionDetailDialogProps {
   transactionId: string | null
   open: boolean
   onOpenChange: (open: boolean) => void
-}
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(amount)
 }
 
 const transactionIcons: Record<string, any> = {
@@ -70,12 +66,12 @@ const transactionLabels: Record<string, string> = {
   lost: 'MẤT MÁT',
 }
 
-const transactionColors: Record<string, string> = {
-  in: 'bg-success/10 text-success',
-  out: 'bg-warning/10 text-warning',
-  adjust: 'bg-yellow-100 text-yellow-800',
-  damaged: 'bg-destructive/10 text-destructive',
-  lost: 'bg-destructive/10 text-destructive',
+const transactionVariants: Record<string, 'default' | 'destructive' | 'secondary'> = {
+  in: 'default',
+  out: 'secondary',
+  adjust: 'secondary',
+  damaged: 'destructive',
+  lost: 'destructive',
 }
 
 export function TransactionDetailDialog({
@@ -83,6 +79,7 @@ export function TransactionDetailDialog({
   open,
   onOpenChange,
 }: TransactionDetailDialogProps) {
+  const isMobile = useIsMobile()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const { data: transaction, isLoading } = useInventoryTransaction(transactionId || undefined)
   const { mutate: deleteTransaction, isPending: isDeleting } = useDeleteTransaction()
@@ -93,7 +90,7 @@ export function TransactionDetailDialog({
   
   const Icon = transactionIcons[transaction.transaction_type]
   const label = transactionLabels[transaction.transaction_type]
-  const colorClass = transactionColors[transaction.transaction_type]
+  const variant = transactionVariants[transaction.transaction_type]
   
   const canDelete = 
     (Date.now() - new Date(transaction.created_at).getTime()) / (1000 * 60 * 60) < 24
@@ -117,20 +114,218 @@ export function TransactionDetailDialog({
       })
     }
   }
+
+  const hasImages = transaction.photos && transaction.photos.length > 0
+  const hasDocuments = transaction.documents && transaction.documents.length > 0
   
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+      <ResponsiveDialog
+        open={open}
+        onOpenChange={onOpenChange}
+        title={transaction.transaction_code}
+      >
+        {isMobile ? (
+          <div className="space-y-4 pb-4">
+            <div className="flex items-center justify-between">
+              <Badge variant={variant} className="gap-1.5">
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                {format(new Date(transaction.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })}
+              </span>
+            </div>
+
+            {hasImages && (
+              <Carousel className="w-full">
+                <CarouselContent>
+                  {transaction.photos!.map((photo, index) => (
+                    <CarouselItem key={index}>
+                      <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+                        <img 
+                          src={photo} 
+                          alt={`Ảnh ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                {transaction.photos!.length > 1 && (
+                  <>
+                    <CarouselPrevious className="left-2" />
+                    <CarouselNext className="right-2" />
+                  </>
+                )}
+              </Carousel>
+            )}
+
+            <div className="space-y-2">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
+                  {transaction.item?.item_images?.[0]?.url ? (
+                    <img
+                      src={transaction.item.item_images[0].url}
+                      alt={transaction.item.name}
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                  ) : (
+                    <Package className="h-6 w-6 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-base truncate">
+                    {transaction.item?.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {transaction.item?.code}
+                  </p>
+                  {transaction.item?.category && (
+                    <Badge variant="outline" className="mt-1">
+                      {transaction.item.category.name}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-muted/50 rounded-lg border">
+                <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                  <Package className="h-4 w-4" />
+                  <span className="text-xs">Số lượng</span>
+                </div>
+                <p className={cn(
+                  'text-xl font-bold',
+                  transaction.quantity > 0 ? 'text-success' : 'text-destructive'
+                )}>
+                  {transaction.quantity > 0 ? '+' : ''}{transaction.quantity}
+                </p>
+              </div>
+
+              <div className="p-3 bg-muted/50 rounded-lg border">
+                <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                  <DollarSign className="h-4 w-4" />
+                  <span className="text-xs">Giá trị</span>
+                </div>
+                <p className="text-xl font-bold">
+                  {formatCurrency(transaction.total_value || 0)}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Trước:</span>
+                <span className="font-medium">{transaction.quantity_before}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Sau:</span>
+                <span className="font-medium">{transaction.quantity_after}</span>
+              </div>
+              <Separator />
+              <div className="flex justify-between text-sm font-semibold">
+                <span>Thay đổi:</span>
+                <span className={cn(
+                  transaction.quantity > 0 ? 'text-success' : 'text-destructive'
+                )}>
+                  {transaction.quantity > 0 ? '+' : ''}{transaction.quantity}
+                </span>
+              </div>
+            </div>
+
+            {(transaction.from_location || transaction.to_location) && (
+              <div className="space-y-2">
+                {transaction.from_location && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Từ:</span>
+                    <span className="font-medium">{transaction.from_location}</span>
+                  </div>
+                )}
+                {transaction.to_location && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Đến:</span>
+                    <span className="font-medium">{transaction.to_location}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/20">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={transaction.created_by_user?.avatar_url} />
+                <AvatarFallback className="bg-primary/10">
+                  {transaction.created_by_user?.full_name?.charAt(0).toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <p className="font-medium text-sm">{transaction.created_by_user?.full_name}</p>
+                <p className="text-xs text-muted-foreground">Người tạo</p>
+              </div>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </div>
+
+            {transaction.notes && (
+              <div className="p-3 bg-muted/30 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Ghi chú</span>
+                </div>
+                <p className="text-sm text-muted-foreground">{transaction.notes}</p>
+              </div>
+            )}
+
+            {hasDocuments && (
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm">Tài liệu</h3>
+                <div className="flex flex-wrap gap-2">
+                  {transaction.documents!.map((doc, index) => (
+                    <Button key={index} variant="outline" size="sm" asChild>
+                      <a href={doc} target="_blank" rel="noopener noreferrer">
+                        <FileText className="mr-2 h-4 w-4" />
+                        Tài liệu {index + 1}
+                      </a>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2 pt-2">
+              <TouchButton
+                variant="outline"
+                className="w-full justify-start"
+                onClick={handleCopy}
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                Sao chép mã giao dịch
+              </TouchButton>
+              
+              {canDelete && (
+                <TouchButton
+                  variant="destructive"
+                  className="w-full justify-start"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Xóa giao dịch
+                </TouchButton>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={cn('rounded-lg p-2', colorClass)}>
+                <div className={cn('rounded-lg p-2', transactionVariants[transaction.transaction_type] === 'default' ? 'bg-success/10 text-success' : transactionVariants[transaction.transaction_type] === 'destructive' ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning')}>
                   <Icon className="h-5 w-5" />
                 </div>
                 <div>
-                  <DialogTitle className="flex items-center gap-2">
-                    {transaction.transaction_code}
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{transaction.transaction_code}</span>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -138,14 +333,12 @@ export function TransactionDetailDialog({
                     >
                       <Copy className="h-3 w-3" />
                     </Button>
-                  </DialogTitle>
-                  <Badge className={colorClass}>{label}</Badge>
+                  </div>
+                  <Badge variant={variant}>{label}</Badge>
                 </div>
               </div>
             </div>
-          </DialogHeader>
-          
-          <div className="space-y-6">
+            
             <div className="space-y-3">
               <h3 className="font-semibold">Thông tin giao dịch</h3>
               <div className="grid gap-3 rounded-lg border p-4">
@@ -158,7 +351,6 @@ export function TransactionDetailDialog({
                 </div>
                 
                 <div className="flex items-center gap-2 text-sm">
-                  <User className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Người thực hiện:</span>
                   <div className="flex items-center gap-2">
                     <Avatar className="h-5 w-5">
@@ -331,7 +523,7 @@ export function TransactionDetailDialog({
                           className="h-full w-full object-cover transition-transform group-hover:scale-110"
                         />
                         <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                          <ImageIcon className="h-6 w-6 text-white" />
+                          <Package className="h-6 w-6 text-white" />
                         </div>
                       </a>
                     ))}
@@ -359,8 +551,8 @@ export function TransactionDetailDialog({
               )}
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        )}
+      </ResponsiveDialog>
       
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
