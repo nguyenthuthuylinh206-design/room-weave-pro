@@ -11,6 +11,7 @@ import { MaintenanceTimeline } from '@/components/maintenance/MaintenanceTimelin
 import { CompleteRequestDialog } from '@/components/maintenance/CompleteRequestDialog'
 import { CancelRequestDialog } from '@/components/maintenance/CancelRequestDialog'
 import { UpdateProgressDialog } from '@/components/maintenance/UpdateProgressDialog'
+import { MobileMaintenanceRequestDetail } from '@/components/maintenance/MobileMaintenanceRequestDetail'
 import { useStartRequest } from '@/hooks/useMaintenanceRequests'
 import { toast } from '@/hooks/use-toast'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -32,10 +33,12 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
+import { useBreakpoint } from '@/lib/breakpoints'
 
 export default function MaintenanceRequestDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { isMobile } = useBreakpoint()
   const { data: request, isLoading } = useMaintenanceRequest(id!)
   const acceptRequest = useAcceptRequest()
   const startRequest = useStartRequest()
@@ -43,6 +46,10 @@ export default function MaintenanceRequestDetail() {
   const [showCompleteDialog, setShowCompleteDialog] = useState(false)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [showUpdateDialog, setShowUpdateDialog] = useState(false)
+
+  if (isMobile) {
+    return <MobileMaintenanceRequestDetail />
+  }
 
   const handleAcceptRequest = async () => {
     try {
