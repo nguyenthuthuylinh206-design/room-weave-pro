@@ -70,7 +70,7 @@ interface StatScrollContainerProps {
 
 export function StatScrollContainer({ children, className }: StatScrollContainerProps) {
   return (
-    <div className="w-full overflow-hidden -mx-4 px-4">
+    <div className="w-full -mx-4 px-4">
       <div className={cn(
         'flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory',
         'scrollbar-hide',

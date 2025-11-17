@@ -228,14 +228,14 @@ All colors MUST be HSL.
     }
     
     * {
-      /* Prevent any element from causing overflow */
       max-width: 100%;
     }
     
-    /* Allow specific scroll containers */
+    /* Exceptions: allow scroll containers to work properly */
     .overflow-x-auto,
-    .overflow-x-scroll {
-      max-width: 100vw !important;
+    .overflow-x-scroll,
+    [class*="scrollbar-hide"] {
+      max-width: none !important;
     }
   }
 }
