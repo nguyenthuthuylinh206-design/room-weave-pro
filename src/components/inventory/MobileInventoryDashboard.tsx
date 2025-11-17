@@ -122,7 +122,7 @@ export function MobileInventoryDashboard() {
         {/* Quick Actions */}
         <div className="px-4 space-y-3">
           <h2 className="text-lg font-semibold">Thao tác nhanh</h2>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 xs:grid-cols-3 gap-3">
             {quickActions.map((action) => (
               <Card
                 key={action.label}
