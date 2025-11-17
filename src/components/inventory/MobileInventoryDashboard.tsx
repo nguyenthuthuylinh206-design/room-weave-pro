@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { PackagePlus, PackageMinus, ClipboardList, TrendingUp, AlertTriangle, Package } from 'lucide-react'
+import { PackagePlus, PackageMinus, ClipboardList, TrendingUp, AlertTriangle, Package, ArrowRightLeft, FileText, DollarSign } from 'lucide-react'
 import { PullToRefresh } from '@/components/mobile/TouchOptimized'
 import { StatScrollContainer, MobileStatCard } from '@/components/mobile/MobileDashboardStats'
 import { SwipeableCard } from '@/components/mobile/TouchOptimized'
@@ -42,6 +42,12 @@ export function MobileInventoryDashboard() {
       label: 'Kiểm kê',
       onClick: () => navigate('/inventory/adjustments/new'),
       color: 'text-purple-600 dark:text-purple-400',
+    },
+    {
+      icon: FileText,
+      label: 'Xem giao dịch',
+      onClick: () => navigate('/inventory/transactions'),
+      color: 'text-cyan-600 dark:text-cyan-400',
     },
     {
       icon: Package,
@@ -96,13 +102,27 @@ export function MobileInventoryDashboard() {
             value={formatNumber(stats?.reorder_needed_count || 0)}
             variant={stats?.reorder_needed_count && stats.reorder_needed_count > 0 ? 'destructive' : 'default'}
           />
+          <MobileStatCard
+            icon={ArrowRightLeft}
+            title="Giao dịch hôm nay"
+            value={formatNumber(stats?.today_transactions?.total || 0)}
+            variant="default"
+            onClick={() => navigate('/inventory/transactions')}
+          />
+          <MobileStatCard
+            icon={DollarSign}
+            title="Giá trị nhập tháng này"
+            value={formatCurrency(stats?.value_in_this_month || 0)}
+            trend={stats?.inbound_change_percent ? `${stats.inbound_change_percent > 0 ? '+' : ''}${stats.inbound_change_percent.toFixed(1)}%` : undefined}
+            variant="default"
+          />
           </StatScrollContainer>
         </div>
 
         {/* Quick Actions */}
         <div className="px-4 space-y-3">
           <h2 className="text-lg font-semibold">Thao tác nhanh</h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             {quickActions.map((action) => (
               <Card
                 key={action.label}
