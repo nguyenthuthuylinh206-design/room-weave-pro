@@ -35,6 +35,8 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { SwipeableCard } from '@/components/mobile/SwipeableCard'
 import { MobileAdjustmentCard } from '@/components/inventory/MobileAdjustmentCard'
+import { AdjustmentListSkeleton } from '@/components/inventory/AdjustmentCardSkeleton'
+import { EmptyAdjustments } from '@/components/inventory/EmptyAdjustments'
 import { toast } from 'sonner'
 
 const statusConfig = {
@@ -191,14 +193,9 @@ export function AdjustmentListPage() {
             {/* Adjustment Cards */}
             <div className="px-4 space-y-2">
               {isLoading ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Đang tải...
-                </div>
+                <AdjustmentListSkeleton count={5} />
               ) : adjustments.length === 0 ? (
-                <div className="text-center py-12">
-                  <ClipboardCheck className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground">Không có phiếu kiểm kê nào</p>
-                </div>
+                <EmptyAdjustments />
               ) : (
                 adjustments.map((adjustment) => {
                   const actions = getSwipeActions(adjustment)
