@@ -1,15 +1,9 @@
-import { Plus, X } from 'lucide-react'
+import { Plus, X, ShoppingCart, Undo2, Package2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { ResponsiveDialog } from '@/components/mobile/ResponsiveDialog'
 import {
   Form,
   FormControl,
@@ -20,10 +14,12 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { TouchButton } from '@/components/mobile/TouchOptimized'
 import { ItemSelect } from '@/components/shared/ItemSelect'
 import { useCreateInboundTransaction } from '@/hooks/useInventoryTransactions'
 import { formatCurrency } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 const quickInboundSchema = z.object({
   transaction_category: z.enum(['purchase', 'return', 'other']),
@@ -43,8 +39,15 @@ interface QuickInboundDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
+const categoryOptions = [
+  { value: 'purchase', label: 'Mua mới', icon: ShoppingCart, description: 'Mua từ nhà cung cấp' },
+  { value: 'return', label: 'Trả về', icon: Undo2, description: 'Hàng hoàn trả' },
+  { value: 'other', label: 'Khác', icon: Package2, description: 'Lý do khác' },
+]
+
 export function QuickInboundDialog({ open, onOpenChange }: QuickInboundDialogProps) {
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const { mutate: createInbound, isPending: isLoading } = useCreateInboundTransaction()
   
   const form = useForm<QuickInboundFormData>({
@@ -76,209 +79,221 @@ export function QuickInboundDialog({ open, onOpenChange }: QuickInboundDialogPro
     0
   )
   
+  const selectedCategory = form.watch('transaction_category')
+  
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Nhập kho nhanh</DialogTitle>
-          <DialogDescription>
-            Ghi nhận nhập kho đơn giản. Để nhập chi tiết hơn với tài liệu và ảnh,{' '}
-            <Button
-              variant="link"
-              className="h-auto p-0"
-              onClick={() => {
-                onOpenChange(false)
-                navigate('/inventory/inbound/new')
-              }}
-            >
-              dùng form đầy đủ
-            </Button>
-          </DialogDescription>
-        </DialogHeader>
-        
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Nhập kho nhanh"
+      description={isMobile ? undefined : "Ghi nhận nhập kho đơn giản"}
+    >
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {/* Category Selection */}
+          <FormField
+            control={form.control}
+            name="transaction_category"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Loại nhập *</FormLabel>
+                <FormControl>
+                  <div className="grid grid-cols-3 gap-2">
+                    {categoryOptions.map((option) => {
+                      const Icon = option.icon
+                      return (
+                        <TouchButton
+                          key={option.value}
+                          type="button"
+                          variant={field.value === option.value ? 'default' : 'outline'}
+                          className={cn(
+                            'h-auto py-3 flex-col gap-1.5',
+                            isMobile && 'min-h-[72px]'
+                          )}
+                          onClick={() => field.onChange(option.value)}
+                        >
+                          <Icon className="h-5 w-5" />
+                          <span className="text-xs font-medium">{option.label}</span>
+                        </TouchButton>
+                      )
+                    })}
+                  </div>
+                </FormControl>
+                {isMobile && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {categoryOptions.find(o => o.value === selectedCategory)?.description}
+                  </p>
+                )}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          {/* Locations */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
-              name="transaction_category"
+              name="from_location"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Loại nhập *</FormLabel>
+                  <FormLabel>Từ đâu *</FormLabel>
                   <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="flex gap-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="purchase" id="purchase" />
-                        <label htmlFor="purchase" className="cursor-pointer">
-                          Từ đơn đặt hàng
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="return" id="return" />
-                        <label htmlFor="return" className="cursor-pointer">
-                          Trả về
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="other" id="other" />
-                        <label htmlFor="other" className="cursor-pointer">
-                          Khác
-                        </label>
-                      </div>
-                    </RadioGroup>
+                    <Input 
+                      {...field} 
+                      placeholder="Nhà cung cấp, kho..."
+                      className={isMobile ? 'min-h-[48px]' : ''}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             
-            <div className="grid gap-4 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="from_location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Từ vị trí *</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="VD: Nhà cung cấp ABC" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="to_location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Đến vị trí *</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="VD: Kho tầng 1" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <FormLabel>Đồ dùng *</FormLabel>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => append({ item_id: '', quantity: 1, unit_price: 0 })}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Thêm đồ dùng
-                </Button>
-              </div>
-              
-              <div className="space-y-3">
-                {fields.map((field, index) => (
-                  <div key={field.id} className="flex gap-2 items-start">
-                    <div className="flex-1 grid gap-2 md:grid-cols-3">
-                      <FormField
-                        control={form.control}
-                        name={`items.${index}.item_id`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <ItemSelect
-                                value={field.value}
-                                onChange={(value, item) => {
-                                  field.onChange(value)
-                                  if (item) {
-                                    form.setValue(`items.${index}.unit_price`, item.unit_price)
-                                  }
-                                }}
-                                placeholder="Chọn đồ dùng"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name={`items.${index}.quantity`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                placeholder="Số lượng"
-                                {...field}
-                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name={`items.${index}.unit_price`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                placeholder="Đơn giá"
-                                {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    
-                    {fields.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => remove(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            <div className="rounded-lg border bg-muted/50 p-4">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Tổng giá trị:</span>
-                <span className="text-2xl font-bold">{formatCurrency(totalValue)}</span>
-              </div>
-            </div>
-            
-            <div className="flex justify-end gap-2">
+            <FormField
+              control={form.control}
+              name="to_location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Đến đâu *</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      placeholder="Kho tầng 1"
+                      className={isMobile ? 'min-h-[48px]' : ''}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          
+          {/* Items */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <FormLabel>Đồ dùng *</FormLabel>
               <Button
                 type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
+                variant="ghost"
+                size="sm"
+                onClick={() => append({ item_id: '', quantity: 1, unit_price: 0 })}
               >
-                Hủy
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Đang xử lý...' : 'Nhập kho'}
+                <Plus className="mr-2 h-4 w-4" />
+                Thêm
               </Button>
             </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+            
+            {fields.map((field, index) => (
+              <div key={field.id} className="space-y-2 p-3 border rounded-lg bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Item {index + 1}</span>
+                  {fields.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => remove(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                
+                <FormField
+                  control={form.control}
+                  name={`items.${index}.item_id`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <ItemSelect
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Chọn đồ dùng"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <FormField
+                    control={form.control}
+                    name={`items.${index}.quantity`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Số lượng"
+                            className={isMobile ? 'min-h-[48px]' : ''}
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name={`items.${index}.unit_price`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Đơn giá"
+                            className={isMobile ? 'min-h-[48px]' : ''}
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Summary */}
+          <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">Tổng giá trị:</span>
+              <span className="text-lg font-bold text-primary">
+                {formatCurrency(totalValue)}
+              </span>
+            </div>
+          </div>
+          
+          {/* Actions */}
+          <div className="flex flex-col gap-2 pt-2">
+            <TouchButton
+              type="submit"
+              disabled={isLoading}
+              className={cn('w-full', isMobile && 'min-h-[48px]')}
+            >
+              {isLoading ? 'Đang xử lý...' : 'Nhập kho'}
+            </TouchButton>
+            
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                onOpenChange(false)
+                navigate('/inventory/inbound/new')
+              }}
+            >
+              Dùng form đầy đủ →
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </ResponsiveDialog>
   )
 }
