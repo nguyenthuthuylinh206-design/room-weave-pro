@@ -8,6 +8,7 @@ import { useQuotaCheck } from '@/hooks/useQuotaCheck'
 import { QuotaExceededDialog } from '@/components/settings/usage/QuotaExceededDialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -17,6 +18,7 @@ import { useItem, useCreateItem, useUpdateItem } from '@/hooks/useItems'
 import { useItemImages, useAddItemImage, useDeleteItemImage } from '@/hooks/useItemImages'
 import { useCategories } from '@/hooks/useCategories'
 import { useUser } from '@/hooks/useUser'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
@@ -49,6 +51,7 @@ export function ItemFormPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+  const isMobile = useIsMobile()
   const isEdit = !!id
   const copyFrom = location.state?.copyFrom
 
@@ -248,20 +251,23 @@ export function ItemFormPage() {
         currentUsage={quotaCheck.currentUsage}
         limit={quotaCheck.limit}
       />
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
+      <div className="space-y-6 pb-24">
+        {/* Header - Sticky on mobile */}
+        <div className={`flex items-center gap-4 ${isMobile ? 'sticky top-0 z-10 bg-background py-4 -mx-4 px-4 border-b' : ''}`}>
           <Button variant="ghost" size="icon" onClick={() => navigate('/items')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold">
+          <div className="flex-1 min-w-0">
+            <h1 className={`font-bold truncate ${isMobile ? 'text-xl' : 'text-3xl'}`}>
               {isEdit ? 'Chỉnh sửa tài sản' : 'Thêm tài sản mới'}
             </h1>
-            <p className="text-muted-foreground">
-              {isEdit ? 'Cập nhật thông tin tài sản' : 'Nhập thông tin tài sản mới'}
-            </p>
+            {!isMobile && (
+              <p className="text-muted-foreground">
+                {isEdit ? 'Cập nhật thông tin tài sản' : 'Nhập thông tin tài sản mới'}
+              </p>
+            )}
           </div>
-          <HotelBadge />
+          {!isMobile && <HotelBadge />}
         </div>
 
         {/* Alert for All Hotels Mode */}
@@ -284,6 +290,177 @@ export function ItemFormPage() {
         )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {isMobile ? (
+          // Mobile: Accordion layout
+          <Accordion type="multiple" defaultValue={['basic', 'product']} className="space-y-4">
+            <AccordionItem value="basic" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-base font-semibold">
+                Thông tin cơ bản
+              </AccordionTrigger>
+              <AccordionContent className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="code" className="text-base">Mã tài sản *</Label>
+                  <Input id="code" {...register('code')} className="h-12 text-base" />
+                  {errors.code && (
+                    <p className="text-sm text-destructive">{errors.code.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="category_id" className="text-base">Danh mục *</Label>
+                  <Select
+                    value={watch('category_id')}
+                    onValueChange={(value) => setValue('category_id', value)}
+                  >
+                    <SelectTrigger className="h-12">
+                      <SelectValue placeholder="Chọn danh mục..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories?.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.category_id && (
+                    <p className="text-sm text-destructive">{errors.category_id.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-base">Tên tài sản *</Label>
+                  <Input id="name" {...register('name')} className="h-12 text-base" />
+                  {errors.name && (
+                    <p className="text-sm text-destructive">{errors.name.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="name_en" className="text-base">Tên tiếng Anh</Label>
+                  <Input id="name_en" {...register('name_en')} className="h-12 text-base" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description" className="text-base">Mô tả</Label>
+                  <Textarea id="description" {...register('description')} rows={3} className="text-base" />
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="product" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-base font-semibold">
+                Thông tin sản phẩm
+              </AccordionTrigger>
+              <AccordionContent className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="brand" className="text-base">Thương hiệu</Label>
+                  <Input id="brand" {...register('brand')} className="h-12 text-base" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="model" className="text-base">Model</Label>
+                  <Input id="model" {...register('model')} className="h-12 text-base" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="unit" className="text-base">Đơn vị *</Label>
+                  <Input id="unit" {...register('unit')} className="h-12 text-base" />
+                  {errors.unit && (
+                    <p className="text-sm text-destructive">{errors.unit.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="unit_price" className="text-base">Đơn giá (₫) *</Label>
+                  <Input
+                    id="unit_price"
+                    type="number"
+                    step="0.01"
+                    {...register('unit_price', { valueAsNumber: true })}
+                    className="h-12 text-base"
+                  />
+                  {errors.unit_price && (
+                    <p className="text-sm text-destructive">{errors.unit_price.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="minimum_stock" className="text-base">Tồn kho tối thiểu *</Label>
+                  <Input
+                    id="minimum_stock"
+                    type="number"
+                    {...register('minimum_stock', { valueAsNumber: true })}
+                    className="h-12 text-base"
+                  />
+                  {errors.minimum_stock && (
+                    <p className="text-sm text-destructive">{errors.minimum_stock.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="reorder_point" className="text-base">Điểm đặt hàng *</Label>
+                  <Input
+                    id="reorder_point"
+                    type="number"
+                    {...register('reorder_point', { valueAsNumber: true })}
+                    className="h-12 text-base"
+                  />
+                  {errors.reorder_point && (
+                    <p className="text-sm text-destructive">{errors.reorder_point.message}</p>
+                  )}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {selectedCategory && LINEN_CATEGORIES.some(cat => 
+              selectedCategory.name.toLowerCase().includes(cat.toLowerCase())
+            ) && (
+              <AccordionItem value="linen" className="border rounded-lg px-4">
+                <AccordionTrigger className="text-base font-semibold">
+                  Thông tin vòng đời
+                </AccordionTrigger>
+                <AccordionContent className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="max_wash_cycles" className="text-base">Số lần giặt tối đa</Label>
+                    <Input
+                      id="max_wash_cycles"
+                      type="number"
+                      {...register('max_wash_cycles', { valueAsNumber: true })}
+                      className="h-12 text-base"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="expected_lifetime_days" className="text-base">Tuổi thọ dự kiến (ngày)</Label>
+                    <Input
+                      id="expected_lifetime_days"
+                      type="number"
+                      {...register('expected_lifetime_days', { valueAsNumber: true })}
+                      className="h-12 text-base"
+                    />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            )}
+
+            <AccordionItem value="images" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-base font-semibold">
+                Hình ảnh
+              </AccordionTrigger>
+              <AccordionContent className="pt-4">
+                <ImageUpload
+                  images={images}
+                  onChange={setImages}
+                  maxImages={5}
+                  className="grid-cols-2"
+                />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        ) : (
+          // Desktop: Card layout (keep existing)
+          <>
         <Card>
           <CardHeader>
             <CardTitle>Thông tin cơ bản</CardTitle>
@@ -453,14 +630,23 @@ export function ItemFormPage() {
             </CardContent>
           </Card>
         )}
+          </>
+        )}
 
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => navigate('/items')}>
+        {/* Submit buttons - Fixed at bottom on mobile */}
+        <div className={`flex gap-3 ${isMobile ? 'fixed bottom-0 left-0 right-0 p-4 bg-background border-t z-20' : 'justify-end'}`}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => navigate('/items')}
+            className={isMobile ? 'flex-1 h-12' : ''}
+          >
             Hủy
           </Button>
           <Button 
             type="submit" 
             disabled={isSubmitting || isAllHotelsMode || !selectedHotel}
+            className={isMobile ? 'flex-1 h-12' : ''}
           >
             <Save className="w-4 h-4 mr-2" />
             {isSubmitting ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Tạo mới'}

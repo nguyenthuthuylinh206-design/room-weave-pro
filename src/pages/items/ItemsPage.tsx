@@ -7,13 +7,21 @@ import { ItemFilters } from '@/components/items/ItemFilters'
 import { ItemTable } from '@/components/items/ItemTable'
 import { ItemTabs } from '@/components/items/ItemTabs'
 import { BulkActionsBar } from '@/components/items/BulkActionsBar'
+import { MobileItemsPage } from '@/components/items/MobileItemsPage'
 import { useItems } from '@/hooks/useItems'
+import { useIsMobile } from '@/hooks/use-mobile'
 import type { ItemFilters as IItemFilters } from '@/types/items.types'
 
 export function ItemsPage() {
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedItems, setSelectedItems] = useState<string[]>([])
+  
+  // Mobile view
+  if (isMobile) {
+    return <MobileItemsPage />
+  }
   
   // Initialize state from URL params
   const [filters, setFilters] = useState<IItemFilters>(() => ({
