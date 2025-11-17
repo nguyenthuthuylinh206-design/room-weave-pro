@@ -16,8 +16,8 @@ export function useTopItems(limit: number = 10) {
       const { data, error } = await supabase
         .rpc('get_top_items', {
           p_tenant_id: tenantId,
-          p_limit: limit,
           p_hotel_id: isAllHotelsMode ? null : selectedHotel?.id || null,
+          p_limit: limit,
         })
       
       if (error) throw error

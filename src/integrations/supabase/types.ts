@@ -5243,37 +5243,21 @@ export type Database = {
         Args: { p_tenant_id: string }
         Returns: Json
       }
-      get_top_items:
-        | {
-            Args: { p_hotel_id?: string; p_limit?: number; p_tenant_id: string }
-            Returns: {
-              category_color: string
-              category_name: string
-              code: string
-              id: string
-              name: string
-              quantity_in_use: number
-              quantity_total: number
-              stock_status: string
-              thumbnail: string
-              utilization_rate: number
-            }[]
-          }
-        | {
-            Args: { p_hotel_id?: string; p_limit?: number; p_tenant_id: string }
-            Returns: {
-              category_color: string
-              category_name: string
-              code: string
-              id: string
-              name: string
-              quantity_in_use: number
-              quantity_total: number
-              stock_status: string
-              thumbnail: string
-              utilization_rate: number
-            }[]
-          }
+      get_top_items: {
+        Args: { p_hotel_id?: string; p_limit?: number; p_tenant_id: string }
+        Returns: {
+          category_color: string
+          category_name: string
+          code: string
+          id: string
+          name: string
+          quantity_in_use: number
+          quantity_total: number
+          stock_status: string
+          thumbnail: string
+          utilization_rate: number
+        }[]
+      }
       get_turnover_analysis: {
         Args: { p_hotel_id: string; p_months?: number; p_tenant_id: string }
         Returns: {
