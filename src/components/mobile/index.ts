@@ -25,4 +25,3 @@ export { CategoryFormSheet } from '../items/CategoryFormSheet'
 
 // Export all mobile pages
 export * from './mobile-pages'
-
