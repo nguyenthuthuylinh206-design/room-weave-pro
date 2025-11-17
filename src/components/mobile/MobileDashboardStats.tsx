@@ -39,7 +39,7 @@ export function MobileStatCard({
   return (
     <Card
       className={cn(
-        'min-w-[140px] p-4 snap-start transition-all',
+        'min-w-[160px] max-w-[180px] p-4 snap-start transition-all',
         variantStyles[variant],
         onClick && 'cursor-pointer active:scale-95',
         className
@@ -47,18 +47,18 @@ export function MobileStatCard({
       onClick={onClick}
     >
       <div className="flex items-start justify-between mb-2">
-        <Icon className={cn('h-5 w-5', iconStyles[variant])} />
+        <Icon className={cn('h-5 w-5 flex-shrink-0', iconStyles[variant])} />
         {trend && (
           <span className={cn(
-            'text-xs font-medium',
+            'text-xs font-medium whitespace-nowrap',
             trend.startsWith('+') ? 'text-green-600' : 'text-red-600'
           )}>
             {trend}
           </span>
         )}
       </div>
-      <p className="text-2xl font-bold">{value}</p>
-      <p className="text-xs text-muted-foreground mt-1">{title}</p>
+      <p className="text-xl font-bold break-words">{value}</p>
+      <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{title}</p>
     </Card>
   )
 }

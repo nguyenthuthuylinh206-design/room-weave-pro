@@ -52,7 +52,7 @@ export function MobileInventoryDashboard() {
     {
       icon: Package,
       label: 'Quản lý Items',
-      onClick: () => navigate('/inventory'),
+      onClick: () => navigate('/items'),
       color: 'text-green-600 dark:text-green-400',
     },
   ]
@@ -122,16 +122,16 @@ export function MobileInventoryDashboard() {
         {/* Quick Actions */}
         <div className="px-4 space-y-3">
           <h2 className="text-lg font-semibold">Thao tác nhanh</h2>
-          <div className="grid grid-cols-2 xs:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
             {quickActions.map((action) => (
               <Card
                 key={action.label}
-                className="cursor-pointer active:scale-95 transition-transform"
+                className="cursor-pointer active:scale-[0.97] transition-all duration-150"
                 onClick={action.onClick}
               >
-                <CardContent className="flex flex-col items-center justify-center p-6 space-y-2">
-                  <action.icon className={`h-8 w-8 ${action.color}`} />
-                  <span className="text-sm font-medium text-center">{action.label}</span>
+                <CardContent className="flex flex-col items-center justify-center p-4 min-h-[100px]">
+                  <action.icon className={`h-7 w-7 mb-2 ${action.color}`} />
+                  <span className="text-xs font-medium text-center leading-tight">{action.label}</span>
                 </CardContent>
               </Card>
             ))}
