@@ -34,11 +34,18 @@ import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { QRCodeDisplay } from '@/components/shared/QRCodeDisplay'
+import { MobileItemDetailPage } from '@/components/items/MobileItemDetailPage'
+import { useBreakpoint } from '@/lib/breakpoints'
 
 export default function ItemDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { isMobile } = useBreakpoint()
   const { data, isLoading } = useItem(id)
+
+  if (isMobile) {
+    return <MobileItemDetailPage />
+  }
 
   if (isLoading) {
     return (
