@@ -20,7 +20,7 @@ import { useCreateItem, useUpdateItem, useItem } from '@/hooks/useItems'
 import { useItemCategories } from '@/hooks/useItemCategories'
 import { ChevronLeft, ChevronRight, Check, Camera } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { compressImage } from '@/lib/imageUtils'
+import { compressImage } from '@/lib/imageCompression'
 
 const itemSchema = z.object({
   code: z.string().min(1, 'Mã là bắt buộc'),
