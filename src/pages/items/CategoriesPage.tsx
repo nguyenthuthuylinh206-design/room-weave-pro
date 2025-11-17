@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { toast } from '@/hooks/use-toast'
 import {
   Dialog,
@@ -29,6 +30,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { MobileCategoriesPage } from '@/components/items/MobileCategoriesPage'
 import {
   useCategories,
   useCreateCategory,
@@ -39,11 +41,17 @@ import type { CategoryFormData } from '@/types/items.types'
 
 export function CategoriesPage() {
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const { user: authUser } = useAuth()
   const { data: categories, isLoading } = useCategories()
   const createCategory = useCreateCategory()
   const updateCategory = useUpdateCategory()
   const deleteCategory = useDeleteCategory()
+  
+  // Mobile view
+  if (isMobile) {
+    return <MobileCategoriesPage />
+  }
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
