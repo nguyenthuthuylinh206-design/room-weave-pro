@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, Download, Eye, Filter } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { MobileLaundryBatchesPage } from '@/components/laundry/MobileLaundryBatchesPage'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -36,6 +38,7 @@ import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard'
 import { Package, Clock, CheckCircle } from 'lucide-react'
 
 export function LaundryBatchesPage() {
+  const isMobile = useIsMobile()
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState<{
@@ -48,6 +51,10 @@ export function LaundryBatchesPage() {
     search: '',
   })
   const [showFilters, setShowFilters] = useState(false)
+
+  if (isMobile) {
+    return <MobileLaundryBatchesPage />
+  }
   
   const { data, isLoading } = useLaundryBatches(
     {

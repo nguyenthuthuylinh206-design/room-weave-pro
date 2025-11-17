@@ -11,11 +11,14 @@ import { RoomFloorPlan } from '@/components/rooms/RoomFloorPlan'
 import { BulkImportRoomsDialog } from '@/components/rooms/BulkImportRoomsDialog'
 import { useRooms } from '@/hooks/useRooms'
 import { useHotelContext } from '@/contexts/HotelContext'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { MobileRoomsPage } from '@/components/rooms/MobileRoomsPage'
 import type { RoomFilters as IRoomFilters } from '@/types/rooms.types'
 
 type ViewMode = 'grid' | 'list' | 'floor'
 
 export function RoomsPage() {
+  const isMobile = useIsMobile()
   const navigate = useNavigate()
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [filters, setFilters] = useState<IRoomFilters>({})
@@ -23,6 +26,10 @@ export function RoomsPage() {
   
   const { data: rooms, isLoading } = useRooms(filters)
   const { selectedHotel } = useHotelContext()
+
+  if (isMobile) {
+    return <MobileRoomsPage />
+  }
   
   return (
     <div className="space-y-6">

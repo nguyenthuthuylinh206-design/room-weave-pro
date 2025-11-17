@@ -14,9 +14,12 @@ import { TurnoverAnalysisTab } from '@/components/reports/inventory/TurnoverAnal
 import { InventoryAlertsTab } from '@/components/reports/inventory/InventoryAlertsTab'
 import { useInventoryReport } from '@/hooks/useReports'
 import { useReportExport } from '@/hooks/useReportExport'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { MobileInventoryReportPage } from '@/components/reports/MobileInventoryReportPage'
 import { subDays } from 'date-fns'
 
 export function InventoryReportPage() {
+  const isMobile = useIsMobile()
   const navigate = useNavigate()
   const [dateRange, setDateRange] = useState({
     start: subDays(new Date(), 30),
@@ -27,6 +30,10 @@ export function InventoryReportPage() {
   
   const { data: reportData, isLoading } = useInventoryReport(dateRange)
   const { exportToPDF, exportToExcel, isExporting } = useReportExport()
+
+  if (isMobile) {
+    return <MobileInventoryReportPage />
+  }
   
   const handleExportPDF = async () => {
     if (!reportData) return

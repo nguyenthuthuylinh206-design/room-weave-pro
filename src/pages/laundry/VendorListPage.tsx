@@ -4,6 +4,8 @@ import { Plus, Grid3x3, List, Search, Star } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { MobileVendorListPage } from '@/components/vendors/MobileVendorListPage'
 import {
   Select,
   SelectContent,
@@ -17,6 +19,7 @@ import { useLaundryVendors } from '@/hooks/useLaundryVendors'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export function VendorListPage() {
+  const isMobile = useIsMobile()
   const navigate = useNavigate()
   const [view, setView] = useState<'grid' | 'list'>('grid')
   const [filters, setFilters] = useState({
@@ -26,6 +29,10 @@ export function VendorListPage() {
   })
   
   const { data: vendors, isLoading } = useLaundryVendors({ status: filters.status === 'all' ? undefined : filters.status })
+
+  if (isMobile) {
+    return <MobileVendorListPage />
+  }
   
   const filteredVendors = vendors?.filter(v => {
     const searchMatch = !filters.search || 

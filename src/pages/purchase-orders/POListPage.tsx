@@ -10,8 +10,11 @@ import { Plus, FileDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { MobilePOListPage } from '@/components/purchase-orders/MobilePOListPage';
 
 const POListPage: React.FC = () => {
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState<string>('all');
   const [filters, setFilters] = useState<POFiltersType>({
@@ -20,6 +23,10 @@ const POListPage: React.FC = () => {
     sort_order: 'desc'
   });
   const [selectedPOs, setSelectedPOs] = useState<string[]>([]);
+
+  if (isMobile) {
+    return <MobilePOListPage />;
+  }
 
   const { data: stats } = usePOStats();
   const { data: purchaseOrders, isLoading } = usePurchaseOrders(filters);
