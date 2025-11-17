@@ -24,10 +24,6 @@ import { useIsMobile } from '@/hooks/use-mobile'
 
 export default function HotelsManagementPage() {
   const isMobile = useIsMobile()
-
-  if (isMobile) {
-    return <MobileHotelManagementPage />
-  }
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
   const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false)
@@ -44,6 +40,10 @@ export default function HotelsManagementPage() {
 
   const { data: hotels, isLoading } = useHotels(filters)
   const deleteHotel = useDeleteHotel()
+
+  if (isMobile) {
+    return <MobileHotelManagementPage />
+  }
 
   const cities = [...new Set(hotels?.map(h => h.city).filter(Boolean))] as string[]
   const managers = [...new Set(hotels?.map(h => 
