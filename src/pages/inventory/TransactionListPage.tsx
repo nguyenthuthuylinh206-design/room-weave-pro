@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Download, Search, Eye, Package, TrendingUp, TrendingDown } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -36,6 +36,9 @@ import { StatScrollContainer, MobileStatCard } from '@/components/mobile/MobileD
 import { MobileFilterSheet } from '@/components/inventory/MobileFilterSheet'
 import { SwipeableCard } from '@/components/mobile/SwipeableCard'
 import { MobileTransactionCard } from '@/components/inventory/MobileTransactionCard'
+import { TransactionListSkeleton } from '@/components/inventory/TransactionCardSkeleton'
+import { EmptyTransactions } from '@/components/inventory/EmptyTransactions'
+import { useInView } from 'react-intersection-observer'
 
 export function TransactionListPage() {
   const navigate = useNavigate()
@@ -53,10 +56,23 @@ export function TransactionListPage() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
   
-  const { data, isLoading } = useInventoryTransactions(filters, page, pageSize)
+  const { data, isLoading, isFetching } = useInventoryTransactions(filters, page, pageSize)
   
   const transactions = data?.transactions || []
   const totalPages = data?.totalPages || 0
+  const hasNextPage = page < totalPages
+  
+  // Infinite scroll
+  const { ref: loadMoreRef, inView } = useInView({
+    threshold: 0,
+    rootMargin: '100px',
+  })
+
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetching && isMobile) {
+      setPage(prev => prev + 1)
+    }
+  }, [inView, hasNextPage, isFetching, isMobile])
   
   const summary = transactions.reduce(
     (acc, t) => {
@@ -135,56 +151,47 @@ export function TransactionListPage() {
             {/* Transaction Cards */}
             <div className="px-4 space-y-2">
               {isLoading ? (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">Đang tải...</p>
-                </div>
+                <TransactionListSkeleton count={5} />
               ) : transactions.length === 0 ? (
-                <div className="text-center py-12">
-                  <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Không có giao dịch nào</p>
-                </div>
+                <EmptyTransactions />
               ) : (
-                transactions.map((transaction) => (
-                  <SwipeableCard
-                    key={transaction.id}
-                    onSwipeLeft={() => setSelectedTransaction(transaction.id)}
-                    onSwipeRight={() => transaction.transaction_category && handleFilterByCategory(transaction.transaction_category)}
-                  >
-                    <MobileTransactionCard
-                      transaction={{
-                        id: transaction.id,
-                        transaction_code: transaction.transaction_code,
-                        transaction_type: transaction.transaction_type as 'in' | 'out' | 'adjustment',
-                        transaction_category: transaction.transaction_category,
-                        item_name: transaction.item_name,
-                        item_code: transaction.item_code,
-                        quantity: transaction.quantity,
-                        unit_price: transaction.unit_price,
-                        total_value: transaction.total_value,
-                        transaction_date: transaction.transaction_date,
-                        created_by_name: transaction.created_by_name,
-                        from_location: transaction.from_location,
-                        to_location: transaction.to_location,
-                      }}
-                      onClick={() => setSelectedTransaction(transaction.id)}
-                    />
-                  </SwipeableCard>
-                ))
+                <>
+                  {transactions.map((transaction) => (
+                    <SwipeableCard
+                      key={transaction.id}
+                      onSwipeLeft={() => setSelectedTransaction(transaction.id)}
+                      onSwipeRight={() => transaction.transaction_category && handleFilterByCategory(transaction.transaction_category)}
+                    >
+                      <MobileTransactionCard
+                        transaction={{
+                          id: transaction.id,
+                          transaction_code: transaction.transaction_code,
+                          transaction_type: transaction.transaction_type as 'in' | 'out' | 'adjustment',
+                          transaction_category: transaction.transaction_category,
+                          item_name: transaction.item_name,
+                          item_code: transaction.item_code,
+                          quantity: transaction.quantity,
+                          unit_price: transaction.unit_price,
+                          total_value: transaction.total_value,
+                          transaction_date: transaction.transaction_date,
+                          created_by_name: transaction.created_by_name,
+                          from_location: transaction.from_location,
+                          to_location: transaction.to_location,
+                        }}
+                        onClick={() => setSelectedTransaction(transaction.id)}
+                      />
+                    </SwipeableCard>
+                  ))}
+                  
+                  {/* Infinite scroll trigger */}
+                  {hasNextPage && (
+                    <div ref={loadMoreRef} className="py-4">
+                      {isFetching && <TransactionListSkeleton count={2} />}
+                    </div>
+                  )}
+                </>
               )}
             </div>
-
-            {/* Load More */}
-            {transactions.length > 0 && page < totalPages && (
-              <div className="px-4 pb-4">
-                <Button
-                  variant="outline"
-                  className="w-full h-12"
-                  onClick={() => setPage(page + 1)}
-                >
-                  Tải thêm
-                </Button>
-              </div>
-            )}
           </div>
         </PullToRefresh>
 

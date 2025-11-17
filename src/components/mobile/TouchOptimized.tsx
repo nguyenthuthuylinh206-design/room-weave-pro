@@ -1,6 +1,7 @@
 import React from 'react'
 import { Button, ButtonProps } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { triggerHaptic } from '@/lib/haptics'
 
 // Minimum touch target size: 48x48px (WCAG 2.1 AA)
 export const TOUCH_TARGET_SIZE = 48
@@ -10,7 +11,14 @@ interface TouchButtonProps extends ButtonProps {
 }
 
 export const TouchButton = React.forwardRef<HTMLButtonElement, TouchButtonProps>(
-  ({ className, touchOptimized = true, size, ...props }, ref) => {
+  ({ className, touchOptimized = true, size, onClick, ...props }, ref) => {
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (touchOptimized) {
+        triggerHaptic('light')
+      }
+      onClick?.(e)
+    }
+
     return (
       <Button
         ref={ref}
@@ -23,6 +31,7 @@ export const TouchButton = React.forwardRef<HTMLButtonElement, TouchButtonProps>
           ],
           className
         )}
+        onClick={handleClick}
         {...props}
       />
     )
