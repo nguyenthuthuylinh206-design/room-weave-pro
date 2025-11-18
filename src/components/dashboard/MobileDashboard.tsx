@@ -18,7 +18,7 @@ import {
   DoorClosed,
   Users
 } from 'lucide-react'
-import { Card } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -41,7 +41,7 @@ import {
   TouchButton
 } from '@/components/mobile'
 import { toast } from 'sonner'
-import { MobileHotelSwitcher } from '@/components/mobile/MobileHotelSwitcher'
+import { MobileHotelSwitcher, MobileAlertsBanner } from '@/components/mobile'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { supabase } from '@/integrations/supabase/client'
 
@@ -201,22 +201,30 @@ export function MobileDashboard() {
     )
   }
 
-  // Alerts and pending tasks
+  // Prepare alerts for MobileAlertsBanner
   const alerts = []
+  
   if (stats && stats.low_stock_count > 0) {
     alerts.push({
-      type: 'warning' as const,
-      title: 'Tài sản sắp hết',
-      message: `${stats.low_stock_count} mặt hàng cần bổ sung`,
-      action: () => navigate('/inventory?filter=low_stock')
+      id: 'low-stock',
+      type: 'low_stock' as const,
+      title: 'Hàng tồn kho thấp',
+      description: `${stats.low_stock_count} mặt hàng cần nhập thêm`,
+      count: stats.low_stock_count,
+      path: '/inventory?filter=low_stock',
+      priority: 'high' as const
     })
   }
+  
   if (maintenanceStats && maintenanceStats.pending > 0) {
     alerts.push({
-      type: 'error' as const,
-      title: 'Yêu cầu bảo trì',
-      message: `${maintenanceStats.pending} yêu cầu đang chờ`,
-      action: () => navigate('/maintenance?status=pending')
+      id: 'pending-maintenance',
+      type: 'pending_maintenance' as const,
+      title: 'Yêu cầu bảo trì chờ xử lý',
+      description: `${maintenanceStats.pending} yêu cầu cần được xử lý`,
+      count: maintenanceStats.pending,
+      path: '/maintenance?status=pending',
+      priority: 'high' as const
     })
   }
 
@@ -241,8 +249,8 @@ export function MobileDashboard() {
           <StatScrollContainer>
             <MobileStatCard
               icon={Package}
-              title="Total Value"
-              value={`${new Intl.NumberFormat('en-US', { 
+              title="Tổng giá trị"
+              value={`${new Intl.NumberFormat('vi-VN', { 
                 notation: 'compact', 
                 compactDisplay: 'short' 
               }).format(stats?.total_value || 0)}`}
@@ -251,32 +259,109 @@ export function MobileDashboard() {
             />
             <MobileStatCard
               icon={Package}
-              title="Total Items"
+              title="Tổng tài sản"
               value={stats?.total_items || 0}
               onClick={() => navigate('/items')}
             />
             <MobileStatCard
+              icon={DoorOpen}
+              title="Tổng phòng"
+              value={roomStats?.total || 0}
+              onClick={() => navigate('/rooms')}
+            />
+            <MobileStatCard
+              icon={DoorClosed}
+              title="Phòng đang dùng"
+              value={roomStats?.occupied || 0}
+              variant={roomStats && roomStats.occupied > 0 ? "default" : "default"}
+              onClick={() => navigate('/rooms?status=occupied')}
+            />
+            <MobileStatCard
               icon={Wind}
-              title="In Laundry"
+              title="Đang giặt"
               value={stats?.in_laundry || 0}
               onClick={() => navigate('/laundry')}
             />
             <MobileStatCard
+              icon={Shirt}
+              title="Lô giặt đang xử lý"
+              value={laundryStats || 0}
+              onClick={() => navigate('/laundry?status=in_progress')}
+            />
+            <MobileStatCard
+              icon={Wrench}
+              title="Yêu cầu bảo trì"
+              value={maintenanceStats?.pending || 0}
+              variant={maintenanceStats && maintenanceStats.pending > 0 ? "warning" : "default"}
+              onClick={() => navigate('/maintenance?status=pending')}
+            />
+            <MobileStatCard
               icon={AlertTriangle}
-              title="Low Stock"
+              title="Hàng sắp hết"
               value={stats?.low_stock_count || 0}
               variant="warning"
-              onClick={() => navigate('/inventory')}
+              onClick={() => navigate('/inventory?filter=low_stock')}
             />
           </StatScrollContainer>
         </div>
+
+        {/* Alerts Section */}
+        {alerts.length > 0 && (
+          <div className="px-4">
+            <MobileAlertsBanner alerts={alerts} />
+          </div>
+        )}
+
+        {/* Room Status Section */}
+        {roomStats && (
+          <div className="px-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <DoorOpen className="h-4 w-4" />
+                  Tình trạng phòng
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center justify-between p-2 rounded-lg bg-green-50 dark:bg-green-950">
+                  <span className="text-sm font-medium">Còn trống</span>
+                  <Badge variant="outline" className="bg-white dark:bg-background">
+                    {roomStats.available}/{roomStats.total}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
+                  <span className="text-sm font-medium">Đang sử dụng</span>
+                  <Badge variant="outline" className="bg-white dark:bg-background">
+                    {roomStats.occupied}/{roomStats.total}
+                  </Badge>
+                </div>
+                {roomStats.maintenance > 0 && (
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-orange-50 dark:bg-orange-950">
+                    <span className="text-sm font-medium">Đang bảo trì</span>
+                    <Badge variant="outline" className="bg-white dark:bg-background">
+                      {roomStats.maintenance}
+                    </Badge>
+                  </div>
+                )}
+                <Button
+                  variant="outline"
+                  className="w-full mt-2"
+                  onClick={() => navigate('/rooms')}
+                >
+                  Xem chi tiết phòng
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Quick Actions Grid */}
         <div className="px-4">
           <Card className="p-4">
             <h3 className="font-semibold mb-3 flex items-center gap-2">
               <Activity className="h-4 w-4" />
-              Quick Actions
+              Thao tác nhanh
             </h3>
             <div className="grid grid-cols-3 gap-3">
               {quickActions.map((action) => (
@@ -298,26 +383,6 @@ export function MobileDashboard() {
           </Card>
         </div>
 
-        {/* Alerts */}
-        {stats?.low_stock_count && stats.low_stock_count > 0 && (
-          <div className="px-4">
-            <Alert className="border-orange-200 bg-orange-50 dark:bg-orange-950">
-              <AlertTriangle className="h-4 w-4 text-orange-600" />
-              <AlertDescription>
-                <span className="font-medium">{stats.low_stock_count} items</span> are running low on stock and need to be replenished.
-                <TouchButton 
-                  variant="link" 
-                  size="sm" 
-                  className="ml-2 h-auto p-0"
-                  onClick={() => navigate('/inventory')}
-                >
-                  View Details →
-                </TouchButton>
-              </AlertDescription>
-            </Alert>
-          </div>
-        )}
-
         {/* Recent Activity - Swipeable Cards */}
         <div className="px-4">
           <Accordion type="single" collapsible defaultValue="activity">
@@ -326,7 +391,7 @@ export function MobileDashboard() {
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
                   <div className="flex items-center gap-2">
                     <Activity className="h-4 w-4 text-primary" />
-                    <span className="font-semibold">Recent Activity</span>
+                    <span className="font-semibold">Hoạt động gần đây</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
@@ -357,7 +422,7 @@ export function MobileDashboard() {
                       ))
                     ) : (
                       <p className="text-sm text-muted-foreground text-center py-4">
-                        No recent activity
+                        Chưa có hoạt động nào
                       </p>
                     )}
                   </div>
@@ -368,7 +433,7 @@ export function MobileDashboard() {
                       className="w-full mt-3"
                       onClick={() => navigate('/more')}
                     >
-                      View All Activity
+                      Xem tất cả hoạt động
                       <ChevronRight className="h-4 w-4 ml-1" />
                     </TouchButton>
                   )}

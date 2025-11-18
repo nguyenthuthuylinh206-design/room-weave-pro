@@ -22,6 +22,7 @@ import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/hooks/useAuth'
 import { useUser } from '@/hooks/useUser'
 import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
+import { MobileModuleCard } from '@/components/mobile'
 
 interface ModuleItem {
   icon: typeof Package
@@ -91,25 +92,16 @@ export function MorePage() {
             CHỨC NĂNG
           </h2>
           <div className="grid grid-cols-3 gap-3">
-            {modules.filter(m => hasModuleAccess(m.module)).map((module) => {
-              const Icon = module.icon
-              return (
-                <Card 
-                  key={module.path}
-                  className="cursor-pointer hover:bg-accent transition-colors"
-                  onClick={() => navigate(module.path)}
-                >
-                  <CardContent className="p-4 flex flex-col items-center gap-2">
-                    <div className={`p-3 rounded-lg bg-muted ${module.color}`}>
-                      <Icon className="h-6 w-6" />
-                    </div>
-                    <span className="text-xs font-medium text-center">
-                      {module.label}
-                    </span>
-                  </CardContent>
-                </Card>
-              )
-            })}
+            {modules.filter(m => hasModuleAccess(m.module)).map((module) => (
+              <MobileModuleCard
+                key={module.path}
+                icon={module.icon}
+                label={module.label}
+                path={module.path}
+                color={module.color}
+                onClick={() => navigate(module.path)}
+              />
+            ))}
           </div>
         </section>
 

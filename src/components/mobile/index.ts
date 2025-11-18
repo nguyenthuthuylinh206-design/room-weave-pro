@@ -23,6 +23,9 @@ export { MobileCategoriesPage } from '../items/MobileCategoriesPage'
 export { MobileCategoryCard } from '../items/MobileCategoryCard'
 export { CategoryFormSheet } from '../items/CategoryFormSheet'
 export { MobileHotelSwitcher } from './MobileHotelSwitcher'
+export { MobileModuleCard } from './MobileModuleCard'
+export { MobileAlertsBanner } from './MobileAlertsBanner'
+export { MobileQuickStats } from './MobileQuickStats'
 
 // Export all mobile pages
 export * from './mobile-pages'
