@@ -8,11 +8,19 @@ import { Progress } from '@/components/ui/progress'
 import { CreateBatchStep1 } from '@/components/laundry/CreateBatchStep1'
 import { CreateBatchStep2 } from '@/components/laundry/CreateBatchStep2'
 import { CreateBatchStep3 } from '@/components/laundry/CreateBatchStep3'
+import { MobileBatchForm } from '@/components/laundry/MobileBatchForm'
 import { useCreateLaundryBatch } from '@/hooks/useLaundryBatches'
+import { useBreakpoint } from '@/lib/breakpoints'
 import type { CreateBatchStep1Data, CreateBatchStep2Data, CreateBatchStep3Data } from '@/types/laundry.types'
 
 export function CreateBatchPage() {
   const navigate = useNavigate()
+  const { isMobile } = useBreakpoint()
+  
+  // Mobile view
+  if (isMobile) {
+    return <MobileBatchForm />
+  }
   const [step, setStep] = useState(1)
   const [step1Data, setStep1Data] = useState<CreateBatchStep1Data | null>(null)
   const [step2Data, setStep2Data] = useState<CreateBatchStep2Data | null>(null)
