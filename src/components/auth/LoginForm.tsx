@@ -1,154 +1,98 @@
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-import { useAuth } from '@/hooks/useAuth'
-import { loginSchema, LoginFormData } from '@/lib/validations/auth.schemas'
-import { GoogleAuthButton } from './GoogleAuthButton'
-
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useAuth } from '@/hooks/useAuth';
+import { loginSchema, LoginFormData } from '@/lib/validations/auth.schemas';
+import { GoogleAuthButton } from './GoogleAuthButton';
 export const LoginForm = () => {
-  const [showPassword, setShowPassword] = useState(false)
-  const { signIn } = useAuth()
-  const navigate = useNavigate()
-
+  const [showPassword, setShowPassword] = useState(false);
+  const {
+    signIn
+  } = useAuth();
+  const navigate = useNavigate();
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
       password: '',
-      rememberMe: false,
-    },
-  })
-
-  const onSubmit = async (data: LoginFormData) => {
-    const { error } = await signIn(data.email, data.password)
-    if (!error) {
-      navigate('/')
+      rememberMe: false
     }
-  }
-
-  return (
-    <div className="w-full space-y-6">
+  });
+  const onSubmit = async (data: LoginFormData) => {
+    const {
+      error
+    } = await signIn(data.email, data.password);
+    if (!error) {
+      navigate('/');
+    }
+  };
+  return <div className="w-full space-y-6">
       <div className="text-center">
-        <h1 className="text-3xl font-bold">Đăng nhập</h1>
-        <p className="mt-2 text-muted-foreground">
-          Chào mừng trở lại! Vui lòng đăng nhập để tiếp tục.
-        </p>
+        
+        
       </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* Email */}
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
+          <FormField control={form.control} name="email" render={({
+          field
+        }) => <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      {...field}
-                      type="email"
-                      placeholder="email@example.com"
-                      className="pl-10"
-                      autoComplete="email"
-                    />
+                    <Input {...field} type="email" placeholder="email@example.com" className="pl-10" autoComplete="email" />
                   </div>
                 </FormControl>
                 <FormMessage />
-              </FormItem>
-            )}
-          />
+              </FormItem>} />
 
           {/* Password */}
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
+          <FormField control={form.control} name="password" render={({
+          field
+        }) => <FormItem>
                 <FormLabel>Mật khẩu</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      {...field}
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="••••••••"
-                      className="pl-10 pr-10"
-                      autoComplete="current-password"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      )}
+                    <Input {...field} type={showPassword ? 'text' : 'password'} placeholder="••••••••" className="pl-10 pr-10" autoComplete="current-password" />
+                    <Button type="button" variant="ghost" size="sm" className="absolute right-0 top-0 h-full px-3 hover:bg-transparent" onClick={() => setShowPassword(!showPassword)}>
+                      {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                     </Button>
                   </div>
                 </FormControl>
                 <FormMessage />
-              </FormItem>
-            )}
-          />
+              </FormItem>} />
 
           {/* Remember Me & Forgot Password */}
           <div className="flex items-center justify-between">
-            <FormField
-              control={form.control}
-              name="rememberMe"
-              render={({ field }) => (
-                <FormItem className="flex items-center space-x-2 space-y-0">
+            <FormField control={form.control} name="rememberMe" render={({
+            field
+          }) => <FormItem className="flex items-center space-x-2 space-y-0">
                   <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
+                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
                   <Label className="text-sm font-normal cursor-pointer">
                     Ghi nhớ đăng nhập
                   </Label>
-                </FormItem>
-              )}
-            />
+                </FormItem>} />
 
-            <Link
-              to="/auth/forgot-password"
-              className="text-sm text-primary hover:underline"
-            >
+            <Link to="/auth/forgot-password" className="text-sm text-primary hover:underline">
               Quên mật khẩu?
             </Link>
           </div>
 
           {/* Submit Button */}
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={form.formState.isSubmitting}
-          >
-            {form.formState.isSubmitting && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
+          <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {form.formState.isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </Button>
         </form>
@@ -176,6 +120,5 @@ export const LoginForm = () => {
           Đăng ký ngay
         </Link>
       </p>
-    </div>
-  )
-}
+    </div>;
+};
