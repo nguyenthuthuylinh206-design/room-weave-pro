@@ -41,6 +41,7 @@ export function useBulkDeleteRooms() {
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
       queryClient.invalidateQueries({ queryKey: ['room-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['floor-plan'] })
       toast({
         title: 'Xóa thành công',
         description: `Đã xóa ${count} phòng`,
@@ -72,6 +73,7 @@ export function useBulkUpdateRoomStatus() {
     onSuccess: ({ count, status }) => {
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
       queryClient.invalidateQueries({ queryKey: ['room-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['floor-plan'] })
       const statusLabels: Record<RoomStatus, string> = {
         vacant: 'Trống',
         occupied: 'Có khách',

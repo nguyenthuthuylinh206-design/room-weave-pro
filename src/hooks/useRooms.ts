@@ -207,6 +207,7 @@ export function useCreateRoom() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
+      queryClient.invalidateQueries({ queryKey: ['floor-plan'] })
       toast.success('Đã thêm phòng mới')
     },
     onError: (error: Error) => {
@@ -233,6 +234,7 @@ export function useUpdateRoom() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
       queryClient.invalidateQueries({ queryKey: ['room', variables.id] })
+      queryClient.invalidateQueries({ queryKey: ['floor-plan'] })
       toast.success('Đã cập nhật phòng')
     },
     onError: (error: Error) => {
@@ -275,6 +277,7 @@ export function useDeleteRoom() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
+      queryClient.invalidateQueries({ queryKey: ['floor-plan'] })
       toast.success('Đã xóa phòng')
     },
     onError: (error: Error) => {
