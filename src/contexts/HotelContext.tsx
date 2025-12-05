@@ -148,6 +148,7 @@ export function HotelProvider({ children }: { children: ReactNode }) {
     // Invalidate ALL queries to refresh data with new hotel context
     queryClient.invalidateQueries({ queryKey: ['items'] })
     queryClient.invalidateQueries({ queryKey: ['rooms'] })
+    queryClient.invalidateQueries({ queryKey: ['floor-plan'] })
     queryClient.invalidateQueries({ queryKey: ['laundry-batches'] })
     queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] })
     queryClient.invalidateQueries({ queryKey: ['vendors'] })
@@ -167,6 +168,7 @@ export function HotelProvider({ children }: { children: ReactNode }) {
     // Invalidate ALL queries to refresh data
     queryClient.invalidateQueries({ queryKey: ['items'] })
     queryClient.invalidateQueries({ queryKey: ['rooms'] })
+    queryClient.invalidateQueries({ queryKey: ['floor-plan'] })
     queryClient.invalidateQueries({ queryKey: ['laundry-batches'] })
     queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] })
     queryClient.invalidateQueries({ queryKey: ['vendors'] })

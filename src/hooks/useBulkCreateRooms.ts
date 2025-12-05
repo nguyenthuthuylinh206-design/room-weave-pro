@@ -115,6 +115,7 @@ export function useBulkCreateRooms() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
       queryClient.invalidateQueries({ queryKey: ['room-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['floor-plan'] })
       
       if (result.failed === 0) {
         toast.success(`Đã import thành công ${result.success} phòng`)
