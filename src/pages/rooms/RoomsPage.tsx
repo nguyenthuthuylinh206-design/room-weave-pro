@@ -9,6 +9,7 @@ import { RoomGrid } from '@/components/rooms/RoomGrid'
 import { RoomTable } from '@/components/rooms/RoomTable'
 import { RoomFloorPlan } from '@/components/rooms/RoomFloorPlan'
 import { BulkImportRoomsDialog } from '@/components/rooms/BulkImportRoomsDialog'
+import { RoomBulkActionsBar } from '@/components/rooms/RoomBulkActionsBar'
 import { useRooms } from '@/hooks/useRooms'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -23,6 +24,7 @@ export function RoomsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [filters, setFilters] = useState<IRoomFilters>({})
   const [showBulkImport, setShowBulkImport] = useState(false)
+  const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>([])
   
   const { data: rooms, isLoading } = useRooms(filters)
   const { selectedHotel } = useHotelContext()
@@ -78,8 +80,28 @@ export function RoomsPage() {
         </Tabs>
       </div>
       
-      {viewMode === 'grid' && <RoomGrid rooms={rooms || []} isLoading={isLoading} />}
-      {viewMode === 'list' && <RoomTable rooms={rooms || []} isLoading={isLoading} />}
+      {/* Bulk Actions Bar */}
+      <RoomBulkActionsBar
+        selectedIds={selectedRoomIds}
+        onClearSelection={() => setSelectedRoomIds([])}
+      />
+
+      {viewMode === 'grid' && (
+        <RoomGrid
+          rooms={rooms || []}
+          isLoading={isLoading}
+          selectedIds={selectedRoomIds}
+          onSelectionChange={setSelectedRoomIds}
+        />
+      )}
+      {viewMode === 'list' && (
+        <RoomTable
+          rooms={rooms || []}
+          isLoading={isLoading}
+          selectedIds={selectedRoomIds}
+          onSelectionChange={setSelectedRoomIds}
+        />
+      )}
       {viewMode === 'floor' && <RoomFloorPlan />}
 
       {/* Bulk Import Dialog */}

@@ -39,10 +39,31 @@ import type { RoomWithStats } from '@/types/rooms.types'
 interface RoomTableProps {
   rooms: RoomWithStats[]
   isLoading: boolean
+  selectedIds: string[]
+  onSelectionChange: (ids: string[]) => void
 }
 
-export function RoomTable({ rooms, isLoading }: RoomTableProps) {
+export function RoomTable({ rooms, isLoading, selectedIds, onSelectionChange }: RoomTableProps) {
   const navigate = useNavigate()
+
+  const isAllSelected = rooms.length > 0 && selectedIds.length === rooms.length
+  const isSomeSelected = selectedIds.length > 0 && selectedIds.length < rooms.length
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      onSelectionChange(rooms.map((r) => r.id))
+    } else {
+      onSelectionChange([])
+    }
+  }
+
+  const handleSelectRoom = (roomId: string, checked: boolean) => {
+    if (checked) {
+      onSelectionChange([...selectedIds, roomId])
+    } else {
+      onSelectionChange(selectedIds.filter((id) => id !== roomId))
+    }
+  }
   
   if (isLoading) {
     return (
@@ -60,7 +81,13 @@ export function RoomTable({ rooms, isLoading }: RoomTableProps) {
         <TableHeader>
           <TableRow>
             <TableHead className="w-12">
-              <Checkbox />
+              <Checkbox
+                checked={isAllSelected}
+                ref={(el) => {
+                  if (el) (el as any).indeterminate = isSomeSelected
+                }}
+                onCheckedChange={handleSelectAll}
+              />
             </TableHead>
             <TableHead>Số phòng</TableHead>
             <TableHead>Tầng</TableHead>
@@ -77,11 +104,16 @@ export function RoomTable({ rooms, isLoading }: RoomTableProps) {
           {rooms.map((room) => (
             <TableRow
               key={room.id}
-              className="cursor-pointer hover:bg-muted/50"
+              className={`cursor-pointer hover:bg-muted/50 ${
+                selectedIds.includes(room.id) ? 'bg-primary/5' : ''
+              }`}
               onClick={() => navigate(`/rooms/${room.id}`)}
             >
               <TableCell onClick={(e) => e.stopPropagation()}>
-                <Checkbox />
+                <Checkbox
+                  checked={selectedIds.includes(room.id)}
+                  onCheckedChange={(checked) => handleSelectRoom(room.id, !!checked)}
+                />
               </TableCell>
               <TableCell className="font-medium">{room.room_number}</TableCell>
               <TableCell>Tầng {room.floor}</TableCell>
