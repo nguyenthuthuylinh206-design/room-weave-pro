@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import { RoomStatusSelector } from './RoomStatusSelector'
 import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
@@ -20,12 +21,22 @@ import type { RoomWithStats, RoomStatus } from '@/types/rooms.types'
 interface RoomGridProps {
   rooms: RoomWithStats[]
   isLoading: boolean
+  selectedIds: string[]
+  onSelectionChange: (ids: string[]) => void
 }
 
-export function RoomGrid({ rooms, isLoading }: RoomGridProps) {
+export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: RoomGridProps) {
   const navigate = useNavigate()
   const checkSessions = useAllRoomCheckSessions()
   const { user } = useUser()
+
+  const handleSelectRoom = (roomId: string, checked: boolean) => {
+    if (checked) {
+      onSelectionChange([...selectedIds, roomId])
+    } else {
+      onSelectionChange(selectedIds.filter((id) => id !== roomId))
+    }
+  }
   
   const getCheckTypeLabel = (type: string) => {
     const labels = {
@@ -72,28 +83,41 @@ export function RoomGrid({ rooms, isLoading }: RoomGridProps) {
   
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {rooms.map((room) => (
-        <Card
-          key={room.id}
-          className="cursor-pointer transition-all hover:shadow-lg"
-          onClick={() => navigate(`/rooms/${room.id}`)}
-        >
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-2xl font-bold">{room.room_number}</h3>
-                <p className="text-sm text-muted-foreground capitalize">
-                  {room.room_type}
-                </p>
+      {rooms.map((room) => {
+        const isSelected = selectedIds.includes(room.id)
+        return (
+          <Card
+            key={room.id}
+            className={`cursor-pointer transition-all hover:shadow-lg ${
+              isSelected ? 'ring-2 ring-primary bg-primary/5' : ''
+            }`}
+            onClick={() => navigate(`/rooms/${room.id}`)}
+          >
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={(checked) => handleSelectRoom(room.id, !!checked)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold">{room.room_number}</h3>
+                    <p className="text-sm text-muted-foreground capitalize">
+                      {room.room_type}
+                    </p>
+                  </div>
+                </div>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <RoomStatusSelector 
+                    roomId={room.id}
+                    currentStatus={room.status as RoomStatus}
+                  />
+                </div>
               </div>
-              <div onClick={(e) => e.stopPropagation()}>
-                <RoomStatusSelector 
-                  roomId={room.id}
-                  currentStatus={room.status as RoomStatus}
-                />
-              </div>
-            </div>
-          </CardHeader>
+            </CardHeader>
           
           <CardContent className="space-y-3">
             <div className="grid grid-cols-3 gap-2 text-xs">
@@ -175,7 +199,8 @@ export function RoomGrid({ rooms, isLoading }: RoomGridProps) {
             </Button>
           </CardFooter>
         </Card>
-      ))}
+        )
+      })}
     </div>
   )
 }
