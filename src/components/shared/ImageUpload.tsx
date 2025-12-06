@@ -80,6 +80,43 @@ export function ImageUpload({
             </div>)}
         </div>}
       
-      {images.length < maxImages}
+      {images.length < maxImages && (
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={cn(
+            'relative flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition-colors',
+            isDragging
+              ? 'border-primary bg-primary/5'
+              : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50'
+          )}
+        >
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleFileInput}
+            className="absolute inset-0 cursor-pointer opacity-0"
+            disabled={isUploading}
+          />
+          {isUploading ? (
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="text-sm text-muted-foreground">Đang tải lên...</span>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <Upload className="h-8 w-8 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
+                Kéo thả hoặc nhấp để chọn ảnh
+              </span>
+              <span className="text-xs text-muted-foreground">
+                ({images.length}/{maxImages} ảnh)
+              </span>
+            </div>
+          )}
+        </div>
+      )}
     </div>;
 }
