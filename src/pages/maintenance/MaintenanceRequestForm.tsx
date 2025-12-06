@@ -53,10 +53,6 @@ export default function MaintenanceRequestForm() {
 
   const [photos, setPhotos] = useState<string[]>([])
 
-  if (isMobile) {
-    return <MobileMaintenanceRequestForm />
-  }
-
   const form = useForm<RequestFormData>({
     resolver: zodResolver(requestSchema),
     defaultValues: {
@@ -68,6 +64,10 @@ export default function MaintenanceRequestForm() {
       photos: [],
     },
   })
+
+  if (isMobile) {
+    return <MobileMaintenanceRequestForm />
+  }
 
   useEffect(() => {
     if (isEditMode && existingRequest) {
