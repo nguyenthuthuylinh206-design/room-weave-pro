@@ -20,7 +20,8 @@ import { useItems } from '@/hooks/useItems'
 import { MobileMaintenanceRequestForm } from '@/components/maintenance/MobileMaintenanceRequestForm'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { ImageUpload } from '@/components/shared/ImageUpload'
 import { useBreakpoint } from '@/lib/breakpoints'
 
 const requestSchema = z.object({
@@ -33,6 +34,7 @@ const requestSchema = z.object({
   item_id: z.string().optional(),
   expected_completion_date: z.string().optional(),
   estimated_cost: z.number().optional(),
+  photos: z.array(z.string()).optional(),
 })
 
 type RequestFormData = z.infer<typeof requestSchema>
@@ -49,6 +51,8 @@ export default function MaintenanceRequestForm() {
   const { data: rooms } = useRooms({})
   const { data: items } = useItems({})
 
+  const [photos, setPhotos] = useState<string[]>([])
+
   if (isMobile) {
     return <MobileMaintenanceRequestForm />
   }
@@ -61,10 +65,10 @@ export default function MaintenanceRequestForm() {
       title: '',
       description: '',
       location: '',
+      photos: [],
     },
   })
 
-  // Populate form when editing
   useEffect(() => {
     if (isEditMode && existingRequest) {
       form.reset({
@@ -77,15 +81,18 @@ export default function MaintenanceRequestForm() {
         item_id: existingRequest.item_id || undefined,
         expected_completion_date: existingRequest.expected_completion_date || undefined,
         estimated_cost: existingRequest.estimated_cost || undefined,
+        photos: existingRequest.photos || [],
       })
+      setPhotos(existingRequest.photos || [])
     }
   }, [isEditMode, existingRequest, form])
 
   const onSubmit = async (data: RequestFormData) => {
+    const submitData = { ...data, photos }
     if (isEditMode && id) {
-      await updateRequest.mutateAsync({ id, data })
+      await updateRequest.mutateAsync({ id, data: submitData })
     } else {
-      await createRequest.mutateAsync(data)
+      await createRequest.mutateAsync(submitData)
     }
     navigate('/maintenance/requests')
   }
@@ -323,6 +330,19 @@ export default function MaintenanceRequestForm() {
                   </FormItem>
                 )}
               />
+
+              <div className="space-y-2">
+                <Label>Hình ảnh minh họa</Label>
+                <ImageUpload
+                  images={photos}
+                  onChange={setPhotos}
+                  maxImages={5}
+                  className="mt-2"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Tải lên tối đa 5 hình ảnh mô tả vấn đề (không bắt buộc)
+                </p>
+              </div>
             </CardContent>
           </Card>
 
