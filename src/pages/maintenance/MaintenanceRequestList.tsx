@@ -16,17 +16,23 @@ export default function MaintenanceRequestList() {
   const [tab, setTab] = useState('all')
   const [filters, setFilters] = useState({})
   
-  const statusFilter = tab !== 'all' ? { ...filters, status: tab } : filters
-  const { data: requests, isLoading } = useMaintenanceRequests(statusFilter)
-
+  // Fetch all requests for counting (without status filter)
+  const { data: allRequests } = useMaintenanceRequests(filters)
+  
+  // Calculate counts from all requests (fixed values)
   const counts = {
-    all: requests?.length || 0,
-    waiting: requests?.filter((r: any) => r.status === 'waiting').length || 0,
-    pending: requests?.filter((r: any) => r.status === 'pending').length || 0,
-    in_progress: requests?.filter((r: any) => r.status === 'in_progress').length || 0,
-    completed: requests?.filter((r: any) => r.status === 'completed').length || 0,
-    cancelled: requests?.filter((r: any) => r.status === 'cancelled').length || 0,
+    all: allRequests?.length || 0,
+    waiting: allRequests?.filter((r: any) => r.status === 'waiting').length || 0,
+    pending: allRequests?.filter((r: any) => r.status === 'pending').length || 0,
+    in_progress: allRequests?.filter((r: any) => r.status === 'in_progress').length || 0,
+    completed: allRequests?.filter((r: any) => r.status === 'completed').length || 0,
+    cancelled: allRequests?.filter((r: any) => r.status === 'cancelled').length || 0,
   }
+
+  // Filter for display based on selected tab
+  const filteredRequests = tab === 'all' 
+    ? allRequests 
+    : allRequests?.filter((r: any) => r.status === tab)
 
   if (isMobile) {
     return <MobileMaintenanceRequestList />
@@ -60,8 +66,8 @@ export default function MaintenanceRequestList() {
 
         <TabsContent value={tab} className="mt-6">
           <MaintenanceRequestTable
-            requests={requests || []}
-            isLoading={isLoading}
+            requests={filteredRequests || []}
+            isLoading={!allRequests}
           />
         </TabsContent>
       </Tabs>
