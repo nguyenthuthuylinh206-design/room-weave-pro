@@ -15,11 +15,7 @@ export default function MaintenanceRequestList() {
   const { isMobile } = useBreakpoint()
   const [tab, setTab] = useState('all')
   const [filters, setFilters] = useState({})
-
-  if (isMobile) {
-    return <MobileMaintenanceRequestList />
-  }
-
+  
   const statusFilter = tab !== 'all' ? { ...filters, status: tab } : filters
   const { data: requests, isLoading } = useMaintenanceRequests(statusFilter)
 
@@ -30,6 +26,10 @@ export default function MaintenanceRequestList() {
     in_progress: requests?.filter((r: any) => r.status === 'in_progress').length || 0,
     completed: requests?.filter((r: any) => r.status === 'completed').length || 0,
     cancelled: requests?.filter((r: any) => r.status === 'cancelled').length || 0,
+  }
+
+  if (isMobile) {
+    return <MobileMaintenanceRequestList />
   }
 
   return (
