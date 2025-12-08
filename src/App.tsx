@@ -311,6 +311,30 @@ const router = createBrowserRouter([
           </RoleGuard>
         ),
       },
+      {
+        path: "reports/operations",
+        element: (
+          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+            <OperationsReportPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "reports/rooms",
+        element: (
+          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+            <RoomsReportPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "reports/maintenance",
+        element: (
+          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+            <MaintenanceReportPage />
+          </RoleGuard>
+        ),
+      },
 
       // Vendor Management - Owner & Manager
       {

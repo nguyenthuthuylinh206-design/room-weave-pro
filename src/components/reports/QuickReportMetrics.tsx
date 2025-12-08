@@ -28,10 +28,11 @@ interface QuickReportMetricsProps {
     }
   }
   period: 'today' | 'week' | 'month'
+  isLoading?: boolean
 }
 
-export function QuickReportMetrics({ data, period }: QuickReportMetricsProps) {
-  if (!data) {
+export function QuickReportMetrics({ data, period, isLoading }: QuickReportMetricsProps) {
+  if (isLoading || !data) {
     return (
       <div className="grid gap-4 md:grid-cols-4">
         {[...Array(4)].map((_, i) => (
