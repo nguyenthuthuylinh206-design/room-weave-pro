@@ -60,12 +60,21 @@ export function FinancialReportPage() {
     return <div>Loading...</div>
   }
   
-  const { summary, monthly_trend, cost_by_category } = reportData
+  // Handle both old and new API response structure
+  const summary = (reportData as any).cost_summary || (reportData as any).summary || {
+    total_cost: 0,
+    purchase_cost: 0,
+    laundry_cost: 0,
+    maintenance_cost: 0
+  }
+  const monthly_trend = reportData.monthly_trend || []
+  const cost_by_category = (reportData as any).cost_by_category || []
   
-  // Calculate percentages
-  const purchasePercent = (summary.purchase_cost / summary.total_cost) * 100
-  const laundryPercent = (summary.laundry_cost / summary.total_cost) * 100
-  const maintenancePercent = (summary.maintenance_cost / summary.total_cost) * 100
+  // Calculate percentages safely
+  const totalCost = summary.total_cost || 0
+  const purchasePercent = totalCost > 0 ? (summary.purchase_cost / totalCost) * 100 : 0
+  const laundryPercent = totalCost > 0 ? (summary.laundry_cost / totalCost) * 100 : 0
+  const maintenancePercent = totalCost > 0 ? (summary.maintenance_cost / totalCost) * 100 : 0
   
   return (
     <div className="space-y-6">
