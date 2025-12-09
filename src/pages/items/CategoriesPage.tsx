@@ -48,11 +48,7 @@ export function CategoriesPage() {
   const updateCategory = useUpdateCategory()
   const deleteCategory = useDeleteCategory()
   
-  // Mobile view
-  if (isMobile) {
-    return <MobileCategoriesPage />
-  }
-
+  // ALL useState hooks MUST be declared BEFORE any conditional returns
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<any>(null)
@@ -68,6 +64,11 @@ export function CategoriesPage() {
     icon: 'package',
     sort_order: 0,
   })
+
+  // Mobile view - AFTER all hooks
+  if (isMobile) {
+    return <MobileCategoriesPage />
+  }
 
   const handleOpenDialog = (category?: any) => {
     if (category) {
