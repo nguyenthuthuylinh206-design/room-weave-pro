@@ -98,7 +98,6 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
     {
       title: 'Quản lý',
       items: [
-        { title: 'Báo cáo', icon: TrendingUp, path: '/reports', module: 'reports' },
         { title: 'Khách sạn', icon: Building2, path: '/hotels', module: 'hotels' },
         { title: 'Nhân viên', icon: Users, path: '/users', module: 'users' },
         { title: 'Nhà cung cấp', icon: Users, path: '/vendors', module: 'vendors' },
