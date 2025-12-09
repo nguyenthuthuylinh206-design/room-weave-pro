@@ -5062,11 +5062,7 @@ export type Database = {
       }
       get_monthly_expenses:
         | {
-            Args: {
-              p_hotel_id?: string
-              p_months?: number
-              p_tenant_id: string
-            }
+            Args: { p_months?: number; p_tenant_id: string }
             Returns: {
               laundry: number
               maintenance: number
@@ -5076,7 +5072,11 @@ export type Database = {
             }[]
           }
         | {
-            Args: { p_months?: number; p_tenant_id: string }
+            Args: {
+              p_hotel_id?: string
+              p_months?: number
+              p_tenant_id: string
+            }
             Returns: {
               laundry: number
               maintenance: number
@@ -5415,6 +5415,16 @@ export type Database = {
         | {
             Args: {
               p_hotel_address: string
+              p_hotel_name: string
+              p_owner_user_id: string
+              p_tenant_id: string
+              p_total_rooms: number
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_hotel_address: string
               p_hotel_email: string
               p_hotel_name: string
               p_hotel_phone: string
@@ -5425,16 +5435,6 @@ export type Database = {
               p_user_id: string
             }
             Returns: Json
-          }
-        | {
-            Args: {
-              p_hotel_address: string
-              p_hotel_name: string
-              p_owner_user_id: string
-              p_tenant_id: string
-              p_total_rooms: number
-            }
-            Returns: string
           }
       update_tenant_usage: { Args: { p_tenant_id: string }; Returns: undefined }
       user_has_hotel_access: {
