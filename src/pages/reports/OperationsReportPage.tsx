@@ -34,7 +34,7 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { useInventoryReport } from '@/hooks/useReports'
 import { useReportExport } from '@/hooks/useReportExport'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileOperationsReportPage } from '@/components/reports/MobileOperationsReportPage'
 import { formatCurrency } from '@/lib/utils'
 import { subDays } from 'date-fns'
@@ -42,7 +42,7 @@ import { subDays } from 'date-fns'
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6']
 
 export function OperationsReportPage() {
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const navigate = useNavigate()
   const chartRefs = useRef<HTMLElement[]>([])
   

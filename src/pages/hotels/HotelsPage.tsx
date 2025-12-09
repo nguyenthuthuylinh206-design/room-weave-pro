@@ -12,11 +12,11 @@ import { MobileHotelsPage } from '@/components/settings/hotels/MobileHotelsPage'
 import { useState } from 'react'
 import type { Hotel } from '@/hooks/useHotels'
 import { useHotelContext } from '@/contexts/HotelContext'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { cn } from '@/lib/utils'
 
 export function HotelsPage() {
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null)

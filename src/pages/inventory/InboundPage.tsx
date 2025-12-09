@@ -23,7 +23,7 @@ import { ImageUpload } from '@/components/shared/ImageUpload'
 import { FileUpload } from '@/components/shared/FileUpload'
 import { useCreateInboundTransaction } from '@/hooks/useInventoryTransactions'
 import { formatCurrency } from '@/lib/utils'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileInboundForm } from '@/components/inventory/MobileInboundForm'
 
 const inboundSchema = z.object({
@@ -45,7 +45,7 @@ type InboundFormData = z.infer<typeof inboundSchema>
 
 export function InboundPage() {
   const navigate = useNavigate()
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const [searchParams] = useSearchParams()
   const poId = searchParams.get('po_id')
   

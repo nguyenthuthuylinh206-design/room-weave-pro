@@ -33,14 +33,14 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { useFinancialReport } from '@/hooks/useReports'
 import { useReportExport } from '@/hooks/useReportExport'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileFinancialReportPage } from '@/components/reports/MobileFinancialReportPage'
 import { formatCurrency } from '@/lib/utils'
 import { subDays } from 'date-fns'
 import { cn } from '@/lib/utils'
 
 export function FinancialReportPage() {
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const navigate = useNavigate()
   const chartRefs = useRef<HTMLElement[]>([])
   
