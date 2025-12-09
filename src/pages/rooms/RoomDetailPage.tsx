@@ -18,15 +18,23 @@ import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
 import { RoomItemsList } from '@/components/rooms/RoomItemsList'
 import { EnhancedCheckHistory } from '@/components/rooms/EnhancedCheckHistory'
 import { RoomHealthScore } from '@/components/rooms/RoomHealthScore'
+import { MobileRoomDetailPage } from '@/components/rooms/MobileRoomDetailPage'
 import { useRoom } from '@/hooks/useRooms'
 import { useApplyStandards } from '@/hooks/useRoomStandards'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { formatCurrency } from '@/lib/utils'
 
 export function RoomDetailPage() {
+  const isMobile = useIsMobile()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data, isLoading } = useRoom(id)
   const applyStandards = useApplyStandards()
+
+  // Mobile view
+  if (isMobile) {
+    return <MobileRoomDetailPage />
+  }
   
   if (isLoading) {
     return <RoomDetailSkeleton />

@@ -8,12 +8,15 @@ import { HotelFormDialog } from '@/components/settings/hotels/HotelFormDialog'
 import { HotelDetailDialog } from '@/components/settings/hotels/HotelDetailDialog'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { HotelStatsCards } from '@/components/settings/hotels/HotelStatsCards'
+import { MobileHotelsPage } from '@/components/settings/hotels/MobileHotelsPage'
 import { useState } from 'react'
 import type { Hotel } from '@/hooks/useHotels'
 import { useHotelContext } from '@/contexts/HotelContext'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
 
 export function HotelsPage() {
+  const isMobile = useIsMobile()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null)
@@ -25,6 +28,11 @@ export function HotelsPage() {
   const displayedHotels = viewMode === 'focus' && currentHotel 
     ? hotels?.filter(h => h.id === currentHotel.id) 
     : hotels
+
+  // Mobile view
+  if (isMobile) {
+    return <MobileHotelsPage />
+  }
 
   const handleAddNew = () => {
     setSelectedHotel(null)

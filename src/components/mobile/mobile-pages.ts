@@ -12,6 +12,8 @@ export { MobileVendorManagementDetailPage } from '../vendors/MobileVendorManagem
 export { MobileVendorListPage } from '../vendors/MobileVendorListPage'
 
 export { MobileRoomsPage } from '../rooms/MobileRoomsPage'
+export { MobileRoomDetailPage } from '../rooms/MobileRoomDetailPage'
+export { MobileRoomFormPage } from '../rooms/MobileRoomFormPage'
 
 export { MobileInventoryReportPage } from '../reports/MobileInventoryReportPage'
 export { MobileFinancialReportPage } from '../reports/MobileFinancialReportPage'
