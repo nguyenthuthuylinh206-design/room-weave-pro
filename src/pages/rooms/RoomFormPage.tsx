@@ -17,7 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { useRoom, useCreateRoom, useUpdateRoom } from '@/hooks/useRooms'
 import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileRoomFormPage } from '@/components/rooms/MobileRoomFormPage'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
@@ -45,7 +45,7 @@ export function RoomFormPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const isEdit = !!id
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
 
   const { tenantId } = useUser()
   const { selectedHotel, isAllHotelsMode } = useHotelContext()

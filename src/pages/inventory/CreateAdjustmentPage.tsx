@@ -32,7 +32,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useCreateStockAdjustment } from '@/hooks/useStockAdjustments'
 import { useItems } from '@/hooks/useItems'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileAdjustmentForm } from '@/components/inventory/MobileAdjustmentForm'
 
 const adjustmentSchema = z.object({
@@ -65,7 +65,7 @@ type AdjustmentFormData = z.infer<typeof adjustmentSchema>
 
 export function CreateAdjustmentPage() {
   const navigate = useNavigate()
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const [step, setStep] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
   const { mutate: createAdjustment, isPending } = useCreateStockAdjustment()

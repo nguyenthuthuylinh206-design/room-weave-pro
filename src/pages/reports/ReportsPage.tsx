@@ -12,10 +12,10 @@ import {
   PieChart
 } from 'lucide-react'
 import { MobileReportsDashboard } from '@/components/reports/MobileReportsDashboard'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 
 export function ReportsPage() {
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
 
   if (isMobile) {
     return <MobileReportsDashboard />

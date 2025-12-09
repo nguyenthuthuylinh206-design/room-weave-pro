@@ -6,10 +6,10 @@ import { RolesOverviewTab } from '@/components/users/RolesOverviewTab'
 import { PermissionConfigurationTab } from '@/components/users/PermissionConfigurationTab'
 import { Users, Shield, Settings } from 'lucide-react'
 import { MobileUserManagementPage } from '@/components/settings/MobileUserManagementPage'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 
 export default function UsersPage() {
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const [activeTab, setActiveTab] = useState('users')
   const [preSelectedUserId, setPreSelectedUserId] = useState<string | null>(null)
 

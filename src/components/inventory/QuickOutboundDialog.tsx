@@ -19,7 +19,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ItemSelect } from '@/components/shared/ItemSelect'
 import { useCreateOutboundTransaction } from '@/hooks/useInventoryTransactions'
 import { cn } from '@/lib/utils'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 
 const quickOutboundSchema = z.object({
   transaction_category: z.enum(['room_assign', 'laundry', 'maintenance', 'other']),
@@ -54,7 +54,7 @@ const categoryOptions = [
 
 export function QuickOutboundDialog({ open, onOpenChange }: QuickOutboundDialogProps) {
   const navigate = useNavigate()
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const { mutate: createOutbound, isPending: isLoading } = useCreateOutboundTransaction()
   
   const form = useForm<QuickOutboundFormData>({

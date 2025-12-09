@@ -5,10 +5,10 @@ import { ChangePasswordForm } from '@/components/profile/ChangePasswordForm'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { User, KeyRound } from 'lucide-react'
 import { MobileUserProfilePage } from '@/components/settings/MobileUserProfilePage'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 
 export default function ProfilePage() {
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
 
   if (isMobile) {
     return <MobileUserProfilePage />

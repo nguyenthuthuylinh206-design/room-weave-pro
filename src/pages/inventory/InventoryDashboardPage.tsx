@@ -23,7 +23,7 @@ import { QuickInboundDialog } from '@/components/inventory/QuickInboundDialog'
 import { QuickOutboundDialog } from '@/components/inventory/QuickOutboundDialog'
 import { MobileInventoryDashboard } from '@/components/inventory/MobileInventoryDashboard'
 import { useInventoryDashboard } from '@/hooks/useInventoryDashboard'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('vi-VN', {
@@ -34,7 +34,7 @@ function formatCurrency(amount: number) {
 
 export function InventoryDashboardPage() {
   const navigate = useNavigate()
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const [showInboundDialog, setShowInboundDialog] = useState(false)
   const [showOutboundDialog, setShowOutboundDialog] = useState(false)
   

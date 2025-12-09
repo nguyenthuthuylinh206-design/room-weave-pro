@@ -1,10 +1,10 @@
 import { MobileMaintenanceRequestsPage } from '@/components/maintenance/MobileMaintenanceRequestsPage'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card } from '@/components/ui/card'
 
 export function MaintenanceDashboardPage() {
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
 
   if (isMobile) {
     return <MobileMaintenanceRequestsPage />

@@ -8,12 +8,12 @@ import { VendorPerformanceTable } from '@/components/laundry/VendorPerformanceTa
 import { MobileLaundryDashboard } from '@/components/laundry/MobileLaundryDashboard'
 import { useLaundryDashboardStats } from '@/hooks/useLaundryDashboard'
 import { useLaundryBatches } from '@/hooks/useLaundryBatches'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { formatCurrency, formatNumber } from '@/lib/utils'
 
 export function LaundryDashboardPage() {
   const navigate = useNavigate()
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   
   // Gọi TẤT CẢ hooks trước điều kiện isMobile
   const { data: stats, isLoading: statsLoading } = useLaundryDashboardStats()

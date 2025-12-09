@@ -4,7 +4,7 @@ import { Plus, Grid3x3, List, Search, Star } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileVendorListPage } from '@/components/vendors/MobileVendorListPage'
 import {
   Select,
@@ -19,7 +19,7 @@ import { useLaundryVendors } from '@/hooks/useLaundryVendors'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export function VendorListPage() {
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const navigate = useNavigate()
   const [view, setView] = useState<'grid' | 'list'>('grid')
   const [filters, setFilters] = useState({

@@ -21,11 +21,11 @@ import { RoomHealthScore } from '@/components/rooms/RoomHealthScore'
 import { MobileRoomDetailPage } from '@/components/rooms/MobileRoomDetailPage'
 import { useRoom } from '@/hooks/useRooms'
 import { useApplyStandards } from '@/hooks/useRoomStandards'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { formatCurrency } from '@/lib/utils'
 
 export function RoomDetailPage() {
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data, isLoading } = useRoom(id)

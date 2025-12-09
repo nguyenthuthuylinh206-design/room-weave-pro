@@ -10,11 +10,11 @@ import { Plus, FileDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useBreakpoint } from '@/lib/breakpoints';
 import { MobilePOListPage } from '@/components/purchase-orders/MobilePOListPage';
 
 const POListPage: React.FC = () => {
-  const isMobile = useIsMobile();
+  const { isMobile } = useBreakpoint();
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState<string>('all');
   const [filters, setFilters] = useState<POFiltersType>({

@@ -31,7 +31,7 @@ import {
 } from 'recharts'
 import { Progress } from '@/components/ui/progress'
 import { useReportExport } from '@/hooks/useReportExport'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileRoomsReportPage } from '@/components/reports/MobileRoomsReportPage'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
 import { subDays } from 'date-fns'
@@ -39,7 +39,7 @@ import { subDays } from 'date-fns'
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6']
 
 export function RoomsReportPage() {
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const navigate = useNavigate()
   const chartRefs = useRef<HTMLElement[]>([])
   

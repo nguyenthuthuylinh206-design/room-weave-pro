@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import * as VisuallyHidden from '@radix-ui/react-visually-hidden'
 
 interface PhotoGalleryProps {
   photos: string[]
@@ -48,6 +49,9 @@ export function PhotoGallery({ photos, className }: PhotoGalleryProps) {
       
       <Dialog open={selectedIndex !== null} onOpenChange={() => setSelectedIndex(null)}>
         <DialogContent className="max-w-4xl p-0">
+          <VisuallyHidden.Root>
+            <DialogTitle>Xem ảnh</DialogTitle>
+          </VisuallyHidden.Root>
           <div className="relative">
             <Button
               variant="ghost"

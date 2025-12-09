@@ -12,14 +12,14 @@ import { BulkImportRoomsDialog } from '@/components/rooms/BulkImportRoomsDialog'
 import { RoomBulkActionsBar } from '@/components/rooms/RoomBulkActionsBar'
 import { useRooms } from '@/hooks/useRooms'
 import { useHotelContext } from '@/contexts/HotelContext'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileRoomsPage } from '@/components/rooms/MobileRoomsPage'
 import type { RoomFilters as IRoomFilters } from '@/types/rooms.types'
 
 type ViewMode = 'grid' | 'list' | 'floor'
 
 export function RoomsPage() {
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const navigate = useNavigate()
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [filters, setFilters] = useState<IRoomFilters>({})
