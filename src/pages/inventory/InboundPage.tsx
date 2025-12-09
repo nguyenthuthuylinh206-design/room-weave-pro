@@ -49,11 +49,7 @@ export function InboundPage() {
   const [searchParams] = useSearchParams()
   const poId = searchParams.get('po_id')
   
-  // Mobile view
-  if (isMobile) {
-    return <MobileInboundForm />
-  }
-  
+  // ALL hooks MUST be declared BEFORE any conditional returns
   const { mutate: createInbound, isPending: isLoading } = useCreateInboundTransaction()
   
   const form = useForm<InboundFormData>({
@@ -74,6 +70,15 @@ export function InboundPage() {
     name: 'items',
   })
   
+  const items = form.watch('items')
+  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
+  const totalValue = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0)
+  
+  // Mobile view - AFTER all hooks
+  if (isMobile) {
+    return <MobileInboundForm />
+  }
+  
   const onSubmit = (data: InboundFormData) => {
     createInbound(
       {
@@ -88,10 +93,6 @@ export function InboundPage() {
       }
     )
   }
-  
-  const items = form.watch('items')
-  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
-  const totalValue = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0)
   
   return (
     <div className="space-y-6">
