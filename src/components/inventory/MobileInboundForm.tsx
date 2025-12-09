@@ -226,6 +226,7 @@ export function MobileInboundForm() {
   }
   
   const handleSubmit = form.handleSubmit((data) => {
+    console.log('Form submitted with data:', data)
     createInbound(data as any, {
       onSuccess: () => {
         localStorage.removeItem(DRAFT_KEY)
@@ -234,6 +235,12 @@ export function MobileInboundForm() {
         navigate('/inventory/transactions')
       },
     })
+  }, (errors) => {
+    console.log('Form validation errors:', errors)
+    const firstError = Object.values(errors).flat().find(e => e?.message)
+    if (firstError) {
+      toast.error((firstError as any).message || 'Vui lòng kiểm tra lại thông tin')
+    }
   })
   
   const addItem = (itemId: string, itemName: string, itemCode: string) => {
