@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { 
   ArrowLeft,
   Edit, 
@@ -20,6 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
 import { RoomItemsList } from '@/components/rooms/RoomItemsList'
 import { EnhancedCheckHistory } from '@/components/rooms/EnhancedCheckHistory'
+import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { useRoom } from '@/hooks/useRooms'
 import { useApplyStandards } from '@/hooks/useRoomStandards'
 import { formatCurrency } from '@/lib/utils'
@@ -28,8 +30,13 @@ import type { RoomStatus } from '@/types/rooms.types'
 export function MobileRoomDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { data, isLoading } = useRoom(id)
+  const queryClient = useQueryClient()
+  const { data, isLoading, refetch } = useRoom(id)
   const applyStandards = useApplyStandards()
+
+  const handleRefresh = async () => {
+    await refetch()
+  }
   
   if (isLoading) {
     return <MobileRoomDetailSkeleton />
@@ -66,7 +73,7 @@ export function MobileRoomDetailPage() {
   const totalMissingQuantity = standardItems.reduce((sum, item) => sum + item.missing_quantity, 0)
 
   return (
-    <div className="flex flex-col min-h-screen bg-background pb-20">
+    <PullToRefresh onRefresh={handleRefresh} className="flex flex-col min-h-screen bg-background pb-20">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b px-4 py-3">
         <div className="flex items-center justify-between">
@@ -293,7 +300,7 @@ export function MobileRoomDetailPage() {
           </Button>
         </div>
       </div>
-    </div>
+    </PullToRefresh>
   )
 }
 

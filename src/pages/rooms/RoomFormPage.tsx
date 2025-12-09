@@ -75,11 +75,7 @@ export function RoomFormPage() {
     },
   })
 
-  // Mobile view
-  if (isMobile) {
-    return <MobileRoomFormPage />
-  }
-
+  // Reset form when room data loads (for edit mode)
   useEffect(() => {
     if (room && isEdit) {
       reset({
@@ -98,6 +94,11 @@ export function RoomFormPage() {
       })
     }
   }, [room, isEdit, reset])
+
+  // Mobile view - AFTER all hooks
+  if (isMobile) {
+    return <MobileRoomFormPage />
+  }
 
   const onSubmit = async (data: RoomFormData) => {
     // Prevent creation when in All Hotels mode
