@@ -33,13 +33,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import { useLaundryReport } from '@/hooks/useReports'
 import { useReportExport } from '@/hooks/useReportExport'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileLaundryReportPage } from '@/components/reports/MobileLaundryReportPage'
 import { formatCurrency } from '@/lib/utils'
 import { subDays } from 'date-fns'
 
 export function LaundryReportPage() {
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const navigate = useNavigate()
   const chartRefs = useRef<HTMLElement[]>([])
   

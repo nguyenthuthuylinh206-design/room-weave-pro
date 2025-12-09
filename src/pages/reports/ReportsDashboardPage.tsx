@@ -26,7 +26,7 @@ import { ScheduledReports } from '@/components/reports/ScheduledReports'
 import { MobileReportsDashboard } from '@/components/reports/MobileReportsDashboard'
 import { StatCard } from '@/components/ui/stat-card'
 import { useQuickReport } from '@/hooks/useReports'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useQueryClient } from '@tanstack/react-query'
@@ -103,7 +103,7 @@ const reportCategories = [
 
 export function ReportsDashboardPage() {
   const navigate = useNavigate()
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const queryClient = useQueryClient()
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const [period, setPeriod] = useState<'today' | 'week' | 'month'>('today')

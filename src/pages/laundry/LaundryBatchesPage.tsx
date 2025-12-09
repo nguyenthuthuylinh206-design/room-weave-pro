@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, Download, Eye, Filter } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileLaundryBatchesPage } from '@/components/laundry/MobileLaundryBatchesPage'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -38,7 +38,7 @@ import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard'
 import { Package, Clock, CheckCircle } from 'lucide-react'
 
 export function LaundryBatchesPage() {
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState<{

@@ -41,7 +41,7 @@ import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { cn, formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 
 interface TransactionDetailDialogProps {
   transactionId: string | null
@@ -79,7 +79,7 @@ export function TransactionDetailDialog({
   open,
   onOpenChange,
 }: TransactionDetailDialogProps) {
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const { data: transaction, isLoading } = useInventoryTransaction(transactionId || undefined)
   const { mutate: deleteTransaction, isPending: isDeleting } = useDeleteTransaction()
