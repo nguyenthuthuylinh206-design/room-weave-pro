@@ -65,10 +65,7 @@ export default function MaintenanceRequestForm() {
     },
   })
 
-  if (isMobile) {
-    return <MobileMaintenanceRequestForm />
-  }
-
+  // useEffect phải gọi TRƯỚC điều kiện isMobile
   useEffect(() => {
     if (isEditMode && existingRequest) {
       form.reset({
@@ -86,6 +83,11 @@ export default function MaintenanceRequestForm() {
       setPhotos(existingRequest.photos || [])
     }
   }, [isEditMode, existingRequest, form])
+
+  // Kiểm tra mobile SAU KHI tất cả hooks đã được gọi
+  if (isMobile) {
+    return <MobileMaintenanceRequestForm />
+  }
 
   const onSubmit = async (data: RequestFormData) => {
     const submitData = { ...data, photos }

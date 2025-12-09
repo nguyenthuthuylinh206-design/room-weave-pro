@@ -51,11 +51,8 @@ export function LaundryBatchesPage() {
     search: '',
   })
   const [showFilters, setShowFilters] = useState(false)
-
-  if (isMobile) {
-    return <MobileLaundryBatchesPage />
-  }
   
+  // Gọi hook trước điều kiện isMobile
   const { data, isLoading } = useLaundryBatches(
     {
       vendorId: filters.vendorId || undefined,
@@ -65,6 +62,11 @@ export function LaundryBatchesPage() {
     page,
     20
   )
+
+  // Kiểm tra mobile SAU KHI tất cả hooks đã được gọi
+  if (isMobile) {
+    return <MobileLaundryBatchesPage />
+  }
   
   const batches = data?.batches || []
   const totalPages = data?.totalPages || 1

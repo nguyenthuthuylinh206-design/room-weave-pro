@@ -17,15 +17,16 @@ export function CreateBatchPage() {
   const navigate = useNavigate()
   const { isMobile } = useBreakpoint()
   
-  // Mobile view
-  if (isMobile) {
-    return <MobileBatchForm />
-  }
+  // Gọi TẤT CẢ hooks trước điều kiện isMobile
   const [step, setStep] = useState(1)
   const [step1Data, setStep1Data] = useState<CreateBatchStep1Data | null>(null)
   const [step2Data, setStep2Data] = useState<CreateBatchStep2Data | null>(null)
-  
   const { mutate: createBatch, isPending } = useCreateLaundryBatch()
+  
+  // Kiểm tra mobile SAU KHI tất cả hooks đã được gọi
+  if (isMobile) {
+    return <MobileBatchForm />
+  }
   
   const handleStep1Complete = (data: CreateBatchStep1Data) => {
     setStep1Data(data)
