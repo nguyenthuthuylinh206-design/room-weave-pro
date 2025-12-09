@@ -118,6 +118,12 @@ export function MobileOutboundForm() {
         navigate('/inventory/transactions')
       },
     })
+  }, (errors) => {
+    console.log('Form validation errors:', errors)
+    const firstError = Object.values(errors).flat().find(e => e?.message)
+    if (firstError) {
+      toast.error((firstError as any).message || 'Vui lòng kiểm tra lại thông tin')
+    }
   })
   
   const addItem = (itemId: string, itemName: string, itemCode: string, availableQty: number) => {
@@ -144,7 +150,7 @@ export function MobileOutboundForm() {
   const selectedCategory = categories.find(c => c.value === category)
   
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-40">
       {/* Progress Header */}
       <div className="sticky top-0 z-10 bg-background border-b">
         <div className="p-4">
@@ -444,8 +450,8 @@ export function MobileOutboundForm() {
         )}
       </AnimatePresence>
       
-      {/* Navigation Footer */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t space-y-2">
+      {/* Navigation Footer - above bottom nav */}
+      <div className="fixed bottom-16 left-0 right-0 p-4 bg-background border-t space-y-2 z-40">
         <div className="flex gap-2">
           {step > 1 && (
             <TouchButton variant="outline" onClick={() => setStep(step - 1)} className="flex-1">
