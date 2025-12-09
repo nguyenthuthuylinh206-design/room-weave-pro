@@ -18,12 +18,7 @@ export function ItemsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedItems, setSelectedItems] = useState<string[]>([])
   
-  // Mobile view
-  if (isMobile) {
-    return <MobileItemsPage />
-  }
-  
-  // Initialize state from URL params
+  // Khai báo TẤT CẢ hooks trước điều kiện isMobile
   const [filters, setFilters] = useState<IItemFilters>(() => ({
     search: searchParams.get('search') || undefined,
     categoryId: searchParams.get('categoryId') || undefined,
@@ -33,8 +28,10 @@ export function ItemsPage() {
   const [page, setPage] = useState(() => Number(searchParams.get('page')) || 1)
   const [pageSize, setPageSize] = useState(() => Number(searchParams.get('pageSize')) || 25)
   
-  // Sync URL params with state
+  // Sync URL params với state - skip khi mobile
   useEffect(() => {
+    if (isMobile) return
+    
     const params = new URLSearchParams()
     if (filters.search) params.set('search', filters.search)
     if (filters.categoryId) params.set('categoryId', filters.categoryId)
@@ -43,7 +40,7 @@ export function ItemsPage() {
     if (page !== 1) params.set('page', page.toString())
     if (pageSize !== 25) params.set('pageSize', pageSize.toString())
     setSearchParams(params, { replace: true })
-  }, [filters, page, pageSize, setSearchParams])
+  }, [filters, page, pageSize, setSearchParams, isMobile])
   
   const { data, isLoading, error } = useItems(filters, page, pageSize)
   
@@ -55,6 +52,11 @@ export function ItemsPage() {
   const handleFilterChange = (newFilters: Partial<IItemFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }))
     setPage(1) // Reset to first page
+  }
+  
+  // SAU KHI tất cả hooks đã được gọi, mới kiểm tra mobile
+  if (isMobile) {
+    return <MobileItemsPage />
   }
   
   return (
