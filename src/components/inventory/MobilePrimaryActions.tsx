@@ -12,7 +12,7 @@ export function MobilePrimaryActions() {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           whileTap={{ scale: 0.97 }}
-          onClick={() => navigate('/inventory/inbound')}
+          onClick={() => navigate('/inventory/inbound/new')}
           className="relative overflow-hidden flex items-center justify-center gap-3 h-16 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 active:shadow-md transition-shadow"
         >
           <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
@@ -25,7 +25,7 @@ export function MobilePrimaryActions() {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           whileTap={{ scale: 0.97 }}
-          onClick={() => navigate('/inventory/outbound')}
+          onClick={() => navigate('/inventory/outbound/new')}
           className="relative overflow-hidden flex items-center justify-center gap-3 h-16 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/30 active:shadow-md transition-shadow"
         >
           <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
