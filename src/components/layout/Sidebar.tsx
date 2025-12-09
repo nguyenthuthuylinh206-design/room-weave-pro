@@ -252,33 +252,6 @@ const navigation: NavItem[] = [
     ],
   },
   {
-    title: 'Báo cáo',
-    icon: FileText,
-    roles: ['owner', 'hotel_manager'],
-    children: [
-      {
-        title: 'Dashboard',
-        href: '/reports',
-        icon: LayoutDashboard,
-      },
-      {
-        title: 'Báo cáo Tồn kho',
-        href: '/reports/inventory',
-        icon: Package,
-      },
-      {
-        title: 'Báo cáo Tài chính',
-        href: '/reports/financial',
-        icon: DollarSign,
-      },
-      {
-        title: 'Báo cáo Giặt là',
-        href: '/reports/laundry',
-        icon: Wind,
-      },
-    ],
-  },
-  {
     title: 'Cài đặt',
     href: '/settings/general',
     icon: Settings,
@@ -295,7 +268,6 @@ const NAVIGATION_MODULE_MAP: Record<string, string> = {
   'Bảo trì': 'maintenance',
   'Nhà cung cấp': 'vendors',
   'Đơn mua hàng': 'purchase_orders',
-  'Báo cáo': 'reports',
   'Khách sạn': 'hotels',
   'Người dùng': 'users',
   'Cài đặt': 'settings',
