@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { 
   ArrowLeft, 
@@ -8,32 +8,47 @@ import {
   PackagePlus,
   Search,
   Plus,
+  Minus,
   X,
-  Save
+  Save,
+  Check,
+  Tag,
+  Package,
+  CheckCircle,
+  AlertCircle,
+  Loader2
 } from 'lucide-react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Button } from '@/components/ui/button'
 import { TouchButton } from '@/components/mobile/TouchOptimized'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Progress } from '@/components/ui/progress'
 import { Card } from '@/components/ui/card'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { ImageUpload } from '@/components/shared/ImageUpload'
-import { FileUpload } from '@/components/shared/FileUpload'
 import { useCreateInboundTransaction } from '@/hooks/useInventoryTransactions'
 import { useItems } from '@/hooks/useItems'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 import { AnimatePresence, motion } from 'framer-motion'
 import { toast } from 'sonner'
+import { triggerHaptic } from '@/lib/haptics'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+
+const DRAFT_KEY = 'inbound_form_draft'
 
 const inboundSchema = z.object({
   transaction_category: z.enum(['purchase', 'return', 'laundry_return', 'other']),
-  from_location: z.string().min(1, 'Vui lòng nhập vị trí'),
-  to_location: z.string().min(1, 'Vui lòng nhập vị trí'),
+  from_location: z.string().min(1, 'Vui lòng nhập vị trí nguồn'),
+  to_location: z.string().min(1, 'Vui lòng nhập vị trí đích'),
   items: z.array(z.object({
     item_id: z.string().uuid('Vui lòng chọn đồ dùng'),
     quantity: z.number().min(1, 'Số lượng phải > 0'),
@@ -54,15 +69,24 @@ const categories = [
   { value: 'other', label: 'Khác', icon: PackagePlus, description: 'Lý do khác' },
 ]
 
+const steps = [
+  { icon: Tag, label: 'Loại & Địa điểm' },
+  { icon: Package, label: 'Đồ dùng' },
+  { icon: CheckCircle, label: 'Xác nhận' }
+]
+
 export function MobileInboundForm() {
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
   const [showItemSelector, setShowItemSelector] = useState(false)
+  const [showExitDialog, setShowExitDialog] = useState(false)
+  const [shake, setShake] = useState(false)
+  const [draftLoaded, setDraftLoaded] = useState(false)
   const totalSteps = 3
   
   const { mutate: createInbound, isPending: isLoading } = useCreateInboundTransaction()
-  const { data: itemsData } = useItems({ search: searchQuery }, 1, 50)
+  const { data: itemsData, isLoading: isLoadingItems } = useItems({ search: searchQuery }, 1, 50)
   
   const form = useForm<InboundFormData>({
     resolver: zodResolver(inboundSchema),
@@ -84,24 +108,120 @@ export function MobileInboundForm() {
   
   const items = form.watch('items')
   const category = form.watch('transaction_category')
+  const from_location = form.watch('from_location')
+  const to_location = form.watch('to_location')
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
   const totalValue = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0)
   
-  const canProceedStep1 = form.watch('transaction_category') && 
-    form.watch('from_location') && 
-    form.watch('to_location')
+  // Load draft on mount
+  useEffect(() => {
+    const draft = localStorage.getItem(DRAFT_KEY)
+    if (draft && !draftLoaded) {
+      try {
+        const data = JSON.parse(draft)
+        form.reset(data)
+        setDraftLoaded(true)
+        toast.info('Đã khôi phục bản nháp', {
+          action: {
+            label: 'Xóa nháp',
+            onClick: () => {
+              localStorage.removeItem(DRAFT_KEY)
+              form.reset({
+                transaction_category: 'purchase',
+                from_location: '',
+                to_location: 'Kho tầng 1',
+                items: [],
+                documents: [],
+                photos: [],
+                notes: '',
+              })
+            }
+          }
+        })
+      } catch {}
+    }
+  }, [])
   
-  const canProceedStep2 = items.length > 0 && 
-    items.every(item => item.item_id && item.quantity > 0)
+  // Auto-save draft (debounced)
+  useEffect(() => {
+    const subscription = form.watch((data) => {
+      const timer = setTimeout(() => {
+        if (form.formState.isDirty) {
+          localStorage.setItem(DRAFT_KEY, JSON.stringify(data))
+        }
+      }, 1000)
+      return () => clearTimeout(timer)
+    })
+    return () => subscription.unsubscribe()
+  }, [form.watch, form.formState.isDirty])
+  
+  // Validation for each step
+  const validateStep = useCallback((stepNumber: number) => {
+    if (stepNumber === 1) {
+      const errors: Record<string, string | null> = {}
+      if (!from_location?.trim()) errors.from_location = 'Vui lòng nhập vị trí nguồn'
+      if (!to_location?.trim()) errors.to_location = 'Vui lòng nhập vị trí đích'
+      return {
+        isValid: !errors.from_location && !errors.to_location,
+        errors
+      }
+    }
+    if (stepNumber === 2) {
+      return {
+        isValid: items.length > 0 && items.every(item => item.item_id && item.quantity > 0),
+        errors: items.length === 0 ? { items: 'Vui lòng thêm ít nhất 1 đồ dùng' } : {}
+      }
+    }
+    return { isValid: true, errors: {} }
+  }, [from_location, to_location, items])
+  
+  const canProceedStep1 = category && from_location?.trim() && to_location?.trim()
+  const canProceedStep2 = items.length > 0 && items.every(item => item.item_id && item.quantity > 0)
+  
+  const handleNext = () => {
+    const { isValid, errors } = validateStep(step)
+    if (!isValid) {
+      setShake(true)
+      triggerHaptic('error')
+      setTimeout(() => setShake(false), 500)
+      const firstError = Object.values(errors).find(e => e)
+      if (firstError) toast.error(firstError as string)
+      return
+    }
+    triggerHaptic('light')
+    setStep(step + 1)
+  }
+  
+  const handleBack = () => {
+    if (step === 1) {
+      if (form.formState.isDirty) {
+        setShowExitDialog(true)
+      } else {
+        navigate(-1)
+      }
+    } else {
+      triggerHaptic('light')
+      setStep(step - 1)
+    }
+  }
   
   const handleSaveDraft = () => {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(form.getValues()))
+    triggerHaptic('success')
     toast.success('Đã lưu nháp')
     navigate('/inventory/transactions')
+  }
+  
+  const handleDiscard = () => {
+    localStorage.removeItem(DRAFT_KEY)
+    navigate(-1)
   }
   
   const handleSubmit = form.handleSubmit((data) => {
     createInbound(data as any, {
       onSuccess: () => {
+        localStorage.removeItem(DRAFT_KEY)
+        triggerHaptic('success')
         toast.success('Nhập kho thành công')
         navigate('/inventory/transactions')
       },
@@ -115,6 +235,7 @@ export function MobileInboundForm() {
       return
     }
     
+    triggerHaptic('success')
     append({
       item_id: itemId,
       quantity: 1,
@@ -125,8 +246,15 @@ export function MobileInboundForm() {
     setShowItemSelector(false)
   }
   
+  const handleRemoveItem = (index: number) => {
+    triggerHaptic('warning')
+    remove(index)
+  }
+  
   const updateQuantity = (index: number, quantity: number) => {
-    form.setValue(`items.${index}.quantity`, Math.max(1, quantity))
+    const newQty = Math.max(1, quantity)
+    form.setValue(`items.${index}.quantity`, newQty)
+    if (quantity >= 1) triggerHaptic('light')
   }
   
   const updatePrice = (index: number, price: number) => {
@@ -136,21 +264,58 @@ export function MobileInboundForm() {
   const selectedCategory = categories.find(c => c.value === category)
   
   return (
-    <div className="min-h-screen bg-background pb-20">
-      {/* Progress Header */}
+    <div className="min-h-screen bg-background pb-24">
+      {/* Progress Header with Step Icons */}
       <div className="sticky top-0 z-10 bg-background border-b">
         <div className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <TouchButton variant="ghost" size="icon" onClick={() => step === 1 ? navigate(-1) : setStep(step - 1)}>
+          <div className="flex items-center justify-between mb-4">
+            <TouchButton variant="ghost" size="icon" onClick={handleBack}>
               <ArrowLeft className="h-5 w-5" />
             </TouchButton>
-            <span className="text-sm font-medium">Bước {step}/{totalSteps}</span>
             <TouchButton variant="ghost" onClick={handleSaveDraft} disabled={isLoading}>
               <Save className="h-4 w-4 mr-1" />
               Lưu nháp
             </TouchButton>
           </div>
-          <Progress value={(step / totalSteps) * 100} className="h-2" />
+          
+          {/* Visual Step Indicator */}
+          <div className="flex items-center justify-center gap-1">
+            {steps.map((s, i) => {
+              const stepNum = i + 1
+              const isCompleted = step > stepNum
+              const isCurrent = step === stepNum
+              const Icon = s.icon
+              
+              return (
+                <div key={i} className="flex items-center">
+                  <div className="flex flex-col items-center">
+                    <div className={cn(
+                      "w-10 h-10 rounded-full flex items-center justify-center transition-all",
+                      isCompleted 
+                        ? "bg-primary text-primary-foreground" 
+                        : isCurrent 
+                          ? "bg-primary/20 text-primary border-2 border-primary" 
+                          : "bg-muted text-muted-foreground"
+                    )}>
+                      {isCompleted ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                    </div>
+                    <span className={cn(
+                      "text-[10px] mt-1 text-center w-16",
+                      isCurrent ? "text-primary font-medium" : "text-muted-foreground"
+                    )}>
+                      {s.label}
+                    </span>
+                  </div>
+                  {i < steps.length - 1 && (
+                    <div className={cn(
+                      "w-8 h-0.5 mb-5 mx-1",
+                      step > stepNum ? "bg-primary" : "bg-muted"
+                    )} />
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
       
@@ -162,7 +327,7 @@ export function MobileInboundForm() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="p-4 space-y-6"
+            className={cn("p-4 space-y-6", shake && "animate-shake")}
           >
             <div>
               <h2 className="text-lg font-semibold mb-1">Loại nhập kho</h2>
@@ -177,7 +342,10 @@ export function MobileInboundForm() {
                       key={cat.value}
                       variant={isSelected ? 'default' : 'outline'}
                       className="h-28 flex-col gap-2 justify-center"
-                      onClick={() => form.setValue('transaction_category', cat.value as any)}
+                      onClick={() => {
+                        form.setValue('transaction_category', cat.value as any)
+                        triggerHaptic('light')
+                      }}
                     >
                       <Icon className="h-8 w-8" />
                       <div className="text-center">
@@ -199,11 +367,15 @@ export function MobileInboundForm() {
                   <Input 
                     id="from_location"
                     placeholder="Nhà cung cấp, kho..."
-                    className="min-h-[48px] mt-1"
+                    className={cn(
+                      "min-h-[48px] mt-1",
+                      form.formState.errors.from_location && "border-destructive"
+                    )}
                     {...form.register('from_location')}
                   />
                   {form.formState.errors.from_location && (
-                    <p className="text-sm text-destructive mt-1">
+                    <p className="text-sm text-destructive mt-1 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
                       {form.formState.errors.from_location.message}
                     </p>
                   )}
@@ -214,11 +386,15 @@ export function MobileInboundForm() {
                   <Input 
                     id="to_location"
                     placeholder="Kho tầng 1"
-                    className="min-h-[48px] mt-1"
+                    className={cn(
+                      "min-h-[48px] mt-1",
+                      form.formState.errors.to_location && "border-destructive"
+                    )}
                     {...form.register('to_location')}
                   />
                   {form.formState.errors.to_location && (
-                    <p className="text-sm text-destructive mt-1">
+                    <p className="text-sm text-destructive mt-1 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
                       {form.formState.errors.to_location.message}
                     </p>
                   )}
@@ -234,94 +410,156 @@ export function MobileInboundForm() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="space-y-4"
+            className={cn("space-y-4", shake && "animate-shake")}
           >
-            {/* Selected Items */}
-            {fields.length > 0 && (
-              <div className="px-4 space-y-2">
-                <h3 className="font-semibold">Đã chọn ({fields.length})</h3>
-                {fields.map((field, index) => {
-                  const item = itemsData?.items.find(i => i.id === field.item_id)
-                  const primaryImage = item?.item_images?.[0]?.url
-                  return (
-                    <Card key={field.id} className="p-3">
-                      <div className="flex gap-3">
-                        {primaryImage && (
-                          <img 
-                            src={primaryImage} 
-                            alt={item?.name}
-                            className="w-16 h-16 rounded object-cover" 
-                          />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{item?.name}</p>
-                          <p className="text-sm text-muted-foreground">{item?.code}</p>
-                          
-                          <div className="flex gap-2 mt-2">
-                            <div className="flex-1">
-                              <Label className="text-xs">Số lượng</Label>
-                              <Input 
-                                type="number"
-                                value={field.quantity}
-                                onChange={(e) => updateQuantity(index, parseInt(e.target.value) || 1)}
-                                className="h-10 text-center"
-                                min={1}
-                              />
+            {/* Empty State */}
+            {fields.length === 0 ? (
+              <motion.div 
+                className="text-center py-12 px-4"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+              >
+                <div className="w-20 h-20 rounded-full bg-muted mx-auto flex items-center justify-center mb-4">
+                  <Package className="h-10 w-10 text-muted-foreground" />
+                </div>
+                <h3 className="font-semibold text-lg mb-2">Chưa có đồ dùng</h3>
+                <p className="text-muted-foreground mb-6">
+                  Thêm đồ dùng cần nhập kho vào danh sách
+                </p>
+                <TouchButton onClick={() => setShowItemSelector(true)} className="h-12 px-6">
+                  <Plus className="mr-2 h-5 w-5" />
+                  Thêm đồ dùng
+                </TouchButton>
+              </motion.div>
+            ) : (
+              <>
+                {/* Selected Items */}
+                <div className="px-4 space-y-2">
+                  <h3 className="font-semibold">Đã chọn ({fields.length})</h3>
+                  {fields.map((field, index) => {
+                    const item = itemsData?.items.find(i => i.id === field.item_id)
+                    const primaryImage = item?.item_images?.[0]?.url
+                    return (
+                      <Card key={field.id} className="p-3">
+                        <div className="flex gap-3">
+                          {primaryImage ? (
+                            <img 
+                              src={primaryImage} 
+                              alt={item?.name}
+                              className="w-16 h-16 rounded object-cover" 
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded bg-muted flex items-center justify-center">
+                              <Package className="h-6 w-6 text-muted-foreground" />
                             </div>
-                            <div className="flex-1">
-                              <Label className="text-xs">Đơn giá</Label>
-                              <Input 
-                                type="number"
-                                value={field.unit_price}
-                                onChange={(e) => updatePrice(index, parseFloat(e.target.value) || 0)}
-                                className="h-10"
-                                placeholder="0"
-                              />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{item?.name || 'Đồ dùng'}</p>
+                            <p className="text-sm text-muted-foreground">{item?.code}</p>
+                            
+                            {/* Quantity Stepper */}
+                            <div className="flex items-center gap-2 mt-2">
+                              <div className="flex items-center gap-1">
+                                <TouchButton 
+                                  variant="outline" 
+                                  size="icon"
+                                  className="h-10 w-10"
+                                  onClick={() => updateQuantity(index, field.quantity - 1)}
+                                  disabled={field.quantity <= 1}
+                                >
+                                  <Minus className="h-4 w-4" />
+                                </TouchButton>
+                                
+                                <Input 
+                                  type="number"
+                                  value={field.quantity}
+                                  onChange={(e) => updateQuantity(index, parseInt(e.target.value) || 1)}
+                                  className="h-10 w-14 text-center font-bold"
+                                  min={1}
+                                />
+                                
+                                <TouchButton 
+                                  variant="outline" 
+                                  size="icon"
+                                  className="h-10 w-10"
+                                  onClick={() => updateQuantity(index, field.quantity + 1)}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </TouchButton>
+                              </div>
+                              
+                              {/* Quick Add Buttons */}
+                              <div className="flex gap-1">
+                                {[5, 10].map(n => (
+                                  <TouchButton 
+                                    key={n}
+                                    size="sm" 
+                                    variant="ghost"
+                                    className="h-8 px-2 text-xs"
+                                    onClick={() => updateQuantity(index, field.quantity + n)}
+                                  >
+                                    +{n}
+                                  </TouchButton>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            {/* Unit Price */}
+                            <div className="mt-2">
+                              <div className="flex items-center gap-2">
+                                <Label className="text-xs whitespace-nowrap">Đơn giá:</Label>
+                                <Input 
+                                  type="number"
+                                  value={field.unit_price}
+                                  onChange={(e) => updatePrice(index, parseFloat(e.target.value) || 0)}
+                                  className="h-8 flex-1"
+                                  placeholder="0"
+                                />
+                              </div>
                             </div>
                           </div>
+                          <TouchButton 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-10 w-10 text-destructive hover:text-destructive"
+                            onClick={() => handleRemoveItem(index)}
+                          >
+                            <X className="h-5 w-5" />
+                          </TouchButton>
                         </div>
-                        <TouchButton 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => remove(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </TouchButton>
+                      </Card>
+                    )
+                  })}
+                </div>
+                
+                {/* Add More Button */}
+                <div className="px-4">
+                  <TouchButton 
+                    variant="outline" 
+                    className="w-full h-12"
+                    onClick={() => setShowItemSelector(true)}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Thêm đồ dùng khác
+                  </TouchButton>
+                </div>
+                
+                {/* Summary */}
+                <div className="px-4">
+                  <Card className="p-4 bg-primary/5 border-primary/20">
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Tổng số lượng:</span>
+                        <span className="font-medium">{totalQuantity}</span>
                       </div>
-                    </Card>
-                  )
-                })}
-              </div>
-            )}
-            
-            {/* Add More Button */}
-            <div className="px-4">
-              <TouchButton 
-                variant="outline" 
-                className="w-full h-12"
-                onClick={() => setShowItemSelector(true)}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Thêm đồ dùng
-              </TouchButton>
-            </div>
-            
-            {/* Summary */}
-            {items.length > 0 && (
-              <div className="px-4">
-                <Card className="p-4 bg-muted/50">
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Tổng SL:</span>
-                      <span className="font-medium">{totalQuantity}</span>
+                      <div className="flex justify-between text-lg">
+                        <span className="font-semibold">Tổng giá trị:</span>
+                        <span className="font-bold text-primary">{formatCurrency(totalValue)}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-lg">
-                      <span className="font-semibold">Tổng giá trị:</span>
-                      <span className="font-bold text-primary">{formatCurrency(totalValue)}</span>
-                    </div>
-                  </div>
-                </Card>
-              </div>
+                  </Card>
+                </div>
+              </>
             )}
           </motion.div>
         )}
@@ -338,13 +576,6 @@ export function MobileInboundForm() {
               <h2 className="text-lg font-semibold mb-4">Tài liệu & Hình ảnh</h2>
               
               <div className="space-y-4">
-                <div>
-                  <Label>Tải tài liệu</Label>
-                  <div className="text-xs text-muted-foreground mt-1 mb-2">
-                    (Tính năng đang phát triển)
-                  </div>
-                </div>
-                
                 <div>
                   <Label>Chụp/Tải hình ảnh</Label>
                   <ImageUpload 
@@ -369,8 +600,11 @@ export function MobileInboundForm() {
             </div>
             
             {/* Review Summary */}
-            <div className="space-y-3 p-4 bg-muted rounded-lg">
-              <h3 className="font-semibold">Xác nhận thông tin</h3>
+            <Card className="p-4 bg-muted/50">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-primary" />
+                Xác nhận thông tin
+              </h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Loại:</span>
@@ -378,56 +612,70 @@ export function MobileInboundForm() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Từ:</span>
-                  <span className="font-medium">{form.watch('from_location')}</span>
+                  <span className="font-medium">{from_location}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Đến:</span>
-                  <span className="font-medium">{form.watch('to_location')}</span>
+                  <span className="font-medium">{to_location}</span>
                 </div>
                 <div className="h-px bg-border my-2" />
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Số items:</span>
+                  <span className="text-muted-foreground">Số loại đồ:</span>
                   <span className="font-medium">{items.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tổng SL:</span>
+                  <span className="text-muted-foreground">Tổng số lượng:</span>
                   <span className="font-medium">{totalQuantity}</span>
                 </div>
-                <div className="flex justify-between text-lg">
+                <div className="flex justify-between text-lg pt-2 border-t">
                   <span className="font-semibold">Tổng giá trị:</span>
                   <span className="font-bold text-primary">{formatCurrency(totalValue)}</span>
                 </div>
               </div>
-            </div>
+            </Card>
           </motion.div>
         )}
       </AnimatePresence>
       
       {/* Navigation Footer */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t space-y-2">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t">
         {step === 2 && items.length > 0 && (
-          <div className="flex justify-between items-center p-3 bg-muted rounded-lg mb-2">
+          <div className="flex justify-between items-center p-3 bg-muted rounded-lg mb-3">
             <span className="text-sm">Tổng giá trị:</span>
-            <span className="font-bold">{formatCurrency(totalValue)}</span>
+            <span className="font-bold text-primary">{formatCurrency(totalValue)}</span>
           </div>
         )}
         
         <div className="flex gap-2">
           {step > 1 && (
-            <TouchButton variant="outline" onClick={() => setStep(step - 1)} className="flex-1">
+            <TouchButton variant="outline" onClick={() => { triggerHaptic('light'); setStep(step - 1) }} className="flex-1 h-12">
               Quay lại
             </TouchButton>
           )}
           <TouchButton 
-            onClick={step === totalSteps ? handleSubmit : () => setStep(step + 1)}
-            className="flex-1"
+            onClick={step === totalSteps ? handleSubmit : handleNext}
+            className="flex-1 h-12"
             disabled={
               (step === 1 && !canProceedStep1) ||
               (step === 2 && !canProceedStep2) ||
               (step === 3 && isLoading)
             }
           >
-            {step === totalSteps ? (isLoading ? 'Đang xử lý...' : 'Hoàn thành') : 'Tiếp tục'}
+            {step === totalSteps ? (
+              isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  Hoàn thành
+                </>
+              )
+            ) : (
+              'Tiếp tục'
+            )}
           </TouchButton>
         </div>
       </div>
@@ -450,38 +698,101 @@ export function MobileInboundForm() {
               />
             </div>
             
-            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-              {itemsData?.items.map((item) => {
-                const primaryImage = item.item_images?.[0]?.url
-                return (
-                  <Card 
-                    key={item.id}
-                    className="p-3 cursor-pointer hover:bg-muted/50"
-                    onClick={() => addItem(item.id, item.name, item.code)}
-                  >
-                    <div className="flex gap-3">
-                      {primaryImage && (
-                        <img 
-                          src={primaryImage} 
-                          alt={item.name}
-                          className="w-12 h-12 rounded object-cover" 
-                        />
+            <div className="space-y-2 max-h-[55vh] overflow-y-auto">
+              {isLoadingItems ? (
+                // Skeleton Loading
+                <div className="space-y-2">
+                  {[1, 2, 3, 4].map(i => (
+                    <Card key={i} className="p-3">
+                      <div className="flex gap-3 animate-pulse">
+                        <div className="w-12 h-12 rounded bg-muted" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-muted rounded w-3/4" />
+                          <div className="h-3 bg-muted rounded w-1/2" />
+                          <div className="h-3 bg-muted rounded w-1/3" />
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : !itemsData?.items.length ? (
+                // Empty State
+                <div className="text-center py-8">
+                  <Search className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">Không tìm thấy đồ dùng</p>
+                </div>
+              ) : (
+                itemsData.items.map((item) => {
+                  const primaryImage = item.item_images?.[0]?.url
+                  const isSelected = items.some(i => i.item_id === item.id)
+                  return (
+                    <Card 
+                      key={item.id}
+                      className={cn(
+                        "p-3 cursor-pointer transition-colors",
+                        isSelected 
+                          ? "bg-primary/10 border-primary" 
+                          : "hover:bg-muted/50"
                       )}
-                    <div className="flex-1">
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">{item.code}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Tồn: {item.quantity_total || 0} {item.unit}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-                )
-              })}
+                      onClick={() => !isSelected && addItem(item.id, item.name, item.code)}
+                    >
+                      <div className="flex gap-3">
+                        {primaryImage ? (
+                          <img 
+                            src={primaryImage} 
+                            alt={item.name}
+                            className="w-12 h-12 rounded object-cover" 
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded bg-muted flex items-center justify-center">
+                            <Package className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{item.name}</p>
+                            {isSelected && (
+                              <Check className="h-4 w-4 text-primary" />
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">{item.code}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Tồn: {item.quantity_total || 0} {item.unit}
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  )
+                })
+              )}
             </div>
           </div>
         </SheetContent>
       </Sheet>
+      
+      {/* Exit Confirmation Dialog */}
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent className="max-w-[90vw] rounded-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Rời khỏi form?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có dữ liệu chưa lưu. Bạn muốn làm gì?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <TouchButton onClick={handleSaveDraft} className="w-full h-12">
+              <Save className="mr-2 h-4 w-4" />
+              Lưu nháp và thoát
+            </TouchButton>
+            <TouchButton variant="outline" onClick={handleDiscard} className="w-full h-12">
+              Bỏ qua và thoát
+            </TouchButton>
+            <TouchButton variant="ghost" onClick={() => setShowExitDialog(false)} className="w-full h-12">
+              Tiếp tục chỉnh sửa
+            </TouchButton>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
