@@ -9,7 +9,6 @@ import {
   FileText,
   ExternalLink
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { 
   Accordion,
   AccordionContent,
@@ -20,20 +19,28 @@ import {
 export default function HelpPage() {
   const faqs = [
     {
-      question: 'How do I add a new item to inventory?',
-      answer: 'Go to Items page, click "Add Item", fill in the details including name, code, category, and minimum stock level, then save.'
+      question: 'Làm sao để thêm sản phẩm mới vào kho?',
+      answer: 'Vào trang Sản phẩm, nhấn "Thêm sản phẩm", điền thông tin như tên, mã, danh mục và mức tồn kho tối thiểu, sau đó lưu lại.'
     },
     {
-      question: 'How do I send items to laundry?',
-      answer: 'Navigate to Laundry section, click "New Batch", select vendor, add items with quantities, and submit.'
+      question: 'Làm sao để gửi đồ đi giặt?',
+      answer: 'Vào mục Giặt là, nhấn "Tạo lô giặt", chọn đơn vị giặt, thêm các sản phẩm với số lượng tương ứng và gửi đi.'
     },
     {
-      question: 'How can I generate reports?',
-      answer: 'Visit the Reports page, select report type (Inventory, Laundry, or Financial), choose date range, and click Generate Report.'
+      question: 'Làm sao để tạo báo cáo?',
+      answer: 'Vào trang Báo cáo, chọn loại báo cáo (Kho, Giặt là hoặc Tài chính), chọn khoảng thời gian và nhấn Tạo báo cáo.'
     },
     {
-      question: 'How do I manage multiple hotels?',
-      answer: 'Use the hotel switcher in the top navigation. You can add new hotels in Settings > Hotels Management.'
+      question: 'Làm sao để quản lý nhiều khách sạn?',
+      answer: 'Sử dụng bộ chuyển đổi khách sạn ở thanh điều hướng. Bạn có thể thêm khách sạn mới trong Cài đặt > Quản lý khách sạn.'
+    },
+    {
+      question: 'Làm sao để kiểm tra tồn kho trong phòng?',
+      answer: 'Vào trang Phòng, chọn phòng cần kiểm tra, sau đó xem tab "Đồ dùng trong phòng" để thấy danh sách và trạng thái thiếu/đủ.'
+    },
+    {
+      question: 'Làm sao để tạo yêu cầu bảo trì?',
+      answer: 'Vào mục Bảo trì, nhấn "Tạo yêu cầu", điền tiêu đề, mô tả vấn đề, chọn vị trí và mức độ ưu tiên, sau đó gửi yêu cầu.'
     }
   ]
 
@@ -47,9 +54,9 @@ export default function HelpPage() {
               <HelpCircle className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Help & Support</h1>
+              <h1 className="text-2xl font-bold">Trợ giúp & Hỗ trợ</h1>
               <p className="text-sm text-muted-foreground">
-                We're here to help
+                Chúng tôi luôn sẵn sàng hỗ trợ bạn
               </p>
             </div>
           </div>
@@ -62,46 +69,46 @@ export default function HelpPage() {
           <Card className="p-4 hover:bg-accent transition-colors cursor-pointer">
             <div className="flex flex-col items-center text-center gap-2">
               <MessageCircle className="h-8 w-8 text-primary" />
-              <span className="text-sm font-medium">Live Chat</span>
+              <span className="text-sm font-medium">Chat trực tuyến</span>
             </div>
           </Card>
           <Card className="p-4 hover:bg-accent transition-colors cursor-pointer">
             <div className="flex flex-col items-center text-center gap-2">
               <Mail className="h-8 w-8 text-primary" />
-              <span className="text-sm font-medium">Email Us</span>
+              <span className="text-sm font-medium">Gửi email</span>
             </div>
           </Card>
           <Card className="p-4 hover:bg-accent transition-colors cursor-pointer">
             <div className="flex flex-col items-center text-center gap-2">
               <Phone className="h-8 w-8 text-primary" />
-              <span className="text-sm font-medium">Call Support</span>
+              <span className="text-sm font-medium">Gọi hỗ trợ</span>
             </div>
           </Card>
           <Card className="p-4 hover:bg-accent transition-colors cursor-pointer">
             <div className="flex flex-col items-center text-center gap-2">
               <Book className="h-8 w-8 text-primary" />
-              <span className="text-sm font-medium">User Guide</span>
+              <span className="text-sm font-medium">Hướng dẫn sử dụng</span>
             </div>
           </Card>
         </div>
 
         {/* Resources */}
         <div>
-          <h2 className="text-lg font-semibold mb-3">Resources</h2>
+          <h2 className="text-lg font-semibold mb-3">Tài liệu hướng dẫn</h2>
           <Card>
             <a href="#" className="flex items-center gap-3 p-4 hover:bg-accent transition-colors">
               <Video className="h-5 w-5 text-primary" />
-              <span className="flex-1">Video Tutorials</span>
+              <span className="flex-1">Video hướng dẫn</span>
               <ExternalLink className="h-4 w-4 text-muted-foreground" />
             </a>
             <a href="#" className="flex items-center gap-3 p-4 hover:bg-accent transition-colors border-t">
               <FileText className="h-5 w-5 text-primary" />
-              <span className="flex-1">Documentation</span>
+              <span className="flex-1">Tài liệu chi tiết</span>
               <ExternalLink className="h-4 w-4 text-muted-foreground" />
             </a>
             <a href="#" className="flex items-center gap-3 p-4 hover:bg-accent transition-colors border-t">
               <Book className="h-5 w-5 text-primary" />
-              <span className="flex-1">Knowledge Base</span>
+              <span className="flex-1">Cơ sở kiến thức</span>
               <ExternalLink className="h-4 w-4 text-muted-foreground" />
             </a>
           </Card>
@@ -109,7 +116,7 @@ export default function HelpPage() {
 
         {/* FAQs */}
         <div>
-          <h2 className="text-lg font-semibold mb-3">Frequently Asked Questions</h2>
+          <h2 className="text-lg font-semibold mb-3">Câu hỏi thường gặp</h2>
           <Card className="p-4">
             <Accordion type="single" collapsible>
               {faqs.map((faq, index) => (
@@ -130,19 +137,19 @@ export default function HelpPage() {
 
         {/* Contact Info */}
         <Card className="p-6 bg-gradient-to-br from-primary/5 to-background">
-          <h3 className="font-semibold mb-2">Need more help?</h3>
+          <h3 className="font-semibold mb-2">Cần hỗ trợ thêm?</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            Our support team is available 24/7 to assist you
+            Đội ngũ hỗ trợ của chúng tôi hoạt động 24/7
           </p>
           <div className="space-y-2 text-sm">
             <p>
-              <strong>Email:</strong> support@roomweave.com
+              <strong>Email:</strong> hotro@roomweave.vn
             </p>
             <p>
-              <strong>Phone:</strong> +1 (555) 123-4567
+              <strong>Điện thoại:</strong> 1900 xxxx xx
             </p>
             <p>
-              <strong>Hours:</strong> 24/7
+              <strong>Thời gian:</strong> 24/7
             </p>
           </div>
         </Card>
