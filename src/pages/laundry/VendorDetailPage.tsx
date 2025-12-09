@@ -26,13 +26,20 @@ import { useLaundryVendor, useVendorPerformance } from '@/hooks/useLaundryVendor
 import { formatCurrency } from '@/lib/utils'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
+import { useBreakpoint } from '@/lib/breakpoints'
+import { MobileVendorDetailPage } from '@/components/laundry/MobileVendorDetailPage'
 
 export function VendorDetailPage() {
+  const { isMobile } = useBreakpoint()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   
   const { data: vendor, isLoading } = useLaundryVendor(id)
   const { data: performance } = useVendorPerformance(id, 30)
+  
+  if (isMobile) {
+    return <MobileVendorDetailPage />
+  }
   
   if (isLoading) {
     return <div>Loading...</div>
