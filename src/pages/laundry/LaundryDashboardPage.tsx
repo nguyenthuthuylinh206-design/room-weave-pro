@@ -14,17 +14,19 @@ import { formatCurrency, formatNumber } from '@/lib/utils'
 export function LaundryDashboardPage() {
   const navigate = useNavigate()
   const isMobile = useIsMobile()
+  
+  // Gọi TẤT CẢ hooks trước điều kiện isMobile
   const { data: stats, isLoading: statsLoading } = useLaundryDashboardStats()
   const { data: activeBatches, isLoading: batchesLoading } = useLaundryBatches({})
+  
+  // Kiểm tra mobile SAU KHI tất cả hooks đã được gọi
+  if (isMobile) {
+    return <MobileLaundryDashboard />
+  }
   
   const activeBatchesData = activeBatches?.batches.filter(
     b => ['delivered', 'washing', 'ready'].includes(b.status)
   ) || []
-
-  // Mobile view
-  if (isMobile) {
-    return <MobileLaundryDashboard />
-  }
   
   return (
     <div className="space-y-6">

@@ -23,13 +23,15 @@ const POListPage: React.FC = () => {
     sort_order: 'desc'
   });
   const [selectedPOs, setSelectedPOs] = useState<string[]>([]);
+  
+  // Gọi TẤT CẢ hooks trước điều kiện isMobile
+  const { data: stats } = usePOStats();
+  const { data: purchaseOrders, isLoading } = usePurchaseOrders(filters);
 
+  // Kiểm tra mobile SAU KHI tất cả hooks đã được gọi
   if (isMobile) {
     return <MobilePOListPage />;
   }
-
-  const { data: stats } = usePOStats();
-  const { data: purchaseOrders, isLoading } = usePurchaseOrders(filters);
 
   const handleFilterChange = (newFilters: Partial<POFiltersType>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));

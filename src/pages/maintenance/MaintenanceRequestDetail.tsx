@@ -39,6 +39,8 @@ export default function MaintenanceRequestDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { isMobile } = useBreakpoint()
+  
+  // Gọi TẤT CẢ hooks trước điều kiện isMobile
   const { data: request, isLoading } = useMaintenanceRequest(id!)
   const acceptRequest = useAcceptRequest()
   const startRequest = useStartRequest()
@@ -47,6 +49,7 @@ export default function MaintenanceRequestDetail() {
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [showUpdateDialog, setShowUpdateDialog] = useState(false)
 
+  // Kiểm tra mobile SAU KHI tất cả hooks đã được gọi
   if (isMobile) {
     return <MobileMaintenanceRequestDetail />
   }
