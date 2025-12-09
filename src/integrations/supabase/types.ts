@@ -4760,26 +4760,46 @@ export type Database = {
         }
         Returns: Json
       }
-      create_outbound_transaction: {
-        Args: {
-          p_created_by: string
-          p_documents?: string[]
-          p_from_location: string
-          p_hotel_id: string
-          p_items: Json
-          p_notes?: string
-          p_photos?: string[]
-          p_recipient_name?: string
-          p_recipient_signature?: string
-          p_related_id?: string
-          p_related_type?: string
-          p_tenant_id: string
-          p_to_location: string
-          p_transaction_category: string
-          p_transaction_type?: string
-        }
-        Returns: Json
-      }
+      create_outbound_transaction:
+        | {
+            Args: {
+              p_created_by: string
+              p_documents?: string[]
+              p_from_location: string
+              p_hotel_id: string
+              p_items: Json
+              p_notes?: string
+              p_photos?: string[]
+              p_recipient_name?: string
+              p_recipient_signature?: string
+              p_related_id?: string
+              p_related_type?: string
+              p_tenant_id: string
+              p_to_location: string
+              p_transaction_category: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_created_by: string
+              p_documents?: string[]
+              p_from_location: string
+              p_hotel_id: string
+              p_items: Json
+              p_notes?: string
+              p_photos?: string[]
+              p_recipient_name?: string
+              p_recipient_signature?: string
+              p_related_id?: string
+              p_related_type?: string
+              p_tenant_id: string
+              p_to_location: string
+              p_transaction_category: string
+              p_transaction_type?: string
+            }
+            Returns: Json
+          }
       create_stock_adjustment: {
         Args: {
           p_adjustment_type: string
