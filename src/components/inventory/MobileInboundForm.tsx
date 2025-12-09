@@ -119,6 +119,10 @@ export function MobileInboundForm() {
     if (draft && !draftLoaded) {
       try {
         const data = JSON.parse(draft)
+        // Fix old draft with deprecated 'laundry_return' value
+        if (data.transaction_category === 'laundry_return') {
+          data.transaction_category = 'laundry'
+        }
         form.reset(data)
         setDraftLoaded(true)
         toast.info('Đã khôi phục bản nháp', {
