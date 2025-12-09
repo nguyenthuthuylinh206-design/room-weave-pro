@@ -46,7 +46,7 @@ import {
 const DRAFT_KEY = 'inbound_form_draft'
 
 const inboundSchema = z.object({
-  transaction_category: z.enum(['purchase', 'return', 'laundry_return', 'other']),
+  transaction_category: z.enum(['purchase', 'return', 'laundry', 'other']),
   from_location: z.string().min(1, 'Vui lòng nhập vị trí nguồn'),
   to_location: z.string().min(1, 'Vui lòng nhập vị trí đích'),
   items: z.array(z.object({
@@ -65,7 +65,7 @@ type InboundFormData = z.infer<typeof inboundSchema>
 const categories = [
   { value: 'purchase', label: 'Mua mới', icon: ShoppingCart, description: 'Mua từ nhà cung cấp' },
   { value: 'return', label: 'Hoàn trả', icon: RotateCcw, description: 'Khách trả lại' },
-  { value: 'laundry_return', label: 'Giặt về', icon: Shirt, description: 'Từ giặt là' },
+  { value: 'laundry', label: 'Giặt về', icon: Shirt, description: 'Từ giặt là' },
   { value: 'other', label: 'Khác', icon: PackagePlus, description: 'Lý do khác' },
 ]
 
