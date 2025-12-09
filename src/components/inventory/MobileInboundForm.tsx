@@ -175,8 +175,16 @@ export function MobileInboundForm() {
     return { isValid: true, errors: {} }
   }, [from_location, to_location, items])
   
-  const canProceedStep1 = category && from_location?.trim() && to_location?.trim()
+  const canProceedStep1 = Boolean(category && from_location?.trim() && to_location?.trim())
   const canProceedStep2 = items.length > 0 && items.every(item => item.item_id && item.quantity > 0)
+  
+  // Get missing fields for step 1
+  const getMissingFieldsStep1 = () => {
+    const missing: string[] = []
+    if (!from_location?.trim()) missing.push('vị trí nguồn')
+    if (!to_location?.trim()) missing.push('vị trí đích')
+    return missing
+  }
   
   const handleNext = () => {
     const { isValid, errors } = validateStep(step)
@@ -652,31 +660,43 @@ export function MobileInboundForm() {
               Quay lại
             </TouchButton>
           )}
-          <TouchButton 
-            onClick={step === totalSteps ? handleSubmit : handleNext}
-            className="flex-1 h-12"
-            disabled={
-              (step === 1 && !canProceedStep1) ||
-              (step === 2 && !canProceedStep2) ||
-              (step === 3 && isLoading)
-            }
-          >
-            {step === totalSteps ? (
-              isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Đang xử lý...
-                </>
-              ) : (
-                <>
-                  <Check className="mr-2 h-4 w-4" />
-                  Hoàn thành
-                </>
-              )
-            ) : (
-              'Tiếp tục'
+          <div className="flex-1 flex flex-col">
+            {step === 1 && !canProceedStep1 && (
+              <p className="text-xs text-muted-foreground text-center mb-2">
+                Vui lòng nhập: {getMissingFieldsStep1().join(', ')}
+              </p>
             )}
-          </TouchButton>
+            {step === 2 && !canProceedStep2 && (
+              <p className="text-xs text-muted-foreground text-center mb-2">
+                Vui lòng thêm ít nhất 1 đồ dùng
+              </p>
+            )}
+            <TouchButton 
+              onClick={step === totalSteps ? handleSubmit : handleNext}
+              className="w-full h-12"
+              disabled={
+                (step === 1 && !canProceedStep1) ||
+                (step === 2 && !canProceedStep2) ||
+                (step === 3 && isLoading)
+              }
+            >
+              {step === totalSteps ? (
+                isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Đang xử lý...
+                  </>
+                ) : (
+                  <>
+                    <Check className="mr-2 h-4 w-4" />
+                    Hoàn thành
+                  </>
+                )
+              ) : (
+                'Tiếp tục'
+              )}
+            </TouchButton>
+          </div>
         </div>
       </div>
       
