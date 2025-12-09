@@ -21,18 +21,18 @@ export default function RoomsPage() {
   const { isMobile } = useBreakpoint()
   const [statusFilter, setStatusFilter] = useState<RoomStatus | 'all'>('all')
   
-  // Staff view - show check interface
-  if (role === 'staff') {
-    return <StaffRoomCheckView />
-  }
-  
-  // Manager/Owner view - show management interface
+  // ✅ ALL hooks MUST be declared BEFORE any conditional return
   const { data: rooms, isLoading } = useRooms(
     statusFilter === 'all' ? {} : { status: statusFilter }
   )
   const { data: stats } = useRoomStats(user?.tenant_id, user?.hotel_id)
 
-  // Mobile view for manager
+  // ✅ Now safe to check role AFTER all hooks
+  if (role === 'staff') {
+    return <StaffRoomCheckView />
+  }
+  
+  // ✅ Then check mobile
   if (isMobile) {
     return <MobileRoomsDashboard />
   }

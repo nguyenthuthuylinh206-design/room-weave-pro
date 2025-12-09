@@ -70,11 +70,7 @@ export function CreateAdjustmentPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const { mutate: createAdjustment, isPending } = useCreateStockAdjustment()
   
-  // Mobile view
-  if (isMobile) {
-    return <MobileAdjustmentForm />
-  }
-  
+  // ✅ ALL hooks MUST be declared BEFORE any conditional return
   const form = useForm<AdjustmentFormData>({
     resolver: zodResolver(adjustmentSchema),
     defaultValues: {
@@ -124,6 +120,11 @@ export function CreateAdjustmentPage() {
       : scope === 'specific_items'
       ? selectedItems?.length || 0
       : itemsData?.items.length || 0
+  
+  // ✅ Now safe to check mobile AFTER all hooks
+  if (isMobile) {
+    return <MobileAdjustmentForm />
+  }
   
   const onSubmit = (data: AdjustmentFormData) => {
     // Prepare item IDs based on scope
@@ -445,40 +446,33 @@ export function CreateAdjustmentPage() {
                               />
                             </FormControl>
                             <FormDescription>
-                              Tìm và chọn các items cần kiểm kê
+                              Chỉ các items được chọn sẽ được kiểm kê
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                       
-                      {/* Items table - only if items selected */}
+                      {/* Preview table */}
                       {selectedItems && selectedItems.length > 0 && (
                         <ItemsPreviewTable
                           items={displayItems}
                           isLoading={isLoadingItems}
-                          emptyMessage="Chưa chọn items nào"
+                          emptyMessage="Không có items nào được chọn"
                         />
                       )}
                     </div>
                   )}
-                  
-                  {/* Preview Card */}
-                  <Card className="bg-muted/50">
-                    <CardContent className="pt-6">
-                      <div className="text-center">
-                        <p className="text-sm text-muted-foreground">Sẽ kiểm kê</p>
-                        <p className="text-4xl font-bold">{itemsCount}</p>
-                        <p className="text-sm text-muted-foreground">items</p>
-                        
-                        {scope === 'by_category' && selectedCategories && selectedCategories.length > 0 && (
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Từ {selectedCategories.length} danh mục
-                          </p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                </CardContent>
+              </Card>
+              
+              {/* Items count info */}
+              <Card>
+                <CardContent className="py-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Số lượng items sẽ kiểm kê:</span>
+                    <span className="text-xl font-bold">{itemsCount}</span>
+                  </div>
                 </CardContent>
               </Card>
               
@@ -491,15 +485,7 @@ export function CreateAdjustmentPage() {
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Quay lại
                 </Button>
-                <Button 
-                  type="submit" 
-                  disabled={
-                    isPending || 
-                    itemsCount === 0 ||
-                    (scope === 'by_category' && (!selectedCategories || selectedCategories.length === 0)) ||
-                    (scope === 'specific_items' && (!selectedItems || selectedItems.length === 0))
-                  }
-                >
+                <Button type="submit" disabled={isPending || itemsCount === 0}>
                   {isPending ? 'Đang tạo...' : 'Tạo phiếu kiểm kê'}
                 </Button>
               </div>
