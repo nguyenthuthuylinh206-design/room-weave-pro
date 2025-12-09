@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { toast } from '@/hooks/use-toast'
 import {
   Dialog,
@@ -41,7 +41,7 @@ import type { CategoryFormData } from '@/types/items.types'
 
 export function CategoriesPage() {
   const navigate = useNavigate()
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const { user: authUser } = useAuth()
   const { data: categories, isLoading } = useCategories()
   const createCategory = useCreateCategory()

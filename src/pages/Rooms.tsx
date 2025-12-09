@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRooms, useRoomStats } from '@/hooks/useRooms'
 import { useUser } from '@/hooks/useUser'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { StaffRoomCheckView } from '@/components/rooms/StaffRoomCheckView'
 import { ManagerRoomChecksView } from '@/components/rooms/ManagerRoomChecksView'
 import { MobileRoomsDashboard } from '@/components/rooms/MobileRoomsDashboard'
@@ -18,7 +18,7 @@ import type { RoomStatus } from '@/types/rooms.types'
 export default function RoomsPage() {
   const navigate = useNavigate()
   const { user, role } = useUser()
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const [statusFilter, setStatusFilter] = useState<RoomStatus | 'all'>('all')
   
   // Staff view - show check interface

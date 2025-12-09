@@ -16,7 +16,7 @@ import { ItemSelect } from '@/components/shared/ItemSelect';
 import { ImageUpload } from '@/components/shared/ImageUpload';
 import { SignaturePad } from '@/components/shared/SignaturePad';
 import { useCreateOutboundTransaction } from '@/hooks/useInventoryTransactions';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useBreakpoint } from '@/lib/breakpoints';
 import { MobileOutboundForm } from '@/components/inventory/MobileOutboundForm';
 const outboundSchema = z.object({
   transaction_category: z.enum(['room_assign', 'laundry', 'maintenance', 'disposal', 'other']),
@@ -40,7 +40,7 @@ const outboundSchema = z.object({
 type OutboundFormData = z.infer<typeof outboundSchema>;
 export function OutboundPage() {
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
+  const { isMobile } = useBreakpoint();
 
   // Mobile view
   if (isMobile) {

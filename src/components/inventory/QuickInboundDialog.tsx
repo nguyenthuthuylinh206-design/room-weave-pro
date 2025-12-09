@@ -19,7 +19,7 @@ import { ItemSelect } from '@/components/shared/ItemSelect'
 import { useCreateInboundTransaction } from '@/hooks/useInventoryTransactions'
 import { formatCurrency } from '@/lib/utils'
 import { cn } from '@/lib/utils'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 
 const quickInboundSchema = z.object({
   transaction_category: z.enum(['purchase', 'return', 'other']),
@@ -47,7 +47,7 @@ const categoryOptions = [
 
 export function QuickInboundDialog({ open, onOpenChange }: QuickInboundDialogProps) {
   const navigate = useNavigate()
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const { mutate: createInbound, isPending: isLoading } = useCreateInboundTransaction()
   
   const form = useForm<QuickInboundFormData>({

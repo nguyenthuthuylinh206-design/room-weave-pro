@@ -42,11 +42,11 @@ import {
 import { formatCurrency } from '@/lib/utils'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileBatchDetail } from '@/components/laundry/MobileBatchDetail'
 
 export function BatchDetailPage() {
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data, isLoading } = useLaundryBatch(id)

@@ -31,7 +31,7 @@ import { formatCurrency } from '@/lib/utils'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { SwipeableCard } from '@/components/mobile/SwipeableCard'
 import { MobileAdjustmentCard } from '@/components/inventory/MobileAdjustmentCard'
@@ -76,7 +76,7 @@ const typeLabels = {
 
 export function AdjustmentListPage() {
   const navigate = useNavigate()
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const [status, setStatus] = useState<string>('all')
   const [filters, setFilters] = useState({
     date_from: null as Date | null,

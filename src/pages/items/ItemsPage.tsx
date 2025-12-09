@@ -9,12 +9,12 @@ import { ItemTabs } from '@/components/items/ItemTabs'
 import { BulkActionsBar } from '@/components/items/BulkActionsBar'
 import { MobileItemsPage } from '@/components/items/MobileItemsPage'
 import { useItems } from '@/hooks/useItems'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import type { ItemFilters as IItemFilters } from '@/types/items.types'
 
 export function ItemsPage() {
   const navigate = useNavigate()
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedItems, setSelectedItems] = useState<string[]>([])
   

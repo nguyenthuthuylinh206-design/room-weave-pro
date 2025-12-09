@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileAdjustmentDetail } from '@/components/inventory/MobileAdjustmentDetail'
 import { 
   ArrowLeft, 
@@ -47,7 +47,7 @@ import { vi } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 
 export function AdjustmentDetailPage() {
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()

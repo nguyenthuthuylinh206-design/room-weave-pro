@@ -28,7 +28,7 @@ import { useInventoryTransactions } from '@/hooks/useInventoryTransactions'
 import { formatCurrency } from '@/lib/utils'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { useQueryClient } from '@tanstack/react-query'
 import type { TransactionType } from '@/types/inventory.types'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
@@ -42,7 +42,7 @@ import { useInView } from 'react-intersection-observer'
 
 export function TransactionListPage() {
   const navigate = useNavigate()
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const queryClient = useQueryClient()
   const [selectedTransaction, setSelectedTransaction] = useState<string | null>(null)
   const [filters, setFilters] = useState({

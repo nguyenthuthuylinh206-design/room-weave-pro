@@ -12,11 +12,11 @@ import { differenceInDays } from 'date-fns';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useBreakpoint } from '@/lib/breakpoints';
 import { MobilePODetail } from '@/components/purchase-orders/MobilePODetail';
 
 const PODetailPage: React.FC = () => {
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 

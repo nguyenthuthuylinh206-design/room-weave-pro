@@ -18,7 +18,7 @@ import { useItem, useCreateItem, useUpdateItem } from '@/hooks/useItems'
 import { useItemImages, useAddItemImage, useDeleteItemImage } from '@/hooks/useItemImages'
 import { useCategories } from '@/hooks/useCategories'
 import { useUser } from '@/hooks/useUser'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
@@ -51,7 +51,7 @@ export function ItemFormPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
   const isEdit = !!id
   const copyFrom = location.state?.copyFrom
 

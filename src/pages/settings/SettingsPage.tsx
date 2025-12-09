@@ -8,10 +8,10 @@ import { Separator } from '@/components/ui/separator'
 import { Settings, Bell, Shield, Palette } from 'lucide-react'
 import { SeedDataButton } from '@/components/settings/SeedDataButton'
 import { MobileSettingsPage } from '@/components/settings/MobileSettingsPage'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useBreakpoint } from '@/lib/breakpoints'
 
 export function SettingsPage() {
-  const isMobile = useIsMobile()
+  const { isMobile } = useBreakpoint()
 
   if (isMobile) {
     return <MobileSettingsPage />
