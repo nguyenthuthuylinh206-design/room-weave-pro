@@ -272,7 +272,7 @@ export function MobileInboundForm() {
   const selectedCategory = categories.find(c => c.value === category)
   
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-40">
       {/* Progress Header with Step Icons */}
       <div className="sticky top-0 z-10 bg-background border-b">
         <div className="p-4">
@@ -645,8 +645,8 @@ export function MobileInboundForm() {
         )}
       </AnimatePresence>
       
-      {/* Navigation Footer */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t">
+      {/* Navigation Footer - above bottom nav */}
+      <div className="fixed bottom-16 left-0 right-0 p-4 bg-background border-t z-40">
         {step === 2 && items.length > 0 && (
           <div className="flex justify-between items-center p-3 bg-muted rounded-lg mb-3">
             <span className="text-sm">Tổng giá trị:</span>
