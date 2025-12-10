@@ -550,26 +550,6 @@ export function MobileOutboundForm() {
                             >
                               <Plus className="h-4 w-4" />
                             </TouchButton>
-                            
-                            {/* Quick add buttons */}
-                            <TouchButton 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-9 text-xs"
-                              onClick={() => updateQuantity(index, currentQuantity + 5)}
-                              disabled={currentQuantity + 5 > availableQty}
-                            >
-                              +5
-                            </TouchButton>
-                            <TouchButton 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-9 text-xs"
-                              onClick={() => updateQuantity(index, currentQuantity + 10)}
-                              disabled={currentQuantity + 10 > availableQty}
-                            >
-                              +10
-                            </TouchButton>
                           </div>
                         </div>
                         
