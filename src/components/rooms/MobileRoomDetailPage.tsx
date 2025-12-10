@@ -378,32 +378,36 @@ export function MobileRoomDetailPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Fixed Bottom Actions */}
-      <div className="fixed bottom-16 left-0 right-0 bg-background border-t p-3 safe-area-bottom">
-        <div className="flex gap-2">
+      {/* Compact Action Bar */}
+      <div className="fixed bottom-16 left-0 right-0 bg-background/95 backdrop-blur border-t px-4 py-2 safe-area-bottom">
+        <div className="flex items-center justify-between">
+          <div className="flex gap-1">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => handlePrintItemList(room.room_number, items)}
+              title="In danh sách"
+            >
+              <Printer className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => applyStandards.mutate(id!)}
+              disabled={applyStandards.isPending}
+              title={totalItems === 0 ? 'Áp dụng chuẩn' : 'Đồng bộ chuẩn'}
+            >
+              <RefreshCw className={`h-4 w-4 ${applyStandards.isPending ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
           <Button 
-            variant="outline" 
-            size="icon"
-            onClick={() => handlePrintItemList(room.room_number, items)}
-            title="In danh sách đồ dùng"
-          >
-            <Printer className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="outline" 
-            className="flex-1"
-            onClick={() => applyStandards.mutate(id!)}
-            disabled={applyStandards.isPending}
-          >
-            <RefreshCw className={`mr-2 h-4 w-4 ${applyStandards.isPending ? 'animate-spin' : ''}`} />
-            {totalItems === 0 ? 'Áp dụng chuẩn' : 'Đồng bộ chuẩn'}
-          </Button>
-          <Button 
-            className="flex-1"
+            size="sm"
             onClick={() => navigate(`/rooms/${id}/check`)}
           >
-            <ClipboardCheck className="mr-2 h-4 w-4" />
-            Kiểm tra phòng
+            <ClipboardCheck className="mr-1.5 h-4 w-4" />
+            Kiểm tra
           </Button>
         </div>
       </div>
