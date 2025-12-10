@@ -30,7 +30,7 @@ import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useQueryClient } from '@tanstack/react-query'
-import type { TransactionType } from '@/types/inventory.types'
+import type { TransactionType, InventoryFilters } from '@/types/inventory.types'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { StatScrollContainer, MobileStatCard } from '@/components/mobile/MobileDashboardStats'
 import { MobileFilterSheet } from '@/components/inventory/MobileFilterSheet'
@@ -45,13 +45,13 @@ export function TransactionListPage() {
   const { isMobile } = useBreakpoint()
   const queryClient = useQueryClient()
   const [selectedTransaction, setSelectedTransaction] = useState<string | null>(null)
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<InventoryFilters>({
     search: '',
-    transactionType: '',
-    categoryId: '',
-    createdBy: '',
-    dateFrom: null as Date | null,
-    dateTo: null as Date | null,
+    transaction_type: undefined,
+    category_id: '',
+    created_by: '',
+    date_from: undefined,
+    date_to: undefined,
   })
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
@@ -93,7 +93,7 @@ export function TransactionListPage() {
   }
 
   const handleFilterByCategory = (category: string) => {
-    setFilters({ ...filters, categoryId: category })
+    setFilters({ ...filters, category_id: category })
   }
 
   // Mobile View
@@ -274,22 +274,22 @@ export function TransactionListPage() {
             
             <DateRangePicker
               value={{
-                from: filters.dateFrom,
-                to: filters.dateTo,
+                from: filters.date_from,
+                to: filters.date_to,
               }}
               onChange={(range) => 
                 setFilters({
                   ...filters,
-                  dateFrom: range.from || null,
-                  dateTo: range.to || null,
+                  date_from: range.from || undefined,
+                  date_to: range.to || undefined,
                 })
               }
             />
             
             <Select
-              value={filters.transactionType || "all"}
+              value={filters.transaction_type || "all"}
               onValueChange={(value) => 
-                setFilters({ ...filters, transactionType: value === "all" ? "" : value })
+                setFilters({ ...filters, transaction_type: value === "all" ? undefined : value as any })
               }
             >
               <SelectTrigger>
@@ -304,9 +304,9 @@ export function TransactionListPage() {
             </Select>
             
             <Select
-              value={filters.categoryId || "all"}
+              value={filters.category_id || "all"}
               onValueChange={(value) => 
-                setFilters({ ...filters, categoryId: value === "all" ? "" : value })
+                setFilters({ ...filters, category_id: value === "all" ? "" : value })
               }
             >
               <SelectTrigger>
