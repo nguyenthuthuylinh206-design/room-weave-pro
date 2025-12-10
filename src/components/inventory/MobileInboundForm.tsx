@@ -469,28 +469,6 @@ export function MobileInboundForm() {
                               </TouchButton>
                             </div>
                           </div>
-                          
-                          {/* Quick Add Buttons */}
-                          <div className="flex justify-end gap-2">
-                            <TouchButton 
-                              type="button"
-                              size="sm" 
-                              variant="secondary" 
-                              className="h-8 px-3 text-xs" 
-                              onClick={() => updateQuantity(index, (items[index]?.quantity || 1) + 5)}
-                            >
-                              +5
-                            </TouchButton>
-                            <TouchButton 
-                              type="button"
-                              size="sm" 
-                              variant="secondary" 
-                              className="h-8 px-3 text-xs" 
-                              onClick={() => updateQuantity(index, (items[index]?.quantity || 1) + 10)}
-                            >
-                              +10
-                            </TouchButton>
-                          </div>
                         </div>
                         
                         {/* Unit Price Row */}
