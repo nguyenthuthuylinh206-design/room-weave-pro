@@ -27,7 +27,7 @@ import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileInboundForm } from '@/components/inventory/MobileInboundForm'
 
 const inboundSchema = z.object({
-  transaction_category: z.enum(['purchase', 'return', 'laundry_return', 'other']),
+  transaction_category: z.enum(['purchase', 'return', 'laundry', 'other']),
   from_location: z.string().min(1, 'Vui lòng nhập vị trí'),
   to_location: z.string().min(1, 'Vui lòng nhập vị trí'),
   items: z.array(z.object({
@@ -138,8 +138,8 @@ export function InboundPage() {
                           </label>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="laundry_return" id="laundry_return" />
-                          <label htmlFor="laundry_return" className="cursor-pointer">
+                          <RadioGroupItem value="laundry" id="laundry" />
+                          <label htmlFor="laundry" className="cursor-pointer">
                             🧺 Nhận từ giặt là
                           </label>
                         </div>

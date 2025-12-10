@@ -21,7 +21,19 @@ export const TouchButton = React.forwardRef<HTMLButtonElement, TouchButtonProps>
     }
     onClick?.(e);
   };
-  return;
+  
+  return (
+    <Button
+      ref={ref}
+      className={cn(
+        touchOptimized && 'min-h-[48px] min-w-[48px]',
+        className
+      )}
+      size={size}
+      onClick={handleClick}
+      {...props}
+    />
+  );
 });
 TouchButton.displayName = 'TouchButton';
 interface SwipeableCardProps {
