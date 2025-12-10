@@ -198,9 +198,9 @@ export function TransactionDetailDialog({
                 </div>
                 <p className={cn(
                   'text-xl font-bold',
-                  transaction.quantity > 0 ? 'text-success' : 'text-destructive'
+                  transaction.transaction_type === 'in' ? 'text-success' : 'text-destructive'
                 )}>
-                  {transaction.quantity > 0 ? '+' : ''}{transaction.quantity}
+                  {transaction.transaction_type === 'in' ? '+' : '-'}{transaction.quantity}
                 </p>
               </div>
 
@@ -228,9 +228,9 @@ export function TransactionDetailDialog({
               <div className="flex justify-between text-sm font-semibold">
                 <span>Thay đổi:</span>
                 <span className={cn(
-                  transaction.quantity > 0 ? 'text-success' : 'text-destructive'
+                  transaction.transaction_type === 'in' ? 'text-success' : 'text-destructive'
                 )}>
-                  {transaction.quantity > 0 ? '+' : ''}{transaction.quantity}
+                  {transaction.transaction_type === 'in' ? '+' : '-'}{transaction.quantity}
                 </span>
               </div>
             </div>
@@ -414,9 +414,9 @@ export function TransactionDetailDialog({
                         <p className="text-muted-foreground">Số lượng:</p>
                         <p className={cn(
                           'text-lg font-bold',
-                          transaction.quantity > 0 ? 'text-success' : 'text-destructive'
+                          transaction.transaction_type === 'in' ? 'text-success' : 'text-destructive'
                         )}>
-                          {transaction.quantity > 0 ? '+' : ''}{transaction.quantity}
+                          {transaction.transaction_type === 'in' ? '+' : '-'}{transaction.quantity}
                         </p>
                       </div>
                       <div>
@@ -449,9 +449,9 @@ export function TransactionDetailDialog({
                 <div className="flex items-center justify-center">
                   <div className={cn(
                     'rounded-full p-2',
-                    transaction.quantity > 0 ? 'bg-success/10' : 'bg-destructive/10'
+                    transaction.transaction_type === 'in' ? 'bg-success/10' : 'bg-destructive/10'
                   )}>
-                    {transaction.quantity > 0 ? (
+                    {transaction.transaction_type === 'in' ? (
                       <Download className="h-5 w-5 text-success" />
                     ) : (
                       <Upload className="h-5 w-5 text-destructive" />
@@ -467,9 +467,9 @@ export function TransactionDetailDialog({
                 <p className="text-sm text-muted-foreground">Thay đổi</p>
                 <p className={cn(
                   'text-xl font-bold',
-                  transaction.quantity > 0 ? 'text-success' : 'text-destructive'
+                  transaction.transaction_type === 'in' ? 'text-success' : 'text-destructive'
                 )}>
-                  {transaction.quantity > 0 ? '+' : ''}{transaction.quantity}
+                  {transaction.transaction_type === 'in' ? '+' : '-'}{transaction.quantity}
                 </p>
               </div>
             </div>
