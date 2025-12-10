@@ -391,7 +391,7 @@ export function MobileAdjustmentForm() {
       </AnimatePresence>
       
       {/* Navigation Footer */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t space-y-2">
+      <div className="fixed bottom-16 left-0 right-0 p-4 bg-background border-t space-y-2">
         <div className="flex gap-2">
           {step > 1 && (
             <TouchButton variant="outline" onClick={() => setStep(step - 1)} className="flex-1">
