@@ -2,7 +2,7 @@ import React from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { cn, formatCurrency } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { 
@@ -23,8 +23,6 @@ interface TransactionData {
   item_code?: string
   item_image?: string
   quantity: number
-  unit_price?: number
-  total_value: number
   created_at: string
   created_by_name?: string
   created_by_avatar?: string
@@ -120,17 +118,12 @@ export function MobileTransactionCard({
             </Badge>
           )}
 
-          {/* Quantity & Value */}
-          <div className="flex items-center gap-4 mb-2">
-            <div className="flex items-center gap-1">
-              <Package className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className={cn('text-sm font-medium', config.color)}>
-                {transaction.transaction_type === 'out' ? '-' : '+'}{Math.abs(transaction.quantity)}
-              </span>
-            </div>
-            <div className="text-sm font-semibold">
-              {formatCurrency(transaction.total_value)}
-            </div>
+          {/* Quantity */}
+          <div className="flex items-center gap-1 mb-2">
+            <Package className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className={cn('text-sm font-medium', config.color)}>
+              {transaction.transaction_type === 'out' ? '-' : '+'}{Math.abs(transaction.quantity)}
+            </span>
           </div>
 
           {/* Location */}

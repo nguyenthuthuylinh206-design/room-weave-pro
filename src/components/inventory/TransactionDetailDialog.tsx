@@ -10,7 +10,6 @@ import {
   Calendar,
   FileText,
   Package,
-  DollarSign,
 } from 'lucide-react'
 import { ResponsiveDialog } from '@/components/mobile/ResponsiveDialog'
 import { Button } from '@/components/ui/button'
@@ -39,7 +38,7 @@ import { useState } from 'react'
 import { useInventoryTransaction, useDeleteTransaction } from '@/hooks/useInventoryTransactions'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { cn, formatCurrency } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useBreakpoint } from '@/lib/breakpoints'
 
@@ -190,29 +189,17 @@ export function TransactionDetailDialog({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-muted/50 rounded-lg border">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <Package className="h-4 w-4" />
-                  <span className="text-xs">Số lượng</span>
-                </div>
-                <p className={cn(
-                  'text-xl font-bold',
-                  transaction.transaction_type === 'in' ? 'text-success' : 'text-destructive'
-                )}>
-                  {transaction.transaction_type === 'in' ? '+' : '-'}{transaction.quantity}
-                </p>
+            <div className="p-3 bg-muted/50 rounded-lg border">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <Package className="h-4 w-4" />
+                <span className="text-xs">Số lượng</span>
               </div>
-
-              <div className="p-3 bg-muted/50 rounded-lg border">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <DollarSign className="h-4 w-4" />
-                  <span className="text-xs">Giá trị</span>
-                </div>
-                <p className="text-xl font-bold">
-                  {formatCurrency(transaction.total_value || 0)}
-                </p>
-              </div>
+              <p className={cn(
+                'text-xl font-bold',
+                transaction.transaction_type === 'in' ? 'text-success' : 'text-destructive'
+              )}>
+                {transaction.transaction_type === 'in' ? '+' : '-'}{transaction.quantity}
+              </p>
             </div>
 
             <div className="p-3 bg-muted/30 rounded-lg space-y-2">
@@ -409,7 +396,7 @@ export function TransactionDetailDialog({
                       )}
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-1 gap-4 text-sm">
                       <div>
                         <p className="text-muted-foreground">Số lượng:</p>
                         <p className={cn(
@@ -417,18 +404,6 @@ export function TransactionDetailDialog({
                           transaction.transaction_type === 'in' ? 'text-success' : 'text-destructive'
                         )}>
                           {transaction.transaction_type === 'in' ? '+' : '-'}{transaction.quantity}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Đơn giá:</p>
-                        <p className="text-lg font-bold">
-                          {formatCurrency(transaction.unit_price || 0)}
-                        </p>
-                      </div>
-                      <div className="col-span-2">
-                        <p className="text-muted-foreground">Tổng giá trị:</p>
-                        <p className="text-xl font-bold">
-                          {formatCurrency(transaction.total_value || 0)}
                         </p>
                       </div>
                     </div>

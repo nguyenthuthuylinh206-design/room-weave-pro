@@ -25,7 +25,7 @@ import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import { TransactionTypeBadge } from '@/components/inventory/TransactionTypeBadge'
 import { TransactionDetailDialog } from '@/components/inventory/TransactionDetailDialog'
 import { useInventoryTransactions } from '@/hooks/useInventoryTransactions'
-import { formatCurrency } from '@/lib/utils'
+
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { useBreakpoint } from '@/lib/breakpoints'
@@ -78,14 +78,12 @@ export function TransactionListPage() {
     (acc, t) => {
       if (t.transaction_type === 'in') {
         acc.totalIn += t.quantity
-        acc.valueIn += t.total_value
       } else if (t.transaction_type === 'out') {
         acc.totalOut += Math.abs(t.quantity)
-        acc.valueOut += t.total_value
       }
       return acc
     },
-    { totalIn: 0, totalOut: 0, valueIn: 0, valueOut: 0 }
+    { totalIn: 0, totalOut: 0 }
   )
 
   const handleRefresh = async () => {
@@ -132,13 +130,13 @@ export function TransactionListPage() {
               <MobileStatCard
                 icon={TrendingDown}
                 title="Tổng nhập"
-                value={formatCurrency(summary.valueIn)}
+                value={`+${summary.totalIn}`}
                 variant="success"
               />
               <MobileStatCard
                 icon={TrendingUp}
                 title="Tổng xuất"
-                value={formatCurrency(summary.valueOut)}
+                value={`-${summary.totalOut}`}
                 variant="default"
               />
             </StatScrollContainer>
@@ -171,8 +169,6 @@ export function TransactionListPage() {
                           item_name: transaction.item_name,
                           item_code: transaction.item_code,
                           quantity: transaction.quantity,
-                          unit_price: transaction.unit_price,
-                          total_value: transaction.total_value,
                           created_at: transaction.created_at,
                           created_by_name: transaction.created_by_name,
                           from_location: transaction.from_location,
@@ -240,9 +236,9 @@ export function TransactionListPage() {
             <div className="text-center">
               <p className="text-sm text-muted-foreground">Tổng nhập</p>
               <p className="text-3xl font-bold text-green-600">
-                {formatCurrency(summary.valueIn)}
+                +{summary.totalIn}
               </p>
-              <p className="text-xs text-muted-foreground">+{summary.totalIn} items</p>
+              <p className="text-xs text-muted-foreground">items</p>
             </div>
           </CardContent>
         </Card>
@@ -251,9 +247,9 @@ export function TransactionListPage() {
             <div className="text-center">
               <p className="text-sm text-muted-foreground">Tổng xuất</p>
               <p className="text-3xl font-bold text-blue-600">
-                {formatCurrency(summary.valueOut)}
+                -{summary.totalOut}
               </p>
-              <p className="text-xs text-muted-foreground">-{summary.totalOut} items</p>
+              <p className="text-xs text-muted-foreground">items</p>
             </div>
           </CardContent>
         </Card>
@@ -346,7 +342,6 @@ export function TransactionListPage() {
                   <TableHead>Loại</TableHead>
                   <TableHead>Đồ dùng</TableHead>
                   <TableHead>Số lượng</TableHead>
-                  <TableHead>Giá trị</TableHead>
                   <TableHead>Địa điểm</TableHead>
                   <TableHead>Người tạo</TableHead>
                   <TableHead>Ngày</TableHead>
@@ -381,9 +376,6 @@ export function TransactionListPage() {
                       <span className={transaction.transaction_type === 'in' ? 'text-green-600 font-medium' : 'text-blue-600 font-medium'}>
                         {transaction.transaction_type === 'in' ? '+' : '-'}{Math.abs(transaction.quantity)}
                       </span>
-                    </TableCell>
-                    <TableCell className="font-semibold">
-                      {formatCurrency(transaction.total_value)}
                     </TableCell>
                     <TableCell className="text-xs">
                       {transaction.from_location && <div>Từ: {transaction.from_location}</div>}
