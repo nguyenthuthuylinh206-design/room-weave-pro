@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Home, Package, Shirt, Wrench, LayoutGrid } from 'lucide-react'
+import { Home, Package, DoorOpen, Shirt, Wrench } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { useUser } from '@/hooks/useUser'
@@ -47,12 +47,13 @@ export const MobileBottomNav = () => {
     refetchInterval: 30000
   })
 
+  // Only operations modules
   const NAV_ITEMS: NavItem[] = [
-    { id: 'home', label: 'Trang chủ', icon: Home, path: '/' },
+    { id: 'home', label: 'Home', icon: Home, path: '/' },
     { id: 'inventory', label: 'Kho', icon: Package, path: '/inventory', module: 'inventory,items' },
+    { id: 'rooms', label: 'Phòng', icon: DoorOpen, path: '/rooms', module: 'rooms' },
     { id: 'laundry', label: 'Laundry', icon: Shirt, path: '/laundry', module: 'laundry', badge: true },
     { id: 'maintenance', label: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badge: true },
-    { id: 'more', label: 'Thêm', icon: LayoutGrid, path: '/more' },
   ]
 
   // Check if user has module access
