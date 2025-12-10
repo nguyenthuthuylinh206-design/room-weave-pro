@@ -21,7 +21,7 @@ export function MobileInventoryFAB() {
       label: 'Nhập kho nhanh',
       onClick: () => {
         setIsOpen(false)
-        navigate('/inventory/inbound')
+        navigate('/inventory/inbound/new')
       },
       color: 'bg-blue-500',
     },
@@ -30,7 +30,7 @@ export function MobileInventoryFAB() {
       label: 'Xuất kho nhanh',
       onClick: () => {
         setIsOpen(false)
-        navigate('/inventory/outbound')
+        navigate('/inventory/outbound/new')
       },
       color: 'bg-orange-500',
     },
