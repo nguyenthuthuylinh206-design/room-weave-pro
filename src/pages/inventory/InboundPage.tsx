@@ -240,7 +240,7 @@ export function InboundPage() {
                                     onChange={(value, item) => {
                                       field.onChange(value)
                                       if (item) {
-                                        form.setValue(`items.${index}.unit_price`, item.unit_price)
+                                        form.setValue(`items.${index}.unit_price`, item.unit_price || 0)
                                       }
                                     }}
                                     placeholder="Chọn đồ dùng"
