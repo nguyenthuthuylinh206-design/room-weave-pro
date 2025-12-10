@@ -22,7 +22,6 @@ import { ItemSelect } from '@/components/shared/ItemSelect'
 import { ImageUpload } from '@/components/shared/ImageUpload'
 import { FileUpload } from '@/components/shared/FileUpload'
 import { useCreateInboundTransaction } from '@/hooks/useInventoryTransactions'
-import { formatCurrency } from '@/lib/utils'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileInboundForm } from '@/components/inventory/MobileInboundForm'
 
@@ -33,7 +32,6 @@ const inboundSchema = z.object({
   items: z.array(z.object({
     item_id: z.string().uuid('Vui lòng chọn đồ dùng'),
     quantity: z.number().min(1, 'Số lượng phải > 0'),
-    unit_price: z.number().min(0, 'Đơn giá phải >= 0'),
     notes: z.string().optional(),
   })).min(1, 'Phải có ít nhất 1 đồ dùng'),
   documents: z.array(z.string()).optional(),
@@ -58,7 +56,7 @@ export function InboundPage() {
       transaction_category: 'purchase',
       from_location: '',
       to_location: 'Kho tầng 1',
-      items: [{ item_id: '', quantity: 1, unit_price: 0, notes: '' }],
+      items: [{ item_id: '', quantity: 1, notes: '' }],
       documents: [],
       photos: [],
       notes: '',
@@ -72,7 +70,6 @@ export function InboundPage() {
   
   const items = form.watch('items')
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
-  const totalValue = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0)
   
   // Mobile view - AFTER all hooks
   if (isMobile) {
@@ -202,7 +199,7 @@ export function InboundPage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => append({ item_id: '', quantity: 1, unit_price: 0, notes: '' })}
+                  onClick={() => append({ item_id: '', quantity: 1, notes: '' })}
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Thêm đồ dùng
@@ -227,7 +224,7 @@ export function InboundPage() {
                       )}
                       
                       <div className="space-y-4">
-                        <div className="grid gap-4 md:grid-cols-3">
+                        <div className="grid gap-4 md:grid-cols-2">
                           <FormField
                             control={form.control}
                             name={`items.${index}.item_id`}
@@ -237,12 +234,7 @@ export function InboundPage() {
                                 <FormControl>
                                   <ItemSelect
                                     value={field.value}
-                                    onChange={(value, item) => {
-                                      field.onChange(value)
-                                      if (item) {
-                                        form.setValue(`items.${index}.unit_price`, item.unit_price || 0)
-                                      }
-                                    }}
+                                    onChange={field.onChange}
                                     placeholder="Chọn đồ dùng"
                                   />
                                 </FormControl>
@@ -265,28 +257,6 @@ export function InboundPage() {
                                     onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                                   />
                                 </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name={`items.${index}.unit_price`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Đơn giá *</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    placeholder="0"
-                                    {...field}
-                                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                  />
-                                </FormControl>
-                                <FormDescription>
-                                  Tổng: {formatCurrency(items[index].quantity * items[index].unit_price)}
-                                </FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -391,7 +361,7 @@ export function InboundPage() {
               <CardTitle>Tổng kết</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-lg border p-4 text-center">
                   <p className="text-sm text-muted-foreground">Tổng số loại</p>
                   <p className="text-3xl font-bold">{items.length}</p>
@@ -399,10 +369,6 @@ export function InboundPage() {
                 <div className="rounded-lg border p-4 text-center">
                   <p className="text-sm text-muted-foreground">Tổng số lượng</p>
                   <p className="text-3xl font-bold text-green-600">+{totalQuantity}</p>
-                </div>
-                <div className="rounded-lg border p-4 text-center">
-                  <p className="text-sm text-muted-foreground">Tổng giá trị</p>
-                  <p className="text-3xl font-bold">{formatCurrency(totalValue)}</p>
                 </div>
               </div>
             </CardContent>
