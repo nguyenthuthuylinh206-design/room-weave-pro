@@ -73,7 +73,7 @@ export function MobileRoomDetailPage() {
   const totalMissingQuantity = standardItems.reduce((sum, item) => sum + item.missing_quantity, 0)
 
   return (
-    <PullToRefresh onRefresh={handleRefresh} className="flex flex-col min-h-screen bg-background pb-20">
+    <PullToRefresh onRefresh={handleRefresh} className="flex flex-col min-h-screen bg-background">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b px-4 py-3">
         <div className="flex items-center justify-between">
@@ -149,7 +149,7 @@ export function MobileRoomDetailPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="info" className="flex-1 p-4 space-y-4 m-0">
+        <TabsContent value="info" className="flex-1 p-4 pb-32 space-y-4 m-0">
           {/* Room Info */}
           <Card>
             <CardHeader className="pb-2">
@@ -255,7 +255,7 @@ export function MobileRoomDetailPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="items" className="flex-1 p-4 m-0">
+        <TabsContent value="items" className="flex-1 p-4 pb-32 m-0">
           {totalItems === 0 && (
             <Card className="mb-4 border-amber-200 bg-amber-50 dark:bg-amber-950/20">
               <CardContent className="p-3 flex items-start gap-3">
@@ -274,7 +274,7 @@ export function MobileRoomDetailPage() {
           <RoomItemsList items={items} roomId={id!} />
         </TabsContent>
 
-        <TabsContent value="history" className="flex-1 p-4 m-0">
+        <TabsContent value="history" className="flex-1 p-4 pb-32 m-0">
           <EnhancedCheckHistory checks={checks} />
         </TabsContent>
       </Tabs>
