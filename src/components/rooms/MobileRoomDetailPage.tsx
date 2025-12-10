@@ -158,9 +158,39 @@ export function MobileRoomDetailPage() {
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => navigate(`/rooms/${id}/edit`)}>
-            <Edit className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => handlePrintItemList(room.room_number, items)}
+              title="In danh sách"
+            >
+              <Printer className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => applyStandards.mutate(id!)}
+              disabled={applyStandards.isPending}
+              title={totalItems === 0 ? 'Áp dụng chuẩn' : 'Đồng bộ chuẩn'}
+            >
+              <RefreshCw className={`h-4 w-4 ${applyStandards.isPending ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => navigate(`/rooms/${id}/check`)}
+              title="Kiểm tra phòng"
+            >
+              <ClipboardCheck className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/rooms/${id}/edit`)}>
+              <Edit className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -228,7 +258,7 @@ export function MobileRoomDetailPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="info" className="flex-1 p-4 pb-32 space-y-4 m-0">
+        <TabsContent value="info" className="flex-1 p-4 pb-20 space-y-4 m-0">
           {/* Room Info */}
           <Card>
             <CardHeader className="pb-2">
@@ -354,7 +384,7 @@ export function MobileRoomDetailPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="items" className="flex-1 p-4 pb-32 m-0">
+        <TabsContent value="items" className="flex-1 p-4 pb-20 m-0">
           {totalItems === 0 && (
             <Card className="mb-4 border-amber-200 bg-amber-50 dark:bg-amber-950/20">
               <CardContent className="p-3 flex items-start gap-3">
@@ -364,7 +394,7 @@ export function MobileRoomDetailPage() {
                     Chưa có đồ dùng
                   </p>
                   <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-                    Nhấn "Áp dụng chuẩn" bên dưới để thêm đồ dùng theo chuẩn loại phòng {room.room_type}.
+                    Nhấn nút <RefreshCw className="h-3 w-3 inline" /> ở góc trên để thêm đồ dùng theo chuẩn loại phòng {room.room_type}.
                   </p>
                 </div>
               </CardContent>
@@ -373,44 +403,10 @@ export function MobileRoomDetailPage() {
           <RoomItemsList items={items} roomId={id!} />
         </TabsContent>
 
-        <TabsContent value="history" className="flex-1 p-4 pb-32 m-0">
+        <TabsContent value="history" className="flex-1 p-4 pb-20 m-0">
           <EnhancedCheckHistory checks={checks} />
         </TabsContent>
       </Tabs>
-
-      {/* Compact Action Bar */}
-      <div className="fixed bottom-16 left-0 right-0 bg-background/95 backdrop-blur border-t px-4 py-2 safe-area-bottom">
-        <div className="flex items-center justify-between">
-          <div className="flex gap-1">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="h-9 w-9"
-              onClick={() => handlePrintItemList(room.room_number, items)}
-              title="In danh sách"
-            >
-              <Printer className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="h-9 w-9"
-              onClick={() => applyStandards.mutate(id!)}
-              disabled={applyStandards.isPending}
-              title={totalItems === 0 ? 'Áp dụng chuẩn' : 'Đồng bộ chuẩn'}
-            >
-              <RefreshCw className={`h-4 w-4 ${applyStandards.isPending ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
-          <Button 
-            size="sm"
-            onClick={() => navigate(`/rooms/${id}/check`)}
-          >
-            <ClipboardCheck className="mr-1.5 h-4 w-4" />
-            Kiểm tra
-          </Button>
-        </div>
-      </div>
     </PullToRefresh>
   )
 }
