@@ -254,11 +254,15 @@ export function MobileInboundForm() {
       return
     }
     
+    // Get default price from item data
+    const itemData = itemsData?.items.find(i => i.id === itemId)
+    const defaultPrice = itemData?.unit_price || 0
+    
     triggerHaptic('success')
     append({
       item_id: itemId,
       quantity: 1,
-      unit_price: 0,
+      unit_price: defaultPrice,
       notes: '',
     })
     
@@ -272,12 +276,12 @@ export function MobileInboundForm() {
   
   const updateQuantity = (index: number, quantity: number) => {
     const newQty = Math.max(1, quantity)
-    form.setValue(`items.${index}.quantity`, newQty)
+    form.setValue(`items.${index}.quantity`, newQty, { shouldDirty: true, shouldValidate: true })
     if (quantity >= 1) triggerHaptic('light')
   }
   
   const updatePrice = (index: number, price: number) => {
-    form.setValue(`items.${index}.unit_price`, Math.max(0, price))
+    form.setValue(`items.${index}.unit_price`, Math.max(0, price), { shouldDirty: true, shouldValidate: true })
   }
   
   const selectedCategory = categories.find(c => c.value === category)
