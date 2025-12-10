@@ -2,9 +2,9 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { 
   Home, 
   Package, 
+  DoorOpen,
   Shirt, 
-  Wrench, 
-  Settings
+  Wrench
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/hooks/useUser'
@@ -24,6 +24,7 @@ export const BottomNav = () => {
   const { role } = useUser()
   const { data: modulePermissions } = useUserModulePermissions()
 
+  // Only operations modules
   const tabs: NavTab[] = [
     { 
       id: 'dashboard', 
@@ -39,6 +40,13 @@ export const BottomNav = () => {
       module: 'inventory'
     },
     { 
+      id: 'rooms', 
+      icon: DoorOpen, 
+      label: 'Phòng', 
+      path: '/rooms',
+      module: 'rooms'
+    },
+    { 
       id: 'laundry', 
       icon: Shirt, 
       label: 'Laundry', 
@@ -48,15 +56,9 @@ export const BottomNav = () => {
     { 
       id: 'maintenance', 
       icon: Wrench, 
-      label: 'Maintenance', 
+      label: 'Bảo trì', 
       path: '/maintenance',
       module: 'maintenance'
-    },
-    { 
-      id: 'settings', 
-      icon: Settings, 
-      label: 'Cài đặt', 
-      path: '/settings' 
     }
   ]
 
