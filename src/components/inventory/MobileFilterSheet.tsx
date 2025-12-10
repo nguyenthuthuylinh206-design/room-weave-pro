@@ -20,32 +20,24 @@ import {
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import { Filter, X, Search } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-
-interface FilterValues {
-  search: string
-  transactionType: string
-  categoryId: string
-  createdBy: string
-  dateFrom: Date | null
-  dateTo: Date | null
-}
+import type { InventoryFilters } from '@/types/inventory.types'
 
 interface MobileFilterSheetProps {
-  filters: FilterValues
-  onFiltersChange: (filters: FilterValues) => void
+  filters: InventoryFilters
+  onFiltersChange: (filters: InventoryFilters) => void
 }
 
 export function MobileFilterSheet({ filters, onFiltersChange }: MobileFilterSheetProps) {
   const [open, setOpen] = useState(false)
-  const [localFilters, setLocalFilters] = useState<FilterValues>(filters)
+  const [localFilters, setLocalFilters] = useState<InventoryFilters>(filters)
 
   const activeFiltersCount = [
     localFilters.search,
-    localFilters.transactionType,
-    localFilters.categoryId,
-    localFilters.createdBy,
-    localFilters.dateFrom,
-    localFilters.dateTo
+    localFilters.transaction_type,
+    localFilters.category_id,
+    localFilters.created_by,
+    localFilters.date_from,
+    localFilters.date_to
   ].filter(Boolean).length
 
   const handleApply = () => {
@@ -54,13 +46,13 @@ export function MobileFilterSheet({ filters, onFiltersChange }: MobileFilterShee
   }
 
   const handleReset = () => {
-    const resetFilters = {
+    const resetFilters: InventoryFilters = {
       search: '',
-      transactionType: '',
-      categoryId: '',
-      createdBy: '',
-      dateFrom: null,
-      dateTo: null
+      transaction_type: undefined,
+      category_id: '',
+      created_by: '',
+      date_from: undefined,
+      date_to: undefined
     }
     setLocalFilters(resetFilters)
     onFiltersChange(resetFilters)
@@ -100,7 +92,7 @@ export function MobileFilterSheet({ filters, onFiltersChange }: MobileFilterShee
               <Input
                 id="search"
                 placeholder="Mã giao dịch, tên đồ dùng..."
-                value={localFilters.search}
+                value={localFilters.search || ''}
                 onChange={(e) => setLocalFilters({ ...localFilters, search: e.target.value })}
                 className="pl-9 h-12"
               />
@@ -111,8 +103,8 @@ export function MobileFilterSheet({ filters, onFiltersChange }: MobileFilterShee
           <div className="space-y-2">
             <Label htmlFor="transactionType">Loại giao dịch</Label>
             <Select
-              value={localFilters.transactionType}
-              onValueChange={(value) => setLocalFilters({ ...localFilters, transactionType: value })}
+              value={localFilters.transaction_type || ''}
+              onValueChange={(value) => setLocalFilters({ ...localFilters, transaction_type: value as any || undefined })}
             >
               <SelectTrigger id="transactionType" className="h-12">
                 <SelectValue placeholder="Tất cả" />
@@ -130,8 +122,8 @@ export function MobileFilterSheet({ filters, onFiltersChange }: MobileFilterShee
           <div className="space-y-2">
             <Label htmlFor="category">Danh mục</Label>
             <Select
-              value={localFilters.categoryId}
-              onValueChange={(value) => setLocalFilters({ ...localFilters, categoryId: value })}
+              value={localFilters.category_id || ''}
+              onValueChange={(value) => setLocalFilters({ ...localFilters, category_id: value })}
             >
               <SelectTrigger id="category" className="h-12">
                 <SelectValue placeholder="Tất cả" />
@@ -154,14 +146,14 @@ export function MobileFilterSheet({ filters, onFiltersChange }: MobileFilterShee
             <Label>Khoảng thời gian</Label>
             <DateRangePicker
               value={{
-                from: localFilters.dateFrom,
-                to: localFilters.dateTo,
+                from: localFilters.date_from,
+                to: localFilters.date_to,
               }}
               onChange={(range) => {
                 setLocalFilters({
                   ...localFilters,
-                  dateFrom: range?.from || null,
-                  dateTo: range?.to || null
+                  date_from: range?.from || undefined,
+                  date_to: range?.to || undefined
                 })
               }}
             />
