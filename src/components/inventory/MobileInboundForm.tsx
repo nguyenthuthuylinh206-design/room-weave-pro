@@ -13,7 +13,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { ImageUpload } from '@/components/shared/ImageUpload';
 import { useCreateInboundTransaction } from '@/hooks/useInventoryTransactions';
 import { useItems } from '@/hooks/useItems';
-import { formatCurrency, cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { triggerHaptic } from '@/lib/haptics';
@@ -26,7 +26,6 @@ const inboundSchema = z.object({
   items: z.array(z.object({
     item_id: z.string().uuid('Vui lòng chọn đồ dùng'),
     quantity: z.number().min(1, 'Số lượng phải > 0'),
-    unit_price: z.number().min(0, 'Đơn giá phải >= 0'),
     notes: z.string().optional()
   })).min(1, 'Phải có ít nhất 1 đồ dùng'),
   documents: z.array(z.string()).optional(),
@@ -109,7 +108,6 @@ export function MobileInboundForm() {
   const from_location = form.watch('from_location');
   const to_location = form.watch('to_location');
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalValue = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
 
   // Load draft on mount
   useEffect(() => {
@@ -253,14 +251,10 @@ export function MobileInboundForm() {
       return;
     }
 
-    // Get default price from item data
-    const itemData = itemsData?.items.find(i => i.id === itemId);
-    const defaultPrice = itemData?.unit_price || 0;
     triggerHaptic('success');
     append({
       item_id: itemId,
       quantity: 1,
-      unit_price: defaultPrice,
       notes: ''
     });
     setShowItemSelector(false);
@@ -276,12 +270,6 @@ export function MobileInboundForm() {
       shouldValidate: true
     });
     if (quantity >= 1) triggerHaptic('light');
-  };
-  const updatePrice = (index: number, price: number) => {
-    form.setValue(`items.${index}.unit_price`, Math.max(0, price), {
-      shouldDirty: true,
-      shouldValidate: true
-    });
   };
   const selectedCategory = categories.find(c => c.value === category);
   return <div className="min-h-screen bg-background pb-40">
@@ -425,9 +413,6 @@ export function MobileInboundForm() {
                           <div className="flex-1 min-w-0">
                             <p className="font-medium leading-tight">{item?.name || 'Đồ dùng'}</p>
                             <p className="text-sm text-muted-foreground">{item?.code}</p>
-                            {item?.unit_price && <p className="text-xs text-muted-foreground mt-1">
-                                Giá gốc: {formatCurrency(item.unit_price)}
-                              </p>}
                           </div>
                           <TouchButton variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive shrink-0" onClick={() => handleRemoveItem(index)}>
                             <X className="h-4 w-4" />
@@ -470,31 +455,6 @@ export function MobileInboundForm() {
                             </div>
                           </div>
                         </div>
-                        
-                        {/* Unit Price Row */}
-                        <div className="flex items-center justify-between gap-3">
-                          <Label className="text-sm text-muted-foreground">Đơn giá:</Label>
-                          <div className="flex items-center gap-2">
-                            <Input 
-                              type="number" 
-                              value={items[index]?.unit_price || ''} 
-                              onChange={e => updatePrice(index, parseFloat(e.target.value) || 0)} 
-                              className="h-10 w-32 text-right" 
-                              placeholder="0" 
-                            />
-                            <span className="text-sm text-muted-foreground">đ</span>
-                          </div>
-                        </div>
-                        
-                        {/* Item Total */}
-                        {(items[index]?.unit_price || 0) > 0 && (
-                          <div className="flex items-center justify-between mt-3 pt-3 border-t">
-                            <span className="text-sm text-muted-foreground">Thành tiền:</span>
-                            <span className="font-semibold text-primary">
-                              {formatCurrency((items[index]?.quantity || 0) * (items[index]?.unit_price || 0))}
-                            </span>
-                          </div>
-                        )}
                       </Card>;
             })}
                 </div>
@@ -510,15 +470,9 @@ export function MobileInboundForm() {
                 {/* Summary */}
                 <div className="px-4">
                   <Card className="p-4 bg-primary/5 border-primary/20">
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Tổng số lượng:</span>
-                        <span className="font-medium">{totalQuantity}</span>
-                      </div>
-                      <div className="flex justify-between text-lg">
-                        <span className="font-semibold">Tổng giá trị:</span>
-                        <span className="font-bold text-primary">{formatCurrency(totalValue)}</span>
-                      </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Tổng số lượng:</span>
+                      <span className="font-semibold">{totalQuantity}</span>
                     </div>
                   </Card>
                 </div>
@@ -579,10 +533,6 @@ export function MobileInboundForm() {
                   <span className="text-muted-foreground">Tổng số lượng:</span>
                   <span className="font-medium">{totalQuantity}</span>
                 </div>
-                <div className="flex justify-between text-lg pt-2 border-t">
-                  <span className="font-semibold">Tổng giá trị:</span>
-                  <span className="font-bold text-primary">{formatCurrency(totalValue)}</span>
-                </div>
               </div>
             </Card>
           </motion.div>}
@@ -590,11 +540,6 @@ export function MobileInboundForm() {
       
       {/* Navigation Footer - above bottom nav */}
       <div className="fixed bottom-16 left-0 right-0 p-4 bg-background border-t z-40">
-        {step === 2 && items.length > 0 && <div className="flex justify-between items-center p-3 bg-muted rounded-lg mb-3">
-            <span className="text-sm">Tổng giá trị:</span>
-            <span className="font-bold text-primary">{formatCurrency(totalValue)}</span>
-          </div>}
-        
         <div className="flex gap-2">
           {step > 1 && <TouchButton variant="outline" onClick={() => {
           triggerHaptic('light');
