@@ -12,6 +12,9 @@ import {
   Bed,
   Users,
   Maximize2,
+  Eye,
+  Printer,
+  User,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,11 +24,75 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
 import { RoomItemsList } from '@/components/rooms/RoomItemsList'
 import { EnhancedCheckHistory } from '@/components/rooms/EnhancedCheckHistory'
+import { RoomHealthScore } from '@/components/rooms/RoomHealthScore'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { useRoom } from '@/hooks/useRooms'
 import { useApplyStandards } from '@/hooks/useRoomStandards'
 import { formatCurrency } from '@/lib/utils'
-import type { RoomStatus } from '@/types/rooms.types'
+import type { RoomStatus, CheckType } from '@/types/rooms.types'
+
+const checkTypeLabels: Record<CheckType, string> = {
+  daily: 'Hàng ngày',
+  checkin: 'Check-in',
+  checkout: 'Check-out',
+  maintenance: 'Bảo trì',
+}
+
+const handlePrintItemList = (roomNumber: string | undefined, items: any[]) => {
+  const printWindow = window.open('', '_blank')
+  if (!printWindow) return
+  
+  const standardItems = items.filter(item => item.has_standard)
+  
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Danh sách đồ dùng - Phòng ${roomNumber}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          h1 { font-size: 18px; margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f5f5f5; }
+          .missing { color: red; }
+          .complete { color: green; }
+        </style>
+      </head>
+      <body>
+        <h1>Danh sách đồ dùng - Phòng ${roomNumber}</h1>
+        <table>
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>Tên đồ dùng</th>
+              <th>Cần có</th>
+              <th>Hiện có</th>
+              <th>Còn thiếu</th>
+              <th>Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${standardItems.map((item, idx) => `
+              <tr>
+                <td>${idx + 1}</td>
+                <td>${item.item_name}</td>
+                <td>${item.standard_quantity}</td>
+                <td>${item.current_quantity}</td>
+                <td class="${item.missing_quantity > 0 ? 'missing' : ''}">${item.missing_quantity}</td>
+                <td class="${item.missing_quantity > 0 ? 'missing' : 'complete'}">
+                  ${item.missing_quantity > 0 ? 'Thiếu' : 'Đủ'}
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <p style="margin-top: 20px; font-size: 12px;">In ngày: ${new Date().toLocaleString('vi-VN')}</p>
+      </body>
+    </html>
+  `)
+  printWindow.document.close()
+  printWindow.print()
+}
 
 export function MobileRoomDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -116,9 +183,21 @@ export function MobileRoomDetailPage() {
             <CardContent className="p-3 text-center">
               <p className="text-2xl font-bold text-red-600">{missingCount}</p>
               <p className="text-xs text-muted-foreground">Thiếu</p>
+              {totalMissingQuantity > 0 && (
+                <p className="text-[10px] text-red-500">({totalMissingQuantity} món)</p>
+              )}
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* Health Score */}
+      <div className="px-4 pb-3">
+        <RoomHealthScore 
+          checks={checks} 
+          totalItems={totalItems} 
+          missingItems={missingCount}
+        />
       </div>
 
       {/* Tabs */}
@@ -185,6 +264,13 @@ export function MobileRoomDetailPage() {
                     <p className="font-medium">{room.area_sqm ? `${room.area_sqm} m²` : 'N/A'}</p>
                   </div>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Hướng nhìn</p>
+                    <p className="font-medium capitalize">{room.view_type || 'N/A'}</p>
+                  </div>
+                </div>
               </div>
 
               {room.base_price && (
@@ -222,9 +308,19 @@ export function MobileRoomDetailPage() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">Ảnh kiểm tra gần nhất</CardTitle>
-                  <Badge variant="outline" className="text-xs">
-                    {new Date(checks[0].checked_at).toLocaleDateString('vi-VN')}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs">
+                      {checkTypeLabels[checks[0].check_type as CheckType] || checks[0].check_type}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {new Date(checks[0].checked_at).toLocaleDateString('vi-VN')}
+                    </Badge>
+                  </div>
+                </div>
+                {/* Checked by info */}
+                <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                  <User className="h-3 w-3" />
+                  <span>Kiểm tra bởi: {checks[0].checked_by_name || 'N/A'}</span>
                 </div>
               </CardHeader>
               <CardContent>
@@ -235,13 +331,16 @@ export function MobileRoomDetailPage() {
                       href={photo}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="relative aspect-square rounded-lg overflow-hidden border"
+                      className="relative aspect-square rounded-lg overflow-hidden border group"
                     >
                       <img 
                         src={photo} 
                         alt={`Ảnh ${idx + 1}`}
                         className="w-full h-full object-cover"
                       />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-active:opacity-100 flex items-center justify-center transition-opacity">
+                        <span className="text-white text-xs font-medium">Xem full</span>
+                      </div>
                     </a>
                   ))}
                 </div>
@@ -282,6 +381,14 @@ export function MobileRoomDetailPage() {
       {/* Fixed Bottom Actions */}
       <div className="fixed bottom-16 left-0 right-0 bg-background border-t p-3 safe-area-bottom">
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={() => handlePrintItemList(room.room_number, items)}
+            title="In danh sách đồ dùng"
+          >
+            <Printer className="h-4 w-4" />
+          </Button>
           <Button 
             variant="outline" 
             className="flex-1"
