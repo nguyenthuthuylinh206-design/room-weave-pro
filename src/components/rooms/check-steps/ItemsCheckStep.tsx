@@ -333,82 +333,87 @@ export function ItemsCheckStep({ form, items, roomId, hotelId, onQuantitiesChang
             
             return (
               <Card key={item.item_id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-4">
-                    {/* Item thumbnail */}
-                    {item.item_thumbnail && (
-                      <img 
-                        src={item.item_thumbnail} 
-                        alt={item.item_name}
-                        className="w-16 h-16 object-cover rounded-lg"
-                      />
-                    )}
-                    
-                    {/* Item details */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div>
-                          <h4 className="font-medium truncate">{item.item_name}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {item.item_code}
-                          </p>
-                        </div>
-                        {item.category_name && (
-                          <Badge variant="outline" className="shrink-0">
-                            {item.category_name}
-                          </Badge>
-                        )}
-                      </div>
+                <CardContent className="p-3 sm:p-4">
+                  {/* Mobile: Stack layout, Desktop: Horizontal */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    {/* Top row on mobile: thumbnail + name + category */}
+                    <div className="flex items-start gap-3">
+                      {/* Item thumbnail */}
+                      {item.item_thumbnail && (
+                        <img 
+                          src={item.item_thumbnail} 
+                          alt={item.item_name}
+                          className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg shrink-0"
+                        />
+                      )}
                       
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <div className="text-sm text-muted-foreground">
-                          Chuẩn: {item.standard_quantity}
+                      {/* Item name & code */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h4 className="font-medium text-sm sm:text-base line-clamp-2">{item.item_name}</h4>
+                            <p className="text-xs text-muted-foreground">{item.item_code}</p>
+                          </div>
+                          {item.category_name && (
+                            <Badge variant="outline" className="shrink-0 text-xs">
+                              {item.category_name}
+                            </Badge>
+                          )}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">Thực tế:</span>
+                      </div>
+                    </div>
+                    
+                    {/* Quantity controls & status */}
+                    <div className="flex items-center justify-between gap-2 sm:flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          Chuẩn: {item.standard_quantity}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-medium">Thực tế:</span>
                           <Input
                             type="number"
                             min="0"
                             value={actualQty}
                             onChange={(e) => handleQuantityChange(item.item_id, e.target.value)}
-                            className="w-20 h-8 text-center"
+                            className="w-16 h-8 text-center text-sm"
                           />
                         </div>
                         {shortage > 0 ? (
-                          <Badge variant="destructive" className="shrink-0">
+                          <Badge variant="destructive" className="shrink-0 text-xs">
                             Thiếu {shortage}
                           </Badge>
                         ) : actualQty > item.standard_quantity ? (
-                          <Badge variant="secondary" className="shrink-0 bg-blue-500 text-white">
+                          <Badge variant="secondary" className="shrink-0 text-xs bg-blue-500 text-white">
                             Dư {actualQty - item.standard_quantity}
                           </Badge>
                         ) : actualQty === item.standard_quantity ? (
-                          <Badge variant="default" className="shrink-0 bg-success">
+                          <Badge variant="default" className="shrink-0 text-xs bg-success">
                             <CheckCircle2 className="mr-1 h-3 w-3" />
                             Đủ
                           </Badge>
                         ) : null}
                         {wasReplenished && (
-                          <Badge variant="secondary" className="shrink-0">
+                          <Badge variant="secondary" className="shrink-0 text-xs">
                             Đã bổ sung
                           </Badge>
                         )}
                       </div>
+                      
+                      {/* Action Button */}
+                      {shortage > 0 && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => handleReplenishFromStock(item)}
+                          disabled={isReplenishing}
+                          className="shrink-0 text-xs h-8"
+                        >
+                          <Plus className="mr-1 h-3 w-3" />
+                          {isReplenishing ? '...' : 'Bổ sung'}
+                        </Button>
+                      )}
                     </div>
-                    
-                    {/* Action Button */}
-                    {shortage > 0 && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={() => handleReplenishFromStock(item)}
-                        disabled={isReplenishing}
-                        className="shrink-0"
-                      >
-                        <Plus className="mr-1 h-4 w-4" />
-                        {isReplenishing ? 'Đang bổ sung...' : 'Bổ sung'}
-                      </Button>
-                    )}
                   </div>
                 </CardContent>
               </Card>
