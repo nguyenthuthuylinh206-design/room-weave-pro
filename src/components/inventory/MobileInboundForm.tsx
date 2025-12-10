@@ -435,24 +435,59 @@ export function MobileInboundForm() {
                         </div>
                         
                         {/* Quantity Row */}
-                        <div className="flex items-center justify-between gap-3 mb-3">
-                          <Label className="text-sm text-muted-foreground shrink-0">Số lượng:</Label>
-                          <div className="flex items-center gap-2">
-                            <TouchButton variant="outline" size="icon" className="h-9 w-9" onClick={() => updateQuantity(index, field.quantity - 1)} disabled={field.quantity <= 1}>
-                              <Minus className="h-4 w-4" />
-                            </TouchButton>
-                            
-                            <Input type="number" value={field.quantity} onChange={e => updateQuantity(index, parseInt(e.target.value) || 1)} min={1} className="h-9 w-16 text-center font-semibold mx-[19px]" />
-                            
-                            <TouchButton variant="outline" size="icon" className="h-9 w-9" onClick={() => updateQuantity(index, field.quantity + 1)}>
-                              <Plus className="h-4 w-4" />
-                            </TouchButton>
-                            
-                            {/* Quick Add */}
-                            <TouchButton size="sm" variant="secondary" className="h-9 px-2 text-xs" onClick={() => updateQuantity(index, field.quantity + 5)}>
+                        <div className="space-y-2 mb-3">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm text-muted-foreground">Số lượng:</Label>
+                            <div className="flex items-center gap-2">
+                              <TouchButton 
+                                type="button"
+                                variant="outline" 
+                                size="icon" 
+                                className="h-10 w-10" 
+                                onClick={() => updateQuantity(index, (items[index]?.quantity || 1) - 1)} 
+                                disabled={(items[index]?.quantity || 1) <= 1}
+                              >
+                                <Minus className="h-4 w-4" />
+                              </TouchButton>
+                              
+                              <Input 
+                                type="number" 
+                                value={items[index]?.quantity || 1} 
+                                onChange={e => updateQuantity(index, parseInt(e.target.value) || 1)} 
+                                min={1} 
+                                className="h-10 w-16 text-center font-semibold" 
+                              />
+                              
+                              <TouchButton 
+                                type="button"
+                                variant="outline" 
+                                size="icon" 
+                                className="h-10 w-10" 
+                                onClick={() => updateQuantity(index, (items[index]?.quantity || 1) + 1)}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </TouchButton>
+                            </div>
+                          </div>
+                          
+                          {/* Quick Add Buttons */}
+                          <div className="flex justify-end gap-2">
+                            <TouchButton 
+                              type="button"
+                              size="sm" 
+                              variant="secondary" 
+                              className="h-8 px-3 text-xs" 
+                              onClick={() => updateQuantity(index, (items[index]?.quantity || 1) + 5)}
+                            >
                               +5
                             </TouchButton>
-                            <TouchButton size="sm" variant="secondary" className="h-9 px-2 text-xs" onClick={() => updateQuantity(index, field.quantity + 10)}>
+                            <TouchButton 
+                              type="button"
+                              size="sm" 
+                              variant="secondary" 
+                              className="h-8 px-3 text-xs" 
+                              onClick={() => updateQuantity(index, (items[index]?.quantity || 1) + 10)}
+                            >
                               +10
                             </TouchButton>
                           </div>
@@ -460,20 +495,28 @@ export function MobileInboundForm() {
                         
                         {/* Unit Price Row */}
                         <div className="flex items-center justify-between gap-3">
-                          <Label className="text-sm text-muted-foreground shrink-0">Đơn giá:</Label>
+                          <Label className="text-sm text-muted-foreground">Đơn giá:</Label>
                           <div className="flex items-center gap-2">
-                            <Input type="number" value={field.unit_price || ''} onChange={e => updatePrice(index, parseFloat(e.target.value) || 0)} className="h-9 w-32 text-right" placeholder="0" />
+                            <Input 
+                              type="number" 
+                              value={items[index]?.unit_price || ''} 
+                              onChange={e => updatePrice(index, parseFloat(e.target.value) || 0)} 
+                              className="h-10 w-32 text-right" 
+                              placeholder="0" 
+                            />
                             <span className="text-sm text-muted-foreground">đ</span>
                           </div>
                         </div>
                         
                         {/* Item Total */}
-                        {field.unit_price > 0 && <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                        {(items[index]?.unit_price || 0) > 0 && (
+                          <div className="flex items-center justify-between mt-3 pt-3 border-t">
                             <span className="text-sm text-muted-foreground">Thành tiền:</span>
                             <span className="font-semibold text-primary">
-                              {formatCurrency(field.quantity * field.unit_price)}
+                              {formatCurrency((items[index]?.quantity || 0) * (items[index]?.unit_price || 0))}
                             </span>
-                          </div>}
+                          </div>
+                        )}
                       </Card>;
             })}
                 </div>
