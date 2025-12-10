@@ -459,93 +459,114 @@ export function MobileInboundForm() {
                     const item = itemsData?.items.find(i => i.id === field.item_id)
                     const primaryImage = item?.item_images?.[0]?.url
                     return (
-                      <Card key={field.id} className="p-3">
-                        <div className="flex gap-3">
+                      <Card key={field.id} className="p-4">
+                        {/* Header: Image + Name + Remove button */}
+                        <div className="flex items-start gap-3 mb-3">
                           {primaryImage ? (
                             <img 
                               src={primaryImage} 
                               alt={item?.name}
-                              className="w-16 h-16 rounded object-cover" 
+                              className="w-14 h-14 rounded-lg object-cover shrink-0" 
                             />
                           ) : (
-                            <div className="w-16 h-16 rounded bg-muted flex items-center justify-center">
+                            <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
                               <Package className="h-6 w-6 text-muted-foreground" />
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">{item?.name || 'Đồ dùng'}</p>
+                            <p className="font-medium leading-tight">{item?.name || 'Đồ dùng'}</p>
                             <p className="text-sm text-muted-foreground">{item?.code}</p>
-                            
-                            {/* Quantity Stepper */}
-                            <div className="flex items-center gap-2 mt-2">
-                              <div className="flex items-center gap-1">
-                                <TouchButton 
-                                  variant="outline" 
-                                  size="icon"
-                                  className="h-10 w-10"
-                                  onClick={() => updateQuantity(index, field.quantity - 1)}
-                                  disabled={field.quantity <= 1}
-                                >
-                                  <Minus className="h-4 w-4" />
-                                </TouchButton>
-                                
-                                <Input 
-                                  type="number"
-                                  value={field.quantity}
-                                  onChange={(e) => updateQuantity(index, parseInt(e.target.value) || 1)}
-                                  className="h-10 w-14 text-center font-bold"
-                                  min={1}
-                                />
-                                
-                                <TouchButton 
-                                  variant="outline" 
-                                  size="icon"
-                                  className="h-10 w-10"
-                                  onClick={() => updateQuantity(index, field.quantity + 1)}
-                                >
-                                  <Plus className="h-4 w-4" />
-                                </TouchButton>
-                              </div>
-                              
-                              {/* Quick Add Buttons */}
-                              <div className="flex gap-1">
-                                {[5, 10].map(n => (
-                                  <TouchButton 
-                                    key={n}
-                                    size="sm" 
-                                    variant="ghost"
-                                    className="h-8 px-2 text-xs"
-                                    onClick={() => updateQuantity(index, field.quantity + n)}
-                                  >
-                                    +{n}
-                                  </TouchButton>
-                                ))}
-                              </div>
-                            </div>
-                            
-                            {/* Unit Price */}
-                            <div className="mt-2">
-                              <div className="flex items-center gap-2">
-                                <Label className="text-xs whitespace-nowrap">Đơn giá:</Label>
-                                <Input 
-                                  type="number"
-                                  value={field.unit_price}
-                                  onChange={(e) => updatePrice(index, parseFloat(e.target.value) || 0)}
-                                  className="h-8 flex-1"
-                                  placeholder="0"
-                                />
-                              </div>
-                            </div>
+                            {item?.unit_price && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Giá gốc: {formatCurrency(item.unit_price)}
+                              </p>
+                            )}
                           </div>
                           <TouchButton 
                             variant="ghost" 
                             size="icon"
-                            className="h-10 w-10 text-destructive hover:text-destructive"
+                            className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
                             onClick={() => handleRemoveItem(index)}
                           >
-                            <X className="h-5 w-5" />
+                            <X className="h-4 w-4" />
                           </TouchButton>
                         </div>
+                        
+                        {/* Quantity Row */}
+                        <div className="flex items-center justify-between gap-3 mb-3">
+                          <Label className="text-sm text-muted-foreground shrink-0">Số lượng:</Label>
+                          <div className="flex items-center gap-2">
+                            <TouchButton 
+                              variant="outline" 
+                              size="icon"
+                              className="h-9 w-9"
+                              onClick={() => updateQuantity(index, field.quantity - 1)}
+                              disabled={field.quantity <= 1}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </TouchButton>
+                            
+                            <Input 
+                              type="number"
+                              value={field.quantity}
+                              onChange={(e) => updateQuantity(index, parseInt(e.target.value) || 1)}
+                              className="h-9 w-16 text-center font-semibold"
+                              min={1}
+                            />
+                            
+                            <TouchButton 
+                              variant="outline" 
+                              size="icon"
+                              className="h-9 w-9"
+                              onClick={() => updateQuantity(index, field.quantity + 1)}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </TouchButton>
+                            
+                            {/* Quick Add */}
+                            <TouchButton 
+                              size="sm" 
+                              variant="secondary"
+                              className="h-9 px-2 text-xs"
+                              onClick={() => updateQuantity(index, field.quantity + 5)}
+                            >
+                              +5
+                            </TouchButton>
+                            <TouchButton 
+                              size="sm" 
+                              variant="secondary"
+                              className="h-9 px-2 text-xs"
+                              onClick={() => updateQuantity(index, field.quantity + 10)}
+                            >
+                              +10
+                            </TouchButton>
+                          </div>
+                        </div>
+                        
+                        {/* Unit Price Row */}
+                        <div className="flex items-center justify-between gap-3">
+                          <Label className="text-sm text-muted-foreground shrink-0">Đơn giá:</Label>
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              type="number"
+                              value={field.unit_price || ''}
+                              onChange={(e) => updatePrice(index, parseFloat(e.target.value) || 0)}
+                              className="h-9 w-32 text-right"
+                              placeholder="0"
+                            />
+                            <span className="text-sm text-muted-foreground">đ</span>
+                          </div>
+                        </div>
+                        
+                        {/* Item Total */}
+                        {field.unit_price > 0 && (
+                          <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                            <span className="text-sm text-muted-foreground">Thành tiền:</span>
+                            <span className="font-semibold text-primary">
+                              {formatCurrency(field.quantity * field.unit_price)}
+                            </span>
+                          </div>
+                        )}
                       </Card>
                     )
                   })}
