@@ -276,10 +276,12 @@ export const MobileItemDetailPage = () => {
                         {transaction.transaction_code}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(transaction.created_at), {
-                          addSuffix: true,
-                          locale: vi,
-                        })}
+                        {transaction.created_at && !isNaN(new Date(transaction.created_at).getTime())
+                          ? formatDistanceToNow(new Date(transaction.created_at), {
+                              addSuffix: true,
+                              locale: vi,
+                            })
+                          : 'Không xác định'}
                       </p>
                     </div>
                     {transaction.from_location && (
