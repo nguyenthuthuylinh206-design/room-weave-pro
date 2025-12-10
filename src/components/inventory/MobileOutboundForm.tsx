@@ -475,11 +475,13 @@ export function MobileOutboundForm() {
                 {/* Selected Items */}
                 <div className="px-4 space-y-2">
                   <h3 className="font-semibold">Đã chọn ({fields.length})</h3>
-                  {fields.map((field, index) => {
+                {fields.map((field, index) => {
                     const item = itemsData?.items.find(i => i.id === field.item_id)
                     const primaryImage = item?.item_images?.[0]?.url
-                    const hasError = field.quantity > field.available_quantity
-                    const isLowStock = field.available_quantity - field.quantity < 10
+                    const currentQuantity = items[index]?.quantity || field.quantity
+                    const availableQty = items[index]?.available_quantity || field.available_quantity
+                    const hasError = currentQuantity > availableQty
+                    const isLowStock = availableQty - currentQuantity < 10
                     
                     return (
                       <Card key={field.id} className={cn("p-4", hasError && "border-destructive")}>
@@ -501,7 +503,7 @@ export function MobileOutboundForm() {
                             <p className="text-sm text-muted-foreground">{item?.code}</p>
                             <p className="text-xs text-muted-foreground mt-1">
                               Tồn: <span className={hasError ? 'text-destructive font-semibold' : ''}>
-                                {field.available_quantity} {item?.unit}
+                                {availableQty} {item?.unit}
                               </span>
                             </p>
                           </div>
@@ -523,28 +525,28 @@ export function MobileOutboundForm() {
                               variant="outline" 
                               size="icon" 
                               className="h-9 w-9"
-                              onClick={() => updateQuantity(index, field.quantity - 1)}
-                              disabled={field.quantity <= 1}
+                              onClick={() => updateQuantity(index, currentQuantity - 1)}
+                              disabled={currentQuantity <= 1}
                             >
                               <Minus className="h-4 w-4" />
                             </TouchButton>
                             <Input
                               type="number"
-                              value={field.quantity}
+                              value={currentQuantity}
                               onChange={(e) => updateQuantity(index, parseInt(e.target.value) || 1)}
                               className={cn(
                                 "h-9 w-16 text-center",
                                 hasError && "border-destructive"
                               )}
                               min={1}
-                              max={field.available_quantity}
+                              max={availableQty}
                             />
                             <TouchButton 
                               variant="outline" 
                               size="icon" 
                               className="h-9 w-9"
-                              onClick={() => updateQuantity(index, field.quantity + 1)}
-                              disabled={field.quantity >= field.available_quantity}
+                              onClick={() => updateQuantity(index, currentQuantity + 1)}
+                              disabled={currentQuantity >= availableQty}
                             >
                               <Plus className="h-4 w-4" />
                             </TouchButton>
@@ -554,8 +556,8 @@ export function MobileOutboundForm() {
                               variant="ghost" 
                               size="sm" 
                               className="h-9 text-xs"
-                              onClick={() => updateQuantity(index, field.quantity + 5)}
-                              disabled={field.quantity + 5 > field.available_quantity}
+                              onClick={() => updateQuantity(index, currentQuantity + 5)}
+                              disabled={currentQuantity + 5 > availableQty}
                             >
                               +5
                             </TouchButton>
@@ -563,8 +565,8 @@ export function MobileOutboundForm() {
                               variant="ghost" 
                               size="sm" 
                               className="h-9 text-xs"
-                              onClick={() => updateQuantity(index, field.quantity + 10)}
-                              disabled={field.quantity + 10 > field.available_quantity}
+                              onClick={() => updateQuantity(index, currentQuantity + 10)}
+                              disabled={currentQuantity + 10 > availableQty}
                             >
                               +10
                             </TouchButton>
@@ -574,12 +576,12 @@ export function MobileOutboundForm() {
                         {hasError && (
                           <p className="text-xs text-destructive mt-2 flex items-center gap-1">
                             <AlertCircle className="h-3 w-3" />
-                            Vượt quá tồn kho ({field.available_quantity})
+                            Vượt quá tồn kho ({availableQty})
                           </p>
                         )}
                         {!hasError && isLowStock && (
                           <p className="text-xs text-yellow-600 mt-2">
-                            Còn lại sau xuất: {field.available_quantity - field.quantity}
+                            Còn lại sau xuất: {availableQty - currentQuantity}
                           </p>
                         )}
                       </Card>
