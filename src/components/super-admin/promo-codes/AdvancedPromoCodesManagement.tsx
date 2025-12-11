@@ -40,19 +40,19 @@ export function AdvancedPromoCodesManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Promotional Codes</h1>
+          <h1 className="text-3xl font-bold">Mã khuyến mãi</h1>
           <p className="text-muted-foreground mt-1">
-            Create and manage discount codes for your tenants
+            Tạo và quản lý mã giảm giá cho khách hàng
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setBulkGenOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Bulk Generate
+            Tạo hàng loạt
           </Button>
           <Button onClick={() => setFormOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Create Code
+            Tạo mã mới
           </Button>
         </div>
       </div>
@@ -62,7 +62,7 @@ export function AdvancedPromoCodesManagement() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Codes
+              Tổng số mã
             </CardTitle>
             <div className="p-2 rounded-lg bg-purple-500">
               <Tag className="h-4 w-4 text-white" />
@@ -71,7 +71,7 @@ export function AdvancedPromoCodesManagement() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
             <p className="text-xs text-muted-foreground">
-              {stats.active} active codes
+              {stats.active} mã đang hoạt động
             </p>
           </CardContent>
         </Card>
@@ -79,7 +79,7 @@ export function AdvancedPromoCodesManagement() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Usage
+              Tổng lượt sử dụng
             </CardTitle>
             <div className="p-2 rounded-lg bg-blue-500">
               <Users className="h-4 w-4 text-white" />
@@ -88,7 +88,7 @@ export function AdvancedPromoCodesManagement() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalUsage}</div>
             <p className="text-xs text-muted-foreground">
-              Times codes were applied
+              Số lần mã được áp dụng
             </p>
           </CardContent>
         </Card>
@@ -96,7 +96,7 @@ export function AdvancedPromoCodesManagement() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Discount Given
+              Tổng giảm giá đã áp dụng
             </CardTitle>
             <div className="p-2 rounded-lg bg-green-500">
               <DollarSign className="h-4 w-4 text-white" />
@@ -104,10 +104,10 @@ export function AdvancedPromoCodesManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${stats.totalDiscount.toLocaleString()}
+              {stats.totalDiscount.toLocaleString('vi-VN')}đ
             </div>
             <p className="text-xs text-muted-foreground">
-              Estimated total value
+              Giá trị ước tính
             </p>
           </CardContent>
         </Card>
@@ -115,7 +115,7 @@ export function AdvancedPromoCodesManagement() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Conversion Rate
+              Tỷ lệ chuyển đổi
             </CardTitle>
             <div className="p-2 rounded-lg bg-orange-500">
               <TrendingUp className="h-4 w-4 text-white" />
@@ -126,7 +126,7 @@ export function AdvancedPromoCodesManagement() {
               {stats.total > 0 ? ((stats.totalUsage / stats.total) * 100).toFixed(1) : 0}%
             </div>
             <p className="text-xs text-muted-foreground">
-              Codes used vs created
+              Mã đã dùng / mã tạo ra
             </p>
           </CardContent>
         </Card>
@@ -137,24 +137,24 @@ export function AdvancedPromoCodesManagement() {
         <div className="flex flex-wrap gap-4">
           <Select value={filterType} onValueChange={setFilterType}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filter by type" />
+              <SelectValue placeholder="Lọc theo loại" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="percentage">Percentage Off</SelectItem>
-              <SelectItem value="fixed_amount">Fixed Amount</SelectItem>
+              <SelectItem value="all">Tất cả loại</SelectItem>
+              <SelectItem value="percentage">Giảm theo %</SelectItem>
+              <SelectItem value="fixed_amount">Giảm cố định</SelectItem>
             </SelectContent>
           </Select>
 
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filter by status" />
+              <SelectValue placeholder="Lọc theo trạng thái" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="expired">Expired</SelectItem>
-              <SelectItem value="used_up">Used Up</SelectItem>
+              <SelectItem value="all">Tất cả trạng thái</SelectItem>
+              <SelectItem value="active">Hoạt động</SelectItem>
+              <SelectItem value="expired">Hết hạn</SelectItem>
+              <SelectItem value="used_up">Đã dùng hết</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -163,9 +163,9 @@ export function AdvancedPromoCodesManagement() {
       {/* Tabs */}
       <Tabs defaultValue="list" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="list">All Codes</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
+          <TabsTrigger value="list">Tất cả mã</TabsTrigger>
+          <TabsTrigger value="analytics">Phân tích</TabsTrigger>
+          <TabsTrigger value="templates">Mẫu có sẵn</TabsTrigger>
         </TabsList>
 
         <TabsContent value="list">
@@ -198,28 +198,28 @@ export function AdvancedPromoCodesManagement() {
 function PromoCodeTemplates() {
   const templates = [
     {
-      name: 'New Customer Welcome',
+      name: 'Chào mừng khách mới',
       code: 'WELCOME20',
-      discount: '20% off',
-      description: 'Welcome discount for new signups',
+      discount: 'Giảm 20%',
+      description: 'Ưu đãi chào mừng khách hàng mới đăng ký',
     },
     {
-      name: 'Seasonal Sale',
+      name: 'Khuyến mãi mùa hè',
       code: 'SUMMER2024',
-      discount: '$50 off',
-      description: 'Summer seasonal promotion',
+      discount: 'Giảm 500.000đ',
+      description: 'Chương trình khuyến mãi mùa hè',
     },
     {
-      name: 'Referral Bonus',
+      name: 'Giới thiệu bạn bè',
       code: 'REFER30',
-      discount: '30% off',
-      description: 'Referral program discount',
+      discount: 'Giảm 30%',
+      description: 'Ưu đãi chương trình giới thiệu',
     },
     {
-      name: 'Enterprise Trial',
+      name: 'Dùng thử doanh nghiệp',
       code: 'ENTFREE',
-      discount: '100% off',
-      description: 'Free trial for enterprise plan',
+      discount: 'Miễn phí 100%',
+      description: 'Dùng thử miễn phí gói doanh nghiệp',
     },
   ];
 
@@ -241,7 +241,7 @@ function PromoCodeTemplates() {
               <div className="font-mono font-bold text-lg text-purple-600">
                 {template.code}
               </div>
-              <Button size="sm">Use Template</Button>
+              <Button size="sm">Sử dụng mẫu</Button>
             </div>
           </CardContent>
         </Card>

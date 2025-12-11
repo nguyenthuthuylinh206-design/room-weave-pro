@@ -12,6 +12,7 @@ import {
   LogOut,
   Menu,
   X,
+  Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -19,15 +20,26 @@ import { cn } from '@/lib/utils';
 import { useSuperAdminAuth } from '@/hooks/useSuperAdminAuth';
 
 const navigation = [
-  { name: 'Dashboard', href: '/super-admin', icon: LayoutDashboard },
-  { name: 'Tenants', href: '/super-admin/tenants', icon: Users },
-  { name: 'Promo Codes', href: '/super-admin/promo-codes', icon: Tag },
-  { name: 'Campaigns', href: '/super-admin/campaigns', icon: Mail },
-  { name: 'Reminders', href: '/super-admin/reminders', icon: Bell },
-  { name: 'Pricing', href: '/super-admin/pricing', icon: DollarSign },
-  { name: 'Analytics', href: '/super-admin/analytics', icon: BarChart3 },
-  { name: 'Settings', href: '/super-admin/settings', icon: Settings },
+  { name: 'Tổng quan', href: '/super-admin', icon: LayoutDashboard },
+  { name: 'Khách hàng', href: '/super-admin/tenants', icon: Users },
+  { name: 'Mã khuyến mãi', href: '/super-admin/promo-codes', icon: Tag },
+  { name: 'Chiến dịch', href: '/super-admin/campaigns', icon: Mail },
+  { name: 'Nhắc nhở', href: '/super-admin/reminders', icon: Bell },
+  { name: 'Gói dịch vụ', href: '/super-admin/pricing', icon: DollarSign },
+  { name: 'Thống kê', href: '/super-admin/analytics', icon: BarChart3 },
+  { name: 'Cài đặt', href: '/super-admin/settings', icon: Settings },
 ];
+
+const navigationTitles: Record<string, string> = {
+  '/super-admin': 'Tổng quan',
+  '/super-admin/tenants': 'Quản lý khách hàng',
+  '/super-admin/promo-codes': 'Mã khuyến mãi',
+  '/super-admin/campaigns': 'Chiến dịch marketing',
+  '/super-admin/reminders': 'Nhắc nhở gia hạn',
+  '/super-admin/pricing': 'Gói dịch vụ',
+  '/super-admin/analytics': 'Thống kê & Báo cáo',
+  '/super-admin/settings': 'Cài đặt hệ thống',
+};
 
 export function SuperAdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -39,7 +51,7 @@ export function SuperAdminLayout() {
       <div className="flex h-screen items-center justify-center bg-muted/30">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading Super Admin Portal...</p>
+          <p className="mt-4 text-muted-foreground">Đang tải cổng quản trị...</p>
         </div>
       </div>
     );
@@ -65,7 +77,12 @@ export function SuperAdminLayout() {
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-16 items-center justify-between px-4 border-b">
-            <h1 className="text-xl font-bold text-foreground">Super Admin</h1>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-gradient-to-br from-primary to-primary/60">
+                <Shield className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <h1 className="text-xl font-bold text-foreground">Quản trị viên</h1>
+            </div>
             <Button
               variant="ghost"
               size="icon"
@@ -80,7 +97,6 @@ export function SuperAdminLayout() {
           <ScrollArea className="flex-1 px-3 py-4">
             <nav className="space-y-1">
               {navigation.map((item) => {
-                // Fix active state: exact match for dashboard, prefix match for sub-routes
                 const isActive = item.href === '/super-admin' 
                   ? location.pathname === '/super-admin'
                   : location.pathname.startsWith(item.href);
@@ -114,7 +130,7 @@ export function SuperAdminLayout() {
                 <p className="text-sm font-medium text-foreground truncate">
                   {user?.email}
                 </p>
-                <p className="text-xs text-muted-foreground">Super Administrator</p>
+                <p className="text-xs text-muted-foreground">Quản trị viên cấp cao</p>
               </div>
             </div>
             <Button
@@ -124,7 +140,7 @@ export function SuperAdminLayout() {
               onClick={signOut}
             >
               <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
+              Đăng xuất
             </Button>
           </div>
         </div>
@@ -145,7 +161,7 @@ export function SuperAdminLayout() {
           
           <div className="flex-1 flex items-center justify-between">
             <h2 className="text-2xl font-bold text-foreground">
-              {navigation.find(n => n.href === location.pathname)?.name || 'Dashboard'}
+              {navigationTitles[location.pathname] || 'Tổng quan'}
             </h2>
           </div>
         </header>

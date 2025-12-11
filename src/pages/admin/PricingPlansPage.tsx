@@ -9,7 +9,7 @@ export function PricingPlansPage() {
           <Shield className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold">Pricing Plans</h1>
+          <h1 className="text-3xl font-bold">Gói dịch vụ</h1>
           <p className="text-muted-foreground">
             Quản lý gói đăng ký và giá cả
           </p>
