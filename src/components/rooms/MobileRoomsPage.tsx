@@ -13,7 +13,7 @@ import { MobileRoomFilters } from './MobileRoomFilters'
 import { 
   Bed, CheckCircle, AlertTriangle, Wrench, Plus, Search, 
   Users, Square, DollarSign, LogIn, LogOut, Sparkles, XCircle,
-  AlertCircle
+  AlertCircle, Eye, ClipboardCheck
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { RoomFilters as IRoomFilters, RoomStatus, RoomType } from '@/types/rooms.types'
@@ -331,12 +331,12 @@ export const MobileRoomsPage = () => {
                     </div>
 
                     {/* Price */}
-                    {room.price_per_night && (
+                    {room.base_price && (
                       <div className="flex items-center gap-2 text-sm mb-3">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                         <span className="text-muted-foreground">Giá:</span>
                         <span className="font-semibold text-primary">
-                          {formatPrice(room.price_per_night)}/đêm
+                          {formatPrice(room.base_price)}/đêm
                         </span>
                       </div>
                     )}
@@ -359,14 +359,32 @@ export const MobileRoomsPage = () => {
                       </div>
                     )}
 
-                    {/* Notes */}
-                    {room.notes && (
-                      <div className="pt-3 border-t">
-                        <div className="text-xs text-muted-foreground line-clamp-2">
-                          {room.notes}
-                        </div>
-                      </div>
-                    )}
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 pt-3 border-t">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(`/rooms/${room.id}`)
+                        }}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Chi tiết
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(`/rooms/${room.id}/check`)
+                        }}
+                      >
+                        <ClipboardCheck className="h-4 w-4 mr-1" />
+                        Kiểm tra
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               )
