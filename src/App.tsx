@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { HotelProvider } from "@/contexts/HotelContext";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { RoleGuard } from "@/components/auth/RoleGuard";
+import { PermissionRoute } from "@/components/auth/PermissionRoute";
 import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
 import { MainLayout } from "@/components/layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
@@ -202,241 +203,529 @@ const router = createBrowserRouter([
         ),
       },
       
-      { path: "inventory", element: <InventoryDashboardPage /> },
-      { path: "inventory/transactions", element: <TransactionListPage /> },
+      // Inventory - Permission Based
+      { 
+        path: "inventory", 
+        element: (
+          <PermissionRoute module="inventory">
+            <InventoryDashboardPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "inventory/transactions", 
+        element: (
+          <PermissionRoute module="inventory">
+            <TransactionListPage />
+          </PermissionRoute>
+        )
+      },
       { path: "inventory/inbound", element: <Navigate to="/inventory/transactions" replace /> },
-      { path: "inventory/inbound/new", element: <InboundPage /> },
+      { 
+        path: "inventory/inbound/new", 
+        element: (
+          <PermissionRoute module="inventory" action="create">
+            <InboundPage />
+          </PermissionRoute>
+        )
+      },
       { path: "inventory/outbound", element: <Navigate to="/inventory/transactions" replace /> },
-      { path: "inventory/outbound/new", element: <OutboundPage /> },
-      { path: "inventory/adjustments", element: <AdjustmentListPage /> },
-      { path: "inventory/adjustments/new", element: <CreateAdjustmentPage /> },
-      { path: "inventory/adjustments/:id", element: <AdjustmentDetailPage /> },
-      { path: "inventory/adjustments/:id/check", element: <CheckAdjustmentPage /> },
+      { 
+        path: "inventory/outbound/new", 
+        element: (
+          <PermissionRoute module="inventory" action="create">
+            <OutboundPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "inventory/adjustments", 
+        element: (
+          <PermissionRoute module="inventory">
+            <AdjustmentListPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "inventory/adjustments/new", 
+        element: (
+          <PermissionRoute module="inventory" action="create">
+            <CreateAdjustmentPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "inventory/adjustments/:id", 
+        element: (
+          <PermissionRoute module="inventory">
+            <AdjustmentDetailPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "inventory/adjustments/:id/check", 
+        element: (
+          <PermissionRoute module="inventory" action="update">
+            <CheckAdjustmentPage />
+          </PermissionRoute>
+        )
+      },
 
-      // Items
-      { path: "items", element: <ItemsPage /> },
-      { path: "items/:id", element: <ItemDetailPage /> },
-      { path: "items/new", element: <ItemFormPage /> },
-      { path: "items/:id/edit", element: <ItemFormPage /> },
-      { path: "items/categories", element: <CategoriesPage /> },
+      // Items - Permission Based
+      { 
+        path: "items", 
+        element: (
+          <PermissionRoute module="items">
+            <ItemsPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "items/:id", 
+        element: (
+          <PermissionRoute module="items">
+            <ItemDetailPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "items/new", 
+        element: (
+          <PermissionRoute module="items" action="create">
+            <ItemFormPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "items/:id/edit", 
+        element: (
+          <PermissionRoute module="items" action="update">
+            <ItemFormPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "items/categories", 
+        element: (
+          <PermissionRoute module="items">
+            <CategoriesPage />
+          </PermissionRoute>
+        )
+      },
 
-      // Rooms
-      { path: "rooms", element: <RoomsPage /> },
-      { path: "rooms/new", element: <RoomFormPage /> },
-      { path: "rooms/:id", element: <RoomDetailPage /> },
-      { path: "rooms/:id/edit", element: <RoomFormPage /> },
-      { path: "rooms/:id/check", element: <RoomCheckPage /> },
-      { path: "rooms/standards", element: <RoomStandardsPage /> },
+      // Rooms - Permission Based
+      { 
+        path: "rooms", 
+        element: (
+          <PermissionRoute module="rooms">
+            <RoomsPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "rooms/new", 
+        element: (
+          <PermissionRoute module="rooms" action="create">
+            <RoomFormPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "rooms/:id", 
+        element: (
+          <PermissionRoute module="rooms">
+            <RoomDetailPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "rooms/:id/edit", 
+        element: (
+          <PermissionRoute module="rooms" action="update">
+            <RoomFormPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "rooms/:id/check", 
+        element: (
+          <PermissionRoute module="rooms" action="update">
+            <RoomCheckPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "rooms/standards", 
+        element: (
+          <PermissionRoute module="rooms">
+            <RoomStandardsPage />
+          </PermissionRoute>
+        )
+      },
 
-      // Laundry
-      { path: "laundry", element: <LaundryDashboardPage /> },
-      { path: "laundry/batches", element: <LaundryBatchesPage /> },
-      { path: "laundry/batches/new", element: <CreateBatchPage /> },
-      { path: "laundry/batches/:id", element: <BatchDetailPage /> },
-      { path: "laundry/batches/:id/receive", element: <ReceiveBatchPage /> },
-      { path: "laundry/vendors", element: <VendorListPage /> },
-      { path: "laundry/vendors/new", element: <VendorFormPage /> },
-      { path: "laundry/vendors/:id", element: <VendorDetailPage /> },
-      { path: "laundry/vendors/:id/edit", element: <VendorFormPage /> },
+      // Laundry - Permission Based
+      { 
+        path: "laundry", 
+        element: (
+          <PermissionRoute module="laundry">
+            <LaundryDashboardPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "laundry/batches", 
+        element: (
+          <PermissionRoute module="laundry">
+            <LaundryBatchesPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "laundry/batches/new", 
+        element: (
+          <PermissionRoute module="laundry" action="create">
+            <CreateBatchPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "laundry/batches/:id", 
+        element: (
+          <PermissionRoute module="laundry">
+            <BatchDetailPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "laundry/batches/:id/receive", 
+        element: (
+          <PermissionRoute module="laundry" action="update">
+            <ReceiveBatchPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "laundry/vendors", 
+        element: (
+          <PermissionRoute module="laundry">
+            <VendorListPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "laundry/vendors/new", 
+        element: (
+          <PermissionRoute module="laundry" action="create">
+            <VendorFormPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "laundry/vendors/:id", 
+        element: (
+          <PermissionRoute module="laundry">
+            <VendorDetailPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "laundry/vendors/:id/edit", 
+        element: (
+          <PermissionRoute module="laundry" action="update">
+            <VendorFormPage />
+          </PermissionRoute>
+        )
+      },
 
-      // Settings
+      // Settings - Permission Based
       {
         path: "settings",
         element: <SettingsLayout />,
         children: [
           { index: true, element: <Navigate to="/settings/general" replace /> },
-          { path: "general", element: <GeneralSettingsPage /> },
-          { path: "hotels", element: <HotelsManagementPage /> },
-          { path: "categories", element: <CategoryManagementPage /> },
-          { path: "users", element: <UsersPage /> },
+          { 
+            path: "general", 
+            element: (
+              <PermissionRoute module="settings">
+                <GeneralSettingsPage />
+              </PermissionRoute>
+            )
+          },
+          { 
+            path: "hotels", 
+            element: (
+              <PermissionRoute module="hotels">
+                <HotelsManagementPage />
+              </PermissionRoute>
+            )
+          },
+          { 
+            path: "categories", 
+            element: (
+              <PermissionRoute module="settings">
+                <CategoryManagementPage />
+              </PermissionRoute>
+            )
+          },
+          { 
+            path: "users", 
+            element: (
+              <PermissionRoute module="users">
+                <UsersPage />
+              </PermissionRoute>
+            )
+          },
           { path: "change-password", element: <ChangePasswordPage /> },
           { path: "subscription", element: <SubscriptionPage /> },
           { path: "usage", element: <UsageDashboardPage /> },
-          { path: "notifications", element: <NotificationSettingsPage /> },
-          { path: "business", element: <BusinessConfigurationPage /> },
+          { 
+            path: "notifications", 
+            element: (
+              <PermissionRoute module="settings">
+                <NotificationSettingsPage />
+              </PermissionRoute>
+            )
+          },
+          { 
+            path: "business", 
+            element: (
+              <PermissionRoute module="settings">
+                <BusinessConfigurationPage />
+              </PermissionRoute>
+            )
+          },
           {
             path: "workflows",
             element: (
-              <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+              <PermissionRoute module="settings" action="manage">
                 <WorkflowsPage />
-              </RoleGuard>
+              </PermissionRoute>
             ),
           },
           { 
             path: "integrations", 
             element: (
-              <RoleGuard allowedRoles={['owner', 'super_admin']}>
+              <PermissionRoute module="settings" action="manage">
                 <IntegrationsPage />
-              </RoleGuard>
+              </PermissionRoute>
             )
           },
-          { path: "security", element: <SystemSecurityPage /> },
+          { 
+            path: "security", 
+            element: (
+              <PermissionRoute module="settings">
+                <SystemSecurityPage />
+              </PermissionRoute>
+            )
+          },
           { path: "system-test", element: <SystemTestPage /> },
         ],
       },
 
-      // Profile
+      // Profile - Always accessible
       { path: "profile", element: <ProfilePage /> },
 
-      // Reports - Owner, Hotel Manager & Super Admin only
+      // Reports - Permission Based
       {
         path: "reports",
         element: (
-          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+          <PermissionRoute module="reports">
             <ReportsDashboardPage />
-          </RoleGuard>
+          </PermissionRoute>
         ),
       },
       {
         path: "reports/inventory",
         element: (
-          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+          <PermissionRoute module="reports">
             <InventoryReportPage />
-          </RoleGuard>
+          </PermissionRoute>
         ),
       },
       {
         path: "reports/financial",
         element: (
-          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+          <PermissionRoute module="reports">
             <FinancialReportPage />
-          </RoleGuard>
+          </PermissionRoute>
         ),
       },
       {
         path: "reports/laundry",
         element: (
-          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+          <PermissionRoute module="reports">
             <LaundryReportPage />
-          </RoleGuard>
+          </PermissionRoute>
         ),
       },
       {
         path: "reports/operations",
         element: (
-          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+          <PermissionRoute module="reports">
             <OperationsReportPage />
-          </RoleGuard>
+          </PermissionRoute>
         ),
       },
       {
         path: "reports/rooms",
         element: (
-          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+          <PermissionRoute module="reports">
             <RoomsReportPage />
-          </RoleGuard>
+          </PermissionRoute>
         ),
       },
       {
         path: "reports/maintenance",
         element: (
-          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+          <PermissionRoute module="reports">
             <MaintenanceReportPage />
-          </RoleGuard>
+          </PermissionRoute>
         ),
       },
 
-      // Vendor Management - Owner & Manager
+      // Vendor Management - Permission Based
       {
         path: "vendors",
         element: (
-          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+          <PermissionRoute module="vendors">
             <VendorManagementListPage />
-          </RoleGuard>
+          </PermissionRoute>
         ),
       },
       {
         path: "vendors/new",
         element: (
-          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+          <PermissionRoute module="vendors" action="create">
             <VendorManagementFormPage />
-          </RoleGuard>
+          </PermissionRoute>
         ),
       },
       {
         path: "vendors/:id",
         element: (
-          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+          <PermissionRoute module="vendors">
             <VendorManagementDetailPage />
-          </RoleGuard>
+          </PermissionRoute>
         ),
       },
       {
         path: "vendors/:id/edit",
         element: (
-          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+          <PermissionRoute module="vendors" action="update">
             <VendorManagementFormPage />
-          </RoleGuard>
+          </PermissionRoute>
         ),
       },
       {
         path: "vendors/compare",
         element: (
-          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+          <PermissionRoute module="vendors">
             <VendorComparisonPage />
-          </RoleGuard>
+          </PermissionRoute>
         ),
       },
 
-      // Maintenance
-      { path: "maintenance", element: <MaintenanceDashboard /> },
-      { path: "maintenance/requests", element: <MaintenanceRequestList /> },
-      { path: "maintenance/requests/new", element: <MaintenanceRequestForm /> },
-      { path: "maintenance/requests/:id", element: <MaintenanceRequestDetail /> },
-      { path: "maintenance/requests/edit/:id", element: <MaintenanceRequestForm /> },
-      { path: "maintenance/recurring-issues", element: <RecurringIssuesPage /> },
+      // Maintenance - Permission Based
+      { 
+        path: "maintenance", 
+        element: (
+          <PermissionRoute module="maintenance">
+            <MaintenanceDashboard />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "maintenance/requests", 
+        element: (
+          <PermissionRoute module="maintenance">
+            <MaintenanceRequestList />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "maintenance/requests/new", 
+        element: (
+          <PermissionRoute module="maintenance" action="create">
+            <MaintenanceRequestForm />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "maintenance/requests/:id", 
+        element: (
+          <PermissionRoute module="maintenance">
+            <MaintenanceRequestDetail />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "maintenance/requests/edit/:id", 
+        element: (
+          <PermissionRoute module="maintenance" action="update">
+            <MaintenanceRequestForm />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "maintenance/recurring-issues", 
+        element: (
+          <PermissionRoute module="maintenance">
+            <RecurringIssuesPage />
+          </PermissionRoute>
+        )
+      },
 
-      // Purchase Orders - Owner & Manager
+      // Purchase Orders - Permission Based
       {
         path: "purchase-orders",
         element: (
-          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+          <PermissionRoute module="purchase_orders">
             <POListPage />
-          </RoleGuard>
+          </PermissionRoute>
         ),
       },
       {
         path: "purchase-orders/new",
         element: (
-          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+          <PermissionRoute module="purchase_orders" action="create">
             <POFormPage />
-          </RoleGuard>
+          </PermissionRoute>
         ),
       },
       {
         path: "purchase-orders/:id",
         element: (
-          <RoleGuard allowedRoles={['owner', 'hotel_manager', 'super_admin']}>
+          <PermissionRoute module="purchase_orders">
             <PODetailPage />
-          </RoleGuard>
+          </PermissionRoute>
         ),
       },
 
-      // Hotels - Owner & Super Admin only
+      // Hotels - Permission Based
       {
         path: "hotels",
         element: (
-          <RoleGuard allowedRoles={['owner', 'super_admin']}>
+          <PermissionRoute module="hotels">
             <HotelsPage />
-          </RoleGuard>
+          </PermissionRoute>
         ),
       },
       {
         path: "hotels/performance",
         element: (
-          <RoleGuard allowedRoles={['owner', 'super_admin']}>
+          <PermissionRoute module="hotels">
             <HotelPerformancePage />
-          </RoleGuard>
+          </PermissionRoute>
         ),
       },
 
-      // User Management - Owner & Super Admin only
+      // User Management - Permission Based
       {
         path: "users",
         element: (
-          <RoleGuard allowedRoles={['owner', 'super_admin']}>
+          <PermissionRoute module="users">
             <UsersPage />
-          </RoleGuard>
+          </PermissionRoute>
         ),
       },
     ],
