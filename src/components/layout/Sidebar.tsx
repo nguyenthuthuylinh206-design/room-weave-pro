@@ -335,14 +335,19 @@ export const Sidebar = () => {
     const moduleCode = NAVIGATION_MODULE_MAP[parentTitle]
     if (!moduleCode) return true
     
-    const permission = modulePermissions?.find(p => p.module === moduleCode)
-    if (!permission) return false
+    // Support multiple modules separated by comma (e.g., 'inventory,items')
+    const modules = moduleCode.split(',')
     
-    const requiredAction = getRequiredAction(childTitle)
-    if (requiredAction === 'create') return permission.can_create
-    if (requiredAction === 'view') return permission.can_view
-    
-    return permission.can_view // Default
+    return modules.some(module => {
+      const permission = modulePermissions?.find(p => p.module === module)
+      if (!permission) return false
+      
+      const requiredAction = getRequiredAction(childTitle)
+      if (requiredAction === 'create') return permission.can_create
+      if (requiredAction === 'view') return permission.can_view
+      
+      return permission.can_view // Default
+    })
   }
 
   // Filter navigation based on permissions
