@@ -5,6 +5,15 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+export type Platform = 'ios' | 'android' | 'desktop';
+
+export const getPlatform = (): Platform => {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/.test(ua)) return 'ios';
+  if (/Android/.test(ua)) return 'android';
+  return 'desktop';
+};
+
 export const usePWAInstall = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -69,6 +78,7 @@ export const usePWAInstall = () => {
     isInstalled,
     isInstallable,
     installPWA,
-    canInstall: isInstallable && !isInstalled
+    canInstall: isInstallable && !isInstalled,
+    platform: getPlatform()
   };
 };
