@@ -13,7 +13,6 @@ import {
   Menu,
   X,
   Shield,
-  UserCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -23,7 +22,6 @@ import { useSuperAdminAuth } from '@/hooks/useSuperAdminAuth';
 const navigation = [
   { name: 'Tổng quan', href: '/super-admin', icon: LayoutDashboard },
   { name: 'Khách hàng', href: '/super-admin/tenants', icon: Users },
-  { name: 'Phê duyệt đăng ký', href: '/super-admin/tenant-approval', icon: UserCheck },
   { name: 'Mã khuyến mãi', href: '/super-admin/promo-codes', icon: Tag },
   { name: 'Chiến dịch', href: '/super-admin/campaigns', icon: Mail },
   { name: 'Nhắc nhở', href: '/super-admin/reminders', icon: Bell },
@@ -35,7 +33,6 @@ const navigation = [
 const navigationTitles: Record<string, string> = {
   '/super-admin': 'Tổng quan',
   '/super-admin/tenants': 'Quản lý khách hàng',
-  '/super-admin/tenant-approval': 'Phê duyệt đăng ký mới',
   '/super-admin/promo-codes': 'Mã khuyến mãi',
   '/super-admin/campaigns': 'Chiến dịch marketing',
   '/super-admin/reminders': 'Nhắc nhở gia hạn',

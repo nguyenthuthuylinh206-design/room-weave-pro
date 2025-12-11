@@ -93,12 +93,12 @@ export const RegisterForm = () => {
 
       toast({
         title: 'Đăng ký thành công!',
-        description: 'Tài khoản của bạn đang chờ phê duyệt từ quản trị viên.',
+        description: 'Tài khoản của bạn đã được tạo. Đang chuyển hướng...',
       })
 
-      // Redirect to pending approval page
+      // Redirect to dashboard
       setTimeout(() => {
-        navigate('/pending-approval')
+        navigate('/')
       }, 1000)
     } catch (error: any) {
       console.error('Registration error:', error)
