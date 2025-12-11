@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
  * Redirects non-super-admin users to home page
  */
 export function useSuperAdminAuth() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut: authSignOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -40,6 +40,11 @@ export function useSuperAdminAuth() {
       }
     }
   }, [user, loading, navigate, toast]);
+
+  const signOut = useCallback(async () => {
+    await authSignOut();
+    navigate('/auth/login');
+  }, [authSignOut, navigate]);
 
   const isSuperAdmin = user ? 
     ((user as any).user_level_code === 'super_admin' || (user as any).is_super_admin === true) : 
