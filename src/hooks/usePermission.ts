@@ -17,12 +17,7 @@ export type PermissionModule =
   | 'hotels'
   | 'purchase_orders'
 
-export type PermissionAction = 'view' | 'create' | 'edit' | 'delete' | 'export' | 'approve' | 'assign' | 'manage'
-
-// Map 'edit' to 'update' for database compatibility
-const mapActionToDb = (action: PermissionAction): string => {
-  return action === 'edit' ? 'update' : action
-}
+export type PermissionAction = 'view' | 'create' | 'update' | 'delete' | 'export' | 'approve' | 'assign' | 'manage'
 
 export function usePermissions() {
   const { user, isLoading: userLoading } = useUser()
@@ -61,12 +56,10 @@ export function useHasPermission(module: PermissionModule, action: PermissionAct
       if (!user?.id) return false
       if (isAdmin) return true
       
-      const dbAction = mapActionToDb(action)
-      
       const { data, error } = await supabase.rpc('has_user_permission', {
         p_user_id: user.id,
         p_module: module,
-        p_action: dbAction,
+        p_action: action,
       })
       
       if (error) {
