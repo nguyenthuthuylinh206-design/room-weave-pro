@@ -80,6 +80,8 @@ export function useHasPermission(module: PermissionModule, action: PermissionAct
     queryKey: ['has-permission', user?.id, module, action],
     queryFn: async () => {
       if (!user?.id) return false
+      
+      // Admin bypass - return true immediately
       if (isAdmin) return true
       
       const { data, error } = await supabase.rpc('has_user_permission', {
@@ -95,12 +97,22 @@ export function useHasPermission(module: PermissionModule, action: PermissionAct
       
       return data as boolean
     },
-    enabled: !!user?.id && !isAdmin,
+    enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   })
   
+  // While loading user, show loading state
+  if (userLoading) {
+    return { hasPermission: false, isLoading: true }
+  }
+  
+  // Admin always has permission
+  if (isAdmin) {
+    return { hasPermission: true, isLoading: false }
+  }
+  
   return { 
-    hasPermission: isAdmin || (hasPermission ?? false), 
-    isLoading: userLoading || permLoading 
+    hasPermission: hasPermission ?? false, 
+    isLoading: permLoading 
   }
 }
