@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAuth } from '@/hooks/useAuth';
 import { loginSchema, LoginFormData } from '@/lib/validations/auth.schemas';
-import { GoogleAuthButton } from './GoogleAuthButton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const {
@@ -85,9 +85,18 @@ export const LoginForm = () => {
                   </Label>
                 </FormItem>} />
 
-            <Link to="/auth/forgot-password" className="text-sm text-primary hover:underline">
-              Quên mật khẩu?
-            </Link>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-sm text-muted-foreground cursor-not-allowed">
+                    Quên mật khẩu?
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Chức năng này chưa hoạt động</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
 
           {/* Submit Button */}
@@ -98,18 +107,6 @@ export const LoginForm = () => {
         </form>
       </Form>
 
-      {/* Divider */}
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          
-        </div>
-      </div>
-
-      {/* Google Auth */}
-      <GoogleAuthButton />
 
       {/* Register Link */}
       <p className="text-center text-sm text-muted-foreground">
