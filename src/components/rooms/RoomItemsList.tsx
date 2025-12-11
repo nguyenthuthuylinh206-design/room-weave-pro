@@ -131,18 +131,18 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
       )}
 
       <Tabs defaultValue="required" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="required">
-            <Package className="mr-2 h-4 w-4" />
-            Đồ dùng cần có
+        <TabsList className="w-full flex overflow-x-auto no-scrollbar">
+          <TabsTrigger value="required" className="flex-shrink-0 text-xs sm:text-sm">
+            <Package className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="whitespace-nowrap">Cần có</span>
           </TabsTrigger>
-          <TabsTrigger value="current">
-            <CheckCircle2 className="mr-2 h-4 w-4" />
-            Đồ đã có trong phòng
+          <TabsTrigger value="current" className="flex-shrink-0 text-xs sm:text-sm">
+            <CheckCircle2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="whitespace-nowrap">Đã có</span>
           </TabsTrigger>
-          <TabsTrigger value="missing">
-            <AlertCircle className="mr-2 h-4 w-4" />
-            Đồ còn thiếu
+          <TabsTrigger value="missing" className="flex-shrink-0 text-xs sm:text-sm">
+            <AlertCircle className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="whitespace-nowrap">Còn thiếu</span>
           </TabsTrigger>
         </TabsList>
 
