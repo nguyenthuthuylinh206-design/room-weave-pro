@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAuth } from '@/hooks/useAuth';
 import { loginSchema, LoginFormData } from '@/lib/validations/auth.schemas';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const {
@@ -85,18 +85,9 @@ export const LoginForm = () => {
                   </Label>
                 </FormItem>} />
 
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="text-sm text-muted-foreground cursor-not-allowed">
-                    Quên mật khẩu?
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Chức năng này chưa hoạt động</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Link to="/auth/forgot-password" className="text-sm text-primary hover:underline">
+              Quên mật khẩu?
+            </Link>
           </div>
 
           {/* Submit Button */}
