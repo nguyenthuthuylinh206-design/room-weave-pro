@@ -5357,6 +5357,10 @@ export type Database = {
         Args: { _level_code: string; _user_id: string }
         Returns: boolean
       }
+      has_user_permission: {
+        Args: { p_action: string; p_module: string; p_user_id: string }
+        Returns: boolean
+      }
       increment_staff_stat: {
         Args: {
           p_hotel_id: string
