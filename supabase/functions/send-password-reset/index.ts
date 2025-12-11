@@ -125,12 +125,14 @@ serve(async (req) => {
 
     if (!existingUser) {
       console.log('Email not found in system:', email)
+      // Return 200 with success: false to avoid SDK error handling issues
       return new Response(
         JSON.stringify({ 
+          success: false,
           error: 'Email này chưa được đăng ký trong hệ thống',
           email_not_found: true
         }),
-        { status: 404, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       )
     }
 
