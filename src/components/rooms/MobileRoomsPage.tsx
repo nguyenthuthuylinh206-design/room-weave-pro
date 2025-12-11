@@ -149,7 +149,7 @@ export const MobileRoomsPage = () => {
     }
     
     return { 
-      label: `${session.user_name} đang kiểm tra`, 
+      label: 'Đang kiểm tra', 
       variant: 'secondary' as const, 
       disabled: true 
     }
