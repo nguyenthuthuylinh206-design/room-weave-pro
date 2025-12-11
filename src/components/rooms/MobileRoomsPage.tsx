@@ -427,8 +427,11 @@ export const MobileRoomsPage = () => {
                         variant="outline" 
                         className={cn("text-xs", itemStatus.color)}
                       >
-                        {itemStatus.icon && <itemStatus.icon className="h-3 w-3 mr-1" />}
-                        <Package className="h-3 w-3 mr-1" />
+                        {itemStatus.icon ? (
+                          <itemStatus.icon className="h-3 w-3 mr-1" />
+                        ) : (
+                          <Package className="h-3 w-3 mr-1" />
+                        )}
                         {itemStatus.label}
                       </Badge>
                       {room.items_in_laundry > 0 && (

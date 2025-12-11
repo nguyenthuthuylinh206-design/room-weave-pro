@@ -634,7 +634,7 @@ export function ItemFormPage() {
         )}
 
         {/* Submit buttons - Fixed at bottom on mobile */}
-        <div className={`flex gap-3 ${isMobile ? 'fixed bottom-0 left-0 right-0 p-4 bg-background border-t z-20' : 'justify-end'}`}>
+        <div className={`flex gap-3 ${isMobile ? 'fixed bottom-16 left-0 right-0 p-4 bg-background border-t z-30 safe-area-inset-bottom' : 'justify-end'}`}>
           <Button 
             type="button" 
             variant="outline" 

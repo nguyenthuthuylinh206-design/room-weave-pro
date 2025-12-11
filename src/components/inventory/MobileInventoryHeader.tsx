@@ -30,7 +30,7 @@ export function MobileInventoryHeader({ onSearch }: MobileInventoryHeaderProps) 
   }
 
   return (
-    <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b">
+    <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-lg border-b">
       <AnimatePresence mode="wait">
         {showSearch ? (
           <motion.div
