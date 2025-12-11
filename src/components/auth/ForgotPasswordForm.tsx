@@ -38,12 +38,22 @@ export function ForgotPasswordForm() {
       body: { email: emailAddress },
     })
 
-    // Handle function invocation error
+    // Handle function invocation error (includes non-2xx responses)
     if (error) {
-      throw new Error(error.message || 'Không thể gửi email')
+      // Try to parse the error context for email_not_found flag
+      const errorMessage = error.message || 'Không thể gửi email'
+      
+      // Check if this is an "email not found" error
+      if (errorMessage.includes('chưa được đăng ký') || errorMessage.includes('404')) {
+        const err = new Error('Email này chưa được đăng ký trong hệ thống') as Error & { emailNotFound?: boolean }
+        err.emailNotFound = true
+        throw err
+      }
+      
+      throw new Error(errorMessage)
     }
 
-    // Handle application-level error from edge function
+    // Handle application-level error from edge function (for 2xx responses with error in body)
     if (data?.error) {
       const err = new Error(data.error) as Error & { emailNotFound?: boolean }
       err.emailNotFound = data.email_not_found === true
