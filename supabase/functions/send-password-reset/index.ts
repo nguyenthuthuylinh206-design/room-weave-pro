@@ -112,6 +112,30 @@ serve(async (req) => {
       }
     )
 
+    // Check if email exists in the system
+    const { data: existingUser, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('id, email, full_name')
+      .eq('email', email.toLowerCase().trim())
+      .maybeSingle()
+
+    if (userError) {
+      console.error('Error checking user:', userError)
+    }
+
+    if (!existingUser) {
+      console.log('Email not found in system:', email)
+      return new Response(
+        JSON.stringify({ 
+          error: 'Email này chưa được đăng ký trong hệ thống',
+          email_not_found: true
+        }),
+        { status: 404, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      )
+    }
+
+    console.log('Found user:', existingUser.id)
+
     // Get the origin from request headers or use default
     const origin = req.headers.get('origin') || Deno.env.get('SITE_URL') || 'https://ehjtoajnlnuvuiwkpmbp.lovableproject.com'
     const redirectTo = `${origin}/auth/reset-password`
@@ -129,24 +153,17 @@ serve(async (req) => {
 
     if (error) {
       console.error('Supabase error:', error)
-      // Don't reveal if email exists or not for security
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Nếu email tồn tại trong hệ thống, bạn sẽ nhận được link đặt lại mật khẩu.' 
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        JSON.stringify({ error: 'Không thể tạo link đặt lại mật khẩu. Vui lòng thử lại.' }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       )
     }
 
     if (!data?.properties?.action_link) {
       console.error('No action link generated')
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Nếu email tồn tại trong hệ thống, bạn sẽ nhận được link đặt lại mật khẩu.' 
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        JSON.stringify({ error: 'Không thể tạo link đặt lại mật khẩu. Vui lòng thử lại.' }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       )
     }
 

@@ -48,9 +48,12 @@ export function ForgotPasswordForm() {
     return data
   }
 
+  const [emailNotFound, setEmailNotFound] = useState(false)
+
   const onSubmit = async (data: ForgotPasswordData) => {
     try {
       setEmail(data.email)
+      setEmailNotFound(false)
       await sendResetEmail(data.email)
       setIsSuccess(true)
       toast({
@@ -58,6 +61,10 @@ export function ForgotPasswordForm() {
         description: 'Vui lòng kiểm tra hộp thư của bạn.',
       })
     } catch (error: any) {
+      // Check if email not found
+      if (error.message?.includes('chưa được đăng ký')) {
+        setEmailNotFound(true)
+      }
       toast({
         title: 'Lỗi',
         description: error.message || 'Không thể gửi email. Vui lòng thử lại.',
@@ -173,6 +180,17 @@ export function ForgotPasswordForm() {
                   </FormItem>
                 )}
               />
+
+              {emailNotFound && (
+                <Alert variant="destructive">
+                  <AlertDescription className="flex flex-col gap-2">
+                    <span>Email này chưa được đăng ký trong hệ thống.</span>
+                    <Link to="/auth/register" className="text-primary underline hover:no-underline">
+                      Đăng ký tài khoản mới
+                    </Link>
+                  </AlertDescription>
+                </Alert>
+              )}
 
               <Button
                 type="submit"
