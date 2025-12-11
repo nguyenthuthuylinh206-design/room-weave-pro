@@ -12,14 +12,20 @@ import {
 import { TenantsTable } from './TenantsTable';
 import { TenantAnalytics } from './TenantAnalytics';
 import { BulkActions } from './BulkActions';
-import { Plus, Download, Search } from 'lucide-react';
+import { PendingTenantsTab } from './PendingTenantsTab';
+import { Plus, Download, Search, Clock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { usePendingTenants } from '@/hooks/super-admin/useTenantApproval';
 
 export function AdvancedTenantsManagement() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [planFilter, setPlanFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTenants, setSelectedTenants] = useState<string[]>([]);
+  
+  const { data: pendingTenants } = usePendingTenants();
+  const pendingCount = pendingTenants?.length || 0;
 
   const handleExport = () => {
     console.log('Export tenants data');
@@ -99,6 +105,15 @@ export function AdvancedTenantsManagement() {
       <Tabs defaultValue="list" className="space-y-4">
         <TabsList>
           <TabsTrigger value="list">Danh sách khách hàng</TabsTrigger>
+          <TabsTrigger value="pending" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Chờ phê duyệt
+            {pendingCount > 0 && (
+              <Badge variant="destructive" className="ml-1 h-5 min-w-5 px-1.5">
+                {pendingCount}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="analytics">Phân tích</TabsTrigger>
         </TabsList>
 
@@ -110,6 +125,10 @@ export function AdvancedTenantsManagement() {
             selectedTenants={selectedTenants}
             onSelectionChange={setSelectedTenants}
           />
+        </TabsContent>
+
+        <TabsContent value="pending">
+          <PendingTenantsTab />
         </TabsContent>
 
         <TabsContent value="analytics">
