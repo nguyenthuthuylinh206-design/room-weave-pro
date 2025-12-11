@@ -266,11 +266,11 @@ const NAVIGATION_MODULE_MAP: Record<string, string> = {
   'Phòng': 'rooms',
   'Giặt là': 'laundry',
   'Bảo trì': 'maintenance',
-  'Nhà cung cấp': 'vendors',
-  'Đơn mua hàng': 'purchase_orders',
+  'Nhà Cung Cấp': 'vendors,purchase_orders', // Fixed: match exact title + include purchase_orders
   'Khách sạn': 'hotels',
   'Người dùng': 'users',
   'Cài đặt': 'settings',
+  'Báo cáo': 'reports',
 }
 
 // Map child item keywords to required actions

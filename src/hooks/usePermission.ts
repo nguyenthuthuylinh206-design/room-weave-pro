@@ -19,6 +19,32 @@ export type PermissionModule =
 
 export type PermissionAction = 'view' | 'create' | 'update' | 'delete' | 'export' | 'approve' | 'assign' | 'manage'
 
+// All available modules for permission management UI
+export const ALL_MODULES: { code: PermissionModule; name: string }[] = [
+  { code: 'dashboard', name: 'Dashboard' },
+  { code: 'inventory', name: 'Kho hàng' },
+  { code: 'items', name: 'Tài sản' },
+  { code: 'rooms', name: 'Phòng' },
+  { code: 'laundry', name: 'Giặt là' },
+  { code: 'maintenance', name: 'Bảo trì' },
+  { code: 'vendors', name: 'Nhà cung cấp' },
+  { code: 'purchase_orders', name: 'Đơn mua hàng' },
+  { code: 'hotels', name: 'Khách sạn' },
+  { code: 'users', name: 'Người dùng' },
+  { code: 'reports', name: 'Báo cáo' },
+  { code: 'settings', name: 'Cài đặt' },
+]
+
+// All available actions for permission management UI
+export const ALL_ACTIONS: { code: PermissionAction; name: string }[] = [
+  { code: 'view', name: 'Xem' },
+  { code: 'create', name: 'Tạo mới' },
+  { code: 'update', name: 'Chỉnh sửa' },
+  { code: 'delete', name: 'Xóa' },
+  { code: 'export', name: 'Xuất dữ liệu' },
+  { code: 'approve', name: 'Phê duyệt' },
+]
+
 export function usePermissions() {
   const { user, isLoading: userLoading } = useUser()
   

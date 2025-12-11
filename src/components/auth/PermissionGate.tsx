@@ -1,45 +1,29 @@
 import { ReactNode } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
-import { useUser } from '@/hooks/useUser'
+import { useHasPermission, PermissionModule, PermissionAction } from '@/hooks/usePermission'
 
 interface PermissionGateProps {
   children: ReactNode
-  permission: string
+  module: PermissionModule
+  action: PermissionAction
   fallback?: ReactNode
 }
 
 /**
  * PermissionGate - Component to conditionally render UI based on user permissions
+ * Uses module + action pattern for consistency with the permission system
  * 
  * @example
- * <PermissionGate permission="items.create">
+ * <PermissionGate module="items" action="create">
  *   <Button>Thêm tài sản</Button>
  * </PermissionGate>
+ * 
+ * @example with fallback
+ * <PermissionGate module="users" action="delete" fallback={<span>Không có quyền</span>}>
+ *   <DeleteButton />
+ * </PermissionGate>
  */
-export function PermissionGate({ children, permission, fallback = null }: PermissionGateProps) {
-  const { user } = useUser()
-
-  const { data: hasPermission, isLoading } = useQuery({
-    queryKey: ['permission', user?.id, permission],
-    queryFn: async () => {
-      if (!user?.id) return false
-
-      const { data, error } = await supabase.rpc('has_permission', {
-        _user_id: user.id,
-        _permission_code: permission,
-      })
-
-      if (error) {
-        console.error('Permission check error:', error)
-        return false
-      }
-
-      return data as boolean
-    },
-    enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-  })
+export function PermissionGate({ children, module, action, fallback = null }: PermissionGateProps) {
+  const { hasPermission, isLoading } = useHasPermission(module, action)
 
   if (isLoading) {
     return null
@@ -48,67 +32,5 @@ export function PermissionGate({ children, permission, fallback = null }: Permis
   return hasPermission ? <>{children}</> : <>{fallback}</>
 }
 
-/**
- * Hook to check if user has a specific permission
- */
-export function useHasPermission(permission: string) {
-  const { user } = useUser()
-
-  const { data: hasPermission, isLoading } = useQuery({
-    queryKey: ['permission', user?.id, permission],
-    queryFn: async () => {
-      if (!user?.id) return false
-
-      const { data, error } = await supabase.rpc('has_permission', {
-        _user_id: user.id,
-        _permission_code: permission,
-      })
-
-      if (error) {
-        console.error('Permission check error:', error)
-        return false
-      }
-
-      return data as boolean
-    },
-    enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000,
-  })
-
-  return {
-    hasPermission: hasPermission || false,
-    isLoading,
-  }
-}
-
-/**
- * Hook to get all user permissions
- */
-export function useUserPermissions() {
-  const { user } = useUser()
-
-  const { data: permissions, isLoading } = useQuery({
-    queryKey: ['user-permissions', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return []
-
-      const { data, error } = await supabase.rpc('get_user_permissions', {
-        _user_id: user.id,
-      })
-
-      if (error) {
-        console.error('Get permissions error:', error)
-        return []
-      }
-
-      return data || []
-    },
-    enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000,
-  })
-
-  return {
-    permissions: permissions || [],
-    isLoading,
-  }
-}
+// Re-export types for convenience
+export type { PermissionModule, PermissionAction } from '@/hooks/usePermission'
