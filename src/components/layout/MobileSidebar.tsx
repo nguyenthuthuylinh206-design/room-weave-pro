@@ -15,7 +15,9 @@ import {
   ChevronRight,
   DoorOpen,
   Boxes,
-  List
+  List,
+  Download,
+  CheckCircle
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -28,6 +30,8 @@ import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
+import { usePWAInstall } from '@/hooks/usePWAInstall'
+import { useToast } from '@/hooks/use-toast'
 
 interface MenuItem {
   title: string
@@ -53,6 +57,26 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
   const { user, role, tenantId } = useUser()
   const { data: modulePermissions } = useUserModulePermissions()
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
+  const { canInstall, installPWA, isInstalled } = usePWAInstall()
+  const { toast } = useToast()
+
+  // Handle PWA install
+  const handleInstallApp = async () => {
+    const success = await installPWA()
+    if (success) {
+      toast({
+        title: "Cài đặt thành công!",
+        description: "Ứng dụng đã được thêm vào màn hình chính.",
+      })
+    } else {
+      toast({
+        title: "Không thể cài đặt",
+        description: "Vui lòng sử dụng menu trình duyệt để thêm vào màn hình chính.",
+        variant: "destructive",
+      })
+    }
+    onClose()
+  }
 
   // Get pending counts
   const { data: pendingCounts } = useQuery({
@@ -249,6 +273,38 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
           ))}
         </div>
       </ScrollArea>
+
+      {/* Install App Button */}
+      {(canInstall || isInstalled) && (
+        <div className="px-4 py-2 border-t">
+          <button
+            onClick={canInstall ? handleInstallApp : undefined}
+            disabled={isInstalled}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg",
+              "transition-colors duration-200",
+              isInstalled 
+                ? "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 cursor-default" 
+                : "hover:bg-accent active:scale-98"
+            )}
+          >
+            {isInstalled ? (
+              <>
+                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-500" />
+                <span className="flex-1 text-left">Đã cài đặt</span>
+              </>
+            ) : (
+              <>
+                <Download className="h-5 w-5 text-primary" />
+                <span className="flex-1 text-left">Tải ứng dụng</span>
+                <Badge variant="secondary" className="ml-auto text-xs">
+                  PWA
+                </Badge>
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Sign Out */}
       <div className="p-4 border-t">
