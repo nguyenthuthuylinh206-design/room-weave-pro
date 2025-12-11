@@ -8,6 +8,7 @@ import { HotelProvider } from "@/contexts/HotelContext";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
+import { ApprovalGuard } from "@/components/auth/ApprovalGuard";
 import { MainLayout } from "@/components/layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import { InventoryDashboardPage } from "./pages/inventory/InventoryDashboardPage";
@@ -79,6 +80,8 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import AuthCallback from "./pages/auth/AuthCallback";
 import Onboarding from "./pages/auth/Onboarding";
+import PendingApproval from "./pages/auth/PendingApproval";
+import RejectedApproval from "./pages/auth/RejectedApproval";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 import UsersPage from "./pages/users/UsersPage";
@@ -90,6 +93,7 @@ import { PromoCodesPage } from "./pages/admin/PromoCodesPage";
 import { MarketingCampaignsPage } from "./pages/admin/MarketingCampaignsPage";
 import { RenewalRemindersPage } from "./pages/admin/RenewalRemindersPage";
 import { PricingPlansPage } from "./pages/admin/PricingPlansPage";
+import TenantApprovalPage from "./pages/admin/TenantApprovalPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -109,6 +113,24 @@ const router = createBrowserRouter([
   { path: "/auth/reset-password", element: <ResetPassword /> },
   { path: "/auth/callback", element: <AuthCallback /> },
   { path: "/unauthorized", element: <Unauthorized /> },
+  
+  // Pending/Rejected approval pages - requires auth but not onboarding/approval
+  {
+    path: "/pending-approval",
+    element: (
+      <AuthGuard>
+        <PendingApproval />
+      </AuthGuard>
+    ),
+  },
+  {
+    path: "/rejected",
+    element: (
+      <AuthGuard>
+        <RejectedApproval />
+      </AuthGuard>
+    ),
+  },
   
   // Onboarding - requires authentication but not tenant setup
   {
@@ -131,6 +153,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <SuperAdminDashboard /> },
       { path: "tenants", element: <TenantsPage /> },
+      { path: "tenant-approval", element: <TenantApprovalPage /> },
       { path: "promo-codes", element: <PromoCodesPage /> },
       { path: "campaigns", element: <MarketingCampaignsPage /> },
       { path: "reminders", element: <RenewalRemindersPage /> },
@@ -144,7 +167,9 @@ const router = createBrowserRouter([
     element: (
       <AuthGuard>
         <OnboardingGuard>
-          <MainLayout />
+          <ApprovalGuard>
+            <MainLayout />
+          </ApprovalGuard>
         </OnboardingGuard>
       </AuthGuard>
     ),
@@ -166,6 +191,14 @@ const router = createBrowserRouter([
         element: (
           <RoleGuard allowedRoles={['super_admin']}>
             <TenantsPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "admin/tenant-approval",
+        element: (
+          <RoleGuard allowedRoles={['super_admin']}>
+            <TenantApprovalPage />
           </RoleGuard>
         ),
       },
