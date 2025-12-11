@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link } from 'react-router-dom'
-import { Mail, ArrowLeft, CheckCircle, Loader2, RefreshCw } from 'lucide-react'
+import { Mail, ArrowLeft, CheckCircle, Loader2, RefreshCw, AlertCircle, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -14,7 +14,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { forgotPasswordSchema, ForgotPasswordData } from '@/lib/validations/auth.schemas'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
@@ -23,6 +23,7 @@ export function ForgotPasswordForm() {
   const [isSuccess, setIsSuccess] = useState(false)
   const [email, setEmail] = useState('')
   const [isResending, setIsResending] = useState(false)
+  const [emailNotFound, setEmailNotFound] = useState(false)
   const { toast } = useToast()
 
   const form = useForm<ForgotPasswordData>({
@@ -37,18 +38,20 @@ export function ForgotPasswordForm() {
       body: { email: emailAddress },
     })
 
+    // Handle function invocation error
     if (error) {
       throw new Error(error.message || 'Không thể gửi email')
     }
 
+    // Handle application-level error from edge function
     if (data?.error) {
-      throw new Error(data.error)
+      const err = new Error(data.error) as Error & { emailNotFound?: boolean }
+      err.emailNotFound = data.email_not_found === true
+      throw err
     }
 
     return data
   }
-
-  const [emailNotFound, setEmailNotFound] = useState(false)
 
   const onSubmit = async (data: ForgotPasswordData) => {
     try {
@@ -62,14 +65,16 @@ export function ForgotPasswordForm() {
       })
     } catch (error: any) {
       // Check if email not found
-      if (error.message?.includes('chưa được đăng ký')) {
+      if (error.emailNotFound || error.message?.includes('chưa được đăng ký')) {
         setEmailNotFound(true)
+        // Don't show toast for email not found - show inline alert instead
+      } else {
+        toast({
+          title: 'Lỗi',
+          description: error.message || 'Không thể gửi email. Vui lòng thử lại.',
+          variant: 'destructive',
+        })
       }
-      toast({
-        title: 'Lỗi',
-        description: error.message || 'Không thể gửi email. Vui lòng thử lại.',
-        variant: 'destructive',
-      })
     }
   }
 
@@ -182,12 +187,17 @@ export function ForgotPasswordForm() {
               />
 
               {emailNotFound && (
-                <Alert variant="destructive">
-                  <AlertDescription className="flex flex-col gap-2">
-                    <span>Email này chưa được đăng ký trong hệ thống.</span>
-                    <Link to="/auth/register" className="text-primary underline hover:no-underline">
-                      Đăng ký tài khoản mới
-                    </Link>
+                <Alert variant="destructive" className="border-destructive/50 bg-destructive/10">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Email không tồn tại</AlertTitle>
+                  <AlertDescription className="mt-2 space-y-3">
+                    <p>Email <strong>{form.getValues('email')}</strong> chưa được đăng ký trong hệ thống.</p>
+                    <Button asChild variant="outline" size="sm" className="w-full">
+                      <Link to="/auth/register">
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Đăng ký tài khoản mới
+                      </Link>
+                    </Button>
                   </AlertDescription>
                 </Alert>
               )}
