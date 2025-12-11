@@ -289,11 +289,53 @@ export const MobileRoomsPage = () => {
                           </div>
                         </div>
                       </div>
-                      <RoomStatusSelector
-                        roomId={room.id}
-                        currentStatus={room.status as RoomStatus}
-                      />
+                      <div className="flex flex-col items-end gap-1">
+                        <RoomStatusBadge status={room.status as RoomStatus} />
+                        <RoomStatusSelector
+                          roomId={room.id}
+                          currentStatus={room.status as RoomStatus}
+                        />
+                      </div>
                     </div>
+
+                    {/* Items Status */}
+                    <div className="flex items-center gap-2 mb-3">
+                      {room.total_items > 0 ? (
+                        room.missing_items === 0 ? (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Đủ đồ ({room.total_items})
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Thiếu {room.missing_items}/{room.total_items}
+                          </Badge>
+                        )
+                      ) : (
+                        <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
+                          Chưa thiết lập đồ
+                        </Badge>
+                      )}
+                      {hasItemsInLaundry && (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          {room.items_in_laundry} giặt
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Active Check Session */}
+                    {room.active_check_session && (
+                      <div className="flex items-center gap-2 mb-3 p-2 bg-amber-50 rounded-lg border border-amber-200">
+                        <div className="animate-pulse h-2 w-2 rounded-full bg-amber-500" />
+                        <Users className="h-4 w-4 text-amber-600" />
+                        <span className="text-sm text-amber-700">
+                          <span className="font-medium">{room.active_check_session.user_name || 'Nhân viên'}</span>
+                          {' đang kiểm tra'}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Room Info Grid */}
                     <div className="grid grid-cols-2 gap-2 text-sm mb-3">
@@ -334,28 +376,9 @@ export const MobileRoomsPage = () => {
                     {room.base_price && (
                       <div className="flex items-center gap-2 text-sm mb-3">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Giá:</span>
                         <span className="font-semibold text-primary">
                           {formatPrice(room.base_price)}/đêm
                         </span>
-                      </div>
-                    )}
-
-                    {/* Warnings */}
-                    {(hasMissingItems || hasItemsInLaundry) && (
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {hasMissingItems && (
-                          <Badge variant="destructive" className="text-xs">
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Thiếu {room.missing_items} đồ
-                          </Badge>
-                        )}
-                        {hasItemsInLaundry && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Sparkles className="h-3 w-3 mr-1" />
-                            {room.items_in_laundry} đang giặt
-                          </Badge>
-                        )}
                       </div>
                     )}
 
