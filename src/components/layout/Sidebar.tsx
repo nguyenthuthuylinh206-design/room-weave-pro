@@ -361,6 +361,12 @@ export const Sidebar = () => {
       }
     }
     return item
+  }).filter((item) => {
+    // Hide parent items that have no children left AND no direct href
+    if (item.children !== undefined && item.children.length === 0 && !item.href) {
+      return false
+    }
+    return true
   })
 
   const toggleExpanded = (title: string) => {
