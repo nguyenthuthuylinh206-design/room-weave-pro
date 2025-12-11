@@ -3,14 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Vendor, VendorFilters, VendorStats } from '@/types/vendor.types';
 import { useToast } from './use-toast';
 import { useUser } from './useUser';
-import { useHotelContext } from '@/contexts/HotelContext';
 
 export function useVendors(filters?: VendorFilters) {
   const { tenantId } = useUser();
-  const { selectedHotel, isAllHotelsMode } = useHotelContext();
 
   return useQuery({
-    queryKey: ['vendors', tenantId, selectedHotel?.id, isAllHotelsMode, filters],
+    queryKey: ['vendors', tenantId, filters],
     queryFn: async () => {
       if (!tenantId) throw new Error('No tenant');
 
@@ -18,11 +16,6 @@ export function useVendors(filters?: VendorFilters) {
         .from('vendors')
         .select('*')
         .eq('tenant_id', tenantId);
-      
-      // Filter by hotel unless in "All Hotels" mode
-      if (!isAllHotelsMode && selectedHotel?.id) {
-        queryBuilder = queryBuilder.eq('hotel_id', selectedHotel.id);
-      }
 
       if (filters?.search) {
         queryBuilder = queryBuilder.or(`name.ilike.%${filters.search}%,code.ilike.%${filters.search}%`);
