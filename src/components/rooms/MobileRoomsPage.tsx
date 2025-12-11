@@ -7,13 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useRooms } from '@/hooks/useRooms'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
-import { RoomStatusSelector } from './RoomStatusSelector'
 import { RoomStatusBadge } from './RoomStatusBadge'
 import { MobileRoomFilters } from './MobileRoomFilters'
 import { 
-  Bed, CheckCircle, AlertTriangle, Wrench, Plus, Search, 
-  Users, Square, DollarSign, LogIn, LogOut, Sparkles, XCircle,
-  AlertCircle, Eye, ClipboardCheck
+  Bed, CheckCircle, Wrench, Plus, Search, 
+  Users, Square, LogIn, LogOut, Sparkles, XCircle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { RoomFilters as IRoomFilters, RoomStatus, RoomType } from '@/types/rooms.types'
@@ -262,128 +260,76 @@ export const MobileRoomsPage = () => {
             </Card>
           ) : (
             filteredRooms.map((room: any) => {
-              const statusConfig = getStatusConfig(room.status)
-              const StatusIcon = statusConfig.icon
-              const hasMissingItems = room.missing_items && room.missing_items > 0
-              const hasItemsInLaundry = room.items_in_laundry && room.items_in_laundry > 0
+              const hasActiveCheck = room.active_check_session
+              const checkTypeLabel = hasActiveCheck ? (
+                room.active_check_session.check_type === 'daily' ? 'hàng ngày' :
+                room.active_check_session.check_type === 'checkin' ? 'check-in' :
+                room.active_check_session.check_type === 'checkout' ? 'check-out' :
+                room.active_check_session.check_type === 'maintenance' ? 'bảo trì' : ''
+              ) : ''
 
               return (
                 <Card
                   key={room.id}
-                  className="cursor-pointer hover:shadow-md transition-shadow active:scale-[0.98]"
-                  onClick={() => navigate(`/rooms/${room.id}`)}
+                  className="hover:shadow-md transition-shadow"
                 >
                   <CardContent className="p-4">
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className={cn('p-2 rounded-lg', statusConfig.color.split(' ')[1])}>
-                          <StatusIcon className={cn('h-5 w-5', statusConfig.color.split(' ')[0])} />
-                        </div>
-                        <div>
-                          <div className="font-semibold text-lg">
-                            Phòng {room.room_number}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            Tầng {room.floor}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <RoomStatusBadge status={room.status as RoomStatus} />
-                        <RoomStatusSelector
-                          roomId={room.id}
-                          currentStatus={room.status as RoomStatus}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Items Status */}
-                    <div className="flex items-center gap-2 mb-3">
-                      {room.total_items > 0 ? (
-                        room.missing_items === 0 ? (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Đủ đồ ({room.total_items})
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                            <AlertTriangle className="h-3 w-3 mr-1" />
-                            Thiếu {room.missing_items}/{room.total_items}
-                          </Badge>
-                        )
-                      ) : (
-                        <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
-                          Chưa thiết lập đồ
-                        </Badge>
-                      )}
-                      {hasItemsInLaundry && (
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                          <Sparkles className="h-3 w-3 mr-1" />
-                          {room.items_in_laundry} giặt
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Active Check Session */}
-                    {room.active_check_session && (
-                      <div className="flex items-center gap-2 mb-3 p-2 bg-amber-50 rounded-lg border border-amber-200">
-                        <div className="animate-pulse h-2 w-2 rounded-full bg-amber-500" />
-                        <Users className="h-4 w-4 text-amber-600" />
-                        <span className="text-sm text-amber-700">
-                          <span className="font-medium">{room.active_check_session.user_name || 'Nhân viên'}</span>
-                          {' đang kiểm tra'}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Room Info Grid */}
-                    <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                      <div className="flex items-center gap-2">
-                        <Bed className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Loại:</span>
-                        <span className="font-medium">
+                    {/* Header: Room Number + Status Badge */}
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <div className="font-bold text-xl">{room.room_number}</div>
+                        <div className="text-sm text-muted-foreground">
                           {room.room_type === 'standard' ? 'Standard' :
                            room.room_type === 'deluxe' ? 'Deluxe' :
                            room.room_type === 'suite' ? 'Suite' :
                            room.room_type === 'vip' ? 'VIP' : room.room_type || 'N/A'}
-                        </span>
+                        </div>
                       </div>
+                      <RoomStatusBadge status={room.status as RoomStatus} />
+                    </div>
+
+                    {/* Room Info Row */}
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
                       {room.max_guests && (
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">Khách:</span>
-                          <span className="font-medium">{room.max_guests}</span>
+                        <div className="flex items-center gap-1">
+                          <Users className="h-4 w-4" />
+                          <span>{room.max_guests}</span>
                         </div>
                       )}
                       {room.bed_type && (
-                        <div className="flex items-center gap-2">
-                          <Bed className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">Giường:</span>
-                          <span className="font-medium">{room.bed_type}</span>
+                        <div className="flex items-center gap-1">
+                          <Bed className="h-4 w-4" />
+                          <span>{room.bed_type}</span>
                         </div>
                       )}
                       {room.area && (
-                        <div className="flex items-center gap-2">
-                          <Square className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">DT:</span>
-                          <span className="font-medium">{room.area}m²</span>
+                        <div className="flex items-center gap-1">
+                          <Square className="h-4 w-4" />
+                          <span>{room.area} m²</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Price */}
-                    {room.base_price && (
-                      <div className="flex items-center gap-2 text-sm mb-3">
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-semibold text-primary">
-                          {formatPrice(room.base_price)}/đêm
+                    {/* Active Check Session */}
+                    {hasActiveCheck && (
+                      <div className="flex items-center gap-2 text-sm text-amber-600 mb-3">
+                        <div className="animate-pulse h-2 w-2 rounded-full bg-amber-500" />
+                        <span>
+                          {room.active_check_session.user_name || 'Nhân viên'} đang kiểm tra {checkTypeLabel}
                         </span>
                       </div>
                     )}
 
+                    {/* Price */}
+                    <div className="mb-4">
+                      <div className="text-xs text-muted-foreground">Giá cơ bản</div>
+                      <div className="text-lg font-semibold text-primary">
+                        {room.base_price ? formatPrice(room.base_price) : '—'}/đêm
+                      </div>
+                    </div>
+
                     {/* Action Buttons */}
-                    <div className="flex gap-2 pt-3 border-t">
+                    <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
@@ -393,8 +339,7 @@ export const MobileRoomsPage = () => {
                           navigate(`/rooms/${room.id}`)
                         }}
                       >
-                        <Eye className="h-4 w-4 mr-1" />
-                        Chi tiết
+                        Xem chi tiết
                       </Button>
                       <Button
                         size="sm"
@@ -404,8 +349,7 @@ export const MobileRoomsPage = () => {
                           navigate(`/rooms/${room.id}/check`)
                         }}
                       >
-                        <ClipboardCheck className="h-4 w-4 mr-1" />
-                        Kiểm tra
+                        {hasActiveCheck ? 'Đang kiểm tra' : 'Kiểm tra'}
                       </Button>
                     </div>
                   </CardContent>
