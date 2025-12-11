@@ -34,33 +34,58 @@ export function ForgotPasswordForm() {
   })
 
   const sendResetEmail = async (emailAddress: string) => {
-    const { data, error } = await supabase.functions.invoke('send-password-reset', {
-      body: { email: emailAddress },
-    })
+    try {
+      const response = await supabase.functions.invoke('send-password-reset', {
+        body: { email: emailAddress },
+      })
 
-    // Handle function invocation error (includes non-2xx responses)
-    if (error) {
-      // Try to parse the error context for email_not_found flag
-      const errorMessage = error.message || 'Không thể gửi email'
-      
-      // Check if this is an "email not found" error
-      if (errorMessage.includes('chưa được đăng ký') || errorMessage.includes('404')) {
-        const err = new Error('Email này chưa được đăng ký trong hệ thống') as Error & { emailNotFound?: boolean }
+      console.log('Password reset response:', response)
+
+      // For non-2xx responses, Supabase puts the response body in `data` and sets `error`
+      const responseData = response.data
+      const responseError = response.error
+
+      // Check for email not found in response data (edge function returns this in body)
+      if (responseData?.email_not_found || responseData?.error?.includes('chưa được đăng ký')) {
+        const err = new Error(responseData.error || 'Email này chưa được đăng ký trong hệ thống') as Error & { emailNotFound?: boolean }
         err.emailNotFound = true
         throw err
       }
-      
-      throw new Error(errorMessage)
-    }
 
-    // Handle application-level error from edge function (for 2xx responses with error in body)
-    if (data?.error) {
-      const err = new Error(data.error) as Error & { emailNotFound?: boolean }
-      err.emailNotFound = data.email_not_found === true
+      // Check if there's an error from the function invocation
+      if (responseError) {
+        // For 404 responses, the message might indicate email not found
+        const errorMessage = responseError.message || ''
+        
+        // Check if this is specifically an email not found scenario
+        if (errorMessage.includes('404') || errorMessage.includes('chưa được đăng ký')) {
+          const err = new Error('Email này chưa được đăng ký trong hệ thống') as Error & { emailNotFound?: boolean }
+          err.emailNotFound = true
+          throw err
+        }
+        
+        throw new Error(errorMessage || 'Không thể gửi email')
+      }
+
+      // Check for application-level error in successful response
+      if (responseData?.error) {
+        throw new Error(responseData.error)
+      }
+
+      return responseData
+    } catch (err: any) {
+      // Re-throw with emailNotFound flag preserved
+      if (err.emailNotFound) {
+        throw err
+      }
+      // Check error message for email not found indicators
+      if (err.message?.includes('chưa được đăng ký') || err.message?.includes('404')) {
+        const newErr = new Error('Email này chưa được đăng ký trong hệ thống') as Error & { emailNotFound?: boolean }
+        newErr.emailNotFound = true
+        throw newErr
+      }
       throw err
     }
-
-    return data
   }
 
   const onSubmit = async (data: ForgotPasswordData) => {
