@@ -37,7 +37,7 @@ export const MobileDetailHeader = ({
   return (
     <header
       className={cn(
-        'sticky top-0 z-40 bg-background border-b shadow-sm safe-area-top',
+        'sticky top-0 z-20 bg-background border-b shadow-sm safe-area-top',
         className
       )}
     >
