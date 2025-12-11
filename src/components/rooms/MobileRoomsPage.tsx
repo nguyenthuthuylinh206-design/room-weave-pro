@@ -5,16 +5,22 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useRooms } from '@/hooks/useRooms'
+import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
+import { useAuth } from '@/hooks/useAuth'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { RoomStatusBadge } from './RoomStatusBadge'
+import { RoomStatusSelector } from './RoomStatusSelector'
 import { MobileRoomFilters } from './MobileRoomFilters'
+import { MobileRoomBulkActionsBar } from './MobileRoomBulkActionsBar'
 import { 
   Bed, CheckCircle, Wrench, Plus, Search, 
-  Users, Square, LogIn, LogOut, Sparkles, XCircle
+  Users, Square, LogIn, LogOut, Sparkles, XCircle,
+  Package, AlertTriangle, Loader2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { RoomFilters as IRoomFilters, RoomStatus, RoomType } from '@/types/rooms.types'
+import type { RoomFilters as IRoomFilters, RoomStatus, RoomType, RoomWithStats } from '@/types/rooms.types'
 
 type FilterStatus = 'all' | RoomStatus
 
@@ -32,6 +38,7 @@ const ALL_STATUSES: RoomStatus[] = ['vacant', 'occupied', 'check_in', 'check_out
 
 export const MobileRoomsPage = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all')
   const [search, setSearch] = useState('')
   
@@ -40,9 +47,14 @@ export const MobileRoomsPage = () => {
   const [roomTypeFilter, setRoomTypeFilter] = useState<RoomType | undefined>(undefined)
   const [missingItemsOnly, setMissingItemsOnly] = useState(false)
   
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [selectionMode, setSelectionMode] = useState(false)
+  
   const [filters, setFilters] = useState<IRoomFilters>({})
   
   const { data: rooms = [], isLoading, refetch } = useRooms(filters)
+  const checkSessions = useAllRoomCheckSessions()
 
   // Get unique floors for filter
   const availableFloors = useMemo(() => {
@@ -52,21 +64,12 @@ export const MobileRoomsPage = () => {
 
   const filteredRooms = useMemo(() => {
     return rooms.filter((room: any) => {
-      // Status filter
       const matchesStatus = statusFilter === 'all' || room.status === statusFilter
-      
-      // Search filter
       const matchesSearch = !search || 
         room.room_number?.toLowerCase().includes(search.toLowerCase()) ||
         room.floor?.toString().includes(search)
-      
-      // Floor filter
       const matchesFloor = floorFilter === undefined || room.floor === floorFilter
-      
-      // Room type filter
       const matchesRoomType = roomTypeFilter === undefined || room.room_type === roomTypeFilter
-      
-      // Missing items filter
       const matchesMissingItems = !missingItemsOnly || (room.missing_items && room.missing_items > 0)
       
       return matchesStatus && matchesSearch && matchesFloor && matchesRoomType && matchesMissingItems
@@ -83,15 +86,36 @@ export const MobileRoomsPage = () => {
     setMissingItemsOnly(false)
   }
 
-  const getStatusConfig = (status: string) => {
-    return STATUS_CONFIG[status as RoomStatus] || {
-      label: status,
-      icon: Bed,
-      color: 'text-gray-600 bg-gray-100'
+  // Bulk selection handlers
+  const toggleSelectRoom = (roomId: string) => {
+    setSelectedIds(prev => 
+      prev.includes(roomId) 
+        ? prev.filter(id => id !== roomId)
+        : [...prev, roomId]
+    )
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredRooms.length) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(filteredRooms.map((r: any) => r.id))
     }
   }
 
-  // Stats - all 7 statuses
+  const handleClearSelection = () => {
+    setSelectedIds([])
+    setSelectionMode(false)
+  }
+
+  const handleLongPress = (roomId: string) => {
+    if (!selectionMode) {
+      setSelectionMode(true)
+      setSelectedIds([roomId])
+    }
+  }
+
+  // Stats
   const stats = useMemo(() => ({
     total: rooms.length,
     vacant: rooms.filter((r: any) => r.status === 'vacant').length,
@@ -112,11 +136,66 @@ export const MobileRoomsPage = () => {
     }).format(price)
   }
 
+  // Get check button state
+  const getCheckButtonState = (room: any) => {
+    const session = checkSessions[room.id]
+    if (!session) {
+      return { label: 'Kiểm tra', variant: 'default' as const, disabled: false }
+    }
+    
+    const isOwnSession = session.user_id === user?.id
+    if (isOwnSession) {
+      return { label: 'Tiếp tục kiểm tra', variant: 'default' as const, disabled: false }
+    }
+    
+    return { 
+      label: `${session.user_name} đang kiểm tra`, 
+      variant: 'secondary' as const, 
+      disabled: true 
+    }
+  }
+
+  // Get item status display
+  const getItemStatusDisplay = (room: RoomWithStats) => {
+    const totalItems = room.total_items || 0
+    const missingItems = room.missing_items || 0
+    const inLaundry = room.items_in_laundry || 0
+
+    if (totalItems === 0) {
+      return { label: 'Chưa thiết lập đồ', color: 'bg-muted text-muted-foreground' }
+    }
+
+    if (missingItems > 0) {
+      return { 
+        label: `Thiếu ${missingItems}/${totalItems}`, 
+        color: 'bg-destructive/10 text-destructive',
+        icon: AlertTriangle
+      }
+    }
+
+    return { 
+      label: 'Đủ đồ', 
+      color: 'bg-green-100 text-green-700',
+      icon: CheckCircle
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className={cn("min-h-screen bg-background", selectedIds.length > 0 ? "pb-36" : "pb-20")}>
       <MobileDetailHeader
         title="Phòng"
         showBack
+        rightContent={
+          selectionMode ? (
+            <Button variant="ghost" size="sm" onClick={handleClearSelection}>
+              Hủy
+            </Button>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => setSelectionMode(true)}>
+              Chọn
+            </Button>
+          )
+        }
       />
 
       {/* Add Button */}
@@ -130,7 +209,7 @@ export const MobileRoomsPage = () => {
         </Button>
       </div>
 
-      {/* Stats Cards - Horizontal Scroll */}
+      {/* Stats Cards */}
       <div className="px-4 pb-3 overflow-x-auto">
         <div className="flex gap-3 min-w-max">
           <Card className="min-w-[100px]">
@@ -207,7 +286,25 @@ export const MobileRoomsPage = () => {
         />
       </div>
 
-      {/* Filter Tabs - All 7 statuses */}
+      {/* Selection Mode Header */}
+      {selectionMode && (
+        <div className="px-4 pb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              checked={selectedIds.length === filteredRooms.length && filteredRooms.length > 0}
+              onCheckedChange={toggleSelectAll}
+            />
+            <span className="text-sm text-muted-foreground">
+              {selectedIds.length > 0 
+                ? `Đã chọn ${selectedIds.length}/${filteredRooms.length}`
+                : 'Chọn tất cả'
+              }
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Filter Tabs */}
       <div className="sticky top-14 bg-background border-b z-10 px-4 py-3 overflow-x-auto">
         <div className="flex gap-2 min-w-max">
           <button
@@ -260,32 +357,46 @@ export const MobileRoomsPage = () => {
             </Card>
           ) : (
             filteredRooms.map((room: any) => {
-              const hasActiveCheck = room.active_check_session
-              const checkTypeLabel = hasActiveCheck ? (
-                room.active_check_session.check_type === 'daily' ? 'hàng ngày' :
-                room.active_check_session.check_type === 'checkin' ? 'check-in' :
-                room.active_check_session.check_type === 'checkout' ? 'check-out' :
-                room.active_check_session.check_type === 'maintenance' ? 'bảo trì' : ''
-              ) : ''
+              const checkButtonState = getCheckButtonState(room)
+              const itemStatus = getItemStatusDisplay(room)
+              const session = checkSessions[room.id]
+              const isSelected = selectedIds.includes(room.id)
 
               return (
                 <Card
                   key={room.id}
-                  className="hover:shadow-md transition-shadow"
+                  className={cn(
+                    "hover:shadow-md transition-all",
+                    isSelected && "ring-2 ring-primary bg-primary/5"
+                  )}
+                  onClick={() => selectionMode && toggleSelectRoom(room.id)}
                 >
                   <CardContent className="p-4">
-                    {/* Header: Room Number + Status Badge */}
+                    {/* Header: Checkbox + Room Number + Status Selector */}
                     <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <div className="font-bold text-xl">{room.room_number}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {room.room_type === 'standard' ? 'Standard' :
-                           room.room_type === 'deluxe' ? 'Deluxe' :
-                           room.room_type === 'suite' ? 'Suite' :
-                           room.room_type === 'vip' ? 'VIP' : room.room_type || 'N/A'}
+                      <div className="flex items-start gap-3">
+                        {selectionMode && (
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleSelectRoom(room.id)}
+                            className="mt-1"
+                          />
+                        )}
+                        <div>
+                          <div className="font-bold text-xl">{room.room_number}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {room.room_type === 'standard' ? 'Standard' :
+                             room.room_type === 'deluxe' ? 'Deluxe' :
+                             room.room_type === 'suite' ? 'Suite' :
+                             room.room_type === 'vip' ? 'VIP' : room.room_type || 'N/A'}
+                          </div>
                         </div>
                       </div>
-                      <RoomStatusBadge status={room.status as RoomStatus} />
+                      {/* Room Status Selector */}
+                      <RoomStatusSelector 
+                        roomId={room.id} 
+                        currentStatus={room.status as RoomStatus} 
+                      />
                     </div>
 
                     {/* Room Info Row */}
@@ -310,12 +421,34 @@ export const MobileRoomsPage = () => {
                       )}
                     </div>
 
+                    {/* Item Status Display */}
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                      <Badge 
+                        variant="outline" 
+                        className={cn("text-xs", itemStatus.color)}
+                      >
+                        {itemStatus.icon && <itemStatus.icon className="h-3 w-3 mr-1" />}
+                        <Package className="h-3 w-3 mr-1" />
+                        {itemStatus.label}
+                      </Badge>
+                      {room.items_in_laundry > 0 && (
+                        <Badge variant="outline" className="text-xs bg-cyan-100 text-cyan-700">
+                          <Loader2 className="h-3 w-3 mr-1" />
+                          {room.items_in_laundry} đang giặt
+                        </Badge>
+                      )}
+                    </div>
+
                     {/* Active Check Session */}
-                    {hasActiveCheck && (
-                      <div className="flex items-center gap-2 text-sm text-amber-600 mb-3">
+                    {session && (
+                      <div className="flex items-center gap-2 text-sm text-amber-600 mb-3 bg-amber-50 rounded-lg px-3 py-2">
                         <div className="animate-pulse h-2 w-2 rounded-full bg-amber-500" />
                         <span>
-                          {room.active_check_session.user_name || 'Nhân viên'} đang kiểm tra {checkTypeLabel}
+                          {session.user_name} đang kiểm tra{' '}
+                          {session.check_type === 'daily' ? 'hàng ngày' :
+                           session.check_type === 'checkin' ? 'check-in' :
+                           session.check_type === 'checkout' ? 'check-out' :
+                           session.check_type === 'maintenance' ? 'bảo trì' : ''}
                         </span>
                       </div>
                     )}
@@ -329,29 +462,33 @@ export const MobileRoomsPage = () => {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          navigate(`/rooms/${room.id}`)
-                        }}
-                      >
-                        Xem chi tiết
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="flex-1"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          navigate(`/rooms/${room.id}/check`)
-                        }}
-                      >
-                        {hasActiveCheck ? 'Đang kiểm tra' : 'Kiểm tra'}
-                      </Button>
-                    </div>
+                    {!selectionMode && (
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            navigate(`/rooms/${room.id}`)
+                          }}
+                        >
+                          Xem chi tiết
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          variant={checkButtonState.variant}
+                          disabled={checkButtonState.disabled}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            navigate(`/rooms/${room.id}/check`)
+                          }}
+                        >
+                          {checkButtonState.label}
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )
@@ -359,6 +496,12 @@ export const MobileRoomsPage = () => {
           )}
         </div>
       </PullToRefresh>
+
+      {/* Bulk Actions Bar */}
+      <MobileRoomBulkActionsBar 
+        selectedIds={selectedIds}
+        onClearSelection={handleClearSelection}
+      />
     </div>
   )
 }

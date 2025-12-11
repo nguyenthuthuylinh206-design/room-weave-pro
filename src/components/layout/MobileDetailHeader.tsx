@@ -12,6 +12,7 @@ interface MobileDetailHeaderProps {
     onClick: () => void
     label?: string
   }
+  rightContent?: React.ReactNode
   className?: string
 }
 
@@ -20,6 +21,7 @@ export const MobileDetailHeader = ({
   showBack = true,
   onBack,
   action,
+  rightContent,
   className,
 }: MobileDetailHeaderProps) => {
   const navigate = useNavigate()
@@ -55,8 +57,10 @@ export const MobileDetailHeader = ({
           <h1 className="font-semibold text-base truncate">{title}</h1>
         </div>
 
-        {/* Right: Action Button */}
-        {action && (
+        {/* Right: Action Button or Custom Content */}
+        {rightContent ? (
+          rightContent
+        ) : action && (
           <Button
             variant="ghost"
             size="icon"
