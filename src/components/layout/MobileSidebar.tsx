@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { 
   Home,
@@ -32,6 +33,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 import { useToast } from '@/hooks/use-toast'
+import { InstallGuideSheet } from '@/components/pwa/InstallGuideSheet'
 
 interface MenuItem {
   title: string
@@ -59,6 +61,7 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const { canInstall, installPWA, isInstalled } = usePWAInstall()
   const { toast } = useToast()
+  const [showInstallGuide, setShowInstallGuide] = useState(false)
 
   // Handle PWA install
   const handleInstallApp = async () => {
@@ -74,18 +77,16 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
       } else {
         toast({
           title: "Không thể cài đặt",
-          description: "Vui lòng sử dụng menu trình duyệt để thêm vào màn hình chính.",
+          description: "Vui lòng thử lại sau.",
           variant: "destructive",
         })
       }
+      onClose()
     } else {
-      // Show manual installation instructions
-      toast({
-        title: "Thêm vào màn hình chính",
-        description: "Mở menu trình duyệt (⋮) → 'Thêm vào màn hình chính' hoặc 'Cài đặt ứng dụng'",
-      })
+      // Show install guide sheet with illustrations
+      onClose()
+      setTimeout(() => setShowInstallGuide(true), 300)
     }
-    onClose()
   }
 
   // Get pending counts
@@ -325,6 +326,12 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
           Sign Out
         </Button>
       </div>
+
+      {/* PWA Install Guide Sheet */}
+      <InstallGuideSheet 
+        open={showInstallGuide} 
+        onOpenChange={setShowInstallGuide} 
+      />
     </div>
   )
 }
