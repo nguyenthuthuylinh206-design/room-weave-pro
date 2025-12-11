@@ -31,7 +31,7 @@ export function VendorCard({ vendor, onSelect, isSelected }: VendorCardProps) {
       service_provider: { label: 'Dịch vụ', variant: 'secondary' },
       contractor: { label: 'Thầu phụ', variant: 'outline' }
     };
-    return variants[vendor.category];
+    return variants[vendor.category] || { label: 'Khác', variant: 'outline' };
   };
 
   const categoryBadge = getCategoryBadge();
@@ -67,7 +67,7 @@ export function VendorCard({ vendor, onSelect, isSelected }: VendorCardProps) {
               <div className="flex items-center gap-1">
                 <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                 <span className="text-sm font-medium">
-                  {vendor.rating.toFixed(1)}
+                  {(vendor.rating ?? 0).toFixed(1)}
                 </span>
               </div>
             </div>
@@ -88,8 +88,8 @@ export function VendorCard({ vendor, onSelect, isSelected }: VendorCardProps) {
         <div className="flex items-start gap-2">
           <Package className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
           <span className="text-muted-foreground line-clamp-2">
-            {vendor.products_services.slice(0, 3).join(', ')}
-            {vendor.products_services.length > 3 && ` +${vendor.products_services.length - 3}`}
+            {(vendor.products_services || []).slice(0, 3).join(', ') || 'Chưa có'}
+            {(vendor.products_services?.length || 0) > 3 && ` +${vendor.products_services!.length - 3}`}
           </span>
         </div>
 
@@ -154,19 +154,19 @@ export function VendorCard({ vendor, onSelect, isSelected }: VendorCardProps) {
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">On-time</span>
               <span className="font-medium">
-                {vendor.on_time_delivery_rate}%
+                {vendor.on_time_delivery_rate ?? 0}%
               </span>
             </div>
             <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
               <div 
                 className={`h-full ${
-                  vendor.on_time_delivery_rate >= 95 
+                  (vendor.on_time_delivery_rate ?? 0) >= 95 
                     ? 'bg-green-500' 
-                    : vendor.on_time_delivery_rate >= 90 
+                    : (vendor.on_time_delivery_rate ?? 0) >= 90 
                     ? 'bg-yellow-500' 
                     : 'bg-red-500'
                 }`}
-                style={{ width: `${vendor.on_time_delivery_rate}%` }}
+                style={{ width: `${vendor.on_time_delivery_rate ?? 0}%` }}
               />
             </div>
           </div>
