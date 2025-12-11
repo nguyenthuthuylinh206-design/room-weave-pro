@@ -40,19 +40,19 @@ export function AdvancedDashboard() {
       {/* Header Actions */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Super Admin Dashboard</h1>
+          <h1 className="text-3xl font-bold">Bảng điều khiển quản trị</h1>
           <p className="text-muted-foreground mt-1">
-            Monitor your SaaS platform performance
+            Theo dõi hiệu suất nền tảng SaaS của bạn
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+            Làm mới
           </Button>
           <Button>
             <Download className="h-4 w-4 mr-2" />
-            Export Report
+            Xuất báo cáo
           </Button>
         </div>
       </div>
@@ -60,23 +60,23 @@ export function AdvancedDashboard() {
       {/* Quick Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
-          title="Total Revenue"
-          value={`$${totalRevenue.toLocaleString()}`}
+          title="Tổng doanh thu"
+          value={`${totalRevenue.toLocaleString('vi-VN')}đ`}
           change="+12.5%"
           trend="up"
           icon={DollarSign}
           color="green"
         />
         <MetricCard
-          title="Active Tenants"
+          title="Khách hàng hoạt động"
           value={stats?.active_tenants || 0}
-          subtitle={`${stats?.trial_tenants || 0} on trial`}
+          subtitle={`${stats?.trial_tenants || 0} đang dùng thử`}
           icon={Users}
           color="blue"
         />
         <MetricCard
-          title="MRR"
-          value={`$${(stats?.mrr || 0).toLocaleString()}`}
+          title="Doanh thu định kỳ"
+          value={`${(stats?.mrr || 0).toLocaleString('vi-VN')}đ`}
           change={`+${growthRate}%`}
           trend={Number(growthRate) > 0 ? 'up' : 'down'}
           icon={TrendingUp}
@@ -84,8 +84,8 @@ export function AdvancedDashboard() {
         />
         <MetricCard
           title="ARPU"
-          value={`$${arpu}`}
-          subtitle="Average Revenue Per User"
+          value={`${Number(arpu).toLocaleString('vi-VN')}đ`}
+          subtitle="Doanh thu trung bình/khách hàng"
           icon={DollarSign}
           color="orange"
         />
@@ -97,10 +97,10 @@ export function AdvancedDashboard() {
       {/* Main Content Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="revenue">Revenue</TabsTrigger>
-          <TabsTrigger value="tenants">Tenants</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
+          <TabsTrigger value="overview">Tổng quan</TabsTrigger>
+          <TabsTrigger value="revenue">Doanh thu</TabsTrigger>
+          <TabsTrigger value="tenants">Khách hàng</TabsTrigger>
+          <TabsTrigger value="activity">Hoạt động</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -108,7 +108,7 @@ export function AdvancedDashboard() {
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Revenue Trends</CardTitle>
+                <CardTitle>Xu hướng doanh thu</CardTitle>
               </CardHeader>
               <CardContent>
                 <RevenueChart />
@@ -117,7 +117,7 @@ export function AdvancedDashboard() {
 
             <Card>
               <CardHeader>
-                <CardTitle>MRR Growth</CardTitle>
+                <CardTitle>Tăng trưởng MRR</CardTitle>
               </CardHeader>
               <CardContent>
                 <MRRChart />
@@ -128,7 +128,7 @@ export function AdvancedDashboard() {
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Tenant Growth</CardTitle>
+                <CardTitle>Tăng trưởng khách hàng</CardTitle>
               </CardHeader>
               <CardContent>
                 <TenantGrowthChart />
@@ -137,7 +137,7 @@ export function AdvancedDashboard() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Plan Distribution</CardTitle>
+                <CardTitle>Phân bổ gói dịch vụ</CardTitle>
               </CardHeader>
               <CardContent>
                 <PlanDistributionChart data={revenueByPlan} />
@@ -151,28 +151,28 @@ export function AdvancedDashboard() {
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
+                <CardTitle className="text-sm font-medium">Doanh thu tháng này</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  ${(stats?.revenue_this_month || 0).toLocaleString()}
+                  {(stats?.revenue_this_month || 0).toLocaleString('vi-VN')}đ
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  From monthly subscriptions
+                  Từ các gói đăng ký hàng tháng
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-medium">Last Month</CardTitle>
+                <CardTitle className="text-sm font-medium">Tháng trước</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  ${(stats?.revenue_last_month || 0).toLocaleString()}
+                  {(stats?.revenue_last_month || 0).toLocaleString('vi-VN')}đ
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Previous month revenue
+                  Doanh thu tháng trước
                 </p>
               </CardContent>
             </Card>
@@ -183,10 +183,10 @@ export function AdvancedDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  ${((stats?.mrr || 0) * 12).toLocaleString()}
+                  {((stats?.mrr || 0) * 12).toLocaleString('vi-VN')}đ
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Annual Recurring Revenue
+                  Doanh thu định kỳ hàng năm
                 </p>
               </CardContent>
             </Card>
@@ -194,7 +194,7 @@ export function AdvancedDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Revenue by Plan</CardTitle>
+              <CardTitle>Doanh thu theo gói</CardTitle>
             </CardHeader>
             <CardContent>
               <RevenueByPlanTable data={revenueByPlan} />
@@ -206,25 +206,25 @@ export function AdvancedDashboard() {
         <TabsContent value="tenants" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-4">
             <StatusCard
-              title="Active"
+              title="Hoạt động"
               count={stats?.active_tenants || 0}
               color="green"
               icon={CheckCircle2}
             />
             <StatusCard
-              title="Trial"
+              title="Dùng thử"
               count={stats?.trial_tenants || 0}
               color="blue"
               icon={Users}
             />
             <StatusCard
-              title="Expiring Soon"
+              title="Sắp hết hạn"
               count={stats?.expiring_7_days || 0}
               color="yellow"
               icon={AlertTriangle}
             />
             <StatusCard
-              title="Grace Period"
+              title="Gia hạn"
               count={stats?.in_grace_period || 0}
               color="red"
               icon={AlertTriangle}
@@ -233,7 +233,7 @@ export function AdvancedDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Tenant Growth (Last 30 Days)</CardTitle>
+              <CardTitle>Tăng trưởng khách hàng (30 ngày qua)</CardTitle>
             </CardHeader>
             <CardContent>
               <TenantGrowthChart />
@@ -300,7 +300,7 @@ function MetricCard({ title, value, change, trend, subtitle, icon: Icon, color }
             <span className={`text-sm ${trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
               {change}
             </span>
-            <span className="text-xs text-muted-foreground ml-1">vs last month</span>
+            <span className="text-xs text-muted-foreground ml-1">so với tháng trước</span>
           </div>
         )}
         {subtitle && (
@@ -335,7 +335,7 @@ function StatusCard({ title, count, color, icon: Icon }: any) {
 }
 
 function RevenueByPlanTable({ data }: any) {
-  if (!data || data.length === 0) return <p className="text-center text-muted-foreground">No data</p>;
+  if (!data || data.length === 0) return <p className="text-center text-muted-foreground">Không có dữ liệu</p>;
 
   return (
     <div className="space-y-3">
@@ -343,14 +343,14 @@ function RevenueByPlanTable({ data }: any) {
         <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted">
           <div className="flex-1">
             <div className="font-medium">{plan.planName}</div>
-            <div className="text-sm text-muted-foreground">{plan.tenantCount} tenants</div>
+            <div className="text-sm text-muted-foreground">{plan.tenantCount} khách hàng</div>
           </div>
           <div className="text-right">
             <div className="font-bold text-lg text-green-600">
-              ${plan.totalRevenue.toLocaleString()}
+              {plan.totalRevenue.toLocaleString('vi-VN')}đ
             </div>
             <div className="text-xs text-muted-foreground">
-              ${(plan.totalRevenue / plan.tenantCount).toFixed(2)} ARPU
+              {(plan.totalRevenue / plan.tenantCount).toLocaleString('vi-VN')}đ ARPU
             </div>
           </div>
         </div>

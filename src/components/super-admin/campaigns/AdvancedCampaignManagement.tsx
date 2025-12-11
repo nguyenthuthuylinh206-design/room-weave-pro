@@ -33,14 +33,14 @@ export function AdvancedCampaignManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Marketing Campaigns</h1>
+          <h1 className="text-3xl font-bold">Chiến dịch Marketing</h1>
           <p className="text-muted-foreground mt-1">
-            Create, manage and track email campaigns
+            Tạo, quản lý và theo dõi các chiến dịch email
           </p>
         </div>
         <Button onClick={() => navigate('/super-admin/campaigns/new')}>
           <Plus className="h-4 w-4 mr-2" />
-          New Campaign
+          Tạo chiến dịch mới
         </Button>
       </div>
 
@@ -49,7 +49,7 @@ export function AdvancedCampaignManagement() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Campaigns
+              Tổng chiến dịch
             </CardTitle>
             <div className="p-2 rounded-lg bg-blue-500">
               <Mail className="h-4 w-4 text-white" />
@@ -57,14 +57,14 @@ export function AdvancedCampaignManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">{stats.active} active</p>
+            <p className="text-xs text-muted-foreground">{stats.active} đang hoạt động</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Sent
+              Tổng đã gửi
             </CardTitle>
             <div className="p-2 rounded-lg bg-green-500">
               <Users className="h-4 w-4 text-white" />
@@ -72,14 +72,14 @@ export function AdvancedCampaignManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalSent}</div>
-            <p className="text-xs text-muted-foreground">Emails delivered</p>
+            <p className="text-xs text-muted-foreground">Email đã gửi thành công</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Avg Open Rate
+              Tỷ lệ mở TB
             </CardTitle>
             <div className="p-2 rounded-lg bg-purple-500">
               <TrendingUp className="h-4 w-4 text-white" />
@@ -87,14 +87,14 @@ export function AdvancedCampaignManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.avgOpenRate}%</div>
-            <p className="text-xs text-muted-foreground">Across all campaigns</p>
+            <p className="text-xs text-muted-foreground">Trên tất cả chiến dịch</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Performance
+              Hiệu suất
             </CardTitle>
             <div className="p-2 rounded-lg bg-orange-500">
               <BarChart3 className="h-4 w-4 text-white" />
@@ -102,10 +102,10 @@ export function AdvancedCampaignManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {parseFloat(stats.avgOpenRate) > 20 ? 'Good' : 'Fair'}
+              {parseFloat(stats.avgOpenRate) > 20 ? 'Tốt' : 'Trung bình'}
             </div>
             <p className="text-xs text-muted-foreground">
-              {parseFloat(stats.avgOpenRate) > 20 ? 'Above average' : 'Needs improvement'}
+              {parseFloat(stats.avgOpenRate) > 20 ? 'Trên mức trung bình' : 'Cần cải thiện'}
             </p>
           </CardContent>
         </Card>
@@ -114,10 +114,10 @@ export function AdvancedCampaignManagement() {
       {/* Tabs */}
       <Tabs defaultValue="campaigns" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="campaigns">All Campaigns</TabsTrigger>
-          <TabsTrigger value="templates">Email Templates</TabsTrigger>
+          <TabsTrigger value="campaigns">Tất cả chiến dịch</TabsTrigger>
+          <TabsTrigger value="templates">Mẫu email</TabsTrigger>
           <TabsTrigger value="ab-testing">A/B Testing</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="analytics">Phân tích</TabsTrigger>
         </TabsList>
 
         <TabsContent value="campaigns">

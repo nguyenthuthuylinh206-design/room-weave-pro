@@ -17,8 +17,8 @@ export function useSuperAdminAuth() {
       // Check if user is logged in
       if (!user) {
         toast({
-          title: 'Authentication Required',
-          description: 'Please sign in to access Super Admin portal.',
+          title: 'Yêu cầu đăng nhập',
+          description: 'Vui lòng đăng nhập để truy cập cổng quản trị.',
           variant: 'destructive',
         });
         navigate('/auth/login');
@@ -31,8 +31,8 @@ export function useSuperAdminAuth() {
       
       if (!isSuperAdmin) {
         toast({
-          title: 'Access Denied',
-          description: 'You do not have permission to access Super Admin portal.',
+          title: 'Truy cập bị từ chối',
+          description: 'Bạn không có quyền truy cập cổng quản trị viên cấp cao.',
           variant: 'destructive',
         });
         navigate('/');

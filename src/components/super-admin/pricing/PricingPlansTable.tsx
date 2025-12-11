@@ -54,7 +54,7 @@ export function PricingPlansTable() {
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           >
-            Plan Name
+            Tên gói
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         );
@@ -68,10 +68,10 @@ export function PricingPlansTable() {
     },
     {
       accessorKey: 'is_active',
-      header: 'Status',
+      header: 'Trạng thái',
       cell: ({ row }) => (
         <Badge variant={row.original.is_active ? 'default' : 'secondary'}>
-          {row.original.is_active ? 'Active' : 'Inactive'}
+          {row.original.is_active ? 'Hoạt động' : 'Không hoạt động'}
         </Badge>
       ),
     },
@@ -83,24 +83,24 @@ export function PricingPlansTable() {
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           >
-            Monthly Price
+            Giá/tháng
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         );
       },
       cell: ({ row }) => (
-        <span className="font-medium">${row.original.price_monthly}</span>
+        <span className="font-medium">{row.original.price_monthly?.toLocaleString('vi-VN')}đ</span>
       ),
     },
     {
       accessorKey: 'price_yearly',
-      header: 'Yearly Price',
+      header: 'Giá/năm',
       cell: ({ row }) => (
         <div>
-          <div className="font-medium">${row.original.price_yearly}</div>
+          <div className="font-medium">{row.original.price_yearly?.toLocaleString('vi-VN')}đ</div>
           {row.original.price_monthly && (
             <div className="text-xs text-muted-foreground">
-              Save {Math.round((1 - row.original.price_yearly / (row.original.price_monthly * 12)) * 100)}%
+              Tiết kiệm {Math.round((1 - row.original.price_yearly / (row.original.price_monthly * 12)) * 100)}%
             </div>
           )}
         </div>
@@ -108,17 +108,17 @@ export function PricingPlansTable() {
     },
     {
       id: 'limits',
-      header: 'Limits',
+      header: 'Giới hạn',
       cell: ({ row }) => (
         <div className="text-sm">
-          <div>{row.original.max_hotels} hotels</div>
-          <div className="text-muted-foreground">{row.original.max_users} users</div>
+          <div>{row.original.max_hotels} khách sạn</div>
+          <div className="text-muted-foreground">{row.original.max_users} người dùng</div>
         </div>
       ),
     },
     {
       accessorKey: 'tenant_count',
-      header: 'Active Tenants',
+      header: 'Khách hàng',
       cell: ({ row }) => (
         <Badge variant="outline">{row.original.tenant_count || 0}</Badge>
       ),
@@ -135,14 +135,14 @@ export function PricingPlansTable() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuLabel>Hành động</DropdownMenuLabel>
               <DropdownMenuItem
                 onClick={() => {
                   setSelectedPlan(plan);
                   setPlanEditorOpen(true);
                 }}
               >
-                Edit Plan Details
+                Chỉnh sửa chi tiết gói
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
@@ -150,7 +150,7 @@ export function PricingPlansTable() {
                   setPricingEditorOpen(true);
                 }}
               >
-                Edit Pricing Only
+                Chỉnh sửa giá
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -163,7 +163,7 @@ export function PricingPlansTable() {
                   }
                 }}
               >
-                {plan.is_active ? 'Archive Plan' : 'Reactivate Plan'}
+                {plan.is_active ? 'Lưu trữ gói' : 'Kích hoạt lại gói'}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -190,12 +190,12 @@ export function PricingPlansTable() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Subscription Plans</h2>
-          <p className="text-muted-foreground">Manage pricing and plan features</p>
+          <h2 className="text-2xl font-bold">Gói đăng ký</h2>
+          <p className="text-muted-foreground">Quản lý giá và tính năng của các gói</p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Create Plan
+          Tạo gói mới
         </Button>
       </div>
 
@@ -222,7 +222,7 @@ export function PricingPlansTable() {
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Loading...
+                  Đang tải...
                 </TableCell>
               </TableRow>
             ) : table.getRowModel().rows?.length ? (
@@ -238,7 +238,7 @@ export function PricingPlansTable() {
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No plans found.
+                  Không tìm thấy gói nào.
                 </TableCell>
               </TableRow>
             )}
@@ -249,7 +249,7 @@ export function PricingPlansTable() {
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} plan(s) total
+          Tổng {table.getFilteredRowModel().rows.length} gói
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -258,7 +258,7 @@ export function PricingPlansTable() {
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            Previous
+            Trước
           </Button>
           <Button
             variant="outline"
@@ -266,7 +266,7 @@ export function PricingPlansTable() {
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Next
+            Sau
           </Button>
         </div>
       </div>
