@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link } from 'react-router-dom'
-import { Mail, ArrowLeft, CheckCircle } from 'lucide-react'
+import { Mail, ArrowLeft, CheckCircle, Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -15,14 +15,15 @@ import {
 } from '@/components/ui/form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { useAuth } from '@/hooks/useAuth'
 import { forgotPasswordSchema, ForgotPasswordData } from '@/lib/validations/auth.schemas'
-import { Loader2 } from 'lucide-react'
+import { supabase } from '@/integrations/supabase/client'
+import { useToast } from '@/hooks/use-toast'
 
 export function ForgotPasswordForm() {
   const [isSuccess, setIsSuccess] = useState(false)
   const [email, setEmail] = useState('')
-  const { resetPassword } = useAuth()
+  const [isResending, setIsResending] = useState(false)
+  const { toast } = useToast()
 
   const form = useForm<ForgotPasswordData>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -31,12 +32,58 @@ export function ForgotPasswordForm() {
     },
   })
 
+  const sendResetEmail = async (emailAddress: string) => {
+    const { data, error } = await supabase.functions.invoke('send-password-reset', {
+      body: { email: emailAddress },
+    })
+
+    if (error) {
+      throw new Error(error.message || 'Không thể gửi email')
+    }
+
+    if (data?.error) {
+      throw new Error(data.error)
+    }
+
+    return data
+  }
+
   const onSubmit = async (data: ForgotPasswordData) => {
-    setEmail(data.email)
-    const { error } = await resetPassword(data.email)
-    
-    if (!error) {
+    try {
+      setEmail(data.email)
+      await sendResetEmail(data.email)
       setIsSuccess(true)
+      toast({
+        title: 'Email đã gửi',
+        description: 'Vui lòng kiểm tra hộp thư của bạn.',
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message || 'Không thể gửi email. Vui lòng thử lại.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleResend = async () => {
+    if (!email) return
+    
+    setIsResending(true)
+    try {
+      await sendResetEmail(email)
+      toast({
+        title: 'Email đã gửi lại',
+        description: 'Vui lòng kiểm tra hộp thư của bạn.',
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message || 'Không thể gửi lại email. Vui lòng thử lại.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsResending(false)
     }
   }
 
@@ -61,11 +108,22 @@ export function ForgotPasswordForm() {
 
             <div className="space-y-2">
               <Button
-                onClick={() => setIsSuccess(false)}
+                onClick={handleResend}
                 variant="outline"
                 className="w-full"
+                disabled={isResending}
               >
-                Gửi lại email
+                {isResending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Đang gửi...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Gửi lại email
+                  </>
+                )}
               </Button>
               
               <Button asChild variant="ghost" className="w-full">
