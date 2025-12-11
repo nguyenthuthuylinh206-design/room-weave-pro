@@ -74,18 +74,18 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
           title: "Cài đặt thành công!",
           description: "Ứng dụng đã được thêm vào màn hình chính.",
         })
+        onClose()
       } else {
         toast({
           title: "Không thể cài đặt",
-          description: "Vui lòng thử lại sau.",
+          description: "Vui lòng làm theo hướng dẫn thủ công.",
           variant: "destructive",
         })
+        setShowInstallGuide(true)
       }
-      onClose()
     } else {
-      // Show install guide sheet with illustrations
-      onClose()
-      setTimeout(() => setShowInstallGuide(true), 300)
+      // Show install guide sheet with illustrations (don't close sidebar)
+      setShowInstallGuide(true)
     }
   }
 
