@@ -7,22 +7,10 @@ import { useBreakpoint } from '@/lib/breakpoints'
 import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { QuotaWarningBanner } from '@/components/settings/usage/QuotaWarningBanner'
+import { HotelProvider } from '@/contexts/HotelContext'
 
-export const MainLayout = () => {
+const MainLayoutContent = () => {
   const { isMobile } = useBreakpoint()
-  const { user, loading } = useAuth()
-
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    )
-  }
-
-  if (!user) {
-    return null // AuthGuard will redirect
-  }
 
   if (isMobile) {
     return (
@@ -54,5 +42,27 @@ export const MainLayout = () => {
         </main>
       </div>
     </div>
+  )
+}
+
+export const MainLayout = () => {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null // AuthGuard will redirect
+  }
+
+  return (
+    <HotelProvider>
+      <MainLayoutContent />
+    </HotelProvider>
   )
 }
