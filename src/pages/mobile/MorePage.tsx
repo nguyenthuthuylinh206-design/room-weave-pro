@@ -70,7 +70,7 @@ export function MorePage() {
 
   const handleSignOut = async () => {
     await signOut()
-    navigate('/auth')
+    navigate('/auth/login')
   }
 
   return (

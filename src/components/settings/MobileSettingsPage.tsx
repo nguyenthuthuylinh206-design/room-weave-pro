@@ -1,11 +1,10 @@
 import { useNavigate } from 'react-router-dom'
 import { useUser } from '@/hooks/useUser'
+import { useAuth } from '@/contexts/AuthContext'
 import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ChevronRight, User, Building2, Users, Mail, Globe, Shield, Database, Bell, LogOut } from 'lucide-react'
-import { supabase } from '@/integrations/supabase/client'
-import { toast } from 'sonner'
 
 interface SettingsItem {
   id: string
@@ -99,17 +98,13 @@ const SETTINGS_SECTIONS = [
 export const MobileSettingsPage = () => {
   const navigate = useNavigate()
   const { user } = useUser()
+  const { signOut } = useAuth()
 
   const isAdmin = user?.user_level_code === 'owner' || user?.user_level_code === 'manager'
 
   const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut()
-      toast.success('Đã đăng xuất')
-      navigate('/login')
-    } catch (error) {
-      toast.error('Lỗi khi đăng xuất')
-    }
+    await signOut()
+    navigate('/auth/login')
   }
 
   return (
