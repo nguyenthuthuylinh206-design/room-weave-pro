@@ -30,7 +30,7 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
 
   const [localPermissions, setLocalPermissions] = useState<Record<string, boolean>>({})
   const [localActions, setLocalActions] = useState<Record<string, Record<string, boolean>>>({})
-
+  const [hasActionChanges, setHasActionChanges] = useState(false)
   // Initialize local state from fetched data
   useEffect(() => {
     if (permissionsData) {
@@ -128,9 +128,6 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
     
     setHasActionChanges(false)
   }
-
-  // Track action-level changes
-  const [hasActionChanges, setHasActionChanges] = useState(false)
 
   const hasModuleChanges = permissionsData 
     ? Object.keys(localPermissions).some(
