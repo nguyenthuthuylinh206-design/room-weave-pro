@@ -17,10 +17,18 @@ const ROUTE_PRIORITY: { module: string; path: string; label: string }[] = [
 ]
 
 export function useFirstAccessibleRoute() {
-  const { user, hasAnyRole } = useUser()
-  const { data: permissions, isLoading } = useUserModulePermissions()
+  const { user, hasAnyRole, isLoading: isUserLoading } = useUser()
+  const { data: permissions, isLoading: isPermissionsLoading } = useUserModulePermissions()
+
+  // Đợi cả user VÀ permissions load xong
+  const isLoading = isUserLoading || isPermissionsLoading
 
   const firstAccessibleRoute = useMemo(() => {
+    // Nếu đang loading, return null (chờ tiếp)
+    if (isUserLoading || isPermissionsLoading) {
+      return null
+    }
+
     // Super admin và owner có quyền truy cập tất cả
     if (hasAnyRole(['super_admin', 'owner'])) {
       return '/'
@@ -41,7 +49,7 @@ export function useFirstAccessibleRoute() {
 
     // Không có quyền gì → unauthorized
     return '/unauthorized'
-  }, [permissions, hasAnyRole])
+  }, [permissions, hasAnyRole, isUserLoading, isPermissionsLoading])
 
   const hasAnyPermission = useMemo(() => {
     if (hasAnyRole(['super_admin', 'owner'])) return true
