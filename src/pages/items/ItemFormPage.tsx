@@ -38,14 +38,9 @@ const itemSchema = z.object({
   brand: z.string().optional(),
   model: z.string().optional(),
   images: z.array(z.string()).optional(),
-  max_wash_cycles: z.number().min(0).optional(),
-  expected_lifetime_days: z.number().min(0).optional(),
 })
 
 type ItemFormData = z.infer<typeof itemSchema>
-
-// Danh sách category names cho đồ vải
-const LINEN_CATEGORIES = ['Linen', 'Textile', 'Đồ vải', 'Khăn', 'Ga giường', 'Chăn', 'Gối']
 
 export function ItemFormPage() {
   const { id } = useParams()
@@ -85,14 +80,6 @@ export function ItemFormPage() {
       reorder_point: 20,
     },
   })
-  
-  // Kiểm tra xem category hiện tại có phải là đồ vải không
-  const selectedCategoryId = watch('category_id')
-  const selectedCategory = categories?.find(cat => cat.id === selectedCategoryId)
-  const isLinenCategory = selectedCategory ? 
-    LINEN_CATEGORIES.some(linen => 
-      selectedCategory.name.toLowerCase().includes(linen.toLowerCase())
-    ) : false
 
   // Handle copy mode
   useEffect(() => {
@@ -108,8 +95,6 @@ export function ItemFormPage() {
       setValue('reorder_point', copyFrom.reorder_point || 20)
       setValue('brand', copyFrom.brand || '')
       setValue('model', copyFrom.model || '')
-      setValue('max_wash_cycles', copyFrom.max_wash_cycles || undefined)
-      setValue('expected_lifetime_days', copyFrom.expected_lifetime_days || undefined)
     }
   }, [copyFrom, setValue])
 
@@ -131,8 +116,6 @@ export function ItemFormPage() {
         reorder_point: item.reorder_point || 20,
         brand: item.brand || '',
         model: item.model || '',
-        max_wash_cycles: item.max_wash_cycles || undefined,
-        expected_lifetime_days: item.expected_lifetime_days || undefined,
       })
     }
   }, [item, isEdit, copyFrom, reset])
@@ -413,37 +396,6 @@ export function ItemFormPage() {
               </AccordionContent>
             </AccordionItem>
 
-            {selectedCategory && LINEN_CATEGORIES.some(cat => 
-              selectedCategory.name.toLowerCase().includes(cat.toLowerCase())
-            ) && (
-              <AccordionItem value="linen" className="border rounded-lg px-4">
-                <AccordionTrigger className="text-base font-semibold">
-                  Thông tin vòng đời
-                </AccordionTrigger>
-                <AccordionContent className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="max_wash_cycles" className="text-base">Số lần giặt tối đa</Label>
-                    <Input
-                      id="max_wash_cycles"
-                      type="number"
-                      {...register('max_wash_cycles', { valueAsNumber: true })}
-                      className="h-12 text-base"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="expected_lifetime_days" className="text-base">Tuổi thọ dự kiến (ngày)</Label>
-                    <Input
-                      id="expected_lifetime_days"
-                      type="number"
-                      {...register('expected_lifetime_days', { valueAsNumber: true })}
-                      className="h-12 text-base"
-                    />
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            )}
-
             <AccordionItem value="images" className="border rounded-lg px-4">
               <AccordionTrigger className="text-base font-semibold">
                 Hình ảnh
@@ -602,34 +554,6 @@ export function ItemFormPage() {
           </CardContent>
         </Card>
 
-        {isLinenCategory && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Thông tin vòng đời (Cho đồ vải)</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="max_wash_cycles">Số lần giặt tối đa</Label>
-                  <Input
-                    id="max_wash_cycles"
-                    type="number"
-                    {...register('max_wash_cycles', { valueAsNumber: true })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="expected_lifetime_days">Tuổi thọ dự kiến (ngày)</Label>
-                  <Input
-                    id="expected_lifetime_days"
-                    type="number"
-                    {...register('expected_lifetime_days', { valueAsNumber: true })}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
           </>
         )}
 
