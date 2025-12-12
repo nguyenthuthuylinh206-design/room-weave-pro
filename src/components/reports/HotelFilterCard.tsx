@@ -11,10 +11,17 @@ import {
 import { useHotelContext } from '@/contexts/HotelContext'
 
 export function HotelFilterCard() {
-  const { selectedHotel, setSelectedHotel, availableHotels, isAllHotelsMode, setAllHotelsMode } = useHotelContext()
+  const { 
+    selectedHotel, 
+    setSelectedHotel, 
+    availableHotels, 
+    isAllHotelsMode, 
+    setAllHotelsMode,
+    canViewAllHotels 
+  } = useHotelContext()
 
   const handleValueChange = (value: string) => {
-    if (value === 'all') {
+    if (value === 'all' && canViewAllHotels) {
       setAllHotelsMode(true)
     } else {
       const hotel = availableHotels.find(h => h.id === value)
@@ -42,12 +49,15 @@ export function HotelFilterCard() {
               </div>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  <span className="font-medium">Tất cả khách sạn</span>
-                </div>
-              </SelectItem>
+              {/* Only show "All Hotels" option if user can view all hotels */}
+              {canViewAllHotels && (
+                <SelectItem value="all">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    <span className="font-medium">Tất cả khách sạn</span>
+                  </div>
+                </SelectItem>
+              )}
               {availableHotels.map((hotel) => (
                 <SelectItem key={hotel.id} value={hotel.id}>
                   <div className="flex items-center gap-2">
