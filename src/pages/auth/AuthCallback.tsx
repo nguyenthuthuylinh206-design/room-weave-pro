@@ -2,14 +2,18 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUser } from '@/hooks/useUser'
+import { useFirstAccessibleRoute } from '@/hooks/useFirstAccessibleRoute'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { useToast } from '@/hooks/use-toast'
 
 export default function AuthCallback() {
   const navigate = useNavigate()
   const { user: authUser } = useAuth()
-  const { user, isLoading } = useUser()
+  const { user, isLoading: isUserLoading } = useUser()
+  const { firstAccessibleRoute, isLoading: isPermissionsLoading } = useFirstAccessibleRoute()
   const { toast } = useToast()
+
+  const isLoading = isUserLoading || isPermissionsLoading
 
   useEffect(() => {
     if (isLoading) return
@@ -25,14 +29,19 @@ export default function AuthCallback() {
       // User needs to complete onboarding
       navigate('/onboarding', { replace: true })
     } else {
-      // User is fully set up, go to dashboard
-      toast({
-        title: 'Đăng nhập thành công',
-        description: 'Chào mừng bạn quay trở lại!',
-      })
-      navigate('/', { replace: true })
+      // User is fully set up - redirect to first accessible route
+      const targetRoute = firstAccessibleRoute || '/unauthorized'
+      
+      if (targetRoute !== '/unauthorized') {
+        toast({
+          title: 'Đăng nhập thành công',
+          description: 'Chào mừng bạn quay trở lại!',
+        })
+      }
+      
+      navigate(targetRoute, { replace: true })
     }
-  }, [authUser, user, isLoading, navigate, toast])
+  }, [authUser, user, isLoading, firstAccessibleRoute, navigate, toast])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted">
