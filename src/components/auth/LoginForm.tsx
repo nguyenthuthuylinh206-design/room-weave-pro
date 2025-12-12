@@ -30,7 +30,7 @@ export const LoginForm = () => {
       error
     } = await signIn(data.email, data.password);
     if (!error) {
-      navigate('/');
+      navigate('/auth/callback');
     }
   };
   return <div className="w-full space-y-6">
