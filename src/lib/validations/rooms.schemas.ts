@@ -28,6 +28,41 @@ export const roomFormSchema = z.object({
   apply_standards: z.boolean().default(true),
 })
 
+// Schema for detailed item tracking
+const laundryItemSchema = z.object({
+  item_id: z.string().uuid(),
+  item_name: z.string(),
+  item_code: z.string().optional(),
+  quantity: z.number().int().min(1),
+  notes: z.string().optional(),
+})
+
+const consumedItemSchema = z.object({
+  item_id: z.string().uuid(),
+  item_name: z.string(),
+  item_code: z.string().optional(),
+  quantity: z.number().int().min(1),
+  need_refill: z.boolean(),
+})
+
+const lostItemSchema = z.object({
+  item_id: z.string().uuid(),
+  item_name: z.string(),
+  item_code: z.string().optional(),
+  item_type: z.enum(['linen', 'consumable', 'equipment', 'furniture']),
+  quantity: z.number().int().min(1),
+  estimated_value: z.number().optional(),
+  notes: z.string().optional(),
+})
+
+const replacedItemSchema = z.object({
+  item_id: z.string().uuid(),
+  item_name: z.string(),
+  item_code: z.string().optional(),
+  quantity: z.number().int().min(1),
+  from_stock: z.boolean(),
+})
+
 export const roomCheckFormSchema = z.object({
   check_type: z.enum(['daily', 'checkout', 'checkin', 'maintenance'], {
     required_error: 'Vui lòng chọn loại kiểm tra',
@@ -38,6 +73,10 @@ export const roomCheckFormSchema = z.object({
   items_complete: z.boolean().default(true),
   items_missing: z.array(z.any()).default([]),
   items_damaged: z.array(z.any()).default([]),
+  items_sent_to_laundry: z.array(laundryItemSchema).default([]),
+  items_consumed: z.array(consumedItemSchema).default([]),
+  items_lost: z.array(lostItemSchema).default([]),
+  items_replaced: z.array(replacedItemSchema).default([]),
   notes: z.string().max(1000, 'Ghi chú không được quá 1000 ký tự').optional(),
   photos: z.array(z.string().url('URL ảnh không hợp lệ')).max(10, 'Tối đa 10 ảnh').default([]),
 })

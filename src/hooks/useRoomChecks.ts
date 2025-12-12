@@ -88,13 +88,25 @@ export function useCreateRoomCheck() {
       }
       
       // Create room check record
+      const insertData = {
+        room_id: roomId,
+        checked_by: user?.id,
+        check_type: data.check_type,
+        cleanliness_score: data.cleanliness_score,
+        items_complete: data.items_complete,
+        items_missing: data.items_missing || [],
+        items_damaged: data.items_damaged || [],
+        items_sent_to_laundry: data.items_sent_to_laundry || [],
+        items_consumed: data.items_consumed || [],
+        items_lost: data.items_lost || [],
+        items_replaced: data.items_replaced || [],
+        notes: data.notes,
+        photos: data.photos || [],
+      }
+      
       const { data: check, error } = await supabase
         .from('room_checks')
-        .insert({
-          room_id: roomId,
-          checked_by: user?.id,
-          ...data,
-        })
+        .insert(insertData as any)
         .select()
         .single()
       
