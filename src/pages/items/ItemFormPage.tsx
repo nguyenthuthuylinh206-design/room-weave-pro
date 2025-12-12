@@ -55,7 +55,7 @@ export function ItemFormPage() {
   const { data: itemData, isLoading: itemLoading } = useItem(id)
   const item = itemData?.item // Extract item from response structure
   const { data: itemImages = [] } = useItemImages(id)
-  const { data: categories } = useCategories()
+  const { data: categories, isLoading: categoriesLoading } = useCategories()
   const createItem = useCreateItem()
   const updateItem = useUpdateItem()
   const addItemImage = useAddItemImage()
@@ -212,7 +212,8 @@ export function ItemFormPage() {
     }
   }
 
-  if (itemLoading && isEdit) {
+  // Wait for item and categories to load in edit mode
+  if (isEdit && (itemLoading || categoriesLoading || !item)) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
@@ -272,7 +273,7 @@ export function ItemFormPage() {
           </Alert>
         )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form key={item?.id || 'new'} onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {isMobile ? (
           // Mobile: Accordion layout
           <Accordion type="multiple" defaultValue={['basic', 'product']} className="space-y-4">
