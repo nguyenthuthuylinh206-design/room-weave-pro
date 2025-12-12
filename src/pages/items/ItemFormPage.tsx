@@ -160,12 +160,22 @@ export function ItemFormPage() {
       let savedItemId: string
       
       if (isEdit) {
-        // Calculate the difference in quantity_total and apply to quantity_in_stock
-        const oldQuantityTotal = item?.quantity_total || 0
+        // Tính lại tồn kho để luôn thỏa constraint:
+        // quantity_total = in_stock + in_use + in_laundry + damaged + lost
+        const existingInUse = item?.quantity_in_use || 0
+        const existingInLaundry = item?.quantity_in_laundry || 0
+        const existingDamaged = item?.quantity_damaged || 0
+        const existingLost = item?.quantity_lost || 0
+        const otherQuantitiesSum = existingInUse + existingInLaundry + existingDamaged + existingLost
+
         const newQuantityTotal = itemDataWithoutImages.quantity_total || 0
-        const quantityDelta = newQuantityTotal - oldQuantityTotal
-        const newQuantityInStock = Math.max(0, (item?.quantity_in_stock || 0) + quantityDelta)
-        
+        const newQuantityInStock = newQuantityTotal - otherQuantitiesSum
+
+        if (newQuantityInStock < 0) {
+          toast.error('Số lượng hiện tại phải >= tổng số đang sử dụng/đang giặt/hư hỏng/mất')
+          return
+        }
+
         await updateItem.mutateAsync({
           id: id!,
           data: {
