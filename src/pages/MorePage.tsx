@@ -17,7 +17,7 @@ import {
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/contexts/AuthContext'
 import { useUser } from '@/hooks/useUser'
 import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
 import { cn } from '@/lib/utils'

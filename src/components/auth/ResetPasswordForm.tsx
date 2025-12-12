@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/contexts/AuthContext'
 import { resetPasswordSchema, ResetPasswordData } from '@/lib/validations/auth.schemas'
 import { PasswordStrengthMeter } from './PasswordStrengthMeter'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'

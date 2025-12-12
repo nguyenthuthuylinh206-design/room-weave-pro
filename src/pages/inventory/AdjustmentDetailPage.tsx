@@ -40,7 +40,7 @@ import {
   useApproveAdjustment,
   useRejectAdjustment,
 } from '@/hooks/useStockAdjustments'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/contexts/AuthContext'
 import { formatCurrency } from '@/lib/utils'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'

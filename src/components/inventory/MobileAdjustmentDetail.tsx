@@ -36,7 +36,7 @@ import {
   useApproveAdjustment,
   useRejectAdjustment,
 } from '@/hooks/useStockAdjustments'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/contexts/AuthContext'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { format } from 'date-fns'

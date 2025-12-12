@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/contexts/AuthContext'
 import { useUser } from '@/hooks/useUser'
 import { useNavigate } from 'react-router-dom'
 import { ROLES } from '@/lib/constants'

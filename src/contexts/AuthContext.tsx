@@ -1,9 +1,23 @@
-import { useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
 import { User as AuthUser, Session } from '@supabase/supabase-js'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 
-export const useAuth = () => {
+interface AuthContextType {
+  user: AuthUser | null
+  session: Session | null
+  loading: boolean
+  isAuthenticated: boolean
+  signIn: (email: string, password: string) => Promise<{ data: any; error: any }>
+  signUp: (email: string, password: string, fullName: string) => Promise<{ data: any; error: any }>
+  signOut: () => Promise<void>
+  resetPassword: (email: string) => Promise<{ error: any }>
+  updatePassword: (newPassword: string) => Promise<{ error: any }>
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
@@ -35,7 +49,7 @@ export const useAuth = () => {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -58,9 +72,9 @@ export const useAuth = () => {
       })
       return { data: null, error }
     }
-  }
+  }, [toast])
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = useCallback(async (email: string, password: string, fullName: string) => {
     try {
       const redirectUrl = `${window.location.origin}/`
 
@@ -91,9 +105,9 @@ export const useAuth = () => {
       })
       return { data: null, error }
     }
-  }
+  }, [toast])
 
-  const resetPassword = async (email: string) => {
+  const resetPassword = useCallback(async (email: string) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
@@ -115,9 +129,9 @@ export const useAuth = () => {
       })
       return { error }
     }
-  }
+  }, [toast])
 
-  const updatePassword = async (newPassword: string) => {
+  const updatePassword = useCallback(async (newPassword: string) => {
     try {
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
@@ -139,9 +153,9 @@ export const useAuth = () => {
       })
       return { error }
     }
-  }
+  }, [toast])
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       const { error } = await supabase.auth.signOut()
       if (error) throw error
@@ -157,9 +171,9 @@ export const useAuth = () => {
         variant: 'destructive',
       })
     }
-  }
+  }, [toast])
 
-  return {
+  const value: AuthContextType = {
     user,
     session,
     loading,
@@ -170,4 +184,18 @@ export const useAuth = () => {
     updatePassword,
     isAuthenticated: !!user,
   }
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export const useAuth = () => {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
 }

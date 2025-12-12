@@ -26,7 +26,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { usePendingTenants, useApproveTenant, useRejectTenant } from '@/hooks/super-admin/useTenantApproval'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function TenantApprovalPage() {
   const { user } = useAuth()

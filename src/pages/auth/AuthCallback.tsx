@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/contexts/AuthContext'
 import { useUser } from '@/hooks/useUser'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { useToast } from '@/hooks/use-toast'
