@@ -27,12 +27,51 @@ export interface RoomFilters {
   missingItemsOnly?: boolean
 }
 
+// Detailed item tracking interfaces for room checks
+export interface LaundryItem {
+  item_id: string
+  item_name: string
+  item_code?: string
+  quantity: number
+  notes?: string
+}
+
+export interface ConsumedItem {
+  item_id: string
+  item_name: string
+  item_code?: string
+  quantity: number
+  need_refill: boolean
+}
+
+export interface LostItem {
+  item_id: string
+  item_name: string
+  item_code?: string
+  item_type: 'linen' | 'consumable' | 'equipment' | 'furniture'
+  quantity: number
+  estimated_value?: number
+  notes?: string
+}
+
+export interface ReplacedItem {
+  item_id: string
+  item_name: string
+  item_code?: string
+  quantity: number
+  from_stock: boolean
+}
+
 export interface RoomCheckFormData {
   check_type: CheckType
   cleanliness_score?: number
   items_complete: boolean
   items_missing: any[]
   items_damaged: any[]
+  items_sent_to_laundry: LaundryItem[]
+  items_consumed: ConsumedItem[]
+  items_lost: LostItem[]
+  items_replaced: ReplacedItem[]
   notes?: string
   photos?: string[]
 }

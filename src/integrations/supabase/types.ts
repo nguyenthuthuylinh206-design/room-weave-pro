@@ -2923,8 +2923,11 @@ export type Database = {
           cleanliness_score: number | null
           id: string
           items_complete: boolean | null
+          items_consumed: Json | null
           items_damaged: Json | null
           items_missing: Json | null
+          items_replaced: Json | null
+          items_sent_to_laundry: Json | null
           notes: string | null
           photos: string[] | null
           room_id: string
@@ -2936,8 +2939,11 @@ export type Database = {
           cleanliness_score?: number | null
           id?: string
           items_complete?: boolean | null
+          items_consumed?: Json | null
           items_damaged?: Json | null
           items_missing?: Json | null
+          items_replaced?: Json | null
+          items_sent_to_laundry?: Json | null
           notes?: string | null
           photos?: string[] | null
           room_id: string
@@ -2949,8 +2955,11 @@ export type Database = {
           cleanliness_score?: number | null
           id?: string
           items_complete?: boolean | null
+          items_consumed?: Json | null
           items_damaged?: Json | null
           items_missing?: Json | null
+          items_replaced?: Json | null
+          items_sent_to_laundry?: Json | null
           notes?: string | null
           photos?: string[] | null
           room_id?: string
