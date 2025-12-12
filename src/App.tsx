@@ -154,7 +154,7 @@ const router = createBrowserRouter([
       { 
         index: true, 
         element: (
-          <PermissionRoute module="dashboard">
+          <PermissionRoute module="dashboard" fallback={<Navigate to="/auth/callback" replace />}>
             <Dashboard />
           </PermissionRoute>
         )
