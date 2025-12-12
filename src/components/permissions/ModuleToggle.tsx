@@ -33,14 +33,20 @@ export function ModuleToggle({
   const someActionsEnabled = hasActionControl && Object.values(actions).some(v => v) && !allActionsEnabled
 
   return (
-    <div className="rounded-lg border bg-card overflow-hidden">
+    <div className={cn(
+      "rounded-lg border bg-card overflow-hidden transition-opacity",
+      !enabled && "opacity-60"
+    )}>
       {/* Module Header */}
       <div className="flex items-center justify-between py-3 px-4 hover:bg-accent/50 transition-colors">
         <div className="flex items-center gap-3 flex-1">
           {hasActionControl && (
             <button
-              onClick={() => setExpanded(!expanded)}
-              className="p-0.5 hover:bg-accent rounded transition-colors"
+              onClick={() => enabled && setExpanded(!expanded)}
+              className={cn(
+                "p-0.5 rounded transition-colors",
+                enabled ? "hover:bg-accent cursor-pointer" : "cursor-not-allowed opacity-50"
+              )}
               disabled={disabled || !enabled}
             >
               {expanded ? (
@@ -58,7 +64,10 @@ export function ModuleToggle({
           />
           
           <Label 
-            className="text-sm font-medium cursor-pointer flex-1" 
+            className={cn(
+              "text-sm font-medium cursor-pointer flex-1",
+              !enabled && "text-muted-foreground"
+            )}
             onClick={() => !disabled && onChange(!enabled)}
           >
             {moduleName}
@@ -71,7 +80,12 @@ export function ModuleToggle({
               Tùy chỉnh
             </Badge>
           )}
-          {source && (
+          {!enabled && (
+            <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">
+              Không có quyền
+            </Badge>
+          )}
+          {source && enabled && (
             <Badge variant={source === 'role' ? 'secondary' : 'default'} className="text-xs">
               {source === 'role' ? 'Role' : 'Custom'}
             </Badge>
@@ -79,7 +93,7 @@ export function ModuleToggle({
         </div>
       </div>
 
-      {/* Actions Detail */}
+      {/* Actions Detail - Only show when enabled */}
       {expanded && hasActionControl && enabled && (
         <div className="border-t bg-muted/30 p-4 space-y-2">
           <p className="text-xs text-muted-foreground mb-3">
