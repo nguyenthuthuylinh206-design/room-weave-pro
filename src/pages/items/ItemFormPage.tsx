@@ -33,7 +33,6 @@ const itemSchema = z.object({
   category_id: z.string().uuid('Vui lòng chọn danh mục'),
   unit: z.string().min(1, 'Đơn vị là bắt buộc'),
   unit_price: z.number().min(0, 'Đơn giá phải >= 0'),
-  quantity_total: z.number().int().min(0, 'Số lượng phải >= 0'),
   minimum_stock: z.number().min(0, 'Tồn kho tối thiểu phải >= 0'),
   reorder_point: z.number().min(0, 'Điểm đặt hàng phải >= 0'),
   brand: z.string().optional(),
@@ -77,7 +76,6 @@ export function ItemFormPage() {
     defaultValues: {
       unit: 'cái',
       unit_price: 0,
-      quantity_total: 0,
       minimum_stock: 10,
       reorder_point: 20,
     },
@@ -93,7 +91,6 @@ export function ItemFormPage() {
       setValue('category_id', copyFrom.category_id || '')
       setValue('unit', copyFrom.unit || 'cái')
       setValue('unit_price', copyFrom.unit_price || 0)
-      setValue('quantity_total', 0) // Reset quantity for copy
       setValue('minimum_stock', copyFrom.minimum_stock || 10)
       setValue('reorder_point', copyFrom.reorder_point || 20)
       setValue('brand', copyFrom.brand || '')
@@ -115,7 +112,6 @@ export function ItemFormPage() {
         category_id: item.category_id || '',
         unit: item.unit || 'cái',
         unit_price: item.unit_price || 0,
-        quantity_total: item.quantity_total || 0,
         minimum_stock: item.minimum_stock || 10,
         reorder_point: item.reorder_point || 20,
         brand: item.brand || '',
@@ -160,39 +156,21 @@ export function ItemFormPage() {
       let savedItemId: string
       
       if (isEdit) {
-        // Tính lại tồn kho để luôn thỏa constraint:
-        // quantity_total = in_stock + in_use + in_laundry + damaged + lost
-        const existingInUse = item?.quantity_in_use || 0
-        const existingInLaundry = item?.quantity_in_laundry || 0
-        const existingDamaged = item?.quantity_damaged || 0
-        const existingLost = item?.quantity_lost || 0
-        const otherQuantitiesSum = existingInUse + existingInLaundry + existingDamaged + existingLost
-
-        const newQuantityTotal = itemDataWithoutImages.quantity_total || 0
-        const newQuantityInStock = newQuantityTotal - otherQuantitiesSum
-
-        if (newQuantityInStock < 0) {
-          toast.error('Số lượng hiện tại phải >= tổng số đang sử dụng/đang giặt/hư hỏng/mất')
-          return
-        }
-
         await updateItem.mutateAsync({
           id: id!,
           data: {
             ...itemDataWithoutImages,
-            quantity_in_stock: newQuantityInStock,
             updated_at: new Date().toISOString(),
           },
         })
         savedItemId = id!
       } else {
-        const initialQuantity = itemDataWithoutImages.quantity_total || 0
         const result = await createItem.mutateAsync({
           ...itemDataWithoutImages,
           tenant_id: tenantId,
           hotel_id: selectedHotel.id,
-          quantity_total: initialQuantity,
-          quantity_in_stock: initialQuantity, // Set initial stock = quantity_total
+          quantity_total: 0,
+          quantity_in_stock: 0,
           quantity_in_use: 0,
           quantity_in_laundry: 0,
           quantity_damaged: 0,
@@ -315,7 +293,7 @@ export function ItemFormPage() {
                 <div className="space-y-2">
                   <Label htmlFor="category_id" className="text-base">Danh mục *</Label>
                   <Select
-                    value={watch('category_id') || undefined}
+                    value={watch('category_id')}
                     onValueChange={(value) => setValue('category_id', value)}
                   >
                     <SelectTrigger className="h-12">
@@ -405,19 +383,6 @@ export function ItemFormPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="quantity_total" className="text-base">Số lượng hiện tại</Label>
-                  <Input
-                    id="quantity_total"
-                    type="number"
-                    {...register('quantity_total', { valueAsNumber: true })}
-                    className="h-12 text-base"
-                  />
-                  {errors.quantity_total && (
-                    <p className="text-sm text-destructive">{errors.quantity_total.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="reorder_point" className="text-base">Điểm đặt hàng *</Label>
                   <Input
                     id="reorder_point"
@@ -466,7 +431,7 @@ export function ItemFormPage() {
               <div className="space-y-2">
                 <Label htmlFor="category_id">Danh mục *</Label>
                 <Select
-                  value={watch('category_id') || undefined}
+                  value={watch('category_id')}
                   onValueChange={(value) => setValue('category_id', value)}
                 >
                   <SelectTrigger>
@@ -533,7 +498,7 @@ export function ItemFormPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="unit_price">Đơn giá (₫) *</Label>
                 <Input
@@ -544,18 +509,6 @@ export function ItemFormPage() {
                 />
                 {errors.unit_price && (
                   <p className="text-sm text-destructive">{errors.unit_price.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="quantity_total">Số lượng hiện tại</Label>
-                <Input
-                  id="quantity_total"
-                  type="number"
-                  {...register('quantity_total', { valueAsNumber: true })}
-                />
-                {errors.quantity_total && (
-                  <p className="text-sm text-destructive">{errors.quantity_total.message}</p>
                 )}
               </div>
 
