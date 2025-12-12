@@ -150,7 +150,14 @@ const router = createBrowserRouter([
       </AuthGuard>
     ),
     children: [
-      { index: true, element: <Dashboard /> },
+      { 
+        index: true, 
+        element: (
+          <PermissionRoute module="dashboard">
+            <Dashboard />
+          </PermissionRoute>
+        )
+      },
       { path: "more", element: <MorePage /> },
       
       // Super Admin Dashboard
