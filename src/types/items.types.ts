@@ -9,6 +9,21 @@ export type ItemImage = Database['public']['Tables']['item_images']['Row']
 
 export type StockStatus = 'in_stock' | 'low_stock' | 'out_of_stock'
 export type ItemStatus = 'active' | 'discontinued'
+export type ItemType = 'linen' | 'consumable' | 'equipment' | 'furniture'
+
+export const ITEM_TYPE_LABELS: Record<ItemType, string> = {
+  linen: 'Đồ vải',
+  consumable: 'Tiêu hao',
+  equipment: 'Thiết bị',
+  furniture: 'Nội thất',
+}
+
+export const ITEM_TYPE_OPTIONS: { value: ItemType; label: string; description: string }[] = [
+  { value: 'linen', label: 'Đồ vải', description: 'Khăn, ga, gối - cần giặt và thay thế' },
+  { value: 'consumable', label: 'Tiêu hao', description: 'Bàn chải, kem đánh răng, nước - dùng 1 lần' },
+  { value: 'equipment', label: 'Thiết bị', description: 'Ấm nước, tivi, điều khiển - cần kiểm tra mất/hỏng' },
+  { value: 'furniture', label: 'Nội thất', description: 'Bàn, ghế, tủ - kiểm tra tình trạng' },
+]
 
 export interface ItemWithCategory extends Item {
   category_name: string | null

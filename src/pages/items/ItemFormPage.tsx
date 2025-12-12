@@ -24,6 +24,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
 import { HotelBadge } from '@/components/layout/HotelBadge'
 import { toast } from 'sonner'
+import { ITEM_TYPE_OPTIONS } from '@/types/items.types'
 
 const itemSchema = z.object({
   code: z.string().min(1, 'Mã tài sản là bắt buộc'),
@@ -31,6 +32,7 @@ const itemSchema = z.object({
   name_en: z.string().optional(),
   description: z.string().optional(),
   category_id: z.string().uuid('Vui lòng chọn danh mục'),
+  item_type: z.enum(['linen', 'consumable', 'equipment', 'furniture']),
   unit: z.string().min(1, 'Đơn vị là bắt buộc'),
   unit_price: z.number().min(0, 'Đơn giá phải >= 0'),
   minimum_stock: z.number().min(0, 'Tồn kho tối thiểu phải >= 0'),
@@ -78,6 +80,7 @@ export function ItemFormPage() {
       unit_price: 0,
       minimum_stock: 10,
       reorder_point: 20,
+      item_type: 'equipment',
     },
   })
 
@@ -89,6 +92,7 @@ export function ItemFormPage() {
       setValue('name_en', copyFrom.name_en || '')
       setValue('description', copyFrom.description || '')
       setValue('category_id', copyFrom.category_id || '')
+      setValue('item_type', copyFrom.item_type || 'equipment')
       setValue('unit', copyFrom.unit || 'cái')
       setValue('unit_price', copyFrom.unit_price || 0)
       setValue('minimum_stock', copyFrom.minimum_stock || 10)
@@ -110,6 +114,7 @@ export function ItemFormPage() {
         name_en: item.name_en || '',
         description: item.description || '',
         category_id: item.category_id || '',
+        item_type: item.item_type || 'equipment',
         unit: item.unit || 'cái',
         unit_price: item.unit_price || 0,
         minimum_stock: item.minimum_stock || 10,
@@ -313,6 +318,28 @@ export function ItemFormPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="item_type" className="text-base">Loại đồ dùng *</Label>
+                  <Select
+                    value={watch('item_type')}
+                    onValueChange={(value: any) => setValue('item_type', value)}
+                  >
+                    <SelectTrigger className="h-12">
+                      <SelectValue placeholder="Chọn loại đồ dùng..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ITEM_TYPE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{opt.label}</span>
+                            <span className="text-xs text-muted-foreground">{opt.description}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="name" className="text-base">Tên tài sản *</Label>
                   <Input id="name" {...register('name')} className="h-12 text-base" />
                   {errors.name && (
@@ -448,6 +475,28 @@ export function ItemFormPage() {
                 {errors.category_id && (
                   <p className="text-sm text-destructive">{errors.category_id.message}</p>
                 )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="item_type">Loại đồ dùng *</Label>
+                <Select
+                  value={watch('item_type')}
+                  onValueChange={(value: any) => setValue('item_type', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn loại đồ dùng..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ITEM_TYPE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{opt.label}</span>
+                          <span className="text-xs text-muted-foreground">{opt.description}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
