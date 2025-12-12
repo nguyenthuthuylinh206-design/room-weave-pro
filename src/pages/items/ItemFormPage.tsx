@@ -315,7 +315,7 @@ export function ItemFormPage() {
                 <div className="space-y-2">
                   <Label htmlFor="category_id" className="text-base">Danh mục *</Label>
                   <Select
-                    value={watch('category_id')}
+                    value={watch('category_id') || undefined}
                     onValueChange={(value) => setValue('category_id', value)}
                   >
                     <SelectTrigger className="h-12">
@@ -466,7 +466,7 @@ export function ItemFormPage() {
               <div className="space-y-2">
                 <Label htmlFor="category_id">Danh mục *</Label>
                 <Select
-                  value={watch('category_id')}
+                  value={watch('category_id') || undefined}
                   onValueChange={(value) => setValue('category_id', value)}
                 >
                   <SelectTrigger>
