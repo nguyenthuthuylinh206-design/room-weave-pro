@@ -1,17 +1,24 @@
 import { UseFormReturn } from 'react-hook-form';
-import { CheckCircle2, AlertCircle, Package, Search, RotateCcw, Plus } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Shirt, Droplets, Tv, Armchair, AlertCircle, Search } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useUser } from '@/hooks/useUser';
-import type { RoomCheckFormData } from '@/types/rooms.types';
-import type { RoomItemWithDetails } from '@/types/rooms.types';
+import type { 
+  RoomCheckFormData, 
+  RoomItemWithDetails, 
+  LaundryItem, 
+  ConsumedItem, 
+  LostItem, 
+  ReplacedItem 
+} from '@/types/rooms.types';
+import type { ItemType } from '@/types/items.types';
+import { LinenTab, ConsumableTab, EquipmentTab, FurnitureTab } from './item-type-tabs';
+
 interface ItemsCheckStepProps {
   form: UseFormReturn<RoomCheckFormData>;
   items: RoomItemWithDetails[];
@@ -19,10 +26,19 @@ interface ItemsCheckStepProps {
   hotelId: string;
   onQuantitiesChange?: (quantities: Record<string, number>) => void;
 }
-interface ItemQuantity {
-  actual: number;
-  replenished?: number;
+
+interface DamagedItem {
+  item_id: string;
+  item_name: string;
+  item_code?: string;
+  notes?: string;
 }
+
+// Extended RoomItemWithDetails to include item_type
+interface ExtendedRoomItem extends RoomItemWithDetails {
+  item_type?: ItemType;
+}
+
 export function ItemsCheckStep({
   form,
   items,
@@ -31,321 +47,311 @@ export function ItemsCheckStep({
   onQuantitiesChange
 }: ItemsCheckStepProps) {
   const [search, setSearch] = useState('');
-  const [itemQuantities, setItemQuantities] = useState<Record<string, ItemQuantity>>({});
-  const [replenishingItems, setReplenishingItems] = useState<Record<string, boolean>>({});
-  const {
-    toast
-  } = useToast();
-  const {
-    user
-  } = useUser();
+  const [activeTab, setActiveTab] = useState('linen');
+  const { toast } = useToast();
 
-  // Initialize with current quantities
+  // State for tracking items by action
+  const [laundryItems, setLaundryItems] = useState<LaundryItem[]>([]);
+  const [consumedItems, setConsumedItems] = useState<ConsumedItem[]>([]);
+  const [lostItems, setLostItems] = useState<LostItem[]>([]);
+  const [replacedItems, setReplacedItems] = useState<ReplacedItem[]>([]);
+  const [damagedItems, setDamagedItems] = useState<DamagedItem[]>([]);
+
+  // Fetch item_type for each item
+  const [itemsWithType, setItemsWithType] = useState<ExtendedRoomItem[]>([]);
+
   useEffect(() => {
-    const initial: Record<string, ItemQuantity> = {};
-    items.forEach(item => {
-      initial[item.item_id] = {
-        actual: item.current_quantity || 0
-      };
-    });
-    setItemQuantities(initial);
+    const fetchItemTypes = async () => {
+      if (items.length === 0) return;
+      
+      const itemIds = items.map(i => i.item_id);
+      const { data } = await supabase
+        .from('items')
+        .select('id, item_type')
+        .in('id', itemIds);
+      
+      if (data) {
+        const typeMap = new Map(data.map(d => [d.id, d.item_type]));
+        setItemsWithType(items.map(item => ({
+          ...item,
+          item_type: (typeMap.get(item.item_id) as ItemType) || 'equipment'
+        })));
+      } else {
+        setItemsWithType(items.map(item => ({ ...item, item_type: 'equipment' as ItemType })));
+      }
+    };
+
+    fetchItemTypes();
   }, [items]);
 
-  // Real-time sync for room items quantities
+  // Filter items by type
+  const linenItems = useMemo(() => 
+    itemsWithType.filter(i => i.item_type === 'linen'), [itemsWithType]);
+  const consumableItemsList = useMemo(() => 
+    itemsWithType.filter(i => i.item_type === 'consumable'), [itemsWithType]);
+  const equipmentItems = useMemo(() => 
+    itemsWithType.filter(i => i.item_type === 'equipment'), [itemsWithType]);
+  const furnitureItems = useMemo(() => 
+    itemsWithType.filter(i => i.item_type === 'furniture'), [itemsWithType]);
+
+  // Apply search filter
+  const filterBySearch = (items: ExtendedRoomItem[]) => {
+    if (!search) return items;
+    return items.filter(item => 
+      item.item_name.toLowerCase().includes(search.toLowerCase()) ||
+      item.item_code.toLowerCase().includes(search.toLowerCase())
+    );
+  };
+
+  // Update form whenever tracked items change
   useEffect(() => {
-    const channel = supabase.channel(`room-check-${roomId}`).on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'room_items',
-      filter: `room_id=eq.${roomId}`
-    }, payload => {
-      console.log('Real-time update:', payload);
-      if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
-        const newData = payload.new as any;
-        setItemQuantities(prev => ({
-          ...prev,
-          [newData.item_id]: {
-            actual: newData.quantity,
-            replenished: prev[newData.item_id]?.replenished
-          }
-        }));
-      }
-    }).subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [roomId]);
-
-  // Notify parent of quantity changes
-  useEffect(() => {
-    if (onQuantitiesChange) {
-      const quantities: Record<string, number> = {};
-      Object.entries(itemQuantities).forEach(([id, qty]) => {
-        quantities[id] = qty.actual;
-      });
-      onQuantitiesChange(quantities);
-    }
-  }, [itemQuantities, onQuantitiesChange]);
-  const filteredItems = items.filter((item: RoomItemWithDetails) => item.item_name.toLowerCase().includes(search.toLowerCase()) || item.item_code.toLowerCase().includes(search.toLowerCase()));
-  const getActualQuantity = (itemId: string) => {
-    return itemQuantities[itemId]?.actual ?? 0;
-  };
-  const getShortage = (item: RoomItemWithDetails) => {
-    const actual = getActualQuantity(item.item_id);
-    return Math.max(0, item.standard_quantity - actual);
-  };
-  const handleQuantityChange = async (itemId: string, value: string) => {
-    const actual = parseInt(value) || 0;
-    setItemQuantities(prev => ({
-      ...prev,
-      [itemId]: {
-        ...prev[itemId],
-        actual
-      }
-    }));
-
-    // Update database immediately for real-time sync
-    try {
-      await supabase.from('room_items').upsert({
-        room_id: roomId,
-        item_id: itemId,
-        quantity: actual
-      });
-    } catch (error) {
-      console.error('Error updating quantity:', error);
-    }
-  };
-  const handleReplenishFromStock = async (item: RoomItemWithDetails) => {
-    const shortage = getShortage(item);
-    if (shortage <= 0) return;
-    setReplenishingItems(prev => ({
-      ...prev,
-      [item.item_id]: true
-    }));
-    try {
-      // Check stock availability
-      const {
-        data: itemData,
-        error: itemError
-      } = await supabase.from('items').select('quantity_in_stock, quantity_in_use, tenant_id').eq('id', item.item_id).single();
-      if (itemError) throw itemError;
-      if (!itemData || itemData.quantity_in_stock < shortage) {
-        toast({
-          title: 'Không đủ hàng trong kho',
-          description: `Kho chỉ còn ${itemData?.quantity_in_stock || 0}, cần ${shortage}`,
-          variant: 'destructive'
-        });
-        return;
-      }
-
-      // Update stock quantities
-      await supabase.from('items').update({
-        quantity_in_stock: itemData.quantity_in_stock - shortage,
-        quantity_in_use: itemData.quantity_in_use + shortage
-      }).eq('id', item.item_id);
-
-      // Create transaction record
-      await supabase.from('inventory_transactions').insert({
-        hotel_id: hotelId,
-        item_id: item.item_id,
-        quantity: shortage,
-        quantity_before: itemData.quantity_in_stock,
-        quantity_after: itemData.quantity_in_stock - shortage,
-        transaction_type: 'outbound',
-        transaction_category: 'room_usage',
-        transaction_code: `OUT-${Date.now()}`,
-        to_location: `Phòng ${roomId}`,
-        notes: `Bổ sung thiếu hụt khi kiểm tra phòng`,
-        created_by: user?.id,
-        tenant_id: itemData.tenant_id
-      });
-
-      // Update room_items
-      const newQuantity = getActualQuantity(item.item_id) + shortage;
-      await supabase.from('room_items').upsert({
-        room_id: roomId,
-        item_id: item.item_id,
-        quantity: newQuantity
-      });
-
-      // Update local state
-      setItemQuantities(prev => ({
-        ...prev,
-        [item.item_id]: {
-          actual: newQuantity,
-          replenished: (prev[item.item_id]?.replenished || 0) + shortage
-        }
-      }));
-      toast({
-        title: 'Đã bổ sung từ kho',
-        description: `+${shortage} ${item.item_name}`
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Lỗi',
-        description: error.message,
-        variant: 'destructive'
-      });
-    } finally {
-      setReplenishingItems(prev => ({
-        ...prev,
-        [item.item_id]: false
-      }));
-    }
-  };
-  const totalChecked = Object.keys(itemQuantities).length;
-  const totalItems = items.length;
-  const progressPercentage = totalItems > 0 ? totalChecked / totalItems * 100 : 0;
-  const markAllStandard = () => {
-    const allStandard: Record<string, ItemQuantity> = {};
-    items.forEach((item: RoomItemWithDetails) => {
-      allStandard[item.item_id] = {
-        actual: item.standard_quantity
-      };
-    });
-    setItemQuantities(allStandard);
-  };
-  const resetAll = () => {
-    const initial: Record<string, ItemQuantity> = {};
-    items.forEach(item => {
-      initial[item.item_id] = {
-        actual: item.current_quantity || 0
-      };
-    });
-    setItemQuantities(initial);
-  };
-
-  // Calculate summary
-  const getMissingSummary = () => {
-    return items.map(item => ({
-      ...item,
-      shortage: getShortage(item)
-    })).filter(item => item.shortage > 0);
-  };
-
-  // Update form with quantities data
-  useEffect(() => {
-    const missing = getMissingSummary().map(item => ({
+    form.setValue('items_sent_to_laundry', laundryItems);
+    form.setValue('items_consumed', consumedItems);
+    form.setValue('items_lost', lostItems);
+    form.setValue('items_replaced', replacedItems);
+    form.setValue('items_damaged', damagedItems as any);
+    
+    // Calculate items_complete
+    const hasIssues = lostItems.length > 0 || damagedItems.length > 0;
+    form.setValue('items_complete', !hasIssues);
+    
+    // Build items_missing from lost items for backward compatibility
+    form.setValue('items_missing', lostItems.map(item => ({
       item_id: item.item_id,
       item_name: item.item_name,
-      shortage: item.shortage
-    }));
-    form.setValue('items_missing', missing as any);
-    form.setValue('items_complete', missing.length === 0);
-  }, [itemQuantities, items, form]);
-  return <div className="space-y-6">
-      {/* Progress Indicator */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">
-                Đã kiểm tra {totalChecked}/{totalItems} items
-              </span>
-              <span className="text-sm text-muted-foreground">
-                {Math.round(progressPercentage)}%
-              </span>
-            </div>
-            <Progress value={progressPercentage} className="h-2" />
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Warning if items missing */}
-      {getMissingSummary().length > 0 && <Alert variant="destructive">
+      shortage: item.quantity
+    })) as any);
+  }, [laundryItems, consumedItems, lostItems, replacedItems, damagedItems, form]);
+
+  // Handlers for Linen
+  const handleSendToLaundry = (item: RoomItemWithDetails, quantity: number) => {
+    setLaundryItems(prev => [...prev, {
+      item_id: item.item_id,
+      item_name: item.item_name,
+      item_code: item.item_code,
+      quantity,
+    }]);
+    toast({ title: 'Đã đánh dấu lấy giặt', description: `${quantity}x ${item.item_name}` });
+  };
+
+  const handleMarkReplaced = (item: RoomItemWithDetails, quantity: number) => {
+    setReplacedItems(prev => [...prev, {
+      item_id: item.item_id,
+      item_name: item.item_name,
+      item_code: item.item_code,
+      quantity,
+      from_stock: true,
+    }]);
+    toast({ title: 'Đã đánh dấu thay mới', description: `${quantity}x ${item.item_name}` });
+  };
+
+  const handleLinenLost = (item: RoomItemWithDetails, quantity: number) => {
+    setLostItems(prev => [...prev, {
+      item_id: item.item_id,
+      item_name: item.item_name,
+      item_code: item.item_code,
+      item_type: 'linen',
+      quantity,
+    }]);
+    toast({ title: 'Đã đánh dấu mất', description: `${quantity}x ${item.item_name}`, variant: 'destructive' });
+  };
+
+  // Handlers for Consumable
+  const handleMarkConsumed = (item: RoomItemWithDetails, quantity: number, needRefill: boolean) => {
+    setConsumedItems(prev => [...prev, {
+      item_id: item.item_id,
+      item_name: item.item_name,
+      item_code: item.item_code,
+      quantity,
+      need_refill: needRefill,
+    }]);
+    toast({ title: 'Đã ghi nhận sử dụng', description: `${quantity}x ${item.item_name}` });
+  };
+
+  // Handlers for Equipment/Furniture
+  const handleEquipmentLost = (item: RoomItemWithDetails, quantity: number, estimatedValue?: number) => {
+    const extendedItem = itemsWithType.find(i => i.item_id === item.item_id);
+    setLostItems(prev => [...prev, {
+      item_id: item.item_id,
+      item_name: item.item_name,
+      item_code: item.item_code,
+      item_type: extendedItem?.item_type || 'equipment',
+      quantity,
+      estimated_value: estimatedValue,
+    }]);
+    toast({ title: 'Đã đánh dấu mất', description: item.item_name, variant: 'destructive' });
+  };
+
+  const handleMarkDamaged = (item: RoomItemWithDetails, notes?: string) => {
+    setDamagedItems(prev => [...prev, {
+      item_id: item.item_id,
+      item_name: item.item_name,
+      item_code: item.item_code,
+      notes,
+    }]);
+    toast({ title: 'Đã đánh dấu hỏng', description: item.item_name });
+  };
+
+  // Remove handlers
+  const removeFromLaundry = (itemId: string) => {
+    setLaundryItems(prev => prev.filter(i => i.item_id !== itemId));
+  };
+
+  const removeFromLost = (itemId: string) => {
+    setLostItems(prev => prev.filter(i => i.item_id !== itemId));
+  };
+
+  const removeFromReplaced = (itemId: string) => {
+    setReplacedItems(prev => prev.filter(i => i.item_id !== itemId));
+  };
+
+  const removeFromConsumed = (itemId: string) => {
+    setConsumedItems(prev => prev.filter(i => i.item_id !== itemId));
+  };
+
+  const removeFromDamaged = (itemId: string) => {
+    setDamagedItems(prev => prev.filter(i => i.item_id !== itemId));
+  };
+
+  // Count badges
+  const getTabCount = (type: string) => {
+    switch (type) {
+      case 'linen': return linenItems.length;
+      case 'consumable': return consumableItemsList.length;
+      case 'equipment': return equipmentItems.length;
+      case 'furniture': return furnitureItems.length;
+      default: return 0;
+    }
+  };
+
+  const getIssueCount = () => {
+    return lostItems.length + damagedItems.length;
+  };
+
+  const getActionCount = () => {
+    return laundryItems.length + consumedItems.length + replacedItems.length;
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Summary Alert */}
+      {(getIssueCount() > 0 || getActionCount() > 0) && (
+        <Alert variant={getIssueCount() > 0 ? 'destructive' : 'default'}>
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Phát hiện {getMissingSummary().length} mặt hàng thiếu hụt. Cần bổ sung tổng cộng{' '}
-            {getMissingSummary().reduce((sum, item) => sum + item.shortage, 0)} items từ kho.
+          <AlertDescription className="flex flex-wrap gap-2">
+            {laundryItems.length > 0 && (
+              <Badge variant="secondary">{laundryItems.length} lấy giặt</Badge>
+            )}
+            {consumedItems.length > 0 && (
+              <Badge variant="secondary">{consumedItems.length} đã dùng</Badge>
+            )}
+            {replacedItems.length > 0 && (
+              <Badge variant="secondary">{replacedItems.length} đã thay</Badge>
+            )}
+            {lostItems.length > 0 && (
+              <Badge variant="destructive">{lostItems.length} mất</Badge>
+            )}
+            {damagedItems.length > 0 && (
+              <Badge variant="outline" className="border-warning text-warning">
+                {damagedItems.length} hỏng
+              </Badge>
+            )}
           </AlertDescription>
-        </Alert>}
-      
-      <div className="flex items-center gap-4">
-        {/* Search */}
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Tìm kiếm đồ dùng..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
-        </div>
-        
-        {/* Quick Actions */}
-        <Button type="button" variant="outline" size="sm" onClick={markAllStandard}>
-          <CheckCircle2 className="mr-2 h-4 w-4" />
-          Đủ chuẩn
-        </Button>
-        
-        <Button type="button" variant="ghost" size="sm" onClick={resetAll}>
-          <RotateCcw className="mr-2 h-4 w-4" />
-          Đặt lại
-        </Button>
+        </Alert>
+      )}
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Tìm kiếm đồ dùng..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-10"
+        />
       </div>
-      
-      {/* Items List */}
-      <div className="space-y-3">
-        {filteredItems.length === 0 ? <Card>
-            <CardContent className="py-12 text-center">
-              <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">
-                {search ? 'Không tìm thấy đồ dùng phù hợp' : 'Chưa có đồ dùng nào'}
-              </p>
-            </CardContent>
-          </Card> : filteredItems.map((item: RoomItemWithDetails) => {
-        const actualQty = getActualQuantity(item.item_id);
-        const shortage = getShortage(item);
-        const isReplenishing = replenishingItems[item.item_id];
-        const wasReplenished = (itemQuantities[item.item_id]?.replenished || 0) > 0;
-        return <Card key={item.item_id}>
-                <CardContent className="p-3 sm:p-4">
-                  {/* Mobile: Stack layout, Desktop: Horizontal */}
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    {/* Top row on mobile: thumbnail + name + category */}
-                    <div className="flex items-start gap-3">
-                      {/* Item thumbnail */}
-                      {item.item_thumbnail && <img src={item.item_thumbnail} alt={item.item_name} className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg shrink-0" />}
-                      
-                      {/* Item name & code */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <h4 className="font-medium text-sm sm:text-base line-clamp-2">{item.item_name}</h4>
-                            <p className="text-xs text-muted-foreground">{item.item_code}</p>
-                          </div>
-                          {item.category_name && <Badge variant="outline" className="shrink-0 text-xs">
-                              {item.category_name}
-                            </Badge>}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Quantity controls & status */}
-                    <div className="items-center justify-between gap-2 sm:flex-1 mx-0 my-0 flex flex-col px-0 py-0 pb-0 pr-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
-                          Chuẩn: {item.standard_quantity}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs font-medium">Thực tế:</span>
-                          <Input type="number" min="0" value={actualQty} onChange={e => handleQuantityChange(item.item_id, e.target.value)} className="w-16 h-8 text-center text-sm" />
-                        </div>
-                        {shortage > 0 ? <Badge variant="destructive" className="shrink-0 text-xs">
-                            Thiếu {shortage}
-                          </Badge> : actualQty > item.standard_quantity ? <Badge variant="secondary" className="shrink-0 text-xs bg-blue-500 text-white">
-                            Dư {actualQty - item.standard_quantity}
-                          </Badge> : actualQty === item.standard_quantity ? <Badge variant="default" className="shrink-0 text-xs bg-success">
-                            <CheckCircle2 className="mr-1 h-3 w-3" />
-                            Đủ
-                          </Badge> : null}
-                        {wasReplenished && <Badge variant="secondary" className="shrink-0 text-xs">
-                            Đã bổ sung
-                          </Badge>}
-                      </div>
-                      
-                      {/* Action Button */}
-                      {shortage > 0}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>;
-      })}
-      </div>
-    </div>;
+
+      {/* Tabs by Item Type */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="linen" className="flex items-center gap-1 text-xs sm:text-sm">
+            <Shirt className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Đồ vải</span>
+            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+              {getTabCount('linen')}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="consumable" className="flex items-center gap-1 text-xs sm:text-sm">
+            <Droplets className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Tiêu hao</span>
+            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+              {getTabCount('consumable')}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="equipment" className="flex items-center gap-1 text-xs sm:text-sm">
+            <Tv className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Thiết bị</span>
+            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+              {getTabCount('equipment')}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="furniture" className="flex items-center gap-1 text-xs sm:text-sm">
+            <Armchair className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Nội thất</span>
+            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+              {getTabCount('furniture')}
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="linen" className="mt-4">
+          <LinenTab
+            items={filterBySearch(linenItems)}
+            laundryItems={laundryItems}
+            lostItems={lostItems.filter(i => i.item_type === 'linen')}
+            replacedItems={replacedItems}
+            onSendToLaundry={handleSendToLaundry}
+            onMarkLost={handleLinenLost}
+            onMarkReplaced={handleMarkReplaced}
+            onRemoveFromLaundry={removeFromLaundry}
+            onRemoveFromLost={removeFromLost}
+            onRemoveFromReplaced={removeFromReplaced}
+          />
+        </TabsContent>
+
+        <TabsContent value="consumable" className="mt-4">
+          <ConsumableTab
+            items={filterBySearch(consumableItemsList)}
+            consumedItems={consumedItems}
+            onMarkConsumed={handleMarkConsumed}
+            onRemoveConsumed={removeFromConsumed}
+          />
+        </TabsContent>
+
+        <TabsContent value="equipment" className="mt-4">
+          <EquipmentTab
+            items={filterBySearch(equipmentItems)}
+            lostItems={lostItems.filter(i => i.item_type === 'equipment')}
+            damagedItems={damagedItems}
+            onMarkLost={handleEquipmentLost}
+            onMarkDamaged={handleMarkDamaged}
+            onRemoveFromLost={removeFromLost}
+            onRemoveFromDamaged={removeFromDamaged}
+          />
+        </TabsContent>
+
+        <TabsContent value="furniture" className="mt-4">
+          <FurnitureTab
+            items={filterBySearch(furnitureItems)}
+            lostItems={lostItems.filter(i => i.item_type === 'furniture')}
+            damagedItems={damagedItems}
+            onMarkLost={(item, qty) => handleEquipmentLost(item, qty)}
+            onMarkDamaged={handleMarkDamaged}
+            onRemoveFromLost={removeFromLost}
+            onRemoveFromDamaged={removeFromDamaged}
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
 }
