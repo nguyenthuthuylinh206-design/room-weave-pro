@@ -107,20 +107,38 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
       },
     }))
 
-    // Immediately update in database
-    toggleAction({ userId: user.id, module, action, enabled })
+    // Track that we have action changes
+    setHasActionChanges(true)
   }
 
   const handleSave = () => {
     if (!user) return
+    
+    // Save module-level permissions
     saveConfiguration({ userId: user.id, modules: localPermissions })
+    
+    // Save action-level permissions for enabled modules
+    Object.entries(localActions).forEach(([module, actions]) => {
+      if (localPermissions[module]) {
+        Object.entries(actions).forEach(([action, enabled]) => {
+          toggleAction({ userId: user.id, module, action, enabled })
+        })
+      }
+    })
+    
+    setHasActionChanges(false)
   }
 
-  const hasChanges = permissionsData 
+  // Track action-level changes
+  const [hasActionChanges, setHasActionChanges] = useState(false)
+
+  const hasModuleChanges = permissionsData 
     ? Object.keys(localPermissions).some(
         (module) => localPermissions[module] !== permissionsData[module]?.enabled
       )
     : false
+
+  const hasChanges = hasModuleChanges || hasActionChanges
 
   // Check if user is owner/super admin (cannot be edited)
   const isProtectedUser = user.user_level_code === 'tenant_owner' || user.user_level_code === 'super_admin'
