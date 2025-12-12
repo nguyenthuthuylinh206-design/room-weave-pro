@@ -6,19 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 
 const Login = () => {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (!loading && isAuthenticated) {
+    if (isAuthenticated) {
       navigate('/', { replace: true })
     }
-  }, [isAuthenticated, loading, navigate])
-
-  // Show loading only once during initial auth check
-  if (loading) {
-    return <LoadingSpinner fullScreen />
-  }
+  }, [isAuthenticated, navigate])
 
   // If authenticated, don't render the form (will redirect)
   if (isAuthenticated) {
