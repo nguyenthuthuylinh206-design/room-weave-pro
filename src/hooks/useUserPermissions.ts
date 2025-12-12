@@ -141,9 +141,14 @@ export function useUpdateUserPermissions() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['user-permissions', variables.userId] })
-      queryClient.invalidateQueries({
-        queryKey: ['user-permissions-summary', variables.userId],
-      })
+      queryClient.invalidateQueries({ queryKey: ['user-permissions-summary', variables.userId] })
+      
+      // FIX: Invalidate user-side queries for immediate permission refresh
+      queryClient.invalidateQueries({ queryKey: ['user-module-permissions', variables.userId] })
+      queryClient.invalidateQueries({ queryKey: ['user-module-permissions'] })
+      queryClient.invalidateQueries({ queryKey: ['route-permission', variables.userId], exact: false })
+      queryClient.invalidateQueries({ queryKey: ['check-permission', variables.userId], exact: false })
+      
       toast({
         title: 'Thành công',
         description: 'Đã cập nhật phân quyền người dùng',

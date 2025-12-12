@@ -121,18 +121,16 @@ export function useUserPermissionConfiguration(userId?: string) {
       }
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ 
-        queryKey: ['user-permission-configuration', variables.userId] 
-      })
-      queryClient.invalidateQueries({ 
-        queryKey: ['user-permissions', variables.userId] 
-      })
-      queryClient.invalidateQueries({ 
-        queryKey: ['user-permissions-summary', variables.userId] 
-      })
-      queryClient.invalidateQueries({ 
-        queryKey: ['user-module-permissions'] 
-      })
+      // Invalidate admin-side queries
+      queryClient.invalidateQueries({ queryKey: ['user-permission-configuration', variables.userId] })
+      queryClient.invalidateQueries({ queryKey: ['user-permissions', variables.userId] })
+      queryClient.invalidateQueries({ queryKey: ['user-permissions-summary', variables.userId] })
+      
+      // FIX: Invalidate user-side queries for immediate permission refresh
+      queryClient.invalidateQueries({ queryKey: ['user-module-permissions', variables.userId] })
+      queryClient.invalidateQueries({ queryKey: ['user-module-permissions'] }) // Also invalidate without userId
+      queryClient.invalidateQueries({ queryKey: ['route-permission', variables.userId], exact: false })
+      queryClient.invalidateQueries({ queryKey: ['check-permission', variables.userId], exact: false })
     },
   })
 
@@ -180,18 +178,17 @@ export function useUserPermissionConfiguration(userId?: string) {
       }
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ 
-        queryKey: ['user-permission-configuration', variables.userId] 
-      })
-      queryClient.invalidateQueries({ 
-        queryKey: ['user-permissions', variables.userId] 
-      })
-      queryClient.invalidateQueries({ 
-        queryKey: ['user-permissions-summary', variables.userId] 
-      })
-      queryClient.invalidateQueries({ 
-        queryKey: ['user-module-permissions'] 
-      })
+      // Invalidate admin-side queries
+      queryClient.invalidateQueries({ queryKey: ['user-permission-configuration', variables.userId] })
+      queryClient.invalidateQueries({ queryKey: ['user-permissions', variables.userId] })
+      queryClient.invalidateQueries({ queryKey: ['user-permissions-summary', variables.userId] })
+      
+      // FIX: Invalidate user-side queries for immediate permission refresh
+      queryClient.invalidateQueries({ queryKey: ['user-module-permissions', variables.userId] })
+      queryClient.invalidateQueries({ queryKey: ['user-module-permissions'] })
+      queryClient.invalidateQueries({ queryKey: ['route-permission', variables.userId], exact: false })
+      queryClient.invalidateQueries({ queryKey: ['check-permission', variables.userId], exact: false })
+      
       toast.success('Đã cập nhật cấu hình quyền')
     },
     onError: (error: Error) => {
@@ -230,18 +227,17 @@ export function useUserPermissionConfiguration(userId?: string) {
       if (error) throw error
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ 
-        queryKey: ['user-permission-configuration', variables.userId] 
-      })
-      queryClient.invalidateQueries({ 
-        queryKey: ['user-permissions', variables.userId] 
-      })
-      queryClient.invalidateQueries({ 
-        queryKey: ['user-permissions-summary', variables.userId] 
-      })
-      queryClient.invalidateQueries({ 
-        queryKey: ['user-module-permissions'] 
-      })
+      // Invalidate admin-side queries
+      queryClient.invalidateQueries({ queryKey: ['user-permission-configuration', variables.userId] })
+      queryClient.invalidateQueries({ queryKey: ['user-permissions', variables.userId] })
+      queryClient.invalidateQueries({ queryKey: ['user-permissions-summary', variables.userId] })
+      
+      // FIX: Invalidate user-side queries for immediate permission refresh
+      queryClient.invalidateQueries({ queryKey: ['user-module-permissions', variables.userId] })
+      queryClient.invalidateQueries({ queryKey: ['user-module-permissions'] })
+      queryClient.invalidateQueries({ queryKey: ['route-permission', variables.userId], exact: false })
+      queryClient.invalidateQueries({ queryKey: ['check-permission', variables.userId], exact: false })
+      
       toast.success('Đã cập nhật quyền thành công')
     },
     onError: (error: Error) => {

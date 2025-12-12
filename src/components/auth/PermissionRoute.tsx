@@ -109,7 +109,7 @@ function NonAdminPermissionCheck({
       
       return data as boolean
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000, // Reduced from 5 min to 30 sec for faster permission updates
   })
   
   if (isLoading) {
