@@ -41,17 +41,63 @@ export function PermissionRoute({
 }: PermissionRouteProps) {
   const { user, isLoading: userLoading } = useUser()
   
-  // Check if user is admin (bypass all permissions)
-  const isAdmin = user?.user_level_code === 'super_admin' || user?.user_level_code === 'tenant_owner'
+  // IMPORTANT: Wait for user data to load first before any checks
+  if (userLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
   
-  // Only check permissions for non-admin users
-  const { data: hasPermission, isLoading: permLoading } = useQuery({
-    queryKey: ['route-permission', user?.id, module, action],
+  // If no user after loading complete, redirect to login
+  if (!user) {
+    return <Navigate to="/auth/login" replace />
+  }
+  
+  // Check if user is admin - MUST happen AFTER user is confirmed loaded
+  const isAdmin = user.user_level_code === 'super_admin' || user.user_level_code === 'tenant_owner'
+  
+  // Admin users ALWAYS have access - bypass all permission checks
+  if (isAdmin) {
+    return <>{children}</>
+  }
+  
+  // For non-admin users, check permissions via RPC
+  return (
+    <NonAdminPermissionCheck 
+      userId={user.id} 
+      module={module} 
+      action={action}
+      fallback={fallback}
+    >
+      {children}
+    </NonAdminPermissionCheck>
+  )
+}
+
+/**
+ * Separate component for non-admin permission checking
+ * This ensures hooks are called consistently
+ */
+function NonAdminPermissionCheck({ 
+  userId, 
+  module, 
+  action, 
+  fallback, 
+  children 
+}: { 
+  userId: string
+  module: PermissionModule
+  action: PermissionAction
+  fallback?: ReactNode
+  children: ReactNode 
+}) {
+  const { data: hasPermission, isLoading } = useQuery({
+    queryKey: ['route-permission', userId, module, action],
     queryFn: async () => {
-      if (!user?.id) return false
-      
       const { data, error } = await supabase.rpc('has_user_permission', {
-        p_user_id: user.id,
+        p_user_id: userId,
         p_module: module,
         p_action: action,
       })
@@ -63,12 +109,10 @@ export function PermissionRoute({
       
       return data as boolean
     },
-    enabled: !!user?.id && !isAdmin, // Only run for non-admin users
     staleTime: 5 * 60 * 1000,
   })
   
-  // Show loading while user data is loading
-  if (userLoading) {
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -76,21 +120,6 @@ export function PermissionRoute({
     )
   }
   
-  // Admin users always have access
-  if (isAdmin) {
-    return <>{children}</>
-  }
-  
-  // Show loading while checking permission for non-admin users
-  if (permLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
-  
-  // Check permission result
   if (!hasPermission) {
     return fallback ? <>{fallback}</> : <Navigate to="/unauthorized" replace />
   }
