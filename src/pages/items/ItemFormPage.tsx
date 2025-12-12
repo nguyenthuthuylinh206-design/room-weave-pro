@@ -160,10 +160,17 @@ export function ItemFormPage() {
       let savedItemId: string
       
       if (isEdit) {
+        // Calculate the difference in quantity_total and apply to quantity_in_stock
+        const oldQuantityTotal = item?.quantity_total || 0
+        const newQuantityTotal = itemDataWithoutImages.quantity_total || 0
+        const quantityDelta = newQuantityTotal - oldQuantityTotal
+        const newQuantityInStock = Math.max(0, (item?.quantity_in_stock || 0) + quantityDelta)
+        
         await updateItem.mutateAsync({
           id: id!,
           data: {
             ...itemDataWithoutImages,
+            quantity_in_stock: newQuantityInStock,
             updated_at: new Date().toISOString(),
           },
         })
