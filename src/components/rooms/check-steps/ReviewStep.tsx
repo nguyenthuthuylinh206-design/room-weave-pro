@@ -1,15 +1,16 @@
 import { UseFormReturn } from 'react-hook-form'
-import { Upload, X, Star, CheckCircle2, AlertCircle, XCircle, Loader2 } from 'lucide-react'
+import { Upload, X, Star, CheckCircle2, AlertCircle, XCircle, Loader2, Shirt, Droplets, Tv, Armchair, Send, RefreshCw, Package, Wrench } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
 import { useImageUpload } from '@/hooks/useImageUpload'
 import { useUser } from '@/hooks/useUser'
-import type { RoomCheckFormData } from '@/types/rooms.types'
+import type { RoomCheckFormData, LaundryItem, ConsumedItem, LostItem, ReplacedItem } from '@/types/rooms.types'
 
 interface ReviewStepProps {
   form: UseFormReturn<RoomCheckFormData>
@@ -26,6 +27,12 @@ export function ReviewStep({ form, room }: ReviewStepProps) {
   const itemsComplete = form.watch('items_complete')
   const itemsMissing = form.watch('items_missing') || []
   const itemsDamaged = form.watch('items_damaged') || []
+  
+  // New detailed tracking
+  const itemsSentToLaundry = form.watch('items_sent_to_laundry') || []
+  const itemsConsumed = form.watch('items_consumed') || []
+  const itemsLost = form.watch('items_lost') || []
+  const itemsReplaced = form.watch('items_replaced') || []
   
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -65,10 +72,20 @@ export function ReviewStep({ form, room }: ReviewStepProps) {
       default: return checkType
     }
   }
+
+  // Calculate totals
+  const totalLaundry = itemsSentToLaundry.reduce((sum, i) => sum + i.quantity, 0)
+  const totalConsumed = itemsConsumed.reduce((sum, i) => sum + i.quantity, 0)
+  const totalLost = itemsLost.reduce((sum, i) => sum + i.quantity, 0)
+  const totalReplaced = itemsReplaced.reduce((sum, i) => sum + i.quantity, 0)
+  const totalDamaged = itemsDamaged.length
+  const estimatedLossValue = itemsLost.reduce((sum, i) => sum + (i.estimated_value || 0), 0)
+  
+  const hasActions = totalLaundry > 0 || totalConsumed > 0 || totalLost > 0 || totalReplaced > 0 || totalDamaged > 0
   
   return (
     <div className="space-y-6">
-      {/* Cleanliness Score - Moved here */}
+      {/* Cleanliness Score */}
       <FormField
         control={form.control}
         name="cleanliness_score"
@@ -107,78 +124,180 @@ export function ReviewStep({ form, room }: ReviewStepProps) {
         )}
       />
       
-      {/* Summary Card */}
+      {/* Summary Card - Enhanced */}
       <Card>
-        <CardContent className="pt-6">
-          <h3 className="font-semibold mb-4">Tóm tắt kiểm tra</h3>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            📋 Tóm tắt kiểm tra phòng {room.room_number}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Basic Info */}
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline">{getCheckTypeLabel()}</Badge>
+            <Badge variant={itemsComplete ? 'default' : 'destructive'}>
+              {itemsComplete ? (
+                <><CheckCircle2 className="mr-1 h-3 w-3" /> Đầy đủ</>
+              ) : (
+                <><AlertCircle className="mr-1 h-3 w-3" /> Có vấn đề</>
+              )}
+            </Badge>
+          </div>
           
-          <dl className="space-y-3">
-            <div className="flex items-center justify-between">
-              <dt className="text-sm text-muted-foreground">Phòng</dt>
-              <dd className="font-medium">{room.room_number} - {room.room_type}</dd>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <dt className="text-sm text-muted-foreground">Loại kiểm tra</dt>
-              <dd>
-                <Badge>{getCheckTypeLabel()}</Badge>
-              </dd>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <dt className="text-sm text-muted-foreground">Trạng thái đồ dùng</dt>
-              <dd className="flex items-center gap-2">
-                {itemsComplete ? (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <span className="text-green-600 font-medium">Đầy đủ</span>
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle className="h-4 w-4 text-red-600" />
-                    <span className="text-red-600 font-medium">Không đầy đủ</span>
-                  </>
-                )}
-              </dd>
-            </div>
-            
-            {itemsMissing.length > 0 && (
-              <div className="pt-3 border-t">
-                <dt className="text-sm text-muted-foreground mb-2">Đồ dùng thiếu ({itemsMissing.length} items)</dt>
-                <dd className="space-y-1">
-                  {itemsMissing.map((item: any, idx: number) => (
-                    <div key={idx} className="flex items-center gap-2 text-sm">
-                      <AlertCircle className="h-3 w-3 text-yellow-600" />
-                      <span>{item.item_name || 'Unknown item'}</span>
+          {hasActions && (
+            <>
+              <Separator />
+              
+              {/* Linen Section */}
+              {(itemsSentToLaundry.length > 0 || itemsReplaced.length > 0 || itemsLost.filter(i => i.item_type === 'linen').length > 0) && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Shirt className="h-4 w-4 text-blue-600" />
+                    <span>Đồ vải</span>
+                  </div>
+                  <div className="pl-6 space-y-1 text-sm">
+                    {itemsSentToLaundry.length > 0 && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Send className="h-3 w-3" />
+                        <span>Lấy giặt: {totalLaundry} items</span>
+                        <span className="text-xs">({itemsSentToLaundry.map(i => i.item_name).join(', ')})</span>
+                      </div>
+                    )}
+                    {itemsReplaced.length > 0 && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <RefreshCw className="h-3 w-3" />
+                        <span>Đã thay mới: {totalReplaced} items</span>
+                      </div>
+                    )}
+                    {itemsLost.filter(i => i.item_type === 'linen').length > 0 && (
+                      <div className="flex items-center gap-2 text-destructive">
+                        <XCircle className="h-3 w-3" />
+                        <span>Mất: {itemsLost.filter(i => i.item_type === 'linen').reduce((s, i) => s + i.quantity, 0)} items</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Consumable Section */}
+              {itemsConsumed.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Droplets className="h-4 w-4 text-cyan-600" />
+                    <span>Đồ tiêu hao</span>
+                  </div>
+                  <div className="pl-6 space-y-1 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Package className="h-3 w-3" />
+                      <span>Khách đã dùng: {totalConsumed} items</span>
                     </div>
-                  ))}
-                </dd>
-              </div>
-            )}
-            
-            {itemsDamaged.length > 0 && (
-              <div className="pt-3 border-t">
-                <dt className="text-sm text-muted-foreground mb-2">Đồ dùng hư hỏng ({itemsDamaged.length} items)</dt>
-                <dd className="space-y-1">
-                  {itemsDamaged.map((item: any, idx: number) => (
-                    <div key={idx} className="flex items-center gap-2 text-sm">
-                      <XCircle className="h-3 w-3 text-red-600" />
-                      <span>{item.item_name || 'Unknown item'}</span>
+                    {itemsConsumed.filter(i => i.need_refill).length > 0 && (
+                      <div className="flex items-center gap-2 text-primary">
+                        <CheckCircle2 className="h-3 w-3" />
+                        <span>Cần bổ sung: {itemsConsumed.filter(i => i.need_refill).reduce((s, i) => s + i.quantity, 0)} items</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Equipment Section */}
+              {(itemsLost.filter(i => i.item_type === 'equipment').length > 0 || itemsDamaged.length > 0) && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Tv className="h-4 w-4 text-purple-600" />
+                    <span>Thiết bị</span>
+                  </div>
+                  <div className="pl-6 space-y-1 text-sm">
+                    {itemsLost.filter(i => i.item_type === 'equipment').length > 0 && (
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2 text-destructive">
+                          <XCircle className="h-3 w-3" />
+                          <span>Mất: {itemsLost.filter(i => i.item_type === 'equipment').length} items</span>
+                        </div>
+                        {itemsLost.filter(i => i.item_type === 'equipment' && i.estimated_value).map((item, idx) => (
+                          <div key={idx} className="pl-5 text-xs text-muted-foreground">
+                            • {item.item_name}: ~{item.estimated_value?.toLocaleString()}đ
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {itemsDamaged.length > 0 && (
+                      <div className="flex items-center gap-2 text-warning">
+                        <Wrench className="h-3 w-3" />
+                        <span>Hỏng: {itemsDamaged.length} items</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Furniture Section */}
+              {itemsLost.filter(i => i.item_type === 'furniture').length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Armchair className="h-4 w-4 text-amber-600" />
+                    <span>Nội thất</span>
+                  </div>
+                  <div className="pl-6 space-y-1 text-sm">
+                    <div className="flex items-center gap-2 text-destructive">
+                      <XCircle className="h-3 w-3" />
+                      <span>Mất: {itemsLost.filter(i => i.item_type === 'furniture').reduce((s, i) => s + i.quantity, 0)} items</span>
                     </div>
-                  ))}
-                </dd>
-              </div>
-            )}
-            
-            {photos.length > 0 && (
-              <div className="flex items-center justify-between">
-                <dt className="text-sm text-muted-foreground">Ảnh đính kèm</dt>
-                <dd className="font-medium">{photos.length} ảnh</dd>
-              </div>
-            )}
-          </dl>
+                  </div>
+                </div>
+              )}
+              
+              {/* Total Loss Value */}
+              {estimatedLossValue > 0 && (
+                <>
+                  <Separator />
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-destructive">Tổng giá trị thiệt hại ước tính:</span>
+                    <span className="font-bold text-destructive">{estimatedLossValue.toLocaleString()}đ</span>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+          
+          {!hasActions && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <span>Không có vấn đề nào được ghi nhận</span>
+            </div>
+          )}
+          
+          {photos.length > 0 && (
+            <div className="flex items-center justify-between text-sm pt-2 border-t">
+              <span className="text-muted-foreground">Ảnh đính kèm</span>
+              <span className="font-medium">{photos.length} ảnh</span>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Warning for issues */}
+      {(totalLost > 0 || totalDamaged > 0) && (
+        <Card className="border-destructive bg-destructive/5">
+          <CardContent className="pt-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-medium text-destructive">Cảnh báo</p>
+                <p className="text-sm text-muted-foreground">
+                  Khi hoàn tất kiểm tra, hệ thống sẽ:
+                </p>
+                <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
+                  {totalLost > 0 && <li>Tạo thông báo cho quản lý về {totalLost} đồ dùng bị mất</li>}
+                  {totalDamaged > 0 && <li>Tạo yêu cầu bảo trì cho {totalDamaged} thiết bị hỏng</li>}
+                  {itemsSentToLaundry.length > 0 && <li>Ghi nhận {totalLaundry} đồ vải cần giặt</li>}
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       {/* Notes */}
       <FormField
