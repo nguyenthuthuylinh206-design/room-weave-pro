@@ -1237,6 +1237,7 @@ export type Database = {
           expected_lifetime_days: number | null
           hotel_id: string
           id: string
+          item_type: Database["public"]["Enums"]["item_type"]
           max_wash_cycles: number | null
           minimum_stock: number | null
           model: string | null
@@ -1267,6 +1268,7 @@ export type Database = {
           expected_lifetime_days?: number | null
           hotel_id: string
           id?: string
+          item_type?: Database["public"]["Enums"]["item_type"]
           max_wash_cycles?: number | null
           minimum_stock?: number | null
           model?: string | null
@@ -1297,6 +1299,7 @@ export type Database = {
           expected_lifetime_days?: number | null
           hotel_id?: string
           id?: string
+          item_type?: Database["public"]["Enums"]["item_type"]
           max_wash_cycles?: number | null
           minimum_stock?: number | null
           model?: string | null
@@ -5457,6 +5460,7 @@ export type Database = {
         | "hotel_manager"
         | "department_manager"
         | "staff"
+      item_type: "linen" | "consumable" | "equipment" | "furniture"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5591,6 +5595,7 @@ export const Constants = {
         "department_manager",
         "staff",
       ],
+      item_type: ["linen", "consumable", "equipment", "furniture"],
     },
   },
 } as const
