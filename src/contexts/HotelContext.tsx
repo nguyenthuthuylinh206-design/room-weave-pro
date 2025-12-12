@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Hotel, useHotels } from '@/hooks/useHotels'
 import { useUser } from '@/hooks/useUser'
@@ -12,6 +12,7 @@ interface HotelContextType {
   isAllHotelsMode: boolean
   setAllHotelsMode: (enabled: boolean) => void
   isLoading: boolean
+  canViewAllHotels: boolean // true for owner/super_admin
 }
 
 const HotelContext = createContext<HotelContextType | undefined>(undefined)
@@ -19,10 +20,52 @@ const HotelContext = createContext<HotelContextType | undefined>(undefined)
 export function HotelProvider({ children }: { children: ReactNode }) {
   const { user, hotelId } = useUser()
   const userId = user?.id
+  const userLevel = user?.user_level_code
   const { data: hotels, isLoading: hotelsLoading } = useHotels()
   const [selectedHotel, setSelectedHotelState] = useState<Hotel | null>(null)
   const [isAllHotelsMode, setAllHotelsMode] = useState(false)
   const queryClient = useQueryClient()
+
+  // Check if user can view all hotels (owner/super_admin)
+  const canViewAllHotels = userLevel === 'super_admin' || userLevel === 'tenant_owner'
+
+  // Fetch assigned hotels for non-admin users
+  const { data: assignedHotelIds, isLoading: assignedLoading } = useQuery({
+    queryKey: ['user-assigned-hotels', userId],
+    queryFn: async () => {
+      if (!userId) return []
+      
+      const { data, error } = await supabase
+        .from('user_hotels')
+        .select('hotel_id')
+        .eq('user_id', userId)
+      
+      if (error) {
+        console.error('Error fetching assigned hotels:', error)
+        return []
+      }
+      
+      return data?.map(d => d.hotel_id) || []
+    },
+    enabled: !!userId && !canViewAllHotels,
+  })
+
+  // Filter hotels based on user permissions
+  const availableHotels = useMemo(() => {
+    if (!hotels) return []
+    
+    // Owner/super_admin can see all hotels
+    if (canViewAllHotels) {
+      return hotels
+    }
+    
+    // Manager/staff can only see assigned hotels
+    if (assignedHotelIds && assignedHotelIds.length > 0) {
+      return hotels.filter(h => assignedHotelIds.includes(h.id))
+    }
+    
+    return []
+  }, [hotels, canViewAllHotels, assignedHotelIds])
 
   // Fetch user preference from database
   const { data: userPreference, isLoading: preferenceLoading } = useQuery({
@@ -92,21 +135,26 @@ export function HotelProvider({ children }: { children: ReactNode }) {
 
   // Initialize selected hotel from preference or fallback
   useEffect(() => {
-    if (!hotels || hotels.length === 0 || hotelsLoading || preferenceLoading) return
+    // Wait for all data to load
+    if (hotelsLoading || preferenceLoading) return
+    if (!canViewAllHotels && assignedLoading) return
+    if (availableHotels.length === 0) return
 
-    // Check for "All Hotels" mode first
-    const preferences = userPreference?.preferences as { is_all_hotels_mode?: boolean } | null
-    const isAllHotelsFromPref = preferences?.is_all_hotels_mode
-    const isAllHotelsFromLocal = localStorage.getItem('is_all_hotels_mode') === 'true'
-    
-    if (isAllHotelsFromPref || (isAllHotelsFromLocal && hotels.length > 1)) {
-      setAllHotelsMode(true)
-      return
+    // Check for "All Hotels" mode first (only for owners/super_admin)
+    if (canViewAllHotels) {
+      const preferences = userPreference?.preferences as { is_all_hotels_mode?: boolean } | null
+      const isAllHotelsFromPref = preferences?.is_all_hotels_mode
+      const isAllHotelsFromLocal = localStorage.getItem('is_all_hotels_mode') === 'true'
+      
+      if (isAllHotelsFromPref || (isAllHotelsFromLocal && availableHotels.length > 1)) {
+        setAllHotelsMode(true)
+        return
+      }
     }
 
     // Try database preference
     if (userPreference?.current_hotel_id) {
-      const hotel = hotels.find(h => h.id === userPreference.current_hotel_id)
+      const hotel = availableHotels.find(h => h.id === userPreference.current_hotel_id)
       if (hotel) {
         setSelectedHotelState(hotel)
         return
@@ -116,7 +164,7 @@ export function HotelProvider({ children }: { children: ReactNode }) {
     // Fallback to localStorage
     const savedHotelId = localStorage.getItem('selected_hotel_id')
     if (savedHotelId) {
-      const hotel = hotels.find(h => h.id === savedHotelId)
+      const hotel = availableHotels.find(h => h.id === savedHotelId)
       if (hotel) {
         setSelectedHotelState(hotel)
         return
@@ -125,18 +173,18 @@ export function HotelProvider({ children }: { children: ReactNode }) {
 
     // Fallback to user's primary hotel
     if (hotelId) {
-      const hotel = hotels.find(h => h.id === hotelId)
+      const hotel = availableHotels.find(h => h.id === hotelId)
       if (hotel) {
         setSelectedHotelState(hotel)
         return
       }
     }
 
-    // Fallback to first hotel
-    if (hotels.length > 0) {
-      setSelectedHotelState(hotels[0])
+    // Fallback to first available hotel
+    if (availableHotels.length > 0) {
+      setSelectedHotelState(availableHotels[0])
     }
-  }, [hotels, hotelId, userPreference, hotelsLoading, preferenceLoading])
+  }, [availableHotels, hotelId, userPreference, hotelsLoading, preferenceLoading, canViewAllHotels, assignedLoading])
 
   const setSelectedHotel = (hotel: Hotel) => {
     setSelectedHotelState(hotel)
@@ -179,17 +227,18 @@ export function HotelProvider({ children }: { children: ReactNode }) {
     queryClient.invalidateQueries({ queryKey: ['categories'] })
   }
 
-  const isLoading = hotelsLoading || preferenceLoading
+  const isLoading = hotelsLoading || preferenceLoading || (!canViewAllHotels && assignedLoading)
 
   return (
     <HotelContext.Provider
       value={{
         selectedHotel,
         setSelectedHotel,
-        availableHotels: hotels || [],
-        isAllHotelsMode,
-        setAllHotelsMode: handleSetAllHotelsMode,
+        availableHotels,
+        isAllHotelsMode: canViewAllHotels ? isAllHotelsMode : false, // Only owners can view all hotels
+        setAllHotelsMode: canViewAllHotels ? handleSetAllHotelsMode : () => {}, // Disable for non-owners
         isLoading,
+        canViewAllHotels,
       }}
     >
       {children}

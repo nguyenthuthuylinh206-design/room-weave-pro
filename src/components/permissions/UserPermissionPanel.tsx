@@ -7,9 +7,11 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { ModuleToggle } from './ModuleToggle'
+import { HotelAssignmentSection } from './HotelAssignmentSection'
 import { useUserPermissionConfiguration } from '@/hooks/useUserPermissionConfiguration'
 import { MODULES } from '@/hooks/useUserPermissions'
 import { Info } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 interface UserPermissionPanelProps {
   user: UserWithRelations | null
@@ -155,51 +157,66 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
         )}
       </div>
 
-      {/* Permissions Content */}
-      <ScrollArea className="flex-1 p-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <LoadingSpinner />
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Cấu hình Quyền theo Module</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Bật module để cho phép truy cập. Mặc định khi bật sẽ có toàn quyền.
-                Click mũi tên để tùy chỉnh chi tiết từng quyền.
-              </p>
-            </div>
+      {/* Tabbed Content - Module Permissions & Hotel Assignment */}
+      <Tabs defaultValue="modules" className="flex-1 flex flex-col">
+        <div className="border-b px-6">
+          <TabsList className="h-10">
+            <TabsTrigger value="modules">Quyền Module</TabsTrigger>
+            <TabsTrigger value="hotels">Khách sạn</TabsTrigger>
+          </TabsList>
+        </div>
+        
+        <ScrollArea className="flex-1">
+          <TabsContent value="modules" className="p-6 mt-0">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Cấu hình Quyền theo Module</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Bật module để cho phép truy cập. Mặc định khi bật sẽ có toàn quyền.
+                    Click mũi tên để tùy chỉnh chi tiết từng quyền.
+                  </p>
+                </div>
 
-            <div className="grid gap-2">
-              {MODULES.map((module) => (
-                <ModuleToggle
-                  key={module.code}
-                  moduleName={module.name}
-                  enabled={localPermissions[module.code] || false}
-                  source={permissionsData?.[module.code]?.source || null}
-                  onChange={(enabled) => handleToggle(module.code, enabled)}
-                  disabled={isProtectedUser}
-                  actions={localActions[module.code]}
-                  onActionChange={(action, enabled) => handleActionToggle(module.code, action, enabled)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-      </ScrollArea>
+                <div className="grid gap-2">
+                  {MODULES.map((module) => (
+                    <ModuleToggle
+                      key={module.code}
+                      moduleName={module.name}
+                      enabled={localPermissions[module.code] || false}
+                      source={permissionsData?.[module.code]?.source || null}
+                      onChange={(enabled) => handleToggle(module.code, enabled)}
+                      disabled={isProtectedUser}
+                      actions={localActions[module.code]}
+                      onActionChange={(action, enabled) => handleActionToggle(module.code, action, enabled)}
+                    />
+                  ))}
+                </div>
 
-      {/* Save Button */}
-      <div className="p-6 border-t bg-background">
-        <Button
-          onClick={handleSave}
-          disabled={!hasChanges || isSaving || isProtectedUser}
-          className="w-full"
-          size="lg"
-        >
-          {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
-        </Button>
-      </div>
+                {/* Save Button for Module Permissions */}
+                <div className="pt-4 border-t">
+                  <Button
+                    onClick={handleSave}
+                    disabled={!hasChanges || isSaving || isProtectedUser}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {isSaving ? 'Đang lưu...' : 'Lưu thay đổi quyền module'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="hotels" className="p-6 mt-0">
+            <HotelAssignmentSection user={user} disabled={isProtectedUser} />
+          </TabsContent>
+        </ScrollArea>
+      </Tabs>
     </div>
   )
 }

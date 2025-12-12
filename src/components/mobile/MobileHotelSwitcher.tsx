@@ -18,16 +18,18 @@ export function MobileHotelSwitcher() {
     setSelectedHotel, 
     availableHotels, 
     isAllHotelsMode, 
-    setAllHotelsMode 
+    setAllHotelsMode,
+    canViewAllHotels 
   } = useHotelContext()
 
   const handleSelectHotel = (hotel: any) => {
     setSelectedHotel(hotel)
-    setAllHotelsMode(false)
   }
 
   const handleAllHotels = () => {
-    setAllHotelsMode(true)
+    if (canViewAllHotels) {
+      setAllHotelsMode(true)
+    }
   }
 
   return (
@@ -57,7 +59,8 @@ export function MobileHotelSwitcher() {
         <DropdownMenuLabel>Chọn khách sạn</DropdownMenuLabel>
         <DropdownMenuSeparator />
         
-        {availableHotels.length > 1 && (
+        {/* Only show "All Hotels" option if user can view all hotels */}
+        {canViewAllHotels && availableHotels.length > 1 && (
           <>
             <DropdownMenuItem
               onClick={handleAllHotels}
