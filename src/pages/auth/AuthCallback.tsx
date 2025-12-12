@@ -16,6 +16,7 @@ export default function AuthCallback() {
   const isLoading = isUserLoading || isPermissionsLoading
 
   useEffect(() => {
+    // Vẫn đang load → chờ tiếp
     if (isLoading) return
 
     // Wait for user data to load
@@ -28,19 +29,23 @@ export default function AuthCallback() {
     if (!user?.tenant_id || !user?.hotel_id) {
       // User needs to complete onboarding
       navigate('/onboarding', { replace: true })
-    } else {
-      // User is fully set up - redirect to first accessible route
-      const targetRoute = firstAccessibleRoute || '/unauthorized'
-      
-      if (targetRoute !== '/unauthorized') {
-        toast({
-          title: 'Đăng nhập thành công',
-          description: 'Chào mừng bạn quay trở lại!',
-        })
-      }
-      
-      navigate(targetRoute, { replace: true })
+      return
     }
+    
+    // firstAccessibleRoute = null nghĩa là đang chờ permissions load
+    if (firstAccessibleRoute === null) {
+      return
+    }
+
+    // Có route để redirect
+    if (firstAccessibleRoute !== '/unauthorized') {
+      toast({
+        title: 'Đăng nhập thành công',
+        description: 'Chào mừng bạn quay trở lại!',
+      })
+    }
+    
+    navigate(firstAccessibleRoute, { replace: true })
   }, [authUser, user, isLoading, firstAccessibleRoute, navigate, toast])
 
   return (
