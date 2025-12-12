@@ -155,6 +155,7 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
   const handleSignOut = async () => {
     await signOut()
     onClose()
+    navigate('/auth/login')
   }
 
   // Check if user has module access

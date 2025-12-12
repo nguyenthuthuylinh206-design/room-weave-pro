@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode, useCallback 
 import { User as AuthUser, Session } from '@supabase/supabase-js'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface AuthContextType {
   user: AuthUser | null
@@ -22,6 +23,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -157,21 +159,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = useCallback(async () => {
     try {
+      // Clear local state FIRST (important for graceful logout)
+      setUser(null)
+      setSession(null)
+      
+      // Clear React Query cache
+      queryClient.clear()
+      
+      // Then call API (may fail if session already expired - that's ok)
       const { error } = await supabase.auth.signOut()
-      if (error) throw error
+      
+      // Only show error toast if it's a real error (not session missing)
+      if (error && !error.message?.includes('session')) {
+        console.error('SignOut API error:', error)
+      }
 
       toast({
         title: 'Đã đăng xuất',
         description: 'Hẹn gặp lại bạn!',
       })
     } catch (error: any) {
+      // Silent fail - user is still logged out locally
+      console.error('SignOut error:', error)
       toast({
-        title: 'Lỗi đăng xuất',
-        description: error.message,
-        variant: 'destructive',
+        title: 'Đã đăng xuất',
+        description: 'Hẹn gặp lại bạn!',
       })
     }
-  }, [toast])
+  }, [toast, queryClient])
 
   const value: AuthContextType = {
     user,
