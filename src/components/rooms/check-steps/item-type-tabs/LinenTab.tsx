@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Shirt, Check, RefreshCw, AlertTriangle } from 'lucide-react'
+import { Shirt, Check, RefreshCw, AlertTriangle, Waves } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import type { RoomItemWithDetails, LaundryItem, LostItem, ReplacedItem } from '@/types/rooms.types'
 
-type LinenStatus = 'ok' | 'change' | 'lost'
+type LinenStatus = 'ok' | 'laundry' | 'change' | 'lost'
 
 interface LinenTabProps {
   items: RoomItemWithDetails[]
@@ -42,6 +42,7 @@ export function LinenTab({
     const inLost = lostItems.some(i => i.item_id === itemId)
     
     if (inLaundry && inReplaced) return 'change'
+    if (inLaundry && !inReplaced) return 'laundry'
     if (inLost) return 'lost'
     return 'ok'
   }
@@ -108,14 +109,15 @@ export function LinenTab({
       {items.map((item) => {
         const status = getCurrentStatus(item.item_id)
         const qty = getQuantity(item.item_id, item.standard_quantity)
-        const needsQuantity = status === 'change' || status === 'lost'
+        const needsQuantity = status === 'laundry' || status === 'change' || status === 'lost'
 
         return (
           <Card 
             key={item.item_id} 
             className={
               status === 'lost' ? 'border-destructive bg-destructive/5' :
-              status === 'change' ? 'border-primary bg-primary/5' : ''
+              status === 'change' ? 'border-primary bg-primary/5' :
+              status === 'laundry' ? 'border-blue-500 bg-blue-500/5' : ''
             }
           >
             <CardContent className="p-4">
@@ -137,7 +139,8 @@ export function LinenTab({
                     </p>
                   </div>
                   {status !== 'ok' && (
-                    <Badge variant={status === 'lost' ? 'destructive' : 'secondary'}>
+                    <Badge variant={status === 'lost' ? 'destructive' : status === 'laundry' ? 'outline' : 'secondary'}>
+                      {status === 'laundry' && 'Lấy giặt'}
                       {status === 'change' && 'Thay đổi'}
                       {status === 'lost' && 'Mất'}
                     </Badge>
@@ -148,9 +151,9 @@ export function LinenTab({
                 <RadioGroup
                   value={status}
                   onValueChange={(value) => handleStatusChange(item, value as LinenStatus)}
-                  className="flex flex-wrap gap-3"
+                  className="flex flex-wrap gap-2"
                 >
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1.5">
                     <RadioGroupItem value="ok" id={`${item.item_id}-ok`} />
                     <Label 
                       htmlFor={`${item.item_id}-ok`} 
@@ -161,7 +164,18 @@ export function LinenTab({
                     </Label>
                   </div>
                   
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1.5">
+                    <RadioGroupItem value="laundry" id={`${item.item_id}-laundry`} />
+                    <Label 
+                      htmlFor={`${item.item_id}-laundry`}
+                      className="flex items-center gap-1 cursor-pointer text-sm text-blue-600"
+                    >
+                      <Waves className="h-3.5 w-3.5" />
+                      Lấy giặt
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-1.5">
                     <RadioGroupItem value="change" id={`${item.item_id}-change`} />
                     <Label 
                       htmlFor={`${item.item_id}-change`}
@@ -172,7 +186,7 @@ export function LinenTab({
                     </Label>
                   </div>
                   
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1.5">
                     <RadioGroupItem value="lost" id={`${item.item_id}-lost`} />
                     <Label 
                       htmlFor={`${item.item_id}-lost`}
@@ -188,7 +202,9 @@ export function LinenTab({
                 {needsQuantity && (
                   <div className="flex items-center gap-2 pt-2 border-t">
                     <Label className="text-xs whitespace-nowrap">
-                      {status === 'change' ? 'Số lượng thay:' : 'Số lượng mất:'}
+                      {status === 'laundry' && 'Số lượng giặt:'}
+                      {status === 'change' && 'Số lượng thay:'}
+                      {status === 'lost' && 'Số lượng mất:'}
                     </Label>
                     <Input
                       type="number"
@@ -205,9 +221,14 @@ export function LinenTab({
                 )}
 
                 {/* Explanation text */}
+                {status === 'laundry' && (
+                  <p className="text-xs text-muted-foreground italic">
+                    → Thu gom đồ bẩn, sẽ thay đồ sạch sau
+                  </p>
+                )}
                 {status === 'change' && (
                   <p className="text-xs text-muted-foreground italic">
-                    → Đồ bẩn sẽ được lấy đi giặt, đồ sạch sẽ được thay vào
+                    → Đồ bẩn sẽ được lấy đi giặt, đồ sạch sẽ được thay vào ngay
                   </p>
                 )}
               </div>

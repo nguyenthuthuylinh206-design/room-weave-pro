@@ -123,13 +123,22 @@ export function ItemsCheckStep({
     })) as any);
   }, [laundryItems, consumedItems, lostItems, replacedItems, damagedItems, form]);
 
-  // Handler for Linen status change (OK/Change/Lost)
+  // Handler for Linen status change (OK/Laundry/Change/Lost)
   const handleLinenStatusChange = (
     item: RoomItemWithDetails, 
-    status: 'ok' | 'change' | 'lost', 
+    status: 'ok' | 'laundry' | 'change' | 'lost', 
     quantity: number
   ) => {
-    if (status === 'change') {
+    if (status === 'laundry') {
+      // Only add to laundry (collect dirty, replace later)
+      setLaundryItems(prev => [...prev, {
+        item_id: item.item_id,
+        item_name: item.item_name,
+        item_code: item.item_code,
+        quantity,
+      }]);
+      toast({ title: 'Lấy giặt', description: `${quantity}x ${item.item_name} - Sẽ thay đồ sạch sau` });
+    } else if (status === 'change') {
       // Add to both laundry AND replaced
       setLaundryItems(prev => [...prev, {
         item_id: item.item_id,
