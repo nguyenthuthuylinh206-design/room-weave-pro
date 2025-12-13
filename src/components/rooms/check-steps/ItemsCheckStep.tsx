@@ -123,37 +123,45 @@ export function ItemsCheckStep({
     })) as any);
   }, [laundryItems, consumedItems, lostItems, replacedItems, damagedItems, form]);
 
-  // Handlers for Linen
-  const handleSendToLaundry = (item: RoomItemWithDetails, quantity: number) => {
-    setLaundryItems(prev => [...prev, {
-      item_id: item.item_id,
-      item_name: item.item_name,
-      item_code: item.item_code,
-      quantity,
-    }]);
-    toast({ title: 'Đã đánh dấu lấy giặt', description: `${quantity}x ${item.item_name}` });
+  // Handler for Linen status change (OK/Change/Lost)
+  const handleLinenStatusChange = (
+    item: RoomItemWithDetails, 
+    status: 'ok' | 'change' | 'lost', 
+    quantity: number
+  ) => {
+    if (status === 'change') {
+      // Add to both laundry AND replaced
+      setLaundryItems(prev => [...prev, {
+        item_id: item.item_id,
+        item_name: item.item_name,
+        item_code: item.item_code,
+        quantity,
+      }]);
+      setReplacedItems(prev => [...prev, {
+        item_id: item.item_id,
+        item_name: item.item_name,
+        item_code: item.item_code,
+        quantity,
+        from_stock: true,
+      }]);
+      toast({ title: 'Thay đổi đồ vải', description: `${quantity}x ${item.item_name} - Lấy giặt & thay sạch` });
+    } else if (status === 'lost') {
+      setLostItems(prev => [...prev, {
+        item_id: item.item_id,
+        item_name: item.item_name,
+        item_code: item.item_code,
+        item_type: 'linen',
+        quantity,
+      }]);
+      toast({ title: 'Đã đánh dấu mất', description: `${quantity}x ${item.item_name}`, variant: 'destructive' });
+    }
   };
 
-  const handleMarkReplaced = (item: RoomItemWithDetails, quantity: number) => {
-    setReplacedItems(prev => [...prev, {
-      item_id: item.item_id,
-      item_name: item.item_name,
-      item_code: item.item_code,
-      quantity,
-      from_stock: true,
-    }]);
-    toast({ title: 'Đã đánh dấu thay mới', description: `${quantity}x ${item.item_name}` });
-  };
-
-  const handleLinenLost = (item: RoomItemWithDetails, quantity: number) => {
-    setLostItems(prev => [...prev, {
-      item_id: item.item_id,
-      item_name: item.item_name,
-      item_code: item.item_code,
-      item_type: 'linen',
-      quantity,
-    }]);
-    toast({ title: 'Đã đánh dấu mất', description: `${quantity}x ${item.item_name}`, variant: 'destructive' });
+  // Reset linen status (remove from all lists)
+  const resetLinenStatus = (itemId: string) => {
+    setLaundryItems(prev => prev.filter(i => i.item_id !== itemId));
+    setReplacedItems(prev => prev.filter(i => i.item_id !== itemId));
+    setLostItems(prev => prev.filter(i => i.item_type === 'linen' ? i.item_id !== itemId : true));
   };
 
   // Handlers for Consumable
@@ -310,12 +318,8 @@ export function ItemsCheckStep({
             laundryItems={laundryItems}
             lostItems={lostItems.filter(i => i.item_type === 'linen')}
             replacedItems={replacedItems}
-            onSendToLaundry={handleSendToLaundry}
-            onMarkLost={handleLinenLost}
-            onMarkReplaced={handleMarkReplaced}
-            onRemoveFromLaundry={removeFromLaundry}
-            onRemoveFromLost={removeFromLost}
-            onRemoveFromReplaced={removeFromReplaced}
+            onLinenStatusChange={handleLinenStatusChange}
+            onResetStatus={resetLinenStatus}
           />
         </TabsContent>
 
