@@ -150,20 +150,40 @@ export function RoomCheckPage() {
     }
   }, [id, sessionCompleted])
   
-  // Auto-save to localStorage
+  // Auto-save to localStorage (when form values change)
   useEffect(() => {
     const subscription = form.watch((data) => {
       if (id && currentStep > 1) {
-        localStorage.setItem(`room-check-${id}`, JSON.stringify({
-          data,
-          step: currentStep,
-          quickMode,
-          timestamp: Date.now(),
-        }))
+        localStorage.setItem(
+          `room-check-${id}`,
+          JSON.stringify({
+            data,
+            step: currentStep,
+            quickMode,
+            timestamp: Date.now(),
+          })
+        )
       }
     })
     return () => subscription.unsubscribe()
   }, [form, id, currentStep, quickMode])
+
+  // Persist progress when navigating steps (even if no field changes)
+  useEffect(() => {
+    if (!id) return
+    if (currentStep <= 1) return
+
+    const data = form.getValues()
+    localStorage.setItem(
+      `room-check-${id}`,
+      JSON.stringify({
+        data,
+        step: currentStep,
+        quickMode,
+        timestamp: Date.now(),
+      })
+    )
+  }, [id, currentStep, quickMode, form])
   
   // Check for saved progress on mount
   useEffect(() => {
