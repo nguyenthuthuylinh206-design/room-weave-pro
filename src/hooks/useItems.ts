@@ -79,28 +79,30 @@ export function useItems(
       const items = data as unknown as ItemWithCategory[]
       const total = Number(data[0]?.total_count) || 0
       
-      // Fetch images in parallel (non-blocking)
+      // Fetch images only if there are items (non-blocking, run in background)
       const itemIds = items.map(item => item.id)
       
-      try {
-        const { data: images } = await supabase
+      // Start image fetch but don't await - attach images after
+      Promise.resolve(
+        supabase
           .from('item_images')
-          .select('*')
+          .select('item_id, url, is_primary')
           .in('item_id', itemIds)
-          .order('is_primary', { ascending: false })
-          .order('display_order', { ascending: true })
-        
-        // Attach images to items
-        items.forEach(item => {
-          item.item_images = images?.filter(img => img.item_id === item.id) || []
-        })
-      } catch (error) {
-        console.error('Error fetching images (non-critical):', error)
-        // Continue without images - don't block the query
-        items.forEach(item => {
-          item.item_images = []
-        })
-      }
+          .eq('is_primary', true)
+      ).then(({ data: images }) => {
+        if (images) {
+          const imageMap = new Map(images.map(img => [img.item_id, img]))
+          items.forEach(item => {
+            const img = imageMap.get(item.id)
+            item.item_images = img ? [img as any] : []
+          })
+          // Trigger re-render by updating cache
+          queryClient.setQueryData(
+            ['items', tenantId, selectedHotel?.id, isAllHotelsMode, filters, page, pageSize],
+            { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) }
+          )
+        }
+      }).catch(err => console.error('Error fetching images (non-critical):', err))
       
       return {
         items,
@@ -112,7 +114,8 @@ export function useItems(
     },
     enabled: !!tenantId,
     retry: 2,
-    staleTime: 30000,
+    staleTime: 60000, // Cache for 1 minute
+    gcTime: 300000, // Keep in cache for 5 minutes
   })
 }
 
