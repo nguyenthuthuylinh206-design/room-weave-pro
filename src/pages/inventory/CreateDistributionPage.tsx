@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select'
 import { RoomMultiSelect } from '@/components/distribution/RoomMultiSelect'
 import { DistributionItemMatrix, RoomItemAllocation, StockValidation } from '@/components/distribution/DistributionItemMatrix'
+import { MobileDistributionItemAllocation } from '@/components/distribution/MobileDistributionItemAllocation'
 import { useCreateDistributionOrder } from '@/hooks/useDistributionOrders'
 import { useUsers } from '@/hooks/useUsers'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -110,41 +111,50 @@ export default function CreateDistributionPage() {
           </CardContent>
         </Card>
 
-        {/* Right: Item Matrix */}
-        <Card className={isMobile ? '' : 'lg:col-span-2'}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Truck className="h-5 w-5" />
-              Phân bổ sản phẩm
-            </CardTitle>
-            <CardDescription>Chọn số lượng sản phẩm cho mỗi phòng</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DistributionItemMatrix
-              selectedRoomIds={selectedRoomIds}
-              allocations={allocations}
-              onAllocationsChange={setAllocations}
-              onStockValidationChange={handleStockValidationChange}
-            />
-            
-            {/* Stock validation warning */}
-            {!stockValidation.isValid && (
-              <Alert variant="destructive" className="mt-4">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  <span className="font-medium">Vượt quá tồn kho:</span>
-                  <ul className="mt-1 list-disc list-inside">
-                    {stockValidation.overStockItems.map(item => (
-                      <li key={item.itemId}>
-                        {item.itemName}: yêu cầu {item.requested}, tồn kho {item.available}
-                      </li>
-                    ))}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
+        {/* Right: Item Matrix / Mobile Item Allocation */}
+        {isMobile ? (
+          <MobileDistributionItemAllocation
+            selectedRoomIds={selectedRoomIds}
+            allocations={allocations}
+            onAllocationsChange={setAllocations}
+            onStockValidationChange={handleStockValidationChange}
+          />
+        ) : (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Truck className="h-5 w-5" />
+                Phân bổ sản phẩm
+              </CardTitle>
+              <CardDescription>Chọn số lượng sản phẩm cho mỗi phòng</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DistributionItemMatrix
+                selectedRoomIds={selectedRoomIds}
+                allocations={allocations}
+                onAllocationsChange={setAllocations}
+                onStockValidationChange={handleStockValidationChange}
+              />
+              
+              {/* Stock validation warning */}
+              {!stockValidation.isValid && (
+                <Alert variant="destructive" className="mt-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <span className="font-medium">Vượt quá tồn kho:</span>
+                    <ul className="mt-1 list-disc list-inside">
+                      {stockValidation.overStockItems.map(item => (
+                        <li key={item.itemId}>
+                          {item.itemName}: yêu cầu {item.requested}, tồn kho {item.available}
+                        </li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Options */}
         <Card className={isMobile ? '' : 'lg:col-span-3'}>

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { ArrowLeft, CheckCircle, Clock, Truck, XCircle, User, Package, DoorOpen, Ban } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Clock, Truck, XCircle, User, Package, DoorOpen, Ban, Printer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,6 +21,7 @@ import {
 import { useDistributionOrderDetail, useCompleteRoomDelivery, useCancelDistributionOrder } from '@/hooks/useDistributionOrders'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
+import { printDistributionOrder } from '@/utils/printDistributionOrder'
 import type { DistributionOrderStatus, DistributionRoomStatus } from '@/types/distribution.types'
 
 const STATUS_CONFIG: Record<DistributionOrderStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof Clock }> = {
@@ -115,6 +116,13 @@ export default function DistributionOrderDetailPage() {
                 <Ban className="h-4 w-4" />
               </Button>
             )}
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => order && printDistributionOrder(order)}
+            >
+              <Printer className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 
@@ -228,16 +236,25 @@ export default function DistributionOrderDetailPage() {
             Tạo bởi {order.created_by_name} • {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })}
           </p>
         </div>
-        {canCancel && (
+        <div className="flex items-center gap-2">
+          {canCancel && (
+            <Button 
+              variant="destructive" 
+              onClick={() => setShowCancelDialog(true)}
+              disabled={isCancelling}
+            >
+              <Ban className="h-4 w-4 mr-2" />
+              Hủy phiếu
+            </Button>
+          )}
           <Button 
-            variant="destructive" 
-            onClick={() => setShowCancelDialog(true)}
-            disabled={isCancelling}
+            variant="outline" 
+            onClick={() => order && printDistributionOrder(order)}
           >
-            <Ban className="h-4 w-4 mr-2" />
-            Hủy phiếu
+            <Printer className="h-4 w-4 mr-2" />
+            In phiếu
           </Button>
-        )}
+        </div>
       </div>
 
       {/* Summary Cards */}
