@@ -165,9 +165,9 @@ export function LinenTab({
                 <RadioGroup
                   value={status}
                   onValueChange={(value) => handleStatusChange(item, value as LinenStatus)}
-                  className="flex flex-wrap gap-2"
+                  className="grid grid-cols-2 gap-2"
                 >
-                  <div className="flex items-center space-x-1.5">
+                  <div className="flex items-center space-x-1.5 p-2 rounded-lg hover:bg-muted/50">
                     <RadioGroupItem value="ok" id={`${item.item_id}-ok`} />
                     <Label 
                       htmlFor={`${item.item_id}-ok`} 
@@ -178,7 +178,7 @@ export function LinenTab({
                     </Label>
                   </div>
                   
-                  <div className="flex items-center space-x-1.5">
+                  <div className="flex items-center space-x-1.5 p-2 rounded-lg hover:bg-muted/50">
                     <RadioGroupItem value="laundry" id={`${item.item_id}-laundry`} />
                     <Label 
                       htmlFor={`${item.item_id}-laundry`}
@@ -189,7 +189,7 @@ export function LinenTab({
                     </Label>
                   </div>
                   
-                  <div className="flex items-center space-x-1.5">
+                  <div className="flex items-center space-x-1.5 p-2 rounded-lg hover:bg-muted/50">
                     <RadioGroupItem value="add" id={`${item.item_id}-add`} />
                     <Label 
                       htmlFor={`${item.item_id}-add`}
@@ -200,18 +200,18 @@ export function LinenTab({
                     </Label>
                   </div>
                   
-                  <div className="flex items-center space-x-1.5">
+                  <div className="flex items-center space-x-1.5 p-2 rounded-lg hover:bg-muted/50">
                     <RadioGroupItem value="change" id={`${item.item_id}-change`} />
                     <Label 
                       htmlFor={`${item.item_id}-change`}
                       className="flex items-center gap-1 cursor-pointer text-sm"
                     >
                       <RefreshCw className="h-3.5 w-3.5 text-primary" />
-                      Lấy giặt + Thay mới
+                      Giặt + Thay
                     </Label>
                   </div>
                   
-                  <div className="flex items-center space-x-1.5">
+                  <div className="flex items-center space-x-1.5 p-2 rounded-lg hover:bg-muted/50">
                     <RadioGroupItem value="lost" id={`${item.item_id}-lost`} />
                     <Label 
                       htmlFor={`${item.item_id}-lost`}
@@ -222,7 +222,7 @@ export function LinenTab({
                     </Label>
                   </div>
                   
-                  <div className="flex items-center space-x-1.5">
+                  <div className="flex items-center space-x-1.5 p-2 rounded-lg hover:bg-muted/50">
                     <RadioGroupItem value="damaged" id={`${item.item_id}-damaged`} />
                     <Label 
                       htmlFor={`${item.item_id}-damaged`}
