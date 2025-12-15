@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, X, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Plus, X, AlertTriangle, Truck } from 'lucide-react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -94,10 +94,16 @@ export function OutboundPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Xuất kho" description="Ghi nhận xuất kho chi tiết">
-        <Button variant="outline" onClick={() => navigate('/inventory')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Quay lại
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate('/inventory/distributions/new')}>
+            <Truck className="mr-2 h-4 w-4" />
+            Giao đến nhiều phòng
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/inventory')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Quay lại
+          </Button>
+        </div>
       </PageHeader>
       
       <Form {...form}>

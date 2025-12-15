@@ -20,6 +20,9 @@ import { AdjustmentListPage } from "./pages/inventory/AdjustmentListPage";
 import { CreateAdjustmentPage } from "./pages/inventory/CreateAdjustmentPage";
 import { CheckAdjustmentPage } from "./pages/inventory/CheckAdjustmentPage";
 import { AdjustmentDetailPage } from "./pages/inventory/AdjustmentDetailPage";
+import DistributionOrdersPage from "./pages/inventory/DistributionOrdersPage";
+import DistributionOrderDetailPage from "./pages/inventory/DistributionOrderDetailPage";
+import CreateDistributionPage from "./pages/inventory/CreateDistributionPage";
 import { ItemsPage } from "./pages/items/ItemsPage";
 import ItemDetailPage from "./pages/items/ItemDetailPage";
 import { ItemFormPage } from "./pages/items/ItemFormPage";
@@ -275,6 +278,30 @@ const router = createBrowserRouter([
         element: (
           <PermissionRoute module="inventory" action="update">
             <CheckAdjustmentPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "inventory/distributions", 
+        element: (
+          <PermissionRoute module="inventory">
+            <DistributionOrdersPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "inventory/distributions/new", 
+        element: (
+          <PermissionRoute module="inventory" action="create">
+            <CreateDistributionPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "inventory/distributions/:id", 
+        element: (
+          <PermissionRoute module="inventory">
+            <DistributionOrderDetailPage />
           </PermissionRoute>
         )
       },
