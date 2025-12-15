@@ -121,3 +121,31 @@ export function useCompleteRoomDelivery() {
     },
   })
 }
+
+export function useCancelDistributionOrder() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      if (!user?.id) throw new Error('User not authenticated')
+
+      const { data, error } = await supabase.rpc('cancel_distribution_order', {
+        p_order_id: orderId,
+        p_cancelled_by: user.id,
+      })
+
+      if (error) throw error
+      return data as { success: boolean; order_id: string }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+      toast.success('Đã hủy phiếu giao hàng')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Không thể hủy phiếu giao hàng')
+    },
+  })
+}

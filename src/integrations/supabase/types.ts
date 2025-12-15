@@ -4961,6 +4961,10 @@ export type Database = {
         Args: { p_manager_id: string; p_target_user_id: string }
         Returns: boolean
       }
+      cancel_distribution_order: {
+        Args: { p_cancelled_by: string; p_order_id: string }
+        Returns: Json
+      }
       check_expiring_subscriptions: { Args: never; Returns: undefined }
       check_tenant_can_add: {
         Args: { p_resource_type: string; p_tenant_id: string }

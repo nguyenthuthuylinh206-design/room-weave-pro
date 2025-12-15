@@ -38,6 +38,7 @@ import {
   Lock,
   TestTube2,
   Tag,
+  Truck,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -140,6 +141,11 @@ const navigation: NavItem[] = [
         title: 'Kiểm kê',
         href: '/inventory/adjustments',
         icon: ClipboardCheck,
+      },
+      {
+        title: 'Phiếu giao hàng',
+        href: '/inventory/distributions',
+        icon: Truck,
       },
     ],
   },

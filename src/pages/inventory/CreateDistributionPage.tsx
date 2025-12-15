@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Truck, Users } from 'lucide-react'
+import { ArrowLeft, Truck, Users, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Select,
   SelectContent,
@@ -13,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { RoomMultiSelect } from '@/components/distribution/RoomMultiSelect'
-import { DistributionItemMatrix, RoomItemAllocation } from '@/components/distribution/DistributionItemMatrix'
+import { DistributionItemMatrix, RoomItemAllocation, StockValidation } from '@/components/distribution/DistributionItemMatrix'
 import { useCreateDistributionOrder } from '@/hooks/useDistributionOrders'
 import { useUsers } from '@/hooks/useUsers'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -29,6 +30,11 @@ export default function CreateDistributionPage() {
   const [allocations, setAllocations] = useState<RoomItemAllocation[]>([])
   const [assignedTo, setAssignedTo] = useState<string>('')
   const [notes, setNotes] = useState('')
+  const [stockValidation, setStockValidation] = useState<StockValidation>({ isValid: true, overStockItems: [] })
+
+  const handleStockValidationChange = useCallback((validation: StockValidation) => {
+    setStockValidation(validation)
+  }, [])
 
   const staffUsers = users.filter(u => 
     u.user_level_code === 'staff' || u.user_level_code === 'hotel_manager'
@@ -118,7 +124,25 @@ export default function CreateDistributionPage() {
               selectedRoomIds={selectedRoomIds}
               allocations={allocations}
               onAllocationsChange={setAllocations}
+              onStockValidationChange={handleStockValidationChange}
             />
+            
+            {/* Stock validation warning */}
+            {!stockValidation.isValid && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  <span className="font-medium">Vượt quá tồn kho:</span>
+                  <ul className="mt-1 list-disc list-inside">
+                    {stockValidation.overStockItems.map(item => (
+                      <li key={item.itemId}>
+                        {item.itemName}: yêu cầu {item.requested}, tồn kho {item.available}
+                      </li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
           </CardContent>
         </Card>
 
@@ -169,7 +193,7 @@ export default function CreateDistributionPage() {
         </Button>
         <Button 
           onClick={handleSubmit} 
-          disabled={isPending || selectedRoomIds.length === 0 || allocations.length === 0}
+          disabled={isPending || selectedRoomIds.length === 0 || allocations.length === 0 || !stockValidation.isValid}
           className={isMobile ? 'flex-1' : ''}
         >
           {isPending ? 'Đang tạo...' : 'Tạo phiếu giao hàng'}
