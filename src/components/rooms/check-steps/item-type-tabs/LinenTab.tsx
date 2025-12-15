@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Shirt, Check, RefreshCw, AlertTriangle, Waves, Plus } from 'lucide-react'
+import { Shirt, Check, RefreshCw, AlertTriangle, Waves, Plus, Wrench } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import type { RoomItemWithDetails, LaundryItem, LostItem, ReplacedItem } from '@/types/rooms.types'
 
-type LinenStatus = 'ok' | 'laundry' | 'add' | 'change' | 'lost'
+type LinenStatus = 'ok' | 'laundry' | 'add' | 'change' | 'lost' | 'damaged'
 
 interface LinenTabProps {
   items: RoomItemWithDetails[]
@@ -45,6 +45,7 @@ export function LinenTab({
     if (inLaundry && !inReplaced) return 'laundry'
     if (!inLaundry && inReplaced) return 'add'
     if (inLost) return 'lost'
+    // Note: 'damaged' will be tracked via statuses state
     return 'ok'
   }
 
@@ -110,13 +111,14 @@ export function LinenTab({
       {items.map((item) => {
         const status = getCurrentStatus(item.item_id)
         const qty = getQuantity(item.item_id, item.standard_quantity)
-        const needsQuantity = status === 'laundry' || status === 'add' || status === 'change' || status === 'lost'
+        const needsQuantity = status === 'laundry' || status === 'add' || status === 'change' || status === 'lost' || status === 'damaged'
 
         return (
           <Card 
             key={item.item_id} 
             className={
               status === 'lost' ? 'border-destructive bg-destructive/5' :
+              status === 'damaged' ? 'border-orange-500 bg-orange-500/5' :
               status === 'change' ? 'border-primary bg-primary/5' :
               status === 'laundry' ? 'border-blue-500 bg-blue-500/5' :
               status === 'add' ? 'border-green-500 bg-green-500/5' : ''
@@ -143,13 +145,18 @@ export function LinenTab({
                   {status !== 'ok' && (
                     <Badge variant={
                       status === 'lost' ? 'destructive' : 
+                      status === 'damaged' ? 'outline' :
                       status === 'laundry' ? 'outline' : 
                       status === 'add' ? 'default' : 'secondary'
-                    } className={status === 'add' ? 'bg-green-500 text-white' : ''}>
-                      {status === 'laundry' && 'Lấy giặt'}
-                      {status === 'add' && 'Bổ sung'}
-                      {status === 'change' && 'Thay đổi'}
+                    } className={
+                      status === 'add' ? 'bg-green-500 text-white' : 
+                      status === 'damaged' ? 'border-orange-500 text-orange-600' : ''
+                    }>
+                      {status === 'laundry' && 'Lấy đi giặt'}
+                      {status === 'add' && 'Thay mới'}
+                      {status === 'change' && 'Lấy giặt + Thay mới'}
                       {status === 'lost' && 'Mất'}
+                      {status === 'damaged' && 'Hỏng'}
                     </Badge>
                   )}
                 </div>
@@ -167,7 +174,7 @@ export function LinenTab({
                       className="flex items-center gap-1 cursor-pointer text-sm"
                     >
                       <Check className="h-3.5 w-3.5 text-green-600" />
-                      OK
+                      Tốt
                     </Label>
                   </div>
                   
@@ -178,7 +185,7 @@ export function LinenTab({
                       className="flex items-center gap-1 cursor-pointer text-sm text-blue-600"
                     >
                       <Waves className="h-3.5 w-3.5" />
-                      Lấy giặt
+                      Lấy đi giặt
                     </Label>
                   </div>
                   
@@ -189,7 +196,7 @@ export function LinenTab({
                       className="flex items-center gap-1 cursor-pointer text-sm text-green-600"
                     >
                       <Plus className="h-3.5 w-3.5" />
-                      Bổ sung
+                      Thay mới
                     </Label>
                   </div>
                   
@@ -200,7 +207,7 @@ export function LinenTab({
                       className="flex items-center gap-1 cursor-pointer text-sm"
                     >
                       <RefreshCw className="h-3.5 w-3.5 text-primary" />
-                      Thay đổi
+                      Lấy giặt + Thay mới
                     </Label>
                   </div>
                   
@@ -214,16 +221,28 @@ export function LinenTab({
                       Mất
                     </Label>
                   </div>
+                  
+                  <div className="flex items-center space-x-1.5">
+                    <RadioGroupItem value="damaged" id={`${item.item_id}-damaged`} />
+                    <Label 
+                      htmlFor={`${item.item_id}-damaged`}
+                      className="flex items-center gap-1 cursor-pointer text-sm text-orange-600"
+                    >
+                      <Wrench className="h-3.5 w-3.5" />
+                      Hỏng
+                    </Label>
+                  </div>
                 </RadioGroup>
 
                 {/* Quantity Input - only show when needed */}
                 {needsQuantity && (
                   <div className="flex items-center gap-2 pt-2 border-t">
                     <Label className="text-xs whitespace-nowrap">
-                      {status === 'laundry' && 'Số lượng giặt:'}
-                      {status === 'add' && 'Số lượng bổ sung:'}
-                      {status === 'change' && 'Số lượng thay:'}
+                      {status === 'laundry' && 'Số lượng lấy giặt:'}
+                      {status === 'add' && 'Số lượng thay mới:'}
+                      {status === 'change' && 'Số lượng:'}
                       {status === 'lost' && 'Số lượng mất:'}
+                      {status === 'damaged' && 'Số lượng hỏng:'}
                     </Label>
                     <Input
                       type="number"
@@ -242,17 +261,22 @@ export function LinenTab({
                 {/* Explanation text */}
                 {status === 'laundry' && (
                   <p className="text-xs text-muted-foreground italic">
-                    → Thu gom đồ bẩn, sẽ thay đồ sạch sau
+                    → Thu gom đồ bẩn để mang đi giặt
                   </p>
                 )}
                 {status === 'add' && (
                   <p className="text-xs text-muted-foreground italic">
-                    → Đặt thêm đồ sạch vào phòng (setup phòng mới)
+                    → Đặt đồ sạch mới vào phòng
                   </p>
                 )}
                 {status === 'change' && (
                   <p className="text-xs text-muted-foreground italic">
-                    → Đồ bẩn sẽ được lấy đi giặt, đồ sạch sẽ được thay vào ngay
+                    → Lấy đồ bẩn đi giặt và thay đồ sạch vào ngay
+                  </p>
+                )}
+                {status === 'damaged' && (
+                  <p className="text-xs text-muted-foreground italic">
+                    → Đồ bị hỏng, cần báo quản lý
                   </p>
                 )}
               </div>
