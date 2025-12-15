@@ -11,6 +11,7 @@ import {
   Package,
   ChevronLeft,
   ChevronRight,
+  Loader2,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -49,7 +50,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
 import { cn, formatCurrency } from '@/lib/utils'
 import type { ItemWithCategory } from '@/types/items.types'
 
@@ -96,10 +96,9 @@ export function ItemTable({
   
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        {[...Array(10)].map((_, i) => (
-          <Skeleton key={i} className="h-16 w-full" />
-        ))}
+      <div className="flex flex-col items-center justify-center py-16">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="mt-4 text-sm text-muted-foreground">Đang tải danh sách tài sản...</p>
       </div>
     )
   }
@@ -437,12 +436,20 @@ function ItemActions({ item }: { item: ItemWithCategory }) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteItems.isPending}>Hủy</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
+              disabled={deleteItems.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Xóa
+              {deleteItems.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang xóa...
+                </>
+              ) : (
+                'Xóa'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -457,9 +464,19 @@ function ItemActions({ item }: { item: ItemWithCategory }) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDiscontinue}>
-              Xác nhận
+            <AlertDialogCancel disabled={updateItem.isPending}>Hủy</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDiscontinue}
+              disabled={updateItem.isPending}
+            >
+              {updateItem.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : (
+                'Xác nhận'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
