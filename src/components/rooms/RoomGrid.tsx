@@ -189,7 +189,8 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
               disabled={checkSessions[room.id] && checkSessions[room.id].user_id !== user?.id}
               onClick={(e) => {
                 e.stopPropagation()
-                navigate(`/rooms/${room.id}/check`)
+                const hasSession = checkSessions[room.id] && checkSessions[room.id].user_id === user?.id
+                navigate(`/rooms/${room.id}/check${hasSession ? '?resume=true' : ''}`)
               }}
             >
               {checkSessions[room.id] 

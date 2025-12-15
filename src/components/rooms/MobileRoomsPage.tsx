@@ -485,7 +485,8 @@ export const MobileRoomsPage = () => {
                           disabled={checkButtonState.disabled}
                           onClick={(e) => {
                             e.stopPropagation()
-                            navigate(`/rooms/${room.id}/check`)
+                            const hasSession = checkSessions[room.id] && checkSessions[room.id].user_id === user?.id
+                            navigate(`/rooms/${room.id}/check${hasSession ? '?resume=true' : ''}`)
                           }}
                         >
                           {checkButtonState.label}
