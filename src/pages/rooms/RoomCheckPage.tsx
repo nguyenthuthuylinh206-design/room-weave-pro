@@ -503,14 +503,27 @@ export function RoomCheckPage() {
               )}
               
               <div className="flex items-center justify-between pt-6 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCancel}
-                >
-                  <ChevronLeft className="mr-2 h-4 w-4" />
-                  Hủy
-                </Button>
+                <div className="flex gap-2">
+                  {currentStep > 1 ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleBack}
+                    >
+                      <ChevronLeft className="mr-2 h-4 w-4" />
+                      Quay lại
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleCancel}
+                    >
+                      <ChevronLeft className="mr-2 h-4 w-4" />
+                      Hủy
+                    </Button>
+                  )}
+                </div>
                 
                 {currentStep < totalSteps ? (
                   <Button type="button" onClick={handleNext}>
