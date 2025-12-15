@@ -34,6 +34,7 @@ export function RoomCheckPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const prefilledType = searchParams.get('type') as 'daily' | 'checkin' | 'checkout' | 'maintenance' | null
+  const shouldAutoResume = searchParams.get('resume') === 'true'
   
   const { user } = useUser()
   const { data: roomData, isLoading } = useRoom(id)
@@ -180,8 +181,14 @@ export function RoomCheckPage() {
           const { data, step, quickMode: savedQuickMode, timestamp } = JSON.parse(saved)
           // Only resume if less than 1 hour old
           if (Date.now() - timestamp < 3600000) {
-            setShowResumeDialog(true)
-            // Don't reset here, let user choose Resume or Start Fresh
+            // Auto-resume if query param is set, otherwise show dialog
+            if (shouldAutoResume) {
+              form.reset(data)
+              setCurrentStep(step)
+              setQuickMode(savedQuickMode)
+            } else {
+              setShowResumeDialog(true)
+            }
           } else {
             localStorage.removeItem(`room-check-${id}`)
           }
@@ -190,7 +197,7 @@ export function RoomCheckPage() {
         }
       }
     }
-  }, [id, existingSession, user])
+  }, [id, existingSession, user, shouldAutoResume])
   
   const clearSavedProgress = () => {
     if (id) {
