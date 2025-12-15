@@ -267,12 +267,7 @@ export function RoomCheckPage() {
   
   const handleBack = () => {
     if (currentStep > 1) {
-      // Show confirmation dialog for steps 2 and 3
-      if (currentStep >= 2) {
-        setShowCancelDialog(true)
-      } else {
-        setCurrentStep(currentStep - 1)
-      }
+      setCurrentStep(currentStep - 1)
     }
   }
   
