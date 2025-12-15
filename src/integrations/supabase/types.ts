@@ -317,6 +317,239 @@ export type Database = {
           },
         ]
       }
+      distribution_order_items: {
+        Row: {
+          created_at: string | null
+          distribution_order_room_id: string
+          id: string
+          item_id: string
+          notes: string | null
+          quantity: number
+          quantity_confirmed: number | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          distribution_order_room_id: string
+          id?: string
+          item_id: string
+          notes?: string | null
+          quantity?: number
+          quantity_confirmed?: number | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          distribution_order_room_id?: string
+          id?: string
+          item_id?: string
+          notes?: string | null
+          quantity?: number
+          quantity_confirmed?: number | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distribution_order_items_distribution_order_room_id_fkey"
+            columns: ["distribution_order_room_id"]
+            isOneToOne: false
+            referencedRelation: "distribution_order_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_order_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      distribution_order_rooms: {
+        Row: {
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string | null
+          delivered_at: string | null
+          distribution_order_id: string
+          id: string
+          notes: string | null
+          rejection_reason: string | null
+          room_id: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          distribution_order_id: string
+          id?: string
+          notes?: string | null
+          rejection_reason?: string | null
+          room_id: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          distribution_order_id?: string
+          id?: string
+          notes?: string | null
+          rejection_reason?: string | null
+          room_id?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distribution_order_rooms_confirmed_by_fkey"
+            columns: ["confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_order_rooms_confirmed_by_fkey"
+            columns: ["confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_order_rooms_distribution_order_id_fkey"
+            columns: ["distribution_order_id"]
+            isOneToOne: false
+            referencedRelation: "distribution_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_order_rooms_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      distribution_orders: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string | null
+          created_by: string
+          hotel_id: string
+          id: string
+          notes: string | null
+          order_code: string
+          started_at: string | null
+          status: string
+          tenant_id: string
+          total_items: number | null
+          total_rooms: number | null
+          transaction_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by: string
+          hotel_id: string
+          id?: string
+          notes?: string | null
+          order_code: string
+          started_at?: string | null
+          status?: string
+          tenant_id: string
+          total_items?: number | null
+          total_rooms?: number | null
+          transaction_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string
+          hotel_id?: string
+          id?: string
+          notes?: string | null
+          order_code?: string
+          started_at?: string | null
+          status?: string
+          tenant_id?: string
+          total_items?: number | null
+          total_rooms?: number | null
+          transaction_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distribution_orders_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_orders_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_orders_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "distribution_orders_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_orders_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_logs: {
         Row: {
           clicked_at: string | null
@@ -1249,6 +1482,7 @@ export type Database = {
           quantity_in_stock: number | null
           quantity_in_use: number | null
           quantity_lost: number | null
+          quantity_pending: number | null
           quantity_total: number | null
           reorder_point: number | null
           specifications: Json | null
@@ -1280,6 +1514,7 @@ export type Database = {
           quantity_in_stock?: number | null
           quantity_in_use?: number | null
           quantity_lost?: number | null
+          quantity_pending?: number | null
           quantity_total?: number | null
           reorder_point?: number | null
           specifications?: Json | null
@@ -1311,6 +1546,7 @@ export type Database = {
           quantity_in_stock?: number | null
           quantity_in_use?: number | null
           quantity_lost?: number | null
+          quantity_pending?: number | null
           quantity_total?: number | null
           reorder_point?: number | null
           specifications?: Json | null
@@ -4747,6 +4983,14 @@ export type Database = {
         }
         Returns: Json
       }
+      complete_room_delivery: {
+        Args: {
+          p_confirmed_by: string
+          p_distribution_order_room_id: string
+          p_items?: Json
+        }
+        Returns: Json
+      }
       create_default_categories: {
         Args: { p_tenant_id: string }
         Returns: undefined
@@ -4754,6 +4998,17 @@ export type Database = {
       create_default_tenant_roles: {
         Args: { p_tenant_id: string }
         Returns: undefined
+      }
+      create_distribution_order: {
+        Args: {
+          p_assigned_to: string
+          p_created_by: string
+          p_hotel_id: string
+          p_notes?: string
+          p_rooms: Json
+          p_tenant_id: string
+        }
+        Returns: Json
       }
       create_inbound_transaction: {
         Args: {
@@ -4846,6 +5101,37 @@ export type Database = {
       get_dashboard_stats: {
         Args: { p_hotel_id?: string; p_tenant_id: string }
         Returns: Json
+      }
+      get_distribution_order_detail: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
+      get_distribution_orders_filtered: {
+        Args: {
+          p_assigned_to?: string
+          p_hotel_id?: string
+          p_limit?: number
+          p_offset?: number
+          p_status?: string
+          p_tenant_id: string
+        }
+        Returns: {
+          assigned_to: string
+          assigned_to_name: string
+          completed_at: string
+          created_at: string
+          created_by: string
+          created_by_name: string
+          id: string
+          notes: string
+          order_code: string
+          rooms_completed: number
+          started_at: string
+          status: string
+          total_count: number
+          total_items: number
+          total_rooms: number
+        }[]
       }
       get_financial_report: {
         Args: {
