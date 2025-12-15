@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { Plus, Search, Filter, Eye, Truck, CheckCircle, Clock, XCircle } from 'lucide-react'
+import { Plus, Search, Eye, Truck, CheckCircle, Clock, XCircle, Package, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -25,6 +25,7 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { useDistributionOrders } from '@/hooks/useDistributionOrders'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useQueryClient } from '@tanstack/react-query'
 import type { DistributionOrderStatus } from '@/types/distribution.types'
 
 const STATUS_CONFIG: Record<DistributionOrderStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof Clock }> = {
@@ -34,20 +35,42 @@ const STATUS_CONFIG: Record<DistributionOrderStatus, { label: string; variant: '
   cancelled: { label: 'Đã hủy', variant: 'destructive', icon: XCircle },
 }
 
+const PAGE_SIZE = 25
+
 export default function DistributionOrdersPage() {
   const navigate = useNavigate()
   const isMobile = useIsMobile()
-  const [statusFilter, setStatusFilter] = useState<string>('')
+  const queryClient = useQueryClient()
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(1)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const { data, isLoading } = useDistributionOrders(
-    { status: statusFilter as DistributionOrderStatus || undefined },
+    { status: statusFilter === 'all' ? undefined : statusFilter as DistributionOrderStatus },
     page,
-    25
+    PAGE_SIZE
   )
 
   const orders = data?.data || []
   const totalCount = data?.totalCount || 0
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+
+  // Filter by search query (client-side)
+  const filteredOrders = searchQuery 
+    ? orders.filter(o => o.order_code.toLowerCase().includes(searchQuery.toLowerCase()))
+    : orders
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
+    setIsRefreshing(false)
+  }
+
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value)
+    setPage(1) // Reset to first page when filter changes
+  }
 
   if (isMobile) {
     return (
@@ -56,17 +79,27 @@ export default function DistributionOrdersPage() {
         <div className="sticky top-0 z-10 bg-background border-b p-4 space-y-3">
           <div className="flex items-center justify-between">
             <h1 className="text-lg font-semibold">Phiếu giao hàng</h1>
-            <Button size="sm" onClick={() => navigate('/inventory/distributions/new')}>
-              <Plus className="h-4 w-4 mr-1" />
-              Tạo mới
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button size="sm" onClick={() => navigate('/inventory/distributions/new')}>
+                <Plus className="h-4 w-4 mr-1" />
+                Tạo mới
+              </Button>
+            </div>
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Tất cả trạng thái" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tất cả trạng thái</SelectItem>
+              <SelectItem value="all">Tất cả trạng thái</SelectItem>
               <SelectItem value="pending">Chờ giao</SelectItem>
               <SelectItem value="in_progress">Đang giao</SelectItem>
               <SelectItem value="completed">Hoàn thành</SelectItem>
@@ -79,55 +112,91 @@ export default function DistributionOrdersPage() {
         <div className="flex-1 overflow-auto p-4 space-y-3">
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">Đang tải...</div>
-          ) : orders.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Chưa có phiếu giao hàng nào
+          ) : filteredOrders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Package className="h-12 w-12 text-muted-foreground/50 mb-3" />
+              <p className="text-muted-foreground">Chưa có phiếu giao hàng nào</p>
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={() => navigate('/inventory/distributions/new')}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Tạo phiếu mới
+              </Button>
             </div>
           ) : (
-            orders.map(order => {
-              const config = STATUS_CONFIG[order.status]
-              const progress = order.total_rooms > 0 
-                ? Math.round((order.rooms_completed / order.total_rooms) * 100)
-                : 0
+            <>
+              {filteredOrders.map(order => {
+                const config = STATUS_CONFIG[order.status]
+                const progress = order.total_rooms > 0 
+                  ? Math.round((order.rooms_completed / order.total_rooms) * 100)
+                  : 0
 
-              return (
-                <Card 
-                  key={order.id} 
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => navigate(`/inventory/distributions/${order.id}`)}
-                >
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono font-medium">{order.order_code}</span>
-                      <Badge variant={config.variant}>
-                        <config.icon className="h-3 w-3 mr-1" />
-                        {config.label}
-                      </Badge>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Phòng:</span>{' '}
-                        <span className="font-medium">{order.rooms_completed}/{order.total_rooms}</span>
+                return (
+                  <Card 
+                    key={order.id} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => navigate(`/inventory/distributions/${order.id}`)}
+                  >
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono font-medium">{order.order_code}</span>
+                        <Badge variant={config.variant}>
+                          <config.icon className="h-3 w-3 mr-1" />
+                          {config.label}
+                        </Badge>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">Sản phẩm:</span>{' '}
-                        <span className="font-medium">{order.total_items}</span>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Phòng:</span>{' '}
+                          <span className="font-medium">{order.rooms_completed}/{order.total_rooms}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Sản phẩm:</span>{' '}
+                          <span className="font-medium">{order.total_items}</span>
+                        </div>
                       </div>
-                    </div>
 
-                    {order.status === 'in_progress' && (
-                      <Progress value={progress} className="h-2" />
-                    )}
+                      {order.status === 'in_progress' && (
+                        <Progress value={progress} className="h-2" />
+                      )}
 
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>Giao: {order.assigned_to_name || 'Chưa phân công'}</span>
-                      <span>{format(new Date(order.created_at), 'dd/MM HH:mm', { locale: vi })}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Giao: {order.assigned_to_name || 'Chưa phân công'}</span>
+                        <span>{format(new Date(order.created_at), 'dd/MM HH:mm', { locale: vi })}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+
+              {/* Mobile Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    {page} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -153,20 +222,33 @@ export default function DistributionOrdersPage() {
           <div className="flex items-center gap-4">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Tìm mã phiếu..." className="pl-9" />
+              <Input 
+                placeholder="Tìm mã phiếu..." 
+                className="pl-9" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={handleStatusChange}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Trạng thái" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tất cả</SelectItem>
+                <SelectItem value="all">Tất cả</SelectItem>
                 <SelectItem value="pending">Chờ giao</SelectItem>
                 <SelectItem value="in_progress">Đang giao</SelectItem>
                 <SelectItem value="completed">Hoàn thành</SelectItem>
                 <SelectItem value="cancelled">Đã hủy</SelectItem>
               </SelectContent>
             </Select>
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -193,14 +275,25 @@ export default function DistributionOrdersPage() {
                   Đang tải...
                 </TableCell>
               </TableRow>
-            ) : orders.length === 0 ? (
+            ) : filteredOrders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                  Chưa có phiếu giao hàng nào
+                <TableCell colSpan={8} className="text-center py-12">
+                  <div className="flex flex-col items-center">
+                    <Package className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                    <p className="text-muted-foreground">Chưa có phiếu giao hàng nào</p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4"
+                      onClick={() => navigate('/inventory/distributions/new')}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Tạo phiếu mới
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
-              orders.map(order => {
+              filteredOrders.map(order => {
                 const config = STATUS_CONFIG[order.status]
                 const progress = order.total_rooms > 0 
                   ? Math.round((order.rooms_completed / order.total_rooms) * 100)
@@ -246,6 +339,38 @@ export default function DistributionOrdersPage() {
             )}
           </TableBody>
         </Table>
+
+        {/* Desktop Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t">
+            <span className="text-sm text-muted-foreground">
+              Hiển thị {filteredOrders.length} / {totalCount} phiếu
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Trước
+              </Button>
+              <span className="text-sm px-2">
+                {page} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                Sau
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   )
