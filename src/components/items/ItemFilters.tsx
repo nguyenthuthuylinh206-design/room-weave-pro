@@ -107,15 +107,56 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
       return { success: 0, failed: data.length }
     }
 
-    // Build category name to id map
+    // Build category name to id map from existing categories
     const categoryMap = new Map(categories?.map(c => [c.name.toLowerCase(), c.id]) || [])
+
+    // Find unique category names from import data that don't exist
+    const uniqueCategoryNames = [...new Set(
+      data.map(item => item.category_name).filter(Boolean)
+    )] as string[]
+    
+    const missingCategories = uniqueCategoryNames.filter(
+      name => !categoryMap.has(name.toLowerCase())
+    )
+
+    // Auto-create missing categories
+    let newCategoriesCount = 0
+    for (const categoryName of missingCategories) {
+      const code = categoryName.toUpperCase()
+        .replace(/[^A-Z0-9]/g, '_')
+        .substring(0, 15) + '_' + Date.now().toString().slice(-4)
+      
+      const { data: newCategory, error } = await supabase
+        .from('item_categories')
+        .insert({
+          tenant_id: tenantId,
+          name: categoryName,
+          code,
+          status: 'active'
+        })
+        .select('id, name')
+        .single()
+      
+      if (!error && newCategory) {
+        categoryMap.set(newCategory.name.toLowerCase(), newCategory.id)
+        newCategoriesCount++
+      }
+    }
+
+    if (newCategoriesCount > 0) {
+      toast({
+        title: 'Đã tạo danh mục mới',
+        description: `Tự động tạo ${newCategoriesCount} danh mục chưa tồn tại`,
+      })
+      queryClient.invalidateQueries({ queryKey: ['item-categories'] })
+    }
 
     for (const item of data) {
       try {
         // Generate unique code
         const code = `ITEM-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`
         
-        // Find category id by name
+        // Find category id by name (now includes newly created categories)
         const categoryId = item.category_name 
           ? categoryMap.get(item.category_name.toLowerCase()) 
           : null
