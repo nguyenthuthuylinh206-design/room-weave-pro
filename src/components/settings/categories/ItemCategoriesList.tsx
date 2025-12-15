@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Search, MoreVertical, Edit, Trash2, Package } from 'lucide-react'
+import { Plus, Search, MoreVertical, Edit, Trash2, Package, FileUp, FileDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -10,15 +10,23 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useItemCategories, useDeleteItemCategory } from '@/hooks/useItemCategories'
+import { useItemCategories, useDeleteItemCategory, useCreateItemCategory } from '@/hooks/useItemCategories'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CreateItemCategoryDialog } from './CreateItemCategoryDialog'
+import { ImportExcelDialog } from '@/components/shared/ImportExcelDialog'
+import { downloadCategoriesTemplate, parseCategoriesExcel, type CategoryImportRow } from '@/lib/importUtils'
+import { useUser } from '@/hooks/useUser'
+import { supabase } from '@/integrations/supabase/client'
+import { useQueryClient } from '@tanstack/react-query'
 
 export function ItemCategoriesList() {
   const [search, setSearch] = useState('')
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
   const { data: categories, isLoading } = useItemCategories()
   const deleteCategory = useDeleteItemCategory()
+  const { tenantId } = useUser()
+  const queryClient = useQueryClient()
 
   const filteredCategories = categories?.filter(
     (cat) =>
@@ -27,27 +35,74 @@ export function ItemCategoriesList() {
   )
 
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this category?')) {
+    if (confirm('Bạn có chắc muốn xóa danh mục này?')) {
       deleteCategory.mutate(id)
     }
   }
 
+  const handleImportCategories = async (data: CategoryImportRow[]): Promise<{ success: number; failed: number }> => {
+    let success = 0
+    let failed = 0
+
+    if (!tenantId) {
+      return { success: 0, failed: data.length }
+    }
+
+    for (const category of data) {
+      try {
+        // Generate code if not provided
+        const code = category.code || category.name.toUpperCase().replace(/\s+/g, '_').slice(0, 20)
+
+        const { error } = await supabase.from('item_categories').insert({
+          tenant_id: tenantId,
+          name: category.name,
+          name_en: category.name_en || null,
+          code,
+          description: category.description || null,
+          icon: category.icon || '📦',
+          color: category.color || '#6B7280',
+          sort_order: category.sort_order || 0,
+          status: 'active',
+        })
+
+        if (error) {
+          console.error('Import category error:', error)
+          failed++
+        } else {
+          success++
+        }
+      } catch {
+        failed++
+      }
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['item-categories'] })
+    
+    return { success, failed }
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search categories..."
+            placeholder="Tìm danh mục..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
           />
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Category
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+            <FileUp className="h-4 w-4 mr-2" />
+            Import Excel
+          </Button>
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Thêm danh mục
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -70,19 +125,19 @@ export function ItemCategoriesList() {
                         <Badge variant="secondary">{category.code}</Badge>
                       )}
                       <Badge variant={category.status === 'active' ? 'default' : 'secondary'}>
-                        {category.status}
+                        {category.status === 'active' ? 'Hoạt động' : 'Tạm dừng'}
                       </Badge>
                     </div>
                     {category.description && (
                       <p className="text-sm text-muted-foreground">{category.description}</p>
                     )}
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>Items: {category._count?.items || 0}</span>
+                      <span>Tài sản: {category._count?.items || 0}</span>
                       {category.min_stock_level && (
-                        <span>Min Stock: {category.min_stock_level}</span>
+                        <span>Tồn tối thiểu: {category.min_stock_level}</span>
                       )}
                       {category.reorder_point && (
-                        <span>Reorder: {category.reorder_point}</span>
+                        <span>Điểm đặt hàng: {category.reorder_point}</span>
                       )}
                     </div>
                   </div>
@@ -97,14 +152,14 @@ export function ItemCategoriesList() {
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem>
                       <Edit className="h-4 w-4 mr-2" />
-                      Edit
+                      Chỉnh sửa
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive"
                       onClick={() => handleDelete(category.id)}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
+                      Xóa
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -115,12 +170,22 @@ export function ItemCategoriesList() {
       ) : (
         <div className="text-center py-12 text-muted-foreground">
           <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>No categories found</p>
-          <p className="text-sm">Create your first category to get started</p>
+          <p>Không tìm thấy danh mục</p>
+          <p className="text-sm">Tạo danh mục đầu tiên để bắt đầu</p>
         </div>
       )}
 
       <CreateItemCategoryDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+      
+      <ImportExcelDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        title="Import Danh mục từ Excel"
+        description="Tải file mẫu, điền thông tin và upload để import hàng loạt"
+        onDownloadTemplate={downloadCategoriesTemplate}
+        onParseFile={parseCategoriesExcel}
+        onImport={handleImportCategories}
+      />
     </div>
   )
 }
