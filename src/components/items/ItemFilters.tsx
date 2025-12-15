@@ -172,6 +172,7 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
             minimum_stock: item.minimum_stock,
             reorder_point: item.reorder_point || null,
             description: item.description || null,
+            status: 'active',
             updated_at: new Date().toISOString(),
           }
         })
