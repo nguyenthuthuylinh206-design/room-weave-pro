@@ -84,7 +84,7 @@ export function downloadItemsTemplate() {
     ['3. Đơn vị: VD: Cái, Bộ, Kg, Lít...'],
     ['4. Đơn giá: Số nguyên >= 0'],
     ['5. Số lượng: Số nguyên >= 0'],
-    ['6. Danh mục: Nhập tên danh mục đã tồn tại, hoặc để trống'],
+    ['6. Danh mục: Nhập tên danh mục. Nếu chưa có sẽ tự động tạo mới'],
     ['7. Xóa các dòng ví dụ trước khi import'],
   ]
   

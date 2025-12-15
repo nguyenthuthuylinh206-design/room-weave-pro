@@ -107,8 +107,18 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
       return { success: 0, failed: data.length }
     }
 
-    // Build category name to id map from existing categories
-    const categoryMap = new Map(categories?.map(c => [c.name.toLowerCase(), c.id]) || [])
+    // Fetch categories directly from database to ensure fresh data
+    const { data: existingCategories, error: fetchError } = await supabase
+      .from('item_categories')
+      .select('id, name')
+      .eq('tenant_id', tenantId)
+
+    if (fetchError) {
+      console.error('Fetch categories error:', fetchError)
+    }
+
+    // Build category name to id map from fresh database data
+    const categoryMap = new Map(existingCategories?.map(c => [c.name.toLowerCase(), c.id]) || [])
 
     // Find unique category names from import data that don't exist
     const uniqueCategoryNames = [...new Set(
@@ -137,7 +147,9 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
         .select('id, name')
         .single()
       
-      if (!error && newCategory) {
+      if (error) {
+        console.error('Create category error:', categoryName, error)
+      } else if (newCategory) {
         categoryMap.set(newCategory.name.toLowerCase(), newCategory.id)
         newCategoriesCount++
       }
