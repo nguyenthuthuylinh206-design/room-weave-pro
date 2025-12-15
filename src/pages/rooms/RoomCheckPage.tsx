@@ -53,6 +53,7 @@ export function RoomCheckPage() {
   const [quickMode, setQuickMode] = useState(false)
   const [itemQuantities, setItemQuantities] = useState<Record<string, number>>({})
   const [sessionCompleted, setSessionCompleted] = useState(false)
+  const [hasResumed, setHasResumed] = useState(false) // Flag to prevent useEffect conflicts
   const totalSteps = quickMode ? 2 : 3 // Skip items step in quick mode
   
   const form = useForm<RoomCheckFormData>({
@@ -108,6 +109,9 @@ export function RoomCheckPage() {
   
   // Restore form from existing session
   useEffect(() => {
+    // Skip if already resumed to prevent conflicts
+    if (hasResumed) return
+    
     if (!isSessionLoading && existingSession) {
       // Check if session belongs to current user
       if (existingSession.user_id !== user?.id) {
@@ -120,24 +124,13 @@ export function RoomCheckPage() {
         return
       }
       
-      // Session belongs to current user - restore check_type
-      form.setValue('check_type', existingSession.check_type)
-      
-      // If no localStorage progress, start fresh with check_type from session
+      // Only restore check_type if no localStorage progress (don't reset form)
       const saved = localStorage.getItem(`room-check-${id}`)
       if (!saved) {
-        form.reset({
-          check_type: existingSession.check_type,
-          cleanliness_score: 5,
-          items_complete: true,
-          items_missing: [],
-          items_damaged: [],
-          notes: '',
-          photos: [],
-        })
+        form.setValue('check_type', existingSession.check_type)
       }
     }
-  }, [existingSession, user, id, form, navigate, isSessionLoading])
+  }, [existingSession, user, id, form, navigate, isSessionLoading, hasResumed])
   
   // Cleanup session only when user closes/refreshes tab
   useEffect(() => {
@@ -174,6 +167,9 @@ export function RoomCheckPage() {
   
   // Check for saved progress on mount
   useEffect(() => {
+    // Skip if already resumed
+    if (hasResumed) return
+    
     if (id && existingSession && existingSession.user_id === user?.id) {
       const saved = localStorage.getItem(`room-check-${id}`)
       if (saved) {
@@ -186,6 +182,7 @@ export function RoomCheckPage() {
               form.reset(data)
               setCurrentStep(step)
               setQuickMode(savedQuickMode)
+              setHasResumed(true) // Mark as resumed to prevent conflicts
             } else {
               setShowResumeDialog(true)
             }
@@ -197,7 +194,7 @@ export function RoomCheckPage() {
         }
       }
     }
-  }, [id, existingSession, user, shouldAutoResume])
+  }, [id, existingSession, user, shouldAutoResume, hasResumed])
   
   const clearSavedProgress = () => {
     if (id) {
@@ -214,6 +211,7 @@ export function RoomCheckPage() {
           form.reset(data)
           setCurrentStep(step)
           setQuickMode(savedQuickMode)
+          setHasResumed(true) // Mark as resumed to prevent conflicts
         } catch (e) {
           // If error, start from beginning with check_type from session
           if (existingSession) {
