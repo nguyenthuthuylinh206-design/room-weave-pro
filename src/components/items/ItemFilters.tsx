@@ -1,4 +1,4 @@
-import { Search, FileDown, QrCode } from 'lucide-react'
+import { Search, FileDown, FileUp, QrCode } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,10 +12,14 @@ import { useCategories } from '@/hooks/useCategories'
 import type { ItemFilters as IItemFilters } from '@/types/items.types'
 import { supabase } from '@/integrations/supabase/client'
 import { exportItemsToExcel } from '@/lib/exportUtils'
+import { downloadItemsTemplate, parseItemsExcel, type ItemImportRow } from '@/lib/importUtils'
+import { ImportExcelDialog } from '@/components/shared/ImportExcelDialog'
 import { toast } from '@/hooks/use-toast'
 import { useState } from 'react'
 import { useUser } from '@/hooks/useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface ItemFiltersProps {
   filters: IItemFilters
@@ -25,7 +29,10 @@ interface ItemFiltersProps {
 export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
   const { data: categories } = useCategories()
   const { tenantId, hotelId } = useUser()
+  const { selectedHotel } = useHotelContext()
+  const queryClient = useQueryClient()
   const [isExporting, setIsExporting] = useState(false)
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
   
   const handleExport = async () => {
     try {
@@ -80,11 +87,73 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
   }
   
   const handleScanQR = () => {
-    // TODO: Implement QR scanner
     toast({
       title: 'Tính năng đang phát triển',
       description: 'Chức năng quét QR sẽ sớm được bổ sung',
     })
+  }
+
+  const handleImportItems = async (data: ItemImportRow[]): Promise<{ success: number; failed: number }> => {
+    let success = 0
+    let failed = 0
+
+    const targetHotelId = selectedHotel?.id || hotelId
+    if (!tenantId || !targetHotelId) {
+      toast({
+        title: 'Lỗi',
+        description: 'Vui lòng chọn khách sạn trước khi import',
+        variant: 'destructive',
+      })
+      return { success: 0, failed: data.length }
+    }
+
+    // Build category name to id map
+    const categoryMap = new Map(categories?.map(c => [c.name.toLowerCase(), c.id]) || [])
+
+    for (const item of data) {
+      try {
+        // Generate unique code
+        const code = `ITEM-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`
+        
+        // Find category id by name
+        const categoryId = item.category_name 
+          ? categoryMap.get(item.category_name.toLowerCase()) 
+          : null
+
+        const { error } = await supabase.from('items').insert({
+          tenant_id: tenantId,
+          hotel_id: targetHotelId,
+          code,
+          name: item.name,
+          name_en: item.name_en || null,
+          category_id: categoryId || null,
+          unit: item.unit,
+          unit_price: item.unit_price,
+          brand: item.brand || null,
+          model: item.model || null,
+          quantity_total: item.quantity_total,
+          quantity_in_stock: item.quantity_total,
+          minimum_stock: item.minimum_stock,
+          reorder_point: item.reorder_point || null,
+          description: item.description || null,
+          status: 'active',
+        })
+
+        if (error) {
+          console.error('Import item error:', error)
+          failed++
+        } else {
+          success++
+        }
+      } catch {
+        failed++
+      }
+    }
+
+    // Refresh items list
+    queryClient.invalidateQueries({ queryKey: ['items'] })
+    
+    return { success, failed }
   }
   
   return (
@@ -157,6 +226,11 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
       </div>
       
       <div className="flex gap-2">
+        <Button variant="outline" size="sm" onClick={() => setImportDialogOpen(true)}>
+          <FileUp className="mr-2 h-4 w-4" />
+          Import Excel
+        </Button>
+        
         <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
           {isExporting ? (
             <div className="mr-2">
@@ -173,6 +247,16 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
           Quét QR
         </Button>
       </div>
+
+      <ImportExcelDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        title="Import Tài sản từ Excel"
+        description="Tải file mẫu, điền thông tin và upload để import hàng loạt"
+        onDownloadTemplate={downloadItemsTemplate}
+        onParseFile={parseItemsExcel}
+        onImport={handleImportItems}
+      />
     </div>
   )
 }
