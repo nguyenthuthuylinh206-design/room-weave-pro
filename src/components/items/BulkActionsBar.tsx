@@ -1,4 +1,4 @@
-import { X, Trash2, FileDown, QrCode, Ban } from 'lucide-react'
+import { X, Trash2, FileDown, QrCode, Ban, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
@@ -32,11 +32,8 @@ export function BulkActionsBar({
 }: BulkActionsBarProps) {
   const deleteItems = useDeleteItems()
   const [isExporting, setIsExporting] = useState(false)
-  
-  const handleDelete = async () => {
-    await deleteItems.mutateAsync(selectedItems)
-    onClearSelection()
-  }
+  const [isDiscontinuing, setIsDiscontinuing] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   
   const handleExport = async () => {
     try {
@@ -121,6 +118,7 @@ export function BulkActionsBar({
   const handleDiscontinue = async () => {
     // Bulk update items to discontinued status
     try {
+      setIsDiscontinuing(true)
       const { error } = await supabase
         .from('items')
         .update({ status: 'discontinued' })
@@ -139,7 +137,15 @@ export function BulkActionsBar({
         description: error.message,
         variant: 'destructive',
       })
+    } finally {
+      setIsDiscontinuing(false)
     }
+  }
+  
+  const handleDelete = async () => {
+    await deleteItems.mutateAsync(selectedItems)
+    setShowDeleteDialog(false)
+    onClearSelection()
   }
   
   return (
@@ -178,12 +184,16 @@ export function BulkActionsBar({
             In QR
           </Button>
           
-          <Button variant="outline" size="sm" onClick={handleDiscontinue}>
-            <Ban className="mr-2 h-4 w-4" />
+          <Button variant="outline" size="sm" onClick={handleDiscontinue} disabled={isDiscontinuing}>
+            {isDiscontinuing ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Ban className="mr-2 h-4 w-4" />
+            )}
             Ngừng KD
           </Button>
           
-          <AlertDialog>
+          <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm">
                 <Trash2 className="mr-2 h-4 w-4" />
@@ -199,12 +209,20 @@ export function BulkActionsBar({
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Hủy</AlertDialogCancel>
+                <AlertDialogCancel disabled={deleteItems.isPending}>Hủy</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleDelete}
+                  disabled={deleteItems.isPending}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  Xóa
+                  {deleteItems.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Đang xóa...
+                    </>
+                  ) : (
+                    'Xóa'
+                  )}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
