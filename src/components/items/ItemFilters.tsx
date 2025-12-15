@@ -93,8 +93,9 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
     })
   }
 
-  const handleImportItems = async (data: ItemImportRow[]): Promise<{ success: number; failed: number }> => {
-    let success = 0
+  const handleImportItems = async (data: ItemImportRow[]): Promise<{ success: number; failed: number; updated?: number }> => {
+    let created = 0
+    let updated = 0
     let failed = 0
 
     const targetHotelId = selectedHotel?.id || hotelId
@@ -118,7 +119,23 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
     }
 
     // Build category name to id map from fresh database data
-    const categoryMap = new Map(existingCategories?.map(c => [c.name.toLowerCase(), c.id]) || [])
+    const categoryMap = new Map(existingCategories?.map(c => [c.name.toLowerCase().trim(), c.id]) || [])
+
+    // Fetch existing items in this hotel to check for duplicates
+    const { data: existingItems, error: itemsFetchError } = await supabase
+      .from('items')
+      .select('id, name, code')
+      .eq('tenant_id', tenantId)
+      .eq('hotel_id', targetHotelId)
+
+    if (itemsFetchError) {
+      console.error('Fetch items error:', itemsFetchError)
+    }
+
+    // Build item name to existing item map (lowercase for case-insensitive comparison)
+    const existingItemsMap = new Map(
+      existingItems?.map(item => [item.name.toLowerCase().trim(), item]) || []
+    )
 
     // Find unique category names from import data that don't exist
     const uniqueCategoryNames = [...new Set(
@@ -126,7 +143,7 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
     )] as string[]
     
     const missingCategories = uniqueCategoryNames.filter(
-      name => !categoryMap.has(name.toLowerCase())
+      name => !categoryMap.has(name.toLowerCase().trim())
     )
 
     // Auto-create missing categories
@@ -150,7 +167,7 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
       if (error) {
         console.error('Create category error:', categoryName, error)
       } else if (newCategory) {
-        categoryMap.set(newCategory.name.toLowerCase(), newCategory.id)
+        categoryMap.set(newCategory.name.toLowerCase().trim(), newCategory.id)
         newCategoriesCount++
       }
     }
@@ -165,38 +182,73 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
 
     for (const item of data) {
       try {
-        // Generate unique code
-        const code = `ITEM-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`
-        
         // Find category id by name (now includes newly created categories)
         const categoryId = item.category_name 
-          ? categoryMap.get(item.category_name.toLowerCase()) 
+          ? categoryMap.get(item.category_name.toLowerCase().trim()) 
           : null
 
-        const { error } = await supabase.from('items').insert({
-          tenant_id: tenantId,
-          hotel_id: targetHotelId,
-          code,
-          name: item.name,
-          name_en: item.name_en || null,
-          category_id: categoryId || null,
-          unit: item.unit,
-          unit_price: item.unit_price,
-          brand: item.brand || null,
-          model: item.model || null,
-          quantity_total: item.quantity_total,
-          quantity_in_stock: item.quantity_total,
-          minimum_stock: item.minimum_stock,
-          reorder_point: item.reorder_point || null,
-          description: item.description || null,
-          status: 'active',
-        })
+        // Check if item already exists by name
+        const itemNameKey = item.name.toLowerCase().trim()
+        const existingItem = existingItemsMap.get(itemNameKey)
 
-        if (error) {
-          console.error('Import item error:', error)
-          failed++
+        if (existingItem) {
+          // UPDATE existing item
+          const { error } = await supabase
+            .from('items')
+            .update({
+              name: item.name,
+              name_en: item.name_en || null,
+              category_id: categoryId,
+              unit: item.unit,
+              unit_price: item.unit_price,
+              brand: item.brand || null,
+              model: item.model || null,
+              quantity_total: item.quantity_total,
+              quantity_in_stock: item.quantity_total,
+              minimum_stock: item.minimum_stock,
+              reorder_point: item.reorder_point || null,
+              description: item.description || null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingItem.id)
+
+          if (error) {
+            console.error('Update item error:', error)
+            failed++
+          } else {
+            updated++
+          }
         } else {
-          success++
+          // INSERT new item
+          const code = `ITEM-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`
+          
+          const { error } = await supabase.from('items').insert({
+            tenant_id: tenantId,
+            hotel_id: targetHotelId,
+            code,
+            name: item.name,
+            name_en: item.name_en || null,
+            category_id: categoryId || null,
+            unit: item.unit,
+            unit_price: item.unit_price,
+            brand: item.brand || null,
+            model: item.model || null,
+            quantity_total: item.quantity_total,
+            quantity_in_stock: item.quantity_total,
+            minimum_stock: item.minimum_stock,
+            reorder_point: item.reorder_point || null,
+            description: item.description || null,
+            status: 'active',
+          })
+
+          if (error) {
+            console.error('Import item error:', error)
+            failed++
+          } else {
+            created++
+            // Add to map to prevent duplicates within same import batch
+            existingItemsMap.set(itemNameKey, { id: '', name: item.name, code })
+          }
         }
       } catch {
         failed++
@@ -206,7 +258,21 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
     // Refresh items list
     queryClient.invalidateQueries({ queryKey: ['items'] })
     
-    return { success, failed }
+    // Show summary toast
+    const messages = []
+    if (created > 0) messages.push(`Tạo mới: ${created}`)
+    if (updated > 0) messages.push(`Cập nhật: ${updated}`)
+    if (failed > 0) messages.push(`Lỗi: ${failed}`)
+    
+    if (messages.length > 0) {
+      toast({
+        title: 'Import hoàn tất',
+        description: messages.join(' | '),
+        variant: failed > 0 ? 'destructive' : 'default',
+      })
+    }
+    
+    return { success: created + updated, failed, updated }
   }
   
   return (
