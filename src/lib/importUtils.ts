@@ -85,7 +85,8 @@ export function downloadItemsTemplate() {
     ['4. Đơn giá: Số nguyên >= 0'],
     ['5. Số lượng: Số nguyên >= 0'],
     ['6. Danh mục: Nhập tên danh mục. Nếu chưa có sẽ tự động tạo mới'],
-    ['7. Xóa các dòng ví dụ trước khi import'],
+    ['7. Sản phẩm trùng tên sẽ được CẬP NHẬT (giá, danh mục, số lượng...) thay vì tạo mới'],
+    ['8. Xóa các dòng ví dụ trước khi import'],
   ]
   
   const wsInstructions = XLSX.utils.aoa_to_sheet(instructions)
