@@ -1,13 +1,24 @@
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { ArrowLeft, CheckCircle, Clock, Truck, XCircle, User, Package, DoorOpen } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Clock, Truck, XCircle, User, Package, DoorOpen, Ban } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
-import { useDistributionOrderDetail, useCompleteRoomDelivery } from '@/hooks/useDistributionOrders'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { useDistributionOrderDetail, useCompleteRoomDelivery, useCancelDistributionOrder } from '@/hooks/useDistributionOrders'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
 import type { DistributionOrderStatus, DistributionRoomStatus } from '@/types/distribution.types'
@@ -31,8 +42,11 @@ export default function DistributionOrderDetailPage() {
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
+  
   const { data: order, isLoading } = useDistributionOrderDetail(id)
   const { mutate: completeDelivery, isPending } = useCompleteRoomDelivery()
+  const { mutate: cancelOrder, isPending: isCancelling } = useCancelDistributionOrder()
 
   if (isLoading) {
     return (
@@ -62,8 +76,21 @@ export default function DistributionOrderDetailPage() {
     completeDelivery({ roomOrderId })
   }
 
+  const handleCancelOrder = () => {
+    if (!id) return
+    cancelOrder(id, {
+      onSuccess: () => {
+        setShowCancelDialog(false)
+        navigate('/inventory/distributions')
+      }
+    })
+  }
+
+  const canCancel = order.status === 'pending' || order.status === 'in_progress'
+
   if (isMobile) {
     return (
+      <>
       <div className="flex flex-col h-full">
         {/* Mobile Header */}
         <div className="sticky top-0 z-10 bg-background border-b p-4">
@@ -78,6 +105,16 @@ export default function DistributionOrderDetailPage() {
                 {config.label}
               </Badge>
             </div>
+            {canCancel && (
+              <Button 
+                variant="destructive" 
+                size="sm"
+                onClick={() => setShowCancelDialog(true)}
+                disabled={isCancelling}
+              >
+                <Ban className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
 
@@ -145,6 +182,30 @@ export default function DistributionOrderDetailPage() {
           })}
         </div>
       </div>
+
+      {/* Cancel Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận hủy phiếu</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc muốn hủy phiếu giao hàng <span className="font-mono font-semibold">{order.order_code}</span>?
+              Tất cả sản phẩm chưa giao sẽ được hoàn trả về kho.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCancelling}>Đóng</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelOrder}
+              disabled={isCancelling}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isCancelling ? 'Đang hủy...' : 'Xác nhận hủy'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      </>
     )
   }
 
@@ -167,6 +228,16 @@ export default function DistributionOrderDetailPage() {
             Tạo bởi {order.created_by_name} • {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })}
           </p>
         </div>
+        {canCancel && (
+          <Button 
+            variant="destructive" 
+            onClick={() => setShowCancelDialog(true)}
+            disabled={isCancelling}
+          >
+            <Ban className="h-4 w-4 mr-2" />
+            Hủy phiếu
+          </Button>
+        )}
       </div>
 
       {/* Summary Cards */}
@@ -298,6 +369,29 @@ export default function DistributionOrderDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Cancel Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận hủy phiếu</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc muốn hủy phiếu giao hàng <span className="font-mono font-semibold">{order.order_code}</span>?
+              Tất cả sản phẩm chưa giao sẽ được hoàn trả về kho.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCancelling}>Đóng</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelOrder}
+              disabled={isCancelling}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isCancelling ? 'Đang hủy...' : 'Xác nhận hủy'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

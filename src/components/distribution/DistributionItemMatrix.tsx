@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { Plus, Minus, Trash2 } from 'lucide-react'
+import { useMemo, useEffect } from 'react'
+import { Plus, Minus, Trash2, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -23,16 +23,23 @@ export interface RoomItemAllocation {
   }[]
 }
 
+export interface StockValidation {
+  isValid: boolean
+  overStockItems: { itemId: string; itemName: string; requested: number; available: number }[]
+}
+
 interface DistributionItemMatrixProps {
   selectedRoomIds: string[]
   allocations: RoomItemAllocation[]
   onAllocationsChange: (allocations: RoomItemAllocation[]) => void
+  onStockValidationChange?: (validation: StockValidation) => void
 }
 
 export function DistributionItemMatrix({
   selectedRoomIds,
   allocations,
   onAllocationsChange,
+  onStockValidationChange,
 }: DistributionItemMatrixProps) {
   const { data: itemsData } = useItems()
   const items = itemsData?.items || []
@@ -156,6 +163,36 @@ export function DistributionItemMatrix({
   const getItemStock = (itemId: string) => {
     return items.find(i => i.id === itemId)?.quantity_in_stock || 0
   }
+
+  // Calculate stock validation
+  const stockValidation = useMemo<StockValidation>(() => {
+    const overStockItems: StockValidation['overStockItems'] = []
+    
+    allocatedItemIds.forEach(itemId => {
+      const item = items.find(i => i.id === itemId)
+      if (!item) return
+      
+      const total = getTotalForItem(itemId)
+      if (total > item.quantity_in_stock) {
+        overStockItems.push({
+          itemId,
+          itemName: item.name,
+          requested: total,
+          available: item.quantity_in_stock,
+        })
+      }
+    })
+    
+    return {
+      isValid: overStockItems.length === 0,
+      overStockItems,
+    }
+  }, [allocatedItemIds, allocations, items])
+
+  // Notify parent of validation changes
+  useEffect(() => {
+    onStockValidationChange?.(stockValidation)
+  }, [stockValidation, onStockValidationChange])
 
   if (selectedRoomIds.length === 0) {
     return (
