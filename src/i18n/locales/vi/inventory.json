@@ -2,6 +2,13 @@
   "title": "Quản lý Kho",
   "dashboard": "Theo dõi và quản lý tồn kho, nhập xuất hàng",
   "transactions": "Giao dịch kho",
+  "transactionHistory": "Lịch sử giao dịch",
+  "transactionHistoryDesc": "Theo dõi tất cả giao dịch nhập xuất kho",
+  "transactionCount": "{{count}} giao dịch",
+  "back": "Quay lại",
+  "exportExcel": "Xuất Excel",
+  "loading": "Đang tải...",
+  "noTransactions": "Không có giao dịch nào",
   "inbound": {
     "title": "Nhập kho",
     "description": "Ghi nhận nhập kho chi tiết",
@@ -18,6 +25,8 @@
     "confirm": "Xác nhận nhập kho",
     "processing": "Đang xử lý...",
     "type": "Loại nhập",
+    "typeTitle": "Loại nhập kho",
+    "typeDesc": "Chọn loại nhập kho phù hợp",
     "fromPurchase": "Từ đơn đặt hàng",
     "fromReturn": "Trả về từ phòng",
     "fromLaundry": "Nhận từ giặt là",
@@ -32,7 +41,18 @@
     "docsDescription": "Hóa đơn, phiếu giao hàng, chứng từ...",
     "itemPhotos": "Hình ảnh hàng hóa",
     "photosDescription": "Chụp ảnh hàng hóa khi nhận",
-    "notesPlaceholder": "Ghi chú về lô nhập kho này..."
+    "notesPlaceholder": "Ghi chú về lô nhập kho này...",
+    "success": "Nhập kho thành công",
+    "categories": {
+      "purchase": "Mua mới",
+      "purchaseDesc": "Mua từ nhà cung cấp",
+      "return": "Hoàn trả",
+      "returnDesc": "Khách trả lại",
+      "laundry": "Giặt về",
+      "laundryDesc": "Từ giặt là",
+      "other": "Khác",
+      "otherDesc": "Lý do khác"
+    }
   },
   "outbound": {
     "title": "Xuất kho",
@@ -51,6 +71,8 @@
     "confirm": "Xác nhận xuất kho",
     "processing": "Đang xử lý...",
     "type": "Loại xuất",
+    "typeTitle": "Loại xuất kho",
+    "typeDesc": "Chọn loại xuất kho phù hợp",
     "toRoom": "Xuất cho phòng",
     "toLaundry": "Xuất đi giặt",
     "toMaintenance": "Xuất cho bảo trì",
@@ -66,10 +88,25 @@
     "stockAvailable": "Tồn kho",
     "remaining": "Còn lại",
     "exceedStock": "Số lượng xuất vượt quá tồn kho",
+    "exceedStockDesc": "Số lượng xuất vượt quá tồn kho. Vui lòng kiểm tra lại.",
     "lowStockWarning": "Sau khi xuất, tồn kho sẽ xuống dưới mức an toàn (10)",
+    "lowStockWarningCount": "Có {{count}} item sắp hết hàng sau khi xuất",
     "itemNote": "Ghi chú cho item này",
     "notesPlaceholder": "Ghi chú về lô xuất kho này...",
-    "stockError": "Số lượng xuất không được vượt quá tồn kho"
+    "stockError": "Số lượng xuất không được vượt quá tồn kho",
+    "success": "Xuất kho thành công",
+    "categories": {
+      "room_assign": "Phòng",
+      "room_assignDesc": "Giao cho phòng",
+      "laundry": "Giặt là",
+      "laundryDesc": "Gửi giặt",
+      "maintenance": "Bảo trì",
+      "maintenanceDesc": "Sửa chữa",
+      "disposal": "Thanh lý",
+      "disposalDesc": "Hủy bỏ",
+      "other": "Khác",
+      "otherDesc": "Lý do khác"
+    }
   },
   "adjustment": {
     "title": "Kiểm kê",
@@ -117,7 +154,8 @@
     "adjustment": "Điều chỉnh",
     "transfer": "Chuyển kho",
     "damaged": "Hư hỏng",
-    "lost": "Mất mát"
+    "lost": "Mất mát",
+    "all": "Tất cả"
   },
   "transactionLabel": {
     "in": "NHẬP KHO",
@@ -134,7 +172,13 @@
     "laundry": "Gửi giặt",
     "maintenance": "Bảo trì",
     "disposal": "Thanh lý",
-    "other": "Khác"
+    "other": "Khác",
+    "sale": "Bán hàng",
+    "transfer_in": "Chuyển kho nhập",
+    "transfer_out": "Chuyển kho xuất",
+    "internal_use": "Sử dụng nội bộ",
+    "loss": "Hao hụt",
+    "damaged": "Hư hỏng"
   },
   "status": {
     "pending": "Chờ giao",
@@ -151,7 +195,12 @@
     "deleteSuccess": "Xóa giao dịch thành công",
     "noTransactions": "Chưa có giao dịch nào",
     "loading": "Đang tải...",
-    "copiedCode": "Đã sao chép mã giao dịch"
+    "copiedCode": "Đã sao chép mã giao dịch",
+    "draftRestored": "Đã khôi phục bản nháp",
+    "draftSaved": "Đã lưu nháp",
+    "deleteDraft": "Xóa nháp",
+    "itemAlreadyAdded": "Đồ dùng đã có trong danh sách",
+    "checkInfo": "Vui lòng kiểm tra lại thông tin"
   },
   "filters": {
     "all": "Tất cả",
@@ -159,9 +208,15 @@
     "byDate": "Theo ngày",
     "byItem": "Theo tài sản",
     "search": "Tìm kiếm giao dịch...",
-    "status": "Trạng thái"
+    "searchPlaceholder": "Tìm mã giao dịch, đồ dùng...",
+    "status": "Trạng thái",
+    "category": "Danh mục"
   },
   "stats": {
+    "totalTransactions": "Tổng giao dịch",
+    "totalIn": "Tổng nhập",
+    "totalOut": "Tổng xuất",
+    "items": "items",
     "totalStockValue": "Tổng giá trị kho",
     "totalItems": "Tổng số items",
     "productTypes": "loại sản phẩm",
@@ -216,5 +271,65 @@
     "print": "In phiếu",
     "deleteTransaction": "Xóa giao dịch",
     "creator": "Người tạo"
+  },
+  "table": {
+    "code": "Mã GD",
+    "type": "Loại",
+    "item": "Đồ dùng",
+    "quantity": "Số lượng",
+    "location": "Địa điểm",
+    "creator": "Người tạo",
+    "date": "Ngày",
+    "actions": "Thao tác",
+    "from": "Từ",
+    "to": "Đến"
+  },
+  "pagination": {
+    "showing": "Hiển thị",
+    "of": "của",
+    "prev": "Trước",
+    "next": "Sau"
+  },
+  "form": {
+    "steps": {
+      "typeLocation": "Loại & Địa điểm",
+      "items": "Đồ dùng",
+      "confirm": "Xác nhận"
+    },
+    "location": "Địa điểm",
+    "fromWhere": "Từ đâu",
+    "toWhere": "Đến đâu",
+    "saveDraft": "Lưu nháp",
+    "selectItems": "Chọn đồ dùng",
+    "searchItem": "Tìm đồ dùng...",
+    "noItemsYet": "Chưa có đồ dùng",
+    "addItemsDesc": "Thêm đồ dùng cần {{action}} kho vào danh sách",
+    "selected": "Đã chọn",
+    "itemQuantity": "Số lượng",
+    "noteForItem": "Ghi chú",
+    "notePlaceholder": "Ghi chú riêng cho item này...",
+    "photos": "Hình ảnh",
+    "notes": "Ghi chú chung",
+    "notesPlaceholder": "Ghi chú chung cho giao dịch này...",
+    "summary": "Tổng kết",
+    "typeLabel": "Loại",
+    "totalItems": "Tổng đồ dùng",
+    "totalQty": "Tổng số lượng",
+    "submitInbound": "Xác nhận nhập kho",
+    "submitOutbound": "Xác nhận xuất kho",
+    "submitting": "Đang xử lý..."
+  },
+  "validation": {
+    "fromRequired": "Vui lòng nhập vị trí nguồn",
+    "toRequired": "Vui lòng nhập vị trí đích",
+    "itemRequired": "Vui lòng chọn đồ dùng",
+    "quantityMin": "Số lượng phải > 0",
+    "itemsMin": "Phải có ít nhất 1 đồ dùng"
+  },
+  "exitDialog": {
+    "title": "Thoát?",
+    "description": "Bạn có dữ liệu chưa lưu. Bạn muốn lưu nháp hay hủy bỏ?",
+    "saveDraft": "Lưu nháp",
+    "discard": "Bỏ qua"
   }
 }
