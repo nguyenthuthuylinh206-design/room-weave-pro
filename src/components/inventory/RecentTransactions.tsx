@@ -49,8 +49,7 @@ const transactionLabels: Record<string, string> = {
 
 const categoryLabels: Record<string, string> = {
   purchase: 'Mua hàng',
-  return: 'Trả hàng',
-  laundry_return: 'Nhận từ giặt',
+  return: 'Trả hàng / Nhận từ giặt',
   room_assign: 'Giao phòng',
   laundry: 'Gửi giặt',
   maintenance: 'Bảo trì',
