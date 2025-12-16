@@ -59,7 +59,13 @@ interface PushPayload {
 }
 
 self.addEventListener('push', (event: PushEvent) => {
-  console.log('[SW] Push received:', event);
+  console.log('[SW] ========= PUSH EVENT RECEIVED =========');
+  console.log('[SW] Event:', event);
+  console.log('[SW] Event data exists:', !!event.data);
+  
+  if (event.data) {
+    console.log('[SW] Raw data text:', event.data.text());
+  }
 
   let notificationData: PushPayload = {
     title: 'Room Weave Pro',
@@ -94,15 +100,24 @@ self.addEventListener('push', (event: PushEvent) => {
     tag: notificationData.tag,
     data: notificationData.data,
     vibrate: [100, 50, 100],
-    requireInteraction: false,
+    requireInteraction: true, // Keep notification until user interacts
     actions: [
       { action: 'open', title: 'Xem chi tiết' },
       { action: 'close', title: 'Đóng' },
     ],
   } as NotificationOptions & { vibrate?: number[] };
 
+  console.log('[SW] Showing notification with title:', notificationData.title);
+  console.log('[SW] Notification options:', JSON.stringify(options));
+
   event.waitUntil(
     self.registration.showNotification(notificationData.title!, options)
+      .then(() => {
+        console.log('[SW] ✅ Notification shown successfully!');
+      })
+      .catch((err) => {
+        console.error('[SW] ❌ Failed to show notification:', err);
+      })
   );
 });
 
@@ -171,6 +186,17 @@ self.addEventListener('pushsubscriptionchange', (event: Event) => {
   );
 });
 
+// Handle message from main thread
+self.addEventListener('message', (event) => {
+  console.log('[SW] Message received:', event.data);
+  if (event.data?.type === 'SKIP_WAITING') {
+    console.log('[SW] SKIP_WAITING received, activating new SW...');
+    self.skipWaiting();
+  }
+});
+
 // Skip waiting and claim clients immediately
 self.skipWaiting();
 self.clients.claim();
+
+console.log('[SW] ✅ Service Worker loaded with push notification support!');
