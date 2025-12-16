@@ -1,70 +1,80 @@
 {
   "title": "Room Management",
-  "description": "Manage rooms and room amenities",
-  "list": "Room List",
-  "addNew": "Add New Room",
+  "description": "Manage rooms and room items",
+  "addRoom": "Add Room",
   "editRoom": "Edit Room",
-  "viewRoom": "Room Details",
-  "roomItems": "Room Items",
-  "viewModes": {
-    "grid": "Grid",
-    "list": "List",
-    "floorPlan": "Floor Plan"
-  },
-  "actions": {
-    "addRoom": "Add Room",
-    "bulkImport": "Bulk Import",
-    "edit": "Edit",
-    "delete": "Delete",
-    "viewDetails": "View Details",
-    "checkout": "Checkout",
-    "assignItems": "Assign Items"
-  },
+  "roomDetail": "Room Details",
+  "roomCheck": "Room Check",
   "fields": {
     "roomNumber": "Room Number",
     "roomType": "Room Type",
     "floor": "Floor",
     "status": "Status",
     "area": "Area",
-    "maxGuests": "Max Guests",
     "bedType": "Bed Type",
+    "maxGuests": "Max Guests",
     "pricePerNight": "Price/Night",
-    "description": "Description",
+    "view": "View",
     "amenities": "Amenities",
     "notes": "Notes"
   },
   "status": {
     "vacant": "Vacant",
     "occupied": "Occupied",
-    "check_in": "Checking In",
-    "check_out": "Checking Out",
     "cleaning": "Cleaning",
     "maintenance": "Maintenance",
+    "check_in": "Check-in",
+    "check_out": "Check-out",
     "out_of_order": "Out of Order"
   },
-  "roomType": {
+  "roomTypes": {
     "standard": "Standard",
-    "superior": "Superior",
     "deluxe": "Deluxe",
     "suite": "Suite",
+    "family": "Family",
     "vip": "VIP"
   },
   "messages": {
     "createSuccess": "Room created successfully",
     "updateSuccess": "Room updated successfully",
     "deleteSuccess": "Room deleted successfully",
-    "noRooms": "No rooms found"
+    "noRooms": "No rooms yet"
   },
   "filters": {
     "all": "All",
-    "byStatus": "By Status",
     "byFloor": "By Floor",
+    "byStatus": "By Status",
     "byType": "By Type",
     "search": "Search rooms..."
   },
-  "floorPlan": {
-    "title": "Floor Plan",
-    "floor": "Floor",
-    "noRooms": "No rooms on this floor"
+  "detail": {
+    "roomInfo": "Room Information",
+    "roomItems": "Room Items",
+    "checkHistory": "Check History",
+    "quickActions": "Quick Actions",
+    "checkRoom": "Check Room",
+    "editInfo": "Edit Info",
+    "applyStandards": "Apply Standards",
+    "syncStandards": "Sync Standards",
+    "printItems": "Print Items List",
+    "totalItems": "Total Items",
+    "complete": "Complete",
+    "missing": "Missing",
+    "types": "types",
+    "pieces": "pieces",
+    "notFound": "Room not found",
+    "backToList": "Back to list",
+    "noItems": "No items in room",
+    "noItemsDesc": "This room has no items yet. Click \"Apply Standards\" in \"Quick Actions\" to automatically add items based on the room type standard.",
+    "recentPhotos": "Recent Check Photos",
+    "checkedBy": "Checked by",
+    "viewFull": "View full",
+    "andMore": "And {{count}} more photos"
+  },
+  "checkTypes": {
+    "daily": "Daily",
+    "checkin": "Check-in",
+    "checkout": "Check-out",
+    "maintenance": "Maintenance"
   }
 }
