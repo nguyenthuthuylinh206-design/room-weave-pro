@@ -1,23 +1,27 @@
 import { Check, Circle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
-import { vi } from 'date-fns/locale'
+import { vi, enUS } from 'date-fns/locale'
+import { useTranslation } from 'react-i18next'
 
 interface BatchStatusTimelineProps {
   batch: any
 }
 
 export function BatchStatusTimeline({ batch }: BatchStatusTimelineProps) {
+  const { t, i18n } = useTranslation('laundry')
+  const dateLocale = i18n.language === 'vi' ? vi : enUS
+  
   const steps = [
     {
       key: 'delivered',
-      label: 'Đã giao',
+      label: t('batchDetail.timeline.delivered'),
       date: batch.delivery_date,
       completed: true,
     },
     {
       key: 'washing',
-      label: 'Đang giặt',
+      label: t('batchDetail.timeline.washing'),
       date: batch.status === 'washing' || batch.status === 'ready' || batch.status === 'received' || batch.status === 'stocked'
         ? batch.delivery_date 
         : null,
@@ -25,20 +29,20 @@ export function BatchStatusTimeline({ batch }: BatchStatusTimelineProps) {
     },
     {
       key: 'ready',
-      label: 'Sẵn sàng nhận',
+      label: t('batchDetail.timeline.ready'),
       date: batch.expected_return_date,
       completed: ['ready', 'received', 'stocked'].includes(batch.status),
       isExpected: !['received', 'stocked'].includes(batch.status),
     },
     {
       key: 'received',
-      label: 'Đã nhận về',
+      label: t('batchDetail.timeline.received'),
       date: batch.actual_return_date,
       completed: ['received', 'stocked'].includes(batch.status),
     },
     {
       key: 'stocked',
-      label: 'Đã nhập kho',
+      label: t('batchDetail.timeline.stocked'),
       date: batch.status === 'stocked' ? batch.actual_return_date : null,
       completed: batch.status === 'stocked',
     },
@@ -84,8 +88,8 @@ export function BatchStatusTimeline({ batch }: BatchStatusTimelineProps) {
             </p>
             {step.date && (
               <p className="text-sm text-muted-foreground">
-                {step.isExpected && 'Dự kiến: '}
-                {format(new Date(step.date), 'PPP HH:mm', { locale: vi })}
+                {step.isExpected && `${t('batchDetail.timeline.expected')}: `}
+                {format(new Date(step.date), 'PPP HH:mm', { locale: dateLocale })}
               </p>
             )}
           </div>

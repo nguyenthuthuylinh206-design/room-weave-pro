@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Form,
@@ -18,7 +19,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { CalendarIcon } from 'lucide-react'
 import { format } from 'date-fns'
-import { vi } from 'date-fns/locale'
+import { vi, enUS } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import type { CreateBatchStep1Data } from '@/types/laundry.types'
 import { useUsers } from '@/hooks/useUsers'
@@ -30,17 +31,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-const step1Schema = z.object({
-  vendor_id: z.string().min(1, 'Vui lòng chọn đơn vị giặt'),
-  delivery_date: z.date({ required_error: 'Vui lòng chọn ngày giao' }),
-  expected_return_date: z.date({ required_error: 'Vui lòng chọn ngày nhận dự kiến' }),
-  delivery_staff_id: z.string().min(1, 'Vui lòng chọn nhân viên giao'),
-  receiver_name: z.string().min(2, 'Vui lòng nhập tên người nhận'),
-  notes: z.string().optional(),
-})
-
-type Step1FormValues = z.infer<typeof step1Schema>
-
 interface CreateBatchStep1Props {
   initialData: CreateBatchStep1Data | null
   onComplete: (data: CreateBatchStep1Data) => void
@@ -48,10 +38,21 @@ interface CreateBatchStep1Props {
 }
 
 export function CreateBatchStep1({ initialData, onComplete, onBack }: CreateBatchStep1Props) {
+  const { t, i18n } = useTranslation('laundry')
+  const dateLocale = i18n.language === 'vi' ? vi : enUS
   const { users } = useUsers()
   const staffUsers = users?.filter((u) => u.status === 'active') || []
   
-  const form = useForm<Step1FormValues>({
+  const step1Schema = z.object({
+    vendor_id: z.string().min(1, t('createBatch.validation.selectVendor')),
+    delivery_date: z.date({ required_error: t('createBatch.validation.selectDeliveryDate') }),
+    expected_return_date: z.date({ required_error: t('createBatch.validation.selectExpectedReturn') }),
+    delivery_staff_id: z.string().min(1, t('createBatch.validation.selectDeliveryStaff')),
+    receiver_name: z.string().min(2, t('createBatch.validation.enterReceiverName')),
+    notes: z.string().optional(),
+  })
+  
+  const form = useForm<z.infer<typeof step1Schema>>({
     resolver: zodResolver(step1Schema),
     defaultValues: initialData ? {
       vendor_id: initialData.vendor_id,
@@ -70,7 +71,7 @@ export function CreateBatchStep1({ initialData, onComplete, onBack }: CreateBatc
     },
   })
   
-  const onSubmit = (data: Step1FormValues) => {
+  const onSubmit = (data: z.infer<typeof step1Schema>) => {
     onComplete(data as CreateBatchStep1Data)
   }
   
@@ -79,7 +80,7 @@ export function CreateBatchStep1({ initialData, onComplete, onBack }: CreateBatc
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Bước 1: Thông tin cơ bản</CardTitle>
+            <CardTitle>{t('createBatch.step1.title')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <FormField
@@ -87,7 +88,7 @@ export function CreateBatchStep1({ initialData, onComplete, onBack }: CreateBatc
               name="vendor_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Đơn vị giặt *</FormLabel>
+                  <FormLabel>{t('createBatch.step1.vendor')} *</FormLabel>
                   <FormControl>
                     <VendorSelect value={field.value} onChange={field.onChange} />
                   </FormControl>
@@ -102,7 +103,7 @@ export function CreateBatchStep1({ initialData, onComplete, onBack }: CreateBatc
                 name="delivery_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Ngày giờ giao *</FormLabel>
+                    <FormLabel>{t('createBatch.step1.deliveryDate')} *</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -114,9 +115,9 @@ export function CreateBatchStep1({ initialData, onComplete, onBack }: CreateBatc
                             )}
                           >
                             {field.value ? (
-                              format(field.value, 'PPP', { locale: vi })
+                              format(field.value, 'PPP', { locale: dateLocale })
                             ) : (
-                              <span>Chọn ngày</span>
+                              <span>{t('createBatch.step1.selectDate')}</span>
                             )}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -142,7 +143,7 @@ export function CreateBatchStep1({ initialData, onComplete, onBack }: CreateBatc
                 name="expected_return_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Ngày nhận dự kiến *</FormLabel>
+                    <FormLabel>{t('createBatch.step1.expectedReturn')} *</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -154,9 +155,9 @@ export function CreateBatchStep1({ initialData, onComplete, onBack }: CreateBatc
                             )}
                           >
                             {field.value ? (
-                              format(field.value, 'PPP', { locale: vi })
+                              format(field.value, 'PPP', { locale: dateLocale })
                             ) : (
-                              <span>Chọn ngày</span>
+                              <span>{t('createBatch.step1.selectDate')}</span>
                             )}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -184,11 +185,11 @@ export function CreateBatchStep1({ initialData, onComplete, onBack }: CreateBatc
                 name="delivery_staff_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nhân viên giao *</FormLabel>
+                    <FormLabel>{t('createBatch.step1.deliveryStaff')} *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Chọn nhân viên" />
+                          <SelectValue placeholder={t('createBatch.step1.selectStaff')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -209,9 +210,9 @@ export function CreateBatchStep1({ initialData, onComplete, onBack }: CreateBatc
                 name="receiver_name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tên người nhận *</FormLabel>
+                    <FormLabel>{t('createBatch.step1.receiverName')} *</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Người nhận từ đơn vị giặt" />
+                      <Input {...field} placeholder={t('createBatch.step1.receiverPlaceholder')} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -224,11 +225,11 @@ export function CreateBatchStep1({ initialData, onComplete, onBack }: CreateBatc
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Ghi chú</FormLabel>
+                  <FormLabel>{t('createBatch.step1.notes')}</FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
-                      placeholder="Ghi chú về lô giặt..."
+                      placeholder={t('createBatch.step1.notesPlaceholder')}
                       rows={3}
                     />
                   </FormControl>
@@ -241,10 +242,10 @@ export function CreateBatchStep1({ initialData, onComplete, onBack }: CreateBatc
         
         <div className="flex justify-between">
           <Button type="button" variant="outline" onClick={onBack}>
-            Hủy
+            {t('createBatch.step1.cancel')}
           </Button>
           <Button type="submit">
-            Tiếp theo
+            {t('createBatch.step1.next')}
           </Button>
         </div>
       </form>

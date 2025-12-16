@@ -1,10 +1,8 @@
 import { useParams, Link } from 'react-router-dom'
-import { useState } from 'react'
 import { ArrowLeft, Package, Truck, CheckCircle, DollarSign, Clock } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -12,11 +10,13 @@ import { BatchStatusBadge } from '@/components/laundry/BatchStatusBadge'
 import { useLaundryBatch } from '@/hooks/useLaundryBatches'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { format } from 'date-fns'
-import { vi } from 'date-fns/locale'
+import { vi, enUS } from 'date-fns/locale'
 
 export function MobileBatchDetail() {
+  const { t, i18n } = useTranslation('laundry')
   const { id } = useParams<{ id: string }>()
   const { data, isLoading } = useLaundryBatch(id)
+  const dateLocale = i18n.language === 'vi' ? vi : enUS
 
   if (isLoading) {
     return (
@@ -33,7 +33,7 @@ export function MobileBatchDetail() {
       <div className="min-h-screen bg-background p-4">
         <div className="text-center py-12">
           <Package className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">Không tìm thấy lô giặt</p>
+          <p className="text-muted-foreground">{t('batchDetail.batchNotFound')}</p>
         </div>
       </div>
     )
@@ -47,11 +47,11 @@ export function MobileBatchDetail() {
   const returnStaff = batchData?.return_staff
 
   const statusSteps = [
-    { status: 'delivered', label: 'Đã gửi', icon: Truck, date: batch.delivery_date },
-    { status: 'washing', label: 'Đang giặt', icon: Package, date: null },
-    { status: 'ready', label: 'Sẵn sàng', icon: CheckCircle, date: null },
-    { status: 'received', label: 'Đã nhận', icon: CheckCircle, date: batch.actual_return_date },
-    { status: 'stocked', label: 'Đã nhập kho', icon: CheckCircle, date: null }
+    { status: 'delivered', label: t('batchDetail.timeline.delivered'), icon: Truck, date: batch.delivery_date },
+    { status: 'washing', label: t('batchDetail.timeline.washing'), icon: Package, date: null },
+    { status: 'ready', label: t('batchDetail.timeline.ready'), icon: CheckCircle, date: null },
+    { status: 'received', label: t('batchDetail.timeline.received'), icon: CheckCircle, date: batch.actual_return_date },
+    { status: 'stocked', label: t('batchDetail.timeline.stocked'), icon: CheckCircle, date: null }
   ]
 
   const currentStatusIndex = statusSteps.findIndex(s => s.status === batch.status)
@@ -78,7 +78,7 @@ export function MobileBatchDetail() {
         <div className="p-4 space-y-4">
           {/* Status Timeline */}
           <Card className="p-4">
-            <h3 className="font-semibold mb-4">Tiến trình</h3>
+            <h3 className="font-semibold mb-4">{t('batchDetail.progress')}</h3>
             <div className="space-y-3">
               {statusSteps.map((step, index) => (
                 <div key={step.status} className="flex items-start gap-3">
@@ -93,7 +93,7 @@ export function MobileBatchDetail() {
                     </p>
                     {step.date && (
                       <p className="text-sm text-muted-foreground">
-                        {format(new Date(step.date), 'dd/MM/yyyy HH:mm', { locale: vi })}
+                        {format(new Date(step.date), 'dd/MM/yyyy HH:mm', { locale: dateLocale })}
                       </p>
                     )}
                   </div>
@@ -107,7 +107,7 @@ export function MobileBatchDetail() {
             <Card className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Tổng mặt hàng</p>
+                  <p className="text-sm text-muted-foreground">{t('batchDetail.totalItems')}</p>
                   <p className="text-2xl font-bold">{batch.total_items}</p>
                 </div>
                 <Package className="h-8 w-8 text-muted-foreground" />
@@ -116,8 +116,8 @@ export function MobileBatchDetail() {
             <Card className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Khối lượng</p>
-                  <p className="text-2xl font-bold">{batch.total_weight_kg} kg</p>
+                  <p className="text-sm text-muted-foreground">{t('batchDetail.weight')}</p>
+                  <p className="text-2xl font-bold">{batch.total_weight_kg} {t('units.kg')}</p>
                 </div>
                 <Package className="h-8 w-8 text-muted-foreground" />
               </div>
@@ -125,7 +125,7 @@ export function MobileBatchDetail() {
             <Card className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Chi phí dự kiến</p>
+                  <p className="text-sm text-muted-foreground">{t('batchDetail.estimatedCost')}</p>
                   <p className="text-lg font-bold">{formatCurrency(batch.estimated_cost || 0)}</p>
                 </div>
                 <DollarSign className="h-8 w-8 text-muted-foreground" />
@@ -134,7 +134,7 @@ export function MobileBatchDetail() {
             <Card className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Chi phí thực tế</p>
+                  <p className="text-sm text-muted-foreground">{t('batchDetail.actualCost')}</p>
                   <p className="text-lg font-bold">{formatCurrency(batch.actual_cost || 0)}</p>
                 </div>
                 <DollarSign className="h-8 w-8 text-green-600" />
@@ -144,7 +144,7 @@ export function MobileBatchDetail() {
 
           {/* Vendor Info */}
           <Card className="p-4">
-            <h3 className="font-semibold mb-3">Nhà cung cấp</h3>
+            <h3 className="font-semibold mb-3">{t('batchDetail.vendor')}</h3>
             <div className="flex items-center gap-3 mb-3">
               <Avatar className="h-12 w-12">
                 <AvatarImage src={vendor.logo_url} alt={vendor.name} />
@@ -157,12 +157,12 @@ export function MobileBatchDetail() {
             </div>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Loại:</span>
-                <span>{vendor.type === 'external' ? 'Bên ngoài' : 'Nội bộ'}</span>
+                <span className="text-muted-foreground">{t('batchDetail.type')}:</span>
+                <span>{vendor.type === 'external' ? t('batchDetail.external') : t('batchDetail.internal')}</span>
               </div>
               {vendor.rating && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Đánh giá:</span>
+                  <span className="text-muted-foreground">{t('batchDetail.rating')}:</span>
                   <span>⭐ {vendor.rating.toFixed(1)}</span>
                 </div>
               )}
@@ -174,7 +174,7 @@ export function MobileBatchDetail() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground flex items-center gap-2">
                 <Clock className="w-4 h-4" />
-                Ngày giao
+                {t('batchDetail.deliveryDate')}
               </span>
               <span className="font-medium">{formatDate(batch.delivery_date)}</span>
             </div>
@@ -182,7 +182,7 @@ export function MobileBatchDetail() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground flex items-center gap-2">
                   <Clock className="w-4 h-4" />
-                  Dự kiến trả
+                  {t('batchDetail.expectedReturn')}
                 </span>
                 <span className="font-medium">{formatDate(batch.expected_return_date)}</span>
               </div>
@@ -191,7 +191,7 @@ export function MobileBatchDetail() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground flex items-center gap-2">
                   <CheckCircle className="w-4 h-4" />
-                  Ngày trả thực tế
+                  {t('batchDetail.actualReturn')}
                 </span>
                 <span className="font-medium">{formatDate(batch.actual_return_date)}</span>
               </div>
@@ -200,7 +200,7 @@ export function MobileBatchDetail() {
 
           {/* Items List */}
           <Card className="p-4">
-            <h3 className="font-semibold mb-3">Danh sách đồ giặt ({items.length})</h3>
+            <h3 className="font-semibold mb-3">{t('batchDetail.itemsList')} ({items.length})</h3>
             <div className="space-y-2">
               {items.map((item: any, index: number) => (
                 <div key={index} className="flex justify-between items-center p-2 rounded-lg bg-muted/50">
@@ -211,7 +211,7 @@ export function MobileBatchDetail() {
                   <div className="text-right">
                     <p className="font-semibold">{item.quantity_delivered} {item.item_unit}</p>
                     {item.weight_kg && (
-                      <p className="text-xs text-muted-foreground">{item.weight_kg} kg</p>
+                      <p className="text-xs text-muted-foreground">{item.weight_kg} {t('units.kg')}</p>
                     )}
                   </div>
                 </div>
@@ -222,16 +222,16 @@ export function MobileBatchDetail() {
           {/* Staff Info */}
           {(deliveryStaff || returnStaff) && (
             <Card className="p-4 space-y-3">
-              <h3 className="font-semibold">Nhân viên phụ trách</h3>
+              <h3 className="font-semibold">{t('batchDetail.staffInCharge')}</h3>
               {deliveryStaff && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Người giao</p>
+                  <p className="text-sm text-muted-foreground">{t('batchDetail.deliveryStaffLabel')}</p>
                   <p className="font-medium">{deliveryStaff.full_name}</p>
                 </div>
               )}
               {returnStaff && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Người nhận về</p>
+                  <p className="text-sm text-muted-foreground">{t('batchDetail.returnStaffLabel')}</p>
                   <p className="font-medium">{returnStaff.full_name}</p>
                 </div>
               )}
@@ -241,7 +241,7 @@ export function MobileBatchDetail() {
           {/* Notes */}
           {batch.notes && (
             <Card className="p-4">
-              <h3 className="font-semibold mb-2">Ghi chú</h3>
+              <h3 className="font-semibold mb-2">{t('batchDetail.notes')}</h3>
               <p className="text-sm text-muted-foreground">{batch.notes}</p>
             </Card>
           )}
