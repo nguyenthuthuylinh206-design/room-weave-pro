@@ -251,14 +251,15 @@ export function useCreateItem() {
           item.quantity_in_stock <= item.minimum_stock &&
           user?.id && tenantId) {
         const { triggerLowStockAlert } = await import('./useNotificationTriggers')
-        await triggerLowStockAlert(
-          user.id,
+        await triggerLowStockAlert({
           tenantId,
-          item.name,
-          item.quantity_in_stock,
-          item.minimum_stock,
-          item.id
-        )
+          hotelId: item.hotel_id,
+          itemName: item.name,
+          currentStock: item.quantity_in_stock,
+          minimumStock: item.minimum_stock,
+          itemId: item.id,
+          triggeredByUserId: user.id,
+        })
       }
       
       toast({
@@ -305,14 +306,15 @@ export function useUpdateItem() {
           item.quantity_in_stock <= item.minimum_stock &&
           user?.id && tenantId) {
         const { triggerLowStockAlert } = await import('./useNotificationTriggers')
-        await triggerLowStockAlert(
-          user.id,
+        await triggerLowStockAlert({
           tenantId,
-          item.name,
-          item.quantity_in_stock,
-          item.minimum_stock,
-          item.id
-        )
+          hotelId: item.hotel_id,
+          itemName: item.name,
+          currentStock: item.quantity_in_stock,
+          minimumStock: item.minimum_stock,
+          itemId: item.id,
+          triggeredByUserId: user.id,
+        })
       }
       
       toast({

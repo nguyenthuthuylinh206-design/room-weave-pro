@@ -203,12 +203,13 @@ export function useApprovePO() {
       // Trigger notification for PO approved - notify the current user who approved
       if (user?.id && tenantId && po.po_code) {
         const { triggerPOApprovedNotification } = await import('./useNotificationTriggers');
-        await triggerPOApprovedNotification(
-          user.id,
+        await triggerPOApprovedNotification({
           tenantId,
-          po.po_code,
-          po.id
-        );
+          poCode: po.po_code,
+          poId: po.id,
+          createdByUserId: po.requested_by,
+          approvedByUserId: user.id,
+        });
       }
       
       toast({

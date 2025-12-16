@@ -186,17 +186,18 @@ export function useCreateMaintenanceRequest() {
     onSuccess: async (request) => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] })
       
-      // Trigger notification for new maintenance request
-      if (user?.id && tenantId) {
-        const { triggerMaintenanceNotification } = await import('./useNotificationTriggers')
-        await triggerMaintenanceNotification(
-          user.id,
+      // Trigger notification for new maintenance request - notify managers
+      if (user?.id && tenantId && selectedHotel?.id) {
+        const { triggerMaintenanceNewNotification } = await import('./useNotificationTriggers')
+        await triggerMaintenanceNewNotification({
           tenantId,
-          request.request_code,
-          request.title,
-          request.location,
-          request.id
-        )
+          hotelId: selectedHotel.id,
+          requestCode: request.request_code,
+          title: request.title,
+          location: request.location,
+          requestId: request.id,
+          createdByUserId: user.id,
+        })
       }
       
       toast({
@@ -311,6 +312,7 @@ export function useStartRequest() {
 export function useCompleteRequest() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { user, tenantId } = useUser()
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
@@ -331,9 +333,23 @@ export function useCompleteRequest() {
       if (error) throw error
       return request
     },
-    onSuccess: () => {
+    onSuccess: async (request) => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] })
       queryClient.invalidateQueries({ queryKey: ['maintenance-request'] })
+      
+      // Notify the original reporter that their request is completed
+      if (user?.id && tenantId && request.reported_by) {
+        const { triggerMaintenanceCompletedNotification } = await import('./useNotificationTriggers')
+        await triggerMaintenanceCompletedNotification({
+          tenantId,
+          requestCode: request.request_code,
+          title: request.title,
+          requestId: request.id,
+          reportedByUserId: request.reported_by,
+          completedByUserId: user.id,
+        })
+      }
+      
       toast({
         title: 'Thành công',
         description: 'Đã hoàn thành yêu cầu',
