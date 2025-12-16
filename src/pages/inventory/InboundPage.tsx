@@ -3,6 +3,7 @@ import { ArrowLeft, Plus, X } from 'lucide-react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -42,6 +43,7 @@ const inboundSchema = z.object({
 type InboundFormData = z.infer<typeof inboundSchema>
 
 export function InboundPage() {
+  const { t } = useTranslation(['inventory', 'common'])
   const navigate = useNavigate()
   const { isMobile } = useBreakpoint()
   const [searchParams] = useSearchParams()
@@ -94,12 +96,12 @@ export function InboundPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Nhập kho"
-        description="Ghi nhận nhập kho chi tiết"
+        title={t('inventory:inbound.title')}
+        description={t('inventory:inbound.description')}
       >
         <Button variant="outline" onClick={() => navigate('/inventory')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Quay lại
+          {t('common:back')}
         </Button>
       </PageHeader>
       
@@ -107,7 +109,7 @@ export function InboundPage() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Thông tin chung</CardTitle>
+              <CardTitle>{t('inventory:inbound.generalInfo')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <FormField
@@ -115,7 +117,7 @@ export function InboundPage() {
                 name="transaction_category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Loại nhập *</FormLabel>
+                    <FormLabel>{t('inventory:inbound.type')} *</FormLabel>
                     <FormControl>
                       <RadioGroup
                         onValueChange={field.onChange}
@@ -125,25 +127,25 @@ export function InboundPage() {
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="purchase" id="purchase" />
                           <label htmlFor="purchase" className="cursor-pointer">
-                            📦 Từ đơn đặt hàng
+                            📦 {t('inventory:inbound.fromPurchase')}
                           </label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="return" id="return" />
                           <label htmlFor="return" className="cursor-pointer">
-                            🔙 Trả về từ phòng
+                            🔙 {t('inventory:inbound.fromReturn')}
                           </label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="laundry" id="laundry" />
                           <label htmlFor="laundry" className="cursor-pointer">
-                            🧺 Nhận từ giặt là
+                            🧺 {t('inventory:inbound.fromLaundry')}
                           </label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="other" id="other" />
                           <label htmlFor="other" className="cursor-pointer">
-                            ➕ Nhập mới khác
+                            ➕ {t('inventory:inbound.fromOther')}
                           </label>
                         </div>
                       </RadioGroup>
@@ -159,12 +161,12 @@ export function InboundPage() {
                   name="from_location"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Từ vị trí *</FormLabel>
+                      <FormLabel>{t('inventory:inbound.fromLocation')} *</FormLabel>
                       <FormControl>
                         <Input {...field} placeholder="VD: Nhà cung cấp ABC, Phòng 301" />
                       </FormControl>
                       <FormDescription>
-                        Nguồn gốc hàng hóa
+                        {t('inventory:inbound.locationSource')}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -176,12 +178,12 @@ export function InboundPage() {
                   name="to_location"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Đến vị trí *</FormLabel>
+                      <FormLabel>{t('inventory:inbound.toLocation')} *</FormLabel>
                       <FormControl>
                         <Input {...field} placeholder="VD: Kho tầng 1" />
                       </FormControl>
                       <FormDescription>
-                        Vị trí lưu trữ
+                        {t('inventory:inbound.locationStorage')}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -194,7 +196,7 @@ export function InboundPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Đồ dùng nhập kho</CardTitle>
+                <CardTitle>{t('inventory:inbound.itemsToInbound')}</CardTitle>
                 <Button
                   type="button"
                   variant="outline"
@@ -202,7 +204,7 @@ export function InboundPage() {
                   onClick={() => append({ item_id: '', quantity: 1, notes: '' })}
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Thêm đồ dùng
+                  {t('inventory:inbound.addItem')}
                 </Button>
               </div>
             </CardHeader>
@@ -225,17 +227,17 @@ export function InboundPage() {
                       
                       <div className="space-y-4">
                         <div className="grid gap-4 md:grid-cols-2">
-                          <FormField
-                            control={form.control}
-                            name={`items.${index}.item_id`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Đồ dùng *</FormLabel>
-                                <FormControl>
-                                  <ItemSelect
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    placeholder="Chọn đồ dùng"
+                            <FormField
+                              control={form.control}
+                              name={`items.${index}.item_id`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>{t('inventory:fields.item')} *</FormLabel>
+                                  <FormControl>
+                                    <ItemSelect
+                                      value={field.value}
+                                      onChange={field.onChange}
+                                      placeholder={t('inventory:inbound.selectItem')}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -246,9 +248,9 @@ export function InboundPage() {
                           <FormField
                             control={form.control}
                             name={`items.${index}.quantity`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Số lượng *</FormLabel>
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>{t('inventory:fields.quantity')} *</FormLabel>
                                 <FormControl>
                                   <Input
                                     type="number"
@@ -266,9 +268,9 @@ export function InboundPage() {
                         <FormField
                           control={form.control}
                           name={`items.${index}.notes`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Ghi chú cho item này</FormLabel>
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>{t('inventory:inbound.itemNote')}</FormLabel>
                               <FormControl>
                                 <Input {...field} placeholder="VD: Hàng mới, nguyên seal..." />
                               </FormControl>
@@ -286,7 +288,7 @@ export function InboundPage() {
           
           <Card>
             <CardHeader>
-              <CardTitle>Tài liệu & Hình ảnh</CardTitle>
+              <CardTitle>{t('inventory:inbound.documentsPhotos')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <FormField
@@ -294,7 +296,7 @@ export function InboundPage() {
                 name="documents"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tài liệu đính kèm</FormLabel>
+                    <FormLabel>{t('inventory:inbound.attachedDocs')}</FormLabel>
                     <FormControl>
                       <FileUpload
                         files={field.value || []}
@@ -302,7 +304,7 @@ export function InboundPage() {
                       />
                     </FormControl>
                     <FormDescription>
-                      Hóa đơn, phiếu giao hàng, chứng từ...
+                      {t('inventory:inbound.docsDescription')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -314,7 +316,7 @@ export function InboundPage() {
                 name="photos"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Hình ảnh hàng hóa</FormLabel>
+                    <FormLabel>{t('inventory:inbound.itemPhotos')}</FormLabel>
                     <FormControl>
                       <ImageUpload
                         images={field.value || []}
@@ -323,7 +325,7 @@ export function InboundPage() {
                       />
                     </FormControl>
                     <FormDescription>
-                      Chụp ảnh hàng hóa khi nhận
+                      {t('inventory:inbound.photosDescription')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -334,7 +336,7 @@ export function InboundPage() {
           
           <Card>
             <CardHeader>
-              <CardTitle>Ghi chú chung</CardTitle>
+              <CardTitle>{t('inventory:inbound.generalNotes')}</CardTitle>
             </CardHeader>
             <CardContent>
               <FormField
@@ -345,7 +347,7 @@ export function InboundPage() {
                     <FormControl>
                       <Textarea
                         {...field}
-                        placeholder="Ghi chú về lô nhập kho này..."
+                        placeholder={t('inventory:inbound.notesPlaceholder')}
                         rows={4}
                       />
                     </FormControl>
@@ -358,16 +360,16 @@ export function InboundPage() {
           
           <Card>
             <CardHeader>
-              <CardTitle>Tổng kết</CardTitle>
+              <CardTitle>{t('inventory:inbound.summary')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-lg border p-4 text-center">
-                  <p className="text-sm text-muted-foreground">Tổng số loại</p>
+                  <p className="text-sm text-muted-foreground">{t('inventory:inbound.totalTypes')}</p>
                   <p className="text-3xl font-bold">{items.length}</p>
                 </div>
                 <div className="rounded-lg border p-4 text-center">
-                  <p className="text-sm text-muted-foreground">Tổng số lượng</p>
+                  <p className="text-sm text-muted-foreground">{t('inventory:inbound.totalQuantity')}</p>
                   <p className="text-3xl font-bold text-green-600">+{totalQuantity}</p>
                 </div>
               </div>
@@ -380,10 +382,10 @@ export function InboundPage() {
               variant="outline"
               onClick={() => navigate('/inventory')}
             >
-              Hủy
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Đang xử lý...' : 'Xác nhận nhập kho'}
+              {isLoading ? t('inventory:inbound.processing') : t('inventory:inbound.confirm')}
             </Button>
           </div>
         </form>

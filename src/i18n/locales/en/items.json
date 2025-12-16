@@ -10,6 +10,9 @@
   "createSuccess": "Asset created successfully",
   "updateSuccess": "Asset updated successfully",
   "deleteSuccess": "Asset deleted successfully",
+  "backToList": "Back to List",
+  "edit": "Edit",
+  "notFound": "Asset not found",
   "fields": {
     "name": "Asset Name",
     "code": "Asset Code",
@@ -17,6 +20,7 @@
     "unit": "Unit",
     "unitPrice": "Unit Price",
     "quantity": "Quantity",
+    "quantityTotal": "Total",
     "quantityInStock": "In Stock",
     "quantityInUse": "In Use",
     "quantityInLaundry": "In Laundry",
@@ -35,7 +39,8 @@
     "active": "Active",
     "inactive": "Inactive",
     "lowStock": "Low Stock",
-    "outOfStock": "Out of Stock"
+    "outOfStock": "Out of Stock",
+    "inStock": "In Stock"
   },
   "itemType": {
     "linen": "Linen",
@@ -61,6 +66,33 @@
     "byCategory": "By Category",
     "byStatus": "By Status",
     "search": "Search assets..."
+  },
+  "detail": {
+    "images": "Images",
+    "primaryImage": "Primary Image",
+    "inventoryStats": "Inventory Stats",
+    "transactionHistory": "Transaction History",
+    "roomAllocation": "Room Allocation",
+    "noTransactions": "No transactions yet",
+    "noRoomAllocation": "Not allocated to any room",
+    "basicInfo": "Basic Information",
+    "stockStatus": "Stock Status",
+    "stockValue": "Stock Value",
+    "qrCode": "QR Code",
+    "additionalInfo": "Additional Information",
+    "noCategory": "Uncategorized",
+    "transactionCode": "Trans. Code",
+    "type": "Type",
+    "performer": "Performer",
+    "time": "Time",
+    "room": "Room",
+    "roomType": "Room Type",
+    "condition": "Condition",
+    "allocatedAt": "Allocated At",
+    "conditionGood": "Good",
+    "conditionFair": "Fair",
+    "conditionPoor": "Poor",
+    "conditionDamaged": "Damaged"
   },
   "categoriesPage": {
     "title": "Asset Categories",

@@ -10,6 +10,9 @@
   "createSuccess": "Tạo tài sản thành công",
   "updateSuccess": "Cập nhật tài sản thành công",
   "deleteSuccess": "Xóa tài sản thành công",
+  "backToList": "Quay lại danh sách",
+  "edit": "Chỉnh sửa",
+  "notFound": "Không tìm thấy tài sản",
   "fields": {
     "name": "Tên tài sản",
     "code": "Mã tài sản",
@@ -17,6 +20,7 @@
     "unit": "Đơn vị",
     "unitPrice": "Đơn giá",
     "quantity": "Số lượng",
+    "quantityTotal": "Tổng số",
     "quantityInStock": "Trong kho",
     "quantityInUse": "Đang dùng",
     "quantityInLaundry": "Đang giặt",
@@ -35,7 +39,8 @@
     "active": "Hoạt động",
     "inactive": "Không hoạt động",
     "lowStock": "Tồn kho thấp",
-    "outOfStock": "Hết hàng"
+    "outOfStock": "Hết hàng",
+    "inStock": "Còn hàng"
   },
   "itemType": {
     "linen": "Vải",
@@ -61,6 +66,33 @@
     "byCategory": "Theo danh mục",
     "byStatus": "Theo trạng thái",
     "search": "Tìm kiếm tài sản..."
+  },
+  "detail": {
+    "images": "Hình ảnh",
+    "primaryImage": "Ảnh chính",
+    "inventoryStats": "Thống kê kho",
+    "transactionHistory": "Lịch sử giao dịch",
+    "roomAllocation": "Phân bổ phòng",
+    "noTransactions": "Chưa có giao dịch nào",
+    "noRoomAllocation": "Chưa phân bổ cho phòng nào",
+    "basicInfo": "Thông tin cơ bản",
+    "stockStatus": "Trạng thái kho",
+    "stockValue": "Giá trị tồn kho",
+    "qrCode": "Mã QR",
+    "additionalInfo": "Thông tin bổ sung",
+    "noCategory": "Chưa phân loại",
+    "transactionCode": "Mã GD",
+    "type": "Loại",
+    "performer": "Người thực hiện",
+    "time": "Thời gian",
+    "room": "Phòng",
+    "roomType": "Loại phòng",
+    "condition": "Tình trạng",
+    "allocatedAt": "Phân bổ lúc",
+    "conditionGood": "Tốt",
+    "conditionFair": "Khá",
+    "conditionPoor": "Kém",
+    "conditionDamaged": "Hỏng"
   },
   "categoriesPage": {
     "title": "Danh mục tài sản",
