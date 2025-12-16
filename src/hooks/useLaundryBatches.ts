@@ -522,96 +522,51 @@ export function useStockInFromLaundry() {
         if (returnError) throw returnError
       }
       
-      // 6. XỬ LÝ ITEMS MẤT (nếu có)
+      // 6. XỬ LÝ ITEMS MẤT (nếu có) - Dùng RPC mới
       const lostItems = items
         .filter(item => item.quantity_lost && item.quantity_lost > 0)
-        .map(item => {
-          const itemData = itemsData?.find(i => i.id === item.item_id)
-          return {
-            item_id: item.item_id,
-            quantity: item.quantity_lost!,
-            unit_price: itemData?.unit_price || 0,
-            notes: `Mất trong quá trình giặt - Lô ${batchCode}`
-          }
-        })
+        .map(item => ({
+          item_id: item.item_id,
+          quantity: item.quantity_lost!,
+        }))
       
       if (lostItems.length > 0) {
-        const { error: lostError } = await supabase.rpc('create_outbound_transaction', {
+        const { error: lostError } = await supabase.rpc('create_laundry_loss_transaction', {
           p_tenant_id: tenant.id,
           p_hotel_id: selectedHotel.id,
-          p_transaction_category: 'laundry',
-          p_from_location: selectedHotel.name,
-          p_to_location: 'Mất mát',
           p_created_by: user.id,
           p_items: lostItems as any,
-          p_transaction_type: 'lost',
-          p_related_type: 'laundry_batch',
+          p_loss_type: 'lost',
           p_related_id: batchId,
           p_notes: `Items mất từ lô giặt ${batchCode}`,
-          p_recipient_name: null,
-          p_recipient_signature: null,
-          p_documents: null,
-          p_photos: null
         })
         
         if (lostError) throw lostError
       }
       
-      // 7. XỬ LÝ ITEMS HƯ HỎNG (nếu có)
+      // 7. XỬ LÝ ITEMS HƯ HỎNG (nếu có) - Dùng RPC mới
       const damagedItems = items
         .filter(item => item.quantity_damaged && item.quantity_damaged > 0)
-        .map(item => {
-          const itemData = itemsData?.find(i => i.id === item.item_id)
-          return {
-            item_id: item.item_id,
-            quantity: item.quantity_damaged!,
-            unit_price: itemData?.unit_price || 0,
-            notes: `Hư hỏng trong quá trình giặt - Lô ${batchCode}`
-          }
-        })
+        .map(item => ({
+          item_id: item.item_id,
+          quantity: item.quantity_damaged!,
+        }))
       
       if (damagedItems.length > 0) {
-        const { error: damagedError } = await supabase.rpc('create_outbound_transaction', {
+        const { error: damagedError } = await supabase.rpc('create_laundry_loss_transaction', {
           p_tenant_id: tenant.id,
           p_hotel_id: selectedHotel.id,
-          p_transaction_category: 'laundry',
-          p_from_location: selectedHotel.name,
-          p_to_location: 'Hư hỏng',
           p_created_by: user.id,
           p_items: damagedItems as any,
-          p_transaction_type: 'damaged',
-          p_related_type: 'laundry_batch',
+          p_loss_type: 'damaged',
           p_related_id: batchId,
           p_notes: `Items hư hỏng từ lô giặt ${batchCode}`,
-          p_recipient_name: null,
-          p_recipient_signature: null,
-          p_documents: null,
-          p_photos: null
         })
         
         if (damagedError) throw damagedError
       }
       
-      // 8. TRỪNG quantity_in_laundry CHO ITEMS MẤT/HỎNG
-      // (Items OK đã được xử lý bởi create_laundry_return_transaction)
-      for (const item of items) {
-        const lostDamagedTotal = (item.quantity_lost || 0) + (item.quantity_damaged || 0)
-        if (lostDamagedTotal > 0) {
-          // Lấy quantity_in_laundry hiện tại
-          const { data: currentItem } = await supabase
-            .from('items')
-            .select('quantity_in_laundry')
-            .eq('id', item.item_id)
-            .single()
-          
-          const newLaundryQty = Math.max(0, (currentItem?.quantity_in_laundry || 0) - lostDamagedTotal)
-          
-          await supabase
-            .from('items')
-            .update({ quantity_in_laundry: newLaundryQty })
-            .eq('id', item.item_id)
-        }
-      }
+      // 8. RPC đã xử lý tất cả quantity updates, không cần làm thủ công
       
       // 9. CẬP NHẬT STATUS BATCH
       const { error: updateError } = await supabase
