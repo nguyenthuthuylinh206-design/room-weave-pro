@@ -3410,6 +3410,7 @@ export type Database = {
           items_complete: boolean | null
           items_consumed: Json | null
           items_damaged: Json | null
+          items_lost: Json | null
           items_missing: Json | null
           items_replaced: Json | null
           items_sent_to_laundry: Json | null
@@ -3426,6 +3427,7 @@ export type Database = {
           items_complete?: boolean | null
           items_consumed?: Json | null
           items_damaged?: Json | null
+          items_lost?: Json | null
           items_missing?: Json | null
           items_replaced?: Json | null
           items_sent_to_laundry?: Json | null
@@ -3442,6 +3444,7 @@ export type Database = {
           items_complete?: boolean | null
           items_consumed?: Json | null
           items_damaged?: Json | null
+          items_lost?: Json | null
           items_missing?: Json | null
           items_replaced?: Json | null
           items_sent_to_laundry?: Json | null
