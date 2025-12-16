@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Download, FileText, ArrowRightLeft, TrendingUp, Package, ClipboardCheck } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -42,6 +43,7 @@ import { subDays } from 'date-fns'
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6']
 
 export function OperationsReportPage() {
+  const { t } = useTranslation('reports')
   const { isMobile } = useBreakpoint()
   const navigate = useNavigate()
   const chartRefs = useRef<HTMLElement[]>([])
@@ -100,21 +102,21 @@ export function OperationsReportPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Báo cáo Hoạt động"
-        description="Phân tích giao dịch nhập xuất và kiểm kê"
+        title={t('operations.pageTitle')}
+        description={t('operations.pageDescription')}
       >
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate('/reports')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Quay lại
+            {t('operations.back')}
           </Button>
           <Button variant="outline" disabled={isExporting}>
             <FileText className="mr-2 h-4 w-4" />
-            Xuất PDF
+            {t('operations.exportPdf')}
           </Button>
           <Button variant="outline" disabled={isExporting}>
             <Download className="mr-2 h-4 w-4" />
-            Xuất Excel
+            {t('operations.exportExcel')}
           </Button>
         </div>
       </PageHeader>
@@ -126,7 +128,7 @@ export function OperationsReportPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
-            <label className="text-sm font-medium">Kỳ báo cáo:</label>
+            <label className="text-sm font-medium">{t('operations.reportPeriod')}</label>
             <DateRangePicker
               value={{ from: dateRange.start, to: dateRange.end }}
               onChange={(range) => 
@@ -142,9 +144,9 @@ export function OperationsReportPage() {
       
       <Tabs defaultValue="transactions" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="transactions">Giao dịch</TabsTrigger>
-          <TabsTrigger value="stocktake">Kiểm kê</TabsTrigger>
-          <TabsTrigger value="efficiency">Hiệu suất</TabsTrigger>
+          <TabsTrigger value="transactions">{t('operations.tabs.transactions')}</TabsTrigger>
+          <TabsTrigger value="stocktake">{t('operations.tabs.stocktake')}</TabsTrigger>
+          <TabsTrigger value="efficiency">{t('operations.tabs.efficiency')}</TabsTrigger>
         </TabsList>
         
         {/* TAB 1: Transactions */}
@@ -158,7 +160,7 @@ export function OperationsReportPage() {
                     <TrendingUp className="h-5 w-5 text-green-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Nhập kho</p>
+                    <p className="text-sm text-muted-foreground">{t('operations.stats.inbound')}</p>
                     <p className="text-2xl font-bold">{transactionSummary.inbound_count}</p>
                     <p className="text-xs text-green-600">{formatCurrency(transactionSummary.inbound_value)}</p>
                   </div>
@@ -173,7 +175,7 @@ export function OperationsReportPage() {
                     <ArrowRightLeft className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Xuất kho</p>
+                    <p className="text-sm text-muted-foreground">{t('operations.stats.outbound')}</p>
                     <p className="text-2xl font-bold">{transactionSummary.outbound_count}</p>
                     <p className="text-xs text-blue-600">{formatCurrency(transactionSummary.outbound_value)}</p>
                   </div>
@@ -188,9 +190,9 @@ export function OperationsReportPage() {
                     <Package className="h-5 w-5 text-purple-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Tổng GD</p>
+                    <p className="text-sm text-muted-foreground">{t('operations.stats.totalTransactions')}</p>
                     <p className="text-2xl font-bold">{transactionSummary.total_transactions}</p>
-                    <p className="text-xs text-muted-foreground">giao dịch</p>
+                    <p className="text-xs text-muted-foreground">{t('operations.stats.transactions')}</p>
                   </div>
                 </div>
               </CardContent>
@@ -203,9 +205,9 @@ export function OperationsReportPage() {
                     <TrendingUp className="h-5 w-5 text-orange-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Biến động ròng</p>
+                    <p className="text-sm text-muted-foreground">{t('operations.stats.netChange')}</p>
                     <p className="text-2xl font-bold">{formatCurrency(transactionSummary.net_change_value)}</p>
-                    <p className="text-xs text-muted-foreground">trong kỳ</p>
+                    <p className="text-xs text-muted-foreground">{t('operations.stats.inPeriod')}</p>
                   </div>
                 </div>
               </CardContent>
@@ -215,7 +217,7 @@ export function OperationsReportPage() {
           {/* Transaction Trend Chart */}
           <Card ref={(el) => el && (chartRefs.current[0] = el)}>
             <CardHeader>
-              <CardTitle>Xu hướng giao dịch theo tháng</CardTitle>
+              <CardTitle>{t('operations.chart.title')}</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={350}>
@@ -234,9 +236,9 @@ export function OperationsReportPage() {
                     }}
                   />
                   <Legend />
-                  <Bar dataKey="inbound" name="Nhập kho" fill="#10b981" />
-                  <Bar dataKey="outbound" name="Xuất kho" fill="#3b82f6" />
-                  <Bar dataKey="adjustment" name="Điều chỉnh" fill="#f59e0b" />
+                  <Bar dataKey="inbound" name={t('operations.chart.inbound')} fill="#10b981" />
+                  <Bar dataKey="outbound" name={t('operations.chart.outbound')} fill="#3b82f6" />
+                  <Bar dataKey="adjustment" name={t('operations.chart.adjustment')} fill="#f59e0b" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -245,19 +247,19 @@ export function OperationsReportPage() {
           {/* Top Moving Items */}
           <Card>
             <CardHeader>
-              <CardTitle>Top Items theo vòng quay</CardTitle>
+              <CardTitle>{t('operations.topItems.title')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>#</TableHead>
-                      <TableHead>Đồ dùng</TableHead>
-                      <TableHead className="text-center">Nhập</TableHead>
-                      <TableHead className="text-center">Xuất</TableHead>
-                      <TableHead className="text-center">Vòng quay</TableHead>
-                      <TableHead>Xu hướng</TableHead>
+                      <TableHead>{t('operations.topItems.rank')}</TableHead>
+                      <TableHead>{t('operations.topItems.item')}</TableHead>
+                      <TableHead className="text-center">{t('operations.topItems.inbound')}</TableHead>
+                      <TableHead className="text-center">{t('operations.topItems.outbound')}</TableHead>
+                      <TableHead className="text-center">{t('operations.topItems.turnover')}</TableHead>
+                      <TableHead>{t('operations.topItems.trend')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -297,7 +299,7 @@ export function OperationsReportPage() {
                 <div className="flex items-center gap-2">
                   <ClipboardCheck className="h-8 w-8 text-blue-600" />
                   <div>
-                    <p className="text-sm text-muted-foreground">Số lần kiểm kê</p>
+                    <p className="text-sm text-muted-foreground">{t('operations.stocktake.checkCount')}</p>
                     <p className="text-2xl font-bold">{stocktakeResults.total_checks}</p>
                   </div>
                 </div>
@@ -307,7 +309,7 @@ export function OperationsReportPage() {
             <Card>
               <CardContent className="pt-6">
                 <div>
-                  <p className="text-sm text-muted-foreground">Items đã kiểm</p>
+                  <p className="text-sm text-muted-foreground">{t('operations.stocktake.itemsChecked')}</p>
                   <p className="text-2xl font-bold">{stocktakeResults.items_checked}</p>
                 </div>
               </CardContent>
@@ -316,7 +318,7 @@ export function OperationsReportPage() {
             <Card>
               <CardContent className="pt-6">
                 <div>
-                  <p className="text-sm text-muted-foreground">Tỷ lệ chính xác</p>
+                  <p className="text-sm text-muted-foreground">{t('operations.stocktake.accuracy')}</p>
                   <p className="text-2xl font-bold text-green-600">{stocktakeResults.accuracy_rate}%</p>
                 </div>
               </CardContent>
@@ -325,7 +327,7 @@ export function OperationsReportPage() {
             <Card>
               <CardContent className="pt-6">
                 <div>
-                  <p className="text-sm text-muted-foreground">Giá trị điều chỉnh</p>
+                  <p className="text-sm text-muted-foreground">{t('operations.stocktake.adjustmentValue')}</p>
                   <p className="text-2xl font-bold">{formatCurrency(stocktakeResults.adjusted_value)}</p>
                 </div>
               </CardContent>
@@ -334,11 +336,11 @@ export function OperationsReportPage() {
           
           <Card>
             <CardHeader>
-              <CardTitle>Kết quả kiểm kê gần đây</CardTitle>
+              <CardTitle>{t('operations.stocktake.recentResults')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-center py-8 text-muted-foreground">
-                Dữ liệu kiểm kê sẽ được hiển thị tại đây
+                {t('operations.stocktake.noData')}
               </div>
             </CardContent>
           </Card>
@@ -350,7 +352,7 @@ export function OperationsReportPage() {
             <Card>
               <CardContent className="pt-6">
                 <div>
-                  <p className="text-sm text-muted-foreground">Thời gian xử lý TB</p>
+                  <p className="text-sm text-muted-foreground">{t('operations.efficiency.avgProcessingTime')}</p>
                   <p className="text-2xl font-bold">{efficiencyMetrics.avg_processing_time}h</p>
                 </div>
               </CardContent>
@@ -359,7 +361,7 @@ export function OperationsReportPage() {
             <Card>
               <CardContent className="pt-6">
                 <div>
-                  <p className="text-sm text-muted-foreground">Đúng hạn</p>
+                  <p className="text-sm text-muted-foreground">{t('operations.efficiency.onTime')}</p>
                   <p className="text-2xl font-bold text-green-600">{efficiencyMetrics.on_time_delivery_rate}%</p>
                 </div>
               </CardContent>
@@ -368,7 +370,7 @@ export function OperationsReportPage() {
             <Card>
               <CardContent className="pt-6">
                 <div>
-                  <p className="text-sm text-muted-foreground">Tỷ lệ lỗi</p>
+                  <p className="text-sm text-muted-foreground">{t('operations.efficiency.errorRate')}</p>
                   <p className="text-2xl font-bold text-red-600">{efficiencyMetrics.error_rate}%</p>
                 </div>
               </CardContent>
@@ -377,7 +379,7 @@ export function OperationsReportPage() {
             <Card>
               <CardContent className="pt-6">
                 <div>
-                  <p className="text-sm text-muted-foreground">Năng suất nhân viên</p>
+                  <p className="text-sm text-muted-foreground">{t('operations.efficiency.staffProductivity')}</p>
                   <p className="text-2xl font-bold">{efficiencyMetrics.staff_productivity}%</p>
                 </div>
               </CardContent>

@@ -208,5 +208,21 @@
     "phoneInvalid": "Invalid phone number",
     "emailInvalid": "Invalid email",
     "contactMin": "Contact person name must be at least 2 characters"
+  },
+  "vendorList": {
+    "title": "Laundry Vendors",
+    "description": "Manage laundry service providers",
+    "addVendor": "Add Vendor",
+    "searchPlaceholder": "Search name, address...",
+    "typePlaceholder": "Type",
+    "statusPlaceholder": "Status",
+    "typeAll": "All",
+    "typeExternal": "External",
+    "typeInHouse": "In-house",
+    "statusAll": "All",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "emptyTitle": "No laundry vendors yet",
+    "emptyDescription": "Add laundry vendors to get started"
   }
 }

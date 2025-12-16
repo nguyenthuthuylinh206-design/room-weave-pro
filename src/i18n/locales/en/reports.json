@@ -80,5 +80,55 @@
     "developing": "Feature under development",
     "comingSoon": "Custom report creation will be available soon"
   },
-  "tip": "Tip"
+  "tip": "Tip",
+  "operations": {
+    "pageTitle": "Operations Report",
+    "pageDescription": "Analyze inbound/outbound transactions and stocktakes",
+    "back": "Back",
+    "exportPdf": "Export PDF",
+    "exportExcel": "Export Excel",
+    "reportPeriod": "Report Period:",
+    "tabs": {
+      "transactions": "Transactions",
+      "stocktake": "Stocktake",
+      "efficiency": "Efficiency"
+    },
+    "stats": {
+      "inbound": "Inbound",
+      "outbound": "Outbound",
+      "totalTransactions": "Total TXs",
+      "transactions": "transactions",
+      "netChange": "Net Change",
+      "inPeriod": "in period"
+    },
+    "chart": {
+      "title": "Monthly Transaction Trend",
+      "inbound": "Inbound",
+      "outbound": "Outbound",
+      "adjustment": "Adjustment"
+    },
+    "topItems": {
+      "title": "Top Items by Turnover",
+      "rank": "#",
+      "item": "Item",
+      "inbound": "In",
+      "outbound": "Out",
+      "turnover": "Turnover",
+      "trend": "Trend"
+    },
+    "stocktake": {
+      "checkCount": "Stocktake Count",
+      "itemsChecked": "Items Checked",
+      "accuracy": "Accuracy Rate",
+      "adjustmentValue": "Adjustment Value",
+      "recentResults": "Recent Stocktake Results",
+      "noData": "Stocktake data will be displayed here"
+    },
+    "efficiency": {
+      "avgProcessingTime": "Avg Processing Time",
+      "onTime": "On Time",
+      "errorRate": "Error Rate",
+      "staffProductivity": "Staff Productivity"
+    }
+  }
 }

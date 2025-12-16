@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
@@ -11,15 +12,14 @@ import { MobileMaintenanceRequestList } from '@/components/maintenance/MobileMai
 import { useBreakpoint } from '@/lib/breakpoints'
 
 export default function MaintenanceRequestList() {
+  const { t } = useTranslation('maintenance')
   const navigate = useNavigate()
   const { isMobile } = useBreakpoint()
   const [tab, setTab] = useState('all')
   const [filters, setFilters] = useState({})
   
-  // Fetch all requests for counting (without status filter)
   const { data: allRequests } = useMaintenanceRequests(filters)
   
-  // Calculate counts from all requests (fixed values)
   const counts = {
     all: allRequests?.length || 0,
     waiting: allRequests?.filter((r: any) => r.status === 'waiting').length || 0,
@@ -29,7 +29,6 @@ export default function MaintenanceRequestList() {
     cancelled: allRequests?.filter((r: any) => r.status === 'cancelled').length || 0,
   }
 
-  // Filter for display based on selected tab
   const filteredRequests = tab === 'all' 
     ? allRequests 
     : allRequests?.filter((r: any) => r.status === tab)
@@ -41,10 +40,10 @@ export default function MaintenanceRequestList() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Yêu cầu bảo trì"
-        description="Quản lý tất cả yêu cầu bảo trì"
+        title={t('list.title')}
+        description={t('list.description')}
         action={{
-          label: 'Tạo yêu cầu',
+          label: t('list.createRequest'),
           icon: Plus,
           onClick: () => navigate('/maintenance/requests/new'),
         }}
@@ -52,12 +51,12 @@ export default function MaintenanceRequestList() {
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          <TabsTrigger value="all">Tất cả ({counts.all})</TabsTrigger>
-          <TabsTrigger value="waiting">Đang chờ ({counts.waiting})</TabsTrigger>
-          <TabsTrigger value="pending">Tiếp nhận ({counts.pending})</TabsTrigger>
-          <TabsTrigger value="in_progress">Đang kiểm tra ({counts.in_progress})</TabsTrigger>
-          <TabsTrigger value="completed">Hoàn thành ({counts.completed})</TabsTrigger>
-          <TabsTrigger value="cancelled">Đã hủy ({counts.cancelled})</TabsTrigger>
+          <TabsTrigger value="all">{t('list.tabs.all')} ({counts.all})</TabsTrigger>
+          <TabsTrigger value="waiting">{t('list.tabs.waiting')} ({counts.waiting})</TabsTrigger>
+          <TabsTrigger value="pending">{t('list.tabs.pending')} ({counts.pending})</TabsTrigger>
+          <TabsTrigger value="in_progress">{t('list.tabs.inProgress')} ({counts.in_progress})</TabsTrigger>
+          <TabsTrigger value="completed">{t('list.tabs.completed')} ({counts.completed})</TabsTrigger>
+          <TabsTrigger value="cancelled">{t('list.tabs.cancelled')} ({counts.cancelled})</TabsTrigger>
         </TabsList>
 
         <div className="mt-4">

@@ -122,5 +122,38 @@
     "titleRequired": "Please enter a title",
     "descriptionRequired": "Please enter a description",
     "locationRequired": "Please enter a location"
+  },
+  "list": {
+    "title": "Maintenance Requests",
+    "description": "Manage all maintenance requests",
+    "createRequest": "Create Request",
+    "tabs": {
+      "all": "All",
+      "waiting": "Waiting",
+      "pending": "Received",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "dashboard": {
+    "title": "Maintenance Management",
+    "description": "Track and handle maintenance requests",
+    "schedule": "Schedule",
+    "reports": "Reports",
+    "createRequest": "Create Request",
+    "quickActions": "Quick Actions",
+    "recentCompletions": "Recent Completions",
+    "cost": "Cost",
+    "actions": {
+      "createNew": "Create New Request",
+      "createNewDesc": "Report maintenance issues",
+      "schedule": "Schedule Maintenance",
+      "scheduleDesc": "Periodic maintenance",
+      "viewReports": "View Reports",
+      "viewReportsDesc": "Analytics & statistics",
+      "manageTech": "Manage Technicians",
+      "manageTechDesc": "Assign work"
+    }
   }
 }

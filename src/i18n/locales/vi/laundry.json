@@ -208,5 +208,21 @@
     "phoneInvalid": "Số điện thoại không hợp lệ",
     "emailInvalid": "Email không hợp lệ",
     "contactMin": "Tên người liên hệ phải có ít nhất 2 ký tự"
+  },
+  "vendorList": {
+    "title": "Đơn vị giặt là",
+    "description": "Quản lý các đơn vị giặt là",
+    "addVendor": "Thêm đơn vị",
+    "searchPlaceholder": "Tìm tên, địa chỉ...",
+    "typePlaceholder": "Loại",
+    "statusPlaceholder": "Trạng thái",
+    "typeAll": "Tất cả",
+    "typeExternal": "Ngoài",
+    "typeInHouse": "Nội bộ",
+    "statusAll": "Tất cả",
+    "statusActive": "Hoạt động",
+    "statusInactive": "Tạm ngưng",
+    "emptyTitle": "Chưa có đơn vị giặt",
+    "emptyDescription": "Thêm đơn vị giặt để bắt đầu quản lý"
   }
 }

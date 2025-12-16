@@ -122,5 +122,38 @@
     "titleRequired": "Vui lòng nhập tiêu đề",
     "descriptionRequired": "Vui lòng nhập mô tả",
     "locationRequired": "Vui lòng nhập vị trí"
+  },
+  "list": {
+    "title": "Yêu cầu bảo trì",
+    "description": "Quản lý tất cả yêu cầu bảo trì",
+    "createRequest": "Tạo yêu cầu",
+    "tabs": {
+      "all": "Tất cả",
+      "waiting": "Đang chờ",
+      "pending": "Tiếp nhận",
+      "inProgress": "Đang kiểm tra",
+      "completed": "Hoàn thành",
+      "cancelled": "Đã hủy"
+    }
+  },
+  "dashboard": {
+    "title": "Quản lý Bảo trì",
+    "description": "Theo dõi và xử lý các yêu cầu bảo trì",
+    "schedule": "Lịch bảo trì",
+    "reports": "Báo cáo",
+    "createRequest": "Tạo yêu cầu",
+    "quickActions": "Thao tác nhanh",
+    "recentCompletions": "Hoàn thành gần đây",
+    "cost": "Chi phí",
+    "actions": {
+      "createNew": "Tạo yêu cầu mới",
+      "createNewDesc": "Báo cáo sự cố bảo trì",
+      "schedule": "Lên lịch bảo trì",
+      "scheduleDesc": "Bảo trì định kỳ",
+      "viewReports": "Xem báo cáo",
+      "viewReportsDesc": "Phân tích & thống kê",
+      "manageTech": "Quản lý thợ",
+      "manageTechDesc": "Phân công công việc"
+    }
   }
 }

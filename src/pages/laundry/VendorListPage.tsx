@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Plus, Grid3x3, List, Search, Star } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -19,6 +20,7 @@ import { useLaundryVendors } from '@/hooks/useLaundryVendors'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export function VendorListPage() {
+  const { t } = useTranslation('laundry')
   const { isMobile } = useBreakpoint()
   const navigate = useNavigate()
   const [view, setView] = useState<'grid' | 'list'>('grid')
@@ -45,10 +47,10 @@ export function VendorListPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Đơn vị giặt là"
-        description="Quản lý các đơn vị giặt là"
+        title={t('vendorList.title')}
+        description={t('vendorList.description')}
         action={{
-          label: 'Thêm đơn vị',
+          label: t('vendorList.addVendor'),
           icon: Plus,
           onClick: () => navigate('/laundry/vendors/new'),
         }}
@@ -59,7 +61,7 @@ export function VendorListPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Tìm tên, địa chỉ..."
+              placeholder={t('vendorList.searchPlaceholder')}
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
               className="pl-10"
@@ -71,12 +73,12 @@ export function VendorListPage() {
             onValueChange={(value) => setFilters({ ...filters, type: value })}
           >
             <SelectTrigger className="w-40">
-              <SelectValue placeholder="Loại" />
+              <SelectValue placeholder={t('vendorList.typePlaceholder')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả</SelectItem>
-              <SelectItem value="external">Ngoài</SelectItem>
-              <SelectItem value="in_house">Nội bộ</SelectItem>
+              <SelectItem value="all">{t('vendorList.typeAll')}</SelectItem>
+              <SelectItem value="external">{t('vendorList.typeExternal')}</SelectItem>
+              <SelectItem value="in_house">{t('vendorList.typeInHouse')}</SelectItem>
             </SelectContent>
           </Select>
           
@@ -85,12 +87,12 @@ export function VendorListPage() {
             onValueChange={(value) => setFilters({ ...filters, status: value })}
           >
             <SelectTrigger className="w-40">
-              <SelectValue placeholder="Trạng thái" />
+              <SelectValue placeholder={t('vendorList.statusPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả</SelectItem>
-              <SelectItem value="active">Hoạt động</SelectItem>
-              <SelectItem value="inactive">Tạm ngưng</SelectItem>
+              <SelectItem value="all">{t('vendorList.statusAll')}</SelectItem>
+              <SelectItem value="active">{t('vendorList.statusActive')}</SelectItem>
+              <SelectItem value="inactive">{t('vendorList.statusInactive')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -139,13 +141,13 @@ export function VendorListPage() {
       ) : (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <Star className="h-12 w-12 text-muted-foreground/50" />
-          <h3 className="mt-4 text-lg font-semibold">Chưa có đơn vị giặt</h3>
+          <h3 className="mt-4 text-lg font-semibold">{t('vendorList.emptyTitle')}</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            Thêm đơn vị giặt để bắt đầu quản lý
+            {t('vendorList.emptyDescription')}
           </p>
           <Button onClick={() => navigate('/laundry/vendors/new')} className="mt-4">
             <Plus className="mr-2 h-4 w-4" />
-            Thêm đơn vị
+            {t('vendorList.addVendor')}
           </Button>
         </div>
       )}
