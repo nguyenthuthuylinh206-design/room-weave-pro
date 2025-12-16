@@ -94,7 +94,7 @@ export function useCreateLaundryBatch() {
       const itemIds = step2.items.map(i => i.item_id)
       const { data: stockItems, error: stockError } = await supabase
         .from('items')
-        .select('id, code, name, quantity_in_stock, unit')
+        .select('id, code, name, quantity_in_stock, quantity_in_laundry, unit')
         .in('id', itemIds)
       
       if (stockError) throw stockError
@@ -172,7 +172,25 @@ export function useCreateLaundryBatch() {
       
       if (itemsError) throw itemsError
       
-      // 3. Create notification
+      // 3. Update inventory - trừ quantity_in_stock, tăng quantity_in_laundry
+      for (const item of step2.items) {
+        const stockItem = stockItems?.find(s => s.id === item.item_id)
+        if (stockItem) {
+          const { error: updateError } = await supabase
+            .from('items')
+            .update({
+              quantity_in_stock: Math.max(0, (stockItem.quantity_in_stock || 0) - item.quantity),
+              quantity_in_laundry: ((stockItem as any).quantity_in_laundry || 0) + item.quantity,
+            })
+            .eq('id', item.item_id)
+          
+          if (updateError) {
+            console.error('Error updating item inventory:', updateError)
+          }
+        }
+      }
+      
+      // 4. Create notification
       await supabase
         .from('notifications')
         .insert({
@@ -192,6 +210,7 @@ export function useCreateLaundryBatch() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['laundry-batches'] })
       queryClient.invalidateQueries({ queryKey: ['laundry-dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['items'] }) // Cập nhật inventory
       toast({
         title: 'Thành công',
         description: 'Đã tạo lô giặt mới',
@@ -576,7 +595,27 @@ export function useStockInFromLaundry() {
         if (damagedError) throw damagedError
       }
       
-      // 8. CẬP NHẬT STATUS BATCH
+      // 8. TRỪNG quantity_in_laundry CHO TẤT CẢ ITEMS ĐÃ XỬ LÝ
+      for (const item of items) {
+        const totalProcessed = (item.quantity_returned || 0) + (item.quantity_lost || 0) + (item.quantity_damaged || 0)
+        if (totalProcessed > 0) {
+          // Lấy quantity_in_laundry hiện tại
+          const { data: currentItem } = await supabase
+            .from('items')
+            .select('quantity_in_laundry')
+            .eq('id', item.item_id)
+            .single()
+          
+          const newLaundryQty = Math.max(0, (currentItem?.quantity_in_laundry || 0) - totalProcessed)
+          
+          await supabase
+            .from('items')
+            .update({ quantity_in_laundry: newLaundryQty })
+            .eq('id', item.item_id)
+        }
+      }
+      
+      // 9. CẬP NHẬT STATUS BATCH
       const { error: updateError } = await supabase
         .from('laundry_batches')
         .update({ status: 'stocked' })
@@ -585,7 +624,7 @@ export function useStockInFromLaundry() {
       
       if (updateError) throw updateError
       
-      // Tạo notification
+      // 10. Tạo notification
       await supabase.from('notifications').insert({
         tenant_id: tenant.id,
         user_id: user.id,
