@@ -1,24 +1,69 @@
 {
-  "title": "Reports",
+  "title": "Reports & Statistics",
   "description": "View and download statistical reports",
   "view": "View",
   "download": "Download",
+  "refresh": "Refresh",
+  "exportAll": "Export all",
+  "dataRefreshed": "Report data refreshed",
+  "selectReportType": "Select report type",
+  "selectReportTypeDesc": "Click to view detailed reports",
+  "reportTypes": "report types",
+  "viewReport": "View report",
+  "allHotels": "All hotels summary",
+  "hotel": "Hotel",
+  "notSelected": "Not selected",
+  "stats": {
+    "totalItems": "Total Items",
+    "totalItemsDesc": "Number of items in stock",
+    "inStock": "In Stock",
+    "inStockDesc": "Available items",
+    "lowStock": "Low Stock",
+    "lowStockDesc": "Need replenishment",
+    "activeBatches": "Active Batches",
+    "activeBatchesDesc": "Pending or in laundry"
+  },
+  "quickReport": {
+    "title": "Quick Report",
+    "description": "Summary by time period",
+    "today": "Today",
+    "week": "This week",
+    "month": "This month"
+  },
   "types": {
     "inventory": {
       "title": "Inventory Report",
-      "description": "Stock status and asset movements"
+      "description": "Stock status, turnover, ABC analysis",
+      "stats": ["Total value", "Turnover", "Alerts"]
+    },
+    "financial": {
+      "title": "Financial Report",
+      "description": "Operating costs, asset value, ROI, cost comparison",
+      "stats": ["Revenue", "Expenses", "Profit"]
+    },
+    "operations": {
+      "title": "Operations Report",
+      "description": "Inbound/outbound transactions, audits, activity history",
+      "stats": ["Inbound", "Outbound", "Adjustments"]
+    },
+    "laundry": {
+      "title": "Laundry Report",
+      "description": "Laundry costs, efficiency, vendor evaluation",
+      "stats": ["Batches", "Cost", "Rating"]
+    },
+    "rooms": {
+      "title": "Room Report",
+      "description": "Usage status, missing items, inspection history",
+      "stats": ["Total rooms", "In use", "Maintenance"]
+    },
+    "maintenance": {
+      "title": "Maintenance Report",
+      "description": "Maintenance requests, repair costs, processing time",
+      "stats": ["Requests", "Completed", "Cost"]
     },
     "expenses": {
       "title": "Expense Report",
       "description": "Summary of laundry and maintenance costs"
-    },
-    "laundry": {
-      "title": "Laundry Report",
-      "description": "Statistics on laundry batches and vendors"
-    },
-    "rooms": {
-      "title": "Room Report",
-      "description": "Room status and assets by room"
     },
     "performance": {
       "title": "Performance Report",
@@ -30,9 +75,10 @@
     }
   },
   "custom": {
-    "title": "Create Custom Report",
+    "title": "Select report type",
     "description": "Select parameters to create a report based on your needs",
     "developing": "Feature under development",
     "comingSoon": "Custom report creation will be available soon"
-  }
+  },
+  "tip": "Tip"
 }

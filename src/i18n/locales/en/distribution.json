@@ -1,0 +1,38 @@
+{
+  "title": "Distribution Orders",
+  "description": "Manage item distribution from warehouse to rooms",
+  "createNew": "Create new",
+  "createOrder": "Create distribution order",
+  "createNewOrder": "Create new order",
+  "searchCode": "Search order code...",
+  "loading": "Loading...",
+  "noOrders": "No distribution orders yet",
+  "showing": "Showing",
+  "of": "/",
+  "orders": "orders",
+  "previous": "Previous",
+  "next": "Next",
+  "status": {
+    "all": "All statuses",
+    "allShort": "All",
+    "pending": "Pending",
+    "in_progress": "In progress",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "table": {
+    "code": "Order code",
+    "status": "Status",
+    "progress": "Progress",
+    "items": "Items",
+    "assignee": "Assignee",
+    "creator": "Creator",
+    "createdAt": "Created at"
+  },
+  "card": {
+    "rooms": "Rooms",
+    "items": "Items",
+    "assignee": "Assigned",
+    "notAssigned": "Not assigned"
+  }
+}
