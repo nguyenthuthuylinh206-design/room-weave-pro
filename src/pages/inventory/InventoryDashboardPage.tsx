@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { 
   DollarSign, 
   Package, 
@@ -33,6 +34,7 @@ function formatCurrency(amount: number) {
 }
 
 export function InventoryDashboardPage() {
+  const { t } = useTranslation('inventory')
   const navigate = useNavigate()
   const { isMobile } = useBreakpoint()
   const [showInboundDialog, setShowInboundDialog] = useState(false)
@@ -48,21 +50,21 @@ export function InventoryDashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Quản lý Kho"
-        description="Theo dõi và quản lý tồn kho, nhập xuất hàng"
+        title={t('title')}
+        description={t('dashboard')}
       />
       
       {/* Stats Cards - Row 1 */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <DashboardStatCard
-          title="Tổng giá trị kho"
+          title={t('stats.totalStockValue')}
           value={stats ? formatCurrency(stats.total_stock_value) : '0 ₫'}
           icon={DollarSign}
           change={
             stats?.stock_value_change_percent
               ? {
                   value: stats.stock_value_change_percent,
-                  label: 'so với tháng trước',
+                  label: t('stats.vsLastMonth'),
                 }
               : undefined
           }
@@ -70,23 +72,23 @@ export function InventoryDashboardPage() {
         />
         
         <DashboardStatCard
-          title="Tổng số items"
+          title={t('stats.totalItems')}
           value={stats ? stats.total_items_count.toString() : '0'}
           icon={Package}
           description={
-            stats ? `${stats.total_product_types} loại sản phẩm` : undefined
+            stats ? `${stats.total_product_types} ${t('stats.productTypes')}` : undefined
           }
           isLoading={isLoading}
         />
         
         <DashboardStatCard
-          title="Cảnh báo tồn kho thấp"
+          title={t('stats.lowStockAlert')}
           value={stats ? stats.low_stock_count.toString() : '0'}
           icon={AlertTriangle}
           description={
             stats && stats.low_stock_count > 0
-              ? 'Cần kiểm tra ngay'
-              : 'Tồn kho ổn định'
+              ? t('stats.checkNow')
+              : t('stats.stockStable')
           }
           isLoading={isLoading}
           onClick={() => {
@@ -99,34 +101,34 @@ export function InventoryDashboardPage() {
       {/* Stats Cards - Row 2 */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <DashboardStatCard
-          title="Cần đặt hàng lại"
+          title={t('stats.reorderNeeded')}
           value={stats ? stats.reorder_needed_count.toString() : '0'}
           icon={ShoppingCart}
-          description="Items dưới điểm đặt hàng"
+          description={t('stats.itemsBelowReorder')}
           isLoading={isLoading}
         />
         
         <DashboardStatCard
-          title="Giao dịch hôm nay"
+          title={t('stats.todayTransactions')}
           value={stats ? stats.today_transactions.total.toString() : '0'}
           icon={ArrowRightLeft}
           description={
             stats
-              ? `${stats.today_transactions.out} xuất, ${stats.today_transactions.in} nhập`
+              ? `${stats.today_transactions.out} ${t('transactionType.out')}, ${stats.today_transactions.in} ${t('transactionType.in')}`
               : undefined
           }
           isLoading={isLoading}
         />
         
         <DashboardStatCard
-          title="Giá trị nhập tháng này"
+          title={t('stats.inboundValueThisMonth')}
           value={stats ? formatCurrency(stats.value_in_this_month) : '0 ₫'}
           icon={TrendingUp}
           change={
             stats?.inbound_change_percent
               ? {
                   value: stats.inbound_change_percent,
-                  label: 'so với tháng trước',
+                  label: t('stats.vsLastMonth'),
                 }
               : undefined
           }
@@ -137,7 +139,7 @@ export function InventoryDashboardPage() {
       {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Thao tác nhanh</CardTitle>
+          <CardTitle>{t('quickActions.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -146,7 +148,7 @@ export function InventoryDashboardPage() {
               onClick={() => setShowInboundDialog(true)}
             >
               <Download className="mr-2 h-4 w-4" />
-              Nhập kho
+              {t('inbound.title')}
             </Button>
             <Button
               className="w-full"
@@ -154,7 +156,7 @@ export function InventoryDashboardPage() {
               onClick={() => setShowOutboundDialog(true)}
             >
               <Upload className="mr-2 h-4 w-4" />
-              Xuất kho
+              {t('outbound.title')}
             </Button>
             <Button
               className="w-full"
@@ -162,7 +164,7 @@ export function InventoryDashboardPage() {
               onClick={() => navigate('/inventory/adjustments')}
             >
               <ClipboardCheck className="mr-2 h-4 w-4" />
-              Kiểm kê
+              {t('adjustment.title')}
             </Button>
             <Button
               className="w-full"
@@ -170,7 +172,7 @@ export function InventoryDashboardPage() {
               onClick={() => navigate('/inventory/transactions')}
             >
               <FileText className="mr-2 h-4 w-4" />
-              Xem giao dịch
+              {t('quickActions.viewTransactions')}
             </Button>
             <Button
               className="w-full"
@@ -178,7 +180,7 @@ export function InventoryDashboardPage() {
               onClick={() => navigate('/items')}
             >
               <Package className="mr-2 h-4 w-4" />
-              Quản lý Items
+              {t('quickActions.manageItems')}
             </Button>
           </div>
         </CardContent>

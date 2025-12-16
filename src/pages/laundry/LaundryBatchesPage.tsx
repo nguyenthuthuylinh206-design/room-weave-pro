@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Plus, Download, Eye, Filter } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -38,6 +39,7 @@ import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard'
 import { Package, Clock, CheckCircle } from 'lucide-react'
 
 export function LaundryBatchesPage() {
+  const { t } = useTranslation('laundry')
   const { isMobile } = useBreakpoint()
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
@@ -89,17 +91,17 @@ export function LaundryBatchesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Quản lý lô giặt"
-        description="Quản lý tất cả các lô giặt"
+        title={t('batches.title')}
+        description={t('batches.list')}
       >
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleExport}>
             <Download className="mr-2 h-4 w-4" />
-            Xuất Excel
+            {t('actions.exportExcel')}
           </Button>
           <Button onClick={() => navigate('/laundry/batches/new')}>
             <Plus className="mr-2 h-4 w-4" />
-            Tạo lô giặt mới
+            {t('batches.new')}
           </Button>
         </div>
       </PageHeader>
@@ -107,52 +109,52 @@ export function LaundryBatchesPage() {
       {/* Quick Stats */}
       <div className="grid gap-4 md:grid-cols-3">
         <DashboardStatCard
-          title="Tổng lô giặt"
+          title={t('stats.totalBatches')}
           value={totalBatches}
           icon={Package}
-          description="Tổng số lô giặt"
+          description={t('stats.totalBatchesDesc')}
         />
         <DashboardStatCard
-          title="Đang xử lý"
+          title={t('stats.inProgress')}
           value={inProgress}
           icon={Clock}
-          description="Lô đang giặt"
+          description={t('stats.inProgressDesc')}
         />
         <DashboardStatCard
-          title="Hoàn thành tháng này"
+          title={t('stats.completedThisMonth')}
           value={completedThisMonth}
           icon={CheckCircle}
-          description="Đã nhận về"
+          description={t('stats.completedThisMonthDesc')}
         />
       </div>
       
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Danh sách lô giặt</CardTitle>
+            <CardTitle>{t('batches.list')}</CardTitle>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
             >
               <Filter className="mr-2 h-4 w-4" />
-              {showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'}
+              {showFilters ? t('filters.hideFilters') : t('filters.showFilters')}
             </Button>
           </div>
           
           {showFilters && (
             <div className="grid gap-4 md:grid-cols-3 mt-4">
               <div>
-                <label className="text-sm font-medium mb-1 block">Tìm kiếm</label>
+                <label className="text-sm font-medium mb-1 block">{t('filters.search')}</label>
                 <Input
-                  placeholder="Mã lô giặt..."
+                  placeholder={t('filters.searchPlaceholder')}
                   value={filters.search}
                   onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                 />
               </div>
               
               <div>
-                <label className="text-sm font-medium mb-1 block">Đơn vị giặt</label>
+                <label className="text-sm font-medium mb-1 block">{t('fields.vendor')}</label>
                 <VendorSelect
                   value={filters.vendorId}
                   onChange={(value) => setFilters({ ...filters, vendorId: value })}
@@ -160,21 +162,21 @@ export function LaundryBatchesPage() {
               </div>
               
               <div>
-                <label className="text-sm font-medium mb-1 block">Trạng thái</label>
+                <label className="text-sm font-medium mb-1 block">{t('fields.status')}</label>
                 <Select
                   value={filters.status}
                   onValueChange={(value) => setFilters({ ...filters, status: value as any })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Tất cả" />
+                    <SelectValue placeholder={t('filters.all')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Tất cả</SelectItem>
-                    <SelectItem value="delivered">Đã giao</SelectItem>
-                    <SelectItem value="washing">Đang giặt</SelectItem>
-                    <SelectItem value="ready">Sẵn sàng</SelectItem>
-                    <SelectItem value="received">Đã nhận</SelectItem>
-                    <SelectItem value="cancelled">Đã hủy</SelectItem>
+                    <SelectItem value="">{t('filters.all')}</SelectItem>
+                    <SelectItem value="delivered">{t('status.sent')}</SelectItem>
+                    <SelectItem value="washing">{t('status.processing')}</SelectItem>
+                    <SelectItem value="ready">{t('status.ready')}</SelectItem>
+                    <SelectItem value="received">{t('status.received')}</SelectItem>
+                    <SelectItem value="cancelled">{t('status.cancelled')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -183,10 +185,10 @@ export function LaundryBatchesPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8">Đang tải...</div>
+            <div className="text-center py-8">{t('common:loading')}</div>
           ) : batches.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Không tìm thấy lô giặt nào
+              {t('messages.noBatches')}
             </div>
           ) : (
             <>
@@ -194,13 +196,13 @@ export function LaundryBatchesPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Mã lô</TableHead>
-                      <TableHead>Đơn vị giặt</TableHead>
-                      <TableHead>Ngày giao</TableHead>
-                      <TableHead>Ngày nhận dự kiến</TableHead>
-                      <TableHead className="text-center">Số items</TableHead>
-                      <TableHead className="text-right">Chi phí</TableHead>
-                      <TableHead>Trạng thái</TableHead>
+                      <TableHead>{t('fields.batchCode')}</TableHead>
+                      <TableHead>{t('fields.vendor')}</TableHead>
+                      <TableHead>{t('fields.deliveryDate')}</TableHead>
+                      <TableHead>{t('fields.expectedReturnDate')}</TableHead>
+                      <TableHead className="text-center">{t('fields.totalItems')}</TableHead>
+                      <TableHead className="text-right">{t('fields.estimatedCost')}</TableHead>
+                      <TableHead>{t('fields.status')}</TableHead>
                       <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>

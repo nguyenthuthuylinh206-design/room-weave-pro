@@ -1,6 +1,6 @@
 {
   "title": "Maintenance Management",
-  "dashboard": "Maintenance Dashboard",
+  "dashboard": "Manage maintenance requests",
   "requests": {
     "title": "Maintenance Requests",
     "list": "Request List",

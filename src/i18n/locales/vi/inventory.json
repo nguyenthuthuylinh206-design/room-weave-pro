@@ -1,6 +1,6 @@
 {
   "title": "Quản lý Kho",
-  "dashboard": "Tổng quan kho",
+  "dashboard": "Theo dõi và quản lý tồn kho, nhập xuất hàng",
   "transactions": "Giao dịch kho",
   "inbound": {
     "title": "Nhập kho",
@@ -67,5 +67,23 @@
     "byDate": "Theo ngày",
     "byItem": "Theo tài sản",
     "search": "Tìm kiếm giao dịch..."
+  },
+  "stats": {
+    "totalStockValue": "Tổng giá trị kho",
+    "totalItems": "Tổng số items",
+    "productTypes": "loại sản phẩm",
+    "lowStockAlert": "Cảnh báo tồn kho thấp",
+    "checkNow": "Cần kiểm tra ngay",
+    "stockStable": "Tồn kho ổn định",
+    "reorderNeeded": "Cần đặt hàng lại",
+    "itemsBelowReorder": "Items dưới điểm đặt hàng",
+    "todayTransactions": "Giao dịch hôm nay",
+    "inboundValueThisMonth": "Giá trị nhập tháng này",
+    "vsLastMonth": "so với tháng trước"
+  },
+  "quickActions": {
+    "title": "Thao tác nhanh",
+    "viewTransactions": "Xem giao dịch",
+    "manageItems": "Quản lý Items"
   }
 }

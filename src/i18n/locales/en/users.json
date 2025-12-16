@@ -1,11 +1,17 @@
 {
-  "title": "User Management",
+  "title": "User & Permission Management",
+  "description": "Manage users, roles and access permissions",
   "list": "User List",
   "addNew": "Add New User",
   "editUser": "Edit User",
   "viewUser": "User Details",
   "profile": "Profile",
   "changePassword": "Change Password",
+  "tabs": {
+    "users": "Users",
+    "roles": "Roles",
+    "permissions": "Permission Config"
+  },
   "fields": {
     "fullName": "Full Name",
     "email": "Email",

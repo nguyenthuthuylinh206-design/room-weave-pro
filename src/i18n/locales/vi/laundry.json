@@ -1,58 +1,71 @@
 {
   "title": "Quản lý Giặt là",
-  "dashboard": "Tổng quan giặt là",
+  "dashboard": "Dashboard Giặt là",
   "batches": {
-    "title": "Lô giặt",
+    "title": "Quản lý lô giặt",
     "list": "Danh sách lô giặt",
     "new": "Tạo lô giặt mới",
     "detail": "Chi tiết lô giặt"
   },
   "vendors": {
-    "title": "Nhà cung cấp giặt là",
-    "list": "Danh sách NCC",
-    "new": "Thêm NCC mới"
+    "title": "Đơn vị giặt là",
+    "list": "Danh sách đơn vị",
+    "new": "Thêm đơn vị mới"
   },
   "fields": {
     "batchCode": "Mã lô",
-    "vendor": "Nhà cung cấp",
-    "deliveryDate": "Ngày gửi",
-    "expectedReturnDate": "Ngày dự kiến nhận",
+    "vendor": "Đơn vị giặt",
+    "deliveryDate": "Ngày giao",
+    "expectedReturnDate": "Ngày nhận dự kiến",
     "actualReturnDate": "Ngày nhận thực tế",
-    "totalItems": "Tổng số lượng",
-    "totalWeight": "Tổng trọng lượng",
+    "totalItems": "Số items",
+    "totalWeight": "Tổng khối lượng",
     "estimatedCost": "Chi phí ước tính",
     "actualCost": "Chi phí thực tế",
     "status": "Trạng thái",
     "notes": "Ghi chú"
   },
   "status": {
-    "pending": "Chờ gửi",
-    "sent": "Đã gửi",
+    "pending": "Chờ xử lý",
+    "sent": "Đã giao",
     "processing": "Đang giặt",
-    "ready": "Sẵn sàng nhận",
+    "ready": "Sẵn sàng",
     "received": "Đã nhận",
-    "completed": "Hoàn thành"
+    "completed": "Hoàn thành",
+    "cancelled": "Đã hủy"
   },
   "actions": {
-    "send": "Gửi giặt",
-    "receive": "Nhận hàng",
+    "send": "Gửi đi giặt",
+    "receive": "Nhận hàng về",
     "complete": "Hoàn thành",
-    "cancel": "Hủy lô"
+    "cancel": "Hủy lô giặt",
+    "exportExcel": "Xuất Excel"
   },
   "messages": {
-    "createSuccess": "Tạo lô giặt thành công",
-    "updateSuccess": "Cập nhật lô giặt thành công",
+    "createSuccess": "Đã tạo lô giặt thành công",
+    "updateSuccess": "Đã cập nhật lô giặt",
     "sendSuccess": "Đã gửi lô giặt",
-    "receiveSuccess": "Đã nhận hàng",
-    "completeSuccess": "Hoàn thành lô giặt",
+    "receiveSuccess": "Đã nhận hàng về",
+    "completeSuccess": "Lô giặt đã hoàn thành",
     "cancelSuccess": "Đã hủy lô giặt",
-    "noBatches": "Chưa có lô giặt nào"
+    "noBatches": "Không tìm thấy lô giặt nào"
   },
   "filters": {
     "all": "Tất cả",
     "byStatus": "Theo trạng thái",
-    "byVendor": "Theo NCC",
+    "byVendor": "Theo đơn vị",
     "byDate": "Theo ngày",
-    "search": "Tìm kiếm lô giặt..."
+    "search": "Tìm kiếm lô giặt...",
+    "searchPlaceholder": "Mã lô giặt...",
+    "showFilters": "Hiện bộ lọc",
+    "hideFilters": "Ẩn bộ lọc"
+  },
+  "stats": {
+    "totalBatches": "Tổng lô giặt",
+    "totalBatchesDesc": "Tổng số lô giặt",
+    "inProgress": "Đang xử lý",
+    "inProgressDesc": "Lô đang giặt",
+    "completedThisMonth": "Hoàn thành tháng này",
+    "completedThisMonthDesc": "Đã nhận về"
   }
 }

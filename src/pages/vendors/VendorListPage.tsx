@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useVendors, useVendorStats } from '@/hooks/useVendors';
 import { VendorFilters as VendorFiltersType } from '@/types/vendor.types';
 import { VendorCard } from '@/components/vendors/VendorCard';
@@ -15,6 +16,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 type ViewMode = 'grid' | 'list';
 
 export function VendorListPage() {
+  const { t } = useTranslation('vendors');
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [selectedTab, setSelectedTab] = useState<string>('all');
@@ -51,28 +53,28 @@ export function VendorListPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Nhà cung cấp"
-        description="Quản lý thông tin và hiệu suất nhà cung cấp"
+        title={t('title')}
+        description={t('description', 'Quản lý thông tin và hiệu suất nhà cung cấp')}
       >
         <Button onClick={() => navigate('/vendors/new')}>
           <Plus className="w-4 h-4 mr-2" />
-          Thêm nhà cung cấp
+          {t('addNew')}
         </Button>
       </PageHeader>
 
       <Tabs value={selectedTab} onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="all">
-            Tất cả ({stats?.total_vendors || 0})
+            {t('filters.all')} ({stats?.total_vendors || 0})
           </TabsTrigger>
           <TabsTrigger value="supplier">
-            Nhà cung cấp ({vendors?.filter(v => v.category === 'supplier').length || 0})
+            {t('category.supplier')} ({vendors?.filter(v => v.category === 'supplier').length || 0})
           </TabsTrigger>
           <TabsTrigger value="service_provider">
-            Dịch vụ ({vendors?.filter(v => v.category === 'service_provider').length || 0})
+            {t('category.serviceProvider')} ({vendors?.filter(v => v.category === 'service_provider').length || 0})
           </TabsTrigger>
           <TabsTrigger value="contractor">
-            Thầu phụ ({vendors?.filter(v => v.category === 'contractor').length || 0})
+            {t('category.contractor')} ({vendors?.filter(v => v.category === 'contractor').length || 0})
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -92,7 +94,7 @@ export function VendorListPage() {
               onClick={handleBulkCompare}
               disabled={selectedVendors.length < 2 || selectedVendors.length > 5}
             >
-              So sánh ({selectedVendors.length})
+              {t('actions.compare')} ({selectedVendors.length})
             </Button>
           )}
           

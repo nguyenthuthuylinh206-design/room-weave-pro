@@ -1,23 +1,29 @@
 {
-  "title": "Quản lý Người dùng",
+  "title": "Quản lý Người dùng & Phân quyền",
+  "description": "Quản lý người dùng, vai trò và quyền truy cập",
   "list": "Danh sách người dùng",
   "addNew": "Thêm người dùng mới",
   "editUser": "Chỉnh sửa người dùng",
-  "viewUser": "Thông tin người dùng",
+  "viewUser": "Chi tiết người dùng",
   "profile": "Hồ sơ cá nhân",
   "changePassword": "Đổi mật khẩu",
+  "tabs": {
+    "users": "Người dùng",
+    "roles": "Vai trò",
+    "permissions": "Cấu hình Quyền"
+  },
   "fields": {
-    "fullName": "Họ và tên",
+    "fullName": "Họ tên",
     "email": "Email",
-    "phone": "Điện thoại",
+    "phone": "Số điện thoại",
     "avatar": "Ảnh đại diện",
     "role": "Vai trò",
-    "userLevel": "Cấp bậc",
+    "userLevel": "Cấp độ",
     "position": "Chức vụ",
     "hotel": "Khách sạn",
     "status": "Trạng thái",
     "createdAt": "Ngày tạo",
-    "lastLogin": "Đăng nhập cuối"
+    "lastLogin": "Lần đăng nhập cuối"
   },
   "role": {
     "superAdmin": "Super Admin",
@@ -34,7 +40,7 @@
   "status": {
     "active": "Hoạt động",
     "inactive": "Ngưng hoạt động",
-    "pending": "Chờ xác nhận"
+    "pending": "Chờ duyệt"
   },
   "permissions": {
     "title": "Phân quyền",
@@ -45,11 +51,11 @@
     "delete": "Xóa"
   },
   "messages": {
-    "createSuccess": "Tạo người dùng thành công",
-    "updateSuccess": "Cập nhật thành công",
-    "deleteSuccess": "Xóa người dùng thành công",
-    "passwordChanged": "Đổi mật khẩu thành công",
-    "noUsers": "Chưa có người dùng nào"
+    "createSuccess": "Đã tạo người dùng thành công",
+    "updateSuccess": "Đã cập nhật thành công",
+    "deleteSuccess": "Đã xóa người dùng",
+    "passwordChanged": "Đã đổi mật khẩu thành công",
+    "noUsers": "Không tìm thấy người dùng"
   },
   "filters": {
     "all": "Tất cả",

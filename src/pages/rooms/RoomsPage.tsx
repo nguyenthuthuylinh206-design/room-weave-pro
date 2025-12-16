@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Plus, Grid3x3, List, Map, FileSpreadsheet } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -19,6 +20,7 @@ import type { RoomFilters as IRoomFilters } from '@/types/rooms.types'
 type ViewMode = 'grid' | 'list' | 'floor'
 
 export function RoomsPage() {
+  const { t } = useTranslation('rooms')
   const { isMobile } = useBreakpoint()
   const navigate = useNavigate()
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
@@ -36,8 +38,8 @@ export function RoomsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Quản lý Phòng"
-        description="Quản lý phòng và đồ dùng trong phòng"
+        title={t('title')}
+        description={t('description')}
       >
         <div className="flex gap-2">
           {selectedHotel && (
@@ -46,12 +48,12 @@ export function RoomsPage() {
               onClick={() => setShowBulkImport(true)}
             >
               <FileSpreadsheet className="mr-2 h-4 w-4" />
-              Bulk Import
+              {t('actions.bulkImport')}
             </Button>
           )}
           <Button onClick={() => navigate('/rooms/new')}>
             <Plus className="mr-2 h-4 w-4" />
-            Thêm phòng
+            {t('actions.addRoom')}
           </Button>
         </div>
       </PageHeader>
@@ -62,19 +64,19 @@ export function RoomsPage() {
           onFilterChange={(newFilters) => setFilters(prev => ({ ...prev, ...newFilters }))}
         />
         
-        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+      <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
           <TabsList>
             <TabsTrigger value="grid">
               <Grid3x3 className="h-4 w-4 mr-2" />
-              Lưới
+              {t('viewModes.grid')}
             </TabsTrigger>
             <TabsTrigger value="list">
               <List className="h-4 w-4 mr-2" />
-              Danh sách
+              {t('viewModes.list')}
             </TabsTrigger>
             <TabsTrigger value="floor">
               <Map className="h-4 w-4 mr-2" />
-              Sơ đồ tầng
+              {t('viewModes.floorPlan')}
             </TabsTrigger>
           </TabsList>
         </Tabs>

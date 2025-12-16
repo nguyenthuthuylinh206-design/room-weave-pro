@@ -1,6 +1,6 @@
 {
   "title": "Quản lý Bảo trì",
-  "dashboard": "Tổng quan bảo trì",
+  "dashboard": "Quản lý yêu cầu bảo trì",
   "requests": {
     "title": "Yêu cầu bảo trì",
     "list": "Danh sách yêu cầu",

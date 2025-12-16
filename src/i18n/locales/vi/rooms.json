@@ -1,32 +1,46 @@
 {
   "title": "Quản lý Phòng",
+  "description": "Quản lý phòng và đồ dùng trong phòng",
   "list": "Danh sách phòng",
   "addNew": "Thêm phòng mới",
   "editRoom": "Chỉnh sửa phòng",
   "viewRoom": "Chi tiết phòng",
-  "deleteRoom": "Xóa phòng",
-  "standards": "Thiết lập chuẩn",
-  "floorPlan": "Sơ đồ tầng",
+  "roomItems": "Đồ dùng trong phòng",
+  "viewModes": {
+    "grid": "Lưới",
+    "list": "Danh sách",
+    "floorPlan": "Sơ đồ tầng"
+  },
+  "actions": {
+    "addRoom": "Thêm phòng",
+    "bulkImport": "Nhập hàng loạt",
+    "edit": "Chỉnh sửa",
+    "delete": "Xóa",
+    "viewDetails": "Xem chi tiết",
+    "checkout": "Checkout",
+    "assignItems": "Phân bổ đồ dùng"
+  },
   "fields": {
     "roomNumber": "Số phòng",
-    "floor": "Tầng",
     "roomType": "Loại phòng",
+    "floor": "Tầng",
     "status": "Trạng thái",
+    "area": "Diện tích",
     "maxGuests": "Số khách tối đa",
     "bedType": "Loại giường",
-    "area": "Diện tích",
     "pricePerNight": "Giá/đêm",
+    "description": "Mô tả",
     "amenities": "Tiện nghi",
     "notes": "Ghi chú"
   },
   "status": {
     "vacant": "Trống",
     "occupied": "Có khách",
-    "checkIn": "Check-in",
-    "checkOut": "Check-out",
+    "check_in": "Đang nhận",
+    "check_out": "Đang trả",
     "cleaning": "Đang dọn",
     "maintenance": "Bảo trì",
-    "outOfOrder": "Ngưng phục vụ"
+    "out_of_order": "Ngưng sử dụng"
   },
   "roomType": {
     "standard": "Standard",
@@ -35,34 +49,22 @@
     "suite": "Suite",
     "vip": "VIP"
   },
-  "actions": {
-    "changeStatus": "Đổi trạng thái",
-    "checkout": "Check-out",
-    "viewItems": "Xem vật tư phòng",
-    "bulkEdit": "Sửa hàng loạt",
-    "bulkDelete": "Xóa hàng loạt"
-  },
   "messages": {
-    "createSuccess": "Tạo phòng thành công",
-    "updateSuccess": "Cập nhật phòng thành công",
-    "deleteSuccess": "Xóa phòng thành công",
-    "deleteConfirm": "Bạn có chắc muốn xóa phòng này?",
-    "statusChanged": "Đã cập nhật trạng thái phòng",
-    "noRooms": "Chưa có phòng nào"
+    "createSuccess": "Đã tạo phòng thành công",
+    "updateSuccess": "Đã cập nhật phòng",
+    "deleteSuccess": "Đã xóa phòng",
+    "noRooms": "Không tìm thấy phòng nào"
   },
   "filters": {
     "all": "Tất cả",
-    "byFloor": "Theo tầng",
-    "byType": "Theo loại phòng",
     "byStatus": "Theo trạng thái",
+    "byFloor": "Theo tầng",
+    "byType": "Theo loại",
     "search": "Tìm kiếm phòng..."
   },
-  "checkout": {
-    "title": "Check-out phòng",
-    "linens": "Vải",
-    "consumables": "Tiêu hao",
-    "equipment": "Thiết bị",
-    "furniture": "Nội thất",
-    "summary": "Tổng kết"
+  "floorPlan": {
+    "title": "Sơ đồ tầng",
+    "floor": "Tầng",
+    "noRooms": "Chưa có phòng nào ở tầng này"
   }
 }
