@@ -9,9 +9,11 @@ import { Settings, Bell, Shield, Palette } from 'lucide-react'
 import { SeedDataButton } from '@/components/settings/SeedDataButton'
 import { MobileSettingsPage } from '@/components/settings/MobileSettingsPage'
 import { useBreakpoint } from '@/lib/breakpoints'
+import { useTranslation } from 'react-i18next'
 
 export function SettingsPage() {
   const { isMobile } = useBreakpoint()
+  const { t } = useTranslation('settings')
 
   if (isMobile) {
     return <MobileSettingsPage />
@@ -19,8 +21,8 @@ export function SettingsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Cài đặt"
-        description="Quản lý cài đặt hệ thống và tùy chọn"
+        title={t('title')}
+        description={t('general.description', 'Quản lý cài đặt hệ thống và tùy chọn')}
       />
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -29,10 +31,10 @@ export function SettingsPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Settings className="h-5 w-5 text-primary" />
-              <CardTitle>Dữ liệu Demo</CardTitle>
+              <CardTitle>{t('demoData.title', 'Dữ liệu Demo')}</CardTitle>
             </div>
             <CardDescription>
-              Tạo dữ liệu demo để thử nghiệm hệ thống
+              {t('demoData.description', 'Tạo dữ liệu demo để thử nghiệm hệ thống')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -45,25 +47,25 @@ export function SettingsPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Bell className="h-5 w-5 text-primary" />
-              <CardTitle>Thông báo</CardTitle>
+              <CardTitle>{t('notifications.title')}</CardTitle>
             </div>
             <CardDescription>
-              Cấu hình các loại thông báo bạn muốn nhận
+              {t('notifications.description', 'Cấu hình các loại thông báo bạn muốn nhận')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <Label htmlFor="email-notif">Thông báo email</Label>
+              <Label htmlFor="email-notif">{t('notifications.email', 'Thông báo email')}</Label>
               <Switch id="email-notif" />
             </div>
             <Separator />
             <div className="flex items-center justify-between">
-              <Label htmlFor="push-notif">Thông báo đẩy</Label>
+              <Label htmlFor="push-notif">{t('notifications.push', 'Thông báo đẩy')}</Label>
               <Switch id="push-notif" />
             </div>
             <Separator />
             <div className="flex items-center justify-between">
-              <Label htmlFor="batch-notif">Thông báo lô giặt</Label>
+              <Label htmlFor="batch-notif">{t('notifications.batch', 'Thông báo lô giặt')}</Label>
               <Switch id="batch-notif" defaultChecked />
             </div>
           </CardContent>
@@ -74,24 +76,24 @@ export function SettingsPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Palette className="h-5 w-5 text-primary" />
-              <CardTitle>Giao diện</CardTitle>
+              <CardTitle>{t('appearance.title', 'Giao diện')}</CardTitle>
             </div>
             <CardDescription>
-              Tùy chỉnh giao diện ứng dụng
+              {t('appearance.description', 'Tùy chỉnh giao diện ứng dụng')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Chế độ hiển thị</Label>
+              <Label>{t('appearance.displayMode', 'Chế độ hiển thị')}</Label>
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1">Sáng</Button>
-                <Button variant="outline" className="flex-1">Tối</Button>
-                <Button variant="default" className="flex-1">Hệ thống</Button>
+                <Button variant="outline" className="flex-1">{t('general.lightMode')}</Button>
+                <Button variant="outline" className="flex-1">{t('general.darkMode')}</Button>
+                <Button variant="default" className="flex-1">{t('appearance.system', 'Hệ thống')}</Button>
               </div>
             </div>
             <Separator />
             <div className="flex items-center justify-between">
-              <Label htmlFor="compact">Chế độ thu gọn</Label>
+              <Label htmlFor="compact">{t('appearance.compact', 'Chế độ thu gọn')}</Label>
               <Switch id="compact" />
             </div>
           </CardContent>
@@ -102,23 +104,23 @@ export function SettingsPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Settings className="h-5 w-5 text-primary" />
-              <CardTitle>Cài đặt hệ thống</CardTitle>
+              <CardTitle>{t('system.title', 'Cài đặt hệ thống')}</CardTitle>
             </div>
             <CardDescription>
-              Cấu hình các tham số hệ thống
+              {t('system.description', 'Cấu hình các tham số hệ thống')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="currency">Đơn vị tiền tệ</Label>
+              <Label htmlFor="currency">{t('general.currency')}</Label>
               <Input id="currency" value="VND" readOnly />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="timezone">Múi giờ</Label>
+              <Label htmlFor="timezone">{t('general.timezone')}</Label>
               <Input id="timezone" value="Asia/Ho_Chi_Minh" readOnly />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="language">Ngôn ngữ</Label>
+              <Label htmlFor="language">{t('general.language')}</Label>
               <Input id="language" value="Tiếng Việt" readOnly />
             </div>
           </CardContent>
@@ -129,33 +131,33 @@ export function SettingsPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-primary" />
-              <CardTitle>Bảo mật</CardTitle>
+              <CardTitle>{t('security.title')}</CardTitle>
             </div>
             <CardDescription>
-              Cài đặt liên quan đến bảo mật
+              {t('security.description', 'Cài đặt liên quan đến bảo mật')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <Label htmlFor="2fa">Xác thực 2 bước</Label>
+              <Label htmlFor="2fa">{t('security.twoFactor')}</Label>
               <Switch id="2fa" />
             </div>
             <Separator />
             <div className="flex items-center justify-between">
-              <Label htmlFor="session">Phiên đăng nhập</Label>
-              <Button variant="outline" size="sm">Quản lý</Button>
+              <Label htmlFor="session">{t('security.sessions')}</Label>
+              <Button variant="outline" size="sm">{t('common:manage', 'Quản lý')}</Button>
             </div>
             <Separator />
             <Button variant="outline" className="w-full">
-              Đổi mật khẩu
+              {t('profile.changePassword')}
             </Button>
           </CardContent>
         </Card>
       </div>
 
       <div className="flex justify-end gap-2">
-        <Button variant="outline">Hủy</Button>
-        <Button>Lưu thay đổi</Button>
+        <Button variant="outline">{t('common:cancel', 'Hủy')}</Button>
+        <Button>{t('common:saveChanges', 'Lưu thay đổi')}</Button>
       </div>
     </div>
   )

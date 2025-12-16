@@ -13,53 +13,56 @@ import {
 } from 'lucide-react'
 import { MobileReportsDashboard } from '@/components/reports/MobileReportsDashboard'
 import { useBreakpoint } from '@/lib/breakpoints'
+import { useTranslation } from 'react-i18next'
 
 export function ReportsPage() {
   const { isMobile } = useBreakpoint()
+  const { t } = useTranslation('reports')
 
   if (isMobile) {
     return <MobileReportsDashboard />
   }
+
   const reports = [
     {
       id: 'inventory',
-      title: 'Báo cáo tồn kho',
-      description: 'Tình hình tồn kho và biến động tài sản',
+      title: t('types.inventory.title'),
+      description: t('types.inventory.description'),
       icon: Package,
       color: 'text-blue-500',
     },
     {
       id: 'expenses',
-      title: 'Báo cáo chi phí',
-      description: 'Tổng hợp chi phí giặt là và bảo trì',
+      title: t('types.expenses.title'),
+      description: t('types.expenses.description'),
       icon: DollarSign,
       color: 'text-green-500',
     },
     {
       id: 'laundry',
-      title: 'Báo cáo giặt là',
-      description: 'Thống kê các lô giặt và nhà cung cấp',
+      title: t('types.laundry.title'),
+      description: t('types.laundry.description'),
       icon: TrendingUp,
       color: 'text-purple-500',
     },
     {
       id: 'rooms',
-      title: 'Báo cáo phòng',
-      description: 'Tình trạng phòng và tài sản theo phòng',
+      title: t('types.rooms.title'),
+      description: t('types.rooms.description'),
       icon: Calendar,
       color: 'text-orange-500',
     },
     {
       id: 'performance',
-      title: 'Báo cáo hiệu suất',
-      description: 'Đánh giá hiệu suất làm việc của nhân viên',
+      title: t('types.performance.title'),
+      description: t('types.performance.description'),
       icon: BarChart3,
       color: 'text-red-500',
     },
     {
       id: 'summary',
-      title: 'Báo cáo tổng hợp',
-      description: 'Tổng quan toàn bộ hoạt động',
+      title: t('types.summary.title'),
+      description: t('types.summary.description'),
       icon: PieChart,
       color: 'text-indigo-500',
     },
@@ -68,8 +71,8 @@ export function ReportsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Báo cáo"
-        description="Xem và tải xuống các báo cáo thống kê"
+        title={t('title')}
+        description={t('description')}
       />
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -96,11 +99,11 @@ export function ReportsPage() {
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" className="flex-1">
                     <FileText className="mr-2 h-4 w-4" />
-                    Xem
+                    {t('view')}
                   </Button>
                   <Button variant="default" size="sm" className="flex-1">
                     <Download className="mr-2 h-4 w-4" />
-                    Tải xuống
+                    {t('download')}
                   </Button>
                 </div>
               </CardContent>
@@ -111,9 +114,9 @@ export function ReportsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Tạo báo cáo tùy chỉnh</CardTitle>
+          <CardTitle>{t('custom.title')}</CardTitle>
           <CardDescription>
-            Chọn các thông số để tạo báo cáo theo nhu cầu của bạn
+            {t('custom.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -121,9 +124,9 @@ export function ReportsPage() {
             <div className="space-y-4">
               <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
               <div>
-                <p className="text-sm font-medium">Tính năng đang phát triển</p>
+                <p className="text-sm font-medium">{t('custom.developing')}</p>
                 <p className="text-sm text-muted-foreground">
-                  Tạo báo cáo tùy chỉnh sẽ sớm được cung cấp
+                  {t('custom.comingSoon')}
                 </p>
               </div>
             </div>

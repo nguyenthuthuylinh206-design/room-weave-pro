@@ -2,16 +2,17 @@
   "title": "Cài đặt",
   "general": {
     "title": "Cài đặt chung",
+    "description": "Quản lý cài đặt hệ thống và tùy chọn",
     "language": "Ngôn ngữ",
     "theme": "Giao diện",
-    "darkMode": "Chế độ tối",
-    "lightMode": "Chế độ sáng",
+    "darkMode": "Tối",
+    "lightMode": "Sáng",
     "timezone": "Múi giờ",
     "dateFormat": "Định dạng ngày",
     "currency": "Đơn vị tiền tệ"
   },
   "profile": {
-    "title": "Hồ sơ cá nhân",
+    "title": "Hồ sơ",
     "fullName": "Họ và tên",
     "email": "Email",
     "phone": "Số điện thoại",
@@ -25,7 +26,7 @@
     "title": "Quản lý người dùng",
     "addUser": "Thêm người dùng",
     "editUser": "Sửa người dùng",
-    "userLevel": "Cấp bậc",
+    "userLevel": "Cấp người dùng",
     "hotel": "Khách sạn",
     "position": "Chức vụ",
     "status": "Trạng thái"
@@ -36,10 +37,10 @@
     "editHotel": "Sửa khách sạn",
     "hotelName": "Tên khách sạn",
     "address": "Địa chỉ",
-    "phone": "Số điện thoại",
+    "phone": "Điện thoại",
     "email": "Email",
     "totalRooms": "Tổng số phòng",
-    "totalFloors": "Số tầng"
+    "totalFloors": "Tổng số tầng"
   },
   "categories": {
     "title": "Quản lý danh mục",
@@ -50,12 +51,32 @@
     "parentCategory": "Danh mục cha"
   },
   "notifications": {
-    "title": "Cài đặt thông báo"
+    "title": "Cài đặt thông báo",
+    "description": "Cấu hình các loại thông báo bạn muốn nhận",
+    "email": "Thông báo email",
+    "push": "Thông báo đẩy",
+    "batch": "Thông báo lô giặt"
   },
   "security": {
     "title": "Bảo mật",
-    "twoFactor": "Xác thực hai yếu tố",
+    "description": "Cài đặt liên quan đến bảo mật",
+    "twoFactor": "Xác thực 2 bước",
     "sessions": "Phiên đăng nhập",
     "activityLog": "Nhật ký hoạt động"
+  },
+  "appearance": {
+    "title": "Giao diện",
+    "description": "Tùy chỉnh giao diện ứng dụng",
+    "displayMode": "Chế độ hiển thị",
+    "system": "Hệ thống",
+    "compact": "Chế độ thu gọn"
+  },
+  "system": {
+    "title": "Cài đặt hệ thống",
+    "description": "Cấu hình các tham số hệ thống"
+  },
+  "demoData": {
+    "title": "Dữ liệu Demo",
+    "description": "Tạo dữ liệu demo để thử nghiệm hệ thống"
   }
 }

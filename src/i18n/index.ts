@@ -9,6 +9,7 @@ import viNavigation from './locales/vi/navigation.json';
 import viDashboard from './locales/vi/dashboard.json';
 import viNotifications from './locales/vi/notifications.json';
 import viSettings from './locales/vi/settings.json';
+import viReports from './locales/vi/reports.json';
 
 // Import translations - Modules
 import viItems from './locales/vi/items.json';
@@ -27,6 +28,7 @@ import enNavigation from './locales/en/navigation.json';
 import enDashboard from './locales/en/dashboard.json';
 import enNotifications from './locales/en/notifications.json';
 import enSettings from './locales/en/settings.json';
+import enReports from './locales/en/reports.json';
 
 // Import translations - English Modules
 import enItems from './locales/en/items.json';
@@ -46,6 +48,7 @@ export const resources = {
     dashboard: viDashboard,
     notifications: viNotifications,
     settings: viSettings,
+    reports: viReports,
     items: viItems,
     rooms: viRooms,
     inventory: viInventory,
@@ -62,6 +65,7 @@ export const resources = {
     dashboard: enDashboard,
     notifications: enNotifications,
     settings: enSettings,
+    reports: enReports,
     items: enItems,
     rooms: enRooms,
     inventory: enInventory,
@@ -87,6 +91,7 @@ i18n
       'dashboard',
       'notifications',
       'settings',
+      'reports',
       'items',
       'rooms',
       'inventory',

@@ -24,7 +24,11 @@
     "viewDetails": "Xem chi tiết",
     "tryAgain": "Thử lại",
     "logout": "Đăng xuất",
-    "login": "Đăng nhập"
+    "login": "Đăng nhập",
+    "manage": "Quản lý",
+    "saveChanges": "Lưu thay đổi",
+    "view": "Xem",
+    "download": "Tải xuống"
   },
   "status": {
     "active": "Hoạt động",
@@ -84,5 +88,11 @@
     "vietnamese": "Tiếng Việt",
     "english": "English",
     "changeLanguage": "Đổi ngôn ngữ"
-  }
+  },
+  "tip": "Mẹo",
+  "all": "Tất cả",
+  "total": "Tổng",
+  "details": "Chi tiết",
+  "info": "Thông tin",
+  "notes": "Ghi chú"
 }

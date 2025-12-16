@@ -11,8 +11,10 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { cn } from '@/lib/utils'
+import { useTranslation } from 'react-i18next'
 
 export function MobileHotelSwitcher() {
+  const { t } = useTranslation('hotels')
   const { 
     selectedHotel, 
     setSelectedHotel, 
@@ -43,7 +45,7 @@ export function MobileHotelSwitcher() {
             <Building2 className="h-4 w-4 flex-shrink-0" />
             <div className="flex flex-col items-start min-w-0 flex-1">
               <span className="text-sm font-medium truncate w-full text-left">
-                {isAllHotelsMode ? 'Tất cả khách sạn' : selectedHotel?.name || 'Chọn khách sạn'}
+                {isAllHotelsMode ? t('switcher.allHotels') : selectedHotel?.name || t('switcher.title')}
               </span>
               {!isAllHotelsMode && selectedHotel?.code && (
                 <span className="text-xs text-muted-foreground">
@@ -56,7 +58,7 @@ export function MobileHotelSwitcher() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[280px]">
-        <DropdownMenuLabel>Chọn khách sạn</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('switcher.title')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         
         {/* Only show "All Hotels" option if user can view all hotels */}
@@ -71,7 +73,7 @@ export function MobileHotelSwitcher() {
             >
               <div className="flex items-center gap-2 w-full">
                 <Building2 className="h-4 w-4" />
-                <span className="flex-1">Tất cả khách sạn</span>
+                <span className="flex-1">{t('switcher.allHotels')}</span>
                 {isAllHotelsMode && <Check className="h-4 w-4" />}
               </div>
             </DropdownMenuItem>
@@ -94,7 +96,7 @@ export function MobileHotelSwitcher() {
                   <span className="font-medium truncate">{hotel.name}</span>
                   {hotel.status === 'active' && (
                     <Badge variant="default" className="text-xs">
-                      Active
+                      {t('status.active')}
                     </Badge>
                   )}
                 </div>
