@@ -86,5 +86,14 @@
   "validation": {
     "selectHotel": "Please select a hotel",
     "selectPosition": "Please select a position"
+  },
+  "hierarchy": {
+    "primaryOwner": "Primary Owner",
+    "subordinates": "{{count}} subordinates",
+    "noPosition": "No position",
+    "createdBy": "Created by",
+    "ownerDescription": "Owner has full permissions in the system and cannot be deleted. Created when business was initialized.",
+    "managerDescription": "Managers can create other Managers and Staff. They manage specific hotels and have approval rights.",
+    "staffDescription": "Staff perform daily tasks. They cannot create new users."
   }
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { DeleteUserDialog } from './DeleteUserDialog'
 import { UserWithRelations } from '@/types/database.types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,7 +16,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useDeleteUser } from '@/hooks/useUsers'
 import { formatDistanceToNow } from 'date-fns'
-import { vi } from 'date-fns/locale'
+import { vi, enUS } from 'date-fns/locale'
 
 interface UserHierarchyViewProps {
   users: UserWithRelations[]
@@ -24,6 +25,7 @@ interface UserHierarchyViewProps {
 }
 
 export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHierarchyViewProps) {
+  const { t, i18n } = useTranslation(['users', 'common'])
   const [userToDelete, setUserToDelete] = useState<UserWithRelations | null>(null)
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     owner: true,
@@ -51,13 +53,15 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
   const getCreatorName = (createdBy: string | null) => {
     if (!createdBy) return null
     const creator = users.find(u => u.id === createdBy)
-    return creator?.full_name || 'Đã xóa'
+    return creator?.full_name || t('common:deleted')
   }
 
   // Count subordinates for a user
   const countSubordinates = (userId: string) => {
     return users.filter(u => u.created_by === userId).length
   }
+
+  const dateLocale = i18n.language === 'vi' ? vi : enUS
 
   const UserCard = ({ 
     user, 
@@ -84,12 +88,12 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-medium">{user.full_name}</span>
               {user.is_primary_owner && (
-                <Badge variant="default" className="bg-yellow-500">Chủ sở hữu chính</Badge>
+                <Badge variant="default" className="bg-yellow-500">{t('users:hierarchy.primaryOwner')}</Badge>
               )}
               {subordinatesCount > 0 && (
                 <Badge variant="secondary" className="text-xs">
                   <Users className="h-3 w-3 mr-1" />
-                  {subordinatesCount} người dưới quyền
+                  {t('users:hierarchy.subordinates', { count: subordinatesCount })}
                 </Badge>
               )}
             </div>
@@ -97,28 +101,28 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               {user.position_id && (
                 <Badge variant="outline" className="text-xs">
-                  {user.position?.name || 'Chưa có chức vụ'}
+                  {user.position?.name || t('users:hierarchy.noPosition')}
                 </Badge>
               )}
               {user.hotel_id && (
                 <Badge variant="outline" className="text-xs">
-                  {user.hotel?.name || 'Khách sạn'}
+                  {user.hotel?.name || t('users:fields.hotel')}
                 </Badge>
               )}
               {showCreator && creatorName && (
                 <span className="text-xs text-muted-foreground">
-                  Được tạo bởi: <strong>{creatorName}</strong>
+                  {t('users:hierarchy.createdBy')}: <strong>{creatorName}</strong>
                 </span>
               )}
             </div>
           </div>
           <div className="flex flex-col items-end gap-1">
             <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
-              {user.status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
+              {user.status === 'active' ? t('users:status.active') : t('users:status.inactive')}
             </Badge>
             {user.created_at && (
               <span className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(user.created_at), { addSuffix: true, locale: vi })}
+                {formatDistanceToNow(new Date(user.created_at), { addSuffix: true, locale: dateLocale })}
               </span>
             )}
           </div>
@@ -133,12 +137,12 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => onEdit(user)}>
               <Pencil className="h-4 w-4 mr-2" />
-              Chỉnh sửa
+              {t('common:edit')}
             </DropdownMenuItem>
             {onManagePermissions && (
               <DropdownMenuItem onClick={() => onManagePermissions(user.id)}>
                 <Shield className="h-4 w-4 mr-2" />
-                Phân quyền
+                {t('users:permissions.title')}
               </DropdownMenuItem>
             )}
             {!user.is_primary_owner && (
@@ -147,7 +151,7 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
                 className="text-destructive"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Xóa
+                {t('common:delete')}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
@@ -168,7 +172,7 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Crown className="h-5 w-5 text-yellow-500" />
-                <span>Chủ sở hữu</span>
+                <span>{t('users:userLevel.tenantOwner')}</span>
                 <Badge variant="outline">1</Badge>
               </div>
               {expandedSections.owner ? (
@@ -182,7 +186,7 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
             <CardContent className="space-y-2">
               <Alert>
                 <AlertDescription className="text-sm">
-                  Chủ sở hữu có toàn quyền trong hệ thống và không thể bị xóa. Được tạo lúc khởi tạo doanh nghiệp.
+                  {t('users:hierarchy.ownerDescription')}
                 </AlertDescription>
               </Alert>
               <UserCard user={owner} icon={Crown} />
@@ -201,7 +205,7 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-green-500" />
-                <span>Quản lý</span>
+                <span>{t('users:userLevel.manager')}</span>
                 <Badge variant="outline">{managers.length}</Badge>
               </div>
               {expandedSections.managers ? (
@@ -215,7 +219,7 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
             <CardContent className="space-y-2">
               <Alert>
                 <AlertDescription className="text-sm">
-                  Quản lý có thể tạo Quản lý khác và Nhân viên. Họ quản lý các khách sạn cụ thể và có quyền phê duyệt yêu cầu.
+                  {t('users:hierarchy.managerDescription')}
                 </AlertDescription>
               </Alert>
               <div className="space-y-2 relative">
@@ -240,7 +244,7 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <UserIcon className="h-5 w-5 text-gray-500" />
-                <span>Nhân viên</span>
+                <span>{t('users:userLevel.staff')}</span>
                 <Badge variant="outline">{staff.length}</Badge>
               </div>
               {expandedSections.staff ? (
@@ -254,7 +258,7 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
             <CardContent className="space-y-2">
               <Alert>
                 <AlertDescription className="text-sm">
-                  Nhân viên thực hiện các công việc hàng ngày. Họ không có quyền tạo người dùng mới.
+                  {t('users:hierarchy.staffDescription')}
                 </AlertDescription>
               </Alert>
               <div className="space-y-2 relative">

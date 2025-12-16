@@ -86,5 +86,14 @@
   "validation": {
     "selectHotel": "Vui lòng chọn khách sạn",
     "selectPosition": "Vui lòng chọn chức vụ"
+  },
+  "hierarchy": {
+    "primaryOwner": "Chủ sở hữu chính",
+    "subordinates": "{{count}} người dưới quyền",
+    "noPosition": "Chưa có chức vụ",
+    "createdBy": "Được tạo bởi",
+    "ownerDescription": "Chủ sở hữu có toàn quyền trong hệ thống và không thể bị xóa. Được tạo lúc khởi tạo doanh nghiệp.",
+    "managerDescription": "Quản lý có thể tạo Quản lý khác và Nhân viên. Họ quản lý các khách sạn cụ thể và có quyền phê duyệt yêu cầu.",
+    "staffDescription": "Nhân viên thực hiện các công việc hàng ngày. Họ không có quyền tạo người dùng mới."
   }
 }

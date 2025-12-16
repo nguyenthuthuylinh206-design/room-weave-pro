@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { DeleteUserDialog } from './DeleteUserDialog'
 import {
   Table,
@@ -22,20 +23,13 @@ import { MoreHorizontal, Pencil, Trash2, Shield, Crown, Users as UsersIcon, User
 import { UserWithRelations } from '@/types/database.types'
 import { UserAvatar } from './UserAvatar'
 import { formatDistanceToNow } from 'date-fns'
-import { vi } from 'date-fns/locale'
+import { vi, enUS } from 'date-fns/locale'
 import { useDeleteUser } from '@/hooks/useUsers'
 
 interface UserTableProps {
   users: UserWithRelations[]
   onEdit?: (user: UserWithRelations) => void
   onManagePermissions?: (userId: string) => void
-}
-
-const userLevelLabels: Record<string, string> = {
-  super_admin: 'Super Admin',
-  tenant_owner: 'Chủ sở hữu',
-  manager: 'Quản lý',
-  staff: 'Nhân viên',
 }
 
 const userLevelIcons: Record<string, any> = {
@@ -52,18 +46,36 @@ const userLevelColors: Record<string, string> = {
 }
 
 export function UserTable({ users, onEdit, onManagePermissions }: UserTableProps) {
+  const { t, i18n } = useTranslation(['users', 'common'])
   const [userToDelete, setUserToDelete] = useState<UserWithRelations | null>(null)
 
   const handleDeleteClick = (user: UserWithRelations) => {
     setUserToDelete(user)
   }
 
+  const getUserLevelLabel = (code: string) => {
+    switch (code) {
+      case 'super_admin':
+        return t('users:role.superAdmin')
+      case 'tenant_owner':
+        return t('users:userLevel.tenantOwner')
+      case 'manager':
+        return t('users:userLevel.manager')
+      case 'staff':
+        return t('users:userLevel.staff')
+      default:
+        return code
+    }
+  }
+
   // Get creator name
   const getCreatorName = (createdBy: string | null) => {
     if (!createdBy) return '-'
     const creator = users.find(u => u.id === createdBy)
-    return creator?.full_name || 'Đã xóa'
+    return creator?.full_name || t('common:deleted')
   }
+
+  const dateLocale = i18n.language === 'vi' ? vi : enUS
 
   return (
     <>
@@ -71,14 +83,14 @@ export function UserTable({ users, onEdit, onManagePermissions }: UserTableProps
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Người dùng</TableHead>
-              <TableHead>Cấp bậc</TableHead>
-              <TableHead>Chức vụ</TableHead>
-              <TableHead>Khách sạn</TableHead>
-              <TableHead>Người tạo</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead>Đăng nhập gần nhất</TableHead>
-              <TableHead className="text-right">Thao tác</TableHead>
+              <TableHead>{t('users:tabs.users')}</TableHead>
+              <TableHead>{t('users:fields.userLevel')}</TableHead>
+              <TableHead>{t('users:fields.position')}</TableHead>
+              <TableHead>{t('users:fields.hotel')}</TableHead>
+              <TableHead>{t('common:createdBy')}</TableHead>
+              <TableHead>{t('users:fields.status')}</TableHead>
+              <TableHead>{t('users:fields.lastLogin')}</TableHead>
+              <TableHead className="text-right">{t('common:actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -95,7 +107,7 @@ export function UserTable({ users, onEdit, onManagePermissions }: UserTableProps
                           {user.full_name}
                           {user.is_primary_owner && (
                             <Badge variant="default" className="bg-yellow-500 text-xs">
-                              Chính
+                              {t('common:primary')}
                             </Badge>
                           )}
                         </div>
@@ -109,7 +121,7 @@ export function UserTable({ users, onEdit, onManagePermissions }: UserTableProps
                       className={userLevelColors[user.user_level_code || 'staff']}
                     >
                       {LevelIcon && <LevelIcon className="h-3 w-3 mr-1" />}
-                      {userLevelLabels[user.user_level_code || 'staff']}
+                      {getUserLevelLabel(user.user_level_code || 'staff')}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -131,7 +143,7 @@ export function UserTable({ users, onEdit, onManagePermissions }: UserTableProps
                   </TableCell>
                   <TableCell>
                     <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
-                      {user.status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
+                      {user.status === 'active' ? t('users:status.active') : t('users:status.inactive')}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -139,34 +151,34 @@ export function UserTable({ users, onEdit, onManagePermissions }: UserTableProps
                       <span className="text-sm text-muted-foreground">
                         {formatDistanceToNow(new Date(user.last_login_at), {
                           addSuffix: true,
-                          locale: vi,
+                          locale: dateLocale,
                         })}
                       </span>
                     ) : (
-                      <span className="text-sm text-muted-foreground">Chưa đăng nhập</span>
+                      <span className="text-sm text-muted-foreground">{t('common:neverLoggedIn')}</span>
                     )}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Mở menu</span>
+                          <span className="sr-only">{t('common:openMenu')}</span>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
+                        <DropdownMenuLabel>{t('common:actions')}</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         {onEdit && (
                           <DropdownMenuItem onClick={() => onEdit(user)}>
                             <Pencil className="h-4 w-4 mr-2" />
-                            Chỉnh sửa
+                            {t('common:edit')}
                           </DropdownMenuItem>
                         )}
                         {onManagePermissions && (
                           <DropdownMenuItem onClick={() => onManagePermissions(user.id)}>
                             <Shield className="h-4 w-4 mr-2" />
-                            Phân quyền
+                            {t('users:permissions.title')}
                           </DropdownMenuItem>
                         )}
                         {!user.is_primary_owner && (
@@ -177,7 +189,7 @@ export function UserTable({ users, onEdit, onManagePermissions }: UserTableProps
                               className="text-destructive"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
-                              Xóa
+                              {t('common:delete')}
                             </DropdownMenuItem>
                           </>
                         )}
