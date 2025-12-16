@@ -13,8 +13,10 @@ interface PushPayload {
   body: string
   icon?: string
   badge?: string
+  image?: string
   tag?: string
   action_url?: string
+  notification_type?: string
   data?: Record<string, any>
 }
 
@@ -364,15 +366,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Prepare notification payload
+    // Prepare notification payload with Vietnamese support
     const notificationPayload = JSON.stringify({
       title: payload.title,
       body: payload.body,
       icon: payload.icon || '/icon-192x192.png',
       badge: payload.badge || '/icon-72x72.png',
+      image: payload.image,
       tag: payload.tag || 'default',
+      notification_type: payload.notification_type || payload.data?.type || 'default',
       data: {
         url: payload.action_url || '/',
+        type: payload.notification_type || payload.data?.type || 'default',
         ...payload.data,
       },
     })
