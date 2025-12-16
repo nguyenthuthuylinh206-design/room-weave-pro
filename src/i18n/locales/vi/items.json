@@ -13,13 +13,15 @@
   "backToList": "Quay lại danh sách",
   "edit": "Chỉnh sửa",
   "notFound": "Không tìm thấy tài sản",
+  "loading": "Đang tải...",
   "fields": {
     "name": "Tên tài sản",
     "nameEn": "Tên tiếng Anh",
     "code": "Mã tài sản",
     "category": "Danh mục",
+    "itemType": "Loại đồ dùng",
     "unit": "Đơn vị",
-    "unitPrice": "Đơn giá",
+    "unitPrice": "Đơn giá (₫)",
     "quantity": "Số lượng",
     "quantityTotal": "Tổng số",
     "quantityInStock": "Trong kho",
@@ -45,10 +47,16 @@
     "inStock": "Còn hàng"
   },
   "itemType": {
-    "linen": "Vải",
+    "linen": "Đồ vải",
     "consumable": "Tiêu hao",
     "equipment": "Thiết bị",
     "furniture": "Nội thất"
+  },
+  "itemTypeDescription": {
+    "linen": "Khăn, ga, gối - cần giặt và thay thế",
+    "consumable": "Bàn chải, kem đánh răng, nước - dùng 1 lần",
+    "equipment": "Ấm nước, tivi, điều khiển - cần kiểm tra mất/hỏng",
+    "furniture": "Bàn, ghế, tủ - kiểm tra tình trạng"
   },
   "actions": {
     "import": "Nhập Excel",
@@ -56,12 +64,13 @@
     "downloadTemplate": "Tải mẫu"
   },
   "messages": {
-    "createSuccess": "Tạo tài sản thành công",
-    "updateSuccess": "Cập nhật tài sản thành công",
+    "createSuccess": "Đã tạo sản phẩm mới",
+    "updateSuccess": "Đã cập nhật sản phẩm",
     "deleteSuccess": "Xóa tài sản thành công",
     "deleteConfirm": "Bạn có chắc muốn xóa tài sản này?",
     "importSuccess": "Nhập dữ liệu thành công",
-    "noItems": "Không tìm thấy tài sản nào"
+    "noItems": "Không tìm thấy tài sản nào",
+    "saveError": "Lỗi khi lưu sản phẩm"
   },
   "filters": {
     "all": "Tất cả",
@@ -75,20 +84,44 @@
       "details": "Chi tiết",
       "images": "Hình ảnh"
     },
+    "sections": {
+      "basicInfo": "Thông tin cơ bản",
+      "productInfo": "Thông tin sản phẩm",
+      "images": "Hình ảnh sản phẩm"
+    },
+    "subtitle": {
+      "edit": "Cập nhật thông tin tài sản",
+      "create": "Nhập thông tin tài sản mới"
+    },
     "codePlaceholder": "Ví dụ: FAB-001",
     "namePlaceholder": "Ví dụ: Khăn tắm trắng",
     "nameEnPlaceholder": "Ví dụ: Bath Towel White",
-    "selectCategory": "Chọn danh mục",
+    "selectCategory": "Chọn danh mục...",
+    "selectItemType": "Chọn loại đồ dùng...",
     "descriptionPlaceholder": "Mô tả chi tiết về tài sản",
-    "addImage": "Thêm ảnh"
+    "addImage": "Thêm ảnh",
+    "imageHint": "Ảnh sẽ được upload lên Storage. Tối đa 10 ảnh, mỗi ảnh không quá 5MB.",
+    "buttons": {
+      "cancel": "Hủy",
+      "saving": "Đang lưu...",
+      "update": "Cập nhật",
+      "create": "Tạo mới"
+    }
+  },
+  "alerts": {
+    "allHotelsMode": "Bạn đang ở chế độ xem tất cả khách sạn. Vui lòng chọn một khách sạn cụ thể để tạo sản phẩm mới.",
+    "noHotelSelected": "Chưa chọn khách sạn. Vui lòng chọn khách sạn từ menu trên cùng.",
+    "selectHotelToCreate": "Vui lòng chọn một khách sạn cụ thể trước khi tạo sản phẩm",
+    "selectHotelFirst": "Vui lòng chọn khách sạn trước khi tạo sản phẩm"
   },
   "validation": {
-    "codeRequired": "Mã là bắt buộc",
-    "nameRequired": "Tên là bắt buộc",
-    "categoryRequired": "Danh mục là bắt buộc",
+    "codeRequired": "Mã tài sản là bắt buộc",
+    "nameRequired": "Tên tài sản là bắt buộc",
+    "categoryRequired": "Vui lòng chọn danh mục",
     "unitRequired": "Đơn vị là bắt buộc",
     "priceMin": "Đơn giá phải >= 0",
-    "stockMin": "Tồn tối thiểu phải >= 0"
+    "stockMin": "Tồn kho tối thiểu phải >= 0",
+    "reorderMin": "Điểm đặt hàng phải >= 0"
   },
   "units": {
     "piece": "Cái",

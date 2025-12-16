@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { ArrowLeft, Save } from 'lucide-react'
 import { useQuotaCheck } from '@/hooks/useQuotaCheck'
@@ -24,38 +25,42 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
 import { HotelBadge } from '@/components/layout/HotelBadge'
 import { toast } from 'sonner'
-import { ITEM_TYPE_OPTIONS } from '@/types/items.types'
 
-const itemSchema = z.object({
-  code: z.string().min(1, 'Mã tài sản là bắt buộc'),
-  name: z.string().min(1, 'Tên tài sản là bắt buộc'),
-  name_en: z.string().optional(),
-  description: z.string().optional(),
-  category_id: z.string().uuid('Vui lòng chọn danh mục'),
-  item_type: z.enum(['linen', 'consumable', 'equipment', 'furniture']),
-  unit: z.string().min(1, 'Đơn vị là bắt buộc'),
-  unit_price: z.number().min(0, 'Đơn giá phải >= 0'),
-  minimum_stock: z.number().min(0, 'Tồn kho tối thiểu phải >= 0'),
-  reorder_point: z.number().min(0, 'Điểm đặt hàng phải >= 0'),
-  brand: z.string().optional(),
-  model: z.string().optional(),
-  images: z.array(z.string()).optional(),
-})
+const ITEM_TYPES = ['linen', 'consumable', 'equipment', 'furniture'] as const
 
-type ItemFormData = z.infer<typeof itemSchema>
+type ItemFormData = z.infer<ReturnType<typeof createItemSchema>>
+
+function createItemSchema(t: (key: string) => string) {
+  return z.object({
+    code: z.string().min(1, t('items:validation.codeRequired')),
+    name: z.string().min(1, t('items:validation.nameRequired')),
+    name_en: z.string().optional(),
+    description: z.string().optional(),
+    category_id: z.string().uuid(t('items:validation.categoryRequired')),
+    item_type: z.enum(['linen', 'consumable', 'equipment', 'furniture']),
+    unit: z.string().min(1, t('items:validation.unitRequired')),
+    unit_price: z.number().min(0, t('items:validation.priceMin')),
+    minimum_stock: z.number().min(0, t('items:validation.stockMin')),
+    reorder_point: z.number().min(0, t('items:validation.reorderMin')),
+    brand: z.string().optional(),
+    model: z.string().optional(),
+    images: z.array(z.string()).optional(),
+  })
+}
 
 export function ItemFormPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
   const { isMobile } = useBreakpoint()
+  const { t } = useTranslation(['items', 'common'])
   const isEdit = !!id
   const copyFrom = location.state?.copyFrom
 
   const { tenantId } = useUser()
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const { data: itemData, isLoading: itemLoading } = useItem(id)
-  const item = itemData?.item // Extract item from response structure
+  const item = itemData?.item
   const { data: itemImages = [] } = useItemImages(id)
   const { data: categories, isLoading: categoriesLoading } = useCategories()
   const createItem = useCreateItem()
@@ -65,6 +70,8 @@ export function ItemFormPage() {
   const quotaCheck = useQuotaCheck('item')
   
   const [images, setImages] = useState<string[]>([])
+
+  const itemSchema = createItemSchema(t)
 
   const {
     register,
@@ -107,7 +114,6 @@ export function ItemFormPage() {
     if (item && isEdit && !copyFrom) {
       console.log('Loading item data:', item)
       
-      // Reset form với tất cả dữ liệu
       reset({
         code: item.code || '',
         name: item.name || '',
@@ -134,19 +140,16 @@ export function ItemFormPage() {
   }, [itemImages])
 
   const onSubmit = async (data: ItemFormData) => {
-    // Prevent creation when in All Hotels mode
     if (isAllHotelsMode) {
-      toast.error('Vui lòng chọn một khách sạn cụ thể trước khi tạo sản phẩm')
+      toast.error(t('items:alerts.selectHotelToCreate'))
       return
     }
 
-    // Check if hotel is selected
     if (!selectedHotel?.id) {
-      toast.error('Vui lòng chọn khách sạn trước khi tạo sản phẩm')
+      toast.error(t('items:alerts.selectHotelFirst'))
       return
     }
 
-    // Check quota for new items
     if (!isEdit && !quotaCheck.checkQuota()) {
       return
     }
@@ -155,7 +158,6 @@ export function ItemFormPage() {
       console.log('Form data:', data)
       console.log('Images:', images)
       
-      // Remove images from itemData since they're now in separate table
       const { images: _, ...itemDataWithoutImages } = data as any
       
       let savedItemId: string
@@ -185,18 +187,14 @@ export function ItemFormPage() {
         savedItemId = result.id
       }
       
-      // Handle images in separate table
       if (images.length > 0) {
-        // Get existing image URLs for this item
         const existingImageUrls = itemImages.map(img => img.url)
         
-        // Delete images that are no longer in the list
         const imagesToDelete = itemImages.filter(img => !images.includes(img.url))
         for (const img of imagesToDelete) {
           await deleteItemImage.mutateAsync(img.id)
         }
         
-        // Add new images (chỉ thêm ảnh chưa có trong database)
         const newImages = images.filter(url => !existingImageUrls.includes(url))
         for (let i = 0; i < newImages.length; i++) {
           await addItemImage.mutateAsync({
@@ -208,12 +206,12 @@ export function ItemFormPage() {
         }
       }
       
-      toast.success(isEdit ? 'Đã cập nhật sản phẩm' : 'Đã tạo sản phẩm mới')
+      toast.success(isEdit ? t('items:messages.updateSuccess') : t('items:messages.createSuccess'))
       
       navigate('/items')
     } catch (error) {
       console.error('Submit error:', error)
-      toast.error('Lỗi khi lưu sản phẩm')
+      toast.error(t('items:messages.saveError'))
     }
   }
 
@@ -225,7 +223,7 @@ export function ItemFormPage() {
           <Button variant="ghost" size="icon" onClick={() => navigate('/items')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-3xl font-bold">Đang tải...</h1>
+          <h1 className="text-3xl font-bold">{t('items:loading')}</h1>
         </div>
       </div>
     )
@@ -248,11 +246,11 @@ export function ItemFormPage() {
           </Button>
           <div className="flex-1 min-w-0">
             <h1 className={`font-bold truncate ${isMobile ? 'text-xl' : 'text-3xl'}`}>
-              {isEdit ? 'Chỉnh sửa tài sản' : 'Thêm tài sản mới'}
+              {isEdit ? t('items:editItem') : t('items:addNew')}
             </h1>
             {!isMobile && (
               <p className="text-muted-foreground">
-                {isEdit ? 'Cập nhật thông tin tài sản' : 'Nhập thông tin tài sản mới'}
+                {isEdit ? t('items:form.subtitle.edit') : t('items:form.subtitle.create')}
               </p>
             )}
           </div>
@@ -264,7 +262,7 @@ export function ItemFormPage() {
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Bạn đang ở chế độ xem tất cả khách sạn. Vui lòng chọn một khách sạn cụ thể để tạo sản phẩm mới.
+              {t('items:alerts.allHotelsMode')}
             </AlertDescription>
           </Alert>
         )}
@@ -273,7 +271,7 @@ export function ItemFormPage() {
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Chưa chọn khách sạn. Vui lòng chọn khách sạn từ menu trên cùng.
+              {t('items:alerts.noHotelSelected')}
             </AlertDescription>
           </Alert>
         )}
@@ -284,11 +282,11 @@ export function ItemFormPage() {
           <Accordion type="multiple" defaultValue={['basic', 'product']} className="space-y-4">
             <AccordionItem value="basic" className="border rounded-lg px-4">
               <AccordionTrigger className="text-base font-semibold">
-                Thông tin cơ bản
+                {t('items:form.sections.basicInfo')}
               </AccordionTrigger>
               <AccordionContent className="space-y-4 pt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="code" className="text-base">Mã tài sản *</Label>
+                  <Label htmlFor="code" className="text-base">{t('items:fields.code')} *</Label>
                   <Input id="code" {...register('code')} className="h-12 text-base" />
                   {errors.code && (
                     <p className="text-sm text-destructive">{errors.code.message}</p>
@@ -296,13 +294,13 @@ export function ItemFormPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="category_id" className="text-base">Danh mục *</Label>
+                  <Label htmlFor="category_id" className="text-base">{t('items:fields.category')} *</Label>
                   <Select
                     value={watch('category_id')}
                     onValueChange={(value) => setValue('category_id', value)}
                   >
                     <SelectTrigger className="h-12">
-                      <SelectValue placeholder="Chọn danh mục..." />
+                      <SelectValue placeholder={t('items:form.selectCategory')} />
                     </SelectTrigger>
                     <SelectContent>
                       {categories?.map((cat) => (
@@ -318,20 +316,20 @@ export function ItemFormPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="item_type" className="text-base">Loại đồ dùng *</Label>
+                  <Label htmlFor="item_type" className="text-base">{t('items:fields.itemType')} *</Label>
                   <Select
                     value={watch('item_type')}
                     onValueChange={(value: any) => setValue('item_type', value)}
                   >
                     <SelectTrigger className="h-12">
-                      <SelectValue placeholder="Chọn loại đồ dùng..." />
+                      <SelectValue placeholder={t('items:form.selectItemType')} />
                     </SelectTrigger>
                     <SelectContent>
-                      {ITEM_TYPE_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
+                      {ITEM_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
                           <div className="flex flex-col">
-                            <span className="font-medium">{opt.label}</span>
-                            <span className="text-xs text-muted-foreground">{opt.description}</span>
+                            <span className="font-medium">{t(`items:itemType.${type}`)}</span>
+                            <span className="text-xs text-muted-foreground">{t(`items:itemTypeDescription.${type}`)}</span>
                           </div>
                         </SelectItem>
                       ))}
@@ -340,7 +338,7 @@ export function ItemFormPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-base">Tên tài sản *</Label>
+                  <Label htmlFor="name" className="text-base">{t('items:fields.name')} *</Label>
                   <Input id="name" {...register('name')} className="h-12 text-base" />
                   {errors.name && (
                     <p className="text-sm text-destructive">{errors.name.message}</p>
@@ -348,12 +346,12 @@ export function ItemFormPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="name_en" className="text-base">Tên tiếng Anh</Label>
+                  <Label htmlFor="name_en" className="text-base">{t('items:fields.nameEn')}</Label>
                   <Input id="name_en" {...register('name_en')} className="h-12 text-base" />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description" className="text-base">Mô tả</Label>
+                  <Label htmlFor="description" className="text-base">{t('items:fields.description')}</Label>
                   <Textarea id="description" {...register('description')} rows={3} className="text-base" />
                 </div>
               </AccordionContent>
@@ -361,21 +359,21 @@ export function ItemFormPage() {
 
             <AccordionItem value="product" className="border rounded-lg px-4">
               <AccordionTrigger className="text-base font-semibold">
-                Thông tin sản phẩm
+                {t('items:form.sections.productInfo')}
               </AccordionTrigger>
               <AccordionContent className="space-y-4 pt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="brand" className="text-base">Thương hiệu</Label>
+                  <Label htmlFor="brand" className="text-base">{t('items:fields.brand')}</Label>
                   <Input id="brand" {...register('brand')} className="h-12 text-base" />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="model" className="text-base">Model</Label>
+                  <Label htmlFor="model" className="text-base">{t('items:fields.model')}</Label>
                   <Input id="model" {...register('model')} className="h-12 text-base" />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="unit" className="text-base">Đơn vị *</Label>
+                  <Label htmlFor="unit" className="text-base">{t('items:fields.unit')} *</Label>
                   <Input id="unit" {...register('unit')} className="h-12 text-base" />
                   {errors.unit && (
                     <p className="text-sm text-destructive">{errors.unit.message}</p>
@@ -383,7 +381,7 @@ export function ItemFormPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="unit_price" className="text-base">Đơn giá (₫) *</Label>
+                  <Label htmlFor="unit_price" className="text-base">{t('items:fields.unitPrice')} *</Label>
                   <Input
                     id="unit_price"
                     type="number"
@@ -397,7 +395,7 @@ export function ItemFormPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="minimum_stock" className="text-base">Tồn kho tối thiểu *</Label>
+                  <Label htmlFor="minimum_stock" className="text-base">{t('items:fields.minimumStock')} *</Label>
                   <Input
                     id="minimum_stock"
                     type="number"
@@ -410,7 +408,7 @@ export function ItemFormPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="reorder_point" className="text-base">Điểm đặt hàng *</Label>
+                  <Label htmlFor="reorder_point" className="text-base">{t('items:fields.reorderPoint')} *</Label>
                   <Input
                     id="reorder_point"
                     type="number"
@@ -426,7 +424,7 @@ export function ItemFormPage() {
 
             <AccordionItem value="images" className="border rounded-lg px-4">
               <AccordionTrigger className="text-base font-semibold">
-                Hình ảnh
+                {t('items:form.sections.images')}
               </AccordionTrigger>
               <AccordionContent className="pt-4">
                 <ImageUpload
@@ -439,16 +437,16 @@ export function ItemFormPage() {
             </AccordionItem>
           </Accordion>
         ) : (
-          // Desktop: Card layout (keep existing)
+          // Desktop: Card layout
           <>
         <Card>
           <CardHeader>
-            <CardTitle>Thông tin cơ bản</CardTitle>
+            <CardTitle>{t('items:form.sections.basicInfo')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="code">Mã tài sản *</Label>
+                <Label htmlFor="code">{t('items:fields.code')} *</Label>
                 <Input id="code" {...register('code')} />
                 {errors.code && (
                   <p className="text-sm text-destructive">{errors.code.message}</p>
@@ -456,13 +454,13 @@ export function ItemFormPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="category_id">Danh mục *</Label>
+                <Label htmlFor="category_id">{t('items:fields.category')} *</Label>
                 <Select
                   value={watch('category_id')}
                   onValueChange={(value) => setValue('category_id', value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Chọn danh mục..." />
+                    <SelectValue placeholder={t('items:form.selectCategory')} />
                   </SelectTrigger>
                   <SelectContent>
                     {categories?.map((cat) => (
@@ -478,20 +476,20 @@ export function ItemFormPage() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="item_type">Loại đồ dùng *</Label>
+                <Label htmlFor="item_type">{t('items:fields.itemType')} *</Label>
                 <Select
                   value={watch('item_type')}
                   onValueChange={(value: any) => setValue('item_type', value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Chọn loại đồ dùng..." />
+                    <SelectValue placeholder={t('items:form.selectItemType')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {ITEM_TYPE_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
+                    {ITEM_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
                         <div className="flex flex-col">
-                          <span className="font-medium">{opt.label}</span>
-                          <span className="text-xs text-muted-foreground">{opt.description}</span>
+                          <span className="font-medium">{t(`items:itemType.${type}`)}</span>
+                          <span className="text-xs text-muted-foreground">{t(`items:itemTypeDescription.${type}`)}</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -502,7 +500,7 @@ export function ItemFormPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Tên tài sản *</Label>
+                <Label htmlFor="name">{t('items:fields.name')} *</Label>
                 <Input id="name" {...register('name')} />
                 {errors.name && (
                   <p className="text-sm text-destructive">{errors.name.message}</p>
@@ -510,13 +508,13 @@ export function ItemFormPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="name_en">Tên tiếng Anh</Label>
+                <Label htmlFor="name_en">{t('items:fields.nameEn')}</Label>
                 <Input id="name_en" {...register('name_en')} />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Mô tả</Label>
+              <Label htmlFor="description">{t('items:fields.description')}</Label>
               <Textarea id="description" {...register('description')} rows={3} />
             </div>
           </CardContent>
@@ -524,22 +522,22 @@ export function ItemFormPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Thông tin sản phẩm</CardTitle>
+            <CardTitle>{t('items:form.sections.productInfo')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="brand">Thương hiệu</Label>
+                <Label htmlFor="brand">{t('items:fields.brand')}</Label>
                 <Input id="brand" {...register('brand')} />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="model">Model</Label>
+                <Label htmlFor="model">{t('items:fields.model')}</Label>
                 <Input id="model" {...register('model')} />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="unit">Đơn vị *</Label>
+                <Label htmlFor="unit">{t('items:fields.unit')} *</Label>
                 <Input id="unit" {...register('unit')} />
                 {errors.unit && (
                   <p className="text-sm text-destructive">{errors.unit.message}</p>
@@ -549,7 +547,7 @@ export function ItemFormPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="unit_price">Đơn giá (₫) *</Label>
+                <Label htmlFor="unit_price">{t('items:fields.unitPrice')} *</Label>
                 <Input
                   id="unit_price"
                   type="number"
@@ -562,7 +560,7 @@ export function ItemFormPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="minimum_stock">Tồn kho tối thiểu *</Label>
+                <Label htmlFor="minimum_stock">{t('items:fields.minimumStock')} *</Label>
                 <Input
                   id="minimum_stock"
                   type="number"
@@ -574,7 +572,7 @@ export function ItemFormPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="reorder_point">Điểm đặt hàng *</Label>
+                <Label htmlFor="reorder_point">{t('items:fields.reorderPoint')} *</Label>
                 <Input
                   id="reorder_point"
                   type="number"
@@ -590,7 +588,7 @@ export function ItemFormPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Hình ảnh sản phẩm</CardTitle>
+            <CardTitle>{t('items:form.sections.images')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ImageUpload
@@ -599,7 +597,7 @@ export function ItemFormPage() {
               maxImages={10}
             />
             <p className="mt-2 text-xs text-muted-foreground">
-              Ảnh sẽ được upload lên Supabase Storage. Tối đa 10 ảnh, mỗi ảnh không quá 5MB.
+              {t('items:form.imageHint')}
             </p>
           </CardContent>
         </Card>
@@ -615,7 +613,7 @@ export function ItemFormPage() {
             onClick={() => navigate('/items')}
             className={isMobile ? 'flex-1 h-12' : ''}
           >
-            Hủy
+            {t('items:form.buttons.cancel')}
           </Button>
           <Button 
             type="submit" 
@@ -623,7 +621,7 @@ export function ItemFormPage() {
             className={isMobile ? 'flex-1 h-12' : ''}
           >
             <Save className="w-4 h-4 mr-2" />
-            {isSubmitting ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Tạo mới'}
+            {isSubmitting ? t('items:form.buttons.saving') : isEdit ? t('items:form.buttons.update') : t('items:form.buttons.create')}
           </Button>
         </div>
       </form>
