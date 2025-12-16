@@ -3,6 +3,7 @@ import { ArrowLeft, Plus, X, AlertTriangle, Truck } from 'lucide-react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +42,7 @@ const outboundSchema = z.object({
 type OutboundFormData = z.infer<typeof outboundSchema>;
 
 export function OutboundPage() {
+  const { t } = useTranslation(['inventory', 'common'])
   const navigate = useNavigate();
   const { isMobile } = useBreakpoint();
   
@@ -93,15 +95,15 @@ export function OutboundPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Xuất kho" description="Ghi nhận xuất kho chi tiết">
+      <PageHeader title={t('inventory:outbound.title')} description={t('inventory:outbound.description')}>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate('/inventory/distributions/new')}>
             <Truck className="mr-2 h-4 w-4" />
-            Giao đến nhiều phòng
+            {t('inventory:outbound.deliverToMultiRooms')}
           </Button>
           <Button variant="outline" onClick={() => navigate('/inventory')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Quay lại
+            {t('common:back')}
           </Button>
         </div>
       </PageHeader>
@@ -110,7 +112,7 @@ export function OutboundPage() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Thông tin chung</CardTitle>
+              <CardTitle>{t('inventory:outbound.generalInfo')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <FormField 
@@ -118,7 +120,7 @@ export function OutboundPage() {
                 name="transaction_category" 
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Loại xuất *</FormLabel>
+                    <FormLabel>{t('inventory:outbound.type')} *</FormLabel>
                     <FormControl>
                       <RadioGroup 
                         onValueChange={field.onChange} 
@@ -128,31 +130,31 @@ export function OutboundPage() {
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="room_assign" id="room_assign" />
                           <label htmlFor="room_assign" className="cursor-pointer">
-                            🏠 Xuất cho phòng
+                            🏠 {t('inventory:outbound.toRoom')}
                           </label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="laundry" id="laundry" />
                           <label htmlFor="laundry" className="cursor-pointer">
-                            🧺 Xuất đi giặt
+                            🧺 {t('inventory:outbound.toLaundry')}
                           </label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="maintenance" id="maintenance" />
                           <label htmlFor="maintenance" className="cursor-pointer">
-                            🔧 Xuất cho bảo trì
+                            🔧 {t('inventory:outbound.toMaintenance')}
                           </label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="disposal" id="disposal" />
                           <label htmlFor="disposal" className="cursor-pointer">
-                            🗑️ Thanh lý
+                            🗑️ {t('inventory:outbound.toDisposal')}
                           </label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="other" id="other" />
                           <label htmlFor="other" className="cursor-pointer">
-                            ➖ Xuất khác
+                            ➖ {t('inventory:outbound.toOther')}
                           </label>
                         </div>
                       </RadioGroup>
@@ -168,7 +170,7 @@ export function OutboundPage() {
                   name="from_location" 
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Từ vị trí *</FormLabel>
+                      <FormLabel>{t('inventory:outbound.fromLocation')} *</FormLabel>
                       <FormControl>
                         <Input {...field} placeholder="VD: Kho tầng 1" />
                       </FormControl>
@@ -182,7 +184,7 @@ export function OutboundPage() {
                   name="to_location" 
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Đến vị trí *</FormLabel>
+                      <FormLabel>{t('inventory:outbound.toLocation')} *</FormLabel>
                       <FormControl>
                         <Input {...field} placeholder="VD: Phòng 301, Giặt là" />
                       </FormControl>
@@ -203,10 +205,10 @@ export function OutboundPage() {
                       </FormControl>
                       <div className="space-y-1 leading-none">
                         <FormLabel>
-                          Tự động gán vào danh sách đồ dùng phòng
+                          {t('inventory:outbound.autoAssignToRoom')}
                         </FormLabel>
                         <FormDescription>
-                          Đồ dùng sẽ được thêm vào quản lý đồ dùng của phòng
+                          {t('inventory:outbound.autoAssignDescription')}
                         </FormDescription>
                       </div>
                     </FormItem>
@@ -219,7 +221,7 @@ export function OutboundPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Đồ dùng xuất kho</CardTitle>
+                <CardTitle>{t('inventory:outbound.itemsToOutbound')}</CardTitle>
                 <Button 
                   type="button" 
                   variant="outline" 
@@ -232,7 +234,7 @@ export function OutboundPage() {
                   })}
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Thêm đồ dùng
+                  {t('inventory:outbound.addItem')}
                 </Button>
               </div>
             </CardHeader>
@@ -265,7 +267,7 @@ export function OutboundPage() {
                               name={`items.${index}.item_id`} 
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Đồ dùng *</FormLabel>
+                                  <FormLabel>{t('inventory:fields.item')} *</FormLabel>
                                   <FormControl>
                                     <ItemSelect 
                                       value={field.value} 
@@ -275,7 +277,7 @@ export function OutboundPage() {
                                           form.setValue(`items.${index}.available_quantity`, item.quantity_in_stock);
                                         }
                                       }} 
-                                      placeholder="Chọn đồ dùng" 
+                                      placeholder={t('inventory:outbound.selectItem')} 
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -288,7 +290,7 @@ export function OutboundPage() {
                               name={`items.${index}.quantity`} 
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Số lượng xuất *</FormLabel>
+                                  <FormLabel>{t('inventory:outbound.quantityToOutbound')} *</FormLabel>
                                   <FormControl>
                                     <Input 
                                       type="number" 
@@ -300,10 +302,10 @@ export function OutboundPage() {
                                     />
                                   </FormControl>
                                   <FormDescription>
-                                    Tồn kho: <span className="font-bold">{currentItem.available_quantity}</span>
+                                    {t('inventory:outbound.stockAvailable')}: <span className="font-bold">{currentItem.available_quantity}</span>
                                     {currentItem.available_quantity > 0 && (
                                       <>
-                                        {' '}• Còn lại:{' '}
+                                        {' '}• {t('inventory:outbound.remaining')}:{' '}
                                         <span className={willBeLowStock ? 'text-orange-600 font-bold' : ''}>
                                           {currentItem.available_quantity - currentItem.quantity}
                                         </span>
@@ -320,7 +322,7 @@ export function OutboundPage() {
                             <Alert variant="destructive">
                               <AlertTriangle className="h-4 w-4" />
                               <AlertDescription>
-                                Số lượng xuất vượt quá tồn kho
+                                {t('inventory:outbound.exceedStock')}
                               </AlertDescription>
                             </Alert>
                           )}
@@ -329,7 +331,7 @@ export function OutboundPage() {
                             <Alert>
                               <AlertTriangle className="h-4 w-4" />
                               <AlertDescription>
-                                ⚠️ Sau khi xuất, tồn kho sẽ xuống dưới mức an toàn (10)
+                                ⚠️ {t('inventory:outbound.lowStockWarning')}
                               </AlertDescription>
                             </Alert>
                           )}
@@ -337,9 +339,9 @@ export function OutboundPage() {
                           <FormField 
                             control={form.control} 
                             name={`items.${index}.notes`} 
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Ghi chú cho item này</FormLabel>
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>{t('inventory:outbound.itemNote')}</FormLabel>
                                 <FormControl>
                                   <Input {...field} placeholder="VD: Tình trạng, mục đích sử dụng..." />
                                 </FormControl>
@@ -358,7 +360,7 @@ export function OutboundPage() {
           
           <Card>
             <CardHeader>
-              <CardTitle>Hình ảnh hàng hóa</CardTitle>
+              <CardTitle>{t('inventory:outbound.photos')}</CardTitle>
             </CardHeader>
             <CardContent>
               <FormField 
@@ -370,7 +372,7 @@ export function OutboundPage() {
                       <ImageUpload images={field.value || []} onChange={field.onChange} maxImages={10} />
                     </FormControl>
                     <FormDescription>
-                      Chụp ảnh hàng hóa khi xuất
+                      {t('inventory:outbound.photosDescription')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -381,7 +383,7 @@ export function OutboundPage() {
           
           <Card>
             <CardHeader>
-              <CardTitle>Ghi chú chung</CardTitle>
+              <CardTitle>{t('inventory:outbound.generalNotes')}</CardTitle>
             </CardHeader>
             <CardContent>
               <FormField 
@@ -390,7 +392,7 @@ export function OutboundPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Textarea {...field} placeholder="Ghi chú về lô xuất kho này..." rows={4} />
+                      <Textarea {...field} placeholder={t('inventory:outbound.notesPlaceholder')} rows={4} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -428,10 +430,10 @@ export function OutboundPage() {
           
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => navigate('/inventory')}>
-              Hủy
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={isLoading || hasStockError}>
-              {isLoading ? 'Đang xử lý...' : 'Xác nhận xuất kho'}
+              {isLoading ? t('inventory:outbound.processing') : t('inventory:outbound.confirm')}
             </Button>
           </div>
         </form>
