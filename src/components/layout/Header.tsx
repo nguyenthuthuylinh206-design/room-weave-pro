@@ -1,4 +1,4 @@
-import { Menu, Bell, Moon, Sun, LogOut, Settings, User } from 'lucide-react'
+import { Menu, Moon, Sun, LogOut, Settings, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTheme } from '@/hooks/useTheme'
 import {
@@ -16,6 +16,7 @@ import { useUser } from '@/hooks/useUser'
 import { useNavigate } from 'react-router-dom'
 import { ROLES } from '@/lib/constants'
 import { HotelSwitcher } from './HotelSwitcher'
+import { NotificationBell } from '@/components/notifications'
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -73,28 +74,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
         </Button>
 
         {/* Notifications */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              <Badge
-                variant="destructive"
-                className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-xs"
-              >
-                3
-              </Badge>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel>Thông báo</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <div className="max-h-96 overflow-y-auto">
-              <div className="p-4 text-center text-sm text-muted-foreground">
-                Chưa có thông báo mới
-              </div>
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <NotificationBell />
 
         {/* User Menu */}
         <DropdownMenu>
