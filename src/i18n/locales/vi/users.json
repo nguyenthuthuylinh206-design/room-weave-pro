@@ -23,7 +23,8 @@
     "hotel": "Khách sạn",
     "status": "Trạng thái",
     "createdAt": "Ngày tạo",
-    "lastLogin": "Lần đăng nhập cuối"
+    "lastLogin": "Lần đăng nhập cuối",
+    "password": "Mật khẩu"
   },
   "role": {
     "superAdmin": "Super Admin",
@@ -33,9 +34,13 @@
     "staff": "Nhân viên"
   },
   "userLevel": {
-    "tenantOwner": "Chủ tài khoản",
+    "tenantOwner": "Chủ sở hữu",
     "manager": "Quản lý",
     "staff": "Nhân viên"
+  },
+  "userLevelDescription": {
+    "manager": "Quản lý khách sạn và giám sát nhân viên",
+    "staff": "Nhân viên thực hiện công việc hàng ngày"
   },
   "status": {
     "active": "Hoạt động",
@@ -55,7 +60,8 @@
     "updateSuccess": "Đã cập nhật thành công",
     "deleteSuccess": "Đã xóa người dùng",
     "passwordChanged": "Đã đổi mật khẩu thành công",
-    "noUsers": "Không tìm thấy người dùng"
+    "noUsers": "Không tìm thấy người dùng",
+    "reportsTo": "Người dùng mới sẽ báo cáo cho"
   },
   "filters": {
     "all": "Tất cả",
@@ -63,5 +69,22 @@
     "byStatus": "Theo trạng thái",
     "byHotel": "Theo khách sạn",
     "search": "Tìm kiếm người dùng..."
+  },
+  "form": {
+    "title": "Thêm người dùng mới",
+    "editTitle": "Chỉnh sửa người dùng",
+    "description": "Tạo tài khoản mới cho người dùng và phân quyền truy cập",
+    "editDescription": "Cập nhật thông tin người dùng",
+    "fullNamePlaceholder": "Nhập họ và tên",
+    "emailPlaceholder": "email@example.com",
+    "passwordPlaceholder": "Nhập mật khẩu",
+    "selectLevel": "Chọn cấp bậc",
+    "selectHotel": "Chọn khách sạn",
+    "selectPosition": "Chọn chức vụ",
+    "createUser": "Tạo người dùng"
+  },
+  "validation": {
+    "selectHotel": "Vui lòng chọn khách sạn",
+    "selectPosition": "Vui lòng chọn chức vụ"
   }
 }

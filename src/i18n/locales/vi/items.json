@@ -15,6 +15,7 @@
   "notFound": "Không tìm thấy tài sản",
   "fields": {
     "name": "Tên tài sản",
+    "nameEn": "Tên tiếng Anh",
     "code": "Mã tài sản",
     "category": "Danh mục",
     "unit": "Đơn vị",
@@ -33,7 +34,8 @@
     "description": "Mô tả",
     "status": "Trạng thái",
     "createdAt": "Ngày tạo",
-    "updatedAt": "Cập nhật lần cuối"
+    "updatedAt": "Cập nhật lần cuối",
+    "images": "Hình ảnh"
   },
   "status": {
     "active": "Hoạt động",
@@ -66,6 +68,68 @@
     "byCategory": "Theo danh mục",
     "byStatus": "Theo trạng thái",
     "search": "Tìm kiếm tài sản..."
+  },
+  "form": {
+    "steps": {
+      "basicInfo": "Thông tin cơ bản",
+      "details": "Chi tiết",
+      "images": "Hình ảnh"
+    },
+    "codePlaceholder": "Ví dụ: FAB-001",
+    "namePlaceholder": "Ví dụ: Khăn tắm trắng",
+    "nameEnPlaceholder": "Ví dụ: Bath Towel White",
+    "selectCategory": "Chọn danh mục",
+    "descriptionPlaceholder": "Mô tả chi tiết về tài sản",
+    "addImage": "Thêm ảnh"
+  },
+  "validation": {
+    "codeRequired": "Mã là bắt buộc",
+    "nameRequired": "Tên là bắt buộc",
+    "categoryRequired": "Danh mục là bắt buộc",
+    "unitRequired": "Đơn vị là bắt buộc",
+    "priceMin": "Đơn giá phải >= 0",
+    "stockMin": "Tồn tối thiểu phải >= 0"
+  },
+  "units": {
+    "piece": "Cái",
+    "item": "Chiếc",
+    "set": "Bộ",
+    "box": "Hộp",
+    "bottle": "Chai"
+  },
+  "colors": {
+    "blue": "Xanh dương",
+    "green": "Xanh lá",
+    "orange": "Cam",
+    "red": "Đỏ",
+    "purple": "Tím",
+    "pink": "Hồng",
+    "gray": "Xám"
+  },
+  "categories": {
+    "addCategory": "Thêm danh mục mới",
+    "editCategory": "Sửa danh mục",
+    "fields": {
+      "name": "Tên danh mục",
+      "nameEn": "Tên tiếng Anh",
+      "description": "Mô tả",
+      "icon": "Biểu tượng",
+      "color": "Màu sắc",
+      "sortOrder": "Thứ tự hiển thị"
+    },
+    "form": {
+      "namePlaceholder": "VD: Đồ giường",
+      "nameEnPlaceholder": "VD: Bedding",
+      "descriptionPlaceholder": "Mô tả ngắn về danh mục"
+    },
+    "icons": {
+      "shirt": "Áo",
+      "cleaning": "Làm sạch",
+      "electronics": "Điện tử",
+      "furniture": "Nội thất",
+      "hygiene": "Vệ sinh",
+      "other": "Khác"
+    }
   },
   "detail": {
     "images": "Hình ảnh",

@@ -15,6 +15,7 @@
   "notFound": "Asset not found",
   "fields": {
     "name": "Asset Name",
+    "nameEn": "English Name",
     "code": "Asset Code",
     "category": "Category",
     "unit": "Unit",
@@ -33,7 +34,8 @@
     "description": "Description",
     "status": "Status",
     "createdAt": "Created At",
-    "updatedAt": "Last Updated"
+    "updatedAt": "Last Updated",
+    "images": "Images"
   },
   "status": {
     "active": "Active",
@@ -66,6 +68,68 @@
     "byCategory": "By Category",
     "byStatus": "By Status",
     "search": "Search assets..."
+  },
+  "form": {
+    "steps": {
+      "basicInfo": "Basic Info",
+      "details": "Details",
+      "images": "Images"
+    },
+    "codePlaceholder": "E.g: FAB-001",
+    "namePlaceholder": "E.g: White Bath Towel",
+    "nameEnPlaceholder": "E.g: Bath Towel White",
+    "selectCategory": "Select category",
+    "descriptionPlaceholder": "Detailed description of the asset",
+    "addImage": "Add image"
+  },
+  "validation": {
+    "codeRequired": "Code is required",
+    "nameRequired": "Name is required",
+    "categoryRequired": "Category is required",
+    "unitRequired": "Unit is required",
+    "priceMin": "Unit price must be >= 0",
+    "stockMin": "Minimum stock must be >= 0"
+  },
+  "units": {
+    "piece": "Piece",
+    "item": "Item",
+    "set": "Set",
+    "box": "Box",
+    "bottle": "Bottle"
+  },
+  "colors": {
+    "blue": "Blue",
+    "green": "Green",
+    "orange": "Orange",
+    "red": "Red",
+    "purple": "Purple",
+    "pink": "Pink",
+    "gray": "Gray"
+  },
+  "categories": {
+    "addCategory": "Add New Category",
+    "editCategory": "Edit Category",
+    "fields": {
+      "name": "Category Name",
+      "nameEn": "English Name",
+      "description": "Description",
+      "icon": "Icon",
+      "color": "Color",
+      "sortOrder": "Sort Order"
+    },
+    "form": {
+      "namePlaceholder": "E.g: Bedding",
+      "nameEnPlaceholder": "E.g: Bedding",
+      "descriptionPlaceholder": "Brief description of the category"
+    },
+    "icons": {
+      "shirt": "Shirt",
+      "cleaning": "Cleaning",
+      "electronics": "Electronics",
+      "furniture": "Furniture",
+      "hygiene": "Hygiene",
+      "other": "Other"
+    }
   },
   "detail": {
     "images": "Images",

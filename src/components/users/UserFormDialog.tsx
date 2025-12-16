@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useTranslation } from 'react-i18next'
 import {
   Dialog,
   DialogContent,
@@ -48,6 +49,7 @@ export function UserFormDialog({
   onOpenChange,
   onSubmit,
 }: UserFormDialogProps) {
+  const { t } = useTranslation(['users', 'common'])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const { data: hotels, isLoading: hotelsLoading } = useHotels({ status: 'active' })
@@ -113,7 +115,7 @@ export function UserFormDialog({
     if (isHotelRequired && !data.hotelId) {
       form.setError('hotelId', {
         type: 'manual',
-        message: 'Vui lòng chọn khách sạn',
+        message: t('users:validation.selectHotel'),
       })
       return
     }
@@ -122,7 +124,7 @@ export function UserFormDialog({
     if (isPositionRequired && !data.positionId) {
       form.setError('positionId', {
         type: 'manual',
-        message: 'Vui lòng chọn chức vụ',
+        message: t('users:validation.selectPosition'),
       })
       return
     }
@@ -141,11 +143,11 @@ export function UserFormDialog({
   const getLevelLabel = (code: string) => {
     switch (code) {
       case 'tenant_owner':
-        return 'Chủ sở hữu'
+        return t('users:userLevel.tenantOwner')
       case 'manager':
-        return 'Quản lý'
+        return t('users:userLevel.manager')
       case 'staff':
-        return 'Nhân viên'
+        return t('users:userLevel.staff')
       default:
         return code
     }
@@ -154,9 +156,9 @@ export function UserFormDialog({
   const getLevelDescription = (code: string) => {
     switch (code) {
       case 'manager':
-        return 'Quản lý khách sạn và giám sát nhân viên'
+        return t('users:userLevelDescription.manager')
       case 'staff':
-        return 'Nhân viên thực hiện công việc hàng ngày'
+        return t('users:userLevelDescription.staff')
       default:
         return ''
     }
@@ -180,12 +182,12 @@ export function UserFormDialog({
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>
-              {user ? 'Chỉnh sửa người dùng' : 'Thêm người dùng mới'}
+              {user ? t('users:form.editTitle') : t('users:form.title')}
             </DialogTitle>
             <DialogDescription>
               {user 
-                ? 'Cập nhật thông tin người dùng' 
-                : 'Tạo tài khoản mới cho người dùng và phân quyền truy cập'
+                ? t('users:form.editDescription')
+                : t('users:form.description')
               }
             </DialogDescription>
           </DialogHeader>
@@ -194,7 +196,7 @@ export function UserFormDialog({
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                Người dùng mới sẽ báo cáo cho: <strong>{currentUser.full_name}</strong>
+                {t('users:messages.reportsTo')}: <strong>{currentUser.full_name}</strong>
               </AlertDescription>
             </Alert>
           )}
@@ -207,9 +209,9 @@ export function UserFormDialog({
                 name="fullName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Họ và tên *</FormLabel>
+                    <FormLabel>{t('users:fields.fullName')} *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Nhập họ và tên" {...field} />
+                      <Input placeholder={t('users:form.fullNamePlaceholder')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -222,11 +224,11 @@ export function UserFormDialog({
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email *</FormLabel>
+                    <FormLabel>{t('users:fields.email')} *</FormLabel>
                     <FormControl>
                       <Input 
                         type="email" 
-                        placeholder="email@example.com" 
+                        placeholder={t('users:form.emailPlaceholder')}
                         {...field} 
                         disabled={!!user}
                       />
@@ -243,12 +245,12 @@ export function UserFormDialog({
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Mật khẩu *</FormLabel>
+                      <FormLabel>{t('users:fields.password')} *</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
                             type={showPassword ? 'text' : 'password'}
-                            placeholder="Nhập mật khẩu"
+                            placeholder={t('users:form.passwordPlaceholder')}
                             {...field}
                             className="pr-10"
                           />
@@ -279,7 +281,7 @@ export function UserFormDialog({
                 name="userLevelCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cấp bậc *</FormLabel>
+                    <FormLabel>{t('users:fields.userLevel')} *</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value}
@@ -287,7 +289,7 @@ export function UserFormDialog({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Chọn cấp bậc" />
+                          <SelectValue placeholder={t('users:form.selectLevel')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -317,7 +319,7 @@ export function UserFormDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Khách sạn {isHotelRequired && '*'}
+                      {t('users:fields.hotel')} {isHotelRequired && '*'}
                     </FormLabel>
                     <Select
                       onValueChange={field.onChange}
@@ -325,7 +327,7 @@ export function UserFormDialog({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Chọn khách sạn" />
+                          <SelectValue placeholder={t('users:form.selectHotel')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -348,7 +350,7 @@ export function UserFormDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Chức vụ {isPositionRequired && '*'}
+                      {t('users:fields.position')} {isPositionRequired && '*'}
                     </FormLabel>
                     <Select
                       onValueChange={field.onChange}
@@ -357,7 +359,7 @@ export function UserFormDialog({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Chọn chức vụ" />
+                          <SelectValue placeholder={t('users:form.selectPosition')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -380,10 +382,10 @@ export function UserFormDialog({
                   onClick={() => onOpenChange(false)}
                   disabled={isSubmitting}
                 >
-                  Hủy
+                  {t('common:cancel')}
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Đang xử lý...' : user ? 'Cập nhật' : 'Tạo người dùng'}
+                  {isSubmitting ? t('common:processing') : user ? t('common:update') : t('users:form.createUser')}
                 </Button>
               </div>
             </form>

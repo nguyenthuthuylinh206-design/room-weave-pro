@@ -23,7 +23,8 @@
     "hotel": "Hotel",
     "status": "Status",
     "createdAt": "Created At",
-    "lastLogin": "Last Login"
+    "lastLogin": "Last Login",
+    "password": "Password"
   },
   "role": {
     "superAdmin": "Super Admin",
@@ -33,9 +34,13 @@
     "staff": "Staff"
   },
   "userLevel": {
-    "tenantOwner": "Account Owner",
+    "tenantOwner": "Owner",
     "manager": "Manager",
     "staff": "Staff"
+  },
+  "userLevelDescription": {
+    "manager": "Manage hotel and supervise staff",
+    "staff": "Staff performing daily tasks"
   },
   "status": {
     "active": "Active",
@@ -55,7 +60,8 @@
     "updateSuccess": "Updated successfully",
     "deleteSuccess": "User deleted successfully",
     "passwordChanged": "Password changed successfully",
-    "noUsers": "No users found"
+    "noUsers": "No users found",
+    "reportsTo": "New user will report to"
   },
   "filters": {
     "all": "All",
@@ -63,5 +69,22 @@
     "byStatus": "By Status",
     "byHotel": "By Hotel",
     "search": "Search users..."
+  },
+  "form": {
+    "title": "Add New User",
+    "editTitle": "Edit User",
+    "description": "Create new account and assign access permissions",
+    "editDescription": "Update user information",
+    "fullNamePlaceholder": "Enter full name",
+    "emailPlaceholder": "email@example.com",
+    "passwordPlaceholder": "Enter password",
+    "selectLevel": "Select level",
+    "selectHotel": "Select hotel",
+    "selectPosition": "Select position",
+    "createUser": "Create User"
+  },
+  "validation": {
+    "selectHotel": "Please select a hotel",
+    "selectPosition": "Please select a position"
   }
 }

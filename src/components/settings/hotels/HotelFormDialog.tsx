@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useTranslation } from 'react-i18next'
 import * as z from 'zod'
 import { useQuotaCheck } from '@/hooks/useQuotaCheck'
 import { QuotaExceededDialog } from '@/components/settings/usage/QuotaExceededDialog'
@@ -21,7 +22,6 @@ import {
   FormDescription,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -35,30 +35,6 @@ import { Hotel, HotelFormData, useCreateHotel, useUpdateHotel } from '@/hooks/us
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useUsers } from '@/hooks/useUsers'
 
-const hotelSchema = z.object({
-  code: z.string()
-    .min(2, 'Mã phải có ít nhất 2 ký tự')
-    .max(20, 'Mã không được quá 20 ký tự')
-    .regex(/^[A-Z0-9-]+$/, 'Mã chỉ được chứa chữ in hoa, số và dấu gạch ngang'),
-  name: z.string().min(2, 'Tên phải có ít nhất 2 ký tự'),
-  type: z.enum(['hotel', 'resort', 'apartment', 'hostel', 'other']),
-  city: z.string().min(1, 'Thành phố là bắt buộc'),
-  country: z.string().min(1, 'Quốc gia là bắt buộc'),
-  total_rooms: z.coerce.number().min(1, 'Phải có ít nhất 1 phòng'),
-  total_floors: z.coerce.number().min(1, 'Phải có ít nhất 1 tầng'),
-  status: z.enum(['active', 'inactive', 'maintenance']),
-  
-  // Optional fields
-  address: z.string().optional(),
-  state: z.string().optional(),
-  postal_code: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().email('Email không hợp lệ').optional().or(z.literal('')),
-  website: z.string().url('URL không hợp lệ').optional().or(z.literal('')),
-  manager_id: z.string().optional(),
-  description: z.string().optional(),
-})
-
 interface HotelFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -66,11 +42,36 @@ interface HotelFormDialogProps {
 }
 
 export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogProps) {
+  const { t } = useTranslation(['hotels', 'common'])
   const [step, setStep] = useState(1)
   const createHotel = useCreateHotel()
   const updateHotel = useUpdateHotel()
   const { users } = useUsers()
   const quotaCheck = useQuotaCheck('hotel')
+
+  const hotelSchema = z.object({
+    code: z.string()
+      .min(2, t('hotels:validation.codeMinLength'))
+      .max(20, t('hotels:validation.codeMaxLength'))
+      .regex(/^[A-Z0-9-]+$/, t('hotels:validation.codeFormat')),
+    name: z.string().min(2, t('hotels:validation.nameMinLength')),
+    type: z.enum(['hotel', 'resort', 'apartment', 'hostel', 'other']),
+    city: z.string().min(1, t('hotels:validation.cityRequired')),
+    country: z.string().min(1, t('hotels:validation.countryRequired')),
+    total_rooms: z.coerce.number().min(1, t('hotels:validation.minRooms')),
+    total_floors: z.coerce.number().min(1, t('hotels:validation.minFloors')),
+    status: z.enum(['active', 'inactive', 'maintenance']),
+    
+    // Optional fields
+    address: z.string().optional(),
+    state: z.string().optional(),
+    postal_code: z.string().optional(),
+    phone: z.string().optional(),
+    email: z.string().email(t('hotels:validation.invalidEmail')).optional().or(z.literal('')),
+    website: z.string().url(t('hotels:validation.invalidUrl')).optional().or(z.literal('')),
+    manager_id: z.string().optional(),
+    description: z.string().optional(),
+  })
 
   // Filter managers from users
   const managers = users?.filter(u => 
@@ -195,9 +196,9 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>{hotel ? 'Chỉnh sửa Khách sạn' : 'Thêm Khách sạn Mới'}</DialogTitle>
+          <DialogTitle>{hotel ? t('hotels:editHotel') : t('hotels:addNew')}</DialogTitle>
           <DialogDescription>
-            {!hotel && `Bước ${step} / ${totalSteps}`}
+            {!hotel && t('hotels:form.step', { current: step, total: totalSteps })}
           </DialogDescription>
         </DialogHeader>
 
@@ -213,16 +214,16 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
                   name="code"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Mã Khách sạn *</FormLabel>
+                      <FormLabel>{t('hotels:fields.code')} *</FormLabel>
                       <FormControl>
                         <Input 
-                          placeholder="VD: HN01, SGN-01, DA001" 
+                          placeholder={t('hotels:form.codePlaceholder')}
                           {...field}
                           onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                         />
                       </FormControl>
                       <FormDescription>
-                        Mã gồm 2-20 ký tự (chữ in hoa, số, dấu gạch ngang)
+                        {t('hotels:form.codeDescription')}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -234,9 +235,9 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tên Khách sạn *</FormLabel>
+                      <FormLabel>{t('hotels:fields.name')} *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Grand Hotel Hanoi" {...field} />
+                        <Input placeholder={t('hotels:form.namePlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -248,19 +249,19 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
                   name="type"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Loại hình *</FormLabel>
+                      <FormLabel>{t('hotels:fields.type')} *</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Chọn loại hình" />
+                            <SelectValue placeholder={t('hotels:form.selectType')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="hotel">Khách sạn</SelectItem>
-                          <SelectItem value="resort">Resort</SelectItem>
-                          <SelectItem value="apartment">Căn hộ</SelectItem>
-                          <SelectItem value="hostel">Hostel</SelectItem>
-                          <SelectItem value="other">Khác</SelectItem>
+                          <SelectItem value="hotel">{t('hotels:type.hotel')}</SelectItem>
+                          <SelectItem value="resort">{t('hotels:type.resort')}</SelectItem>
+                          <SelectItem value="apartment">{t('hotels:type.apartment')}</SelectItem>
+                          <SelectItem value="hostel">{t('hotels:type.hostel')}</SelectItem>
+                          <SelectItem value="other">{t('hotels:type.other')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -274,9 +275,9 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
                     name="city"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Thành phố *</FormLabel>
+                        <FormLabel>{t('hotels:fields.city')} *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Hà Nội" {...field} />
+                          <Input placeholder={t('hotels:form.cityPlaceholder')} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -288,9 +289,9 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
                     name="country"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Quốc gia *</FormLabel>
+                        <FormLabel>{t('hotels:fields.country')} *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Việt Nam" {...field} />
+                          <Input placeholder={t('hotels:form.countryPlaceholder')} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -309,7 +310,7 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
                     name="total_rooms"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tổng số Phòng *</FormLabel>
+                        <FormLabel>{t('hotels:fields.totalRooms')} *</FormLabel>
                         <FormControl>
                           <Input type="number" min="1" {...field} />
                         </FormControl>
@@ -323,7 +324,7 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
                     name="total_floors"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tổng số Tầng *</FormLabel>
+                        <FormLabel>{t('hotels:fields.totalFloors')} *</FormLabel>
                         <FormControl>
                           <Input type="number" min="1" {...field} />
                         </FormControl>
@@ -338,17 +339,17 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
                   name="status"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Trạng thái *</FormLabel>
+                      <FormLabel>{t('hotels:fields.status')} *</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Chọn trạng thái" />
+                            <SelectValue placeholder={t('hotels:form.selectStatus')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="active">Đang hoạt động</SelectItem>
-                          <SelectItem value="inactive">Tạm ngưng</SelectItem>
-                          <SelectItem value="maintenance">Bảo trì</SelectItem>
+                          <SelectItem value="active">{t('hotels:status.active')}</SelectItem>
+                          <SelectItem value="inactive">{t('hotels:status.inactive')}</SelectItem>
+                          <SelectItem value="maintenance">{t('hotels:status.maintenance')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -363,12 +364,12 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
               {step > 1 && !hotel && (
                 <Button type="button" variant="outline" onClick={prevStep}>
                   <ChevronLeft className="h-4 w-4 mr-2" />
-                  Quay lại
+                  {t('common:back')}
                 </Button>
               )}
               {step < totalSteps && !hotel && (
                 <Button type="button" onClick={nextStep} className="ml-auto">
-                  Tiếp theo
+                  {t('common:next')}
                   <ChevronRight className="h-4 w-4 ml-2" />
                 </Button>
               )}
@@ -378,7 +379,7 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
                   disabled={createHotel.isPending || updateHotel.isPending}
                   className={!hotel && step > 1 ? 'ml-auto' : ''}
                 >
-                  {hotel ? 'Cập nhật' : 'Tạo'} Khách sạn
+                  {hotel ? t('common:update') : t('common:create')} {t('hotels:title').replace('Quản lý ', '').replace(' Management', '')}
                 </Button>
               )}
             </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,23 +16,13 @@ interface CategoryFormSheetProps {
   isSubmitting?: boolean
 }
 
-const COLORS = [
-  { value: '#3B82F6', label: 'Xanh dương' },
-  { value: '#10B981', label: 'Xanh lá' },
-  { value: '#F59E0B', label: 'Cam' },
-  { value: '#EF4444', label: 'Đỏ' },
-  { value: '#8B5CF6', label: 'Tím' },
-  { value: '#EC4899', label: 'Hồng' },
-  { value: '#6B7280', label: 'Xám' },
-]
-
 const ICONS = [
-  { icon: 'shirt', label: 'Áo', Component: Shirt },
-  { icon: 'sparkles', label: 'Làm sạch', Component: Sparkles },
-  { icon: 'tv', label: 'Điện tử', Component: Tv },
-  { icon: 'sofa', label: 'Nội thất', Component: Sofa },
-  { icon: 'spray', label: 'Vệ sinh', Component: Droplets },
-  { icon: 'package', label: 'Khác', Component: Package },
+  { icon: 'shirt', label: 'shirt', Component: Shirt },
+  { icon: 'sparkles', label: 'cleaning', Component: Sparkles },
+  { icon: 'tv', label: 'electronics', Component: Tv },
+  { icon: 'sofa', label: 'furniture', Component: Sofa },
+  { icon: 'spray', label: 'hygiene', Component: Droplets },
+  { icon: 'package', label: 'other', Component: Package },
 ]
 
 export function CategoryFormSheet({
@@ -41,6 +32,18 @@ export function CategoryFormSheet({
   onSubmit,
   isSubmitting = false,
 }: CategoryFormSheetProps) {
+  const { t } = useTranslation(['items', 'common'])
+  
+  const COLORS = [
+    { value: '#3B82F6', label: t('items:colors.blue') },
+    { value: '#10B981', label: t('items:colors.green') },
+    { value: '#F59E0B', label: t('items:colors.orange') },
+    { value: '#EF4444', label: t('items:colors.red') },
+    { value: '#8B5CF6', label: t('items:colors.purple') },
+    { value: '#EC4899', label: t('items:colors.pink') },
+    { value: '#6B7280', label: t('items:colors.gray') },
+  ]
+
   const [formData, setFormData] = useState<CategoryFormData>({
     name: '',
     name_en: '',
@@ -82,19 +85,19 @@ export function CategoryFormSheet({
       <SheetContent side="bottom" className="h-[85vh] overflow-y-auto">
         <SheetHeader>
           <SheetTitle>
-            {category ? 'Sửa danh mục' : 'Thêm danh mục mới'}
+            {category ? t('items:categories.editCategory') : t('items:categories.addCategory')}
           </SheetTitle>
         </SheetHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6 mt-6">
           {/* Name */}
           <div>
-            <Label htmlFor="name" className="text-base">Tên danh mục *</Label>
+            <Label htmlFor="name" className="text-base">{t('items:categories.fields.name')} *</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="VD: Đồ giường"
+              placeholder={t('items:categories.form.namePlaceholder')}
               required
               className="h-12 mt-2 text-base"
             />
@@ -102,24 +105,24 @@ export function CategoryFormSheet({
           
           {/* English Name */}
           <div>
-            <Label htmlFor="name_en" className="text-base">Tên tiếng Anh</Label>
+            <Label htmlFor="name_en" className="text-base">{t('items:categories.fields.nameEn')}</Label>
             <Input
               id="name_en"
               value={formData.name_en}
               onChange={(e) => setFormData(prev => ({ ...prev, name_en: e.target.value }))}
-              placeholder="VD: Bedding"
+              placeholder={t('items:categories.form.nameEnPlaceholder')}
               className="h-12 mt-2 text-base"
             />
           </div>
           
           {/* Description */}
           <div>
-            <Label htmlFor="description" className="text-base">Mô tả</Label>
+            <Label htmlFor="description" className="text-base">{t('items:categories.fields.description')}</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Mô tả ngắn về danh mục"
+              placeholder={t('items:categories.form.descriptionPlaceholder')}
               rows={3}
               className="mt-2 text-base"
             />
@@ -127,7 +130,7 @@ export function CategoryFormSheet({
           
           {/* Icon */}
           <div>
-            <Label className="text-base">Biểu tượng</Label>
+            <Label className="text-base">{t('items:categories.fields.icon')}</Label>
             <div className="grid grid-cols-3 gap-2 mt-2">
               {ICONS.map(({ icon, label, Component }) => (
                 <button
@@ -143,7 +146,7 @@ export function CategoryFormSheet({
                   `}
                 >
                   <Component className="h-6 w-6" />
-                  <span className="text-xs">{label}</span>
+                  <span className="text-xs">{t(`items:categories.icons.${label}`)}</span>
                 </button>
               ))}
             </div>
@@ -151,7 +154,7 @@ export function CategoryFormSheet({
           
           {/* Color */}
           <div>
-            <Label className="text-base">Màu sắc</Label>
+            <Label className="text-base">{t('items:categories.fields.color')}</Label>
             <div className="grid grid-cols-4 gap-2 mt-2">
               {COLORS.map(({ value, label }) => (
                 <button
@@ -178,7 +181,7 @@ export function CategoryFormSheet({
           
           {/* Sort Order */}
           <div>
-            <Label htmlFor="sort_order" className="text-base">Thứ tự hiển thị</Label>
+            <Label htmlFor="sort_order" className="text-base">{t('items:categories.fields.sortOrder')}</Label>
             <Input
               id="sort_order"
               type="number"
@@ -200,14 +203,14 @@ export function CategoryFormSheet({
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
             >
-              Hủy
+              {t('common:cancel')}
             </Button>
             <Button
               type="submit"
               className="flex-1 h-12"
               disabled={isSubmitting || !formData.name}
             >
-              {isSubmitting ? 'Đang lưu...' : category ? 'Cập nhật' : 'Thêm mới'}
+              {isSubmitting ? t('common:saving') : category ? t('common:update') : t('common:addNew')}
             </Button>
           </div>
         </form>
