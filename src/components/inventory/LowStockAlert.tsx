@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, ShoppingCart, Eye, ChevronDown, ChevronUp, Package } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { AlertTriangle, Eye, ChevronDown, ChevronUp, Package } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -17,6 +18,7 @@ import { useLowStockItems } from '@/hooks/useInventoryDashboard'
 import { cn } from '@/lib/utils'
 
 export function LowStockAlert() {
+  const { t } = useTranslation(['inventory'])
   const navigate = useNavigate()
   const [isExpanded, setIsExpanded] = useState(true)
   const { data: items, isLoading } = useLowStockItems(50)
@@ -49,9 +51,9 @@ export function LowStockAlert() {
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-orange-600" />
             <CardTitle className="text-orange-600">
-              Cảnh báo tồn kho thấp
+              {t('lowStock.title')}
             </CardTitle>
-            <Badge variant="destructive">{items.length} items</Badge>
+            <Badge variant="destructive">{items.length} {t('lowStock.items')}</Badge>
           </div>
           <Button
             variant="ghost"
@@ -73,12 +75,12 @@ export function LowStockAlert() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-16">Ảnh</TableHead>
-                  <TableHead>Tên đồ dùng</TableHead>
-                  <TableHead>Danh mục</TableHead>
-                  <TableHead className="text-center">Trong kho</TableHead>
-                  <TableHead className="text-center">Tối thiểu</TableHead>
-                  <TableHead className="text-center">Thiếu</TableHead>
+                  <TableHead className="w-16">{t('lowStock.table.image')}</TableHead>
+                  <TableHead>{t('lowStock.table.name')}</TableHead>
+                  <TableHead>{t('lowStock.table.category')}</TableHead>
+                  <TableHead className="text-center">{t('lowStock.table.inStock')}</TableHead>
+                  <TableHead className="text-center">{t('lowStock.table.minimum')}</TableHead>
+                  <TableHead className="text-center">{t('lowStock.table.shortage')}</TableHead>
                   <TableHead className="w-32"></TableHead>
                 </TableRow>
               </TableHeader>

@@ -63,6 +63,49 @@
     "items": "items",
     "kg": "kg"
   },
+  "activeBatches": {
+    "title": "Active Batches",
+    "viewAll": "View All",
+    "noActiveBatches": "No active batches",
+    "table": {
+      "batchCode": "Batch Code",
+      "vendor": "Laundry Vendor",
+      "deliveryDate": "Delivery Date",
+      "expectedReturn": "Expected Return",
+      "items": "Items",
+      "weight": "Weight",
+      "cost": "Cost",
+      "status": "Status"
+    },
+    "overdue": "Overdue",
+    "costNotUpdated": "Not updated",
+    "receive": "Receive"
+  },
+  "batchItems": {
+    "tabs": {
+      "all": "All",
+      "received": "Received",
+      "lost": "Lost",
+      "damaged": "Damaged"
+    },
+    "noItems": "No items",
+    "table": {
+      "image": "Image",
+      "item": "Item",
+      "deliveryQty": "Delivery Qty",
+      "weight": "Weight",
+      "deliveryCondition": "Delivery Condition",
+      "receivedQty": "Received Qty",
+      "lost": "Lost",
+      "damaged": "Damaged",
+      "receiveCondition": "Receive Condition"
+    },
+    "condition": {
+      "normal": "Normal",
+      "notChecked": "Not checked",
+      "good": "Good"
+    }
+  },
   "vendorDetail": {
     "back": "Back",
     "editInfo": "Edit Info",

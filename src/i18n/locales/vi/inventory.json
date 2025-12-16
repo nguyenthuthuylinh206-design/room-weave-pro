@@ -115,12 +115,25 @@
     "in": "Nhập",
     "out": "Xuất",
     "adjustment": "Điều chỉnh",
-    "transfer": "Chuyển kho"
+    "transfer": "Chuyển kho",
+    "damaged": "Hư hỏng",
+    "lost": "Mất mát"
+  },
+  "transactionLabel": {
+    "in": "NHẬP KHO",
+    "out": "XUẤT KHO",
+    "transfer": "CHUYỂN KHO",
+    "adjust": "ĐIỀU CHỈNH",
+    "damaged": "HƯ HỎNG",
+    "lost": "MẤT MÁT"
   },
   "category": {
     "purchase": "Mua hàng",
-    "return": "Trả hàng",
-    "laundry": "Giặt là",
+    "return": "Trả hàng / Nhận từ giặt",
+    "room_assign": "Giao phòng",
+    "laundry": "Gửi giặt",
+    "maintenance": "Bảo trì",
+    "disposal": "Thanh lý",
     "other": "Khác"
   },
   "status": {
@@ -135,8 +148,10 @@
     "updateSuccess": "Cập nhật giao dịch thành công",
     "approveSuccess": "Duyệt thành công",
     "cancelSuccess": "Hủy giao dịch thành công",
+    "deleteSuccess": "Xóa giao dịch thành công",
     "noTransactions": "Chưa có giao dịch nào",
-    "loading": "Đang tải..."
+    "loading": "Đang tải...",
+    "copiedCode": "Đã sao chép mã giao dịch"
   },
   "filters": {
     "all": "Tất cả",
@@ -163,5 +178,43 @@
     "title": "Thao tác nhanh",
     "viewTransactions": "Xem giao dịch",
     "manageItems": "Quản lý Items"
+  },
+  "lowStock": {
+    "title": "Cảnh báo tồn kho thấp",
+    "items": "items",
+    "table": {
+      "image": "Ảnh",
+      "name": "Tên đồ dùng",
+      "category": "Danh mục",
+      "inStock": "Trong kho",
+      "minimum": "Tối thiểu",
+      "shortage": "Thiếu"
+    }
+  },
+  "recentTransactions": {
+    "title": "Giao dịch gần đây",
+    "viewAll": "Xem tất cả",
+    "noTransactions": "Chưa có giao dịch nào"
+  },
+  "transactionDetail": {
+    "title": "Chi tiết giao dịch",
+    "transactionInfo": "Thông tin giao dịch",
+    "time": "Thời gian",
+    "executor": "Người thực hiện",
+    "from": "Từ",
+    "to": "Đến",
+    "itemDetail": "Chi tiết đồ dùng",
+    "quantityBeforeAfter": "Số lượng trước/sau",
+    "beforeTransaction": "Trước giao dịch",
+    "afterTransaction": "Sau giao dịch",
+    "change": "Thay đổi",
+    "notes": "Ghi chú",
+    "photos": "Hình ảnh",
+    "documents": "Tài liệu",
+    "document": "Tài liệu",
+    "copyCode": "Sao chép mã giao dịch",
+    "print": "In phiếu",
+    "deleteTransaction": "Xóa giao dịch",
+    "creator": "Người tạo"
   }
 }
