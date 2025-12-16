@@ -1,4 +1,5 @@
 {
+  "appTitle": "Hotel Asset Management",
   "buttons": {
     "save": "Save",
     "cancel": "Cancel",

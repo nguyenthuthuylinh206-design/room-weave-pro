@@ -16,8 +16,10 @@ import { useRecentActivities } from '@/hooks/useRecentActivities'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import type { ActivityType, DashboardActivity } from '@/types/dashboard.types'
+import { useTranslation } from 'react-i18next'
 
 export function RecentActivity() {
+  const { t } = useTranslation('dashboard')
   const { data: activities, isLoading } = useRecentActivities(10)
   
   if (isLoading) {
@@ -47,13 +49,13 @@ export function RecentActivity() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Hoạt động gần đây</CardTitle>
+          <CardTitle>{t('recentActivity.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <EmptyState
             icon={ActivityIcon}
-            title="Chưa có hoạt động"
-            description="Các hoạt động gần đây sẽ hiển thị ở đây"
+            title={t('recentActivity.noActivity')}
+            description={t('recentActivity.description', 'Các hoạt động gần đây sẽ hiển thị ở đây')}
           />
         </CardContent>
       </Card>
@@ -63,7 +65,7 @@ export function RecentActivity() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Hoạt động gần đây</CardTitle>
+        <CardTitle>{t('recentActivity.title')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-0">

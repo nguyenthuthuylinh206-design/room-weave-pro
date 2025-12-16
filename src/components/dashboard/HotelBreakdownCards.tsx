@@ -4,8 +4,10 @@ import { Badge } from '@/components/ui/badge'
 import { useHotelsBreakdownStats } from '@/hooks/useDashboardStats'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 export function HotelBreakdownCards() {
+  const { t } = useTranslation('dashboard')
   const { data: hotels, isLoading } = useHotelsBreakdownStats()
   const navigate = useNavigate()
 
@@ -13,7 +15,7 @@ export function HotelBreakdownCards() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Phân bổ theo khách sạn</CardTitle>
+          <CardTitle>{t('hotelBreakdown.title', 'Phân bổ theo khách sạn')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -30,10 +32,10 @@ export function HotelBreakdownCards() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Phân bổ theo khách sạn</CardTitle>
+          <CardTitle>{t('hotelBreakdown.title', 'Phân bổ theo khách sạn')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">Chưa có dữ liệu khách sạn</p>
+          <p className="text-sm text-muted-foreground">{t('hotelBreakdown.noData', 'Chưa có dữ liệu khách sạn')}</p>
         </CardContent>
       </Card>
     )
@@ -50,10 +52,10 @@ export function HotelBreakdownCards() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Phân bổ theo khách sạn</CardTitle>
+        <CardTitle>{t('hotelBreakdown.title', 'Phân bổ theo khách sạn')}</CardTitle>
         <Badge variant="secondary" className="gap-1">
           <Building2 className="h-3 w-3" />
-          {hotels.length} khách sạn
+          {hotels.length} {t('hotelBreakdown.hotels', 'khách sạn')}
         </Badge>
       </CardHeader>
       <CardContent>
@@ -79,7 +81,7 @@ export function HotelBreakdownCards() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-primary" />
-                    <span className="text-sm text-muted-foreground">Giá trị</span>
+                    <span className="text-sm text-muted-foreground">{t('hotelBreakdown.value', 'Giá trị')}</span>
                   </div>
                   <span className="font-semibold text-sm">
                     {formatCurrency(hotel.total_value)}
@@ -89,28 +91,28 @@ export function HotelBreakdownCards() {
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="flex items-center gap-1.5">
                     <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-muted-foreground">Tổng:</span>
+                    <span className="text-muted-foreground">{t('hotelBreakdown.total', 'Tổng')}:</span>
                     <span className="font-medium">{hotel.total_items}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className="h-3.5 w-3.5 rounded-full bg-green-500/20 flex items-center justify-center">
                       <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
                     </div>
-                    <span className="text-muted-foreground">Kho:</span>
+                    <span className="text-muted-foreground">{t('hotelBreakdown.stock', 'Kho')}:</span>
                     <span className="font-medium">{hotel.in_stock}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className="h-3.5 w-3.5 rounded-full bg-blue-500/20 flex items-center justify-center">
                       <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                     </div>
-                    <span className="text-muted-foreground">Đang dùng:</span>
+                    <span className="text-muted-foreground">{t('hotelBreakdown.inUse', 'Đang dùng')}:</span>
                     <span className="font-medium">{hotel.in_use}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className="h-3.5 w-3.5 rounded-full bg-purple-500/20 flex items-center justify-center">
                       <div className="h-1.5 w-1.5 rounded-full bg-purple-500" />
                     </div>
-                    <span className="text-muted-foreground">Giặt:</span>
+                    <span className="text-muted-foreground">{t('hotelBreakdown.laundry', 'Giặt')}:</span>
                     <span className="font-medium">{hotel.in_laundry}</span>
                   </div>
                 </div>
@@ -119,7 +121,7 @@ export function HotelBreakdownCards() {
                   <div className="flex items-center gap-2 pt-2 border-t">
                     <AlertTriangle className="h-4 w-4 text-amber-500" />
                     <span className="text-xs text-muted-foreground">
-                      {hotel.low_stock_count} tài sản cần bổ sung
+                      {hotel.low_stock_count} {t('hotelBreakdown.needRestock', 'tài sản cần bổ sung')}
                     </span>
                   </div>
                 )}
