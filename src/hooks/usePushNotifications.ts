@@ -52,10 +52,17 @@ export function usePushNotifications() {
 
   // Check if push notifications are supported
   const checkSupport = useCallback(() => {
-    const isSupported = 
-      'serviceWorker' in navigator && 
-      'PushManager' in window && 
-      'Notification' in window;
+    // Check basic APIs exist
+    const hasServiceWorker = 'serviceWorker' in navigator;
+    const hasPushManager = 'PushManager' in window;
+    const hasNotification = 'Notification' in window;
+    
+    // In preview/iframe environments, these might be restricted
+    // but the actual deployed app will work
+    const isSupported = hasServiceWorker && hasPushManager && hasNotification;
+    
+    // Log for debugging
+    console.log('[Push] Support check:', { hasServiceWorker, hasPushManager, hasNotification, isSupported });
     
     return isSupported;
   }, []);

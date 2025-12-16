@@ -66,11 +66,7 @@ export function NotificationSettingsPage() {
             <CardDescription>Nhận thông báo ngay cả khi không mở ứng dụng</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {!isSupported ? (
-              <div className="text-sm text-muted-foreground">
-                Trình duyệt của bạn không hỗ trợ thông báo đẩy.
-              </div>
-            ) : permission === 'denied' ? (
+            {permission === 'denied' ? (
               <div className="text-sm text-destructive">
                 Bạn đã chặn thông báo. Vui lòng bật lại trong cài đặt trình duyệt.
               </div>
@@ -87,6 +83,9 @@ export function NotificationSettingsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   {isSubscribed && <Badge variant="secondary">Đã bật</Badge>}
+                  {!isSupported && !isSubscribed && (
+                    <Badge variant="outline" className="text-muted-foreground">Preview</Badge>
+                  )}
                   <Button
                     variant={isSubscribed ? "outline" : "default"}
                     size="sm"
