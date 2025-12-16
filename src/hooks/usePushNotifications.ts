@@ -104,13 +104,16 @@ export function usePushNotifications() {
         return false;
       }
 
-      // Register service worker if needed
-      let registration = await navigator.serviceWorker.getRegistration();
+      // Register push-specific service worker
+      let registration = await navigator.serviceWorker.getRegistration('/sw-push.js');
       
       if (!registration) {
-        registration = await navigator.serviceWorker.register('/sw.js');
-        await navigator.serviceWorker.ready;
+        registration = await navigator.serviceWorker.register('/sw-push.js', {
+          scope: '/'
+        });
       }
+      
+      await navigator.serviceWorker.ready;
 
       // Subscribe to push
       const subscription = await registration.pushManager.subscribe({
