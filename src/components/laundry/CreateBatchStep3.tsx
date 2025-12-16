@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Form,
@@ -12,20 +13,10 @@ import {
 } from '@/components/ui/form'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { ImageUpload } from '@/components/shared/ImageUpload'
-import { Badge } from '@/components/ui/badge'
 import { useLaundryVendor } from '@/hooks/useLaundryVendors'
 import { useItems } from '@/hooks/useItems'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { CreateBatchStep1Data, CreateBatchStep2Data, CreateBatchStep3Data } from '@/types/laundry.types'
-
-const step3Schema = z.object({
-  confirmed: z.boolean().refine((val) => val === true, {
-    message: 'Vui lòng xác nhận thông tin',
-  }),
-})
-
-type Step3FormValues = z.infer<typeof step3Schema>
 
 interface CreateBatchStep3Props {
   step1Data: CreateBatchStep1Data
@@ -42,18 +33,25 @@ export function CreateBatchStep3({
   onBack,
   isSubmitting,
 }: CreateBatchStep3Props) {
+  const { t } = useTranslation('laundry')
   const { data: vendor } = useLaundryVendor(step1Data.vendor_id)
   const itemsQuery = useItems({}, 1, 1000)
   const allItems = itemsQuery.data?.items || []
   
-  const form = useForm<Step3FormValues>({
+  const step3Schema = z.object({
+    confirmed: z.boolean().refine((val) => val === true, {
+      message: t('createBatch.validation.confirmInfo'),
+    }),
+  })
+  
+  const form = useForm<z.infer<typeof step3Schema>>({
     resolver: zodResolver(step3Schema),
     defaultValues: {
       confirmed: false,
     },
   })
   
-  const onSubmit = (data: Step3FormValues) => {
+  const onSubmit = (data: z.infer<typeof step3Schema>) => {
     onComplete(data as CreateBatchStep3Data)
   }
   
@@ -66,35 +64,34 @@ export function CreateBatchStep3({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Review Information */}
         <Card>
           <CardHeader>
-            <CardTitle>Bước 3: Xác nhận thông tin</CardTitle>
+            <CardTitle>{t('createBatch.step3.title')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Step 1 Review */}
             <div>
-              <h3 className="font-semibold mb-3">Thông tin cơ bản</h3>
+              <h3 className="font-semibold mb-3">{t('createBatch.step3.basicInfo')}</h3>
               <dl className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <dt className="text-muted-foreground">Đơn vị giặt</dt>
+                  <dt className="text-muted-foreground">{t('createBatch.step3.vendor')}</dt>
                   <dd className="font-medium">{vendor?.name}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Ngày giao</dt>
+                  <dt className="text-muted-foreground">{t('createBatch.step3.deliveryDate')}</dt>
                   <dd className="font-medium">{formatDate(step1Data.delivery_date.toISOString())}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Ngày nhận dự kiến</dt>
+                  <dt className="text-muted-foreground">{t('createBatch.step3.expectedReturn')}</dt>
                   <dd className="font-medium">{formatDate(step1Data.expected_return_date.toISOString())}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Người nhận</dt>
+                  <dt className="text-muted-foreground">{t('createBatch.step3.receiver')}</dt>
                   <dd className="font-medium">{step1Data.receiver_name}</dd>
                 </div>
                 {step1Data.notes && (
                   <div className="col-span-2">
-                    <dt className="text-muted-foreground">Ghi chú</dt>
+                    <dt className="text-muted-foreground">{t('createBatch.step3.notes')}</dt>
                     <dd className="font-medium">{step1Data.notes}</dd>
                   </div>
                 )}
@@ -103,16 +100,16 @@ export function CreateBatchStep3({
             
             {/* Step 2 Review */}
             <div>
-              <h3 className="font-semibold mb-3">Danh sách đồ giặt</h3>
+              <h3 className="font-semibold mb-3">{t('createBatch.step3.itemsList')}</h3>
               <div className="space-y-2">
                 {step2Data.items.map((item, index) => {
                   const itemData = allItems.find((i) => i.id === item.item_id)
                   return (
                     <div key={index} className="flex items-center justify-between rounded-lg border p-3">
                       <div>
-                        <p className="font-medium">{itemData?.name || 'Unknown'}</p>
+                        <p className="font-medium">{itemData?.name || t('createBatch.step3.unknown')}</p>
                         <p className="text-sm text-muted-foreground">
-                          {item.quantity} cái × {item.weight_kg} kg
+                          {item.quantity} {t('createBatch.step3.pcs')} × {item.weight_kg} {t('units.kg')}
                           {item.condition_note && ` - ${item.condition_note}`}
                         </p>
                       </div>
@@ -126,15 +123,15 @@ export function CreateBatchStep3({
             <div className="rounded-lg border bg-muted/50 p-4">
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Tổng items</p>
+                  <p className="text-sm text-muted-foreground">{t('createBatch.step3.totalItems')}</p>
                   <p className="text-xl font-bold">{totalItems}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Tổng cân nặng</p>
-                  <p className="text-xl font-bold">{totalWeight.toFixed(2)} kg</p>
+                  <p className="text-sm text-muted-foreground">{t('createBatch.step3.totalWeight')}</p>
+                  <p className="text-xl font-bold">{totalWeight.toFixed(2)} {t('units.kg')}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Chi phí ước tính</p>
+                  <p className="text-sm text-muted-foreground">{t('createBatch.step3.estimatedCost')}</p>
                   <p className="text-xl font-bold">{formatCurrency(estimatedCost)}</p>
                 </div>
               </div>
@@ -154,10 +151,10 @@ export function CreateBatchStep3({
                   </FormControl>
                   <div className="space-y-1 leading-none">
                     <FormLabel>
-                      Tôi xác nhận thông tin trên là chính xác
+                      {t('createBatch.step3.confirmLabel')}
                     </FormLabel>
                     <p className="text-sm text-muted-foreground">
-                      Sau khi tạo lô giặt, bạn có thể theo dõi tiến độ trong trang quản lý lô giặt
+                      {t('createBatch.step3.confirmHint')}
                     </p>
                     <FormMessage />
                   </div>
@@ -169,10 +166,10 @@ export function CreateBatchStep3({
         
         <div className="flex justify-between">
           <Button type="button" variant="outline" onClick={onBack} disabled={isSubmitting}>
-            Quay lại
+            {t('createBatch.step3.back')}
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Đang tạo...' : 'Tạo lô giặt'}
+            {isSubmitting ? t('createBatch.step3.creating') : t('createBatch.step3.create')}
           </Button>
         </div>
       </form>

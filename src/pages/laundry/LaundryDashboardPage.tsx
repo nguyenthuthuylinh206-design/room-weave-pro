@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { Plus, Wind, DollarSign, Package, Star } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { StatCard } from '@/components/ui/stat-card'
 import { LaundryExpenseChart } from '@/components/laundry/LaundryExpenseChart'
@@ -12,6 +13,7 @@ import { useBreakpoint } from '@/lib/breakpoints'
 import { formatCurrency, formatNumber } from '@/lib/utils'
 
 export function LaundryDashboardPage() {
+  const { t } = useTranslation('laundry')
   const navigate = useNavigate()
   const { isMobile } = useBreakpoint()
   
@@ -31,10 +33,10 @@ export function LaundryDashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Quản lý Giặt là"
-        description="Quản lý các lô giặt và đơn vị giặt là"
+        title={t('dashboard.title')}
+        description={t('dashboard.description')}
         action={{
-          label: 'Tạo lô giặt mới',
+          label: t('newBatch'),
           icon: Plus,
           onClick: () => navigate('/laundry/batches/new'),
         }}
@@ -43,37 +45,37 @@ export function LaundryDashboardPage() {
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Đồ đang giặt"
+          title={t('dashboard.itemsInLaundry')}
           value={stats ? formatNumber(stats.items_in_laundry) : '0'}
           icon={Wind}
-          description={stats ? `${stats.active_batches} lô đang xử lý` : undefined}
+          description={stats ? t('dashboard.batchesProcessing', { count: stats.active_batches }) : undefined}
           isLoading={statsLoading}
         />
         
         <StatCard
-          title="Chi phí tháng này"
+          title={t('dashboard.monthCost')}
           value={stats ? formatCurrency(stats.current_month_cost) : '0 ₫'}
           icon={DollarSign}
           change={stats ? {
             value: stats.cost_change_percent,
-            label: 'so với tháng trước',
+            label: t('dashboard.comparedToLastMonth'),
           } : undefined}
           isLoading={statsLoading}
         />
         
         <StatCard
-          title="Lô đang xử lý"
+          title={t('dashboard.activeBatches')}
           value={stats ? stats.active_batches : '0'}
           icon={Package}
-          description="lô"
+          description={t('dashboard.batch')}
           isLoading={statsLoading}
         />
         
         <StatCard
-          title="Chất lượng TB"
+          title={t('dashboard.avgQuality')}
           value={stats ? `${stats.avg_quality_rating.toFixed(1)}/5.0` : '0/5.0'}
           icon={Star}
-          description="30 ngày gần nhất"
+          description={t('dashboard.last30Days')}
           isLoading={statsLoading}
         />
       </div>
