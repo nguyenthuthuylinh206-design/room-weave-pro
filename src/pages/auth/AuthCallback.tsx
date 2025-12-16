@@ -8,12 +8,12 @@ import { useToast } from '@/hooks/use-toast'
 
 export default function AuthCallback() {
   const navigate = useNavigate()
-  const { user: authUser } = useAuth()
+  const { user: authUser, loading: authLoading } = useAuth()
   const { user, isLoading: isUserLoading } = useUser()
   const { firstAccessibleRoute, isLoading: isPermissionsLoading } = useFirstAccessibleRoute()
   const { toast } = useToast()
 
-  const isLoading = isUserLoading || isPermissionsLoading
+  const isLoading = authLoading || isUserLoading || isPermissionsLoading
 
   useEffect(() => {
     // Vẫn đang load → chờ tiếp
