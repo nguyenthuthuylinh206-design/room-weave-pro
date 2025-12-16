@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Check } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { useToast } from '@/hooks/use-toast'
@@ -17,19 +18,19 @@ import { RegisterStep3 } from './register/RegisterStep3'
 type Step = 1 | 2 | 3
 
 export const RegisterForm = () => {
+  const { t } = useTranslation(['auth', 'common'])
   const [currentStep, setCurrentStep] = useState<Step>(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const navigate = useNavigate()
   const { toast } = useToast()
 
-  // Form states for each step
   const [step1Data, setStep1Data] = useState<RegisterStep1Data | null>(null)
   const [step2Data, setStep2Data] = useState<RegisterStep2Data | null>(null)
 
   const steps = [
-    { number: 1, title: 'Thông tin cơ bản', description: 'Email và mật khẩu' },
-    { number: 2, title: 'Thông tin khách sạn', description: 'Chi tiết khách sạn' },
-    { number: 3, title: 'Xác nhận', description: 'Hoàn tất đăng ký' },
+    { number: 1, title: t('register.step1Title'), description: t('register.step1Desc') },
+    { number: 2, title: t('register.step2Title'), description: t('register.step2Desc') },
+    { number: 3, title: t('register.step3Title'), description: t('register.step3Desc') },
   ]
 
   const progress = (currentStep / steps.length) * 100
@@ -50,7 +51,6 @@ export const RegisterForm = () => {
     setIsSubmitting(true)
 
     try {
-      // 1. Create auth user (trigger will create user profile + role automatically)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: step1Data.email,
         password: step1Data.password,
@@ -64,9 +64,8 @@ export const RegisterForm = () => {
       })
 
       if (authError) throw authError
-      if (!authData.user) throw new Error('Không thể tạo tài khoản')
+      if (!authData.user) throw new Error(t('register.errorCreateAccount'))
 
-      // 2. Complete registration in ONE atomic transaction
       const { data: setupData, error: setupError } = await supabase.rpc(
         'complete_registration',
         {
@@ -88,34 +87,31 @@ export const RegisterForm = () => {
       const result = setupData as { success: boolean; error?: string }
 
       if (!result.success) {
-        throw new Error(result.error || 'Không thể thiết lập khách sạn')
+        throw new Error(result.error || t('register.errorSetupHotel'))
       }
 
       toast({
-        title: 'Đăng ký thành công!',
-        description: 'Tài khoản của bạn đã được tạo. Đang chuyển hướng...',
+        title: t('register.successTitle'),
+        description: t('register.successDescription'),
       })
 
-      // Redirect to dashboard
       setTimeout(() => {
         navigate('/')
       }, 1000)
     } catch (error: any) {
       console.error('Registration error:', error)
       
-      // Handle specific error cases
       if (error.code === 'user_already_exists' || error.message?.includes('already registered')) {
         toast({
-          title: 'Email đã được đăng ký',
-          description: 'Email này đã có tài khoản. Vui lòng đăng nhập hoặc sử dụng email khác.',
+          title: t('errors.emailExists'),
+          description: t('register.emailExistsDescription'),
           variant: 'destructive',
         })
-        // Go back to step 1 to allow changing email
         setCurrentStep(1)
       } else {
         toast({
-          title: 'Đăng ký thất bại',
-          description: error.message || 'Có lỗi xảy ra, vui lòng thử lại',
+          title: t('register.errorTitle'),
+          description: error.message || t('common:messages.errorOccurred'),
           variant: 'destructive',
         })
       }
@@ -128,9 +124,9 @@ export const RegisterForm = () => {
     <div className="w-full max-w-2xl">
       {/* Header */}
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold">Đăng ký tài khoản</h1>
+        <h1 className="text-3xl font-bold">{t('register.title')}</h1>
         <p className="mt-2 text-muted-foreground">
-          Tạo tài khoản mới để bắt đầu quản lý khách sạn của bạn
+          {t('register.subtitle')}
         </p>
       </div>
 
@@ -144,7 +140,6 @@ export const RegisterForm = () => {
                 step.number < steps.length ? 'relative' : ''
               }`}
             >
-              {/* Step Circle */}
               <div
                 className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
                   currentStep >= step.number
@@ -159,7 +154,6 @@ export const RegisterForm = () => {
                 )}
               </div>
 
-              {/* Step Info */}
               <div className="mt-2 text-center">
                 <p className="text-sm font-medium">{step.title}</p>
                 <p className="text-xs text-muted-foreground hidden sm:block">
@@ -167,7 +161,6 @@ export const RegisterForm = () => {
                 </p>
               </div>
 
-              {/* Connector Line */}
               {step.number < steps.length && (
                 <div
                   className={`absolute top-5 left-1/2 h-0.5 w-full ${
@@ -223,9 +216,9 @@ export const RegisterForm = () => {
 
       {/* Login Link */}
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        Đã có tài khoản?{' '}
+        {t('register.hasAccount')}{' '}
         <Link to="/auth/login" className="text-primary hover:underline font-medium">
-          Đăng nhập ngay
+          {t('register.login')}
         </Link>
       </p>
     </div>

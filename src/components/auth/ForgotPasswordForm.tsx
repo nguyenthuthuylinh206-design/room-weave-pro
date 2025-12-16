@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link } from 'react-router-dom'
 import { Mail, ArrowLeft, CheckCircle, Loader2, RefreshCw, AlertCircle, UserPlus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -20,6 +21,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 
 export function ForgotPasswordForm() {
+  const { t } = useTranslation(['auth', 'common'])
   const [isSuccess, setIsSuccess] = useState(false)
   const [email, setEmail] = useState('')
   const [isResending, setIsResending] = useState(false)
@@ -38,21 +40,18 @@ export function ForgotPasswordForm() {
       body: { email: emailAddress },
     })
 
-    // Network/technical error
     if (error) {
-      throw new Error('Không thể kết nối đến server. Vui lòng thử lại.')
+      throw new Error(t('common:messages.errorOccurred'))
     }
 
-    // Check for email not found (Edge Function returns 200 with success: false)
     if (data?.email_not_found) {
-      const err = new Error(data.error || 'Email này chưa được đăng ký trong hệ thống') as Error & { emailNotFound?: boolean }
+      const err = new Error(t('errors.emailNotFound')) as Error & { emailNotFound?: boolean }
       err.emailNotFound = true
       throw err
     }
 
-    // Check for other application errors
     if (data?.success === false || data?.error) {
-      throw new Error(data.error || 'Không thể gửi email. Vui lòng thử lại.')
+      throw new Error(data.error || t('common:messages.errorOccurred'))
     }
 
     return data
@@ -65,18 +64,16 @@ export function ForgotPasswordForm() {
       await sendResetEmail(data.email)
       setIsSuccess(true)
       toast({
-        title: 'Email đã gửi',
-        description: 'Vui lòng kiểm tra hộp thư của bạn.',
+        title: t('forgotPassword.emailSent'),
+        description: t('common:messages.success'),
       })
     } catch (error: any) {
-      // Check if email not found
       if (error.emailNotFound || error.message?.includes('chưa được đăng ký')) {
         setEmailNotFound(true)
-        // Don't show toast for email not found - show inline alert instead
       } else {
         toast({
-          title: 'Lỗi',
-          description: error.message || 'Không thể gửi email. Vui lòng thử lại.',
+          title: t('common:messages.error'),
+          description: error.message || t('common:messages.errorOccurred'),
           variant: 'destructive',
         })
       }
@@ -90,13 +87,13 @@ export function ForgotPasswordForm() {
     try {
       await sendResetEmail(email)
       toast({
-        title: 'Email đã gửi lại',
-        description: 'Vui lòng kiểm tra hộp thư của bạn.',
+        title: t('forgotPassword.emailSent'),
+        description: t('common:messages.success'),
       })
     } catch (error: any) {
       toast({
-        title: 'Lỗi',
-        description: error.message || 'Không thể gửi lại email. Vui lòng thử lại.',
+        title: t('common:messages.error'),
+        description: error.message || t('common:messages.errorOccurred'),
         variant: 'destructive',
       })
     } finally {
@@ -110,16 +107,15 @@ export function ForgotPasswordForm() {
         <Card>
           <CardHeader className="text-center">
             <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
-            <CardTitle>Email đã gửi</CardTitle>
+            <CardTitle>{t('forgotPassword.emailSent')}</CardTitle>
             <CardDescription>
-              Chúng tôi đã gửi link đặt lại mật khẩu đến <strong>{email}</strong>
+              {t('forgotPassword.subtitle')} <strong>{email}</strong>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Alert>
               <AlertDescription>
-                Vui lòng kiểm tra hộp thư (kể cả thư mục spam) và nhấp vào link để đặt lại mật khẩu.
-                Link này sẽ hết hạn sau 1 giờ.
+                {t('forgotPassword.checkInbox')}
               </AlertDescription>
             </Alert>
 
@@ -133,12 +129,12 @@ export function ForgotPasswordForm() {
                 {isResending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Đang gửi...
+                    {t('common:messages.loading')}
                   </>
                 ) : (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4" />
-                    Gửi lại email
+                    {t('forgotPassword.resend')}
                   </>
                 )}
               </Button>
@@ -146,7 +142,7 @@ export function ForgotPasswordForm() {
               <Button asChild variant="ghost" className="w-full">
                 <Link to="/auth/login">
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Quay lại đăng nhập
+                  {t('forgotPassword.backToLogin')}
                 </Link>
               </Button>
             </div>
@@ -160,9 +156,9 @@ export function ForgotPasswordForm() {
     <div className="w-full max-w-md">
       <Card>
         <CardHeader>
-          <CardTitle>Quên mật khẩu</CardTitle>
+          <CardTitle>{t('forgotPassword.title')}</CardTitle>
           <CardDescription>
-            Nhập email của bạn và chúng tôi sẽ gửi link đặt lại mật khẩu
+            {t('forgotPassword.subtitle')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -173,7 +169,7 @@ export function ForgotPasswordForm() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>{t('forgotPassword.email')}</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -194,13 +190,13 @@ export function ForgotPasswordForm() {
               {emailNotFound && (
                 <Alert variant="destructive" className="border-destructive/50 bg-destructive/10">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Email không tồn tại</AlertTitle>
+                  <AlertTitle>{t('errors.emailNotFound')}</AlertTitle>
                   <AlertDescription className="mt-2 space-y-3">
-                    <p>Email <strong>{form.getValues('email')}</strong> chưa được đăng ký trong hệ thống.</p>
+                    <p>{t('errors.emailNotFound')}</p>
                     <Button asChild variant="outline" size="sm" className="w-full">
                       <Link to="/auth/register">
                         <UserPlus className="mr-2 h-4 w-4" />
-                        Đăng ký tài khoản mới
+                        {t('login.signUp')}
                       </Link>
                     </Button>
                   </AlertDescription>
@@ -215,10 +211,10 @@ export function ForgotPasswordForm() {
                 {form.formState.isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Đang gửi...
+                    {t('common:messages.loading')}
                   </>
                 ) : (
-                  'Gửi link đặt lại mật khẩu'
+                  t('forgotPassword.sendButton')
                 )}
               </Button>
             </form>
@@ -227,7 +223,7 @@ export function ForgotPasswordForm() {
           <Button asChild variant="ghost" className="mt-4 w-full">
             <Link to="/auth/login">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Quay lại đăng nhập
+              {t('forgotPassword.backToLogin')}
             </Link>
           </Button>
         </CardContent>
