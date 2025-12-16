@@ -1,24 +1,69 @@
 {
-  "title": "Báo cáo",
+  "title": "Báo cáo & Thống kê",
   "description": "Xem và tải xuống các báo cáo thống kê",
   "view": "Xem",
   "download": "Tải xuống",
+  "refresh": "Làm mới",
+  "exportAll": "Xuất tất cả",
+  "dataRefreshed": "Đã cập nhật dữ liệu báo cáo",
+  "selectReportType": "Chọn loại báo cáo",
+  "selectReportTypeDesc": "Nhấp vào để xem chi tiết từng loại báo cáo",
+  "reportTypes": "loại báo cáo",
+  "viewReport": "Xem báo cáo",
+  "allHotels": "Tổng hợp tất cả khách sạn",
+  "hotel": "Khách sạn",
+  "notSelected": "Chưa chọn",
+  "stats": {
+    "totalItems": "Tổng đồ dùng",
+    "totalItemsDesc": "Số lượng đồ dùng trong kho",
+    "inStock": "Trong kho",
+    "inStockDesc": "Đồ dùng sẵn có",
+    "lowStock": "Tồn kho thấp",
+    "lowStockDesc": "Cần nhập thêm",
+    "activeBatches": "Lô giặt đang xử lý",
+    "activeBatchesDesc": "Chờ nhận hoặc đang giặt"
+  },
+  "quickReport": {
+    "title": "Báo cáo nhanh",
+    "description": "Số liệu tổng hợp theo thời gian",
+    "today": "Hôm nay",
+    "week": "Tuần này",
+    "month": "Tháng này"
+  },
   "types": {
     "inventory": {
-      "title": "Báo cáo tồn kho",
-      "description": "Tình hình tồn kho và biến động tài sản"
+      "title": "Báo cáo Tồn kho",
+      "description": "Hiện trạng tồn kho, vòng quay hàng hóa, phân tích ABC",
+      "stats": ["Tổng giá trị", "Vòng quay", "Cảnh báo"]
+    },
+    "financial": {
+      "title": "Báo cáo Tài chính",
+      "description": "Chi phí hoạt động, giá trị tài sản, ROI, so sánh chi phí",
+      "stats": ["Doanh thu", "Chi phí", "Lợi nhuận"]
+    },
+    "operations": {
+      "title": "Báo cáo Hoạt động",
+      "description": "Giao dịch nhập xuất, kiểm kê, lịch sử hoạt động",
+      "stats": ["Nhập kho", "Xuất kho", "Điều chỉnh"]
+    },
+    "laundry": {
+      "title": "Báo cáo Giặt là",
+      "description": "Chi phí giặt ủi, hiệu suất, đánh giá nhà cung cấp",
+      "stats": ["Lô giặt", "Chi phí", "Đánh giá"]
+    },
+    "rooms": {
+      "title": "Báo cáo Phòng",
+      "description": "Tình trạng sử dụng, thiếu hụt đồ dùng, lịch sử kiểm tra",
+      "stats": ["Tổng phòng", "Đang dùng", "Bảo trì"]
+    },
+    "maintenance": {
+      "title": "Báo cáo Bảo trì",
+      "description": "Yêu cầu bảo trì, chi phí sửa chữa, thời gian xử lý",
+      "stats": ["Yêu cầu", "Hoàn thành", "Chi phí"]
     },
     "expenses": {
       "title": "Báo cáo chi phí",
       "description": "Tổng hợp chi phí giặt là và bảo trì"
-    },
-    "laundry": {
-      "title": "Báo cáo giặt là",
-      "description": "Thống kê các lô giặt và nhà cung cấp"
-    },
-    "rooms": {
-      "title": "Báo cáo phòng",
-      "description": "Tình trạng phòng và tài sản theo phòng"
     },
     "performance": {
       "title": "Báo cáo hiệu suất",
@@ -30,9 +75,10 @@
     }
   },
   "custom": {
-    "title": "Tạo báo cáo tùy chỉnh",
+    "title": "Chọn loại báo cáo",
     "description": "Chọn các thông số để tạo báo cáo theo nhu cầu của bạn",
     "developing": "Tính năng đang phát triển",
     "comingSoon": "Tạo báo cáo tùy chỉnh sẽ sớm được cung cấp"
-  }
+  },
+  "tip": "Mẹo"
 }

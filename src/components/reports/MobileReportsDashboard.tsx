@@ -91,7 +91,7 @@ export function MobileReportsDashboard() {
 
         {/* Report Categories */}
         <div className="px-4 space-y-3">
-          <h2 className="text-lg font-semibold">{t('custom.title', 'Chọn loại báo cáo')}</h2>
+          <h2 className="text-lg font-semibold">{t('custom.title')}</h2>
           <div className="grid gap-3">
             {reportCategories.map((category) => {
               const Icon = category.icon
@@ -126,7 +126,7 @@ export function MobileReportsDashboard() {
           <Card className="bg-muted/50">
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">
-                💡 <strong>{t('common:tip', 'Mẹo')}:</strong> {t('custom.description')}
+                💡 <strong>{t('tip')}:</strong> {t('custom.description')}
               </p>
             </CardContent>
           </Card>

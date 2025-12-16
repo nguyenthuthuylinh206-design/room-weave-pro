@@ -8,13 +8,13 @@ import {
   Home,
   Wrench,
   TrendingUp,
-  TrendingDown,
   BarChart3,
   FileText,
   Download,
   Calendar,
   RefreshCw,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -32,90 +32,91 @@ import { useHotelContext } from '@/contexts/HotelContext'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-const reportCategories = [
-  {
-    id: 'inventory',
-    title: 'Báo cáo Tồn kho',
-    icon: Package,
-    color: 'bg-blue-500',
-    bgColor: 'bg-blue-500/10',
-    textColor: 'text-blue-600',
-    description: 'Hiện trạng tồn kho, vòng quay hàng hóa, phân tích ABC',
-    path: '/reports/inventory',
-    stats: ['Tổng giá trị', 'Vòng quay', 'Cảnh báo'],
-  },
-  {
-    id: 'financial',
-    title: 'Báo cáo Tài chính',
-    icon: DollarSign,
-    color: 'bg-emerald-500',
-    bgColor: 'bg-emerald-500/10',
-    textColor: 'text-emerald-600',
-    description: 'Chi phí hoạt động, giá trị tài sản, ROI, so sánh chi phí',
-    path: '/reports/financial',
-    stats: ['Doanh thu', 'Chi phí', 'Lợi nhuận'],
-  },
-  {
-    id: 'operations',
-    title: 'Báo cáo Hoạt động',
-    icon: ArrowRightLeft,
-    color: 'bg-violet-500',
-    bgColor: 'bg-violet-500/10',
-    textColor: 'text-violet-600',
-    description: 'Giao dịch nhập xuất, kiểm kê, lịch sử hoạt động',
-    path: '/reports/operations',
-    stats: ['Nhập kho', 'Xuất kho', 'Điều chỉnh'],
-  },
-  {
-    id: 'laundry',
-    title: 'Báo cáo Giặt là',
-    icon: Shirt,
-    color: 'bg-cyan-500',
-    bgColor: 'bg-cyan-500/10',
-    textColor: 'text-cyan-600',
-    description: 'Chi phí giặt ủi, hiệu suất, đánh giá nhà cung cấp',
-    path: '/reports/laundry',
-    stats: ['Lô giặt', 'Chi phí', 'Đánh giá'],
-  },
-  {
-    id: 'rooms',
-    title: 'Báo cáo Phòng',
-    icon: Home,
-    color: 'bg-amber-500',
-    bgColor: 'bg-amber-500/10',
-    textColor: 'text-amber-600',
-    description: 'Tình trạng sử dụng, thiếu hụt đồ dùng, lịch sử kiểm tra',
-    path: '/reports/rooms',
-    stats: ['Tổng phòng', 'Đang dùng', 'Bảo trì'],
-  },
-  {
-    id: 'maintenance',
-    title: 'Báo cáo Bảo trì',
-    icon: Wrench,
-    color: 'bg-rose-500',
-    bgColor: 'bg-rose-500/10',
-    textColor: 'text-rose-600',
-    description: 'Yêu cầu bảo trì, chi phí sửa chữa, thời gian xử lý',
-    path: '/reports/maintenance',
-    stats: ['Yêu cầu', 'Hoàn thành', 'Chi phí'],
-  },
-]
-
 export function ReportsDashboardPage() {
   const navigate = useNavigate()
   const { isMobile } = useBreakpoint()
   const queryClient = useQueryClient()
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
+  const { t } = useTranslation('reports')
   const [period, setPeriod] = useState<'today' | 'week' | 'month'>('today')
   const { data: quickReport, isLoading: isLoadingQuickReport } = useQuickReport(period)
   const { data: dashboardStats, isLoading: isLoadingStats } = useDashboardStats()
   const [isRefreshing, setIsRefreshing] = useState(false)
 
+  const reportCategories = [
+    {
+      id: 'inventory',
+      title: t('types.inventory.title'),
+      icon: Package,
+      color: 'bg-blue-500',
+      bgColor: 'bg-blue-500/10',
+      textColor: 'text-blue-600',
+      description: t('types.inventory.description'),
+      path: '/reports/inventory',
+      stats: t('types.inventory.stats', { returnObjects: true }) as string[],
+    },
+    {
+      id: 'financial',
+      title: t('types.financial.title'),
+      icon: DollarSign,
+      color: 'bg-emerald-500',
+      bgColor: 'bg-emerald-500/10',
+      textColor: 'text-emerald-600',
+      description: t('types.financial.description'),
+      path: '/reports/financial',
+      stats: t('types.financial.stats', { returnObjects: true }) as string[],
+    },
+    {
+      id: 'operations',
+      title: t('types.operations.title'),
+      icon: ArrowRightLeft,
+      color: 'bg-violet-500',
+      bgColor: 'bg-violet-500/10',
+      textColor: 'text-violet-600',
+      description: t('types.operations.description'),
+      path: '/reports/operations',
+      stats: t('types.operations.stats', { returnObjects: true }) as string[],
+    },
+    {
+      id: 'laundry',
+      title: t('types.laundry.title'),
+      icon: Shirt,
+      color: 'bg-cyan-500',
+      bgColor: 'bg-cyan-500/10',
+      textColor: 'text-cyan-600',
+      description: t('types.laundry.description'),
+      path: '/reports/laundry',
+      stats: t('types.laundry.stats', { returnObjects: true }) as string[],
+    },
+    {
+      id: 'rooms',
+      title: t('types.rooms.title'),
+      icon: Home,
+      color: 'bg-amber-500',
+      bgColor: 'bg-amber-500/10',
+      textColor: 'text-amber-600',
+      description: t('types.rooms.description'),
+      path: '/reports/rooms',
+      stats: t('types.rooms.stats', { returnObjects: true }) as string[],
+    },
+    {
+      id: 'maintenance',
+      title: t('types.maintenance.title'),
+      icon: Wrench,
+      color: 'bg-rose-500',
+      bgColor: 'bg-rose-500/10',
+      textColor: 'text-rose-600',
+      description: t('types.maintenance.description'),
+      path: '/reports/maintenance',
+      stats: t('types.maintenance.stats', { returnObjects: true }) as string[],
+    },
+  ]
+
   const handleRefresh = async () => {
     setIsRefreshing(true)
     await queryClient.invalidateQueries({ queryKey: ['quick-report'] })
     await queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-    toast.success('Đã cập nhật dữ liệu báo cáo')
+    toast.success(t('dataRefreshed'))
     setIsRefreshing(false)
   }
 
@@ -128,8 +129,8 @@ export function ReportsDashboardPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <PageHeader
-          title="Báo cáo & Thống kê"
-          description={isAllHotelsMode ? 'Tổng hợp tất cả khách sạn' : `Khách sạn: ${selectedHotel?.name || 'Chưa chọn'}`}
+          title={t('title')}
+          description={isAllHotelsMode ? t('allHotels') : `${t('hotel')}: ${selectedHotel?.name || t('notSelected')}`}
         />
         <div className="flex items-center gap-2">
           <Button
@@ -139,11 +140,11 @@ export function ReportsDashboardPage() {
             disabled={isRefreshing}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Làm mới
+            {t('refresh')}
           </Button>
           <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
-            Xuất tất cả
+            {t('exportAll')}
           </Button>
         </div>
       </div>
@@ -151,31 +152,31 @@ export function ReportsDashboardPage() {
       {/* Overview Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Tổng đồ dùng"
+          title={t('stats.totalItems')}
           value={dashboardStats?.total_items?.toLocaleString() || '0'}
           icon={Package}
-          description="Số lượng đồ dùng trong kho"
+          description={t('stats.totalItemsDesc')}
           isLoading={isLoadingStats}
         />
         <StatCard
-          title="Trong kho"
+          title={t('stats.inStock')}
           value={dashboardStats?.in_stock?.toLocaleString() || '0'}
           icon={Home}
-          description="Đồ dùng sẵn có"
+          description={t('stats.inStockDesc')}
           isLoading={isLoadingStats}
         />
         <StatCard
-          title="Tồn kho thấp"
+          title={t('stats.lowStock')}
           value={dashboardStats?.low_stock_count?.toLocaleString() || '0'}
           icon={Wrench}
-          description="Cần nhập thêm"
+          description={t('stats.lowStockDesc')}
           isLoading={isLoadingStats}
         />
         <StatCard
-          title="Lô giặt đang xử lý"
+          title={t('stats.activeBatches')}
           value={dashboardStats?.active_laundry_batches?.toLocaleString() || '0'}
           icon={Shirt}
-          description="Chờ nhận hoặc đang giặt"
+          description={t('stats.activeBatchesDesc')}
           isLoading={isLoadingStats}
         />
       </div>
@@ -184,14 +185,14 @@ export function ReportsDashboardPage() {
       <div>
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-xl font-semibold">Chọn loại báo cáo</h2>
+            <h2 className="text-xl font-semibold">{t('selectReportType')}</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Nhấp vào để xem chi tiết từng loại báo cáo
+              {t('selectReportTypeDesc')}
             </p>
           </div>
           <Badge variant="secondary" className="text-sm">
             <BarChart3 className="h-3 w-3 mr-1" />
-            {reportCategories.length} loại báo cáo
+            {reportCategories.length} {t('reportTypes')}
           </Badge>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -220,7 +221,7 @@ export function ReportsDashboardPage() {
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {category.stats.map((stat, index) => (
+                    {Array.isArray(category.stats) && category.stats.map((stat, index) => (
                       <Badge 
                         key={index} 
                         variant="outline" 
@@ -232,7 +233,7 @@ export function ReportsDashboardPage() {
                   </div>
                   <div className="mt-4 flex items-center text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
                     <FileText className="h-4 w-4 mr-1" />
-                    Xem báo cáo →
+                    {t('viewReport')} →
                   </div>
                 </CardContent>
               </Card>
@@ -250,18 +251,18 @@ export function ReportsDashboardPage() {
                 <TrendingUp className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <CardTitle className="text-lg">Báo cáo nhanh</CardTitle>
-                <CardDescription>Số liệu tổng hợp theo thời gian</CardDescription>
+                <CardTitle className="text-lg">{t('quickReport.title')}</CardTitle>
+                <CardDescription>{t('quickReport.description')}</CardDescription>
               </div>
             </div>
             <Tabs value={period} onValueChange={(v) => setPeriod(v as any)}>
               <TabsList className="bg-background">
                 <TabsTrigger value="today" className="gap-1">
                   <Calendar className="h-3 w-3" />
-                  Hôm nay
+                  {t('quickReport.today')}
                 </TabsTrigger>
-                <TabsTrigger value="week">Tuần này</TabsTrigger>
-                <TabsTrigger value="month">Tháng này</TabsTrigger>
+                <TabsTrigger value="week">{t('quickReport.week')}</TabsTrigger>
+                <TabsTrigger value="month">{t('quickReport.month')}</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>

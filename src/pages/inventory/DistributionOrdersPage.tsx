@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
-import { vi } from 'date-fns/locale'
+import { vi, enUS } from 'date-fns/locale'
 import { Plus, Search, Eye, Truck, CheckCircle, Clock, XCircle, Package, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -28,23 +29,26 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { useQueryClient } from '@tanstack/react-query'
 import type { DistributionOrderStatus } from '@/types/distribution.types'
 
-const STATUS_CONFIG: Record<DistributionOrderStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof Clock }> = {
-  pending: { label: 'Chờ giao', variant: 'outline', icon: Clock },
-  in_progress: { label: 'Đang giao', variant: 'default', icon: Truck },
-  completed: { label: 'Hoàn thành', variant: 'secondary', icon: CheckCircle },
-  cancelled: { label: 'Đã hủy', variant: 'destructive', icon: XCircle },
-}
-
 const PAGE_SIZE = 25
 
 export default function DistributionOrdersPage() {
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const queryClient = useQueryClient()
+  const { t, i18n } = useTranslation('distribution')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(1)
   const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const dateLocale = i18n.language === 'vi' ? vi : enUS
+
+  const STATUS_CONFIG: Record<DistributionOrderStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof Clock }> = {
+    pending: { label: t('status.pending'), variant: 'outline', icon: Clock },
+    in_progress: { label: t('status.in_progress'), variant: 'default', icon: Truck },
+    completed: { label: t('status.completed'), variant: 'secondary', icon: CheckCircle },
+    cancelled: { label: t('status.cancelled'), variant: 'destructive', icon: XCircle },
+  }
 
   const { data, isLoading } = useDistributionOrders(
     { status: statusFilter === 'all' ? undefined : statusFilter as DistributionOrderStatus },
@@ -78,7 +82,7 @@ export default function DistributionOrdersPage() {
         {/* Mobile Header */}
         <div className="sticky top-0 z-10 bg-background border-b p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold">Phiếu giao hàng</h1>
+            <h1 className="text-lg font-semibold">{t('title')}</h1>
             <div className="flex items-center gap-2">
               <Button 
                 variant="ghost" 
@@ -90,20 +94,20 @@ export default function DistributionOrdersPage() {
               </Button>
               <Button size="sm" onClick={() => navigate('/inventory/distributions/new')}>
                 <Plus className="h-4 w-4 mr-1" />
-                Tạo mới
+                {t('createNew')}
               </Button>
             </div>
           </div>
           <Select value={statusFilter} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Tất cả trạng thái" />
+              <SelectValue placeholder={t('status.all')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả trạng thái</SelectItem>
-              <SelectItem value="pending">Chờ giao</SelectItem>
-              <SelectItem value="in_progress">Đang giao</SelectItem>
-              <SelectItem value="completed">Hoàn thành</SelectItem>
-              <SelectItem value="cancelled">Đã hủy</SelectItem>
+              <SelectItem value="all">{t('status.all')}</SelectItem>
+              <SelectItem value="pending">{t('status.pending')}</SelectItem>
+              <SelectItem value="in_progress">{t('status.in_progress')}</SelectItem>
+              <SelectItem value="completed">{t('status.completed')}</SelectItem>
+              <SelectItem value="cancelled">{t('status.cancelled')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -111,18 +115,18 @@ export default function DistributionOrdersPage() {
         {/* Mobile List */}
         <div className="flex-1 overflow-auto p-4 space-y-3">
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Đang tải...</div>
+            <div className="text-center py-8 text-muted-foreground">{t('loading')}</div>
           ) : filteredOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Package className="h-12 w-12 text-muted-foreground/50 mb-3" />
-              <p className="text-muted-foreground">Chưa có phiếu giao hàng nào</p>
+              <p className="text-muted-foreground">{t('noOrders')}</p>
               <Button 
                 variant="outline" 
                 className="mt-4"
                 onClick={() => navigate('/inventory/distributions/new')}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Tạo phiếu mới
+                {t('createNewOrder')}
               </Button>
             </div>
           ) : (
@@ -150,11 +154,11 @@ export default function DistributionOrdersPage() {
                       
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
-                          <span className="text-muted-foreground">Phòng:</span>{' '}
+                          <span className="text-muted-foreground">{t('card.rooms')}:</span>{' '}
                           <span className="font-medium">{order.rooms_completed}/{order.total_rooms}</span>
                         </div>
                         <div>
-                          <span className="text-muted-foreground">Sản phẩm:</span>{' '}
+                          <span className="text-muted-foreground">{t('card.items')}:</span>{' '}
                           <span className="font-medium">{order.total_items}</span>
                         </div>
                       </div>
@@ -164,8 +168,8 @@ export default function DistributionOrdersPage() {
                       )}
 
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Giao: {order.assigned_to_name || 'Chưa phân công'}</span>
-                        <span>{format(new Date(order.created_at), 'dd/MM HH:mm', { locale: vi })}</span>
+                        <span>{t('card.assignee')}: {order.assigned_to_name || t('card.notAssigned')}</span>
+                        <span>{format(new Date(order.created_at), 'dd/MM HH:mm', { locale: dateLocale })}</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -207,12 +211,12 @@ export default function DistributionOrdersPage() {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Phiếu giao hàng</h1>
-          <p className="text-muted-foreground">Quản lý giao đồ từ kho đến các phòng</p>
+          <h1 className="text-2xl font-bold">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('description')}</p>
         </div>
         <Button onClick={() => navigate('/inventory/distributions/new')}>
           <Plus className="h-4 w-4 mr-2" />
-          Tạo phiếu giao hàng
+          {t('createOrder')}
         </Button>
       </div>
 
@@ -223,7 +227,7 @@ export default function DistributionOrdersPage() {
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
-                placeholder="Tìm mã phiếu..." 
+                placeholder={t('searchCode')}
                 className="pl-9" 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -231,14 +235,14 @@ export default function DistributionOrdersPage() {
             </div>
             <Select value={statusFilter} onValueChange={handleStatusChange}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Trạng thái" />
+                <SelectValue placeholder={t('table.status')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tất cả</SelectItem>
-                <SelectItem value="pending">Chờ giao</SelectItem>
-                <SelectItem value="in_progress">Đang giao</SelectItem>
-                <SelectItem value="completed">Hoàn thành</SelectItem>
-                <SelectItem value="cancelled">Đã hủy</SelectItem>
+                <SelectItem value="all">{t('status.allShort')}</SelectItem>
+                <SelectItem value="pending">{t('status.pending')}</SelectItem>
+                <SelectItem value="in_progress">{t('status.in_progress')}</SelectItem>
+                <SelectItem value="completed">{t('status.completed')}</SelectItem>
+                <SelectItem value="cancelled">{t('status.cancelled')}</SelectItem>
               </SelectContent>
             </Select>
             <Button 
@@ -258,13 +262,13 @@ export default function DistributionOrdersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Mã phiếu</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead className="text-center">Tiến độ</TableHead>
-              <TableHead className="text-center">Sản phẩm</TableHead>
-              <TableHead>Người giao</TableHead>
-              <TableHead>Người tạo</TableHead>
-              <TableHead>Ngày tạo</TableHead>
+              <TableHead>{t('table.code')}</TableHead>
+              <TableHead>{t('table.status')}</TableHead>
+              <TableHead className="text-center">{t('table.progress')}</TableHead>
+              <TableHead className="text-center">{t('table.items')}</TableHead>
+              <TableHead>{t('table.assignee')}</TableHead>
+              <TableHead>{t('table.creator')}</TableHead>
+              <TableHead>{t('table.createdAt')}</TableHead>
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -272,7 +276,7 @@ export default function DistributionOrdersPage() {
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8">
-                  Đang tải...
+                  {t('loading')}
                 </TableCell>
               </TableRow>
             ) : filteredOrders.length === 0 ? (
@@ -280,14 +284,14 @@ export default function DistributionOrdersPage() {
                 <TableCell colSpan={8} className="text-center py-12">
                   <div className="flex flex-col items-center">
                     <Package className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                    <p className="text-muted-foreground">Chưa có phiếu giao hàng nào</p>
+                    <p className="text-muted-foreground">{t('noOrders')}</p>
                     <Button 
                       variant="outline" 
                       className="mt-4"
                       onClick={() => navigate('/inventory/distributions/new')}
                     >
                       <Plus className="h-4 w-4 mr-2" />
-                      Tạo phiếu mới
+                      {t('createNewOrder')}
                     </Button>
                   </div>
                 </TableCell>
@@ -326,7 +330,7 @@ export default function DistributionOrdersPage() {
                     <TableCell>{order.assigned_to_name || '-'}</TableCell>
                     <TableCell>{order.created_by_name}</TableCell>
                     <TableCell>
-                      {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })}
+                      {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm', { locale: dateLocale })}
                     </TableCell>
                     <TableCell>
                       <Button variant="ghost" size="icon">
@@ -344,7 +348,7 @@ export default function DistributionOrdersPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t">
             <span className="text-sm text-muted-foreground">
-              Hiển thị {filteredOrders.length} / {totalCount} phiếu
+              {t('showing')} {filteredOrders.length} {t('of')} {totalCount} {t('orders')}
             </span>
             <div className="flex items-center gap-2">
               <Button
@@ -354,7 +358,7 @@ export default function DistributionOrdersPage() {
                 disabled={page === 1}
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
-                Trước
+                {t('previous')}
               </Button>
               <span className="text-sm px-2">
                 {page} / {totalPages}
@@ -365,7 +369,7 @@ export default function DistributionOrdersPage() {
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
               >
-                Sau
+                {t('next')}
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>

@@ -1,0 +1,38 @@
+{
+  "title": "Phiếu giao hàng",
+  "description": "Quản lý giao đồ từ kho đến các phòng",
+  "createNew": "Tạo mới",
+  "createOrder": "Tạo phiếu giao hàng",
+  "createNewOrder": "Tạo phiếu mới",
+  "searchCode": "Tìm mã phiếu...",
+  "loading": "Đang tải...",
+  "noOrders": "Chưa có phiếu giao hàng nào",
+  "showing": "Hiển thị",
+  "of": "/",
+  "orders": "phiếu",
+  "previous": "Trước",
+  "next": "Sau",
+  "status": {
+    "all": "Tất cả trạng thái",
+    "allShort": "Tất cả",
+    "pending": "Chờ giao",
+    "in_progress": "Đang giao",
+    "completed": "Hoàn thành",
+    "cancelled": "Đã hủy"
+  },
+  "table": {
+    "code": "Mã phiếu",
+    "status": "Trạng thái",
+    "progress": "Tiến độ",
+    "items": "Sản phẩm",
+    "assignee": "Người giao",
+    "creator": "Người tạo",
+    "createdAt": "Ngày tạo"
+  },
+  "card": {
+    "rooms": "Phòng",
+    "items": "Sản phẩm",
+    "assignee": "Giao",
+    "notAssigned": "Chưa phân công"
+  }
+}
