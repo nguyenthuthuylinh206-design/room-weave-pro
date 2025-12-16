@@ -1,0 +1,362 @@
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { 
+  Collapsible, 
+  CollapsibleContent, 
+  CollapsibleTrigger 
+} from '@/components/ui/collapsible'
+import { 
+  ArrowLeft, 
+  Bell, 
+  Mail, 
+  Smartphone,
+  ChevronDown,
+  ChevronUp,
+  Package,
+  Wrench,
+  Shirt,
+  Clock,
+  Loader2,
+  Send
+} from 'lucide-react'
+import { useNotificationPreferences } from '@/hooks/useNotificationPreferences'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
+import { triggerNotification } from '@/hooks/useNotificationTriggers'
+import { useUser } from '@/hooks/useUser'
+import { toast } from '@/hooks/use-toast'
+
+export default function MobileNotificationSettingsPage() {
+  const navigate = useNavigate()
+  const { user, tenantId } = useUser()
+  const { preferences, isLoading, savePreferences, isSaving } = useNotificationPreferences()
+  const { 
+    isSubscribed, 
+    isSupported, 
+    permission, 
+    subscribe, 
+    unsubscribe, 
+    isLoading: pushLoading 
+  } = usePushNotifications()
+  
+  const [localPrefs, setLocalPrefs] = useState(preferences)
+  const [hasChanges, setHasChanges] = useState(false)
+  const [sendingTest, setSendingTest] = useState(false)
+  
+  // Section collapse states
+  const [pushOpen, setPushOpen] = useState(true)
+  const [emailOpen, setEmailOpen] = useState(false)
+  const [inAppOpen, setInAppOpen] = useState(false)
+  const [thresholdsOpen, setThresholdsOpen] = useState(false)
+
+  useEffect(() => {
+    if (preferences) {
+      setLocalPrefs(preferences)
+    }
+  }, [preferences])
+
+  const handleChange = (key: string, value: any) => {
+    setLocalPrefs(prev => ({ ...prev, [key]: value }))
+    setHasChanges(true)
+  }
+
+  const handleSave = async () => {
+    await savePreferences(localPrefs)
+    setHasChanges(false)
+    toast({ title: 'Đã lưu cài đặt thông báo' })
+  }
+
+  const handleSendTestNotification = async () => {
+    if (!user?.id || !tenantId) return
+    
+    setSendingTest(true)
+    try {
+      await triggerNotification(
+        user.id,
+        tenantId,
+        '🔔 Thông báo test',
+        'Đây là thông báo test từ hệ thống. Nếu bạn nhận được thì cài đặt đã hoạt động!',
+        'info',
+        '/settings/notifications',
+        isSubscribed
+      )
+      toast({ 
+        title: 'Đã gửi thông báo test', 
+        description: 'Kiểm tra trong trung tâm thông báo' 
+      })
+    } catch (error) {
+      toast({ 
+        title: 'Lỗi', 
+        description: 'Không thể gửi thông báo test',
+        variant: 'destructive'
+      })
+    } finally {
+      setSendingTest(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-background pb-20">
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-background border-b">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="font-semibold">Cài đặt thông báo</h1>
+          </div>
+          {hasChanges && (
+            <Button size="sm" onClick={handleSave} disabled={isSaving}>
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Lưu'}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="p-4 space-y-4">
+        {/* Test Notification */}
+        <div className="rounded-lg border p-4 bg-muted/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Send className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-medium">Gửi thông báo test</p>
+                <p className="text-sm text-muted-foreground">Kiểm tra hệ thống thông báo</p>
+              </div>
+            </div>
+            <Button 
+              size="sm" 
+              onClick={handleSendTestNotification}
+              disabled={sendingTest}
+            >
+              {sendingTest ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Test'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Push Notifications Section */}
+        <Collapsible open={pushOpen} onOpenChange={setPushOpen}>
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+              <div className="flex items-center gap-3">
+                <Smartphone className="h-5 w-5 text-primary" />
+                <div className="text-left">
+                  <p className="font-medium">Push Notifications</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isSubscribed ? 'Đã bật' : 'Chưa bật'}
+                  </p>
+                </div>
+              </div>
+              {pushOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="mt-2 p-4 rounded-lg border bg-card space-y-4">
+              {permission === 'denied' ? (
+                <p className="text-sm text-destructive">
+                  Bạn đã chặn thông báo. Vui lòng bật lại trong cài đặt trình duyệt.
+                </p>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Nhận thông báo đẩy</p>
+                    <p className="text-sm text-muted-foreground">
+                      Nhận thông báo ngay cả khi không mở app
+                    </p>
+                  </div>
+                  {isSubscribed ? (
+                    <Badge variant="secondary">Đã bật</Badge>
+                  ) : (
+                    <Button 
+                      size="sm" 
+                      onClick={subscribe} 
+                      disabled={pushLoading}
+                    >
+                      {pushLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Bật ngay'}
+                    </Button>
+                  )}
+                </div>
+              )}
+              
+              {isSubscribed && (
+                <>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <Label>Tắt thông báo đẩy</Label>
+                    <Button variant="outline" size="sm" onClick={unsubscribe}>
+                      Hủy đăng ký
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Email Notifications Section */}
+        <Collapsible open={emailOpen} onOpenChange={setEmailOpen}>
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+              <div className="flex items-center gap-3">
+                <Mail className="h-5 w-5 text-primary" />
+                <div className="text-left">
+                  <p className="font-medium">Email</p>
+                  <p className="text-sm text-muted-foreground">
+                    {localPrefs?.email_low_stock || localPrefs?.email_laundry_completed 
+                      ? 'Đang bật' : 'Tắt'}
+                  </p>
+                </div>
+              </div>
+              {emailOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="mt-2 p-4 rounded-lg border bg-card space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  <Label>Cảnh báo tồn kho thấp</Label>
+                </div>
+                <Switch
+                  checked={localPrefs?.email_low_stock}
+                  onCheckedChange={(v) => handleChange('email_low_stock', v)}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Shirt className="h-4 w-4" />
+                  <Label>Đồ giặt hoàn thành</Label>
+                </div>
+                <Switch
+                  checked={localPrefs?.email_laundry_completed}
+                  onCheckedChange={(v) => handleChange('email_laundry_completed', v)}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Wrench className="h-4 w-4" />
+                  <Label>Yêu cầu bảo trì mới</Label>
+                </div>
+                <Switch
+                  checked={localPrefs?.email_maintenance_new}
+                  onCheckedChange={(v) => handleChange('email_maintenance_new', v)}
+                />
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* In-App Notifications Section */}
+        <Collapsible open={inAppOpen} onOpenChange={setInAppOpen}>
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+              <div className="flex items-center gap-3">
+                <Bell className="h-5 w-5 text-primary" />
+                <div className="text-left">
+                  <p className="font-medium">Thông báo trong ứng dụng</p>
+                  <p className="text-sm text-muted-foreground">
+                    {localPrefs?.inapp_realtime ? 'Đang bật' : 'Tắt'}
+                  </p>
+                </div>
+              </div>
+              {inAppOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="mt-2 p-4 rounded-lg border bg-card space-y-4">
+              <div className="flex items-center justify-between">
+                <Label>Cập nhật real-time</Label>
+                <Switch
+                  checked={localPrefs?.inapp_realtime}
+                  onCheckedChange={(v) => handleChange('inapp_realtime', v)}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label>Cảnh báo tồn kho</Label>
+                <Switch
+                  checked={localPrefs?.inapp_low_stock}
+                  onCheckedChange={(v) => handleChange('inapp_low_stock', v)}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label>Công việc được giao</Label>
+                <Switch
+                  checked={localPrefs?.inapp_task_assigned}
+                  onCheckedChange={(v) => handleChange('inapp_task_assigned', v)}
+                />
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Thresholds Section */}
+        <Collapsible open={thresholdsOpen} onOpenChange={setThresholdsOpen}>
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+              <div className="flex items-center gap-3">
+                <Clock className="h-5 w-5 text-primary" />
+                <div className="text-left">
+                  <p className="font-medium">Ngưỡng cảnh báo</p>
+                  <p className="text-sm text-muted-foreground">Tùy chỉnh ngưỡng</p>
+                </div>
+              </div>
+              {thresholdsOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="mt-2 p-4 rounded-lg border bg-card space-y-4">
+              <div className="space-y-2">
+                <Label>Ngưỡng tồn kho thấp (%)</Label>
+                <Input
+                  type="number"
+                  value={localPrefs?.low_stock_threshold || 20}
+                  onChange={(e) => handleChange('low_stock_threshold', parseInt(e.target.value))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Ngưỡng tồn kho nguy hiểm (%)</Label>
+                <Input
+                  type="number"
+                  value={localPrefs?.critical_stock_threshold || 10}
+                  onChange={(e) => handleChange('critical_stock_threshold', parseInt(e.target.value))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Ngưỡng bảo trì quá hạn (ngày)</Label>
+                <Input
+                  type="number"
+                  value={localPrefs?.overdue_maintenance_days || 3}
+                  onChange={(e) => handleChange('overdue_maintenance_days', parseInt(e.target.value))}
+                />
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Link to full history */}
+        <Button 
+          variant="outline" 
+          className="w-full" 
+          onClick={() => navigate('/notifications')}
+        >
+          <Bell className="h-4 w-4 mr-2" />
+          Xem lịch sử thông báo
+        </Button>
+      </div>
+    </div>
+  )
+}

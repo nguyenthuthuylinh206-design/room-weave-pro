@@ -179,6 +179,7 @@ export function useUpdatePO() {
 export function useApprovePO() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user, tenantId } = useUser();
 
   return useMutation({
     mutationFn: async (poId: string) => {
@@ -195,9 +196,21 @@ export function useApprovePO() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_, poId) => {
+    onSuccess: async (po, poId) => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
       queryClient.invalidateQueries({ queryKey: ['purchase-order', poId] });
+      
+      // Trigger notification for PO approved - notify the current user who approved
+      if (user?.id && tenantId && po.po_code) {
+        const { triggerPOApprovedNotification } = await import('./useNotificationTriggers');
+        await triggerPOApprovedNotification(
+          user.id,
+          tenantId,
+          po.po_code,
+          po.id
+        );
+      }
+      
       toast({
         title: 'Thành công',
         description: 'Đã duyệt đơn hàng',

@@ -95,6 +95,7 @@ import { PromoCodesPage } from "./pages/admin/PromoCodesPage";
 import { MarketingCampaignsPage } from "./pages/admin/MarketingCampaignsPage";
 import { RenewalRemindersPage } from "./pages/admin/RenewalRemindersPage";
 import { PricingPlansPage } from "./pages/admin/PricingPlansPage";
+import NotificationHistoryPage from "./pages/NotificationHistoryPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -559,6 +560,9 @@ const router = createBrowserRouter([
 
       // Profile - Always accessible
       { path: "profile", element: <ProfilePage /> },
+      
+      // Notifications History
+      { path: "notifications", element: <NotificationHistoryPage /> },
 
       // Reports - Permission Based
       {
