@@ -1,0 +1,35 @@
+{
+  "title": "Dashboard",
+  "welcome": "Welcome back",
+  "stats": {
+    "totalItems": "Total Items",
+    "totalRooms": "Total Rooms",
+    "occupiedRooms": "Occupied Rooms",
+    "availableRooms": "Available Rooms",
+    "pendingMaintenance": "Pending Maintenance",
+    "activeLaundry": "Active Laundry",
+    "lowStock": "Low Stock",
+    "totalHotels": "Total Hotels"
+  },
+  "charts": {
+    "inventoryOverview": "Inventory Overview",
+    "roomStatus": "Room Status",
+    "monthlyTrend": "Monthly Trend",
+    "categoryDistribution": "Category Distribution"
+  },
+  "alerts": {
+    "title": "Alerts",
+    "lowStockItems": "Low Stock Items",
+    "pendingTasks": "Pending Tasks",
+    "overdueItems": "Overdue Items"
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "newItem": "Add Item",
+    "newRoom": "Add Room",
+    "newMaintenance": "Create Maintenance Request",
+    "newLaundry": "Create Laundry Batch"
+  },
+  "allHotels": "All Hotels",
+  "viewingAllHotels": "Viewing all hotels"
+}

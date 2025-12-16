@@ -1,0 +1,35 @@
+{
+  "title": "Bảng điều khiển",
+  "welcome": "Chào mừng trở lại",
+  "stats": {
+    "totalItems": "Tổng vật tư",
+    "totalRooms": "Tổng phòng",
+    "occupiedRooms": "Phòng có khách",
+    "availableRooms": "Phòng trống",
+    "pendingMaintenance": "Bảo trì chờ xử lý",
+    "activeLaundry": "Giặt đang xử lý",
+    "lowStock": "Tồn kho thấp",
+    "totalHotels": "Tổng khách sạn"
+  },
+  "charts": {
+    "inventoryOverview": "Tổng quan tồn kho",
+    "roomStatus": "Trạng thái phòng",
+    "monthlyTrend": "Xu hướng theo tháng",
+    "categoryDistribution": "Phân bố theo danh mục"
+  },
+  "alerts": {
+    "title": "Cảnh báo",
+    "lowStockItems": "Vật tư sắp hết",
+    "pendingTasks": "Công việc chờ xử lý",
+    "overdueItems": "Mục quá hạn"
+  },
+  "quickActions": {
+    "title": "Thao tác nhanh",
+    "newItem": "Thêm vật tư",
+    "newRoom": "Thêm phòng",
+    "newMaintenance": "Tạo yêu cầu bảo trì",
+    "newLaundry": "Tạo lô giặt"
+  },
+  "allHotels": "Tất cả khách sạn",
+  "viewingAllHotels": "Đang xem tất cả khách sạn"
+}

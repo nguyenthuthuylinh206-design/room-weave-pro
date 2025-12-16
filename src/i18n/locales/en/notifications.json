@@ -1,0 +1,37 @@
+{
+  "title": "Notifications",
+  "noNotifications": "No notifications",
+  "markAllRead": "Mark all as read",
+  "markAsRead": "Mark as read",
+  "deleteAll": "Delete all",
+  "viewAll": "View all",
+  "settings": "Notification Settings",
+  "unread": "Unread",
+  "read": "Read",
+  "all": "All",
+  "types": {
+    "lowStock": "Low Stock Alert",
+    "maintenance": "Maintenance",
+    "laundry": "Laundry",
+    "system": "System",
+    "task": "Task",
+    "approval": "Approval"
+  },
+  "actions": {
+    "viewInventory": "View Inventory",
+    "createOrder": "Create Order",
+    "viewRequest": "View Request",
+    "assignTask": "Assign Task"
+  },
+  "preferences": {
+    "title": "Notification Settings",
+    "push": "Push Notifications",
+    "email": "Email Notifications",
+    "inApp": "In-App Notifications",
+    "lowStockAlert": "Low Stock Alerts",
+    "maintenanceAlert": "Maintenance Alerts",
+    "laundryAlert": "Laundry Alerts",
+    "dailyReport": "Daily Report",
+    "weeklyReport": "Weekly Report"
+  }
+}
