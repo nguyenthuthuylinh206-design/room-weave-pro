@@ -113,7 +113,7 @@ export function NotificationCenter({ onClose, onMarkAllRead }: NotificationCente
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <div className="flex flex-col max-h-[500px]">
+    <div className="flex flex-col h-[500px]">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2">
@@ -139,7 +139,7 @@ export function NotificationCenter({ onClose, onMarkAllRead }: NotificationCente
       </div>
 
       {/* Notifications List */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 h-[calc(500px-60px)]">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -195,25 +195,6 @@ export function NotificationCenter({ onClose, onMarkAllRead }: NotificationCente
           </div>
         )}
       </ScrollArea>
-
-      {/* Footer */}
-      {notifications.length > 0 && (
-        <>
-          <Separator />
-          <div className="p-2">
-            <Button
-              variant="ghost"
-              className="w-full text-sm"
-              onClick={() => {
-                navigate('/settings/notifications');
-                onClose?.();
-              }}
-            >
-              Cài đặt thông báo
-            </Button>
-          </div>
-        </>
-      )}
     </div>
   );
 }
