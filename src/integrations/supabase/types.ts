@@ -998,6 +998,73 @@ export type Database = {
           },
         ]
       }
+      in_app_notifications: {
+        Row: {
+          action_url: string | null
+          body: string
+          created_at: string | null
+          icon: string | null
+          id: string
+          is_read: boolean | null
+          metadata: Json | null
+          read_at: string | null
+          tenant_id: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          body: string
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          is_read?: boolean | null
+          metadata?: Json | null
+          read_at?: string | null
+          tenant_id: string
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          body?: string
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          is_read?: boolean | null
+          metadata?: Json | null
+          read_at?: string | null
+          tenant_id?: string
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "in_app_notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "in_app_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "in_app_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_transactions: {
         Row: {
           approved_by: string | null
@@ -2958,6 +3025,76 @@ export type Database = {
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_subscriptions: {
+        Row: {
+          auth_key: string
+          created_at: string | null
+          device_name: string | null
+          endpoint: string
+          failed_count: number | null
+          id: string
+          is_active: boolean | null
+          last_used_at: string | null
+          p256dh_key: string
+          tenant_id: string
+          updated_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth_key: string
+          created_at?: string | null
+          device_name?: string | null
+          endpoint: string
+          failed_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          p256dh_key: string
+          tenant_id: string
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth_key?: string
+          created_at?: string | null
+          device_name?: string | null
+          endpoint?: string
+          failed_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          p256dh_key?: string
+          tenant_id?: string
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]

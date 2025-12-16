@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { QuotaWarningBanner } from '@/components/settings/usage/QuotaWarningBanner'
 import { HotelProvider } from '@/contexts/HotelContext'
+import { PushNotificationPrompt } from '@/components/notifications'
 
 const MainLayoutContent = () => {
   const { isMobile } = useBreakpoint()
@@ -63,6 +64,7 @@ export const MainLayout = () => {
   return (
     <HotelProvider>
       <MainLayoutContent />
+      <PushNotificationPrompt />
     </HotelProvider>
   )
 }

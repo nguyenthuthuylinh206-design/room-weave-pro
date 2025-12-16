@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { Menu, Bell, Search, Building2 } from 'lucide-react'
+import { Menu, Search, Building2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Badge } from '@/components/ui/badge'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { MobileSidebar } from './MobileSidebar'
 import { HotelSwitcher } from './HotelSwitcher'
+import { NotificationBell } from '@/components/notifications'
 import { cn } from '@/lib/utils'
 
 interface MobileHeaderProps {
@@ -21,7 +21,6 @@ export const MobileHeader = ({
 }: MobileHeaderProps) => {
   const [menuOpen, setMenuOpen] = useState(false)
   const { selectedHotel } = useHotelContext()
-  const [notificationCount] = useState(3) // TODO: Connect to real notifications
 
   return (
     <header className={cn(
@@ -62,22 +61,7 @@ export const MobileHeader = ({
           )}
 
           {/* Notifications */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-10 w-10 relative"
-            aria-label={`Notifications (${notificationCount} unread)`}
-          >
-            <Bell className="h-5 w-5" />
-            {notificationCount > 0 && (
-              <Badge 
-                variant="destructive" 
-                className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
-              >
-                {notificationCount > 9 ? '9+' : notificationCount}
-              </Badge>
-            )}
-          </Button>
+          <NotificationBell className="h-10 w-10" />
 
           {/* Hotel Switcher (Mobile) */}
           {showHotelSelector && (

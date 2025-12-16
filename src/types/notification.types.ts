@@ -1,8 +1,65 @@
 // =====================================================
+// PUSH NOTIFICATIONS
+// =====================================================
+
+export interface PushSubscription {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh_key: string;
+  auth_key: string;
+  device_name?: string;
+  user_agent?: string;
+  is_active: boolean;
+  failed_count: number;
+  last_used_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PushNotificationPayload {
+  user_id?: string;
+  user_ids?: string[];
+  title: string;
+  body: string;
+  icon?: string;
+  badge?: string;
+  tag?: string;
+  action_url?: string;
+  data?: Record<string, any>;
+}
+
+export type InAppNotificationType = 
+  | 'info'
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'inventory'
+  | 'maintenance'
+  | 'laundry'
+  | 'system';
+
+export interface InAppNotification {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  title: string;
+  body: string;
+  type: InAppNotificationType;
+  action_url?: string;
+  icon?: string;
+  is_read: boolean;
+  read_at?: string;
+  metadata?: Record<string, any>;
+  created_at: string;
+}
+
+// =====================================================
 // EMAIL NOTIFICATIONS
 // =====================================================
 
-export type EmailNotificationType = 
+export type EmailNotificationType =
   | 'subscription_expiring'
   | 'subscription_expired'
   | 'trial_ending'

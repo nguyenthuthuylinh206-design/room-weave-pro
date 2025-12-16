@@ -4,8 +4,13 @@ import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
+import { Bell, Smartphone, Loader2 } from 'lucide-react'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
 
 export function NotificationSettingsPage() {
+  const { isSupported, isSubscribed, isLoading, permission, subscribe, unsubscribe } = usePushNotifications()
+
   return (
     <div className="space-y-6">
       <div>
@@ -16,6 +21,52 @@ export function NotificationSettingsPage() {
       </div>
 
       <div className="space-y-6">
+        {/* Push Notifications */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Thông báo đẩy (Push Notifications)
+            </CardTitle>
+            <CardDescription>Nhận thông báo ngay cả khi không mở ứng dụng</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!isSupported ? (
+              <div className="text-sm text-muted-foreground">
+                Trình duyệt của bạn không hỗ trợ thông báo đẩy.
+              </div>
+            ) : permission === 'denied' ? (
+              <div className="text-sm text-destructive">
+                Bạn đã chặn thông báo. Vui lòng bật lại trong cài đặt trình duyệt.
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Smartphone className="h-5 w-5 text-muted-foreground" />
+                  <div className="space-y-0.5">
+                    <Label>Bật thông báo đẩy</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Nhận cảnh báo tồn kho, bảo trì và cập nhật quan trọng
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {isSubscribed && <Badge variant="secondary">Đã bật</Badge>}
+                  <Button
+                    variant={isSubscribed ? "outline" : "default"}
+                    size="sm"
+                    onClick={isSubscribed ? unsubscribe : subscribe}
+                    disabled={isLoading}
+                  >
+                    {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    {isSubscribed ? 'Tắt' : 'Bật ngay'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Email Notifications */}
         <Card>
           <CardHeader>
