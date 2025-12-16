@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -5,11 +6,45 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { Bell, Smartphone, Loader2 } from 'lucide-react'
+import { Bell, Smartphone, Loader2, Save } from 'lucide-react'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
+import { useNotificationPreferences, NotificationPreferences } from '@/hooks/useNotificationPreferences'
 
 export function NotificationSettingsPage() {
-  const { isSupported, isSubscribed, isLoading, permission, subscribe, unsubscribe } = usePushNotifications()
+  const { isSupported, isSubscribed, isLoading: pushLoading, permission, subscribe, unsubscribe } = usePushNotifications()
+  const { preferences, isLoading: prefsLoading, savePreferences, isSaving } = useNotificationPreferences()
+  
+  const [localPrefs, setLocalPrefs] = useState<Partial<NotificationPreferences>>({})
+  const [hasChanges, setHasChanges] = useState(false)
+
+  useEffect(() => {
+    if (preferences) {
+      setLocalPrefs(preferences)
+    }
+  }, [preferences])
+
+  const handleChange = (key: keyof NotificationPreferences, value: boolean | number | string) => {
+    setLocalPrefs(prev => ({ ...prev, [key]: value }))
+    setHasChanges(true)
+  }
+
+  const handleSave = async () => {
+    await savePreferences(localPrefs)
+    setHasChanges(false)
+  }
+
+  const handleCancel = () => {
+    setLocalPrefs(preferences)
+    setHasChanges(false)
+  }
+
+  if (prefsLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -56,9 +91,9 @@ export function NotificationSettingsPage() {
                     variant={isSubscribed ? "outline" : "default"}
                     size="sm"
                     onClick={isSubscribed ? unsubscribe : subscribe}
-                    disabled={isLoading}
+                    disabled={pushLoading}
                   >
-                    {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    {pushLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                     {isSubscribed ? 'Tắt' : 'Bật ngay'}
                   </Button>
                 </div>
@@ -81,18 +116,24 @@ export function NotificationSettingsPage() {
                   Nhận email khi tồn kho dưới mức tối thiểu
                 </p>
               </div>
-              <Switch defaultChecked />
+              <Switch 
+                checked={localPrefs.email_low_stock ?? true}
+                onCheckedChange={(v) => handleChange('email_low_stock', v)}
+              />
             </div>
             <Separator />
             
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>Lô giặt đã nhận</Label>
+                <Label>Lô giặt đã hoàn thành</Label>
                 <p className="text-sm text-muted-foreground">
                   Thông báo khi lô giặt được nhận về
                 </p>
               </div>
-              <Switch defaultChecked />
+              <Switch 
+                checked={localPrefs.email_laundry_completed ?? true}
+                onCheckedChange={(v) => handleChange('email_laundry_completed', v)}
+              />
             </div>
             <Separator />
 
@@ -103,7 +144,10 @@ export function NotificationSettingsPage() {
                   Email khi có yêu cầu bảo trì được tạo
                 </p>
               </div>
-              <Switch defaultChecked />
+              <Switch 
+                checked={localPrefs.email_maintenance_new ?? true}
+                onCheckedChange={(v) => handleChange('email_maintenance_new', v)}
+              />
             </div>
             <Separator />
 
@@ -114,7 +158,10 @@ export function NotificationSettingsPage() {
                   Thông báo khi đơn đặt hàng được phê duyệt
                 </p>
               </div>
-              <Switch defaultChecked />
+              <Switch 
+                checked={localPrefs.email_po_approved ?? true}
+                onCheckedChange={(v) => handleChange('email_po_approved', v)}
+              />
             </div>
             <Separator />
 
@@ -125,7 +172,24 @@ export function NotificationSettingsPage() {
                   Gửi báo cáo tổng hợp vào mỗi sáng
                 </p>
               </div>
-              <Switch />
+              <Switch 
+                checked={localPrefs.email_daily_report ?? false}
+                onCheckedChange={(v) => handleChange('email_daily_report', v)}
+              />
+            </div>
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Báo cáo tuần</Label>
+                <p className="text-sm text-muted-foreground">
+                  Gửi báo cáo tổng hợp hàng tuần
+                </p>
+              </div>
+              <Switch 
+                checked={localPrefs.email_weekly_report ?? true}
+                onCheckedChange={(v) => handleChange('email_weekly_report', v)}
+              />
             </div>
           </CardContent>
         </Card>
@@ -139,19 +203,55 @@ export function NotificationSettingsPage() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <Label>Cập nhật theo thời gian thực</Label>
-              <Switch defaultChecked />
+              <Switch 
+                checked={localPrefs.inapp_realtime ?? true}
+                onCheckedChange={(v) => handleChange('inapp_realtime', v)}
+              />
+            </div>
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <Label>Cảnh báo tồn kho</Label>
+              <Switch 
+                checked={localPrefs.inapp_low_stock ?? true}
+                onCheckedChange={(v) => handleChange('inapp_low_stock', v)}
+              />
+            </div>
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <Label>Lô giặt hoàn thành</Label>
+              <Switch 
+                checked={localPrefs.inapp_laundry_completed ?? true}
+                onCheckedChange={(v) => handleChange('inapp_laundry_completed', v)}
+              />
+            </div>
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <Label>Bảo trì mới</Label>
+              <Switch 
+                checked={localPrefs.inapp_maintenance_new ?? true}
+                onCheckedChange={(v) => handleChange('inapp_maintenance_new', v)}
+              />
             </div>
             <Separator />
 
             <div className="flex items-center justify-between">
               <Label>Nhiệm vụ được giao</Label>
-              <Switch defaultChecked />
+              <Switch 
+                checked={localPrefs.inapp_task_assigned ?? true}
+                onCheckedChange={(v) => handleChange('inapp_task_assigned', v)}
+              />
             </div>
             <Separator />
 
             <div className="flex items-center justify-between">
               <Label>Yêu cầu phê duyệt</Label>
-              <Switch defaultChecked />
+              <Switch 
+                checked={localPrefs.inapp_approval_request ?? true}
+                onCheckedChange={(v) => handleChange('inapp_approval_request', v)}
+              />
             </div>
           </CardContent>
         </Card>
@@ -170,7 +270,8 @@ export function NotificationSettingsPage() {
                   <Input
                     id="low-stock"
                     type="number"
-                    defaultValue={20}
+                    value={localPrefs.low_stock_threshold ?? 20}
+                    onChange={(e) => handleChange('low_stock_threshold', parseInt(e.target.value) || 0)}
                     className="w-24"
                   />
                   <span className="text-sm text-muted-foreground">đơn vị</span>
@@ -183,7 +284,8 @@ export function NotificationSettingsPage() {
                   <Input
                     id="critical-stock"
                     type="number"
-                    defaultValue={5}
+                    value={localPrefs.critical_stock_threshold ?? 5}
+                    onChange={(e) => handleChange('critical_stock_threshold', parseInt(e.target.value) || 0)}
                     className="w-24"
                   />
                   <span className="text-sm text-muted-foreground">đơn vị</span>
@@ -196,7 +298,8 @@ export function NotificationSettingsPage() {
                   <Input
                     id="overdue-maintenance"
                     type="number"
-                    defaultValue={3}
+                    value={localPrefs.overdue_maintenance_days ?? 3}
+                    onChange={(e) => handleChange('overdue_maintenance_days', parseInt(e.target.value) || 0)}
                     className="w-24"
                   />
                   <span className="text-sm text-muted-foreground">ngày</span>
@@ -209,7 +312,8 @@ export function NotificationSettingsPage() {
                   <Input
                     id="laundry-delay"
                     type="number"
-                    defaultValue={24}
+                    value={localPrefs.laundry_delay_hours ?? 24}
+                    onChange={(e) => handleChange('laundry_delay_hours', parseInt(e.target.value) || 0)}
                     className="w-24"
                   />
                   <span className="text-sm text-muted-foreground">giờ</span>
@@ -229,37 +333,79 @@ export function NotificationSettingsPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="daily-time">Báo cáo hàng ngày</Label>
-                <Input id="daily-time" type="time" defaultValue="08:00" />
+                <Input 
+                  id="daily-time" 
+                  type="time" 
+                  value={localPrefs.daily_report_time ?? '08:00'}
+                  onChange={(e) => handleChange('daily_report_time', e.target.value)}
+                />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="weekly-time">Báo cáo hàng tuần</Label>
-                <div className="flex gap-2">
-                  <Input id="weekly-day" type="text" defaultValue="Thứ 2" className="flex-1" />
-                  <Input id="weekly-time" type="time" defaultValue="09:00" className="w-32" />
-                </div>
+                <Label htmlFor="weekly-day">Báo cáo hàng tuần</Label>
+                <select
+                  id="weekly-day"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={localPrefs.weekly_report_day ?? 1}
+                  onChange={(e) => handleChange('weekly_report_day', parseInt(e.target.value))}
+                >
+                  <option value={0}>Chủ nhật</option>
+                  <option value={1}>Thứ Hai</option>
+                  <option value={2}>Thứ Ba</option>
+                  <option value={3}>Thứ Tư</option>
+                  <option value={4}>Thứ Năm</option>
+                  <option value={5}>Thứ Sáu</option>
+                  <option value={6}>Thứ Bảy</option>
+                </select>
               </div>
             </div>
 
             <Separator />
 
-            <div className="space-y-2">
-              <Label>Giờ im lặng</Label>
-              <p className="text-sm text-muted-foreground">
-                Không gửi thông báo trong khoảng thời gian này
-              </p>
-              <div className="flex items-center gap-2">
-                <Input type="time" defaultValue="22:00" className="w-32" />
-                <span className="text-muted-foreground">đến</span>
-                <Input type="time" defaultValue="07:00" className="w-32" />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Bật giờ im lặng</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Không gửi thông báo trong khoảng thời gian này
+                  </p>
+                </div>
+                <Switch 
+                  checked={localPrefs.quiet_hours_enabled ?? false}
+                  onCheckedChange={(v) => handleChange('quiet_hours_enabled', v)}
+                />
               </div>
+              
+              {localPrefs.quiet_hours_enabled && (
+                <div className="flex items-center gap-2">
+                  <Input 
+                    type="time" 
+                    value={localPrefs.quiet_hours_start ?? '22:00'}
+                    onChange={(e) => handleChange('quiet_hours_start', e.target.value)}
+                    className="w-32" 
+                  />
+                  <span className="text-muted-foreground">đến</span>
+                  <Input 
+                    type="time" 
+                    value={localPrefs.quiet_hours_end ?? '07:00'}
+                    onChange={(e) => handleChange('quiet_hours_end', e.target.value)}
+                    className="w-32" 
+                  />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
 
         <div className="flex justify-end gap-3">
-          <Button variant="outline">Hủy</Button>
-          <Button>Lưu thay đổi</Button>
+          <Button variant="outline" onClick={handleCancel} disabled={!hasChanges || isSaving}>
+            Hủy
+          </Button>
+          <Button onClick={handleSave} disabled={!hasChanges || isSaving}>
+            {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            <Save className="h-4 w-4 mr-2" />
+            Lưu thay đổi
+          </Button>
         </div>
       </div>
     </div>

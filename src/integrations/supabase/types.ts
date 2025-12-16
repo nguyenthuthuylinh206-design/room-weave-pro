@@ -2325,6 +2325,118 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          created_at: string | null
+          critical_stock_threshold: number | null
+          daily_report_time: string | null
+          email_daily_report: boolean | null
+          email_laundry_completed: boolean | null
+          email_low_stock: boolean | null
+          email_maintenance_new: boolean | null
+          email_po_approved: boolean | null
+          email_weekly_report: boolean | null
+          id: string
+          inapp_approval_request: boolean | null
+          inapp_laundry_completed: boolean | null
+          inapp_low_stock: boolean | null
+          inapp_maintenance_new: boolean | null
+          inapp_realtime: boolean | null
+          inapp_task_assigned: boolean | null
+          laundry_delay_hours: number | null
+          low_stock_threshold: number | null
+          overdue_maintenance_days: number | null
+          push_enabled: boolean | null
+          quiet_hours_enabled: boolean | null
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          tenant_id: string
+          updated_at: string | null
+          user_id: string
+          weekly_report_day: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          critical_stock_threshold?: number | null
+          daily_report_time?: string | null
+          email_daily_report?: boolean | null
+          email_laundry_completed?: boolean | null
+          email_low_stock?: boolean | null
+          email_maintenance_new?: boolean | null
+          email_po_approved?: boolean | null
+          email_weekly_report?: boolean | null
+          id?: string
+          inapp_approval_request?: boolean | null
+          inapp_laundry_completed?: boolean | null
+          inapp_low_stock?: boolean | null
+          inapp_maintenance_new?: boolean | null
+          inapp_realtime?: boolean | null
+          inapp_task_assigned?: boolean | null
+          laundry_delay_hours?: number | null
+          low_stock_threshold?: number | null
+          overdue_maintenance_days?: number | null
+          push_enabled?: boolean | null
+          quiet_hours_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          tenant_id: string
+          updated_at?: string | null
+          user_id: string
+          weekly_report_day?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          critical_stock_threshold?: number | null
+          daily_report_time?: string | null
+          email_daily_report?: boolean | null
+          email_laundry_completed?: boolean | null
+          email_low_stock?: boolean | null
+          email_maintenance_new?: boolean | null
+          email_po_approved?: boolean | null
+          email_weekly_report?: boolean | null
+          id?: string
+          inapp_approval_request?: boolean | null
+          inapp_laundry_completed?: boolean | null
+          inapp_low_stock?: boolean | null
+          inapp_maintenance_new?: boolean | null
+          inapp_realtime?: boolean | null
+          inapp_task_assigned?: boolean | null
+          laundry_delay_hours?: number | null
+          low_stock_threshold?: number | null
+          overdue_maintenance_days?: number | null
+          push_enabled?: boolean | null
+          quiet_hours_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+          user_id?: string
+          weekly_report_day?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           action_label: string | null
@@ -5236,6 +5348,19 @@ export type Database = {
             }
             Returns: Json
           }
+      create_notification: {
+        Args: {
+          p_action_url?: string
+          p_body: string
+          p_icon?: string
+          p_metadata?: Json
+          p_tenant_id: string
+          p_title: string
+          p_type?: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       create_outbound_transaction: {
         Args: {
           p_created_by: string

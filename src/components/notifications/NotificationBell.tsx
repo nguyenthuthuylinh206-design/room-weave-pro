@@ -11,6 +11,7 @@ import { NotificationCenter } from './NotificationCenter';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface NotificationBellProps {
   className?: string;
@@ -39,9 +40,9 @@ export function NotificationBell({ className }: NotificationBellProps) {
 
     fetchUnreadCount();
 
-    // Subscribe to new notifications
+    // Subscribe to new notifications with realtime
     const channel = supabase
-      .channel('notifications')
+      .channel(`notifications-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -50,8 +51,16 @@ export function NotificationBell({ className }: NotificationBellProps) {
           table: 'in_app_notifications',
           filter: `user_id=eq.${user.id}`,
         },
-        () => {
+        (payload) => {
           setUnreadCount(prev => prev + 1);
+          // Show toast for new notification
+          const newNotif = payload.new as { title?: string; body?: string };
+          if (newNotif.title) {
+            toast.info(newNotif.title, {
+              description: newNotif.body,
+              duration: 5000,
+            });
+          }
         }
       )
       .on(
@@ -63,7 +72,9 @@ export function NotificationBell({ className }: NotificationBellProps) {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          if (payload.new.is_read && !payload.old.is_read) {
+          const newData = payload.new as { is_read?: boolean };
+          const oldData = payload.old as { is_read?: boolean };
+          if (newData.is_read && !oldData.is_read) {
             setUnreadCount(prev => Math.max(0, prev - 1));
           }
         }
