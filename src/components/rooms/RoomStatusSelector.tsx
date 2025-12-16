@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,17 +17,18 @@ interface RoomStatusSelectorProps {
   className?: string
 }
 
-const statusOptions: { value: RoomStatus; label: string }[] = [
-  { value: 'vacant', label: 'Trống' },
-  { value: 'occupied', label: 'Đang ở' },
-  { value: 'check_in', label: 'Check In' },
-  { value: 'check_out', label: 'Check Out' },
-  { value: 'cleaning', label: 'Đang dọn' },
-  { value: 'maintenance', label: 'Bảo trì' },
-  { value: 'out_of_order', label: 'Hỏng' },
+const statusValues: RoomStatus[] = [
+  'vacant',
+  'occupied',
+  'check_in',
+  'check_out',
+  'cleaning',
+  'maintenance',
+  'out_of_order',
 ]
 
 export function RoomStatusSelector({ roomId, currentStatus, className }: RoomStatusSelectorProps) {
+  const { t } = useTranslation('rooms')
   const updateRoom = useUpdateRoom()
 
   const handleStatusChange = (newStatus: RoomStatus) => {
@@ -56,15 +58,15 @@ export function RoomStatusSelector({ roomId, currentStatus, className }: RoomSta
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          {statusOptions.map((option) => (
+          {statusValues.map((status) => (
             <DropdownMenuItem
-              key={option.value}
-              onClick={() => handleStatusChange(option.value)}
+              key={status}
+              onClick={() => handleStatusChange(status)}
               className="cursor-pointer"
             >
               <div className="flex items-center justify-between w-full gap-2">
-                <span>{option.label}</span>
-                {currentStatus === option.value && (
+                <span>{t(`status.${status}`)}</span>
+                {currentStatus === status && (
                   <Check className="h-4 w-4" />
                 )}
               </div>
