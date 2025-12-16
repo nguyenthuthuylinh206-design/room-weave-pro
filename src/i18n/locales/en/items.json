@@ -92,7 +92,20 @@
     "conditionGood": "Good",
     "conditionFair": "Fair",
     "conditionPoor": "Poor",
-    "conditionDamaged": "Damaged"
+    "conditionDamaged": "Damaged",
+    "lifecycle": "Lifecycle",
+    "expectedLifetime": "Expected Lifetime",
+    "days": "{{count}} days",
+    "washCycles": "Wash Cycles",
+    "hotel": "Hotel",
+    "minStock": "Minimum Stock",
+    "reorderPoint": "Reorder Point",
+    "alerts": {
+      "lowStock": "Low Stock",
+      "lowStockDesc": "Stock quantity is below minimum level",
+      "outOfStock": "Out of Stock",
+      "outOfStockDesc": "Need to restock immediately"
+    }
   },
   "categoriesPage": {
     "title": "Asset Categories",

@@ -92,7 +92,20 @@
     "conditionGood": "Tốt",
     "conditionFair": "Khá",
     "conditionPoor": "Kém",
-    "conditionDamaged": "Hỏng"
+    "conditionDamaged": "Hỏng",
+    "lifecycle": "Vòng đời",
+    "expectedLifetime": "Tuổi thọ dự kiến",
+    "days": "{{count}} ngày",
+    "washCycles": "Chu kỳ giặt",
+    "hotel": "Khách sạn",
+    "minStock": "Mức tồn tối thiểu",
+    "reorderPoint": "Điểm đặt hàng lại",
+    "alerts": {
+      "lowStock": "Sắp hết hàng",
+      "lowStockDesc": "Số lượng tồn kho đang thấp hơn mức tối thiểu",
+      "outOfStock": "Hết hàng",
+      "outOfStockDesc": "Cần nhập hàng ngay"
+    }
   },
   "categoriesPage": {
     "title": "Danh mục tài sản",
