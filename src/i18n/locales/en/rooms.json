@@ -1,53 +1,9 @@
 {
-  "detail": {
-    "title": "Room {{number}}",
-    "description": "{{type}} - Floor {{floor}}",
-    "checkRoom": "Check Room",
-    "editInfo": "Edit Info",
-    "notFound": "Room not found",
-    "backToList": "Back to list",
-    "roomInfo": "Room Information",
-    "roomNumber": "Room Number",
-    "roomType": "Room Type",
-    "floor": "Floor",
-    "floorNumber": "Floor {{number}}",
-    "area": "Area",
-    "bedType": "Bed Type",
-    "maxGuests": "Max Guests",
-    "guestCount": "{{count}} guests",
-    "view": "View",
-    "basePrice": "Base Price",
-    "pricePerNight": "{{price}}/night",
-    "amenities": "Amenities",
-    "notes": "Notes",
-    "recentPhotos": "Recent Check Photos",
-    "checkedBy": "Checked by {{name}}",
-    "checkType": {
-      "daily": "Daily",
-      "checkin": "Check-in",
-      "checkout": "Check-out",
-      "maintenance": "Maintenance"
-    },
-    "viewFull": "View full",
-    "andMorePhotos": "And {{count}} more photos",
-    "itemsInRoom": "Items in Room",
-    "noItems": "No items in room",
-    "noItemsDescription": "This room has no items. Click \"Apply Room Standards\" in the \"Quick Actions\" section to automatically add items according to the {{type}} room standard.",
-    "totalItems": "Total Items",
-    "complete": "Complete",
-    "missing": "Missing",
-    "missingTypes": "{{count}} types",
-    "missingItems": "{{count}} items",
-    "checkHistory": "Check History",
-    "quickActions": "Quick Actions",
-    "applyStandards": "Apply Room Standards",
-    "syncStandards": "Sync Standards",
-    "printItemList": "Print Item List",
-    "na": "N/A"
-  },
   "title": "Room Management",
+  "pageTitle": "Rooms",
   "description": "Manage rooms and room items",
   "addRoom": "Add Room",
+  "addNewRoom": "Add New Room",
   "editRoom": "Edit Room",
   "roomDetail": "Room Details",
   "roomCheck": "Room Check",
@@ -69,8 +25,8 @@
     "occupied": "Occupied",
     "cleaning": "Cleaning",
     "maintenance": "Maintenance",
-    "check_in": "Check-in",
-    "check_out": "Check-out",
+    "check_in": "Check In",
+    "check_out": "Check Out",
     "out_of_order": "Out of Order"
   },
   "roomTypes": {
@@ -84,43 +40,113 @@
     "createSuccess": "Room created successfully",
     "updateSuccess": "Room updated successfully",
     "deleteSuccess": "Room deleted successfully",
-    "noRooms": "No rooms yet"
+    "noRooms": "No rooms yet",
+    "notFound": "Room not found",
+    "refreshed": "Refreshed!"
   },
   "filters": {
     "all": "All",
     "byFloor": "By Floor",
     "byStatus": "By Status",
     "byType": "By Type",
-    "search": "Search rooms..."
+    "search": "Search rooms...",
+    "searchRoomFloor": "Search room number, floor..."
+  },
+  "stats": {
+    "total": "Total",
+    "vacant": "Vacant",
+    "occupied": "Occupied",
+    "checkIn": "Check In",
+    "checkOut": "Check Out",
+    "cleaning": "Cleaning",
+    "maintenance": "Maintenance",
+    "outOfOrder": "Out of Order"
+  },
+  "selection": {
+    "cancel": "Cancel",
+    "select": "Select",
+    "selectAll": "Select All",
+    "selected": "Selected {{count}}/{{total}}"
+  },
+  "itemStatus": {
+    "notSetup": "Items not set up",
+    "missing": "Missing {{missing}}/{{total}}",
+    "complete": "Complete",
+    "inLaundry": "{{count}} in laundry"
+  },
+  "checkSession": {
+    "checking": "{{name}} is checking {{type}}",
+    "check": "Check",
+    "continueCheck": "Continue Check",
+    "inProgress": "In Progress"
+  },
+  "price": {
+    "basePrice": "Base Price",
+    "perNight": "/night"
+  },
+  "actions": {
+    "viewDetail": "View Details",
+    "backToList": "Back to list"
   },
   "detail": {
+    "title": "Room {{number}}",
+    "description": "{{type}} - Floor {{floor}}",
     "roomInfo": "Room Information",
-    "roomItems": "Room Items",
-    "checkHistory": "Check History",
-    "quickActions": "Quick Actions",
     "checkRoom": "Check Room",
     "editInfo": "Edit Info",
-    "applyStandards": "Apply Standards",
-    "syncStandards": "Sync Standards",
-    "printItems": "Print Items List",
+    "notFound": "Room not found",
+    "backToList": "Back to list",
+    "roomNumber": "Room Number",
+    "roomType": "Room Type",
+    "floor": "Floor",
+    "floorNumber": "Floor {{number}}",
+    "area": "Area",
+    "bedType": "Bed Type",
+    "maxGuests": "Capacity",
+    "guestCount": "{{count}} guests",
+    "view": "View",
+    "basePrice": "Base Price",
+    "pricePerNight": "{{price}}/night",
+    "amenities": "Amenities",
+    "notes": "Notes",
+    "recentPhotos": "Recent Check Photos",
+    "checkedBy": "Checked by: {{name}}",
+    "viewFull": "View full",
+    "andMorePhotos": "+{{count}} more photos",
     "totalItems": "Total Items",
     "complete": "Complete",
     "missing": "Missing",
-    "types": "types",
-    "pieces": "pieces",
-    "notFound": "Room not found",
-    "backToList": "Back to list",
-    "noItems": "No items in room",
-    "noItemsDesc": "This room has no items yet. Click \"Apply Standards\" in \"Quick Actions\" to automatically add items based on the room type standard.",
-    "recentPhotos": "Recent Check Photos",
-    "checkedBy": "Checked by",
-    "viewFull": "View full",
-    "andMore": "And {{count}} more photos"
+    "missingCount": "({{count}} items)",
+    "noItems": "No items",
+    "noItemsHint": "Click the sync button at the top to add items based on {{type}} room standards.",
+    "applyStandards": "Apply Standards",
+    "syncStandards": "Sync Standards",
+    "printItemList": "Print List",
+    "na": "N/A"
+  },
+  "tabs": {
+    "info": "Info",
+    "items": "Items",
+    "history": "History"
   },
   "checkTypes": {
     "daily": "Daily",
     "checkin": "Check-in",
     "checkout": "Check-out",
     "maintenance": "Maintenance"
+  },
+  "print": {
+    "itemListTitle": "Item List - Room {{roomNumber}}",
+    "columns": {
+      "index": "#",
+      "itemName": "Item Name",
+      "required": "Required",
+      "current": "Current",
+      "missing": "Missing",
+      "status": "Status"
+    },
+    "statusMissing": "Missing",
+    "statusComplete": "Complete",
+    "printDate": "Printed on: {{date}}"
   }
 }

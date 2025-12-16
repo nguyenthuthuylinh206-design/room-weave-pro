@@ -1,12 +1,14 @@
 {
   "title": "Quản lý Bảo trì",
+  "pageTitle": "Yêu cầu bảo trì",
   "dashboard": "Quản lý yêu cầu bảo trì",
   "requests": {
     "title": "Yêu cầu bảo trì",
     "list": "Danh sách yêu cầu",
     "new": "Tạo yêu cầu mới",
     "detail": "Chi tiết yêu cầu",
-    "edit": "Chỉnh sửa yêu cầu"
+    "edit": "Chỉnh sửa yêu cầu",
+    "create": "Tạo yêu cầu bảo trì"
   },
   "recurring": {
     "title": "Vấn đề lặp lại",
@@ -72,7 +74,8 @@
     "estimatedCost": "Chi phí ước tính",
     "actualCost": "Chi phí thực tế",
     "notes": "Ghi chú",
-    "type": "Loại"
+    "type": "Loại",
+    "createdAt": "Ngày tạo"
   },
   "priority": {
     "low": "Thấp",
@@ -83,7 +86,8 @@
   "status": {
     "pending": "Chờ xử lý",
     "assigned": "Đã phân công",
-    "inProgress": "Đang thực hiện",
+    "in_progress": "Đang xử lý",
+    "inProgress": "Đang xử lý",
     "completed": "Hoàn thành",
     "cancelled": "Đã hủy"
   },
@@ -103,7 +107,9 @@
     "assignSuccess": "Đã phân công thành công",
     "completeSuccess": "Hoàn thành yêu cầu",
     "cancelSuccess": "Đã hủy yêu cầu",
-    "noRequests": "Chưa có yêu cầu nào"
+    "noRequests": "Chưa có yêu cầu nào",
+    "notFoundSearch": "Không tìm thấy yêu cầu",
+    "refreshed": "Đã cập nhật!"
   },
   "filters": {
     "all": "Tất cả",
