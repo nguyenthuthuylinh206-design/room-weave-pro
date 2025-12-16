@@ -31,13 +31,15 @@
     "processing": "Processing",
     "ready": "Ready",
     "received": "Received",
-    "completed": "Completed"
+    "completed": "Completed",
+    "cancelled": "Cancelled"
   },
   "actions": {
     "send": "Send to Laundry",
     "receive": "Receive Items",
     "complete": "Complete",
-    "cancel": "Cancel Batch"
+    "cancel": "Cancel Batch",
+    "exportExcel": "Export Excel"
   },
   "messages": {
     "createSuccess": "Batch created successfully",
@@ -53,6 +55,17 @@
     "byStatus": "By Status",
     "byVendor": "By Vendor",
     "byDate": "By Date",
-    "search": "Search batches..."
+    "search": "Search batches...",
+    "searchPlaceholder": "Batch code...",
+    "showFilters": "Show Filters",
+    "hideFilters": "Hide Filters"
+  },
+  "stats": {
+    "totalBatches": "Total Batches",
+    "totalBatchesDesc": "Total laundry batches",
+    "inProgress": "In Progress",
+    "inProgressDesc": "Currently processing",
+    "completedThisMonth": "Completed This Month",
+    "completedThisMonthDesc": "Received back"
   }
 }

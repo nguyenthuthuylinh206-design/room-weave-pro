@@ -1,32 +1,46 @@
 {
   "title": "Room Management",
+  "description": "Manage rooms and room amenities",
   "list": "Room List",
   "addNew": "Add New Room",
   "editRoom": "Edit Room",
   "viewRoom": "Room Details",
-  "deleteRoom": "Delete Room",
-  "standards": "Room Standards",
-  "floorPlan": "Floor Plan",
+  "roomItems": "Room Items",
+  "viewModes": {
+    "grid": "Grid",
+    "list": "List",
+    "floorPlan": "Floor Plan"
+  },
+  "actions": {
+    "addRoom": "Add Room",
+    "bulkImport": "Bulk Import",
+    "edit": "Edit",
+    "delete": "Delete",
+    "viewDetails": "View Details",
+    "checkout": "Checkout",
+    "assignItems": "Assign Items"
+  },
   "fields": {
     "roomNumber": "Room Number",
-    "floor": "Floor",
     "roomType": "Room Type",
+    "floor": "Floor",
     "status": "Status",
+    "area": "Area",
     "maxGuests": "Max Guests",
     "bedType": "Bed Type",
-    "area": "Area",
     "pricePerNight": "Price/Night",
+    "description": "Description",
     "amenities": "Amenities",
     "notes": "Notes"
   },
   "status": {
     "vacant": "Vacant",
     "occupied": "Occupied",
-    "checkIn": "Check-in",
-    "checkOut": "Check-out",
+    "check_in": "Checking In",
+    "check_out": "Checking Out",
     "cleaning": "Cleaning",
     "maintenance": "Maintenance",
-    "outOfOrder": "Out of Order"
+    "out_of_order": "Out of Order"
   },
   "roomType": {
     "standard": "Standard",
@@ -35,34 +49,22 @@
     "suite": "Suite",
     "vip": "VIP"
   },
-  "actions": {
-    "changeStatus": "Change Status",
-    "checkout": "Check-out",
-    "viewItems": "View Room Items",
-    "bulkEdit": "Bulk Edit",
-    "bulkDelete": "Bulk Delete"
-  },
   "messages": {
     "createSuccess": "Room created successfully",
     "updateSuccess": "Room updated successfully",
     "deleteSuccess": "Room deleted successfully",
-    "deleteConfirm": "Are you sure you want to delete this room?",
-    "statusChanged": "Room status updated",
     "noRooms": "No rooms found"
   },
   "filters": {
     "all": "All",
+    "byStatus": "By Status",
     "byFloor": "By Floor",
     "byType": "By Type",
-    "byStatus": "By Status",
     "search": "Search rooms..."
   },
-  "checkout": {
-    "title": "Room Check-out",
-    "linens": "Linens",
-    "consumables": "Consumables",
-    "equipment": "Equipment",
-    "furniture": "Furniture",
-    "summary": "Summary"
+  "floorPlan": {
+    "title": "Floor Plan",
+    "floor": "Floor",
+    "noRooms": "No rooms on this floor"
   }
 }

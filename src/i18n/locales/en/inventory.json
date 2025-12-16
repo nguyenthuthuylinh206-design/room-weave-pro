@@ -1,6 +1,6 @@
 {
   "title": "Inventory Management",
-  "dashboard": "Inventory Dashboard",
+  "dashboard": "Track and manage inventory, inbound/outbound",
   "transactions": "Inventory Transactions",
   "inbound": {
     "title": "Inbound",
@@ -67,5 +67,23 @@
     "byDate": "By Date",
     "byItem": "By Item",
     "search": "Search transactions..."
+  },
+  "stats": {
+    "totalStockValue": "Total Stock Value",
+    "totalItems": "Total Items",
+    "productTypes": "product types",
+    "lowStockAlert": "Low Stock Alert",
+    "checkNow": "Check now",
+    "stockStable": "Stock stable",
+    "reorderNeeded": "Reorder Needed",
+    "itemsBelowReorder": "Items below reorder point",
+    "todayTransactions": "Today's Transactions",
+    "inboundValueThisMonth": "Inbound Value This Month",
+    "vsLastMonth": "vs last month"
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "viewTransactions": "View Transactions",
+    "manageItems": "Manage Items"
   }
 }
