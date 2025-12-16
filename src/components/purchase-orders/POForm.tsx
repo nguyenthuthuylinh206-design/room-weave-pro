@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useVendors } from '@/hooks/useVendors';
 import { useItems } from '@/hooks/useItems';
 import { useCreatePO } from '@/hooks/usePurchaseOrders';
@@ -96,6 +97,8 @@ const POForm: React.FC = () => {
   const preselectedVendorId = searchParams.get('vendor');
   const { user, tenantId } = useUser();
   const { selectedHotel, isAllHotelsMode } = useHotelContext();
+  const { t } = useTranslation('purchaseOrders');
+  const { t: tCommon } = useTranslation('common');
 
   const [step, setStep] = useState(1);
   const [selectedVendor, setSelectedVendor] = useState<any>(null);
@@ -165,7 +168,7 @@ const POForm: React.FC = () => {
         notes: ''
       }]);
     }
-    toast.success(`Đã thêm ${item.name} vào giỏ`);
+    toast.success(t('cart.addedToCart', { name: item.name }));
   };
 
   const handleRemoveFromCart = (itemId: string) => {
@@ -187,24 +190,24 @@ const POForm: React.FC = () => {
 
   const onSubmit = async (data: POFormData) => {
     if (cart.length === 0) {
-      toast.error('Vui lòng thêm ít nhất 1 sản phẩm');
+      toast.error(t('messages.selectProductsRequired'));
       return;
     }
 
     // Prevent creation when in All Hotels mode
     if (isAllHotelsMode) {
-      toast.error('Vui lòng chọn một khách sạn cụ thể trước khi tạo đơn hàng');
+      toast.error(t('messages.allHotelsMode'));
       return;
     }
 
     // Check if hotel is selected
     if (!selectedHotel?.id) {
-      toast.error('Vui lòng chọn khách sạn trước khi tạo đơn hàng');
+      toast.error(t('messages.selectHotelRequired'));
       return;
     }
 
     if (!tenantId) {
-      toast.error('Thiếu thông tin tenant');
+      toast.error(tCommon('errors.missingTenant'));
       return;
     }
 
@@ -226,10 +229,10 @@ const POForm: React.FC = () => {
       };
 
       const result = await createPO.mutateAsync(poData as any);
-      toast.success('Tạo đơn hàng thành công');
+      toast.success(t('messages.createSuccess'));
       navigate(`/purchase-orders/${result.id}`);
     } catch (error) {
-      toast.error('Có lỗi xảy ra khi tạo đơn hàng');
+      toast.error(t('messages.createError'));
     }
   };
 
@@ -238,13 +241,13 @@ const POForm: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Tạo đơn đặt hàng mới</h1>
+          <h1 className="text-3xl font-bold">{t('form.create')}</h1>
           <p className="text-muted-foreground mt-1">
-            Bước {step}/4: {
-              step === 1 ? 'Chọn nhà cung cấp' :
-              step === 2 ? 'Chọn sản phẩm' :
-              step === 3 ? 'Chi tiết đơn hàng' :
-              'Xem lại & Gửi'
+            {t('form.step', { current: step, total: 4 })}: {
+              step === 1 ? t('form.steps.selectVendor') :
+              step === 2 ? t('form.steps.selectProducts') :
+              step === 3 ? t('form.steps.orderDetails') :
+              t('form.steps.reviewSubmit')
             }
           </p>
         </div>
@@ -264,7 +267,7 @@ const POForm: React.FC = () => {
                 {s < step ? '✓' : s}
               </div>
               <span className="text-sm font-medium">
-                {s === 1 ? 'NCC' : s === 2 ? 'Sản phẩm' : s === 3 ? 'Chi tiết' : 'Xác nhận'}
+                {s === 1 ? t('form.steps.vendor') : s === 2 ? t('form.steps.products') : s === 3 ? t('form.steps.details') : t('form.steps.confirm')}
               </span>
             </div>
             {s < 4 && <div className="flex-1 h-0.5 bg-muted" />}

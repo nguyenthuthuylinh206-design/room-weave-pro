@@ -57,6 +57,9 @@
     "errorOccurred": "An error occurred",
     "tryAgainLater": "Please try again later"
   },
+  "errors": {
+    "missingTenant": "Missing tenant information"
+  },
   "validation": {
     "required": "This field is required",
     "invalidEmail": "Invalid email address",
