@@ -1,4 +1,80 @@
 {
+  "vendorDetail": {
+    "back": "Back",
+    "editInfo": "Edit Info",
+    "notFound": "Laundry vendor not found",
+    "backToList": "Back to list",
+    "tabs": {
+      "info": "General Info",
+      "history": "Order History",
+      "performance": "Performance",
+      "documents": "Documents"
+    },
+    "type": {
+      "external": "External",
+      "internal": "Internal"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "contact": {
+      "title": "Contact Information",
+      "address": "Address",
+      "phone": "Phone",
+      "email": "Email",
+      "website": "Website",
+      "contactPerson": "Contact Person",
+      "call": "Call",
+      "sendEmail": "Send Email"
+    },
+    "contract": {
+      "title": "Contract Information",
+      "pricePerKg": "Price/kg",
+      "minOrder": "Min Order",
+      "minOrderKg": "{{value}} kg",
+      "paymentTerms": "Payment Terms",
+      "deliveryTime": "Delivery Time",
+      "contractFrom": "Contract From",
+      "contractTo": "Contract To",
+      "notes": "Notes"
+    },
+    "stats": {
+      "totalOrders": "Total Orders",
+      "totalCost": "Total Cost",
+      "avgRating": "Avg Rating",
+      "onTimeRate": "On-time Rate",
+      "last30Days": "Last 30 days",
+      "qualityRating": "Laundry Quality",
+      "onTimeDelivery": "On-time Delivery"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "createBatch": "Create New Batch",
+      "editInfo": "Edit Info",
+      "viewContract": "View Contract"
+    }
+  },
+  "batchHistory": {
+    "title": "Order History",
+    "status": "Status",
+    "all": "All",
+    "delivered": "Delivered",
+    "washing": "Washing",
+    "ready": "Ready",
+    "received": "Received",
+    "exportExcel": "Export Excel",
+    "columns": {
+      "batchCode": "Batch Code",
+      "deliveryDate": "Delivery Date",
+      "returnDate": "Return Date",
+      "items": "Items",
+      "cost": "Cost",
+      "rating": "Rating",
+      "status": "Status"
+    },
+    "noOrders": "No orders yet"
+  },
   "title": "Laundry Management",
   "description": "Track laundry batches, manage laundry service vendors",
   "batches": "Batches",
