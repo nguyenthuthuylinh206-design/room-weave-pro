@@ -10,9 +10,11 @@ import { BulkActionsBar } from '@/components/items/BulkActionsBar'
 import { MobileItemsPage } from '@/components/items/MobileItemsPage'
 import { useItems } from '@/hooks/useItems'
 import { useBreakpoint } from '@/lib/breakpoints'
+import { useTranslation } from 'react-i18next'
 import type { ItemFilters as IItemFilters } from '@/types/items.types'
 
 export function ItemsPage() {
+  const { t } = useTranslation('items')
   const navigate = useNavigate()
   const { isMobile } = useBreakpoint()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -62,10 +64,10 @@ export function ItemsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Quản lý Tài sản"
-        description="Quản lý tất cả tài sản và đồ dùng trong khách sạn"
+        title={t('title')}
+        description={t('description', 'Quản lý tất cả tài sản và đồ dùng trong khách sạn')}
         action={{
-          label: 'Thêm tài sản mới',
+          label: t('addNew'),
           icon: Plus,
           onClick: () => navigate('/items/new'),
         }}
