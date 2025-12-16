@@ -13,13 +13,15 @@
   "backToList": "Back to List",
   "edit": "Edit",
   "notFound": "Asset not found",
+  "loading": "Loading...",
   "fields": {
     "name": "Asset Name",
     "nameEn": "English Name",
     "code": "Asset Code",
     "category": "Category",
+    "itemType": "Item Type",
     "unit": "Unit",
-    "unitPrice": "Unit Price",
+    "unitPrice": "Unit Price (₫)",
     "quantity": "Quantity",
     "quantityTotal": "Total",
     "quantityInStock": "In Stock",
@@ -50,6 +52,12 @@
     "equipment": "Equipment",
     "furniture": "Furniture"
   },
+  "itemTypeDescription": {
+    "linen": "Towels, sheets, pillows - need washing and replacement",
+    "consumable": "Toothbrush, toothpaste, drinks - single use",
+    "equipment": "Kettle, TV, remote - check for loss/damage",
+    "furniture": "Table, chair, cabinet - check condition"
+  },
   "actions": {
     "import": "Import Excel",
     "export": "Export Excel",
@@ -61,7 +69,8 @@
     "deleteSuccess": "Asset deleted successfully",
     "deleteConfirm": "Are you sure you want to delete this asset?",
     "importSuccess": "Data imported successfully",
-    "noItems": "No assets found"
+    "noItems": "No assets found",
+    "saveError": "Error saving asset"
   },
   "filters": {
     "all": "All",
@@ -75,20 +84,44 @@
       "details": "Details",
       "images": "Images"
     },
+    "sections": {
+      "basicInfo": "Basic Information",
+      "productInfo": "Product Information",
+      "images": "Product Images"
+    },
+    "subtitle": {
+      "edit": "Update asset information",
+      "create": "Enter new asset information"
+    },
     "codePlaceholder": "E.g: FAB-001",
     "namePlaceholder": "E.g: White Bath Towel",
     "nameEnPlaceholder": "E.g: Bath Towel White",
-    "selectCategory": "Select category",
+    "selectCategory": "Select category...",
+    "selectItemType": "Select item type...",
     "descriptionPlaceholder": "Detailed description of the asset",
-    "addImage": "Add image"
+    "addImage": "Add image",
+    "imageHint": "Images will be uploaded to Storage. Max 10 images, each up to 5MB.",
+    "buttons": {
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "update": "Update",
+      "create": "Create"
+    }
+  },
+  "alerts": {
+    "allHotelsMode": "You are viewing all hotels. Please select a specific hotel to create a new product.",
+    "noHotelSelected": "No hotel selected. Please select a hotel from the top menu.",
+    "selectHotelToCreate": "Please select a specific hotel before creating a product",
+    "selectHotelFirst": "Please select a hotel before creating a product"
   },
   "validation": {
-    "codeRequired": "Code is required",
-    "nameRequired": "Name is required",
-    "categoryRequired": "Category is required",
+    "codeRequired": "Asset code is required",
+    "nameRequired": "Asset name is required",
+    "categoryRequired": "Please select a category",
     "unitRequired": "Unit is required",
     "priceMin": "Unit price must be >= 0",
-    "stockMin": "Minimum stock must be >= 0"
+    "stockMin": "Minimum stock must be >= 0",
+    "reorderMin": "Reorder point must be >= 0"
   },
   "units": {
     "piece": "Piece",
