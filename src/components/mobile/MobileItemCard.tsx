@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Edit, Eye, MoreVertical, Trash2, Package, MapPin, Tag } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -35,13 +36,15 @@ interface MobileItemCardProps {
   onDelete?: () => void
 }
 
-const stockStatusConfig = {
-  in_stock: { label: 'Còn hàng', variant: 'default' as const, className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
-  low_stock: { label: 'Sắp hết', variant: 'warning' as const, className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
-  out_of_stock: { label: 'Hết hàng', variant: 'destructive' as const, className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
-}
-
 export function MobileItemCard({ item, onView, onEdit, onDelete }: MobileItemCardProps) {
+  const { t } = useTranslation(['items', 'common'])
+
+  const stockStatusConfig = {
+    in_stock: { label: t('items:status.inStock'), className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
+    low_stock: { label: t('items:status.lowStock'), className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
+    out_of_stock: { label: t('items:status.outOfStock'), className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+  }
+
   const quantity = item.quantity_in_stock ?? item.quantity_total ?? item.quantity ?? 0
   const stockStatus = item.stock_status || (quantity < 10 ? 'low_stock' : 'in_stock')
   const statusConfig = stockStatusConfig[stockStatus]
@@ -86,19 +89,19 @@ export function MobileItemCard({ item, onView, onEdit, onDelete }: MobileItemCar
                   {onView && (
                     <DropdownMenuItem onClick={onView}>
                       <Eye className="h-4 w-4 mr-2" />
-                      Xem chi tiết
+                      {t('common:viewDetails')}
                     </DropdownMenuItem>
                   )}
                   {onEdit && (
                     <DropdownMenuItem onClick={onEdit}>
                       <Edit className="h-4 w-4 mr-2" />
-                      Chỉnh sửa
+                      {t('common:edit')}
                     </DropdownMenuItem>
                   )}
                   {onDelete && (
                     <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
                       <Trash2 className="h-4 w-4 mr-2" />
-                      Xóa
+                      {t('common:delete')}
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
@@ -134,7 +137,7 @@ export function MobileItemCard({ item, onView, onEdit, onDelete }: MobileItemCar
                   stockStatus === 'out_of_stock' && "text-destructive",
                   stockStatus === 'low_stock' && "text-amber-600 dark:text-amber-400"
                 )}>
-                  {quantity} {item.unit || 'cái'}
+                  {quantity} {item.unit || t('items:units.piece')}
                 </span>
               </div>
               {item.location && (
@@ -157,7 +160,7 @@ export function MobileItemCard({ item, onView, onEdit, onDelete }: MobileItemCar
               onClick={onView}
             >
               <Eye className="h-3.5 w-3.5" />
-              Chi tiết
+              {t('common:details')}
             </TouchButton>
           )}
           {onEdit && (
@@ -168,7 +171,7 @@ export function MobileItemCard({ item, onView, onEdit, onDelete }: MobileItemCar
               onClick={onEdit}
             >
               <Edit className="h-3.5 w-3.5" />
-              Sửa
+              {t('common:edit')}
             </TouchButton>
           )}
         </div>
