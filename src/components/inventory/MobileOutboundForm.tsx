@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { 
   ArrowLeft, 
   DoorOpen, 
@@ -23,7 +24,6 @@ import {
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Button } from '@/components/ui/button'
 import { TouchButton } from '@/components/mobile/TouchOptimized'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -42,38 +42,25 @@ import { triggerHaptic } from '@/lib/haptics'
 
 const DRAFT_KEY = 'outbound_form_draft'
 
-const outboundSchema = z.object({
+const createOutboundSchema = (t: (key: string) => string) => z.object({
   transaction_category: z.enum(['room_assign', 'laundry', 'maintenance', 'disposal', 'other']),
-  from_location: z.string().min(1, 'Vui lòng nhập vị trí'),
-  to_location: z.string().min(1, 'Vui lòng nhập vị trí'),
+  from_location: z.string().min(1, t('inventory:mobileForm.validation.fromLocationRequired')),
+  to_location: z.string().min(1, t('inventory:mobileForm.validation.toLocationRequired')),
   items: z.array(z.object({
-    item_id: z.string().uuid('Vui lòng chọn đồ dùng'),
-    quantity: z.number().min(1, 'Số lượng phải > 0'),
+    item_id: z.string().uuid(t('inventory:mobileForm.validation.itemRequired')),
+    quantity: z.number().min(1, t('inventory:mobileForm.validation.quantityMin')),
     available_quantity: z.number(),
     notes: z.string().optional(),
-  })).min(1, 'Phải có ít nhất 1 đồ dùng'),
+  })).min(1, t('inventory:mobileForm.validation.minOneItem')),
   recipient_name: z.string().optional(),
   photos: z.array(z.string()).optional(),
   notes: z.string().optional(),
 })
 
-type OutboundFormData = z.infer<typeof outboundSchema>
-
-const categories = [
-  { value: 'room_assign', label: 'Phòng', icon: DoorOpen, description: 'Giao cho phòng' },
-  { value: 'laundry', label: 'Giặt là', icon: Shirt, description: 'Gửi giặt' },
-  { value: 'maintenance', label: 'Bảo trì', icon: Wrench, description: 'Sửa chữa' },
-  { value: 'disposal', label: 'Thanh lý', icon: Trash2, description: 'Hủy bỏ' },
-  { value: 'other', label: 'Khác', icon: PackageMinus, description: 'Lý do khác' },
-]
-
-const steps = [
-  { icon: Tag, label: 'Loại & Địa điểm' },
-  { icon: Package, label: 'Đồ dùng' },
-  { icon: CheckCircle, label: 'Xác nhận' }
-]
+type OutboundFormData = z.infer<ReturnType<typeof createOutboundSchema>>
 
 export function MobileOutboundForm() {
+  const { t } = useTranslation(['inventory', 'common'])
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
@@ -82,15 +69,31 @@ export function MobileOutboundForm() {
   const [shake, setShake] = useState(false)
   const [draftLoaded, setDraftLoaded] = useState(false)
   const totalSteps = 3
+
+  const categories = [
+    { value: 'room_assign', label: t('inventory:outbound.categories.room_assign'), icon: DoorOpen, description: t('inventory:outbound.categories.room_assignDesc') },
+    { value: 'laundry', label: t('inventory:outbound.categories.laundry'), icon: Shirt, description: t('inventory:outbound.categories.laundryDesc') },
+    { value: 'maintenance', label: t('inventory:outbound.categories.maintenance'), icon: Wrench, description: t('inventory:outbound.categories.maintenanceDesc') },
+    { value: 'disposal', label: t('inventory:outbound.categories.disposal'), icon: Trash2, description: t('inventory:outbound.categories.disposalDesc') },
+    { value: 'other', label: t('inventory:outbound.categories.other'), icon: PackageMinus, description: t('inventory:outbound.categories.otherDesc') },
+  ]
+
+  const steps = [
+    { icon: Tag, label: t('inventory:mobileForm.steps.categoryLocation') },
+    { icon: Package, label: t('inventory:mobileForm.steps.items') },
+    { icon: CheckCircle, label: t('inventory:mobileForm.steps.confirm') }
+  ]
   
   const { mutate: createOutbound, isPending: isLoading } = useCreateOutboundTransaction()
   const { data: itemsData, isLoading: isLoadingItems } = useItems({ search: searchQuery }, 1, 50)
   
+  const outboundSchema = createOutboundSchema(t)
+
   const form = useForm<OutboundFormData>({
     resolver: zodResolver(outboundSchema),
     defaultValues: {
       transaction_category: 'room_assign',
-      from_location: 'Kho tầng 1',
+      from_location: t('inventory:mobileForm.outbound.fromPlaceholder'),
       to_location: '',
       items: [],
       recipient_name: '',
@@ -124,14 +127,14 @@ export function MobileOutboundForm() {
         const data = JSON.parse(draft)
         form.reset(data)
         setDraftLoaded(true)
-        toast.info('Đã khôi phục bản nháp', {
+        toast.info(t('inventory:mobileForm.draftRestored'), {
           action: {
-            label: 'Xóa nháp',
+            label: t('inventory:mobileForm.clearDraft'),
             onClick: () => {
               localStorage.removeItem(DRAFT_KEY)
               form.reset({
                 transaction_category: 'room_assign',
-                from_location: 'Kho tầng 1',
+                from_location: t('inventory:mobileForm.outbound.fromPlaceholder'),
                 to_location: '',
                 items: [],
                 recipient_name: '',
@@ -162,21 +165,21 @@ export function MobileOutboundForm() {
   const validateStep = useCallback((stepNumber: number) => {
     if (stepNumber === 1) {
       const errors: Record<string, string | null> = {}
-      if (!from_location?.trim()) errors.from_location = 'Vui lòng nhập vị trí nguồn'
-      if (!to_location?.trim()) errors.to_location = 'Vui lòng nhập vị trí đích'
+      if (!from_location?.trim()) errors.from_location = t('inventory:mobileForm.validation.fromLocationRequired')
+      if (!to_location?.trim()) errors.to_location = t('inventory:mobileForm.validation.toLocationRequired')
       return { isValid: !errors.from_location && !errors.to_location, errors }
     }
     if (stepNumber === 2) {
       if (hasStockError) {
-        return { isValid: false, errors: { items: 'Số lượng xuất vượt quá tồn kho' } }
+        return { isValid: false, errors: { items: t('inventory:mobileForm.validation.exceededStock') } }
       }
       return { 
         isValid: items.length > 0 && items.every(item => item.item_id && item.quantity > 0 && item.quantity <= item.available_quantity), 
-        errors: items.length === 0 ? { items: 'Vui lòng thêm ít nhất 1 đồ dùng' } : {} 
+        errors: items.length === 0 ? { items: t('inventory:mobileForm.validation.addAtLeastOneItem') } : {} 
       }
     }
     return { isValid: true, errors: {} }
-  }, [from_location, to_location, items, hasStockError])
+  }, [from_location, to_location, items, hasStockError, t])
   
   const canProceedStep1 = Boolean(category && from_location?.trim() && to_location?.trim())
   const canProceedStep2 = items.length > 0 && 
@@ -213,7 +216,7 @@ export function MobileOutboundForm() {
   const handleSaveDraft = () => {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(form.getValues()))
     triggerHaptic('success')
-    toast.success('Đã lưu nháp')
+    toast.success(t('inventory:mobileForm.draftSaved'))
     navigate('/inventory/transactions')
   }
   
@@ -224,7 +227,7 @@ export function MobileOutboundForm() {
   
   const handleSubmit = form.handleSubmit((data) => {
     if (hasStockError) {
-      toast.error('Số lượng xuất vượt quá tồn kho')
+      toast.error(t('inventory:mobileForm.validation.exceededStock'))
       return
     }
     
@@ -232,22 +235,21 @@ export function MobileOutboundForm() {
       onSuccess: () => {
         localStorage.removeItem(DRAFT_KEY)
         triggerHaptic('success')
-        toast.success('Xuất kho thành công')
+        toast.success(t('inventory:mobileForm.outbound.successMessage'))
         navigate('/inventory/transactions')
       },
     })
   }, (errors) => {
-    console.log('Form validation errors:', errors)
     const firstError = Object.values(errors).flat().find(e => e?.message)
     if (firstError) {
-      toast.error((firstError as any).message || 'Vui lòng kiểm tra lại thông tin')
+      toast.error((firstError as any).message || t('inventory:mobileForm.validation.checkInfo'))
     }
   })
   
-  const addItem = (itemId: string, itemName: string, itemCode: string, availableQty: number) => {
+  const addItem = (itemId: string, availableQty: number) => {
     const existing = items.find(i => i.item_id === itemId)
     if (existing) {
-      toast.info('Đồ dùng đã có trong danh sách')
+      toast.info(t('inventory:mobileForm.itemAlreadyAdded'))
       return
     }
     
@@ -289,7 +291,7 @@ export function MobileOutboundForm() {
             </TouchButton>
             <TouchButton variant="ghost" onClick={handleSaveDraft} disabled={isLoading}>
               <Save className="h-4 w-4 mr-1" />
-              Lưu nháp
+              {t('inventory:mobileForm.saveDraft')}
             </TouchButton>
           </div>
           
@@ -342,8 +344,8 @@ export function MobileOutboundForm() {
             className={cn("p-4 space-y-6", shake && "animate-shake")}
           >
             <div>
-              <h2 className="text-lg font-semibold mb-1">Loại xuất kho</h2>
-              <p className="text-sm text-muted-foreground mb-4">Chọn loại xuất kho phù hợp</p>
+              <h2 className="text-lg font-semibold mb-1">{t('inventory:mobileForm.outbound.categoryTitle')}</h2>
+              <p className="text-sm text-muted-foreground mb-4">{t('inventory:mobileForm.outbound.categoryDescription')}</p>
               
               <div className="grid grid-cols-2 gap-3">
                 {categories.map((cat) => {
@@ -371,14 +373,14 @@ export function MobileOutboundForm() {
             </div>
             
             <div className="space-y-3">
-              <h2 className="text-lg font-semibold">Địa điểm</h2>
+              <h2 className="text-lg font-semibold">{t('inventory:mobileForm.outbound.locationTitle')}</h2>
               
               <div className="space-y-3">
                 <div>
-                  <Label htmlFor="from_location">Từ đâu *</Label>
+                  <Label htmlFor="from_location">{t('inventory:mobileForm.outbound.fromLocation')} *</Label>
                   <Input 
                     id="from_location"
-                    placeholder="Kho tầng 1"
+                    placeholder={t('inventory:mobileForm.outbound.fromPlaceholder')}
                     className={cn(
                       "min-h-[48px] mt-1",
                       form.formState.errors.from_location && "border-destructive"
@@ -394,10 +396,10 @@ export function MobileOutboundForm() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="to_location">Đến đâu *</Label>
+                  <Label htmlFor="to_location">{t('inventory:mobileForm.outbound.toLocation')} *</Label>
                   <Input 
                     id="to_location"
-                    placeholder="Phòng 101, giặt là..."
+                    placeholder={t('inventory:mobileForm.outbound.toPlaceholder')}
                     className={cn(
                       "min-h-[48px] mt-1",
                       form.formState.errors.to_location && "border-destructive"
@@ -430,7 +432,7 @@ export function MobileOutboundForm() {
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    Số lượng xuất vượt quá tồn kho. Vui lòng kiểm tra lại.
+                    {t('inventory:mobileForm.outbound.stockError')}
                   </AlertDescription>
                 </Alert>
               </div>
@@ -442,7 +444,7 @@ export function MobileOutboundForm() {
                 <Alert>
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    Có {lowStockWarnings.length} item sắp hết hàng sau khi xuất
+                    {t('inventory:mobileForm.outbound.lowStockWarning', { count: lowStockWarnings.length })}
                   </AlertDescription>
                 </Alert>
               </div>
@@ -458,23 +460,23 @@ export function MobileOutboundForm() {
                 <div className="w-20 h-20 rounded-full bg-muted mx-auto flex items-center justify-center mb-4">
                   <Package className="h-10 w-10 text-muted-foreground" />
                 </div>
-                <h3 className="font-semibold text-lg mb-2">Chưa có đồ dùng</h3>
+                <h3 className="font-semibold text-lg mb-2">{t('inventory:mobileForm.noItems')}</h3>
                 <p className="text-muted-foreground mb-6">
-                  Thêm đồ dùng cần xuất kho vào danh sách
+                  {t('inventory:mobileForm.outbound.noItemsDescription')}
                 </p>
                 <TouchButton 
                   onClick={() => setShowItemSelector(true)}
                   className="h-12 px-6"
                 >
                   <Plus className="mr-2 h-5 w-5" />
-                  Thêm đồ dùng
+                  {t('inventory:mobileForm.addItem')}
                 </TouchButton>
               </motion.div>
             ) : (
               <>
                 {/* Selected Items */}
                 <div className="px-4 space-y-2">
-                  <h3 className="font-semibold">Đã chọn ({fields.length})</h3>
+                  <h3 className="font-semibold">{t('inventory:mobileForm.selected')} ({fields.length})</h3>
                 {fields.map((field, index) => {
                     const item = itemsData?.items.find(i => i.id === field.item_id)
                     const primaryImage = item?.item_images?.[0]?.url
@@ -499,10 +501,10 @@ export function MobileOutboundForm() {
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium leading-tight">{item?.name || 'Đồ dùng'}</p>
+                            <p className="font-medium leading-tight">{item?.name || t('inventory:mobileForm.itemDefault')}</p>
                             <p className="text-sm text-muted-foreground">{item?.code}</p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              Tồn: <span className={hasError ? 'text-destructive font-semibold' : ''}>
+                              {t('inventory:mobileForm.stock')}: <span className={hasError ? 'text-destructive font-semibold' : ''}>
                                 {availableQty} {item?.unit}
                               </span>
                             </p>
@@ -519,7 +521,7 @@ export function MobileOutboundForm() {
                         
                         {/* Quantity Row with +/- buttons */}
                         <div className="flex items-center justify-between gap-3">
-                          <Label className="text-sm text-muted-foreground shrink-0">Số lượng:</Label>
+                          <Label className="text-sm text-muted-foreground shrink-0">{t('inventory:mobileForm.quantity')}:</Label>
                           <div className="flex items-center gap-2">
                             <TouchButton 
                               variant="outline" 
@@ -556,12 +558,12 @@ export function MobileOutboundForm() {
                         {hasError && (
                           <p className="text-xs text-destructive mt-2 flex items-center gap-1">
                             <AlertCircle className="h-3 w-3" />
-                            Vượt quá tồn kho ({availableQty})
+                            {t('inventory:mobileForm.outbound.exceededStock')} ({availableQty})
                           </p>
                         )}
                         {!hasError && isLowStock && (
                           <p className="text-xs text-yellow-600 mt-2">
-                            Còn lại sau xuất: {availableQty - currentQuantity}
+                            {t('inventory:mobileForm.outbound.remainingAfterExport')}: {availableQty - currentQuantity}
                           </p>
                         )}
                       </Card>
@@ -577,7 +579,7 @@ export function MobileOutboundForm() {
                     onClick={() => setShowItemSelector(true)}
                   >
                     <Plus className="mr-2 h-4 w-4" />
-                    Thêm đồ dùng
+                    {t('inventory:mobileForm.addItem')}
                   </TouchButton>
                 </div>
                 
@@ -586,7 +588,7 @@ export function MobileOutboundForm() {
                   <div className="px-4">
                     <Card className="p-4 bg-muted/50">
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Tổng SL xuất:</span>
+                        <span className="text-muted-foreground">{t('inventory:mobileForm.outbound.totalExportQuantity')}:</span>
                         <span className="font-medium text-lg">{totalQuantity}</span>
                       </div>
                     </Card>
@@ -606,21 +608,21 @@ export function MobileOutboundForm() {
             className="p-4 space-y-6"
           >
             <div>
-              <h2 className="text-lg font-semibold mb-4">Thông tin người nhận</h2>
+              <h2 className="text-lg font-semibold mb-4">{t('inventory:mobileForm.outbound.recipientInfo')}</h2>
               
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="recipient_name">Tên người nhận</Label>
+                  <Label htmlFor="recipient_name">{t('inventory:mobileForm.outbound.recipientName')}</Label>
                   <Input 
                     id="recipient_name"
-                    placeholder="Họ tên"
+                    placeholder={t('inventory:mobileForm.outbound.recipientPlaceholder')}
                     className="min-h-[48px] mt-2"
                     {...form.register('recipient_name')}
                   />
                 </div>
                 
                 <div>
-                  <Label>Chụp/Tải hình ảnh</Label>
+                  <Label>{t('inventory:mobileForm.uploadPhotos')}</Label>
                   <ImageUpload 
                     images={form.watch('photos') || []}
                     onChange={(urls) => form.setValue('photos', urls)}
@@ -630,10 +632,10 @@ export function MobileOutboundForm() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="notes">Ghi chú</Label>
+                  <Label htmlFor="notes">{t('inventory:mobileForm.notes')}</Label>
                   <Textarea 
                     id="notes"
-                    placeholder="Thêm ghi chú (tùy chọn)"
+                    placeholder={t('inventory:mobileForm.notesPlaceholder')}
                     rows={4}
                     className="resize-none mt-2"
                     {...form.register('notes')}
@@ -644,33 +646,33 @@ export function MobileOutboundForm() {
             
             {/* Review Summary */}
             <div className="space-y-3 p-4 bg-muted rounded-lg">
-              <h3 className="font-semibold">Xác nhận thông tin</h3>
+              <h3 className="font-semibold">{t('inventory:mobileForm.confirmInfo')}</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Loại:</span>
+                  <span className="text-muted-foreground">{t('inventory:mobileForm.type')}:</span>
                   <span className="font-medium">{selectedCategory?.label}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Từ:</span>
+                  <span className="text-muted-foreground">{t('inventory:mobileForm.from')}:</span>
                   <span className="font-medium">{form.watch('from_location')}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Đến:</span>
+                  <span className="text-muted-foreground">{t('inventory:mobileForm.to')}:</span>
                   <span className="font-medium">{form.watch('to_location')}</span>
                 </div>
                 {form.watch('recipient_name') && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Người nhận:</span>
+                    <span className="text-muted-foreground">{t('inventory:mobileForm.outbound.recipientName')}:</span>
                     <span className="font-medium">{form.watch('recipient_name')}</span>
                   </div>
                 )}
                 <div className="h-px bg-border my-2" />
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Số items:</span>
+                  <span className="text-muted-foreground">{t('inventory:mobileForm.outbound.itemCount')}:</span>
                   <span className="font-medium">{items.length}</span>
                 </div>
                 <div className="flex justify-between text-lg">
-                  <span className="font-semibold">Tổng SL xuất:</span>
+                  <span className="font-semibold">{t('inventory:mobileForm.outbound.totalExportQuantity')}:</span>
                   <span className="font-bold text-primary">{totalQuantity}</span>
                 </div>
               </div>
@@ -684,7 +686,7 @@ export function MobileOutboundForm() {
         <div className="flex gap-2">
           {step > 1 && (
             <TouchButton variant="outline" onClick={() => setStep(step - 1)} className="flex-1">
-              Quay lại
+              {t('inventory:mobileForm.back')}
             </TouchButton>
           )}
           <TouchButton 
@@ -696,7 +698,7 @@ export function MobileOutboundForm() {
               (step === 3 && isLoading)
             }
           >
-            {step === totalSteps ? (isLoading ? 'Đang xử lý...' : 'Hoàn thành') : 'Tiếp tục'}
+            {step === totalSteps ? (isLoading ? t('inventory:mobileForm.processing') : t('inventory:mobileForm.complete')) : t('inventory:mobileForm.continue')}
           </TouchButton>
         </div>
       </div>
@@ -705,14 +707,14 @@ export function MobileOutboundForm() {
       <Sheet open={showItemSelector} onOpenChange={setShowItemSelector}>
         <SheetContent side="bottom" className="h-[80vh]">
           <SheetHeader>
-            <SheetTitle>Chọn đồ dùng</SheetTitle>
+            <SheetTitle>{t('inventory:mobileForm.selectItem')}</SheetTitle>
           </SheetHeader>
           
           <div className="mt-4 space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
-                placeholder="Tìm đồ dùng..."
+                placeholder={t('inventory:mobileForm.searchItems')}
                 className="pl-10 min-h-[48px]"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -723,12 +725,12 @@ export function MobileOutboundForm() {
               {isLoadingItems ? (
                 <div className="flex flex-col items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">Đang tải...</p>
+                  <p className="text-sm text-muted-foreground">{t('inventory:mobileForm.outbound.loading')}</p>
                 </div>
               ) : itemsData?.items.length === 0 ? (
                 <div className="text-center py-8">
                   <Package className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-muted-foreground">Không tìm thấy đồ dùng</p>
+                  <p className="text-muted-foreground">{t('inventory:mobileForm.noItemsFound')}</p>
                 </div>
               ) : (
                 itemsData?.items.map((item) => {
@@ -746,7 +748,7 @@ export function MobileOutboundForm() {
                       )}
                       onClick={() => {
                         if (!isAlreadyAdded && availableQty > 0) {
-                          addItem(item.id, item.name, item.code, availableQty)
+                          addItem(item.id, availableQty)
                         }
                       }}
                     >
@@ -767,13 +769,13 @@ export function MobileOutboundForm() {
                             <p className="font-medium">{item.name}</p>
                             {isAlreadyAdded && (
                               <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded">
-                                Đã thêm
+                                {t('inventory:mobileForm.outbound.alreadyAdded')}
                               </span>
                             )}
                           </div>
                           <p className="text-sm text-muted-foreground">{item.code}</p>
                           <p className="text-xs text-muted-foreground">
-                            Tồn kho: <span className={availableQty === 0 ? 'text-destructive' : ''}>
+                            {t('inventory:mobileForm.outbound.inStock')}: <span className={availableQty === 0 ? 'text-destructive' : ''}>
                               {availableQty} {item.unit}
                             </span>
                           </p>
@@ -792,21 +794,21 @@ export function MobileOutboundForm() {
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Thoát khỏi phiếu xuất kho?</AlertDialogTitle>
+            <AlertDialogTitle>{t('inventory:mobileForm.outbound.exitTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có dữ liệu chưa lưu. Bạn muốn lưu nháp hay bỏ qua?
+              {t('inventory:mobileForm.outbound.exitDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
             <TouchButton variant="outline" onClick={() => setShowExitDialog(false)} className="w-full sm:w-auto">
-              Tiếp tục chỉnh sửa
+              {t('inventory:mobileForm.outbound.continueEditing')}
             </TouchButton>
             <TouchButton variant="secondary" onClick={handleSaveDraft} className="w-full sm:w-auto">
               <Save className="h-4 w-4 mr-2" />
-              Lưu nháp
+              {t('inventory:mobileForm.saveDraft')}
             </TouchButton>
             <TouchButton variant="destructive" onClick={handleDiscard} className="w-full sm:w-auto">
-              Bỏ qua
+              {t('inventory:mobileForm.outbound.discard')}
             </TouchButton>
           </AlertDialogFooter>
         </AlertDialogContent>
