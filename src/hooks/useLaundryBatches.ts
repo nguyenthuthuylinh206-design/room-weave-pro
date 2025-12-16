@@ -505,24 +505,21 @@ export function useStockInFromLaundry() {
           }
         })
       
-      // 5. TẠO INBOUND TRANSACTION (items OK)
+      // 5. TẠO LAUNDRY RETURN TRANSACTION (items OK)
+      // Dùng RPC mới: KHÔNG cộng quantity_total, chỉ +stock, -laundry
       if (okItems.length > 0) {
-        const { error: inboundError } = await supabase.rpc('create_inbound_transaction', {
+        const { error: returnError } = await supabase.rpc('create_laundry_return_transaction', {
           p_tenant_id: tenant.id,
           p_hotel_id: selectedHotel.id,
-          p_transaction_category: 'return',
           p_from_location: 'Đơn vị giặt',
           p_to_location: selectedHotel.name,
           p_created_by: user.id,
           p_items: okItems as any,
-          p_related_type: 'laundry_batch',
           p_related_id: batchId,
-          p_documents: null,
-          p_photos: null,
           p_notes: `Nhập kho từ lô giặt ${batchCode}`,
         })
         
-        if (inboundError) throw inboundError
+        if (returnError) throw returnError
       }
       
       // 6. XỬ LÝ ITEMS MẤT (nếu có)
@@ -595,10 +592,11 @@ export function useStockInFromLaundry() {
         if (damagedError) throw damagedError
       }
       
-      // 8. TRỪNG quantity_in_laundry CHO TẤT CẢ ITEMS ĐÃ XỬ LÝ
+      // 8. TRỪNG quantity_in_laundry CHO ITEMS MẤT/HỎNG
+      // (Items OK đã được xử lý bởi create_laundry_return_transaction)
       for (const item of items) {
-        const totalProcessed = (item.quantity_returned || 0) + (item.quantity_lost || 0) + (item.quantity_damaged || 0)
-        if (totalProcessed > 0) {
+        const lostDamagedTotal = (item.quantity_lost || 0) + (item.quantity_damaged || 0)
+        if (lostDamagedTotal > 0) {
           // Lấy quantity_in_laundry hiện tại
           const { data: currentItem } = await supabase
             .from('items')
@@ -606,7 +604,7 @@ export function useStockInFromLaundry() {
             .eq('id', item.item_id)
             .single()
           
-          const newLaundryQty = Math.max(0, (currentItem?.quantity_in_laundry || 0) - totalProcessed)
+          const newLaundryQty = Math.max(0, (currentItem?.quantity_in_laundry || 0) - lostDamagedTotal)
           
           await supabase
             .from('items')
