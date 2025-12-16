@@ -5,11 +5,39 @@
     "title": "Yêu cầu bảo trì",
     "list": "Danh sách yêu cầu",
     "new": "Tạo yêu cầu mới",
-    "detail": "Chi tiết yêu cầu"
+    "detail": "Chi tiết yêu cầu",
+    "edit": "Chỉnh sửa yêu cầu"
   },
   "recurring": {
     "title": "Vấn đề lặp lại",
     "list": "Danh sách vấn đề"
+  },
+  "form": {
+    "steps": {
+      "basicInfo": "Thông tin cơ bản",
+      "location": "Vị trí & Đối tượng",
+      "confirm": "Xác nhận"
+    },
+    "titleLabel": "Tiêu đề",
+    "titlePlaceholder": "Nhập tiêu đề yêu cầu",
+    "descriptionLabel": "Mô tả",
+    "descriptionPlaceholder": "Mô tả chi tiết vấn đề",
+    "priorityLabel": "Mức độ ưu tiên",
+    "issueTypeLabel": "Loại sự cố",
+    "locationLabel": "Vị trí",
+    "locationPlaceholder": "Ví dụ: Phòng 101, Tầng 1",
+    "roomLabel": "Phòng (tùy chọn)",
+    "roomPlaceholder": "Chọn phòng",
+    "itemLabel": "Thiết bị (tùy chọn)",
+    "itemPlaceholder": "Chọn thiết bị",
+    "roomDisplay": "Phòng {{number}} - Tầng {{floor}}"
+  },
+  "issueType": {
+    "repair": "Sửa chữa",
+    "replace": "Thay thế",
+    "inspection": "Kiểm tra",
+    "cleaning": "Vệ sinh",
+    "other": "Khác"
   },
   "fields": {
     "requestCode": "Mã yêu cầu",
@@ -20,13 +48,15 @@
     "status": "Trạng thái",
     "location": "Vị trí",
     "room": "Phòng",
+    "item": "Thiết bị",
     "assignedTo": "Phân công cho",
     "reportedBy": "Người báo cáo",
     "reportedAt": "Ngày báo cáo",
     "completedAt": "Ngày hoàn thành",
     "estimatedCost": "Chi phí ước tính",
     "actualCost": "Chi phí thực tế",
-    "notes": "Ghi chú"
+    "notes": "Ghi chú",
+    "type": "Loại"
   },
   "priority": {
     "low": "Thấp",
@@ -45,7 +75,11 @@
     "assign": "Phân công",
     "start": "Bắt đầu",
     "complete": "Hoàn thành",
-    "cancel": "Hủy"
+    "cancel": "Hủy",
+    "next": "Tiếp theo",
+    "back": "Quay lại",
+    "submit": "Hoàn thành",
+    "processing": "Đang xử lý..."
   },
   "messages": {
     "createSuccess": "Tạo yêu cầu thành công",
@@ -61,5 +95,10 @@
     "byPriority": "Theo độ ưu tiên",
     "byRoom": "Theo phòng",
     "search": "Tìm kiếm yêu cầu..."
+  },
+  "validation": {
+    "titleRequired": "Vui lòng nhập tiêu đề",
+    "descriptionRequired": "Vui lòng nhập mô tả",
+    "locationRequired": "Vui lòng nhập vị trí"
   }
 }

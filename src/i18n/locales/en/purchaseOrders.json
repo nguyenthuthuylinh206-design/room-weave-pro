@@ -1,0 +1,105 @@
+{
+  "title": "Purchase Order Management",
+  "dashboard": "Manage purchase orders and vendors",
+  "list": {
+    "title": "Order List",
+    "empty": "No orders found"
+  },
+  "form": {
+    "create": "Create New Purchase Order",
+    "edit": "Edit Purchase Order",
+    "step": "Step {{current}}/{{total}}",
+    "steps": {
+      "vendor": "Vendor",
+      "products": "Products",
+      "details": "Details",
+      "confirm": "Confirm",
+      "selectVendor": "Select Vendor",
+      "selectProducts": "Select Products",
+      "orderDetails": "Order Details",
+      "reviewSubmit": "Review & Submit"
+    },
+    "vendorInfo": "Vendor Information",
+    "address": "Address",
+    "contact": "Contact",
+    "payment": "Payment",
+    "delivery": "Delivery",
+    "minOrder": "Min Order",
+    "rating": "Rating",
+    "fromCatalog": "From Catalog",
+    "fromHistory": "From History",
+    "searchProducts": "Search products...",
+    "product": "Product",
+    "code": "Code",
+    "stock": "Stock",
+    "unit": "Unit",
+    "lastPrice": "Last Price",
+    "featureInDevelopment": "Feature in development"
+  },
+  "cart": {
+    "title": "Cart",
+    "empty": "No products added",
+    "addedToCart": "Added {{name}} to cart",
+    "removedFromCart": "Removed from cart",
+    "quantity": "Quantity",
+    "unitPrice": "Unit Price",
+    "subtotal": "Subtotal",
+    "addProduct": "Add Product"
+  },
+  "fields": {
+    "poCode": "PO Code",
+    "vendor": "Vendor",
+    "orderDate": "Order Date",
+    "deliveryDate": "Expected Delivery",
+    "shippingAddress": "Shipping Address",
+    "taxRate": "Tax (%)",
+    "shippingFee": "Shipping Fee",
+    "notes": "Notes",
+    "totalProducts": "Total Products"
+  },
+  "summary": {
+    "subtotal": "Subtotal",
+    "tax": "Tax ({{rate}}%)",
+    "shipping": "Shipping Fee",
+    "total": "Total"
+  },
+  "status": {
+    "draft": "Draft",
+    "pending": "Pending",
+    "approved": "Approved",
+    "ordered": "Ordered",
+    "shipped": "Shipping",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled"
+  },
+  "actions": {
+    "create": "Create Order",
+    "approve": "Approve",
+    "reject": "Reject",
+    "cancel": "Cancel",
+    "next": "Next",
+    "back": "Back",
+    "submit": "Submit Order"
+  },
+  "messages": {
+    "createSuccess": "Order created successfully",
+    "createError": "Error creating order",
+    "selectVendorRequired": "Please select a vendor",
+    "selectProductsRequired": "Please add at least 1 product",
+    "selectHotelRequired": "Please select a hotel before creating order",
+    "allHotelsMode": "Please select a specific hotel before creating order"
+  },
+  "placeholders": {
+    "selectVendor": "Select vendor...",
+    "enterShippingAddress": "Enter shipping address",
+    "additionalNotes": "Additional notes..."
+  },
+  "validation": {
+    "vendorRequired": "Please select a vendor",
+    "addressMin": "Address must be at least 10 characters",
+    "itemsMin": "Must have at least 1 product",
+    "quantityPositive": "Quantity must be greater than 0",
+    "priceNonNegative": "Price cannot be negative",
+    "deliveryAfterOrder": "Delivery date must be after order date"
+  }
+}

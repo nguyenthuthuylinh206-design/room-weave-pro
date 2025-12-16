@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Plus, Trash2, ShoppingCart, Package, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -22,16 +23,16 @@ import { toast } from 'sonner'
 import { addDays, format } from 'date-fns'
 
 const poSchema = z.object({
-  vendor_id: z.string().uuid('Vui lòng chọn nhà cung cấp'),
+  vendor_id: z.string().uuid('validation.vendorRequired'),
   order_date: z.string(),
   expected_delivery_date: z.string(),
-  shipping_address: z.string().min(10, 'Địa chỉ phải có ít nhất 10 ký tự'),
+  shipping_address: z.string().min(10, 'validation.addressMin'),
   items: z.array(z.object({
     item_id: z.string().uuid(),
     quantity: z.number().positive(),
     unit_price: z.number().nonnegative(),
     notes: z.string().optional()
-  })).min(1, 'Phải có ít nhất 1 sản phẩm'),
+  })).min(1, 'validation.itemsMin'),
   tax_rate: z.number().min(0).max(100),
   shipping_fee: z.number().nonnegative(),
   notes: z.string().optional()
@@ -52,6 +53,8 @@ export function MobilePOForm() {
   const [searchParams] = useSearchParams()
   const preselectedVendorId = searchParams.get('vendor')
   const { selectedHotel } = useHotelContext()
+  const { t } = useTranslation('purchaseOrders')
+  const { t: tCommon } = useTranslation('common')
   
   const [step, setStep] = useState(1)
   const [cart, setCart] = useState<CartItem[]>([])
@@ -106,12 +109,12 @@ export function MobilePOForm() {
         notes: ''
       }])
     }
-    toast.success(`Đã thêm ${item.name}`)
+    toast.success(t('cart.addedToCart', { name: item.name }))
   }
   
   const removeFromCart = (itemId: string) => {
     setCart(cart.filter(c => c.item_id !== itemId))
-    toast.success('Đã xóa khỏi giỏ hàng')
+    toast.success(t('cart.removedFromCart'))
   }
   
   const updateCartItem = (itemId: string, field: 'quantity' | 'unit_price', value: number) => {
@@ -140,7 +143,7 @@ export function MobilePOForm() {
   
   const onSubmit = async (data: POFormData) => {
     if (!selectedHotel?.id) {
-      toast.error('Vui lòng chọn khách sạn')
+      toast.error(t('messages.selectHotelRequired'))
       return
     }
     
@@ -148,7 +151,7 @@ export function MobilePOForm() {
       await createPO.mutateAsync(data as any)
       navigate('/purchase-orders')
     } catch (error) {
-      toast.error('Lỗi tạo đơn hàng')
+      toast.error(t('messages.createError'))
     }
   }
   
@@ -158,9 +161,9 @@ export function MobilePOForm() {
   )
   
   const steps = [
-    { number: 1, title: 'Nhà cung cấp' },
-    { number: 2, title: 'Chọn hàng' },
-    { number: 3, title: 'Xác nhận' }
+    { number: 1, title: t('form.steps.vendor') },
+    { number: 2, title: t('form.steps.products') },
+    { number: 3, title: t('form.steps.confirm') }
   ]
   
   return (
@@ -176,8 +179,8 @@ export function MobilePOForm() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="font-semibold">Tạo đơn đặt hàng</h1>
-            <p className="text-xs text-muted-foreground">Bước {step}/3</p>
+            <h1 className="font-semibold">{t('form.create')}</h1>
+            <p className="text-xs text-muted-foreground">{t('form.step', { current: step, total: 3 })}</p>
           </div>
           <Badge variant="secondary">
             <ShoppingCart className="h-3 w-3 mr-1" />
@@ -218,13 +221,13 @@ export function MobilePOForm() {
             <Card>
               <CardContent className="pt-4 space-y-4">
                 <div className="space-y-2">
-                  <Label>Nhà cung cấp *</Label>
+                  <Label>{t('fields.vendor')} *</Label>
                   <Select
                     value={form.watch('vendor_id')}
                     onValueChange={(value) => form.setValue('vendor_id', value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Chọn nhà cung cấp" />
+                      <SelectValue placeholder={t('placeholders.selectVendor')} />
                     </SelectTrigger>
                     <SelectContent>
                       {vendors?.map(vendor => (
@@ -236,7 +239,7 @@ export function MobilePOForm() {
                   </Select>
                   {form.formState.errors.vendor_id && (
                     <p className="text-sm text-destructive">
-                      {form.formState.errors.vendor_id.message}
+                      {t(form.formState.errors.vendor_id.message as string)}
                     </p>
                   )}
                 </div>
@@ -250,7 +253,7 @@ export function MobilePOForm() {
                 )}
                 
                 <div className="space-y-2">
-                  <Label>Ngày đặt hàng</Label>
+                  <Label>{t('fields.orderDate')}</Label>
                   <Input
                     type="date"
                     {...form.register('order_date')}
@@ -258,7 +261,7 @@ export function MobilePOForm() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Ngày giao dự kiến</Label>
+                  <Label>{t('fields.deliveryDate')}</Label>
                   <Input
                     type="date"
                     {...form.register('expected_delivery_date')}
@@ -266,15 +269,15 @@ export function MobilePOForm() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Địa chỉ giao hàng *</Label>
+                  <Label>{t('fields.shippingAddress')} *</Label>
                   <Textarea
                     {...form.register('shipping_address')}
-                    placeholder="Nhập địa chỉ giao hàng"
+                    placeholder={t('placeholders.enterShippingAddress')}
                     rows={3}
                   />
                   {form.formState.errors.shipping_address && (
                     <p className="text-sm text-destructive">
-                      {form.formState.errors.shipping_address.message}
+                      {t(form.formState.errors.shipping_address.message as string)}
                     </p>
                   )}
                 </div>
@@ -286,13 +289,13 @@ export function MobilePOForm() {
               size="lg"
               onClick={() => {
                 if (!form.watch('vendor_id')) {
-                  toast.error('Vui lòng chọn nhà cung cấp')
+                  toast.error(t('messages.selectVendorRequired'))
                   return
                 }
                 setStep(2)
               }}
             >
-              Tiếp theo
+              {t('actions.next')}
             </Button>
           </>
         )}
@@ -306,7 +309,7 @@ export function MobilePOForm() {
                 {cart.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>Chưa có sản phẩm nào</p>
+                    <p>{t('cart.empty')}</p>
                   </div>
                 ) : (
                   cart.map((item) => (
@@ -328,7 +331,7 @@ export function MobilePOForm() {
                       
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <Label className="text-xs">Số lượng</Label>
+                          <Label className="text-xs">{t('cart.quantity')}</Label>
                           <Input
                             type="number"
                             min="1"
@@ -338,7 +341,7 @@ export function MobilePOForm() {
                           />
                         </div>
                         <div>
-                          <Label className="text-xs">Đơn giá</Label>
+                          <Label className="text-xs">{t('cart.unitPrice')}</Label>
                           <Input
                             type="number"
                             min="0"
@@ -350,7 +353,7 @@ export function MobilePOForm() {
                       </div>
                       
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Thành tiền:</span>
+                        <span className="text-muted-foreground">{t('cart.subtotal')}:</span>
                         <span className="font-medium">
                           {formatCurrency(item.quantity * item.unit_price)}
                         </span>
@@ -367,24 +370,24 @@ export function MobilePOForm() {
               onClick={() => setShowItemSheet(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Thêm sản phẩm
+              {t('cart.addProduct')}
             </Button>
             
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
-                Quay lại
+                {t('actions.back')}
               </Button>
               <Button
                 className="flex-1"
                 onClick={() => {
                   if (cart.length === 0) {
-                    toast.error('Vui lòng thêm ít nhất 1 sản phẩm')
+                    toast.error(t('messages.selectProductsRequired'))
                     return
                   }
                   setStep(3)
                 }}
               >
-                Tiếp theo
+                {t('actions.next')}
               </Button>
             </div>
           </>
@@ -396,24 +399,24 @@ export function MobilePOForm() {
             <Card>
               <CardContent className="pt-4 space-y-4">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Nhà cung cấp</Label>
+                  <Label className="text-xs text-muted-foreground">{t('fields.vendor')}</Label>
                   <p className="font-medium">{selectedVendor?.name}</p>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-xs text-muted-foreground">Ngày đặt</Label>
+                    <Label className="text-xs text-muted-foreground">{t('fields.orderDate')}</Label>
                     <p className="text-sm">{format(new Date(form.watch('order_date')), 'dd/MM/yyyy')}</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Ngày giao</Label>
+                    <Label className="text-xs text-muted-foreground">{t('fields.deliveryDate')}</Label>
                     <p className="text-sm">{format(new Date(form.watch('expected_delivery_date')), 'dd/MM/yyyy')}</p>
                   </div>
                 </div>
                 
                 <div>
-                  <Label className="text-xs text-muted-foreground">Tổng sản phẩm</Label>
-                  <p className="text-sm">{cart.length} loại ({cart.reduce((sum, item) => sum + item.quantity, 0)} sản phẩm)</p>
+                  <Label className="text-xs text-muted-foreground">{t('fields.totalProducts')}</Label>
+                  <p className="text-sm">{cart.length} {tCommon('types')} ({cart.reduce((sum, item) => sum + item.quantity, 0)} {tCommon('products')})</p>
                 </div>
               </CardContent>
             </Card>
@@ -421,7 +424,7 @@ export function MobilePOForm() {
             <Card>
               <CardContent className="pt-4 space-y-3">
                 <div className="space-y-2">
-                  <Label>Thuế (%)</Label>
+                  <Label>{t('fields.taxRate')}</Label>
                   <Input
                     type="number"
                     min="0"
@@ -431,7 +434,7 @@ export function MobilePOForm() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Phí vận chuyển</Label>
+                  <Label>{t('fields.shippingFee')}</Label>
                   <Input
                     type="number"
                     min="0"
@@ -440,10 +443,10 @@ export function MobilePOForm() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Ghi chú</Label>
+                  <Label>{t('fields.notes')}</Label>
                   <Textarea
                     {...form.register('notes')}
-                    placeholder="Ghi chú thêm..."
+                    placeholder={t('placeholders.additionalNotes')}
                     rows={3}
                   />
                 </div>
@@ -454,20 +457,20 @@ export function MobilePOForm() {
             <Card>
               <CardContent className="pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Tạm tính:</span>
+                  <span>{t('summary.subtotal')}:</span>
                   <span>{formatCurrency(calculateSubtotal())}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>Thuế ({form.watch('tax_rate')}%):</span>
+                  <span>{t('summary.tax', { rate: form.watch('tax_rate') })}:</span>
                   <span>{formatCurrency(calculateSubtotal() * (form.watch('tax_rate') / 100))}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>Phí vận chuyển:</span>
+                  <span>{t('summary.shipping')}:</span>
                   <span>{formatCurrency(form.watch('shipping_fee'))}</span>
                 </div>
                 <div className="h-px bg-border my-2" />
                 <div className="flex justify-between font-medium text-base">
-                  <span>Tổng cộng:</span>
+                  <span>{t('summary.total')}:</span>
                   <span className="text-primary">{formatCurrency(calculateTotal())}</span>
                 </div>
               </CardContent>
@@ -475,14 +478,14 @@ export function MobilePOForm() {
             
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>
-                Quay lại
+                {t('actions.back')}
               </Button>
               <Button
                 className="flex-1"
                 onClick={form.handleSubmit(onSubmit)}
                 disabled={createPO.isPending}
               >
-                {createPO.isPending ? 'Đang tạo...' : 'Tạo đơn hàng'}
+                {createPO.isPending ? tCommon('loading') : t('actions.create')}
               </Button>
             </div>
           </>
@@ -493,12 +496,12 @@ export function MobilePOForm() {
       <Sheet open={showItemSheet} onOpenChange={setShowItemSheet}>
         <SheetContent side="bottom" className="h-[85vh]">
           <SheetHeader>
-            <SheetTitle>Chọn sản phẩm</SheetTitle>
+            <SheetTitle>{t('form.steps.selectProducts')}</SheetTitle>
           </SheetHeader>
           
           <div className="mt-4 space-y-4">
             <Input
-              placeholder="Tìm kiếm sản phẩm..."
+              placeholder={t('form.searchProducts')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
