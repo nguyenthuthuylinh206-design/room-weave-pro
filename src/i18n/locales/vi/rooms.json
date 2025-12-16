@@ -1,70 +1,80 @@
 {
   "title": "Quản lý Phòng",
   "description": "Quản lý phòng và đồ dùng trong phòng",
-  "list": "Danh sách phòng",
-  "addNew": "Thêm phòng mới",
-  "editRoom": "Chỉnh sửa phòng",
-  "viewRoom": "Chi tiết phòng",
-  "roomItems": "Đồ dùng trong phòng",
-  "viewModes": {
-    "grid": "Lưới",
-    "list": "Danh sách",
-    "floorPlan": "Sơ đồ tầng"
-  },
-  "actions": {
-    "addRoom": "Thêm phòng",
-    "bulkImport": "Nhập hàng loạt",
-    "edit": "Chỉnh sửa",
-    "delete": "Xóa",
-    "viewDetails": "Xem chi tiết",
-    "checkout": "Checkout",
-    "assignItems": "Phân bổ đồ dùng"
-  },
+  "addRoom": "Thêm phòng",
+  "editRoom": "Sửa phòng",
+  "roomDetail": "Chi tiết phòng",
+  "roomCheck": "Kiểm tra phòng",
   "fields": {
     "roomNumber": "Số phòng",
     "roomType": "Loại phòng",
     "floor": "Tầng",
     "status": "Trạng thái",
     "area": "Diện tích",
-    "maxGuests": "Số khách tối đa",
     "bedType": "Loại giường",
+    "maxGuests": "Số khách tối đa",
     "pricePerNight": "Giá/đêm",
-    "description": "Mô tả",
-    "amenities": "Tiện nghi",
+    "view": "View",
+    "amenities": "Tiện ích",
     "notes": "Ghi chú"
   },
   "status": {
     "vacant": "Trống",
     "occupied": "Có khách",
-    "check_in": "Đang nhận",
-    "check_out": "Đang trả",
     "cleaning": "Đang dọn",
     "maintenance": "Bảo trì",
-    "out_of_order": "Ngưng sử dụng"
+    "check_in": "Check-in",
+    "check_out": "Check-out",
+    "out_of_order": "Hỏng"
   },
-  "roomType": {
+  "roomTypes": {
     "standard": "Standard",
-    "superior": "Superior",
     "deluxe": "Deluxe",
     "suite": "Suite",
+    "family": "Family",
     "vip": "VIP"
   },
   "messages": {
-    "createSuccess": "Đã tạo phòng thành công",
-    "updateSuccess": "Đã cập nhật phòng",
-    "deleteSuccess": "Đã xóa phòng",
-    "noRooms": "Không tìm thấy phòng nào"
+    "createSuccess": "Tạo phòng thành công",
+    "updateSuccess": "Cập nhật phòng thành công",
+    "deleteSuccess": "Xóa phòng thành công",
+    "noRooms": "Chưa có phòng nào"
   },
   "filters": {
     "all": "Tất cả",
-    "byStatus": "Theo trạng thái",
     "byFloor": "Theo tầng",
+    "byStatus": "Theo trạng thái",
     "byType": "Theo loại",
     "search": "Tìm kiếm phòng..."
   },
-  "floorPlan": {
-    "title": "Sơ đồ tầng",
-    "floor": "Tầng",
-    "noRooms": "Chưa có phòng nào ở tầng này"
+  "detail": {
+    "roomInfo": "Thông tin phòng",
+    "roomItems": "Đồ dùng trong phòng",
+    "checkHistory": "Lịch sử kiểm tra",
+    "quickActions": "Thao tác nhanh",
+    "checkRoom": "Kiểm tra phòng",
+    "editInfo": "Sửa thông tin",
+    "applyStandards": "Áp dụng chuẩn phòng",
+    "syncStandards": "Đồng bộ lại chuẩn",
+    "printItems": "In danh sách đồ dùng",
+    "totalItems": "Tổng đồ dùng",
+    "complete": "Đầy đủ",
+    "missing": "Thiếu",
+    "types": "loại",
+    "pieces": "món",
+    "notFound": "Không tìm thấy phòng",
+    "backToList": "Quay lại danh sách",
+    "noItems": "Chưa có đồ dùng trong phòng",
+    "noItemsDesc": "Phòng này chưa có đồ dùng nào. Nhấn nút \"Áp dụng chuẩn phòng\" ở mục \"Thao tác nhanh\" bên phải để tự động thêm đồ dùng theo chuẩn của loại phòng.",
+    "recentPhotos": "Ảnh kiểm tra gần nhất",
+    "checkedBy": "Kiểm tra bởi",
+    "viewFull": "Xem full",
+    "andMore": "Và {{count}} ảnh khác"
+  },
+  "checkTypes": {
+    "daily": "Hàng ngày",
+    "checkin": "Check-in",
+    "checkout": "Check-out",
+    "maintenance": "Bảo trì"
   }
 }

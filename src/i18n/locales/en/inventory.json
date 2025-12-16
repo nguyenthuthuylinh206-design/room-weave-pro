@@ -1,6 +1,6 @@
 {
   "title": "Inventory Management",
-  "dashboard": "Track and manage inventory, inbound/outbound",
+  "dashboard": "Track and manage stock, inbound/outbound",
   "transactions": "Inventory Transactions",
   "inbound": {
     "title": "Inbound",
@@ -13,14 +13,30 @@
     "list": "Outbound List"
   },
   "adjustment": {
-    "title": "Stock Adjustment",
+    "title": "Adjustment",
     "new": "Create Adjustment",
     "list": "Adjustment List"
   },
   "distribution": {
     "title": "Distribution Orders",
     "new": "Create Distribution",
-    "list": "Distribution List"
+    "list": "Distribution List",
+    "description": "Manage delivery from warehouse to rooms",
+    "orderCode": "Order Code",
+    "progress": "Progress",
+    "assignee": "Assignee",
+    "creator": "Creator",
+    "rooms": "Rooms",
+    "products": "Products",
+    "noOrders": "No distribution orders yet",
+    "createNew": "Create New",
+    "showing": "Showing",
+    "of": "of",
+    "orders": "orders",
+    "prev": "Previous",
+    "next": "Next",
+    "allStatus": "All Status",
+    "searchCode": "Search code..."
   },
   "fields": {
     "transactionCode": "Transaction Code",
@@ -50,31 +66,34 @@
   },
   "status": {
     "pending": "Pending",
-    "approved": "Approved",
+    "in_progress": "In Progress",
     "completed": "Completed",
-    "cancelled": "Cancelled"
+    "cancelled": "Cancelled",
+    "approved": "Approved"
   },
   "messages": {
     "createSuccess": "Transaction created successfully",
     "updateSuccess": "Transaction updated successfully",
     "approveSuccess": "Approved successfully",
-    "cancelSuccess": "Transaction cancelled",
-    "noTransactions": "No transactions found"
+    "cancelSuccess": "Transaction cancelled successfully",
+    "noTransactions": "No transactions yet",
+    "loading": "Loading..."
   },
   "filters": {
     "all": "All",
     "byType": "By Type",
     "byDate": "By Date",
     "byItem": "By Item",
-    "search": "Search transactions..."
+    "search": "Search transactions...",
+    "status": "Status"
   },
   "stats": {
     "totalStockValue": "Total Stock Value",
     "totalItems": "Total Items",
     "productTypes": "product types",
     "lowStockAlert": "Low Stock Alert",
-    "checkNow": "Check now",
-    "stockStable": "Stock stable",
+    "checkNow": "Need to check now",
+    "stockStable": "Stock Stable",
     "reorderNeeded": "Reorder Needed",
     "itemsBelowReorder": "Items below reorder point",
     "todayTransactions": "Today's Transactions",

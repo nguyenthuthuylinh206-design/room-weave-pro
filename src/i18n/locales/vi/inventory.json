@@ -20,7 +20,23 @@
   "distribution": {
     "title": "Phiếu giao hàng",
     "new": "Tạo phiếu giao",
-    "list": "Danh sách phiếu giao"
+    "list": "Danh sách phiếu giao",
+    "description": "Quản lý giao đồ từ kho đến các phòng",
+    "orderCode": "Mã phiếu",
+    "progress": "Tiến độ",
+    "assignee": "Người giao",
+    "creator": "Người tạo",
+    "rooms": "Phòng",
+    "products": "Sản phẩm",
+    "noOrders": "Chưa có phiếu giao hàng nào",
+    "createNew": "Tạo phiếu mới",
+    "showing": "Hiển thị",
+    "of": "của",
+    "orders": "phiếu",
+    "prev": "Trước",
+    "next": "Sau",
+    "allStatus": "Tất cả trạng thái",
+    "searchCode": "Tìm mã phiếu..."
   },
   "fields": {
     "transactionCode": "Mã giao dịch",
@@ -49,24 +65,27 @@
     "other": "Khác"
   },
   "status": {
-    "pending": "Chờ duyệt",
-    "approved": "Đã duyệt",
+    "pending": "Chờ giao",
+    "in_progress": "Đang giao",
     "completed": "Hoàn thành",
-    "cancelled": "Đã hủy"
+    "cancelled": "Đã hủy",
+    "approved": "Đã duyệt"
   },
   "messages": {
     "createSuccess": "Tạo giao dịch thành công",
     "updateSuccess": "Cập nhật giao dịch thành công",
     "approveSuccess": "Duyệt thành công",
     "cancelSuccess": "Hủy giao dịch thành công",
-    "noTransactions": "Chưa có giao dịch nào"
+    "noTransactions": "Chưa có giao dịch nào",
+    "loading": "Đang tải..."
   },
   "filters": {
     "all": "Tất cả",
     "byType": "Theo loại",
     "byDate": "Theo ngày",
     "byItem": "Theo tài sản",
-    "search": "Tìm kiếm giao dịch..."
+    "search": "Tìm kiếm giao dịch...",
+    "status": "Trạng thái"
   },
   "stats": {
     "totalStockValue": "Tổng giá trị kho",
