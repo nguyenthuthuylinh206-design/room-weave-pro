@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { 
   Users, 
   Bed, 
@@ -26,6 +27,7 @@ interface RoomGridProps {
 }
 
 export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: RoomGridProps) {
+  const { t } = useTranslation(['rooms'])
   const navigate = useNavigate()
   const checkSessions = useAllRoomCheckSessions()
   const { user } = useUser()
@@ -39,13 +41,7 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
   }
   
   const getCheckTypeLabel = (type: string) => {
-    const labels = {
-      daily: 'đầu ngày',
-      checkin: 'trước check-in',
-      checkout: 'sau check-out',
-      maintenance: 'bảo trì'
-    }
-    return labels[type as keyof typeof labels] || type
+    return t(`checkTypes.${type}`, { defaultValue: type })
   }
   
   if (isLoading) {
@@ -73,9 +69,9 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <Bed className="h-12 w-12 text-muted-foreground/50" />
-        <h3 className="mt-4 text-lg font-semibold">Không tìm thấy phòng</h3>
+        <h3 className="mt-4 text-lg font-semibold">{t('grid.noRooms')}</h3>
         <p className="mt-2 text-sm text-muted-foreground">
-          Thử thay đổi bộ lọc hoặc thêm phòng mới
+          {t('grid.tryChangeFilter')}
         </p>
       </div>
     )
@@ -106,7 +102,7 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
                   <div>
                     <h3 className="text-2xl font-bold">{room.room_number}</h3>
                     <p className="text-sm text-muted-foreground capitalize">
-                      {room.room_type}
+                      {t(`roomTypes.${room.room_type}`, { defaultValue: room.room_type })}
                     </p>
                   </div>
                 </div>
@@ -127,11 +123,11 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
               </div>
               <div className="flex items-center gap-1">
                 <Bed className="h-3 w-3 text-muted-foreground" />
-                <span className="capitalize">{room.bed_type || 'N/A'}</span>
+                <span className="capitalize">{room.bed_type || t('detail.na')}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Maximize className="h-3 w-3 text-muted-foreground" />
-                <span>{room.area_sqm || 'N/A'} m²</span>
+                <span>{room.area_sqm || t('detail.na')} m²</span>
               </div>
             </div>
             
@@ -140,33 +136,36 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
                 <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
                   <Clock className="h-3 w-3 animate-pulse" />
                   <span className="font-medium">
-                    {checkSessions[room.id].user_name} đang kiểm tra {getCheckTypeLabel(checkSessions[room.id].check_type)}
+                    {t('checkSession.checking', { 
+                      name: checkSessions[room.id].user_name,
+                      type: getCheckTypeLabel(checkSessions[room.id].check_type)
+                    })}
                   </span>
                 </div>
               ) : room.missing_items === 0 ? (
                 <div className="flex items-center gap-1 text-green-600">
                   <CheckCircle className="h-3 w-3" />
-                  <span>Đồ dùng đầy đủ</span>
+                  <span>{t('grid.itemsComplete')}</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-1 text-red-600">
                   <AlertTriangle className="h-3 w-3" />
-                  <span>Thiếu {room.missing_items} items</span>
+                  <span>{t('grid.missingItems', { count: room.missing_items })}</span>
                 </div>
               )}
               
               {room.items_in_laundry > 0 && (
                 <div className="flex items-center gap-1 text-cyan-600">
                   <Wind className="h-3 w-3" />
-                  <span>{room.items_in_laundry} items đang giặt</span>
+                  <span>{t('grid.itemsInLaundry', { count: room.items_in_laundry })}</span>
                 </div>
               )}
             </div>
             
             {room.base_price && (
               <div className="border-t pt-2">
-                <p className="text-xs text-muted-foreground">Giá cơ bản</p>
-                <p className="font-semibold">{formatCurrency(room.base_price)}/đêm</p>
+                <p className="text-xs text-muted-foreground">{t('grid.basePrice')}</p>
+                <p className="font-semibold">{formatCurrency(room.base_price)}{t('grid.perNight')}</p>
               </div>
             )}
           </CardContent>
@@ -181,7 +180,7 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
                 navigate(`/rooms/${room.id}`)
               }}
             >
-              Xem chi tiết
+              {t('actions.viewDetail')}
             </Button>
             <Button
               size="sm"
@@ -194,8 +193,8 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
               }}
             >
               {checkSessions[room.id] 
-                ? (checkSessions[room.id].user_id === user?.id ? 'Tiếp tục kiểm tra' : 'Đang kiểm tra')
-                : 'Kiểm tra'
+                ? (checkSessions[room.id].user_id === user?.id ? t('checkSession.continueCheck') : t('checkSession.inProgress'))
+                : t('checkSession.check')
               }
             </Button>
           </CardFooter>

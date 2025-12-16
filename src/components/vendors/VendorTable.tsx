@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Vendor } from '@/types/vendor.types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -34,6 +35,7 @@ interface VendorTableProps {
 }
 
 export function VendorTable({ vendors, selectedVendors, onSelectionChange }: VendorTableProps) {
+  const { t } = useTranslation(['vendors', 'common'])
   const navigate = useNavigate();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showStatusDialog, setShowStatusDialog] = useState(false)
@@ -93,6 +95,14 @@ export function VendorTable({ vendors, selectedVendors, onSelectionChange }: Ven
     })
   }
 
+  const getCategoryLabel = (category: string) => {
+    return t(`category.${category}`, { defaultValue: category })
+  }
+
+  const getStatusLabel = (status: string) => {
+    return t(`status.${status}`, { defaultValue: status })
+  }
+
   return (
     <>
       <div className="rounded-md border">
@@ -105,15 +115,15 @@ export function VendorTable({ vendors, selectedVendors, onSelectionChange }: Ven
                 onCheckedChange={handleSelectAll}
               />
             </TableHead>
-            <TableHead>Nhà cung cấp</TableHead>
-            <TableHead>Loại</TableHead>
-            <TableHead>Liên hệ</TableHead>
-            <TableHead className="text-center">Rating</TableHead>
-            <TableHead className="text-right">Số đơn</TableHead>
-            <TableHead className="text-right">Tổng GT</TableHead>
-            <TableHead className="text-center">On-time</TableHead>
-            <TableHead className="text-center">Trạng thái</TableHead>
-            <TableHead className="text-right">Thao tác</TableHead>
+            <TableHead>{t('table.vendor')}</TableHead>
+            <TableHead>{t('table.type')}</TableHead>
+            <TableHead>{t('table.contact')}</TableHead>
+            <TableHead className="text-center">{t('table.rating')}</TableHead>
+            <TableHead className="text-right">{t('table.orders')}</TableHead>
+            <TableHead className="text-right">{t('table.totalValue')}</TableHead>
+            <TableHead className="text-center">{t('table.onTime')}</TableHead>
+            <TableHead className="text-center">{t('table.status')}</TableHead>
+            <TableHead className="text-right">{t('table.actions')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -144,8 +154,7 @@ export function VendorTable({ vendors, selectedVendors, onSelectionChange }: Ven
                   vendor.category === 'supplier' ? 'default' :
                   vendor.category === 'service_provider' ? 'secondary' : 'outline'
                 }>
-                  {vendor.category === 'supplier' ? 'NCC' :
-                   vendor.category === 'service_provider' ? 'DV' : 'Thầu'}
+                  {getCategoryLabel(vendor.category)}
                 </Badge>
               </TableCell>
               <TableCell>
@@ -179,8 +188,7 @@ export function VendorTable({ vendors, selectedVendors, onSelectionChange }: Ven
                   vendor.status === 'active' ? 'default' :
                   vendor.status === 'inactive' ? 'secondary' : 'destructive'
                 }>
-                  {vendor.status === 'active' ? 'Hoạt động' :
-                   vendor.status === 'inactive' ? 'Tạm dừng' : 'Khóa'}
+                  {getStatusLabel(vendor.status)}
                 </Badge>
               </TableCell>
               <TableCell className="text-right">
@@ -193,14 +201,14 @@ export function VendorTable({ vendors, selectedVendors, onSelectionChange }: Ven
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => navigate(`/vendors/${vendor.id}`)}>
                       <Eye className="mr-2 w-4 h-4" />
-                      Xem chi tiết
+                      {t('actions.viewDetail')}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate(`/vendors/${vendor.id}/edit`)}>
                       <Edit className="mr-2 w-4 h-4" />
-                      Sửa
+                      {t('actions.edit')}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleToggleStatus(vendor)}>
-                      {vendor.status === 'active' ? 'Vô hiệu hóa' : 'Kích hoạt'}
+                      {vendor.status === 'active' ? t('actions.deactivate') : t('actions.activate')}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
@@ -208,7 +216,7 @@ export function VendorTable({ vendors, selectedVendors, onSelectionChange }: Ven
                       className="text-destructive"
                     >
                       <Trash2 className="mr-2 w-4 h-4" />
-                      Xóa
+                      {t('actions.delete')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -221,18 +229,21 @@ export function VendorTable({ vendors, selectedVendors, onSelectionChange }: Ven
     <AlertDialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Xác nhận thay đổi trạng thái</AlertDialogTitle>
+          <AlertDialogTitle>{t('dialogs.statusTitle')}</AlertDialogTitle>
           <AlertDialogDescription>
-            Bạn có chắc chắn muốn {selectedVendor?.status === 'active' ? 'vô hiệu hóa' : 'kích hoạt'} nhà cung cấp <strong>{selectedVendor?.name}</strong>?
+            {t('dialogs.statusDescription', { 
+              action: selectedVendor?.status === 'active' ? t('actions.deactivate').toLowerCase() : t('actions.activate').toLowerCase(),
+              name: selectedVendor?.name 
+            })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Hủy</AlertDialogCancel>
+          <AlertDialogCancel>{t('dialogs.cancel')}</AlertDialogCancel>
           <AlertDialogAction
             onClick={confirmStatusToggle}
             disabled={updateVendor.isPending}
           >
-            {updateVendor.isPending ? 'Đang xử lý...' : 'Xác nhận'}
+            {updateVendor.isPending ? t('dialogs.processing') : t('dialogs.confirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -241,20 +252,19 @@ export function VendorTable({ vendors, selectedVendors, onSelectionChange }: Ven
     <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Xác nhận xóa nhà cung cấp</AlertDialogTitle>
+          <AlertDialogTitle>{t('dialogs.deleteTitle')}</AlertDialogTitle>
           <AlertDialogDescription>
-            Bạn có chắc chắn muốn xóa nhà cung cấp <strong>{selectedVendor?.name}</strong>? 
-            Hành động này không thể hoàn tác.
+            {t('dialogs.deleteDescription', { name: selectedVendor?.name })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Hủy</AlertDialogCancel>
+          <AlertDialogCancel>{t('dialogs.cancel')}</AlertDialogCancel>
           <AlertDialogAction
             onClick={confirmDelete}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             disabled={deleteVendor.isPending}
           >
-            {deleteVendor.isPending ? 'Đang xóa...' : 'Xóa'}
+            {deleteVendor.isPending ? t('dialogs.deleting') : t('dialogs.confirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
         </AlertDialogContent>

@@ -23,16 +23,23 @@
     "totalValue": "Tổng giá trị",
     "status": "Trạng thái",
     "type": "Loại NCC",
-    "notes": "Ghi chú"
+    "notes": "Ghi chú",
+    "onTime": "Đúng hạn"
   },
   "type": {
     "supplier": "Nhà cung cấp",
     "laundry": "Giặt là",
     "maintenance": "Bảo trì"
   },
+  "category": {
+    "supplier": "NCC",
+    "service_provider": "DV",
+    "contractor": "Thầu"
+  },
   "status": {
     "active": "Hoạt động",
-    "inactive": "Ngưng hoạt động"
+    "inactive": "Ngưng hoạt động",
+    "suspended": "Tạm ngưng"
   },
   "po": {
     "fields": {
@@ -62,6 +69,42 @@
     "all": "Tất cả",
     "byType": "Theo loại",
     "byStatus": "Theo trạng thái",
-    "search": "Tìm kiếm NCC..."
+    "search": "Tìm theo tên hoặc mã...",
+    "sortBy": "Sắp xếp"
+  },
+  "sort": {
+    "name": "Tên",
+    "rating": "Đánh giá",
+    "orders": "Số đơn",
+    "value": "Giá trị",
+    "recent": "Mới nhất"
+  },
+  "table": {
+    "vendor": "Nhà cung cấp",
+    "type": "Loại",
+    "contact": "Liên hệ",
+    "rating": "Rating",
+    "orders": "Số đơn",
+    "totalValue": "Tổng GT",
+    "onTime": "On-time",
+    "status": "Trạng thái",
+    "actions": "Thao tác"
+  },
+  "actions": {
+    "viewDetail": "Xem chi tiết",
+    "edit": "Sửa",
+    "delete": "Xóa",
+    "activate": "Kích hoạt",
+    "deactivate": "Vô hiệu hóa"
+  },
+  "dialogs": {
+    "deleteTitle": "Xác nhận xóa nhà cung cấp",
+    "deleteDescription": "Bạn có chắc chắn muốn xóa nhà cung cấp <strong>{{name}}</strong>? Hành động này không thể hoàn tác.",
+    "statusTitle": "Xác nhận thay đổi trạng thái",
+    "statusDescription": "Bạn có chắc chắn muốn {{action}} nhà cung cấp <strong>{{name}}</strong>?",
+    "cancel": "Hủy",
+    "confirm": "Xác nhận",
+    "deleting": "Đang xóa...",
+    "processing": "Đang xử lý..."
   }
 }
