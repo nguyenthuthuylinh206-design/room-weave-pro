@@ -1,11 +1,15 @@
 {
   "title": "Quản lý Tài sản",
+  "description": "Quản lý tất cả tài sản và đồ dùng trong khách sạn",
   "list": "Danh sách tài sản",
   "categories": "Danh mục",
   "addNew": "Thêm tài sản mới",
   "editItem": "Chỉnh sửa tài sản",
   "viewItem": "Chi tiết tài sản",
   "deleteItem": "Xóa tài sản",
+  "createSuccess": "Tạo tài sản thành công",
+  "updateSuccess": "Cập nhật tài sản thành công",
+  "deleteSuccess": "Xóa tài sản thành công",
   "fields": {
     "name": "Tên tài sản",
     "code": "Mã tài sản",
@@ -13,23 +17,25 @@
     "unit": "Đơn vị",
     "unitPrice": "Đơn giá",
     "quantity": "Số lượng",
-    "quantityInStock": "Tồn kho",
-    "quantityInUse": "Đang sử dụng",
+    "quantityInStock": "Trong kho",
+    "quantityInUse": "Đang dùng",
     "quantityInLaundry": "Đang giặt",
     "quantityDamaged": "Hư hỏng",
     "quantityLost": "Thất lạc",
     "minimumStock": "Tồn kho tối thiểu",
+    "reorderPoint": "Điểm đặt hàng",
     "brand": "Thương hiệu",
     "model": "Model",
     "description": "Mô tả",
     "status": "Trạng thái",
     "createdAt": "Ngày tạo",
-    "updatedAt": "Ngày cập nhật"
+    "updatedAt": "Cập nhật lần cuối"
   },
   "status": {
     "active": "Hoạt động",
-    "inactive": "Ngưng hoạt động",
-    "lowStock": "Tồn kho thấp"
+    "inactive": "Không hoạt động",
+    "lowStock": "Tồn kho thấp",
+    "outOfStock": "Hết hàng"
   },
   "itemType": {
     "linen": "Vải",
@@ -40,7 +46,7 @@
   "actions": {
     "import": "Nhập Excel",
     "export": "Xuất Excel",
-    "downloadTemplate": "Tải mẫu Excel"
+    "downloadTemplate": "Tải mẫu"
   },
   "messages": {
     "createSuccess": "Tạo tài sản thành công",
@@ -48,12 +54,30 @@
     "deleteSuccess": "Xóa tài sản thành công",
     "deleteConfirm": "Bạn có chắc muốn xóa tài sản này?",
     "importSuccess": "Nhập dữ liệu thành công",
-    "noItems": "Chưa có tài sản nào"
+    "noItems": "Không tìm thấy tài sản nào"
   },
   "filters": {
     "all": "Tất cả",
     "byCategory": "Theo danh mục",
     "byStatus": "Theo trạng thái",
     "search": "Tìm kiếm tài sản..."
+  },
+  "categoriesPage": {
+    "title": "Danh mục tài sản",
+    "description": "Quản lý các danh mục tài sản",
+    "addCategory": "Thêm danh mục",
+    "editCategory": "Chỉnh sửa danh mục",
+    "createCategory": "Thêm danh mục mới",
+    "categoryName": "Tên danh mục",
+    "categoryNameEn": "Tên tiếng Anh",
+    "categoryDescription": "Mô tả",
+    "categoryColor": "Màu sắc",
+    "sortOrder": "Thứ tự",
+    "loading": "Đang tải...",
+    "items": "items",
+    "deleteConfirm": "Xác nhận xóa",
+    "deleteDescription": "Bạn có chắc chắn muốn xóa danh mục này? Thao tác này không thể hoàn tác.",
+    "deleteWarning": "Lưu ý: Chỉ có thể xóa danh mục không có items.",
+    "enterInfo": "Nhập thông tin danh mục tài sản"
   }
 }

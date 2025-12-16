@@ -37,9 +37,11 @@ import {
   useUpdateCategory,
   useDeleteCategory,
 } from '@/hooks/useCategories'
+import { useTranslation } from 'react-i18next'
 import type { CategoryFormData } from '@/types/items.types'
 
 export function CategoriesPage() {
+  const { t } = useTranslation(['items', 'common'])
   const navigate = useNavigate()
   const { isMobile } = useBreakpoint()
   const { user: authUser } = useAuth()
@@ -186,7 +188,7 @@ export function CategoriesPage() {
           <Button variant="ghost" size="icon" onClick={() => navigate('/items')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-3xl font-bold">Đang tải...</h1>
+          <h1 className="text-3xl font-bold">{t('categoriesPage.loading')}</h1>
         </div>
       </div>
     )
@@ -200,13 +202,13 @@ export function CategoriesPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Danh mục tài sản</h1>
-            <p className="text-muted-foreground">Quản lý các danh mục tài sản</p>
+            <h1 className="text-3xl font-bold">{t('categoriesPage.title')}</h1>
+            <p className="text-muted-foreground">{t('categoriesPage.description')}</p>
           </div>
         </div>
         <Button onClick={() => handleOpenDialog()}>
           <Plus className="w-4 h-4 mr-2" />
-          Thêm danh mục
+          {t('categoriesPage.addCategory')}
         </Button>
       </div>
 
@@ -299,10 +301,10 @@ export function CategoriesPage() {
 
               <div className="flex items-center justify-between pt-3 border-t">
                 <Badge variant="secondary">
-                  {category.items_count || 0} items
+                  {category.items_count || 0} {t('categoriesPage.items')}
                 </Badge>
                 <span className="text-xs text-muted-foreground">
-                  Thứ tự: {category.sort_order}
+                  {t('categoriesPage.sortOrder')}: {category.sort_order}
                 </span>
               </div>
             </CardContent>
@@ -315,16 +317,16 @@ export function CategoriesPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingCategory ? 'Chỉnh sửa danh mục' : 'Thêm danh mục mới'}
+              {editingCategory ? t('categoriesPage.editCategory') : t('categoriesPage.createCategory')}
             </DialogTitle>
             <DialogDescription>
-              Nhập thông tin danh mục tài sản
+              {t('categoriesPage.enterInfo')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Tên danh mục *</Label>
+              <Label htmlFor="name">{t('categoriesPage.categoryName')} *</Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -333,7 +335,7 @@ export function CategoriesPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="name_en">Tên tiếng Anh</Label>
+              <Label htmlFor="name_en">{t('categoriesPage.categoryNameEn')}</Label>
               <Input
                 id="name_en"
                 value={formData.name_en}
@@ -342,7 +344,7 @@ export function CategoriesPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Mô tả</Label>
+              <Label htmlFor="description">{t('categoriesPage.categoryDescription')}</Label>
               <Textarea
                 id="description"
                 value={formData.description}
@@ -355,7 +357,7 @@ export function CategoriesPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="color">Màu sắc</Label>
+                <Label htmlFor="color">{t('categoriesPage.categoryColor')}</Label>
                 <Input
                   id="color"
                   type="color"
@@ -365,7 +367,7 @@ export function CategoriesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="sort_order">Thứ tự</Label>
+                <Label htmlFor="sort_order">{t('categoriesPage.sortOrder')}</Label>
                 <Input
                   id="sort_order"
                   type="number"
@@ -380,13 +382,13 @@ export function CategoriesPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Hủy
+              {t('common:buttons.cancel')}
             </Button>
             <Button
               onClick={handleSubmit}
               disabled={!formData.name || createCategory.isPending || updateCategory.isPending}
             >
-              {editingCategory ? 'Cập nhật' : 'Tạo mới'}
+              {editingCategory ? t('common:buttons.update') : t('common:buttons.create')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -396,22 +398,22 @@ export function CategoriesPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
+            <AlertDialogTitle>{t('categoriesPage.deleteConfirm')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa danh mục này? Thao tác này không thể hoàn tác.
+              {t('categoriesPage.deleteDescription')}
               <br />
               <strong className="text-destructive">
-                Lưu ý: Chỉ có thể xóa danh mục không có items.
+                {t('categoriesPage.deleteWarning')}
               </strong>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogCancel>{t('common:buttons.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Xóa
+              {t('common:buttons.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

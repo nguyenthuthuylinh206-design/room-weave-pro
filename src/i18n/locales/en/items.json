@@ -1,11 +1,15 @@
 {
   "title": "Asset Management",
+  "description": "Manage all assets and items in the hotel",
   "list": "Asset List",
   "categories": "Categories",
   "addNew": "Add New Asset",
   "editItem": "Edit Asset",
   "viewItem": "Asset Details",
   "deleteItem": "Delete Asset",
+  "createSuccess": "Asset created successfully",
+  "updateSuccess": "Asset updated successfully",
+  "deleteSuccess": "Asset deleted successfully",
   "fields": {
     "name": "Asset Name",
     "code": "Asset Code",
@@ -19,17 +23,19 @@
     "quantityDamaged": "Damaged",
     "quantityLost": "Lost",
     "minimumStock": "Minimum Stock",
+    "reorderPoint": "Reorder Point",
     "brand": "Brand",
     "model": "Model",
     "description": "Description",
     "status": "Status",
     "createdAt": "Created At",
-    "updatedAt": "Updated At"
+    "updatedAt": "Last Updated"
   },
   "status": {
     "active": "Active",
     "inactive": "Inactive",
-    "lowStock": "Low Stock"
+    "lowStock": "Low Stock",
+    "outOfStock": "Out of Stock"
   },
   "itemType": {
     "linen": "Linen",
@@ -55,5 +61,23 @@
     "byCategory": "By Category",
     "byStatus": "By Status",
     "search": "Search assets..."
+  },
+  "categoriesPage": {
+    "title": "Asset Categories",
+    "description": "Manage asset categories",
+    "addCategory": "Add Category",
+    "editCategory": "Edit Category",
+    "createCategory": "Add New Category",
+    "categoryName": "Category Name",
+    "categoryNameEn": "English Name",
+    "categoryDescription": "Description",
+    "categoryColor": "Color",
+    "sortOrder": "Sort Order",
+    "loading": "Loading...",
+    "items": "items",
+    "deleteConfirm": "Confirm Delete",
+    "deleteDescription": "Are you sure you want to delete this category? This action cannot be undone.",
+    "deleteWarning": "Note: Only categories without items can be deleted.",
+    "enterInfo": "Enter category information"
   }
 }
