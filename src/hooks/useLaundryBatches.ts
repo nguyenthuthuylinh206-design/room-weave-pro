@@ -90,107 +90,29 @@ export function useCreateLaundryBatch() {
         throw new Error('Thiếu thông tin tenant hoặc hotel')
       }
 
-      // Validate stock availability
-      const itemIds = step2.items.map(i => i.item_id)
-      const { data: stockItems, error: stockError } = await supabase
-        .from('items')
-        .select('id, code, name, quantity_in_stock, quantity_in_laundry, unit')
-        .in('id', itemIds)
-      
-      if (stockError) throw stockError
-
-      // Check each item
-      const insufficientItems: string[] = []
-      step2.items.forEach(orderItem => {
-        const stockItem = stockItems?.find(s => s.id === orderItem.item_id)
-        if (!stockItem) {
-          insufficientItems.push(`Item ID ${orderItem.item_id} không tồn tại`)
-        } else if (orderItem.quantity > (stockItem.quantity_in_stock || 0)) {
-          insufficientItems.push(
-            `${stockItem.name} (${stockItem.code}): Cần ${orderItem.quantity} nhưng chỉ còn ${stockItem.quantity_in_stock || 0} ${stockItem.unit}`
-          )
-        }
+      // Sử dụng RPC mới để tạo batch và update inventory atomic
+      const { data, error } = await supabase.rpc('create_laundry_batch_with_items', {
+        p_tenant_id: tenantId,
+        p_hotel_id: selectedHotel.id,
+        p_vendor_id: step1.vendor_id,
+        p_delivery_date: step1.delivery_date.toISOString().split('T')[0],
+        p_expected_return_date: step1.expected_return_date.toISOString().split('T')[0],
+        p_delivery_staff_id: step1.delivery_staff_id,
+        p_receiver_name: step1.receiver_name,
+        p_notes: step1.notes || null,
+        p_items: step2.items.map(item => ({
+          item_id: item.item_id,
+          quantity: item.quantity,
+          weight_kg: item.weight_kg,
+          condition_note: item.condition_note || null,
+        })),
       })
 
-      if (insufficientItems.length > 0) {
-        throw new Error(
-          `Không đủ hàng trong kho:\n${insufficientItems.join('\n')}`
-        )
-      }
+      if (error) throw error
 
-      // Calculate totals
-      const totalItems = step2.items.reduce((sum, item) => sum + item.quantity, 0)
-      const totalWeight = step2.items.reduce((sum, item) => sum + item.weight_kg, 0)
-      
-      // Get vendor pricing
-      const { data: vendor } = await supabase
-        .from('laundry_vendors')
-        .select('contract_info')
-        .eq('id', step1.vendor_id)
-        .single()
-      
-      const contractInfo = vendor?.contract_info as any
-      const pricePerKg = contractInfo?.price_per_kg || 0
-      const estimatedCost = totalWeight * pricePerKg
-      
-      // 1. Create batch
-      const batchData: any = {
-        tenant_id: tenantId,
-        hotel_id: selectedHotel.id,
-        vendor_id: step1.vendor_id,
-        delivery_date: step1.delivery_date.toISOString(),
-        expected_return_date: step1.expected_return_date.toISOString(),
-        delivery_staff_id: step1.delivery_staff_id,
-        receiver_name: step1.receiver_name,
-        total_items: totalItems,
-        total_weight_kg: totalWeight,
-        estimated_cost: estimatedCost,
-        notes: step1.notes,
-        status: 'delivered',
-      }
-      
-      const { data: batch, error: batchError } = await supabase
-        .from('laundry_batches')
-        .insert(batchData)
-        .select()
-        .single()
-      
-      if (batchError) throw batchError
-      
-      // 2. Create batch items
-      const batchItems = step2.items.map(item => ({
-        batch_id: batch.id,
-        item_id: item.item_id,
-        quantity_delivered: item.quantity,
-        weight_kg: item.weight_kg,
-        condition_note: item.condition_note,
-      }))
-      
-      const { error: itemsError } = await supabase
-        .from('laundry_batch_items')
-        .insert(batchItems)
-      
-      if (itemsError) throw itemsError
-      
-      // 3. Update inventory - trừ quantity_in_stock, tăng quantity_in_laundry
-      for (const item of step2.items) {
-        const stockItem = stockItems?.find(s => s.id === item.item_id)
-        if (stockItem) {
-          const { error: updateError } = await supabase
-            .from('items')
-            .update({
-              quantity_in_stock: Math.max(0, (stockItem.quantity_in_stock || 0) - item.quantity),
-              quantity_in_laundry: ((stockItem as any).quantity_in_laundry || 0) + item.quantity,
-            })
-            .eq('id', item.item_id)
-          
-          if (updateError) {
-            console.error('Error updating item inventory:', updateError)
-          }
-        }
-      }
-      
-      // 4. Create notification
+      const result = data as { success: boolean; batch_id: string; batch_code: string; total_items: number; total_weight: number; estimated_cost: number }
+
+      // Create notification
       await supabase
         .from('notifications')
         .insert({
@@ -199,18 +121,18 @@ export function useCreateLaundryBatch() {
           type: 'info',
           category: 'laundry',
           title: 'Lô giặt mới đã tạo',
-          message: `Lô ${batch.batch_code} với ${totalItems} items đã được gửi đi giặt`,
-          action_url: `/laundry/batches/${batch.id}`,
+          message: `Lô ${result.batch_code} với ${result.total_items} items đã được gửi đi giặt`,
+          action_url: `/laundry/batches/${result.batch_id}`,
           related_type: 'laundry_batch',
-          related_id: batch.id,
+          related_id: result.batch_id,
         })
       
-      return batch
+      return { id: result.batch_id, batch_code: result.batch_code }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['laundry-batches'] })
       queryClient.invalidateQueries({ queryKey: ['laundry-dashboard-stats'] })
-      queryClient.invalidateQueries({ queryKey: ['items'] }) // Cập nhật inventory
+      queryClient.invalidateQueries({ queryKey: ['items'] })
       toast({
         title: 'Thành công',
         description: 'Đã tạo lô giặt mới',

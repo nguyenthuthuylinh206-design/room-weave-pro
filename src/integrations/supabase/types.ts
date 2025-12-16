@@ -5031,31 +5031,74 @@ export type Database = {
         }
         Returns: Json
       }
-      create_laundry_loss_transaction: {
+      create_laundry_batch_with_items: {
         Args: {
-          p_created_by: string
+          p_delivery_date: string
+          p_delivery_staff_id: string
+          p_expected_return_date: string
           p_hotel_id: string
           p_items: Json
-          p_loss_type: string
-          p_notes?: string
-          p_related_id?: string
+          p_notes: string
+          p_receiver_name: string
           p_tenant_id: string
+          p_vendor_id: string
         }
         Returns: Json
       }
-      create_laundry_return_transaction: {
-        Args: {
-          p_created_by: string
-          p_from_location: string
-          p_hotel_id: string
-          p_items: Json
-          p_notes?: string
-          p_related_id?: string
-          p_tenant_id: string
-          p_to_location: string
-        }
-        Returns: Json
-      }
+      create_laundry_loss_transaction:
+        | {
+            Args: {
+              p_batch_code: string
+              p_batch_id: string
+              p_created_by: string
+              p_hotel_id: string
+              p_item_id: string
+              p_loss_type: string
+              p_notes?: string
+              p_quantity: number
+              p_tenant_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_created_by: string
+              p_hotel_id: string
+              p_items: Json
+              p_loss_type: string
+              p_notes?: string
+              p_related_id?: string
+              p_tenant_id: string
+            }
+            Returns: Json
+          }
+      create_laundry_return_transaction:
+        | {
+            Args: {
+              p_batch_code: string
+              p_batch_id: string
+              p_created_by: string
+              p_hotel_id: string
+              p_item_id: string
+              p_notes?: string
+              p_quantity: number
+              p_tenant_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_created_by: string
+              p_from_location: string
+              p_hotel_id: string
+              p_items: Json
+              p_notes?: string
+              p_related_id?: string
+              p_tenant_id: string
+              p_to_location: string
+            }
+            Returns: Json
+          }
       create_outbound_transaction: {
         Args: {
           p_created_by: string
