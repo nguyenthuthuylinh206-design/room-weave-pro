@@ -1,0 +1,59 @@
+{
+  "title": "Asset Management",
+  "list": "Asset List",
+  "categories": "Categories",
+  "addNew": "Add New Asset",
+  "editItem": "Edit Asset",
+  "viewItem": "Asset Details",
+  "deleteItem": "Delete Asset",
+  "fields": {
+    "name": "Asset Name",
+    "code": "Asset Code",
+    "category": "Category",
+    "unit": "Unit",
+    "unitPrice": "Unit Price",
+    "quantity": "Quantity",
+    "quantityInStock": "In Stock",
+    "quantityInUse": "In Use",
+    "quantityInLaundry": "In Laundry",
+    "quantityDamaged": "Damaged",
+    "quantityLost": "Lost",
+    "minimumStock": "Minimum Stock",
+    "brand": "Brand",
+    "model": "Model",
+    "description": "Description",
+    "status": "Status",
+    "createdAt": "Created At",
+    "updatedAt": "Updated At"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "lowStock": "Low Stock"
+  },
+  "itemType": {
+    "linen": "Linen",
+    "consumable": "Consumable",
+    "equipment": "Equipment",
+    "furniture": "Furniture"
+  },
+  "actions": {
+    "import": "Import Excel",
+    "export": "Export Excel",
+    "downloadTemplate": "Download Template"
+  },
+  "messages": {
+    "createSuccess": "Asset created successfully",
+    "updateSuccess": "Asset updated successfully",
+    "deleteSuccess": "Asset deleted successfully",
+    "deleteConfirm": "Are you sure you want to delete this asset?",
+    "importSuccess": "Data imported successfully",
+    "noItems": "No assets found"
+  },
+  "filters": {
+    "all": "All",
+    "byCategory": "By Category",
+    "byStatus": "By Status",
+    "search": "Search assets..."
+  }
+}

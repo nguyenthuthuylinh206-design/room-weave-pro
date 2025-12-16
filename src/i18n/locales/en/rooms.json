@@ -1,0 +1,68 @@
+{
+  "title": "Room Management",
+  "list": "Room List",
+  "addNew": "Add New Room",
+  "editRoom": "Edit Room",
+  "viewRoom": "Room Details",
+  "deleteRoom": "Delete Room",
+  "standards": "Room Standards",
+  "floorPlan": "Floor Plan",
+  "fields": {
+    "roomNumber": "Room Number",
+    "floor": "Floor",
+    "roomType": "Room Type",
+    "status": "Status",
+    "maxGuests": "Max Guests",
+    "bedType": "Bed Type",
+    "area": "Area",
+    "pricePerNight": "Price/Night",
+    "amenities": "Amenities",
+    "notes": "Notes"
+  },
+  "status": {
+    "vacant": "Vacant",
+    "occupied": "Occupied",
+    "checkIn": "Check-in",
+    "checkOut": "Check-out",
+    "cleaning": "Cleaning",
+    "maintenance": "Maintenance",
+    "outOfOrder": "Out of Order"
+  },
+  "roomType": {
+    "standard": "Standard",
+    "superior": "Superior",
+    "deluxe": "Deluxe",
+    "suite": "Suite",
+    "vip": "VIP"
+  },
+  "actions": {
+    "changeStatus": "Change Status",
+    "checkout": "Check-out",
+    "viewItems": "View Room Items",
+    "bulkEdit": "Bulk Edit",
+    "bulkDelete": "Bulk Delete"
+  },
+  "messages": {
+    "createSuccess": "Room created successfully",
+    "updateSuccess": "Room updated successfully",
+    "deleteSuccess": "Room deleted successfully",
+    "deleteConfirm": "Are you sure you want to delete this room?",
+    "statusChanged": "Room status updated",
+    "noRooms": "No rooms found"
+  },
+  "filters": {
+    "all": "All",
+    "byFloor": "By Floor",
+    "byType": "By Type",
+    "byStatus": "By Status",
+    "search": "Search rooms..."
+  },
+  "checkout": {
+    "title": "Room Check-out",
+    "linens": "Linens",
+    "consumables": "Consumables",
+    "equipment": "Equipment",
+    "furniture": "Furniture",
+    "summary": "Summary"
+  }
+}

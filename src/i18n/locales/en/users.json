@@ -1,0 +1,61 @@
+{
+  "title": "User Management",
+  "list": "User List",
+  "addNew": "Add New User",
+  "editUser": "Edit User",
+  "viewUser": "User Details",
+  "profile": "Profile",
+  "changePassword": "Change Password",
+  "fields": {
+    "fullName": "Full Name",
+    "email": "Email",
+    "phone": "Phone",
+    "avatar": "Avatar",
+    "role": "Role",
+    "userLevel": "User Level",
+    "position": "Position",
+    "hotel": "Hotel",
+    "status": "Status",
+    "createdAt": "Created At",
+    "lastLogin": "Last Login"
+  },
+  "role": {
+    "superAdmin": "Super Admin",
+    "owner": "Owner",
+    "hotelManager": "Hotel Manager",
+    "departmentManager": "Department Manager",
+    "staff": "Staff"
+  },
+  "userLevel": {
+    "tenantOwner": "Account Owner",
+    "manager": "Manager",
+    "staff": "Staff"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending"
+  },
+  "permissions": {
+    "title": "Permissions",
+    "module": "Module",
+    "view": "View",
+    "create": "Create",
+    "update": "Update",
+    "delete": "Delete"
+  },
+  "messages": {
+    "createSuccess": "User created successfully",
+    "updateSuccess": "Updated successfully",
+    "deleteSuccess": "User deleted successfully",
+    "passwordChanged": "Password changed successfully",
+    "noUsers": "No users found"
+  },
+  "filters": {
+    "all": "All",
+    "byRole": "By Role",
+    "byStatus": "By Status",
+    "byHotel": "By Hotel",
+    "search": "Search users..."
+  }
+}

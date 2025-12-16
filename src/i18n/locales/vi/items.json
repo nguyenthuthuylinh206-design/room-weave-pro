@@ -1,0 +1,59 @@
+{
+  "title": "Quản lý Tài sản",
+  "list": "Danh sách tài sản",
+  "categories": "Danh mục",
+  "addNew": "Thêm tài sản mới",
+  "editItem": "Chỉnh sửa tài sản",
+  "viewItem": "Chi tiết tài sản",
+  "deleteItem": "Xóa tài sản",
+  "fields": {
+    "name": "Tên tài sản",
+    "code": "Mã tài sản",
+    "category": "Danh mục",
+    "unit": "Đơn vị",
+    "unitPrice": "Đơn giá",
+    "quantity": "Số lượng",
+    "quantityInStock": "Tồn kho",
+    "quantityInUse": "Đang sử dụng",
+    "quantityInLaundry": "Đang giặt",
+    "quantityDamaged": "Hư hỏng",
+    "quantityLost": "Thất lạc",
+    "minimumStock": "Tồn kho tối thiểu",
+    "brand": "Thương hiệu",
+    "model": "Model",
+    "description": "Mô tả",
+    "status": "Trạng thái",
+    "createdAt": "Ngày tạo",
+    "updatedAt": "Ngày cập nhật"
+  },
+  "status": {
+    "active": "Hoạt động",
+    "inactive": "Ngưng hoạt động",
+    "lowStock": "Tồn kho thấp"
+  },
+  "itemType": {
+    "linen": "Vải",
+    "consumable": "Tiêu hao",
+    "equipment": "Thiết bị",
+    "furniture": "Nội thất"
+  },
+  "actions": {
+    "import": "Nhập Excel",
+    "export": "Xuất Excel",
+    "downloadTemplate": "Tải mẫu Excel"
+  },
+  "messages": {
+    "createSuccess": "Tạo tài sản thành công",
+    "updateSuccess": "Cập nhật tài sản thành công",
+    "deleteSuccess": "Xóa tài sản thành công",
+    "deleteConfirm": "Bạn có chắc muốn xóa tài sản này?",
+    "importSuccess": "Nhập dữ liệu thành công",
+    "noItems": "Chưa có tài sản nào"
+  },
+  "filters": {
+    "all": "Tất cả",
+    "byCategory": "Theo danh mục",
+    "byStatus": "Theo trạng thái",
+    "search": "Tìm kiếm tài sản..."
+  }
+}
