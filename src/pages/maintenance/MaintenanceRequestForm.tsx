@@ -10,6 +10,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { 
   useCreateMaintenanceRequest, 
   useMaintenanceRequest, 
@@ -43,6 +44,8 @@ export default function MaintenanceRequestForm() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const { isMobile } = useBreakpoint()
+  const { t } = useTranslation('maintenance')
+  const { t: tCommon } = useTranslation('common')
   const isEditMode = !!id
   
   const createRequest = useCreateMaintenanceRequest()
@@ -111,8 +114,8 @@ export default function MaintenanceRequestForm() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={isEditMode ? 'Sửa yêu cầu bảo trì' : 'Tạo yêu cầu bảo trì'}
-        description={isEditMode ? 'Cập nhật thông tin yêu cầu bảo trì' : 'Báo cáo sự cố và yêu cầu bảo trì'}
+        title={isEditMode ? t('requests.edit') : t('requests.new')}
+        description={isEditMode ? t('form.editDescription') : t('form.createDescription')}
       />
 
       <Form {...form}>
@@ -120,7 +123,7 @@ export default function MaintenanceRequestForm() {
           {/* Issue Type & Priority */}
           <Card>
             <CardHeader>
-              <CardTitle>Loại & Độ ưu tiên</CardTitle>
+              <CardTitle>{t('form.typeAndPriority')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <FormField
@@ -128,7 +131,7 @@ export default function MaintenanceRequestForm() {
                 name="issue_type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Loại yêu cầu *</FormLabel>
+                    <FormLabel>{t('form.issueTypeLabel')} *</FormLabel>
                     <FormControl>
                       <RadioGroup
                         onValueChange={field.onChange}
@@ -138,31 +141,31 @@ export default function MaintenanceRequestForm() {
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="repair" id="repair" />
                           <Label htmlFor="repair" className="cursor-pointer">
-                            🔧 Sửa chữa
+                            🔧 {t('issueType.repair')}
                           </Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="replace" id="replace" />
                           <Label htmlFor="replace" className="cursor-pointer">
-                            🔄 Thay thế
+                            🔄 {t('issueType.replace')}
                           </Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="inspection" id="inspection" />
                           <Label htmlFor="inspection" className="cursor-pointer">
-                            🔍 Kiểm tra
+                            🔍 {t('issueType.inspection')}
                           </Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="cleaning" id="cleaning" />
                           <Label htmlFor="cleaning" className="cursor-pointer">
-                            🧹 Vệ sinh
+                            🧹 {t('issueType.cleaning')}
                           </Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="other" id="other" />
                           <Label htmlFor="other" className="cursor-pointer">
-                            ➕ Khác
+                            ➕ {t('issueType.other')}
                           </Label>
                         </div>
                       </RadioGroup>
@@ -177,7 +180,7 @@ export default function MaintenanceRequestForm() {
                 name="priority"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Độ ưu tiên *</FormLabel>
+                    <FormLabel>{t('form.priorityLabel')} *</FormLabel>
                     <FormControl>
                       <RadioGroup
                         onValueChange={field.onChange}
@@ -187,29 +190,29 @@ export default function MaintenanceRequestForm() {
                         <div className="flex items-center space-x-2 border p-3 rounded-lg">
                           <RadioGroupItem value="urgent" id="urgent" />
                           <Label htmlFor="urgent" className="cursor-pointer">
-                            <div className="font-medium">🔴 Khẩn cấp</div>
-                            <div className="text-xs text-muted-foreground">Xử lý ngay</div>
+                            <div className="font-medium">🔴 {t('priority.urgent')}</div>
+                            <div className="text-xs text-muted-foreground">{t('form.priorityUrgentTime')}</div>
                           </Label>
                         </div>
                         <div className="flex items-center space-x-2 border p-3 rounded-lg">
                           <RadioGroupItem value="high" id="high" />
                           <Label htmlFor="high" className="cursor-pointer">
-                            <div className="font-medium">🟠 Cao</div>
-                            <div className="text-xs text-muted-foreground">Trong 4 giờ</div>
+                            <div className="font-medium">🟠 {t('priority.high')}</div>
+                            <div className="text-xs text-muted-foreground">{t('form.priorityHighTime')}</div>
                           </Label>
                         </div>
                         <div className="flex items-center space-x-2 border p-3 rounded-lg">
                           <RadioGroupItem value="medium" id="medium" />
                           <Label htmlFor="medium" className="cursor-pointer">
-                            <div className="font-medium">🟡 Trung bình</div>
-                            <div className="text-xs text-muted-foreground">Trong ngày</div>
+                            <div className="font-medium">🟡 {t('priority.medium')}</div>
+                            <div className="text-xs text-muted-foreground">{t('form.priorityMediumTime')}</div>
                           </Label>
                         </div>
                         <div className="flex items-center space-x-2 border p-3 rounded-lg">
                           <RadioGroupItem value="low" id="low" />
                           <Label htmlFor="low" className="cursor-pointer">
-                            <div className="font-medium">🟢 Thấp</div>
-                            <div className="text-xs text-muted-foreground">Trong tuần</div>
+                            <div className="font-medium">🟢 {t('priority.low')}</div>
+                            <div className="text-xs text-muted-foreground">{t('form.priorityLowTime')}</div>
                           </Label>
                         </div>
                       </RadioGroup>
@@ -224,7 +227,7 @@ export default function MaintenanceRequestForm() {
           {/* Location & Item */}
           <Card>
             <CardHeader>
-              <CardTitle>Vị trí & Thiết bị</CardTitle>
+              <CardTitle>{t('form.locationAndItem')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
@@ -233,16 +236,16 @@ export default function MaintenanceRequestForm() {
                   name="room_id"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phòng</FormLabel>
+                      <FormLabel>{t('fields.room')}</FormLabel>
                       <FormControl>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Chọn phòng" />
+                            <SelectValue placeholder={t('form.roomPlaceholder')} />
                           </SelectTrigger>
                           <SelectContent>
                             {rooms?.map((room: any) => (
                               <SelectItem key={room.id} value={room.id}>
-                                Phòng {room.room_number} - Tầng {room.floor}
+                                {t('form.roomDisplay', { number: room.room_number, floor: room.floor })}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -258,11 +261,11 @@ export default function MaintenanceRequestForm() {
                   name="item_id"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Thiết bị</FormLabel>
+                      <FormLabel>{t('fields.item')}</FormLabel>
                       <FormControl>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Chọn thiết bị" />
+                            <SelectValue placeholder={t('form.itemPlaceholder')} />
                           </SelectTrigger>
                           <SelectContent>
                             {items?.items?.map((item: any) => (
@@ -284,9 +287,9 @@ export default function MaintenanceRequestForm() {
                 name="location"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Vị trí chi tiết *</FormLabel>
+                    <FormLabel>{t('form.detailLocationLabel')} *</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="VD: Phòng 301, khu vực phòng ngủ" />
+                      <Input {...field} placeholder={t('form.detailLocationPlaceholder')} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -298,7 +301,7 @@ export default function MaintenanceRequestForm() {
           {/* Description */}
           <Card>
             <CardHeader>
-              <CardTitle>Mô tả vấn đề</CardTitle>
+              <CardTitle>{t('form.problemDescription')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <FormField
@@ -306,9 +309,9 @@ export default function MaintenanceRequestForm() {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tiêu đề *</FormLabel>
+                    <FormLabel>{t('form.titleLabel')} *</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="VD: Tivi phòng 301 không lên hình" />
+                      <Input {...field} placeholder={t('form.titleExamplePlaceholder')} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -320,11 +323,11 @@ export default function MaintenanceRequestForm() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Mô tả chi tiết *</FormLabel>
+                    <FormLabel>{t('form.detailDescriptionLabel')} *</FormLabel>
                     <FormControl>
                       <Textarea
                         {...field}
-                        placeholder="Mô tả chi tiết vấn đề, triệu chứng, thời gian xảy ra..."
+                        placeholder={t('form.descriptionExamplePlaceholder')}
                         rows={5}
                       />
                     </FormControl>
@@ -334,7 +337,7 @@ export default function MaintenanceRequestForm() {
               />
 
               <div className="space-y-2">
-                <Label>Hình ảnh minh họa</Label>
+                <Label>{t('form.imagesLabel')}</Label>
                 <ImageUpload
                   images={photos}
                   onChange={setPhotos}
@@ -342,7 +345,7 @@ export default function MaintenanceRequestForm() {
                   className="mt-2"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Tải lên tối đa 5 hình ảnh mô tả vấn đề (không bắt buộc)
+                  {t('form.imagesHint')}
                 </p>
               </div>
             </CardContent>
@@ -351,10 +354,12 @@ export default function MaintenanceRequestForm() {
           {/* Actions */}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => navigate('/maintenance/requests')}>
-              Hủy
+              {tCommon('buttons.cancel')}
             </Button>
-            <Button type="submit" disabled={createRequest.isPending}>
-              {createRequest.isPending ? 'Đang tạo...' : 'Tạo yêu cầu'}
+            <Button type="submit" disabled={createRequest.isPending || updateRequest.isPending}>
+              {createRequest.isPending || updateRequest.isPending 
+                ? t('actions.processing') 
+                : isEditMode ? tCommon('buttons.update') : t('actions.submit')}
             </Button>
           </div>
         </form>
