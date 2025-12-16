@@ -94,5 +94,60 @@
   "total": "Total",
   "details": "Details",
   "info": "Information",
-  "notes": "Notes"
+  "notes": "Notes",
+  "back": "Back",
+  "cancel": "Cancel",
+  "save": "Save",
+  "notFound": {
+    "title": "404",
+    "heading": "Page Not Found",
+    "description": "The page you are looking for does not exist.",
+    "goHome": "Go to Home"
+  },
+  "unauthorized": {
+    "title": "Access Denied",
+    "description": "Your account does not have permission to access this system.",
+    "needHelp": "Need help?",
+    "contactAdmin": "Please contact your Manager or Hotel Owner to get the appropriate access for your role.",
+    "loggedInAs": "Logged in as:",
+    "logoutSwitch": "Logout & Switch Account",
+    "tryHome": "Try Home Page"
+  },
+  "help": {
+    "title": "Help & Support",
+    "subtitle": "We are always here to help you",
+    "liveChat": "Live Chat",
+    "sendEmail": "Send Email",
+    "callSupport": "Call Support",
+    "userGuide": "User Guide",
+    "resources": "Documentation",
+    "videoTutorials": "Video Tutorials",
+    "documentation": "Detailed Documentation",
+    "knowledgeBase": "Knowledge Base",
+    "faq": "Frequently Asked Questions",
+    "needMoreHelp": "Need more help?",
+    "supportAvailable": "Our support team is available 24/7",
+    "email": "Email",
+    "phone": "Phone",
+    "hours": "Hours"
+  },
+  "about": {
+    "title": "About",
+    "appName": "Room Weave Pro",
+    "tagline": "Professional Hotel Management System",
+    "version": "Version",
+    "features": "Features",
+    "realTimeManagement": "Real-time Management",
+    "realTimeDesc": "Track inventory, laundry, and maintenance in real-time",
+    "multiHotelSupport": "Multi-hotel Support",
+    "multiHotelDesc": "Manage multiple properties from one platform",
+    "secureReliable": "Secure & Reliable",
+    "secureDesc": "Enterprise-grade security with role-based access control",
+    "legal": "Legal",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy",
+    "licenses": "Licenses",
+    "builtWith": "Built with ❤️ for hotel professionals",
+    "copyright": "© 2024 Room Weave Pro. All rights reserved."
+  }
 }

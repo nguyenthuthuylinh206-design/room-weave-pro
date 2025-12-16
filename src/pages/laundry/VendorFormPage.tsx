@@ -4,14 +4,16 @@ import { ArrowLeft } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useLaundryVendor, useCreateVendor, useUpdateVendor } from '@/hooks/useLaundryVendors';
+
 const vendorSchema = z.object({
   name: z.string().min(2, 'Tên đơn vị phải có ít nhất 2 ký tự'),
   type: z.enum(['external', 'in_house']),
@@ -21,27 +23,19 @@ const vendorSchema = z.object({
   contact_person: z.string().min(2, 'Tên người liên hệ phải có ít nhất 2 ký tự'),
   notes: z.string().optional()
 });
+
 type VendorFormValues = z.infer<typeof vendorSchema>;
+
 export function VendorFormPage() {
-  const {
-    id
-  } = useParams<{
-    id: string;
-  }>();
+  const { t } = useTranslation(['laundry', 'common']);
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEdit = !!id;
-  const {
-    data: vendor,
-    isLoading
-  } = useLaundryVendor(id);
-  const {
-    mutate: createVendor,
-    isPending: isCreating
-  } = useCreateVendor();
-  const {
-    mutate: updateVendor,
-    isPending: isUpdating
-  } = useUpdateVendor();
+  
+  const { data: vendor, isLoading } = useLaundryVendor(id);
+  const { mutate: createVendor, isPending: isCreating } = useCreateVendor();
+  const { mutate: updateVendor, isPending: isUpdating } = useUpdateVendor();
+  
   const form = useForm<VendorFormValues>({
     resolver: zodResolver(vendorSchema),
     defaultValues: {
@@ -54,6 +48,7 @@ export function VendorFormPage() {
       notes: ''
     }
   });
+  
   useEffect(() => {
     if (vendor) {
       form.reset({
@@ -67,12 +62,10 @@ export function VendorFormPage() {
       });
     }
   }, [vendor, form]);
+  
   const onSubmit = (data: VendorFormValues) => {
     if (isEdit && id) {
-      updateVendor({
-        id,
-        data: data as any
-      }, {
+      updateVendor({ id, data: data as any }, {
         onSuccess: () => navigate(`/laundry/vendors/${id}`)
       });
     } else {
@@ -81,139 +74,179 @@ export function VendorFormPage() {
       });
     }
   };
+  
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div>{t('messages.loading')}</div>;
   }
-  return <div className="space-y-6">
-      <PageHeader title={isEdit ? 'Sửa đơn vị giặt' : 'Thêm đơn vị giặt'} description={isEdit ? vendor?.name : 'Thêm đơn vị giặt là mới'}>
+  
+  return (
+    <div className="space-y-6">
+      <PageHeader 
+        title={isEdit ? t('vendorForm.editTitle') : t('vendorForm.addTitle')} 
+        description={isEdit ? vendor?.name : t('vendorForm.addDescription')}
+      >
         <Button variant="outline" onClick={() => navigate(-1)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Quay lại
+          {t('common:back')}
         </Button>
       </PageHeader>
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          {/* Section 1: Thông tin cơ bản */}
           <Card>
             <CardHeader>
-              <CardTitle>Thông tin cơ bản</CardTitle>
+              <CardTitle>{t('vendorForm.basicInfo')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
-                <FormField control={form.control} name="name" render={({
-                field
-              }) => <FormItem>
-                      <FormLabel>Tên đơn vị *</FormLabel>
+                <FormField 
+                  control={form.control} 
+                  name="name" 
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('vendorForm.name')} *</FormLabel>
                       <FormControl>
                         <Input {...field} placeholder="VD: ABC Laundry" />
                       </FormControl>
                       <FormMessage />
-                    </FormItem>} />
+                    </FormItem>
+                  )} 
+                />
                 
-                <FormField control={form.control} name="type" render={({
-                field
-              }) => <FormItem>
-                      <FormLabel>Loại *</FormLabel>
+                <FormField 
+                  control={form.control} 
+                  name="type" 
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('vendorForm.type')} *</FormLabel>
                       <FormControl>
-                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4">
+                        <RadioGroup 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value} 
+                          className="flex gap-4"
+                        >
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="external" id="external" />
                             <label htmlFor="external" className="cursor-pointer">
-                              Đơn vị ngoài
+                              {t('vendorForm.typeExternal')}
                             </label>
                           </div>
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="in_house" id="in_house" />
                             <label htmlFor="in_house" className="cursor-pointer">
-                              Nội bộ
+                              {t('vendorForm.typeInHouse')}
                             </label>
                           </div>
                         </RadioGroup>
                       </FormControl>
                       <FormMessage />
-                    </FormItem>} />
+                    </FormItem>
+                  )} 
+                />
               </div>
             </CardContent>
           </Card>
           
-          {/* Section 2: Thông tin liên hệ */}
           <Card>
             <CardHeader>
-              <CardTitle>Thông tin liên hệ</CardTitle>
+              <CardTitle>{t('vendorForm.contactInfo')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <FormField control={form.control} name="address" render={({
-              field
-            }) => <FormItem>
-                    <FormLabel>Địa chỉ *</FormLabel>
+              <FormField 
+                control={form.control} 
+                name="address" 
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('vendorForm.address')} *</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="123 Đường ABC, Quận 1, TP.HCM" />
                     </FormControl>
                     <FormMessage />
-                  </FormItem>} />
+                  </FormItem>
+                )} 
+              />
               
               <div className="grid gap-4 md:grid-cols-2">
-                <FormField control={form.control} name="phone" render={({
-                field
-              }) => <FormItem>
-                      <FormLabel>Điện thoại *</FormLabel>
+                <FormField 
+                  control={form.control} 
+                  name="phone" 
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('vendorForm.phone')} *</FormLabel>
                       <FormControl>
                         <Input {...field} placeholder="0901234567" />
                       </FormControl>
                       <FormMessage />
-                    </FormItem>} />
+                    </FormItem>
+                  )} 
+                />
                 
-                <FormField control={form.control} name="email" render={({
-                field
-              }) => <FormItem>
-                      <FormLabel>Email</FormLabel>
+                <FormField 
+                  control={form.control} 
+                  name="email" 
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('vendorForm.email')}</FormLabel>
                       <FormControl>
                         <Input {...field} type="email" placeholder="contact@example.com" />
                       </FormControl>
                       <FormMessage />
-                    </FormItem>} />
+                    </FormItem>
+                  )} 
+                />
               </div>
               
-              <FormField control={form.control} name="contact_person" render={({
-              field
-            }) => <FormItem>
-                    <FormLabel>Người liên hệ *</FormLabel>
+              <FormField 
+                control={form.control} 
+                name="contact_person" 
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('vendorForm.contactPerson')} *</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="Nguyễn Văn A" />
                     </FormControl>
                     <FormMessage />
-                  </FormItem>} />
+                  </FormItem>
+                )} 
+              />
             </CardContent>
           </Card>
           
-          {/* Section 3: Ghi chú */}
           <Card>
             <CardHeader>
-              <CardTitle>Ghi chú</CardTitle>
+              <CardTitle>{t('vendorForm.notes')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <FormField control={form.control} name="notes" render={({
-              field
-            }) => <FormItem>
+              <FormField 
+                control={form.control} 
+                name="notes" 
+                render={({ field }) => (
+                  <FormItem>
                     <FormControl>
-                      <Textarea {...field} placeholder="Thêm ghi chú về đơn vị giặt..." rows={4} />
+                      <Textarea {...field} placeholder={t('vendorForm.notesPlaceholder')} rows={4} />
                     </FormControl>
                     <FormMessage />
-                  </FormItem>} />
+                  </FormItem>
+                )} 
+              />
             </CardContent>
           </Card>
           
-          {/* Actions */}
           <div className="flex justify-between">
             <Button type="button" variant="outline" onClick={() => navigate(-1)}>
-              Hủy
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={isCreating || isUpdating}>
-              {isCreating || isUpdating ? 'Đang xử lý...' : isEdit ? 'Cập nhật' : 'Tạo mới'}
+              {isCreating || isUpdating 
+                ? t('vendorForm.processing') 
+                : isEdit 
+                  ? t('vendorForm.update') 
+                  : t('vendorForm.create')
+              }
             </Button>
           </div>
         </form>
       </Form>
-    </div>;
+    </div>
+  );
 }

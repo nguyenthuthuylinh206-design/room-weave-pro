@@ -43,7 +43,8 @@
     "createSuccess": "Batch created successfully",
     "updateSuccess": "Batch updated successfully",
     "returnSuccess": "Batch returned successfully",
-    "noBatches": "No batches yet"
+    "noBatches": "No batches yet",
+    "loading": "Loading..."
   },
   "stats": {
     "totalBatches": "Total Batches",
@@ -51,5 +52,32 @@
     "returned": "Returned",
     "totalCost": "Total Cost",
     "thisMonth": "This Month"
+  },
+  "vendorForm": {
+    "addTitle": "Add Laundry Vendor",
+    "editTitle": "Edit Laundry Vendor",
+    "addDescription": "Add new laundry vendor",
+    "basicInfo": "Basic Information",
+    "contactInfo": "Contact Information",
+    "name": "Vendor Name",
+    "type": "Type",
+    "typeExternal": "External",
+    "typeInHouse": "In-house",
+    "address": "Address",
+    "phone": "Phone",
+    "email": "Email",
+    "contactPerson": "Contact Person",
+    "notes": "Notes",
+    "notesPlaceholder": "Add notes about the laundry vendor...",
+    "processing": "Processing...",
+    "create": "Create",
+    "update": "Update"
+  },
+  "validation": {
+    "nameMin": "Vendor name must be at least 2 characters",
+    "addressMin": "Address must be at least 5 characters",
+    "phoneInvalid": "Invalid phone number",
+    "emailInvalid": "Invalid email",
+    "contactMin": "Contact person name must be at least 2 characters"
   }
 }

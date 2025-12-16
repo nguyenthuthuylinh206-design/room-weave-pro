@@ -94,5 +94,60 @@
   "total": "Tổng",
   "details": "Chi tiết",
   "info": "Thông tin",
-  "notes": "Ghi chú"
+  "notes": "Ghi chú",
+  "back": "Quay lại",
+  "cancel": "Hủy",
+  "save": "Lưu",
+  "notFound": {
+    "title": "404",
+    "heading": "Không tìm thấy trang",
+    "description": "Trang bạn đang tìm kiếm không tồn tại.",
+    "goHome": "Về trang chủ"
+  },
+  "unauthorized": {
+    "title": "Không có quyền truy cập",
+    "description": "Tài khoản của bạn chưa được cấp quyền truy cập vào hệ thống.",
+    "needHelp": "Cần hỗ trợ?",
+    "contactAdmin": "Vui lòng liên hệ với Quản lý hoặc Chủ khách sạn để được cấp quyền truy cập phù hợp với công việc của bạn.",
+    "loggedInAs": "Đang đăng nhập với:",
+    "logoutSwitch": "Đăng xuất & Đổi tài khoản",
+    "tryHome": "Thử lại với trang chủ"
+  },
+  "help": {
+    "title": "Trợ giúp & Hỗ trợ",
+    "subtitle": "Chúng tôi luôn sẵn sàng hỗ trợ bạn",
+    "liveChat": "Chat trực tuyến",
+    "sendEmail": "Gửi email",
+    "callSupport": "Gọi hỗ trợ",
+    "userGuide": "Hướng dẫn sử dụng",
+    "resources": "Tài liệu hướng dẫn",
+    "videoTutorials": "Video hướng dẫn",
+    "documentation": "Tài liệu chi tiết",
+    "knowledgeBase": "Cơ sở kiến thức",
+    "faq": "Câu hỏi thường gặp",
+    "needMoreHelp": "Cần hỗ trợ thêm?",
+    "supportAvailable": "Đội ngũ hỗ trợ của chúng tôi hoạt động 24/7",
+    "email": "Email",
+    "phone": "Điện thoại",
+    "hours": "Thời gian"
+  },
+  "about": {
+    "title": "Giới thiệu",
+    "appName": "Room Weave Pro",
+    "tagline": "Hệ thống Quản lý Khách sạn Chuyên nghiệp",
+    "version": "Phiên bản",
+    "features": "Tính năng",
+    "realTimeManagement": "Quản lý thời gian thực",
+    "realTimeDesc": "Theo dõi kho, giặt là và bảo trì theo thời gian thực",
+    "multiHotelSupport": "Hỗ trợ đa khách sạn",
+    "multiHotelDesc": "Quản lý nhiều cơ sở từ một nền tảng",
+    "secureReliable": "An toàn & Đáng tin cậy",
+    "secureDesc": "Bảo mật cấp doanh nghiệp với kiểm soát truy cập theo vai trò",
+    "legal": "Pháp lý",
+    "termsOfService": "Điều khoản dịch vụ",
+    "privacyPolicy": "Chính sách bảo mật",
+    "licenses": "Giấy phép",
+    "builtWith": "Xây dựng với ❤️ cho ngành khách sạn",
+    "copyright": "© 2024 Room Weave Pro. Đã đăng ký bản quyền."
+  }
 }

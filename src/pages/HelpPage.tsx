@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Card } from '@/components/ui/card'
 import { 
   HelpCircle, 
@@ -17,6 +18,8 @@ import {
 } from '@/components/ui/accordion'
 
 export default function HelpPage() {
+  const { t } = useTranslation('common')
+  
   const faqs = [
     {
       question: 'Làm sao để thêm sản phẩm mới vào kho?',
@@ -46,7 +49,6 @@ export default function HelpPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
       <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-b">
         <div className="max-w-screen-xl mx-auto px-4 py-8">
           <div className="flex items-center gap-3">
@@ -54,9 +56,9 @@ export default function HelpPage() {
               <HelpCircle className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Trợ giúp & Hỗ trợ</h1>
+              <h1 className="text-2xl font-bold">{t('help.title')}</h1>
               <p className="text-sm text-muted-foreground">
-                Chúng tôi luôn sẵn sàng hỗ trợ bạn
+                {t('help.subtitle')}
               </p>
             </div>
           </div>
@@ -64,59 +66,56 @@ export default function HelpPage() {
       </div>
 
       <div className="max-w-screen-xl mx-auto px-4 py-6 space-y-6">
-        {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3">
           <Card className="p-4 hover:bg-accent transition-colors cursor-pointer">
             <div className="flex flex-col items-center text-center gap-2">
               <MessageCircle className="h-8 w-8 text-primary" />
-              <span className="text-sm font-medium">Chat trực tuyến</span>
+              <span className="text-sm font-medium">{t('help.liveChat')}</span>
             </div>
           </Card>
           <Card className="p-4 hover:bg-accent transition-colors cursor-pointer">
             <div className="flex flex-col items-center text-center gap-2">
               <Mail className="h-8 w-8 text-primary" />
-              <span className="text-sm font-medium">Gửi email</span>
+              <span className="text-sm font-medium">{t('help.sendEmail')}</span>
             </div>
           </Card>
           <Card className="p-4 hover:bg-accent transition-colors cursor-pointer">
             <div className="flex flex-col items-center text-center gap-2">
               <Phone className="h-8 w-8 text-primary" />
-              <span className="text-sm font-medium">Gọi hỗ trợ</span>
+              <span className="text-sm font-medium">{t('help.callSupport')}</span>
             </div>
           </Card>
           <Card className="p-4 hover:bg-accent transition-colors cursor-pointer">
             <div className="flex flex-col items-center text-center gap-2">
               <Book className="h-8 w-8 text-primary" />
-              <span className="text-sm font-medium">Hướng dẫn sử dụng</span>
+              <span className="text-sm font-medium">{t('help.userGuide')}</span>
             </div>
           </Card>
         </div>
 
-        {/* Resources */}
         <div>
-          <h2 className="text-lg font-semibold mb-3">Tài liệu hướng dẫn</h2>
+          <h2 className="text-lg font-semibold mb-3">{t('help.resources')}</h2>
           <Card>
             <a href="#" className="flex items-center gap-3 p-4 hover:bg-accent transition-colors">
               <Video className="h-5 w-5 text-primary" />
-              <span className="flex-1">Video hướng dẫn</span>
+              <span className="flex-1">{t('help.videoTutorials')}</span>
               <ExternalLink className="h-4 w-4 text-muted-foreground" />
             </a>
             <a href="#" className="flex items-center gap-3 p-4 hover:bg-accent transition-colors border-t">
               <FileText className="h-5 w-5 text-primary" />
-              <span className="flex-1">Tài liệu chi tiết</span>
+              <span className="flex-1">{t('help.documentation')}</span>
               <ExternalLink className="h-4 w-4 text-muted-foreground" />
             </a>
             <a href="#" className="flex items-center gap-3 p-4 hover:bg-accent transition-colors border-t">
               <Book className="h-5 w-5 text-primary" />
-              <span className="flex-1">Cơ sở kiến thức</span>
+              <span className="flex-1">{t('help.knowledgeBase')}</span>
               <ExternalLink className="h-4 w-4 text-muted-foreground" />
             </a>
           </Card>
         </div>
 
-        {/* FAQs */}
         <div>
-          <h2 className="text-lg font-semibold mb-3">Câu hỏi thường gặp</h2>
+          <h2 className="text-lg font-semibold mb-3">{t('help.faq')}</h2>
           <Card className="p-4">
             <Accordion type="single" collapsible>
               {faqs.map((faq, index) => (
@@ -135,21 +134,20 @@ export default function HelpPage() {
           </Card>
         </div>
 
-        {/* Contact Info */}
         <Card className="p-6 bg-gradient-to-br from-primary/5 to-background">
-          <h3 className="font-semibold mb-2">Cần hỗ trợ thêm?</h3>
+          <h3 className="font-semibold mb-2">{t('help.needMoreHelp')}</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            Đội ngũ hỗ trợ của chúng tôi hoạt động 24/7
+            {t('help.supportAvailable')}
           </p>
           <div className="space-y-2 text-sm">
             <p>
-              <strong>Email:</strong> hotro@roomweave.vn
+              <strong>{t('help.email')}:</strong> hotro@roomweave.vn
             </p>
             <p>
-              <strong>Điện thoại:</strong> 1900 xxxx xx
+              <strong>{t('help.phone')}:</strong> 1900 xxxx xx
             </p>
             <p>
-              <strong>Thời gian:</strong> 24/7
+              <strong>{t('help.hours')}:</strong> 24/7
             </p>
           </div>
         </Card>
