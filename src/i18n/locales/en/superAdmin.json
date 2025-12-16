@@ -1,0 +1,90 @@
+{
+  "layout": {
+    "title": "Admin",
+    "loading": "Loading admin portal...",
+    "logout": "Logout",
+    "superAdmin": "Super Admin"
+  },
+  "navigation": {
+    "overview": "Overview",
+    "tenants": "Customers",
+    "promoCodes": "Promo Codes",
+    "campaigns": "Campaigns",
+    "reminders": "Reminders",
+    "pricing": "Pricing",
+    "analytics": "Analytics",
+    "settings": "Settings"
+  },
+  "titles": {
+    "overview": "Overview",
+    "tenantManagement": "Customer Management",
+    "promoCodes": "Promo Codes",
+    "campaigns": "Marketing Campaigns",
+    "reminders": "Renewal Reminders",
+    "pricing": "Pricing Plans",
+    "analytics": "Analytics & Reports",
+    "settings": "System Settings"
+  },
+  "dashboard": {
+    "title": "Admin Dashboard",
+    "subtitle": "Monitor your SaaS platform performance",
+    "refresh": "Refresh",
+    "exportReport": "Export Report",
+    "totalRevenue": "Total Revenue",
+    "activeCustomers": "Active Customers",
+    "onTrial": "on trial",
+    "recurringRevenue": "Recurring Revenue",
+    "arpu": "ARPU",
+    "arpuDesc": "Average Revenue Per User",
+    "vsLastMonth": "vs last month",
+    "tabs": {
+      "overview": "Overview",
+      "revenue": "Revenue",
+      "tenants": "Customers",
+      "activity": "Activity"
+    },
+    "charts": {
+      "revenueTrend": "Revenue Trend",
+      "mrrGrowth": "MRR Growth",
+      "tenantGrowth": "Customer Growth",
+      "planDistribution": "Plan Distribution"
+    },
+    "revenue": {
+      "thisMonth": "Revenue This Month",
+      "lastMonth": "Last Month",
+      "arr": "ARR",
+      "fromMonthlySubscriptions": "From monthly subscriptions",
+      "lastMonthRevenue": "Last month revenue",
+      "annualRecurringRevenue": "Annual Recurring Revenue",
+      "byPlan": "Revenue by Plan",
+      "customers": "customers"
+    },
+    "tenants": {
+      "active": "Active",
+      "trial": "Trial",
+      "expiringSoon": "Expiring Soon",
+      "gracePeriod": "Grace Period",
+      "growthLast30Days": "Customer Growth (Last 30 Days)"
+    },
+    "noData": "No data"
+  },
+  "health": {
+    "title": "Platform Health",
+    "expiringSoon": "Expiring Soon",
+    "gracePeriod": "Grace Period",
+    "churnRate": "Churn Rate",
+    "newSignups": "New Signups",
+    "tenantsExpire7Days": "{{count}} tenants expire in next 7 days",
+    "tenantsInGracePeriod": "{{count}} tenants in grace period",
+    "churnLast30Days": "{{rate}}% churn in last 30 days",
+    "newSignupsThisMonth": "{{count}} new signups this month",
+    "expiringAlert": "{{count}} tenants will expire in the next 7 days. Consider sending targeted renewal campaigns."
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "createPromoCode": "Create Promo Code",
+    "newCampaign": "New Campaign",
+    "scheduleReminders": "Schedule Reminders",
+    "generateReport": "Generate Report"
+  }
+}

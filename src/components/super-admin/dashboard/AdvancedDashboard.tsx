@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ import { QuickActions } from './QuickActions';
 import { HealthIndicators } from './HealthIndicators';
 
 export function AdvancedDashboard() {
+  const { t } = useTranslation('superAdmin');
   const { data: stats, isLoading, refetch } = useSuperAdminStats();
   const { data: revenueByPlan } = useRevenueByPlan();
   const { data: growth } = useTenantGrowth(30);
@@ -40,19 +42,19 @@ export function AdvancedDashboard() {
       {/* Header Actions */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Bảng điều khiển quản trị</h1>
+          <h1 className="text-3xl font-bold">{t('dashboard.title')}</h1>
           <p className="text-muted-foreground mt-1">
-            Theo dõi hiệu suất nền tảng SaaS của bạn
+            {t('dashboard.subtitle')}
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-2" />
-            Làm mới
+            {t('dashboard.refresh')}
           </Button>
           <Button>
             <Download className="h-4 w-4 mr-2" />
-            Xuất báo cáo
+            {t('dashboard.exportReport')}
           </Button>
         </div>
       </div>
@@ -60,32 +62,34 @@ export function AdvancedDashboard() {
       {/* Quick Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
-          title="Tổng doanh thu"
+          title={t('dashboard.totalRevenue')}
           value={`${totalRevenue.toLocaleString('vi-VN')}đ`}
           change="+12.5%"
           trend="up"
           icon={DollarSign}
           color="green"
+          vsLastMonth={t('dashboard.vsLastMonth')}
         />
         <MetricCard
-          title="Khách hàng hoạt động"
+          title={t('dashboard.activeCustomers')}
           value={stats?.active_tenants || 0}
-          subtitle={`${stats?.trial_tenants || 0} đang dùng thử`}
+          subtitle={`${stats?.trial_tenants || 0} ${t('dashboard.onTrial')}`}
           icon={Users}
           color="blue"
         />
         <MetricCard
-          title="Doanh thu định kỳ"
+          title={t('dashboard.recurringRevenue')}
           value={`${(stats?.mrr || 0).toLocaleString('vi-VN')}đ`}
           change={`+${growthRate}%`}
           trend={Number(growthRate) > 0 ? 'up' : 'down'}
           icon={TrendingUp}
           color="purple"
+          vsLastMonth={t('dashboard.vsLastMonth')}
         />
         <MetricCard
-          title="ARPU"
+          title={t('dashboard.arpu')}
           value={`${Number(arpu).toLocaleString('vi-VN')}đ`}
-          subtitle="Doanh thu trung bình/khách hàng"
+          subtitle={t('dashboard.arpuDesc')}
           icon={DollarSign}
           color="orange"
         />
@@ -97,10 +101,10 @@ export function AdvancedDashboard() {
       {/* Main Content Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="overview">Tổng quan</TabsTrigger>
-          <TabsTrigger value="revenue">Doanh thu</TabsTrigger>
-          <TabsTrigger value="tenants">Khách hàng</TabsTrigger>
-          <TabsTrigger value="activity">Hoạt động</TabsTrigger>
+          <TabsTrigger value="overview">{t('dashboard.tabs.overview')}</TabsTrigger>
+          <TabsTrigger value="revenue">{t('dashboard.tabs.revenue')}</TabsTrigger>
+          <TabsTrigger value="tenants">{t('dashboard.tabs.tenants')}</TabsTrigger>
+          <TabsTrigger value="activity">{t('dashboard.tabs.activity')}</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -108,7 +112,7 @@ export function AdvancedDashboard() {
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Xu hướng doanh thu</CardTitle>
+                <CardTitle>{t('dashboard.charts.revenueTrend')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <RevenueChart />
@@ -117,7 +121,7 @@ export function AdvancedDashboard() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Tăng trưởng MRR</CardTitle>
+                <CardTitle>{t('dashboard.charts.mrrGrowth')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <MRRChart />
@@ -128,7 +132,7 @@ export function AdvancedDashboard() {
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Tăng trưởng khách hàng</CardTitle>
+                <CardTitle>{t('dashboard.charts.tenantGrowth')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <TenantGrowthChart />
@@ -137,7 +141,7 @@ export function AdvancedDashboard() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Phân bổ gói dịch vụ</CardTitle>
+                <CardTitle>{t('dashboard.charts.planDistribution')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <PlanDistributionChart data={revenueByPlan} />
@@ -151,42 +155,42 @@ export function AdvancedDashboard() {
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-medium">Doanh thu tháng này</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('dashboard.revenue.thisMonth')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
                   {(stats?.revenue_this_month || 0).toLocaleString('vi-VN')}đ
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Từ các gói đăng ký hàng tháng
+                  {t('dashboard.revenue.fromMonthlySubscriptions')}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-medium">Tháng trước</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('dashboard.revenue.lastMonth')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
                   {(stats?.revenue_last_month || 0).toLocaleString('vi-VN')}đ
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Doanh thu tháng trước
+                  {t('dashboard.revenue.lastMonthRevenue')}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-medium">ARR</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('dashboard.revenue.arr')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
                   {((stats?.mrr || 0) * 12).toLocaleString('vi-VN')}đ
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Doanh thu định kỳ hàng năm
+                  {t('dashboard.revenue.annualRecurringRevenue')}
                 </p>
               </CardContent>
             </Card>
@@ -194,10 +198,10 @@ export function AdvancedDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Doanh thu theo gói</CardTitle>
+              <CardTitle>{t('dashboard.revenue.byPlan')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <RevenueByPlanTable data={revenueByPlan} />
+              <RevenueByPlanTable data={revenueByPlan} noDataText={t('dashboard.noData')} customersText={t('dashboard.revenue.customers')} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -206,25 +210,25 @@ export function AdvancedDashboard() {
         <TabsContent value="tenants" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-4">
             <StatusCard
-              title="Hoạt động"
+              title={t('dashboard.tenants.active')}
               count={stats?.active_tenants || 0}
               color="green"
               icon={CheckCircle2}
             />
             <StatusCard
-              title="Dùng thử"
+              title={t('dashboard.tenants.trial')}
               count={stats?.trial_tenants || 0}
               color="blue"
               icon={Users}
             />
             <StatusCard
-              title="Sắp hết hạn"
+              title={t('dashboard.tenants.expiringSoon')}
               count={stats?.expiring_7_days || 0}
               color="yellow"
               icon={AlertTriangle}
             />
             <StatusCard
-              title="Gia hạn"
+              title={t('dashboard.tenants.gracePeriod')}
               count={stats?.in_grace_period || 0}
               color="red"
               icon={AlertTriangle}
@@ -233,7 +237,7 @@ export function AdvancedDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Tăng trưởng khách hàng (30 ngày qua)</CardTitle>
+              <CardTitle>{t('dashboard.tenants.growthLast30Days')}</CardTitle>
             </CardHeader>
             <CardContent>
               <TenantGrowthChart />
@@ -268,9 +272,10 @@ interface MetricCardProps {
   subtitle?: string;
   icon: any;
   color: 'green' | 'blue' | 'purple' | 'orange';
+  vsLastMonth?: string;
 }
 
-function MetricCard({ title, value, change, trend, subtitle, icon: Icon, color }: MetricCardProps) {
+function MetricCard({ title, value, change, trend, subtitle, icon: Icon, color, vsLastMonth }: MetricCardProps) {
   const colorClasses = {
     green: 'bg-green-500',
     blue: 'bg-blue-500',
@@ -300,7 +305,7 @@ function MetricCard({ title, value, change, trend, subtitle, icon: Icon, color }
             <span className={`text-sm ${trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
               {change}
             </span>
-            <span className="text-xs text-muted-foreground ml-1">so với tháng trước</span>
+            {vsLastMonth && <span className="text-xs text-muted-foreground ml-1">{vsLastMonth}</span>}
           </div>
         )}
         {subtitle && (
@@ -334,8 +339,8 @@ function StatusCard({ title, count, color, icon: Icon }: any) {
   );
 }
 
-function RevenueByPlanTable({ data }: any) {
-  if (!data || data.length === 0) return <p className="text-center text-muted-foreground">Không có dữ liệu</p>;
+function RevenueByPlanTable({ data, noDataText, customersText }: { data: any; noDataText: string; customersText: string }) {
+  if (!data || data.length === 0) return <p className="text-center text-muted-foreground">{noDataText}</p>;
 
   return (
     <div className="space-y-3">
@@ -343,7 +348,7 @@ function RevenueByPlanTable({ data }: any) {
         <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted">
           <div className="flex-1">
             <div className="font-medium">{plan.planName}</div>
-            <div className="text-sm text-muted-foreground">{plan.tenantCount} khách hàng</div>
+            <div className="text-sm text-muted-foreground">{plan.tenantCount} {customersText}</div>
           </div>
           <div className="text-right">
             <div className="font-bold text-lg text-green-600">

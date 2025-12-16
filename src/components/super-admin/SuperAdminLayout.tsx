@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
   Users,
@@ -19,39 +20,40 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useSuperAdminAuth } from '@/hooks/useSuperAdminAuth';
 
-const navigation = [
-  { name: 'Tổng quan', href: '/super-admin', icon: LayoutDashboard },
-  { name: 'Khách hàng', href: '/super-admin/tenants', icon: Users },
-  { name: 'Mã khuyến mãi', href: '/super-admin/promo-codes', icon: Tag },
-  { name: 'Chiến dịch', href: '/super-admin/campaigns', icon: Mail },
-  { name: 'Nhắc nhở', href: '/super-admin/reminders', icon: Bell },
-  { name: 'Gói dịch vụ', href: '/super-admin/pricing', icon: DollarSign },
-  { name: 'Thống kê', href: '/super-admin/analytics', icon: BarChart3 },
-  { name: 'Cài đặt', href: '/super-admin/settings', icon: Settings },
-];
-
-const navigationTitles: Record<string, string> = {
-  '/super-admin': 'Tổng quan',
-  '/super-admin/tenants': 'Quản lý khách hàng',
-  '/super-admin/promo-codes': 'Mã khuyến mãi',
-  '/super-admin/campaigns': 'Chiến dịch marketing',
-  '/super-admin/reminders': 'Nhắc nhở gia hạn',
-  '/super-admin/pricing': 'Gói dịch vụ',
-  '/super-admin/analytics': 'Thống kê & Báo cáo',
-  '/super-admin/settings': 'Cài đặt hệ thống',
-};
-
 export function SuperAdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { user, isLoading, signOut } = useSuperAdminAuth();
+  const { t } = useTranslation('superAdmin');
+
+  const navigation = [
+    { name: t('navigation.overview'), href: '/super-admin', icon: LayoutDashboard },
+    { name: t('navigation.tenants'), href: '/super-admin/tenants', icon: Users },
+    { name: t('navigation.promoCodes'), href: '/super-admin/promo-codes', icon: Tag },
+    { name: t('navigation.campaigns'), href: '/super-admin/campaigns', icon: Mail },
+    { name: t('navigation.reminders'), href: '/super-admin/reminders', icon: Bell },
+    { name: t('navigation.pricing'), href: '/super-admin/pricing', icon: DollarSign },
+    { name: t('navigation.analytics'), href: '/super-admin/analytics', icon: BarChart3 },
+    { name: t('navigation.settings'), href: '/super-admin/settings', icon: Settings },
+  ];
+
+  const navigationTitles: Record<string, string> = {
+    '/super-admin': t('titles.overview'),
+    '/super-admin/tenants': t('titles.tenantManagement'),
+    '/super-admin/promo-codes': t('titles.promoCodes'),
+    '/super-admin/campaigns': t('titles.campaigns'),
+    '/super-admin/reminders': t('titles.reminders'),
+    '/super-admin/pricing': t('titles.pricing'),
+    '/super-admin/analytics': t('titles.analytics'),
+    '/super-admin/settings': t('titles.settings'),
+  };
 
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-muted/30">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Đang tải cổng quản trị...</p>
+          <p className="mt-4 text-muted-foreground">{t('layout.loading')}</p>
         </div>
       </div>
     );
@@ -81,7 +83,7 @@ export function SuperAdminLayout() {
               <div className="p-1.5 rounded-lg bg-gradient-to-br from-primary to-primary/60">
                 <Shield className="h-5 w-5 text-primary-foreground" />
               </div>
-              <h1 className="text-xl font-bold text-foreground">Quản trị viên</h1>
+              <h1 className="text-xl font-bold text-foreground">{t('layout.title')}</h1>
             </div>
             <Button
               variant="ghost"
@@ -130,7 +132,7 @@ export function SuperAdminLayout() {
                 <p className="text-sm font-medium text-foreground truncate">
                   {user?.email}
                 </p>
-                <p className="text-xs text-muted-foreground">Quản trị viên cấp cao</p>
+                <p className="text-xs text-muted-foreground">{t('layout.superAdmin')}</p>
               </div>
             </div>
             <Button
@@ -140,7 +142,7 @@ export function SuperAdminLayout() {
               onClick={signOut}
             >
               <LogOut className="h-4 w-4 mr-2" />
-              Đăng xuất
+              {t('layout.logout')}
             </Button>
           </div>
         </div>
@@ -161,7 +163,7 @@ export function SuperAdminLayout() {
           
           <div className="flex-1 flex items-center justify-between">
             <h2 className="text-2xl font-bold text-foreground">
-              {navigationTitles[location.pathname] || 'Tổng quan'}
+              {navigationTitles[location.pathname] || t('titles.overview')}
             </h2>
           </div>
         </header>

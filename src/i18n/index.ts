@@ -22,6 +22,7 @@ import viHotels from './locales/vi/hotels.json';
 import viUsers from './locales/vi/users.json';
 import viPurchaseOrders from './locales/vi/purchaseOrders.json';
 import viDistribution from './locales/vi/distribution.json';
+import viSuperAdmin from './locales/vi/superAdmin.json';
 
 // Import translations - English Common
 import enCommon from './locales/en/common.json';
@@ -43,6 +44,7 @@ import enHotels from './locales/en/hotels.json';
 import enUsers from './locales/en/users.json';
 import enPurchaseOrders from './locales/en/purchaseOrders.json';
 import enDistribution from './locales/en/distribution.json';
+import enSuperAdmin from './locales/en/superAdmin.json';
 
 export const resources = {
   vi: {
@@ -63,6 +65,7 @@ export const resources = {
     users: viUsers,
     purchaseOrders: viPurchaseOrders,
     distribution: viDistribution,
+    superAdmin: viSuperAdmin,
   },
   en: {
     common: enCommon,
@@ -82,6 +85,7 @@ export const resources = {
     users: enUsers,
     purchaseOrders: enPurchaseOrders,
     distribution: enDistribution,
+    superAdmin: enSuperAdmin,
   },
 };
 
@@ -110,6 +114,7 @@ i18n
       'users',
       'purchaseOrders',
       'distribution',
+      'superAdmin',
     ],
     interpolation: {
       escapeValue: false,

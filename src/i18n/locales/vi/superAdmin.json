@@ -1,0 +1,90 @@
+{
+  "layout": {
+    "title": "Quản trị viên",
+    "loading": "Đang tải cổng quản trị...",
+    "logout": "Đăng xuất",
+    "superAdmin": "Quản trị viên cấp cao"
+  },
+  "navigation": {
+    "overview": "Tổng quan",
+    "tenants": "Khách hàng",
+    "promoCodes": "Mã khuyến mãi",
+    "campaigns": "Chiến dịch",
+    "reminders": "Nhắc nhở",
+    "pricing": "Gói dịch vụ",
+    "analytics": "Thống kê",
+    "settings": "Cài đặt"
+  },
+  "titles": {
+    "overview": "Tổng quan",
+    "tenantManagement": "Quản lý khách hàng",
+    "promoCodes": "Mã khuyến mãi",
+    "campaigns": "Chiến dịch marketing",
+    "reminders": "Nhắc nhở gia hạn",
+    "pricing": "Gói dịch vụ",
+    "analytics": "Thống kê & Báo cáo",
+    "settings": "Cài đặt hệ thống"
+  },
+  "dashboard": {
+    "title": "Bảng điều khiển quản trị",
+    "subtitle": "Theo dõi hiệu suất nền tảng SaaS của bạn",
+    "refresh": "Làm mới",
+    "exportReport": "Xuất báo cáo",
+    "totalRevenue": "Tổng doanh thu",
+    "activeCustomers": "Khách hàng hoạt động",
+    "onTrial": "đang dùng thử",
+    "recurringRevenue": "Doanh thu định kỳ",
+    "arpu": "ARPU",
+    "arpuDesc": "Doanh thu trung bình/khách hàng",
+    "vsLastMonth": "so với tháng trước",
+    "tabs": {
+      "overview": "Tổng quan",
+      "revenue": "Doanh thu",
+      "tenants": "Khách hàng",
+      "activity": "Hoạt động"
+    },
+    "charts": {
+      "revenueTrend": "Xu hướng doanh thu",
+      "mrrGrowth": "Tăng trưởng MRR",
+      "tenantGrowth": "Tăng trưởng khách hàng",
+      "planDistribution": "Phân bổ gói dịch vụ"
+    },
+    "revenue": {
+      "thisMonth": "Doanh thu tháng này",
+      "lastMonth": "Tháng trước",
+      "arr": "ARR",
+      "fromMonthlySubscriptions": "Từ các gói đăng ký hàng tháng",
+      "lastMonthRevenue": "Doanh thu tháng trước",
+      "annualRecurringRevenue": "Doanh thu định kỳ hàng năm",
+      "byPlan": "Doanh thu theo gói",
+      "customers": "khách hàng"
+    },
+    "tenants": {
+      "active": "Hoạt động",
+      "trial": "Dùng thử",
+      "expiringSoon": "Sắp hết hạn",
+      "gracePeriod": "Gia hạn",
+      "growthLast30Days": "Tăng trưởng khách hàng (30 ngày qua)"
+    },
+    "noData": "Không có dữ liệu"
+  },
+  "health": {
+    "title": "Platform Health",
+    "expiringSoon": "Expiring Soon",
+    "gracePeriod": "Grace Period",
+    "churnRate": "Churn Rate",
+    "newSignups": "New Signups",
+    "tenantsExpire7Days": "{{count}} tenants expire in next 7 days",
+    "tenantsInGracePeriod": "{{count}} tenants in grace period",
+    "churnLast30Days": "{{rate}}% churn in last 30 days",
+    "newSignupsThisMonth": "{{count}} new signups this month",
+    "expiringAlert": "{{count}} tenants will expire in the next 7 days. Consider sending targeted renewal campaigns."
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "createPromoCode": "Tạo mã khuyến mãi",
+    "newCampaign": "Chiến dịch mới",
+    "scheduleReminders": "Lên lịch nhắc nhở",
+    "generateReport": "Tạo báo cáo"
+  }
+}

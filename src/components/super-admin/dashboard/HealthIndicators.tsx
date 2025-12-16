@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
@@ -12,41 +13,43 @@ interface HealthIndicatorsProps {
 }
 
 export function HealthIndicators({ stats, churn }: HealthIndicatorsProps) {
+  const { t } = useTranslation('superAdmin');
+
   const indicators = [
     {
-      name: 'Expiring Soon',
+      name: t('health.expiringSoon'),
       value: stats?.expiring_7_days || 0,
       threshold: 10,
       status: (stats?.expiring_7_days || 0) < 10 ? 'good' : 'warning',
-      message: `${stats?.expiring_7_days || 0} tenants expire in next 7 days`,
+      message: t('health.tenantsExpire7Days', { count: stats?.expiring_7_days || 0 }),
     },
     {
-      name: 'Grace Period',
+      name: t('health.gracePeriod'),
       value: stats?.in_grace_period || 0,
       threshold: 5,
       status: (stats?.in_grace_period || 0) === 0 ? 'good' : 'critical',
-      message: `${stats?.in_grace_period || 0} tenants in grace period`,
+      message: t('health.tenantsInGracePeriod', { count: stats?.in_grace_period || 0 }),
     },
     {
-      name: 'Churn Rate',
+      name: t('health.churnRate'),
       value: parseFloat(churn?.churnRate || '0'),
       threshold: 5,
       status: parseFloat(churn?.churnRate || '0') < 5 ? 'good' : 'warning',
-      message: `${churn?.churnRate || 0}% churn in last 30 days`,
+      message: t('health.churnLast30Days', { rate: churn?.churnRate || 0 }),
     },
     {
-      name: 'New Signups',
+      name: t('health.newSignups'),
       value: stats?.new_signups_this_month || 0,
       threshold: 10,
       status: 'good',
-      message: `${stats?.new_signups_this_month || 0} new signups this month`,
+      message: t('health.newSignupsThisMonth', { count: stats?.new_signups_this_month || 0 }),
     },
   ];
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Platform Health</CardTitle>
+        <CardTitle>{t('health.title')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -75,7 +78,7 @@ export function HealthIndicators({ stats, churn }: HealthIndicatorsProps) {
               </div>
               <div className="text-2xl font-bold mb-1">
                 {indicator.value}
-                {indicator.name === 'Churn Rate' && '%'}
+                {indicator.name === t('health.churnRate') && '%'}
               </div>
               <p className="text-xs text-muted-foreground">{indicator.message}</p>
             </div>
@@ -87,8 +90,7 @@ export function HealthIndicators({ stats, churn }: HealthIndicatorsProps) {
           <Alert className="mt-4" variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              <strong>{stats.expiring_7_days}</strong> tenants will expire in the next 7 days. 
-              Consider sending targeted renewal campaigns.
+              {t('health.expiringAlert', { count: stats.expiring_7_days })}
             </AlertDescription>
           </Alert>
         )}
