@@ -11,11 +11,13 @@ import { CreateBatchStep3 } from '@/components/laundry/CreateBatchStep3'
 import { MobileBatchForm } from '@/components/laundry/MobileBatchForm'
 import { useCreateLaundryBatch } from '@/hooks/useLaundryBatches'
 import { useBreakpoint } from '@/lib/breakpoints'
+import { useTranslation } from 'react-i18next'
 import type { CreateBatchStep1Data, CreateBatchStep2Data, CreateBatchStep3Data } from '@/types/laundry.types'
 
 export function CreateBatchPage() {
   const navigate = useNavigate()
   const { isMobile } = useBreakpoint()
+  const { t } = useTranslation('laundry')
   
   // Gọi TẤT CẢ hooks trước điều kiện isMobile
   const [step, setStep] = useState(1)
@@ -55,20 +57,20 @@ export function CreateBatchPage() {
   }
   
   const steps = [
-    { number: 1, title: 'Thông tin cơ bản' },
-    { number: 2, title: 'Chọn đồ giặt' },
-    { number: 3, title: 'Xác nhận' },
+    { number: 1, title: t('createBatch.steps.basicInfo', 'Thông tin cơ bản') },
+    { number: 2, title: t('createBatch.steps.selectItems', 'Chọn đồ giặt') },
+    { number: 3, title: t('createBatch.steps.confirm', 'Xác nhận') },
   ]
   
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Tạo lô giặt mới"
-        description="Tạo lô giặt và giao cho đơn vị giặt"
+        title={t('createBatch.title', 'Tạo lô giặt mới')}
+        description={t('createBatch.description', 'Tạo lô giặt và giao cho đơn vị giặt')}
       >
         <Button variant="outline" onClick={() => navigate(-1)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Quay lại
+          {t('common:back', 'Quay lại')}
         </Button>
       </PageHeader>
       

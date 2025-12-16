@@ -1,0 +1,38 @@
+{
+  "title": "Reports",
+  "description": "View and download statistical reports",
+  "view": "View",
+  "download": "Download",
+  "types": {
+    "inventory": {
+      "title": "Inventory Report",
+      "description": "Stock status and asset movements"
+    },
+    "expenses": {
+      "title": "Expense Report",
+      "description": "Summary of laundry and maintenance costs"
+    },
+    "laundry": {
+      "title": "Laundry Report",
+      "description": "Statistics on laundry batches and vendors"
+    },
+    "rooms": {
+      "title": "Room Report",
+      "description": "Room status and assets by room"
+    },
+    "performance": {
+      "title": "Performance Report",
+      "description": "Staff performance evaluation"
+    },
+    "summary": {
+      "title": "Summary Report",
+      "description": "Overall operations overview"
+    }
+  },
+  "custom": {
+    "title": "Create Custom Report",
+    "description": "Select parameters to create a report based on your needs",
+    "developing": "Feature under development",
+    "comingSoon": "Custom report creation will be available soon"
+  }
+}

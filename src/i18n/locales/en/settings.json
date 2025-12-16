@@ -2,10 +2,11 @@
   "title": "Settings",
   "general": {
     "title": "General Settings",
+    "description": "Manage system settings and preferences",
     "language": "Language",
     "theme": "Theme",
-    "darkMode": "Dark Mode",
-    "lightMode": "Light Mode",
+    "darkMode": "Dark",
+    "lightMode": "Light",
     "timezone": "Timezone",
     "dateFormat": "Date Format",
     "currency": "Currency"
@@ -50,12 +51,32 @@
     "parentCategory": "Parent Category"
   },
   "notifications": {
-    "title": "Notification Settings"
+    "title": "Notification Settings",
+    "description": "Configure the types of notifications you want to receive",
+    "email": "Email Notifications",
+    "push": "Push Notifications",
+    "batch": "Laundry Batch Notifications"
   },
   "security": {
     "title": "Security",
+    "description": "Security-related settings",
     "twoFactor": "Two-Factor Authentication",
     "sessions": "Active Sessions",
     "activityLog": "Activity Log"
+  },
+  "appearance": {
+    "title": "Appearance",
+    "description": "Customize application appearance",
+    "displayMode": "Display Mode",
+    "system": "System",
+    "compact": "Compact Mode"
+  },
+  "system": {
+    "title": "System Settings",
+    "description": "Configure system parameters"
+  },
+  "demoData": {
+    "title": "Demo Data",
+    "description": "Create demo data to test the system"
   }
 }

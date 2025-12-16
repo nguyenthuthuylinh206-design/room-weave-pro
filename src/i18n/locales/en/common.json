@@ -24,7 +24,11 @@
     "viewDetails": "View Details",
     "tryAgain": "Try Again",
     "logout": "Logout",
-    "login": "Login"
+    "login": "Login",
+    "manage": "Manage",
+    "saveChanges": "Save Changes",
+    "view": "View",
+    "download": "Download"
   },
   "status": {
     "active": "Active",
@@ -84,5 +88,11 @@
     "vietnamese": "Tiếng Việt",
     "english": "English",
     "changeLanguage": "Change Language"
-  }
+  },
+  "tip": "Tip",
+  "all": "All",
+  "total": "Total",
+  "details": "Details",
+  "info": "Information",
+  "notes": "Notes"
 }

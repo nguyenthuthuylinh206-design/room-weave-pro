@@ -5,6 +5,7 @@ import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ChevronRight, User, Building2, Users, Mail, Globe, Shield, Database, Bell, LogOut } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface SettingsItem {
   id: string
@@ -16,91 +17,92 @@ interface SettingsItem {
   requireAdmin?: boolean
 }
 
-const SETTINGS_SECTIONS = [
-  {
-    title: 'Tài khoản',
-    items: [
-      {
-        id: 'profile',
-        title: 'Thông tin cá nhân',
-        description: 'Cập nhật thông tin và mật khẩu',
-        icon: User,
-        route: '/settings/profile',
-      },
-    ] as SettingsItem[],
-  },
-  {
-    title: 'Quản lý',
-    items: [
-      {
-        id: 'hotels',
-        title: 'Khách sạn',
-        description: 'Quản lý danh sách khách sạn',
-        icon: Building2,
-        route: '/settings/hotels',
-        requireAdmin: true,
-      },
-      {
-        id: 'users',
-        title: 'Người dùng',
-        description: 'Quản lý nhân viên và quyền hạn',
-        icon: Users,
-        route: '/settings/users',
-        requireAdmin: true,
-      },
-      {
-        id: 'categories',
-        title: 'Danh mục',
-        description: 'Quản lý danh mục sản phẩm',
-        icon: Database,
-        route: '/settings/categories',
-      },
-    ] as SettingsItem[],
-  },
-  {
-    title: 'Hệ thống',
-    items: [
-      {
-        id: 'email-templates',
-        title: 'Email Templates',
-        description: 'Quản lý mẫu email',
-        icon: Mail,
-        route: '/settings/email-templates',
-        requireAdmin: true,
-      },
-      {
-        id: 'notifications',
-        title: 'Thông báo',
-        description: 'Cài đặt thông báo',
-        icon: Bell,
-        route: '/settings/notifications',
-      },
-      {
-        id: 'localization',
-        title: 'Ngôn ngữ',
-        description: 'Cài đặt ngôn ngữ và múi giờ',
-        icon: Globe,
-        route: '/settings/localization',
-      },
-      {
-        id: 'roles',
-        title: 'Vai trò & Quyền',
-        description: 'Quản lý phân quyền',
-        icon: Shield,
-        route: '/settings/roles',
-        requireAdmin: true,
-        badge: 'Admin',
-      },
-    ] as SettingsItem[],
-  },
-]
-
 export const MobileSettingsPage = () => {
   const navigate = useNavigate()
   const { user } = useUser()
   const { signOut } = useAuth()
+  const { t } = useTranslation(['settings', 'common', 'auth'])
 
   const isAdmin = user?.user_level_code === 'owner' || user?.user_level_code === 'manager'
+
+  const SETTINGS_SECTIONS = [
+    {
+      title: t('profile.title'),
+      items: [
+        {
+          id: 'profile',
+          title: t('profile.title'),
+          description: t('profile.changePassword'),
+          icon: User,
+          route: '/settings/profile',
+        },
+      ] as SettingsItem[],
+    },
+    {
+      title: t('users.title'),
+      items: [
+        {
+          id: 'hotels',
+          title: t('hotels.title'),
+          description: t('hotels.title'),
+          icon: Building2,
+          route: '/settings/hotels',
+          requireAdmin: true,
+        },
+        {
+          id: 'users',
+          title: t('users.title'),
+          description: t('users.title'),
+          icon: Users,
+          route: '/settings/users',
+          requireAdmin: true,
+        },
+        {
+          id: 'categories',
+          title: t('categories.title'),
+          description: t('categories.title'),
+          icon: Database,
+          route: '/settings/categories',
+        },
+      ] as SettingsItem[],
+    },
+    {
+      title: t('system.title'),
+      items: [
+        {
+          id: 'email-templates',
+          title: 'Email Templates',
+          description: 'Email Templates',
+          icon: Mail,
+          route: '/settings/email-templates',
+          requireAdmin: true,
+        },
+        {
+          id: 'notifications',
+          title: t('notifications.title'),
+          description: t('notifications.description'),
+          icon: Bell,
+          route: '/settings/notifications',
+        },
+        {
+          id: 'localization',
+          title: t('general.language'),
+          description: t('general.timezone'),
+          icon: Globe,
+          route: '/settings/localization',
+        },
+        {
+          id: 'roles',
+          title: t('security.title'),
+          description: t('security.description'),
+          icon: Shield,
+          route: '/settings/roles',
+          requireAdmin: true,
+          badge: 'Admin',
+        },
+      ] as SettingsItem[],
+    },
+  ]
 
   const handleLogout = async () => {
     await signOut()
@@ -110,7 +112,7 @@ export const MobileSettingsPage = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <MobileDetailHeader
-        title="Cài đặt"
+        title={t('title')}
         showBack={false}
       />
 
@@ -194,9 +196,9 @@ export const MobileSettingsPage = () => {
                 <LogOut className="h-5 w-5" />
               </div>
               <div className="flex-1">
-                <p className="font-medium text-sm">Đăng xuất</p>
+                <p className="font-medium text-sm">{t('auth:logout')}</p>
                 <p className="text-xs text-muted-foreground">
-                  Đăng xuất khỏi tài khoản
+                  {t('auth:logout')}
                 </p>
               </div>
             </button>
