@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useTranslation } from 'react-i18next'
 import * as z from 'zod'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -22,29 +23,22 @@ import { ChevronLeft, ChevronRight, Check, Camera } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { compressImage } from '@/lib/imageCompression'
 
-const itemSchema = z.object({
-  code: z.string().min(1, 'Mã là bắt buộc'),
-  name: z.string().min(1, 'Tên là bắt buộc'),
-  name_en: z.string().optional(),
-  category_id: z.string().min(1, 'Danh mục là bắt buộc'),
-  unit: z.string().min(1, 'Đơn vị là bắt buộc'),
-  unit_price: z.number().min(0, 'Đơn giá phải >= 0'),
-  minimum_stock: z.number().min(0, 'Tồn tối thiểu phải >= 0'),
-  description: z.string().optional(),
-  images: z.array(z.string()).optional(),
-})
-
-type ItemFormData = z.infer<typeof itemSchema>
-
-const STEPS = [
-  { id: 1, title: 'Thông tin cơ bản' },
-  { id: 2, title: 'Chi tiết' },
-  { id: 3, title: 'Hình ảnh' },
-]
+type ItemFormData = {
+  code: string
+  name: string
+  name_en?: string
+  category_id: string
+  unit: string
+  unit_price: number
+  minimum_stock: number
+  description?: string
+  images?: string[]
+}
 
 export const MobileItemFormPage = () => {
   const navigate = useNavigate()
   const { id } = useParams()
+  const { t } = useTranslation(['items', 'common'])
   const [currentStep, setCurrentStep] = useState(1)
   const [uploadedImages, setUploadedImages] = useState<string[]>([])
 
@@ -52,6 +46,24 @@ export const MobileItemFormPage = () => {
   const updateItem = useUpdateItem()
   const { data: existingItem, isLoading: itemLoading } = useItem(id)
   const { data: categories = [] } = useItemCategories()
+
+  const itemSchema = z.object({
+    code: z.string().min(1, t('items:validation.codeRequired')),
+    name: z.string().min(1, t('items:validation.nameRequired')),
+    name_en: z.string().optional(),
+    category_id: z.string().min(1, t('items:validation.categoryRequired')),
+    unit: z.string().min(1, t('items:validation.unitRequired')),
+    unit_price: z.number().min(0, t('items:validation.priceMin')),
+    minimum_stock: z.number().min(0, t('items:validation.stockMin')),
+    description: z.string().optional(),
+    images: z.array(z.string()).optional(),
+  })
+
+  const STEPS = [
+    { id: 1, title: t('items:form.steps.basicInfo') },
+    { id: 2, title: t('items:form.steps.details') },
+    { id: 3, title: t('items:form.steps.images') },
+  ]
 
   const form = useForm<ItemFormData>({
     resolver: zodResolver(itemSchema),
@@ -135,7 +147,7 @@ export const MobileItemFormPage = () => {
     return (
       <div className="min-h-screen bg-background pb-20">
         <MobileDetailHeader
-          title={id ? 'Chỉnh sửa tài sản' : 'Tạo tài sản mới'}
+          title={id ? t('items:editItem') : t('items:addNew')}
           showBack
         />
         <div className="p-4">
@@ -152,7 +164,7 @@ export const MobileItemFormPage = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <MobileDetailHeader
-        title={id ? 'Chỉnh sửa tài sản' : 'Tạo tài sản mới'}
+        title={id ? t('items:editItem') : t('items:addNew')}
         showBack
         onBack={handleBack}
       />
@@ -194,9 +206,9 @@ export const MobileItemFormPage = () => {
             <Card>
               <CardContent className="p-4 space-y-4">
                 <div className="space-y-2">
-                  <Label>Mã tài sản *</Label>
+                  <Label>{t('items:fields.code')} *</Label>
                   <Input
-                    placeholder="Ví dụ: FAB-001"
+                    placeholder={t('items:form.codePlaceholder')}
                     {...form.register('code')}
                   />
                   {form.formState.errors.code && (
@@ -207,9 +219,9 @@ export const MobileItemFormPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Tên tài sản *</Label>
+                  <Label>{t('items:fields.name')} *</Label>
                   <Input
-                    placeholder="Ví dụ: Khăn tắm trắng"
+                    placeholder={t('items:form.namePlaceholder')}
                     {...form.register('name')}
                   />
                   {form.formState.errors.name && (
@@ -220,21 +232,21 @@ export const MobileItemFormPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Tên tiếng Anh</Label>
+                  <Label>{t('items:fields.nameEn')}</Label>
                   <Input
-                    placeholder="Ví dụ: Bath Towel White"
+                    placeholder={t('items:form.nameEnPlaceholder')}
                     {...form.register('name_en')}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Danh mục *</Label>
+                  <Label>{t('items:fields.category')} *</Label>
                   <Select
                     value={form.watch('category_id')}
                     onValueChange={(value) => form.setValue('category_id', value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Chọn danh mục" />
+                      <SelectValue placeholder={t('items:form.selectCategory')} />
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((category: any) => (
@@ -259,7 +271,7 @@ export const MobileItemFormPage = () => {
             <Card>
               <CardContent className="p-4 space-y-4">
                 <div className="space-y-2">
-                  <Label>Đơn vị *</Label>
+                  <Label>{t('items:fields.unit')} *</Label>
                   <Select
                     value={form.watch('unit')}
                     onValueChange={(value) => form.setValue('unit', value)}
@@ -268,17 +280,17 @@ export const MobileItemFormPage = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="cái">Cái</SelectItem>
-                      <SelectItem value="chiếc">Chiếc</SelectItem>
-                      <SelectItem value="bộ">Bộ</SelectItem>
-                      <SelectItem value="hộp">Hộp</SelectItem>
-                      <SelectItem value="chai">Chai</SelectItem>
+                      <SelectItem value="cái">{t('items:units.piece')}</SelectItem>
+                      <SelectItem value="chiếc">{t('items:units.item')}</SelectItem>
+                      <SelectItem value="bộ">{t('items:units.set')}</SelectItem>
+                      <SelectItem value="hộp">{t('items:units.box')}</SelectItem>
+                      <SelectItem value="chai">{t('items:units.bottle')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Đơn giá *</Label>
+                  <Label>{t('items:fields.unitPrice')} *</Label>
                   <Input
                     type="number"
                     placeholder="0"
@@ -292,7 +304,7 @@ export const MobileItemFormPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Tồn tối thiểu *</Label>
+                  <Label>{t('items:fields.minimumStock')} *</Label>
                   <Input
                     type="number"
                     placeholder="0"
@@ -306,9 +318,9 @@ export const MobileItemFormPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Mô tả</Label>
+                  <Label>{t('items:fields.description')}</Label>
                   <Textarea
-                    placeholder="Mô tả chi tiết về tài sản"
+                    placeholder={t('items:form.descriptionPlaceholder')}
                     rows={4}
                     {...form.register('description')}
                   />
@@ -322,7 +334,7 @@ export const MobileItemFormPage = () => {
             <Card>
               <CardContent className="p-4 space-y-4">
                 <div className="space-y-2">
-                  <Label>Hình ảnh</Label>
+                  <Label>{t('items:fields.images')}</Label>
                   <div className="grid grid-cols-3 gap-2">
                     {uploadedImages.map((img, index) => (
                       <div key={index} className="relative aspect-square">
@@ -343,7 +355,7 @@ export const MobileItemFormPage = () => {
                     <label className="aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors">
                       <Camera className="h-6 w-6 text-muted-foreground mb-1" />
                       <span className="text-xs text-muted-foreground">
-                        Thêm ảnh
+                        {t('items:form.addImage')}
                       </span>
                       <input
                         type="file"
@@ -368,7 +380,7 @@ export const MobileItemFormPage = () => {
               onClick={handleBack}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
-              {currentStep === 1 ? 'Hủy' : 'Quay lại'}
+              {currentStep === 1 ? t('common:cancel') : t('common:back')}
             </Button>
             <Button
               type="button"
@@ -378,16 +390,16 @@ export const MobileItemFormPage = () => {
             >
               {currentStep === STEPS.length ? (
                 createItem.isPending || updateItem.isPending ? (
-                  'Đang xử lý...'
+                  t('common:processing')
                 ) : (
                   <>
                     <Check className="h-4 w-4 mr-1" />
-                    Hoàn thành
+                    {t('common:complete')}
                   </>
                 )
               ) : (
                 <>
-                  Tiếp theo
+                  {t('common:next')}
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </>
               )}

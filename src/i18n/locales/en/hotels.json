@@ -17,6 +17,7 @@
     "code": "Hotel Code",
     "address": "Address",
     "city": "City",
+    "country": "Country",
     "phone": "Phone",
     "email": "Email",
     "website": "Website",
@@ -24,7 +25,15 @@
     "totalFloors": "Total Floors",
     "manager": "Manager",
     "status": "Status",
-    "type": "Type"
+    "type": "Type",
+    "description": "Description"
+  },
+  "type": {
+    "hotel": "Hotel",
+    "resort": "Resort",
+    "apartment": "Apartment",
+    "hostel": "Hostel",
+    "other": "Other"
   },
   "status": {
     "active": "Active",
@@ -48,5 +57,27 @@
     "all": "All",
     "byStatus": "By Status",
     "search": "Search hotels..."
+  },
+  "form": {
+    "step": "Step {{current}} / {{total}}",
+    "codeDescription": "Code 2-20 characters (uppercase, numbers, dashes)",
+    "codePlaceholder": "E.g: HN01, SGN-01, DA001",
+    "namePlaceholder": "Grand Hotel Hanoi",
+    "selectType": "Select type",
+    "cityPlaceholder": "Hanoi",
+    "countryPlaceholder": "Vietnam",
+    "selectStatus": "Select status"
+  },
+  "validation": {
+    "codeMinLength": "Code must be at least 2 characters",
+    "codeMaxLength": "Code must not exceed 20 characters",
+    "codeFormat": "Code can only contain uppercase letters, numbers and dashes",
+    "nameMinLength": "Name must be at least 2 characters",
+    "cityRequired": "City is required",
+    "countryRequired": "Country is required",
+    "minRooms": "Must have at least 1 room",
+    "minFloors": "Must have at least 1 floor",
+    "invalidEmail": "Invalid email",
+    "invalidUrl": "Invalid URL"
   }
 }
