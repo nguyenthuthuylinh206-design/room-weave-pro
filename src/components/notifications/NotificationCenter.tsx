@@ -35,7 +35,6 @@ interface Notification {
 interface NotificationCenterProps {
   onClose?: () => void;
   onMarkAllRead?: () => void;
-  fullHeight?: boolean;
 }
 
 const typeIcons: Record<string, React.ReactNode> = {
@@ -48,7 +47,7 @@ const typeIcons: Record<string, React.ReactNode> = {
   info: <Info className="h-4 w-4 text-primary" />,
 };
 
-export function NotificationCenter({ onClose, onMarkAllRead, fullHeight = false }: NotificationCenterProps) {
+export function NotificationCenter({ onClose, onMarkAllRead }: NotificationCenterProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -114,9 +113,9 @@ export function NotificationCenter({ onClose, onMarkAllRead, fullHeight = false 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <div className={cn("flex flex-col", fullHeight ? "h-full" : "h-[500px]")}>
+    <div className="flex flex-col max-h-[500px]">
       {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between p-4 border-b">
+      <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2">
           <Bell className="h-5 w-5" />
           <h3 className="font-semibold">Thông báo</h3>
@@ -140,7 +139,7 @@ export function NotificationCenter({ onClose, onMarkAllRead, fullHeight = false 
       </div>
 
       {/* Notifications List */}
-      <ScrollArea className="flex-1 min-h-0">
+      <ScrollArea className="flex-1">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
