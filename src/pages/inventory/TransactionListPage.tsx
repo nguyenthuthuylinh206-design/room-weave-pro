@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Download, Search, Eye, Package, TrendingUp, TrendingDown } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -27,7 +28,7 @@ import { TransactionDetailDialog } from '@/components/inventory/TransactionDetai
 import { useInventoryTransactions } from '@/hooks/useInventoryTransactions'
 
 import { format } from 'date-fns'
-import { vi } from 'date-fns/locale'
+import { vi, enUS } from 'date-fns/locale'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useQueryClient } from '@tanstack/react-query'
 import type { TransactionType, InventoryFilters } from '@/types/inventory.types'
@@ -43,6 +44,7 @@ import { useInView } from 'react-intersection-observer'
 export function TransactionListPage() {
   const navigate = useNavigate()
   const { isMobile } = useBreakpoint()
+  const { t, i18n } = useTranslation(['inventory', 'common'])
   const queryClient = useQueryClient()
   const [selectedTransaction, setSelectedTransaction] = useState<string | null>(null)
   const [filters, setFilters] = useState<InventoryFilters>({
@@ -61,6 +63,8 @@ export function TransactionListPage() {
   const transactions = data?.transactions || []
   const totalPages = data?.totalPages || 0
   const hasNextPage = page < totalPages
+  
+  const dateLocale = i18n.language === 'vi' ? vi : enUS
   
   // Infinite scroll
   const { ref: loadMoreRef, inView } = useInView({
@@ -112,9 +116,9 @@ export function TransactionListPage() {
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
                 <div>
-                  <h1 className="text-lg font-semibold">Lịch sử giao dịch</h1>
+                  <h1 className="text-lg font-semibold">{t('transactionHistory')}</h1>
                   <p className="text-xs text-muted-foreground">
-                    {data?.total || 0} giao dịch
+                    {t('transactionCount', { count: data?.total || 0 })}
                   </p>
                 </div>
               </div>
@@ -124,18 +128,18 @@ export function TransactionListPage() {
             <StatScrollContainer>
               <MobileStatCard
                 icon={Package}
-                title="Tổng giao dịch"
+                title={t('stats.totalTransactions')}
                 value={data?.total || 0}
               />
               <MobileStatCard
                 icon={TrendingDown}
-                title="Tổng nhập"
+                title={t('stats.totalIn')}
                 value={`+${summary.totalIn}`}
                 variant="success"
               />
               <MobileStatCard
                 icon={TrendingUp}
-                title="Tổng xuất"
+                title={t('stats.totalOut')}
                 value={`-${summary.totalOut}`}
                 variant="default"
               />
@@ -207,17 +211,17 @@ export function TransactionListPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Lịch sử giao dịch kho"
-        description="Theo dõi tất cả giao dịch nhập xuất kho"
+        title={t('transactionHistory')}
+        description={t('transactionHistoryDesc')}
       >
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate('/inventory')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Quay lại
+            {t('back')}
           </Button>
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
-            Xuất Excel
+            {t('exportExcel')}
           </Button>
         </div>
       </PageHeader>
@@ -226,7 +230,7 @@ export function TransactionListPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">Tổng giao dịch</p>
+              <p className="text-sm text-muted-foreground">{t('stats.totalTransactions')}</p>
               <p className="text-3xl font-bold">{data?.total || 0}</p>
             </div>
           </CardContent>
@@ -234,22 +238,22 @@ export function TransactionListPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">Tổng nhập</p>
+              <p className="text-sm text-muted-foreground">{t('stats.totalIn')}</p>
               <p className="text-3xl font-bold text-green-600">
                 +{summary.totalIn}
               </p>
-              <p className="text-xs text-muted-foreground">items</p>
+              <p className="text-xs text-muted-foreground">{t('stats.items')}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">Tổng xuất</p>
+              <p className="text-sm text-muted-foreground">{t('stats.totalOut')}</p>
               <p className="text-3xl font-bold text-blue-600">
                 -{summary.totalOut}
               </p>
-              <p className="text-xs text-muted-foreground">items</p>
+              <p className="text-xs text-muted-foreground">{t('stats.items')}</p>
             </div>
           </CardContent>
         </Card>
@@ -261,7 +265,7 @@ export function TransactionListPage() {
             <div className="relative md:col-span-2">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Tìm mã giao dịch, đồ dùng..."
+                placeholder={t('filters.searchPlaceholder')}
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                 className="pl-10"
@@ -289,13 +293,13 @@ export function TransactionListPage() {
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Loại giao dịch" />
+                <SelectValue placeholder={t('fields.transactionType')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tất cả</SelectItem>
-                <SelectItem value="in">Nhập kho</SelectItem>
-                <SelectItem value="out">Xuất kho</SelectItem>
-                <SelectItem value="adjustment">Điều chỉnh</SelectItem>
+                <SelectItem value="all">{t('transactionType.all')}</SelectItem>
+                <SelectItem value="in">{t('transactionLabel.in')}</SelectItem>
+                <SelectItem value="out">{t('transactionLabel.out')}</SelectItem>
+                <SelectItem value="adjustment">{t('transactionType.adjustment')}</SelectItem>
               </SelectContent>
             </Select>
             
@@ -306,17 +310,17 @@ export function TransactionListPage() {
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Danh mục" />
+                <SelectValue placeholder={t('filters.category')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tất cả</SelectItem>
-                <SelectItem value="purchase">Mua hàng</SelectItem>
-                <SelectItem value="sale">Bán hàng</SelectItem>
-                <SelectItem value="transfer_in">Chuyển kho nhập</SelectItem>
-                <SelectItem value="transfer_out">Chuyển kho xuất</SelectItem>
-                <SelectItem value="internal_use">Sử dụng nội bộ</SelectItem>
-                <SelectItem value="loss">Hao hụt</SelectItem>
-                <SelectItem value="damaged">Hư hỏng</SelectItem>
+                <SelectItem value="all">{t('filters.all')}</SelectItem>
+                <SelectItem value="purchase">{t('category.purchase')}</SelectItem>
+                <SelectItem value="sale">{t('category.sale')}</SelectItem>
+                <SelectItem value="transfer_in">{t('category.transfer_in')}</SelectItem>
+                <SelectItem value="transfer_out">{t('category.transfer_out')}</SelectItem>
+                <SelectItem value="internal_use">{t('category.internal_use')}</SelectItem>
+                <SelectItem value="loss">{t('category.loss')}</SelectItem>
+                <SelectItem value="damaged">{t('category.damaged')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -327,25 +331,25 @@ export function TransactionListPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <p>Đang tải...</p>
+              <p>{t('loading')}</p>
             </div>
           ) : transactions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Package className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Không có giao dịch nào</p>
+              <p className="text-muted-foreground">{t('noTransactions')}</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Mã GD</TableHead>
-                  <TableHead>Loại</TableHead>
-                  <TableHead>Đồ dùng</TableHead>
-                  <TableHead>Số lượng</TableHead>
-                  <TableHead>Địa điểm</TableHead>
-                  <TableHead>Người tạo</TableHead>
-                  <TableHead>Ngày</TableHead>
-                  <TableHead className="text-right">Thao tác</TableHead>
+                  <TableHead>{t('table.code')}</TableHead>
+                  <TableHead>{t('table.type')}</TableHead>
+                  <TableHead>{t('table.item')}</TableHead>
+                  <TableHead>{t('table.quantity')}</TableHead>
+                  <TableHead>{t('table.location')}</TableHead>
+                  <TableHead>{t('table.creator')}</TableHead>
+                  <TableHead>{t('table.date')}</TableHead>
+                  <TableHead className="text-right">{t('table.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -378,8 +382,8 @@ export function TransactionListPage() {
                       </span>
                     </TableCell>
                     <TableCell className="text-xs">
-                      {transaction.from_location && <div>Từ: {transaction.from_location}</div>}
-                      {transaction.to_location && <div>Đến: {transaction.to_location}</div>}
+                      {transaction.from_location && <div>{t('table.from')}: {transaction.from_location}</div>}
+                      {transaction.to_location && <div>{t('table.to')}: {transaction.to_location}</div>}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -393,7 +397,7 @@ export function TransactionListPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-sm">
-                      {transaction.created_at ? format(new Date(transaction.created_at), 'dd/MM/yyyy HH:mm', { locale: vi }) : 'N/A'}
+                      {transaction.created_at ? format(new Date(transaction.created_at), 'dd/MM/yyyy HH:mm', { locale: dateLocale }) : 'N/A'}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
@@ -417,7 +421,7 @@ export function TransactionListPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <p className="text-sm text-muted-foreground">
-              Hiển thị {(page - 1) * pageSize + 1} - {Math.min(page * pageSize, data?.total || 0)} của {data?.total || 0}
+              {t('pagination.showing')} {(page - 1) * pageSize + 1} - {Math.min(page * pageSize, data?.total || 0)} {t('pagination.of')} {data?.total || 0}
             </p>
             <Select
               value={pageSize.toString()}
@@ -445,15 +449,15 @@ export function TransactionListPage() {
               onClick={() => setPage(Math.max(1, page - 1))}
               disabled={page === 1}
             >
-              Trước
+              {t('pagination.prev')}
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPage(Math.min(totalPages, page + 1))}
-              disabled={page >= totalPages}
+              onClick={() => setPage(page + 1)}
+              disabled={!hasNextPage}
             >
-              Sau
+              {t('pagination.next')}
             </Button>
           </div>
         </div>

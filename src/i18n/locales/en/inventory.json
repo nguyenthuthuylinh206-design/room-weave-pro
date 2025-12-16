@@ -2,6 +2,13 @@
   "title": "Inventory Management",
   "dashboard": "Track and manage stock, inbound/outbound",
   "transactions": "Inventory Transactions",
+  "transactionHistory": "Transaction History",
+  "transactionHistoryDesc": "Track all inbound and outbound transactions",
+  "transactionCount": "{{count}} transactions",
+  "back": "Back",
+  "exportExcel": "Export Excel",
+  "loading": "Loading...",
+  "noTransactions": "No transactions found",
   "inbound": {
     "title": "Inbound",
     "description": "Record detailed inbound",
@@ -18,6 +25,8 @@
     "confirm": "Confirm Inbound",
     "processing": "Processing...",
     "type": "Inbound Type",
+    "typeTitle": "Inbound Type",
+    "typeDesc": "Select appropriate inbound type",
     "fromPurchase": "From Purchase Order",
     "fromReturn": "Return from Room",
     "fromLaundry": "From Laundry",
@@ -32,7 +41,18 @@
     "docsDescription": "Invoices, delivery notes, documents...",
     "itemPhotos": "Item Photos",
     "photosDescription": "Take photos of goods when receiving",
-    "notesPlaceholder": "Notes about this inbound batch..."
+    "notesPlaceholder": "Notes about this inbound batch...",
+    "success": "Inbound successful",
+    "categories": {
+      "purchase": "Purchase",
+      "purchaseDesc": "From supplier",
+      "return": "Return",
+      "returnDesc": "Customer return",
+      "laundry": "Laundry Return",
+      "laundryDesc": "From laundry",
+      "other": "Other",
+      "otherDesc": "Other reason"
+    }
   },
   "outbound": {
     "title": "Outbound",
@@ -51,6 +71,8 @@
     "confirm": "Confirm Outbound",
     "processing": "Processing...",
     "type": "Outbound Type",
+    "typeTitle": "Outbound Type",
+    "typeDesc": "Select appropriate outbound type",
     "toRoom": "To Room",
     "toLaundry": "To Laundry",
     "toMaintenance": "To Maintenance",
@@ -66,10 +88,25 @@
     "stockAvailable": "In Stock",
     "remaining": "Remaining",
     "exceedStock": "Outbound quantity exceeds stock",
+    "exceedStockDesc": "Outbound quantity exceeds stock. Please check again.",
     "lowStockWarning": "After outbound, stock will fall below safe level (10)",
+    "lowStockWarningCount": "{{count}} items will be low stock after outbound",
     "itemNote": "Note for this item",
     "notesPlaceholder": "Notes about this outbound batch...",
-    "stockError": "Outbound quantity cannot exceed stock"
+    "stockError": "Outbound quantity cannot exceed stock",
+    "success": "Outbound successful",
+    "categories": {
+      "room_assign": "Room",
+      "room_assignDesc": "Deliver to room",
+      "laundry": "Laundry",
+      "laundryDesc": "Send to laundry",
+      "maintenance": "Maintenance",
+      "maintenanceDesc": "For repair",
+      "disposal": "Disposal",
+      "disposalDesc": "Discard",
+      "other": "Other",
+      "otherDesc": "Other reason"
+    }
   },
   "adjustment": {
     "title": "Adjustment",
@@ -117,7 +154,8 @@
     "adjustment": "Adjustment",
     "transfer": "Transfer",
     "damaged": "Damaged",
-    "lost": "Lost"
+    "lost": "Lost",
+    "all": "All"
   },
   "transactionLabel": {
     "in": "INBOUND",
@@ -134,7 +172,13 @@
     "laundry": "To Laundry",
     "maintenance": "Maintenance",
     "disposal": "Disposal",
-    "other": "Other"
+    "other": "Other",
+    "sale": "Sale",
+    "transfer_in": "Transfer In",
+    "transfer_out": "Transfer Out",
+    "internal_use": "Internal Use",
+    "loss": "Loss",
+    "damaged": "Damaged"
   },
   "status": {
     "pending": "Pending",
@@ -151,7 +195,12 @@
     "deleteSuccess": "Transaction deleted successfully",
     "noTransactions": "No transactions yet",
     "loading": "Loading...",
-    "copiedCode": "Transaction code copied"
+    "copiedCode": "Transaction code copied",
+    "draftRestored": "Draft restored",
+    "draftSaved": "Draft saved",
+    "deleteDraft": "Delete draft",
+    "itemAlreadyAdded": "Item already in list",
+    "checkInfo": "Please check the information again"
   },
   "filters": {
     "all": "All",
@@ -159,9 +208,15 @@
     "byDate": "By Date",
     "byItem": "By Item",
     "search": "Search transactions...",
-    "status": "Status"
+    "searchPlaceholder": "Search transaction code, item...",
+    "status": "Status",
+    "category": "Category"
   },
   "stats": {
+    "totalTransactions": "Total Transactions",
+    "totalIn": "Total Inbound",
+    "totalOut": "Total Outbound",
+    "items": "items",
     "totalStockValue": "Total Stock Value",
     "totalItems": "Total Items",
     "productTypes": "product types",
@@ -216,5 +271,65 @@
     "print": "Print",
     "deleteTransaction": "Delete Transaction",
     "creator": "Creator"
+  },
+  "table": {
+    "code": "Code",
+    "type": "Type",
+    "item": "Item",
+    "quantity": "Quantity",
+    "location": "Location",
+    "creator": "Creator",
+    "date": "Date",
+    "actions": "Actions",
+    "from": "From",
+    "to": "To"
+  },
+  "pagination": {
+    "showing": "Showing",
+    "of": "of",
+    "prev": "Previous",
+    "next": "Next"
+  },
+  "form": {
+    "steps": {
+      "typeLocation": "Type & Location",
+      "items": "Items",
+      "confirm": "Confirm"
+    },
+    "location": "Location",
+    "fromWhere": "From Where",
+    "toWhere": "To Where",
+    "saveDraft": "Save Draft",
+    "selectItems": "Select Items",
+    "searchItem": "Search item...",
+    "noItemsYet": "No items yet",
+    "addItemsDesc": "Add items to {{action}} to the list",
+    "selected": "Selected",
+    "itemQuantity": "Quantity",
+    "noteForItem": "Note",
+    "notePlaceholder": "Note for this item...",
+    "photos": "Photos",
+    "notes": "General Notes",
+    "notesPlaceholder": "General notes for this transaction...",
+    "summary": "Summary",
+    "typeLabel": "Type",
+    "totalItems": "Total Items",
+    "totalQty": "Total Quantity",
+    "submitInbound": "Confirm Inbound",
+    "submitOutbound": "Confirm Outbound",
+    "submitting": "Processing..."
+  },
+  "validation": {
+    "fromRequired": "Please enter source location",
+    "toRequired": "Please enter destination",
+    "itemRequired": "Please select an item",
+    "quantityMin": "Quantity must be > 0",
+    "itemsMin": "At least 1 item required"
+  },
+  "exitDialog": {
+    "title": "Exit?",
+    "description": "You have unsaved data. Do you want to save as draft or discard?",
+    "saveDraft": "Save Draft",
+    "discard": "Discard"
   }
 }
