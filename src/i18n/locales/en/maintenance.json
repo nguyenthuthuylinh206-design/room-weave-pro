@@ -1,12 +1,14 @@
 {
   "title": "Maintenance Management",
+  "pageTitle": "Maintenance Requests",
   "dashboard": "Manage maintenance requests",
   "requests": {
     "title": "Maintenance Requests",
     "list": "Request List",
     "new": "Create New Request",
     "detail": "Request Details",
-    "edit": "Edit Request"
+    "edit": "Edit Request",
+    "create": "Create Maintenance Request"
   },
   "recurring": {
     "title": "Recurring Issues",
@@ -72,7 +74,8 @@
     "estimatedCost": "Estimated Cost",
     "actualCost": "Actual Cost",
     "notes": "Notes",
-    "type": "Type"
+    "type": "Type",
+    "createdAt": "Created At"
   },
   "priority": {
     "low": "Low",
@@ -83,6 +86,7 @@
   "status": {
     "pending": "Pending",
     "assigned": "Assigned",
+    "in_progress": "In Progress",
     "inProgress": "In Progress",
     "completed": "Completed",
     "cancelled": "Cancelled"
@@ -103,7 +107,9 @@
     "assignSuccess": "Assigned successfully",
     "completeSuccess": "Request completed",
     "cancelSuccess": "Request cancelled",
-    "noRequests": "No requests found"
+    "noRequests": "No requests found",
+    "notFoundSearch": "No requests found",
+    "refreshed": "Refreshed!"
   },
   "filters": {
     "all": "All",

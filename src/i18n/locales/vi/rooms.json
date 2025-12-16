@@ -1,53 +1,9 @@
 {
-  "detail": {
-    "title": "Phòng {{number}}",
-    "description": "{{type}} - Tầng {{floor}}",
-    "checkRoom": "Kiểm tra phòng",
-    "editInfo": "Sửa thông tin",
-    "notFound": "Không tìm thấy phòng",
-    "backToList": "Quay lại danh sách",
-    "roomInfo": "Thông tin phòng",
-    "roomNumber": "Số phòng",
-    "roomType": "Loại phòng",
-    "floor": "Tầng",
-    "floorNumber": "Tầng {{number}}",
-    "area": "Diện tích",
-    "bedType": "Loại giường",
-    "maxGuests": "Số khách tối đa",
-    "guestCount": "{{count}} người",
-    "view": "View",
-    "basePrice": "Giá cơ bản",
-    "pricePerNight": "{{price}}/đêm",
-    "amenities": "Tiện ích",
-    "notes": "Ghi chú",
-    "recentPhotos": "Ảnh kiểm tra gần nhất",
-    "checkedBy": "Kiểm tra bởi {{name}}",
-    "checkType": {
-      "daily": "Hàng ngày",
-      "checkin": "Check-in",
-      "checkout": "Check-out",
-      "maintenance": "Bảo trì"
-    },
-    "viewFull": "Xem full",
-    "andMorePhotos": "Và {{count}} ảnh khác",
-    "itemsInRoom": "Đồ dùng trong phòng",
-    "noItems": "Chưa có đồ dùng trong phòng",
-    "noItemsDescription": "Phòng này chưa có đồ dùng nào. Nhấn nút \"Áp dụng chuẩn phòng\" ở mục \"Thao tác nhanh\" bên phải để tự động thêm đồ dùng theo chuẩn của loại phòng {{type}}.",
-    "totalItems": "Tổng đồ dùng",
-    "complete": "Đầy đủ",
-    "missing": "Thiếu",
-    "missingTypes": "{{count}} loại",
-    "missingItems": "{{count}} món",
-    "checkHistory": "Lịch sử kiểm tra",
-    "quickActions": "Thao tác nhanh",
-    "applyStandards": "Áp dụng chuẩn phòng",
-    "syncStandards": "Đồng bộ lại chuẩn",
-    "printItemList": "In danh sách đồ dùng",
-    "na": "N/A"
-  },
   "title": "Quản lý Phòng",
+  "pageTitle": "Phòng",
   "description": "Quản lý phòng và đồ dùng trong phòng",
   "addRoom": "Thêm phòng",
+  "addNewRoom": "Thêm phòng mới",
   "editRoom": "Sửa phòng",
   "roomDetail": "Chi tiết phòng",
   "roomCheck": "Kiểm tra phòng",
@@ -66,11 +22,11 @@
   },
   "status": {
     "vacant": "Trống",
-    "occupied": "Có khách",
+    "occupied": "Đang ở",
     "cleaning": "Đang dọn",
     "maintenance": "Bảo trì",
-    "check_in": "Check-in",
-    "check_out": "Check-out",
+    "check_in": "Check In",
+    "check_out": "Check Out",
     "out_of_order": "Hỏng"
   },
   "roomTypes": {
@@ -84,43 +40,113 @@
     "createSuccess": "Tạo phòng thành công",
     "updateSuccess": "Cập nhật phòng thành công",
     "deleteSuccess": "Xóa phòng thành công",
-    "noRooms": "Chưa có phòng nào"
+    "noRooms": "Chưa có phòng nào",
+    "notFound": "Không tìm thấy phòng",
+    "refreshed": "Đã cập nhật!"
   },
   "filters": {
     "all": "Tất cả",
     "byFloor": "Theo tầng",
     "byStatus": "Theo trạng thái",
     "byType": "Theo loại",
-    "search": "Tìm kiếm phòng..."
+    "search": "Tìm kiếm phòng...",
+    "searchRoomFloor": "Tìm số phòng, tầng..."
+  },
+  "stats": {
+    "total": "Tổng",
+    "vacant": "Trống",
+    "occupied": "Đang ở",
+    "checkIn": "Check In",
+    "checkOut": "Check Out",
+    "cleaning": "Đang dọn",
+    "maintenance": "Bảo trì",
+    "outOfOrder": "Hỏng"
+  },
+  "selection": {
+    "cancel": "Hủy",
+    "select": "Chọn",
+    "selectAll": "Chọn tất cả",
+    "selected": "Đã chọn {{count}}/{{total}}"
+  },
+  "itemStatus": {
+    "notSetup": "Chưa thiết lập đồ",
+    "missing": "Thiếu {{missing}}/{{total}}",
+    "complete": "Đủ đồ",
+    "inLaundry": "{{count}} đang giặt"
+  },
+  "checkSession": {
+    "checking": "{{name}} đang kiểm tra {{type}}",
+    "check": "Kiểm tra",
+    "continueCheck": "Tiếp tục kiểm tra",
+    "inProgress": "Đang kiểm tra"
+  },
+  "price": {
+    "basePrice": "Giá cơ bản",
+    "perNight": "/đêm"
+  },
+  "actions": {
+    "viewDetail": "Xem chi tiết",
+    "backToList": "Quay lại danh sách"
   },
   "detail": {
+    "title": "Phòng {{number}}",
+    "description": "{{type}} - Tầng {{floor}}",
     "roomInfo": "Thông tin phòng",
-    "roomItems": "Đồ dùng trong phòng",
-    "checkHistory": "Lịch sử kiểm tra",
-    "quickActions": "Thao tác nhanh",
     "checkRoom": "Kiểm tra phòng",
     "editInfo": "Sửa thông tin",
-    "applyStandards": "Áp dụng chuẩn phòng",
-    "syncStandards": "Đồng bộ lại chuẩn",
-    "printItems": "In danh sách đồ dùng",
+    "notFound": "Không tìm thấy phòng",
+    "backToList": "Quay lại danh sách",
+    "roomNumber": "Số phòng",
+    "roomType": "Loại phòng",
+    "floor": "Tầng",
+    "floorNumber": "Tầng {{number}}",
+    "area": "Diện tích",
+    "bedType": "Loại giường",
+    "maxGuests": "Sức chứa",
+    "guestCount": "{{count}} khách",
+    "view": "Hướng nhìn",
+    "basePrice": "Giá cơ bản",
+    "pricePerNight": "{{price}}/đêm",
+    "amenities": "Tiện ích",
+    "notes": "Ghi chú",
+    "recentPhotos": "Ảnh kiểm tra gần nhất",
+    "checkedBy": "Kiểm tra bởi: {{name}}",
+    "viewFull": "Xem full",
+    "andMorePhotos": "+{{count}} ảnh khác",
     "totalItems": "Tổng đồ dùng",
     "complete": "Đầy đủ",
     "missing": "Thiếu",
-    "types": "loại",
-    "pieces": "món",
-    "notFound": "Không tìm thấy phòng",
-    "backToList": "Quay lại danh sách",
-    "noItems": "Chưa có đồ dùng trong phòng",
-    "noItemsDesc": "Phòng này chưa có đồ dùng nào. Nhấn nút \"Áp dụng chuẩn phòng\" ở mục \"Thao tác nhanh\" bên phải để tự động thêm đồ dùng theo chuẩn của loại phòng.",
-    "recentPhotos": "Ảnh kiểm tra gần nhất",
-    "checkedBy": "Kiểm tra bởi",
-    "viewFull": "Xem full",
-    "andMore": "Và {{count}} ảnh khác"
+    "missingCount": "({{count}} món)",
+    "noItems": "Chưa có đồ dùng",
+    "noItemsHint": "Nhấn nút đồng bộ ở góc trên để thêm đồ dùng theo chuẩn loại phòng {{type}}.",
+    "applyStandards": "Áp dụng chuẩn",
+    "syncStandards": "Đồng bộ chuẩn",
+    "printItemList": "In danh sách",
+    "na": "N/A"
+  },
+  "tabs": {
+    "info": "Thông tin",
+    "items": "Đồ dùng",
+    "history": "Lịch sử"
   },
   "checkTypes": {
     "daily": "Hàng ngày",
     "checkin": "Check-in",
     "checkout": "Check-out",
     "maintenance": "Bảo trì"
+  },
+  "print": {
+    "itemListTitle": "Danh sách đồ dùng - Phòng {{roomNumber}}",
+    "columns": {
+      "index": "STT",
+      "itemName": "Tên đồ dùng",
+      "required": "Cần có",
+      "current": "Hiện có",
+      "missing": "Còn thiếu",
+      "status": "Trạng thái"
+    },
+    "statusMissing": "Thiếu",
+    "statusComplete": "Đủ",
+    "printDate": "In ngày: {{date}}"
   }
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useMaintenanceRequests } from '@/hooks/useMaintenanceRequests'
 import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
 import { Card, CardContent } from '@/components/ui/card'
@@ -11,21 +12,29 @@ import { Plus, Search, AlertCircle, Clock, CheckCircle, XCircle } from 'lucide-r
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-const STATUS_CONFIG = {
-  pending: { label: 'Chờ xử lý', color: 'bg-yellow-500', icon: Clock },
-  in_progress: { label: 'Đang xử lý', color: 'bg-blue-500', icon: AlertCircle },
-  completed: { label: 'Hoàn thành', color: 'bg-green-500', icon: CheckCircle },
-  cancelled: { label: 'Đã hủy', color: 'bg-gray-500', icon: XCircle },
+const STATUS_ICONS = {
+  pending: Clock,
+  in_progress: AlertCircle,
+  completed: CheckCircle,
+  cancelled: XCircle,
 }
 
-const PRIORITY_CONFIG = {
-  low: { label: 'Thấp', color: 'bg-gray-100 text-gray-800' },
-  medium: { label: 'Trung bình', color: 'bg-blue-100 text-blue-800' },
-  high: { label: 'Cao', color: 'bg-orange-100 text-orange-800' },
-  urgent: { label: 'Khẩn cấp', color: 'bg-red-100 text-red-800' },
+const STATUS_COLORS = {
+  pending: 'bg-yellow-500',
+  in_progress: 'bg-blue-500',
+  completed: 'bg-green-500',
+  cancelled: 'bg-gray-500',
+}
+
+const PRIORITY_COLORS = {
+  low: 'bg-gray-100 text-gray-800',
+  medium: 'bg-blue-100 text-blue-800',
+  high: 'bg-orange-100 text-orange-800',
+  urgent: 'bg-red-100 text-red-800',
 }
 
 export const MobileMaintenanceRequestsPage = () => {
+  const { t } = useTranslation(['maintenance', 'common'])
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState('')
@@ -34,7 +43,7 @@ export const MobileMaintenanceRequestsPage = () => {
 
   const handleRefresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] })
-    toast.success('Đã cập nhật!')
+    toast.success(t('messages.refreshed'))
   }
 
   const filteredRequests = requests.filter(req =>
@@ -43,15 +52,26 @@ export const MobileMaintenanceRequestsPage = () => {
     req.request_code?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const getStatusConfig = (status: string) => {
+    const icon = STATUS_ICONS[status as keyof typeof STATUS_ICONS] || Clock
+    const color = STATUS_COLORS[status as keyof typeof STATUS_COLORS] || 'bg-gray-500'
+    return { icon, color, label: t(`status.${status}`, { defaultValue: status }) }
+  }
+
+  const getPriorityConfig = (priority: string) => {
+    const color = PRIORITY_COLORS[priority as keyof typeof PRIORITY_COLORS] || 'bg-gray-100 text-gray-800'
+    return { color, label: t(`priority.${priority}`, { defaultValue: priority }) }
+  }
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <MobileDetailHeader
-        title="Yêu cầu bảo trì"
+        title={t('pageTitle')}
         showBack={false}
         action={{
           icon: Plus,
           onClick: () => navigate('/maintenance/create'),
-          label: 'Tạo yêu cầu'
+          label: t('requests.create')
         }}
       />
 
@@ -61,7 +81,7 @@ export const MobileMaintenanceRequestsPage = () => {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Tìm kiếm yêu cầu..."
+              placeholder={t('filters.search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -80,15 +100,15 @@ export const MobileMaintenanceRequestsPage = () => {
               <CardContent className="py-12 text-center">
                 <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
                 <p className="text-muted-foreground">
-                  {searchQuery ? 'Không tìm thấy yêu cầu' : 'Chưa có yêu cầu bảo trì'}
+                  {searchQuery ? t('messages.notFoundSearch') : t('messages.noRequests')}
                 </p>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-3">
               {filteredRequests.map((request) => {
-                const status = STATUS_CONFIG[request.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending
-                const priority = PRIORITY_CONFIG[request.priority as keyof typeof PRIORITY_CONFIG] || PRIORITY_CONFIG.medium
+                const status = getStatusConfig(request.status as string)
+                const priority = getPriorityConfig(request.priority as string)
                 const StatusIcon = status.icon
 
                 return (
@@ -139,7 +159,7 @@ export const MobileMaintenanceRequestsPage = () => {
             onClick={() => navigate('/maintenance/create')}
           >
             <Plus className="h-5 w-5 mr-2" />
-            Tạo yêu cầu bảo trì
+            {t('requests.create')}
           </Button>
         </div>
       </PullToRefresh>

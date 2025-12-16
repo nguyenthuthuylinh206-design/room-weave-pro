@@ -1,4 +1,68 @@
 {
+  "title": "Quản lý Giặt là",
+  "pageTitle": "Giặt là",
+  "description": "Theo dõi các lô giặt, quản lý nhà cung cấp dịch vụ giặt là",
+  "batches": "Lô giặt",
+  "vendors": "Nhà cung cấp giặt",
+  "newBatch": "Tạo lô giặt mới",
+  "createBatch": {
+    "title": "Tạo lô giặt mới",
+    "description": "Tạo lô giặt và giao cho đơn vị giặt",
+    "steps": {
+      "basicInfo": "Thông tin cơ bản",
+      "selectItems": "Chọn đồ giặt",
+      "confirm": "Xác nhận"
+    }
+  },
+  "filters": {
+    "all": "Tất cả",
+    "pending": "Chờ xử lý",
+    "processing": "Đang giặt",
+    "returned": "Đã nhận",
+    "search": "Tìm kiếm lô giặt..."
+  },
+  "fields": {
+    "batchCode": "Mã lô",
+    "vendor": "Nhà cung cấp",
+    "deliveryDate": "Ngày gửi",
+    "returnDate": "Ngày nhận",
+    "totalItems": "Tổng số đồ",
+    "totalWeight": "Tổng cân nặng",
+    "status": "Trạng thái",
+    "estimatedCost": "Chi phí ước tính",
+    "actualCost": "Chi phí thực",
+    "quantity": "Số lượng",
+    "weight": "Khối lượng",
+    "expectedReturn": "Dự kiến trả"
+  },
+  "status": {
+    "pending": "Chờ xử lý",
+    "delivered": "Đã giao",
+    "washing": "Đang giặt",
+    "ready": "Sẵn sàng",
+    "received": "Đã nhận",
+    "returned": "Đã nhận",
+    "completed": "Hoàn thành"
+  },
+  "messages": {
+    "createSuccess": "Tạo lô giặt thành công",
+    "updateSuccess": "Cập nhật lô giặt thành công",
+    "returnSuccess": "Nhận lô giặt thành công",
+    "noBatches": "Chưa có lô giặt nào",
+    "noBatchesFilter": "Không có lô giặt nào",
+    "loading": "Đang tải..."
+  },
+  "stats": {
+    "totalBatches": "Tổng lô giặt",
+    "pending": "Đang gửi giặt",
+    "returned": "Đã nhận về",
+    "totalCost": "Tổng chi phí",
+    "thisMonth": "Tháng này"
+  },
+  "units": {
+    "items": "món",
+    "kg": "kg"
+  },
   "vendorDetail": {
     "back": "Quay lại",
     "editInfo": "Sửa thông tin",
@@ -74,60 +138,6 @@
       "status": "Trạng thái"
     },
     "noOrders": "Chưa có đơn hàng nào"
-  },
-  "title": "Quản lý Giặt là",
-  "description": "Theo dõi các lô giặt, quản lý nhà cung cấp dịch vụ giặt là",
-  "batches": "Lô giặt",
-  "vendors": "Nhà cung cấp giặt",
-  "newBatch": "Tạo lô giặt mới",
-  "createBatch": {
-    "title": "Tạo lô giặt mới",
-    "description": "Tạo lô giặt và giao cho đơn vị giặt",
-    "steps": {
-      "basicInfo": "Thông tin cơ bản",
-      "selectItems": "Chọn đồ giặt",
-      "confirm": "Xác nhận"
-    }
-  },
-  "filters": {
-    "all": "Tất cả",
-    "pending": "Chờ xử lý",
-    "processing": "Đang giặt",
-    "returned": "Đã nhận",
-    "search": "Tìm kiếm lô giặt..."
-  },
-  "fields": {
-    "batchCode": "Mã lô",
-    "vendor": "Nhà cung cấp",
-    "deliveryDate": "Ngày gửi",
-    "returnDate": "Ngày nhận",
-    "totalItems": "Tổng số đồ",
-    "totalWeight": "Tổng cân nặng",
-    "status": "Trạng thái",
-    "estimatedCost": "Chi phí ước tính",
-    "actualCost": "Chi phí thực"
-  },
-  "status": {
-    "pending": "Chờ xử lý",
-    "delivered": "Đã gửi",
-    "processing": "Đang giặt",
-    "ready": "Sẵn sàng nhận",
-    "returned": "Đã nhận",
-    "completed": "Hoàn thành"
-  },
-  "messages": {
-    "createSuccess": "Tạo lô giặt thành công",
-    "updateSuccess": "Cập nhật lô giặt thành công",
-    "returnSuccess": "Nhận lô giặt thành công",
-    "noBatches": "Chưa có lô giặt nào",
-    "loading": "Đang tải..."
-  },
-  "stats": {
-    "totalBatches": "Tổng lô giặt",
-    "pending": "Đang gửi giặt",
-    "returned": "Đã nhận về",
-    "totalCost": "Tổng chi phí",
-    "thisMonth": "Tháng này"
   },
   "vendorForm": {
     "addTitle": "Thêm đơn vị giặt",

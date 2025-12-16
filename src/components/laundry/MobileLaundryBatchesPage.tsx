@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -12,14 +13,22 @@ import { format } from 'date-fns'
 
 type FilterStatus = 'all' | 'delivered' | 'washing' | 'ready' | 'received'
 
-const STATUS_CONFIG = {
-  delivered: { label: 'Đã giao', icon: Truck, color: 'bg-blue-500' },
-  washing: { label: 'Đang giặt', icon: Clock, color: 'bg-yellow-500' },
-  ready: { label: 'Sẵn sàng', icon: Package, color: 'bg-green-500' },
-  received: { label: 'Đã nhận', icon: CheckCircle, color: 'bg-gray-500' },
+const STATUS_ICONS = {
+  delivered: Truck,
+  washing: Clock,
+  ready: Package,
+  received: CheckCircle,
+}
+
+const STATUS_COLORS = {
+  delivered: 'bg-blue-500',
+  washing: 'bg-yellow-500',
+  ready: 'bg-green-500',
+  received: 'bg-gray-500',
 }
 
 export const MobileLaundryBatchesPage = () => {
+  const { t } = useTranslation(['laundry', 'common'])
   const navigate = useNavigate()
   const [filter, setFilter] = useState<FilterStatus>('all')
   const { data, isLoading, refetch } = useLaundryBatches()
@@ -34,17 +43,15 @@ export const MobileLaundryBatchesPage = () => {
   }
 
   const getStatusConfig = (status: string) => {
-    return STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] || {
-      label: status,
-      icon: Package,
-      color: 'bg-gray-500'
-    }
+    const icon = STATUS_ICONS[status as keyof typeof STATUS_ICONS] || Package
+    const color = STATUS_COLORS[status as keyof typeof STATUS_COLORS] || 'bg-gray-500'
+    return { icon, color, label: t(`status.${status}`, { defaultValue: status }) }
   }
 
   return (
     <div className="min-h-screen bg-background pb-20">
       <MobileDetailHeader
-        title="Giặt là"
+        title={t('pageTitle')}
         showBack
       />
 
@@ -55,7 +62,7 @@ export const MobileLaundryBatchesPage = () => {
           onClick={() => navigate('/laundry/batches/new')}
         >
           <Plus className="h-4 w-4 mr-2" />
-          Tạo lô giặt mới
+          {t('newBatch')}
         </Button>
       </div>
 
@@ -73,7 +80,7 @@ export const MobileLaundryBatchesPage = () => {
                   : 'bg-secondary text-secondary-foreground'
               )}
             >
-              {status === 'all' ? 'Tất cả' : STATUS_CONFIG[status].label}
+              {status === 'all' ? t('filters.all') : t(`status.${status}`)}
             </button>
           ))}
         </div>
@@ -95,7 +102,7 @@ export const MobileLaundryBatchesPage = () => {
               <CardContent className="p-8 text-center">
                 <Package className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
                 <p className="text-muted-foreground">
-                  {filter === 'all' ? 'Chưa có lô giặt nào' : 'Không có lô giặt nào'}
+                  {filter === 'all' ? t('messages.noBatches') : t('messages.noBatchesFilter')}
                 </p>
               </CardContent>
             </Card>
@@ -130,15 +137,15 @@ export const MobileLaundryBatchesPage = () => {
 
                     <div className="grid grid-cols-3 gap-2 text-sm">
                       <div>
-                        <p className="text-muted-foreground">Số lượng</p>
-                        <p className="font-medium">{batch.total_items} món</p>
+                        <p className="text-muted-foreground">{t('fields.quantity')}</p>
+                        <p className="font-medium">{batch.total_items} {t('units.items')}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Khối lượng</p>
-                        <p className="font-medium">{batch.total_weight_kg} kg</p>
+                        <p className="text-muted-foreground">{t('fields.weight')}</p>
+                        <p className="font-medium">{batch.total_weight_kg} {t('units.kg')}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Ngày giao</p>
+                        <p className="text-muted-foreground">{t('fields.deliveryDate')}</p>
                         <p className="font-medium">
                           {format(new Date(batch.delivery_date), 'dd/MM')}
                         </p>
@@ -148,7 +155,7 @@ export const MobileLaundryBatchesPage = () => {
                     {batch.expected_return_date && (
                       <div className="mt-3 pt-3 border-t">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Dự kiến trả:</span>
+                          <span className="text-muted-foreground">{t('fields.expectedReturn')}:</span>
                           <span className="font-medium">
                             {format(new Date(batch.expected_return_date), 'dd/MM/yyyy')}
                           </span>

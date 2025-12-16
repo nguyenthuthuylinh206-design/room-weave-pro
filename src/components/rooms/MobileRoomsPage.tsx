@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -24,19 +25,20 @@ import type { RoomFilters as IRoomFilters, RoomStatus, RoomType, RoomWithStats }
 
 type FilterStatus = 'all' | RoomStatus
 
-const STATUS_CONFIG: Record<RoomStatus, { label: string; icon: typeof Bed; color: string }> = {
-  vacant: { label: 'Trống', icon: CheckCircle, color: 'text-green-600 bg-green-100' },
-  occupied: { label: 'Đang ở', icon: Bed, color: 'text-blue-600 bg-blue-100' },
-  check_in: { label: 'Check In', icon: LogIn, color: 'text-purple-600 bg-purple-100' },
-  check_out: { label: 'Check Out', icon: LogOut, color: 'text-indigo-600 bg-indigo-100' },
-  cleaning: { label: 'Đang dọn', icon: Sparkles, color: 'text-yellow-600 bg-yellow-100' },
-  maintenance: { label: 'Bảo trì', icon: Wrench, color: 'text-orange-600 bg-orange-100' },
-  out_of_order: { label: 'Hỏng', icon: XCircle, color: 'text-red-600 bg-red-100' },
+const STATUS_ICONS: Record<RoomStatus, typeof Bed> = {
+  vacant: CheckCircle,
+  occupied: Bed,
+  check_in: LogIn,
+  check_out: LogOut,
+  cleaning: Sparkles,
+  maintenance: Wrench,
+  out_of_order: XCircle,
 }
 
 const ALL_STATUSES: RoomStatus[] = ['vacant', 'occupied', 'check_in', 'check_out', 'cleaning', 'maintenance', 'out_of_order']
 
 export const MobileRoomsPage = () => {
+  const { t } = useTranslation(['rooms', 'common'])
   const navigate = useNavigate()
   const { user } = useAuth()
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all')
@@ -140,16 +142,16 @@ export const MobileRoomsPage = () => {
   const getCheckButtonState = (room: any) => {
     const session = checkSessions[room.id]
     if (!session) {
-      return { label: 'Kiểm tra', variant: 'default' as const, disabled: false }
+      return { label: t('checkSession.check'), variant: 'default' as const, disabled: false }
     }
     
     const isOwnSession = session.user_id === user?.id
     if (isOwnSession) {
-      return { label: 'Tiếp tục kiểm tra', variant: 'default' as const, disabled: false }
+      return { label: t('checkSession.continueCheck'), variant: 'default' as const, disabled: false }
     }
     
     return { 
-      label: 'Đang kiểm tra', 
+      label: t('checkSession.inProgress'), 
       variant: 'secondary' as const, 
       disabled: true 
     }
@@ -162,19 +164,19 @@ export const MobileRoomsPage = () => {
     const inLaundry = room.items_in_laundry || 0
 
     if (totalItems === 0) {
-      return { label: 'Chưa thiết lập đồ', color: 'bg-muted text-muted-foreground' }
+      return { label: t('itemStatus.notSetup'), color: 'bg-muted text-muted-foreground' }
     }
 
     if (missingItems > 0) {
       return { 
-        label: `Thiếu ${missingItems}/${totalItems}`, 
+        label: t('itemStatus.missing', { missing: missingItems, total: totalItems }), 
         color: 'bg-destructive/10 text-destructive',
         icon: AlertTriangle
       }
     }
 
     return { 
-      label: 'Đủ đồ', 
+      label: t('itemStatus.complete'), 
       color: 'bg-green-100 text-green-700',
       icon: CheckCircle
     }
@@ -183,16 +185,16 @@ export const MobileRoomsPage = () => {
   return (
     <div className={cn("min-h-screen bg-background", selectedIds.length > 0 ? "pb-36" : "pb-20")}>
       <MobileDetailHeader
-        title="Phòng"
+        title={t('pageTitle')}
         showBack
         rightContent={
           selectionMode ? (
             <Button variant="ghost" size="sm" onClick={handleClearSelection}>
-              Hủy
+              {t('selection.cancel')}
             </Button>
           ) : (
             <Button variant="ghost" size="sm" onClick={() => setSelectionMode(true)}>
-              Chọn
+              {t('selection.select')}
             </Button>
           )
         }
@@ -205,7 +207,7 @@ export const MobileRoomsPage = () => {
           onClick={() => navigate('/rooms/new')}
         >
           <Plus className="h-4 w-4 mr-2" />
-          Thêm phòng mới
+          {t('addNewRoom')}
         </Button>
       </div>
 
@@ -215,49 +217,49 @@ export const MobileRoomsPage = () => {
           <Card className="min-w-[100px]">
             <CardContent className="p-3">
               <div className="text-xl font-bold">{stats.total}</div>
-              <div className="text-xs text-muted-foreground">Tổng</div>
+              <div className="text-xs text-muted-foreground">{t('stats.total')}</div>
             </CardContent>
           </Card>
           <Card className="min-w-[100px]">
             <CardContent className="p-3">
               <div className="text-xl font-bold text-green-600">{stats.vacant}</div>
-              <div className="text-xs text-muted-foreground">Trống</div>
+              <div className="text-xs text-muted-foreground">{t('stats.vacant')}</div>
             </CardContent>
           </Card>
           <Card className="min-w-[100px]">
             <CardContent className="p-3">
               <div className="text-xl font-bold text-blue-600">{stats.occupied}</div>
-              <div className="text-xs text-muted-foreground">Đang ở</div>
+              <div className="text-xs text-muted-foreground">{t('stats.occupied')}</div>
             </CardContent>
           </Card>
           <Card className="min-w-[100px]">
             <CardContent className="p-3">
               <div className="text-xl font-bold text-purple-600">{stats.check_in}</div>
-              <div className="text-xs text-muted-foreground">Check In</div>
+              <div className="text-xs text-muted-foreground">{t('stats.checkIn')}</div>
             </CardContent>
           </Card>
           <Card className="min-w-[100px]">
             <CardContent className="p-3">
               <div className="text-xl font-bold text-indigo-600">{stats.check_out}</div>
-              <div className="text-xs text-muted-foreground">Check Out</div>
+              <div className="text-xs text-muted-foreground">{t('stats.checkOut')}</div>
             </CardContent>
           </Card>
           <Card className="min-w-[100px]">
             <CardContent className="p-3">
               <div className="text-xl font-bold text-yellow-600">{stats.cleaning}</div>
-              <div className="text-xs text-muted-foreground">Đang dọn</div>
+              <div className="text-xs text-muted-foreground">{t('stats.cleaning')}</div>
             </CardContent>
           </Card>
           <Card className="min-w-[100px]">
             <CardContent className="p-3">
               <div className="text-xl font-bold text-orange-600">{stats.maintenance}</div>
-              <div className="text-xs text-muted-foreground">Bảo trì</div>
+              <div className="text-xs text-muted-foreground">{t('stats.maintenance')}</div>
             </CardContent>
           </Card>
           <Card className="min-w-[100px]">
             <CardContent className="p-3">
               <div className="text-xl font-bold text-red-600">{stats.out_of_order}</div>
-              <div className="text-xs text-muted-foreground">Hỏng</div>
+              <div className="text-xs text-muted-foreground">{t('stats.outOfOrder')}</div>
             </CardContent>
           </Card>
         </div>
@@ -268,7 +270,7 @@ export const MobileRoomsPage = () => {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Tìm số phòng, tầng..."
+            placeholder={t('filters.searchRoomFloor')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10"
@@ -296,8 +298,8 @@ export const MobileRoomsPage = () => {
             />
             <span className="text-sm text-muted-foreground">
               {selectedIds.length > 0 
-                ? `Đã chọn ${selectedIds.length}/${filteredRooms.length}`
-                : 'Chọn tất cả'
+                ? t('selection.selected', { count: selectedIds.length, total: filteredRooms.length })
+                : t('selection.selectAll')
               }
             </span>
           </div>
@@ -316,7 +318,7 @@ export const MobileRoomsPage = () => {
                 : 'bg-secondary text-secondary-foreground'
             )}
           >
-            Tất cả
+            {t('filters.all')}
           </button>
           {ALL_STATUSES.map((status) => (
             <button
@@ -329,7 +331,7 @@ export const MobileRoomsPage = () => {
                   : 'bg-secondary text-secondary-foreground'
               )}
             >
-              {STATUS_CONFIG[status].label}
+              {t(`status.${status}`)}
             </button>
           ))}
         </div>
@@ -351,7 +353,7 @@ export const MobileRoomsPage = () => {
               <CardContent className="p-8 text-center">
                 <Bed className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
                 <p className="text-muted-foreground">
-                  {search ? 'Không tìm thấy phòng' : 'Chưa có phòng nào'}
+                  {search ? t('messages.notFound') : t('messages.noRooms')}
                 </p>
               </CardContent>
             </Card>
@@ -385,10 +387,7 @@ export const MobileRoomsPage = () => {
                         <div>
                           <div className="font-bold text-xl">{room.room_number}</div>
                           <div className="text-sm text-muted-foreground">
-                            {room.room_type === 'standard' ? 'Standard' :
-                             room.room_type === 'deluxe' ? 'Deluxe' :
-                             room.room_type === 'suite' ? 'Suite' :
-                             room.room_type === 'vip' ? 'VIP' : room.room_type || 'N/A'}
+                            {t(`roomTypes.${room.room_type}`, { defaultValue: room.room_type || 'N/A' })}
                           </div>
                         </div>
                       </div>
@@ -437,7 +436,7 @@ export const MobileRoomsPage = () => {
                       {room.items_in_laundry > 0 && (
                         <Badge variant="outline" className="text-xs bg-cyan-100 text-cyan-700">
                           <Loader2 className="h-3 w-3 mr-1" />
-                          {room.items_in_laundry} đang giặt
+                          {t('itemStatus.inLaundry', { count: room.items_in_laundry })}
                         </Badge>
                       )}
                     </div>
@@ -447,20 +446,19 @@ export const MobileRoomsPage = () => {
                       <div className="flex items-center gap-2 text-sm text-amber-600 mb-3 bg-amber-50 rounded-lg px-3 py-2">
                         <div className="animate-pulse h-2 w-2 rounded-full bg-amber-500" />
                         <span>
-                          {session.user_name} đang kiểm tra{' '}
-                          {session.check_type === 'daily' ? 'hàng ngày' :
-                           session.check_type === 'checkin' ? 'check-in' :
-                           session.check_type === 'checkout' ? 'check-out' :
-                           session.check_type === 'maintenance' ? 'bảo trì' : ''}
+                          {t('checkSession.checking', { 
+                            name: session.user_name, 
+                            type: t(`checkTypes.${session.check_type}`)
+                          })}
                         </span>
                       </div>
                     )}
 
                     {/* Price */}
                     <div className="mb-4">
-                      <div className="text-xs text-muted-foreground">Giá cơ bản</div>
+                      <div className="text-xs text-muted-foreground">{t('price.basePrice')}</div>
                       <div className="text-lg font-semibold text-primary">
-                        {room.base_price ? formatPrice(room.base_price) : '—'}/đêm
+                        {room.base_price ? formatPrice(room.base_price) : '—'}{t('price.perNight')}
                       </div>
                     </div>
 
@@ -476,7 +474,7 @@ export const MobileRoomsPage = () => {
                             navigate(`/rooms/${room.id}`)
                           }}
                         >
-                          Xem chi tiết
+                          {t('actions.viewDetail')}
                         </Button>
                         <Button
                           size="sm"

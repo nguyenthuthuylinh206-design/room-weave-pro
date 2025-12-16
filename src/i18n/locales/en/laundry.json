@@ -1,4 +1,68 @@
 {
+  "title": "Laundry Management",
+  "pageTitle": "Laundry",
+  "description": "Track laundry batches, manage laundry service vendors",
+  "batches": "Batches",
+  "vendors": "Laundry Vendors",
+  "newBatch": "Create New Batch",
+  "createBatch": {
+    "title": "Create New Batch",
+    "description": "Create a laundry batch and send to vendor",
+    "steps": {
+      "basicInfo": "Basic Info",
+      "selectItems": "Select Items",
+      "confirm": "Confirm"
+    }
+  },
+  "filters": {
+    "all": "All",
+    "pending": "Pending",
+    "processing": "Processing",
+    "returned": "Returned",
+    "search": "Search batches..."
+  },
+  "fields": {
+    "batchCode": "Batch Code",
+    "vendor": "Vendor",
+    "deliveryDate": "Delivery Date",
+    "returnDate": "Return Date",
+    "totalItems": "Total Items",
+    "totalWeight": "Total Weight",
+    "status": "Status",
+    "estimatedCost": "Estimated Cost",
+    "actualCost": "Actual Cost",
+    "quantity": "Quantity",
+    "weight": "Weight",
+    "expectedReturn": "Expected Return"
+  },
+  "status": {
+    "pending": "Pending",
+    "delivered": "Delivered",
+    "washing": "Washing",
+    "ready": "Ready",
+    "received": "Received",
+    "returned": "Returned",
+    "completed": "Completed"
+  },
+  "messages": {
+    "createSuccess": "Batch created successfully",
+    "updateSuccess": "Batch updated successfully",
+    "returnSuccess": "Batch returned successfully",
+    "noBatches": "No batches yet",
+    "noBatchesFilter": "No batches found",
+    "loading": "Loading..."
+  },
+  "stats": {
+    "totalBatches": "Total Batches",
+    "pending": "Pending",
+    "returned": "Returned",
+    "totalCost": "Total Cost",
+    "thisMonth": "This Month"
+  },
+  "units": {
+    "items": "items",
+    "kg": "kg"
+  },
   "vendorDetail": {
     "back": "Back",
     "editInfo": "Edit Info",
@@ -74,60 +138,6 @@
       "status": "Status"
     },
     "noOrders": "No orders yet"
-  },
-  "title": "Laundry Management",
-  "description": "Track laundry batches, manage laundry service vendors",
-  "batches": "Batches",
-  "vendors": "Laundry Vendors",
-  "newBatch": "Create New Batch",
-  "createBatch": {
-    "title": "Create New Batch",
-    "description": "Create a laundry batch and send to vendor",
-    "steps": {
-      "basicInfo": "Basic Info",
-      "selectItems": "Select Items",
-      "confirm": "Confirm"
-    }
-  },
-  "filters": {
-    "all": "All",
-    "pending": "Pending",
-    "processing": "Processing",
-    "returned": "Returned",
-    "search": "Search batches..."
-  },
-  "fields": {
-    "batchCode": "Batch Code",
-    "vendor": "Vendor",
-    "deliveryDate": "Delivery Date",
-    "returnDate": "Return Date",
-    "totalItems": "Total Items",
-    "totalWeight": "Total Weight",
-    "status": "Status",
-    "estimatedCost": "Estimated Cost",
-    "actualCost": "Actual Cost"
-  },
-  "status": {
-    "pending": "Pending",
-    "delivered": "Delivered",
-    "processing": "Processing",
-    "ready": "Ready for Pickup",
-    "returned": "Returned",
-    "completed": "Completed"
-  },
-  "messages": {
-    "createSuccess": "Batch created successfully",
-    "updateSuccess": "Batch updated successfully",
-    "returnSuccess": "Batch returned successfully",
-    "noBatches": "No batches yet",
-    "loading": "Loading..."
-  },
-  "stats": {
-    "totalBatches": "Total Batches",
-    "pending": "Pending",
-    "returned": "Returned",
-    "totalCost": "Total Cost",
-    "thisMonth": "This Month"
   },
   "vendorForm": {
     "addTitle": "Add Laundry Vendor",
