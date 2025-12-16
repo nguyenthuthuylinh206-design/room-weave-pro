@@ -17,6 +17,7 @@ import { useMonthlyExpenses } from '@/hooks/useMonthlyExpenses'
 import { formatCurrency } from '@/lib/utils'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { TrendingUp } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface ExpenseChartProps {
   months?: number
@@ -24,17 +25,22 @@ interface ExpenseChartProps {
 }
 
 export function ExpenseChart({ months = 12, showBarChart = false }: ExpenseChartProps) {
+  const { t } = useTranslation('dashboard')
   const { data: expenses, isLoading, error } = useMonthlyExpenses(months)
   
   const chartData = useMemo(() => {
     if (!expenses) return []
     return expenses.map(exp => ({
       month: exp.month,
-      'Mua sắm': exp.purchase,
-      'Giặt là': exp.laundry,
-      'Bảo trì': exp.maintenance,
+      [t('charts.purchase', 'Mua sắm')]: exp.purchase,
+      [t('charts.laundry', 'Giặt là')]: exp.laundry,
+      [t('charts.maintenance', 'Bảo trì')]: exp.maintenance,
     }))
-  }, [expenses])
+  }, [expenses, t])
+  
+  const purchaseKey = t('charts.purchase', 'Mua sắm')
+  const laundryKey = t('charts.laundry', 'Giặt là')
+  const maintenanceKey = t('charts.maintenance', 'Bảo trì')
   
   if (isLoading) {
     return (
@@ -54,13 +60,13 @@ export function ExpenseChart({ months = 12, showBarChart = false }: ExpenseChart
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Chi phí vận hành</CardTitle>
+          <CardTitle>{t('charts.operatingExpenses', 'Chi phí vận hành')}</CardTitle>
         </CardHeader>
         <CardContent>
           <EmptyState
             icon={TrendingUp}
-            title="Không thể tải dữ liệu"
-            description="Đã xảy ra lỗi khi tải biểu đồ chi phí"
+            title={t('charts.loadError', 'Không thể tải dữ liệu')}
+            description={t('charts.loadErrorDesc', 'Đã xảy ra lỗi khi tải biểu đồ chi phí')}
           />
         </CardContent>
       </Card>
@@ -71,13 +77,13 @@ export function ExpenseChart({ months = 12, showBarChart = false }: ExpenseChart
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Chi phí vận hành</CardTitle>
+          <CardTitle>{t('charts.operatingExpenses', 'Chi phí vận hành')}</CardTitle>
         </CardHeader>
         <CardContent>
           <EmptyState
             icon={TrendingUp}
-            title="Chưa có dữ liệu"
-            description="Chưa có dữ liệu chi phí để hiển thị"
+            title={t('charts.noData', 'Chưa có dữ liệu')}
+            description={t('charts.noDataDesc', 'Chưa có dữ liệu chi phí để hiển thị')}
           />
         </CardContent>
       </Card>
@@ -87,9 +93,9 @@ export function ExpenseChart({ months = 12, showBarChart = false }: ExpenseChart
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Chi phí vận hành</CardTitle>
+        <CardTitle>{t('charts.operatingExpenses', 'Chi phí vận hành')}</CardTitle>
         <CardDescription>
-          {months} tháng gần nhất
+          {t('charts.lastMonths', '{{count}} tháng gần nhất', { count: months })}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -116,9 +122,9 @@ export function ExpenseChart({ months = 12, showBarChart = false }: ExpenseChart
                 }}
               />
               <Legend />
-              <Bar dataKey="Mua sắm" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Giặt là" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Bảo trì" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey={purchaseKey} fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey={laundryKey} fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey={maintenanceKey} fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
             </BarChart>
           ) : (
             <LineChart data={chartData}>
@@ -144,7 +150,7 @@ export function ExpenseChart({ months = 12, showBarChart = false }: ExpenseChart
               <Legend />
               <Line 
                 type="monotone" 
-                dataKey="Mua sắm" 
+                dataKey={purchaseKey}
                 stroke="hsl(var(--chart-1))" 
                 strokeWidth={2}
                 dot={{ fill: 'hsl(var(--chart-1))', r: 4 }}
@@ -152,7 +158,7 @@ export function ExpenseChart({ months = 12, showBarChart = false }: ExpenseChart
               />
               <Line 
                 type="monotone" 
-                dataKey="Giặt là" 
+                dataKey={laundryKey}
                 stroke="hsl(var(--chart-2))" 
                 strokeWidth={2}
                 dot={{ fill: 'hsl(var(--chart-2))', r: 4 }}
@@ -160,7 +166,7 @@ export function ExpenseChart({ months = 12, showBarChart = false }: ExpenseChart
               />
               <Line 
                 type="monotone" 
-                dataKey="Bảo trì" 
+                dataKey={maintenanceKey}
                 stroke="hsl(var(--chart-3))" 
                 strokeWidth={2}
                 dot={{ fill: 'hsl(var(--chart-3))', r: 4 }}

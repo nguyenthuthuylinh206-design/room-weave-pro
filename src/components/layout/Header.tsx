@@ -57,7 +57,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
 
       {/* Desktop Title & Hotel Switcher */}
       <div className="hidden lg:flex lg:items-center lg:gap-4">
-        <h1 className="text-xl font-semibold">Hotel Asset Management</h1>
+        <h1 className="text-xl font-semibold">{t('common:appTitle', 'Hotel Asset Management')}</h1>
         <HotelSwitcher />
       </div>
 

@@ -15,8 +15,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useTopItems } from '@/hooks/useTopItems'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { cn } from '@/lib/utils'
+import { useTranslation } from 'react-i18next'
 
 export function TopItemsTable() {
+  const { t } = useTranslation('dashboard')
   const { data: items, isLoading } = useTopItems(10)
   const navigate = useNavigate()
   
@@ -41,13 +43,13 @@ export function TopItemsTable() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Top 10 đồ dùng sử dụng nhiều nhất</CardTitle>
+          <CardTitle>{t('topItems.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <EmptyState
             icon={Package}
-            title="Chưa có dữ liệu"
-            description="Chưa có đồ dùng nào được sử dụng"
+            title={t('topItems.noData', 'Chưa có dữ liệu')}
+            description={t('topItems.noDataDesc', 'Chưa có đồ dùng nào được sử dụng')}
           />
         </CardContent>
       </Card>
@@ -57,7 +59,7 @@ export function TopItemsTable() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Top 10 đồ dùng sử dụng nhiều nhất</CardTitle>
+        <CardTitle>{t('topItems.title')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="rounded-md border">
@@ -65,12 +67,12 @@ export function TopItemsTable() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12">#</TableHead>
-                <TableHead className="w-16">Ảnh</TableHead>
-                <TableHead>Tên đồ dùng</TableHead>
-                <TableHead className="hidden md:table-cell">Danh mục</TableHead>
-                <TableHead className="text-right">Đang dùng</TableHead>
-                <TableHead className="hidden sm:table-cell">Tỷ lệ</TableHead>
-                <TableHead className="hidden lg:table-cell">Kho</TableHead>
+                <TableHead className="w-16">{t('topItems.image', 'Ảnh')}</TableHead>
+                <TableHead>{t('topItems.name')}</TableHead>
+                <TableHead className="hidden md:table-cell">{t('topItems.category', 'Danh mục')}</TableHead>
+                <TableHead className="text-right">{t('topItems.inUse', 'Đang dùng')}</TableHead>
+                <TableHead className="hidden sm:table-cell">{t('topItems.rate', 'Tỷ lệ')}</TableHead>
+                <TableHead className="hidden lg:table-cell">{t('topItems.stock', 'Kho')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -148,9 +150,9 @@ export function TopItemsTable() {
                         item.stock_status === 'low_stock' && 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-950 dark:text-yellow-400'
                       )}
                     >
-                      {item.stock_status === 'in_stock' && 'Đủ hàng'}
-                      {item.stock_status === 'low_stock' && 'Thấp'}
-                      {item.stock_status === 'out_of_stock' && 'Hết'}
+                      {item.stock_status === 'in_stock' && t('topItems.inStock', 'Đủ hàng')}
+                      {item.stock_status === 'low_stock' && t('topItems.lowStock', 'Thấp')}
+                      {item.stock_status === 'out_of_stock' && t('topItems.outOfStock', 'Hết')}
                     </Badge>
                   </TableCell>
                 </TableRow>

@@ -1,6 +1,9 @@
 {
   "title": "Dashboard",
-  "welcome": "Welcome back",
+  "welcome": "Welcome back, {{name}}!",
+  "overview": "Hotel asset management system overview",
+  "overviewAllHotels": "Overview of all hotels",
+  "overviewHotel": "Overview of {{hotel}}",
   "stats": {
     "totalItems": "Total Items",
     "totalRooms": "Total Rooms",
@@ -9,13 +12,31 @@
     "pendingMaintenance": "Pending Maintenance",
     "activeLaundry": "Active Laundry",
     "lowStock": "Low Stock",
-    "totalHotels": "Total Hotels"
+    "totalHotels": "Total Hotels",
+    "totalValue": "Total Asset Value",
+    "inLaundry": "In Laundry",
+    "lowStockWarning": "Low Stock Warning",
+    "inStock": "{{count}} in stock",
+    "batchesProcessing": "{{count}} batches processing",
+    "itemsNeedRestock": "items need restocking",
+    "comparedToLastMonth": "compared to last month"
   },
   "charts": {
     "inventoryOverview": "Inventory Overview",
     "roomStatus": "Room Status",
     "monthlyTrend": "Monthly Trend",
-    "categoryDistribution": "Category Distribution"
+    "categoryDistribution": "Category Distribution",
+    "expenseChart": "Expense Chart",
+    "monthlyExpenses": "Monthly Expenses",
+    "operatingExpenses": "Operating Expenses",
+    "purchase": "Purchase",
+    "laundry": "Laundry",
+    "maintenance": "Maintenance",
+    "lastMonths": "Last {{count}} months",
+    "loadError": "Could not load data",
+    "loadErrorDesc": "An error occurred while loading expense chart",
+    "noData": "No data",
+    "noDataDesc": "No expense data to display"
   },
   "alerts": {
     "title": "Alerts",
@@ -28,8 +49,47 @@
     "newItem": "Add Item",
     "newRoom": "Add Room",
     "newMaintenance": "Create Maintenance Request",
-    "newLaundry": "Create Laundry Batch"
+    "newLaundry": "Create Laundry Batch",
+    "newInbound": "Inbound",
+    "newOutbound": "Outbound",
+    "viewReports": "Reports",
+    "checkRoom": "Check Room"
+  },
+  "topItems": {
+    "title": "Top 10 Most Used Items",
+    "name": "Item Name",
+    "quantity": "Quantity",
+    "value": "Value",
+    "image": "Image",
+    "category": "Category",
+    "inUse": "In Use",
+    "rate": "Rate",
+    "stock": "Stock",
+    "inStock": "In Stock",
+    "lowStock": "Low",
+    "outOfStock": "Out",
+    "noData": "No data",
+    "noDataDesc": "No items have been used yet"
+  },
+  "recentActivity": {
+    "title": "Recent Activity",
+    "noActivity": "No activity yet",
+    "description": "Recent activities will be displayed here"
+  },
+  "hotelBreakdown": {
+    "title": "Hotel Breakdown",
+    "rooms": "rooms",
+    "items": "items",
+    "staff": "staff",
+    "hotels": "hotels",
+    "value": "Value",
+    "total": "Total",
+    "stock": "Stock",
+    "inUse": "In Use",
+    "laundry": "Laundry",
+    "needRestock": "items need restocking",
+    "noData": "No hotel data"
   },
   "allHotels": "All Hotels",
-  "viewingAllHotels": "Viewing all hotels"
+  "viewingAllHotels": "View all hotels"
 }
