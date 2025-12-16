@@ -491,7 +491,7 @@ export function useStockInFromLaundry() {
         const { error: inboundError } = await supabase.rpc('create_inbound_transaction', {
           p_tenant_id: tenant.id,
           p_hotel_id: selectedHotel.id,
-          p_transaction_category: 'laundry_return',
+          p_transaction_category: 'return',
           p_from_location: 'Đơn vị giặt',
           p_to_location: selectedHotel.name,
           p_created_by: user.id,
