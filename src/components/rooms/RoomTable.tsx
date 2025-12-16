@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { MoreVertical, Eye, Edit, ClipboardCheck, Trash2 } from 'lucide-react'
 import {
   Table,
@@ -32,7 +33,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { RoomStatusBadge } from './RoomStatusBadge'
 import { formatCurrency } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
-import { vi } from 'date-fns/locale'
+import { vi, enUS } from 'date-fns/locale'
 import { useDeleteRoom } from '@/hooks/useRooms'
 import type { RoomWithStats } from '@/types/rooms.types'
 
@@ -44,7 +45,9 @@ interface RoomTableProps {
 }
 
 export function RoomTable({ rooms, isLoading, selectedIds, onSelectionChange }: RoomTableProps) {
+  const { t, i18n } = useTranslation(['rooms', 'common'])
   const navigate = useNavigate()
+  const dateLocale = i18n.language === 'vi' ? vi : enUS
 
   const isAllSelected = rooms.length > 0 && selectedIds.length === rooms.length
   const isSomeSelected = selectedIds.length > 0 && selectedIds.length < rooms.length
@@ -89,14 +92,14 @@ export function RoomTable({ rooms, isLoading, selectedIds, onSelectionChange }: 
                 onCheckedChange={handleSelectAll}
               />
             </TableHead>
-            <TableHead>Số phòng</TableHead>
-            <TableHead>Tầng</TableHead>
-            <TableHead>Loại phòng</TableHead>
-            <TableHead>Trạng thái</TableHead>
-            <TableHead>Diện tích</TableHead>
-            <TableHead className="text-right">Giá</TableHead>
-            <TableHead>Đồ dùng</TableHead>
-            <TableHead>Kiểm tra cuối</TableHead>
+            <TableHead>{t('table.roomNumber')}</TableHead>
+            <TableHead>{t('table.floor')}</TableHead>
+            <TableHead>{t('table.roomType')}</TableHead>
+            <TableHead>{t('table.status')}</TableHead>
+            <TableHead>{t('table.area')}</TableHead>
+            <TableHead className="text-right">{t('table.price')}</TableHead>
+            <TableHead>{t('table.items')}</TableHead>
+            <TableHead>{t('table.lastCheck')}</TableHead>
             <TableHead className="w-12"></TableHead>
           </TableRow>
         </TableHeader>
@@ -116,8 +119,8 @@ export function RoomTable({ rooms, isLoading, selectedIds, onSelectionChange }: 
                 />
               </TableCell>
               <TableCell className="font-medium">{room.room_number}</TableCell>
-              <TableCell>Tầng {room.floor}</TableCell>
-              <TableCell className="capitalize">{room.room_type}</TableCell>
+              <TableCell>{t('detail.floorNumber', { number: room.floor })}</TableCell>
+              <TableCell className="capitalize">{t(`roomTypes.${room.room_type}`, { defaultValue: room.room_type })}</TableCell>
               <TableCell>
                 <RoomStatusBadge status={room.status as import('@/types/rooms.types').RoomStatus} />
               </TableCell>
@@ -127,15 +130,15 @@ export function RoomTable({ rooms, isLoading, selectedIds, onSelectionChange }: 
               </TableCell>
               <TableCell>
                 <div className="space-y-1 text-xs">
-                  <div>Tổng: {room.total_items}</div>
+                  <div>{t('table.total')}: {room.total_items}</div>
                   {room.missing_items > 0 && (
                     <div className="text-red-600">
-                      Thiếu: {room.missing_items}
+                      {t('table.missing')}: {room.missing_items}
                     </div>
                   )}
                   {room.items_in_laundry > 0 && (
                     <div className="text-cyan-600">
-                      Giặt: {room.items_in_laundry}
+                      {t('table.laundry')}: {room.items_in_laundry}
                     </div>
                   )}
                 </div>
@@ -143,15 +146,15 @@ export function RoomTable({ rooms, isLoading, selectedIds, onSelectionChange }: 
               <TableCell>
                 {room.last_check_at ? (
                   <div className="space-y-1 text-xs">
-                    <div>{formatDistanceToNow(new Date(room.last_check_at), { addSuffix: true, locale: vi })}</div>
+                    <div>{formatDistanceToNow(new Date(room.last_check_at), { addSuffix: true, locale: dateLocale })}</div>
                     {room.last_check_score && (
                       <div className="text-muted-foreground">
-                        Điểm: {room.last_check_score}/5
+                        {t('table.score', { score: room.last_check_score })}
                       </div>
                     )}
                   </div>
                 ) : (
-                  <span className="text-muted-foreground text-xs">Chưa kiểm tra</span>
+                  <span className="text-muted-foreground text-xs">{t('table.notChecked')}</span>
                 )}
               </TableCell>
               <TableCell onClick={(e) => e.stopPropagation()}>
@@ -166,6 +169,7 @@ export function RoomTable({ rooms, isLoading, selectedIds, onSelectionChange }: 
 }
 
 function RoomActions({ room }: { room: RoomWithStats }) {
+  const { t } = useTranslation(['rooms', 'common'])
   const navigate = useNavigate()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const deleteRoom = useDeleteRoom()
@@ -187,15 +191,15 @@ function RoomActions({ room }: { room: RoomWithStats }) {
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => navigate(`/rooms/${room.id}`)}>
             <Eye className="mr-2 h-4 w-4" />
-            Xem chi tiết
+            {t('actions.viewDetail')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate(`/rooms/${room.id}/edit`)}>
             <Edit className="mr-2 h-4 w-4" />
-            Sửa
+            {t('actions.edit')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate(`/rooms/${room.id}/check`)}>
             <ClipboardCheck className="mr-2 h-4 w-4" />
-            Kiểm tra phòng
+            {t('actions.checkRoom')}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem 
@@ -203,7 +207,7 @@ function RoomActions({ room }: { room: RoomWithStats }) {
             onClick={() => setShowDeleteDialog(true)}
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Xóa
+            {t('actions.delete')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -211,20 +215,19 @@ function RoomActions({ room }: { room: RoomWithStats }) {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận xóa phòng</AlertDialogTitle>
+            <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa phòng <strong>{room.room_number}</strong>? 
-              Hành động này không thể hoàn tác.
+              {t('deleteDialog.description', { roomNumber: room.room_number })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleteRoom.isPending}
             >
-              {deleteRoom.isPending ? 'Đang xóa...' : 'Xóa'}
+              {deleteRoom.isPending ? t('deleteDialog.deleting') : t('deleteDialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

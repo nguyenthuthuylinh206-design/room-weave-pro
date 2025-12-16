@@ -17,17 +17,17 @@
     "maxGuests": "Số khách tối đa",
     "pricePerNight": "Giá/đêm",
     "view": "View",
-    "amenities": "Tiện ích",
+    "amenities": "Tiện nghi",
     "notes": "Ghi chú"
   },
   "status": {
     "vacant": "Trống",
-    "occupied": "Đang ở",
-    "cleaning": "Đang dọn",
+    "occupied": "Có khách",
+    "cleaning": "Dọn dẹp",
     "maintenance": "Bảo trì",
     "check_in": "Check In",
     "check_out": "Check Out",
-    "out_of_order": "Hỏng"
+    "out_of_order": "Ngừng sử dụng"
   },
   "roomTypes": {
     "standard": "Standard",
@@ -42,25 +42,25 @@
     "deleteSuccess": "Xóa phòng thành công",
     "noRooms": "Chưa có phòng nào",
     "notFound": "Không tìm thấy phòng",
-    "refreshed": "Đã cập nhật!"
+    "refreshed": "Đã làm mới!"
   },
   "filters": {
     "all": "Tất cả",
     "byFloor": "Theo tầng",
     "byStatus": "Theo trạng thái",
-    "byType": "Theo loại",
+    "byType": "Theo loại phòng",
     "search": "Tìm kiếm phòng...",
     "searchRoomFloor": "Tìm số phòng, tầng..."
   },
   "stats": {
     "total": "Tổng",
     "vacant": "Trống",
-    "occupied": "Đang ở",
+    "occupied": "Có khách",
     "checkIn": "Check In",
     "checkOut": "Check Out",
-    "cleaning": "Đang dọn",
+    "cleaning": "Dọn dẹp",
     "maintenance": "Bảo trì",
-    "outOfOrder": "Hỏng"
+    "outOfOrder": "Ngừng sử dụng"
   },
   "selection": {
     "cancel": "Hủy",
@@ -69,9 +69,9 @@
     "selected": "Đã chọn {{count}}/{{total}}"
   },
   "itemStatus": {
-    "notSetup": "Chưa thiết lập đồ",
+    "notSetup": "Chưa thiết lập đồ dùng",
     "missing": "Thiếu {{missing}}/{{total}}",
-    "complete": "Đủ đồ",
+    "complete": "Đầy đủ",
     "inLaundry": "{{count}} đang giặt"
   },
   "checkSession": {
@@ -86,7 +86,10 @@
   },
   "actions": {
     "viewDetail": "Xem chi tiết",
-    "backToList": "Quay lại danh sách"
+    "backToList": "Quay lại danh sách",
+    "edit": "Sửa",
+    "delete": "Xóa",
+    "checkRoom": "Kiểm tra phòng"
   },
   "detail": {
     "title": "Phòng {{number}}",
@@ -104,23 +107,23 @@
     "bedType": "Loại giường",
     "maxGuests": "Sức chứa",
     "guestCount": "{{count}} khách",
-    "view": "Hướng nhìn",
+    "view": "View",
     "basePrice": "Giá cơ bản",
     "pricePerNight": "{{price}}/đêm",
-    "amenities": "Tiện ích",
+    "amenities": "Tiện nghi",
     "notes": "Ghi chú",
-    "recentPhotos": "Ảnh kiểm tra gần nhất",
+    "recentPhotos": "Ảnh kiểm tra gần đây",
     "checkedBy": "Kiểm tra bởi: {{name}}",
-    "viewFull": "Xem full",
+    "viewFull": "Xem đầy đủ",
     "andMorePhotos": "+{{count}} ảnh khác",
     "totalItems": "Tổng đồ dùng",
     "complete": "Đầy đủ",
     "missing": "Thiếu",
     "missingCount": "({{count}} món)",
     "noItems": "Chưa có đồ dùng",
-    "noItemsHint": "Nhấn nút đồng bộ ở góc trên để thêm đồ dùng theo chuẩn loại phòng {{type}}.",
-    "applyStandards": "Áp dụng chuẩn",
-    "syncStandards": "Đồng bộ chuẩn",
+    "noItemsHint": "Nhấn nút đồng bộ ở trên để thêm đồ dùng theo tiêu chuẩn phòng {{type}}.",
+    "applyStandards": "Áp dụng tiêu chuẩn",
+    "syncStandards": "Đồng bộ tiêu chuẩn",
     "printItemList": "In danh sách",
     "na": "N/A"
   },
@@ -130,23 +133,61 @@
     "history": "Lịch sử"
   },
   "checkTypes": {
-    "daily": "Hàng ngày",
-    "checkin": "Check-in",
-    "checkout": "Check-out",
+    "daily": "Đầu ngày",
+    "checkin": "Trước check-in",
+    "checkout": "Sau check-out",
     "maintenance": "Bảo trì"
   },
   "print": {
     "itemListTitle": "Danh sách đồ dùng - Phòng {{roomNumber}}",
     "columns": {
-      "index": "STT",
+      "index": "#",
       "itemName": "Tên đồ dùng",
-      "required": "Cần có",
+      "required": "Yêu cầu",
       "current": "Hiện có",
-      "missing": "Còn thiếu",
+      "missing": "Thiếu",
       "status": "Trạng thái"
     },
     "statusMissing": "Thiếu",
-    "statusComplete": "Đủ",
+    "statusComplete": "Đầy đủ",
     "printDate": "In ngày: {{date}}"
+  },
+  "floorPlan": {
+    "statusLegend": "Chú thích trạng thái",
+    "totalRooms": "Tổng: {{count}} phòng",
+    "floor": "Tầng {{number}}",
+    "roomCount": "{{count}} phòng",
+    "noData": "Không có dữ liệu sơ đồ tầng"
+  },
+  "table": {
+    "roomNumber": "Số phòng",
+    "floor": "Tầng",
+    "roomType": "Loại phòng",
+    "status": "Trạng thái",
+    "area": "Diện tích",
+    "price": "Giá",
+    "items": "Đồ dùng",
+    "lastCheck": "Kiểm tra cuối",
+    "total": "Tổng",
+    "missing": "Thiếu",
+    "laundry": "Giặt",
+    "score": "Điểm: {{score}}/5",
+    "notChecked": "Chưa kiểm tra"
+  },
+  "grid": {
+    "noRooms": "Không tìm thấy phòng",
+    "tryChangeFilter": "Thử thay đổi bộ lọc hoặc thêm phòng mới",
+    "itemsComplete": "Đồ dùng đầy đủ",
+    "missingItems": "Thiếu {{count}} items",
+    "itemsInLaundry": "{{count}} items đang giặt",
+    "basePrice": "Giá cơ bản",
+    "perNight": "/đêm"
+  },
+  "deleteDialog": {
+    "title": "Xác nhận xóa phòng",
+    "description": "Bạn có chắc chắn muốn xóa phòng <strong>{{roomNumber}}</strong>? Hành động này không thể hoàn tác.",
+    "cancel": "Hủy",
+    "confirm": "Xóa",
+    "deleting": "Đang xóa..."
   }
 }

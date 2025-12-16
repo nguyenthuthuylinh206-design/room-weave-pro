@@ -23,16 +23,23 @@
     "totalValue": "Total Value",
     "status": "Status",
     "type": "Vendor Type",
-    "notes": "Notes"
+    "notes": "Notes",
+    "onTime": "On-time"
   },
   "type": {
     "supplier": "Supplier",
     "laundry": "Laundry",
     "maintenance": "Maintenance"
   },
+  "category": {
+    "supplier": "Supplier",
+    "service_provider": "Service",
+    "contractor": "Contractor"
+  },
   "status": {
     "active": "Active",
-    "inactive": "Inactive"
+    "inactive": "Inactive",
+    "suspended": "Suspended"
   },
   "po": {
     "fields": {
@@ -62,6 +69,42 @@
     "all": "All",
     "byType": "By Type",
     "byStatus": "By Status",
-    "search": "Search vendors..."
+    "search": "Search by name or code...",
+    "sortBy": "Sort by"
+  },
+  "sort": {
+    "name": "Name",
+    "rating": "Rating",
+    "orders": "Orders",
+    "value": "Value",
+    "recent": "Recent"
+  },
+  "table": {
+    "vendor": "Vendor",
+    "type": "Type",
+    "contact": "Contact",
+    "rating": "Rating",
+    "orders": "Orders",
+    "totalValue": "Total Value",
+    "onTime": "On-time",
+    "status": "Status",
+    "actions": "Actions"
+  },
+  "actions": {
+    "viewDetail": "View Details",
+    "edit": "Edit",
+    "delete": "Delete",
+    "activate": "Activate",
+    "deactivate": "Deactivate"
+  },
+  "dialogs": {
+    "deleteTitle": "Confirm Delete Vendor",
+    "deleteDescription": "Are you sure you want to delete vendor <strong>{{name}}</strong>? This action cannot be undone.",
+    "statusTitle": "Confirm Status Change",
+    "statusDescription": "Are you sure you want to {{action}} vendor <strong>{{name}}</strong>?",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "deleting": "Deleting...",
+    "processing": "Processing..."
   }
 }

@@ -86,7 +86,10 @@
   },
   "actions": {
     "viewDetail": "View Details",
-    "backToList": "Back to list"
+    "backToList": "Back to list",
+    "edit": "Edit",
+    "delete": "Delete",
+    "checkRoom": "Check Room"
   },
   "detail": {
     "title": "Room {{number}}",
@@ -148,5 +151,43 @@
     "statusMissing": "Missing",
     "statusComplete": "Complete",
     "printDate": "Printed on: {{date}}"
+  },
+  "floorPlan": {
+    "statusLegend": "Status Legend",
+    "totalRooms": "Total: {{count}} rooms",
+    "floor": "Floor {{number}}",
+    "roomCount": "{{count}} rooms",
+    "noData": "No floor plan data available"
+  },
+  "table": {
+    "roomNumber": "Room Number",
+    "floor": "Floor",
+    "roomType": "Room Type",
+    "status": "Status",
+    "area": "Area",
+    "price": "Price",
+    "items": "Items",
+    "lastCheck": "Last Check",
+    "total": "Total",
+    "missing": "Missing",
+    "laundry": "Laundry",
+    "score": "Score: {{score}}/5",
+    "notChecked": "Not checked"
+  },
+  "grid": {
+    "noRooms": "No rooms found",
+    "tryChangeFilter": "Try changing filters or add a new room",
+    "itemsComplete": "Items complete",
+    "missingItems": "Missing {{count}} items",
+    "itemsInLaundry": "{{count}} items in laundry",
+    "basePrice": "Base Price",
+    "perNight": "/night"
+  },
+  "deleteDialog": {
+    "title": "Confirm Delete Room",
+    "description": "Are you sure you want to delete room <strong>{{roomNumber}}</strong>? This action cannot be undone.",
+    "cancel": "Cancel",
+    "confirm": "Delete",
+    "deleting": "Deleting..."
   }
 }
