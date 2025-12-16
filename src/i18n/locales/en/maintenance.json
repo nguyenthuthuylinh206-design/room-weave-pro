@@ -1,4 +1,27 @@
 {
+  "recurring": {
+    "title": "Recurring Issues",
+    "description": "Analyze devices and rooms with frequent issues",
+    "tabs": {
+      "30days": "30 days",
+      "90days": "90 days",
+      "6months": "6 months",
+      "1year": "1 year"
+    },
+    "stats": {
+      "devicesWithIssues": "Devices/Rooms with Issues",
+      "totalIncidents": "Total Incidents (30 days)",
+      "totalCost": "Total Cost"
+    },
+    "noIssues": {
+      "title": "Great! No recurring issues",
+      "description": "In the past {{days}} days, no devices or rooms have had recurring issues (≥2 times)",
+      "tipsTitle": "Analysis tips:",
+      "tip1": "Try increasing the time period to see long-term trends",
+      "tip2": "Recurring issues help identify equipment that needs replacement",
+      "tip3": "Track maintenance costs to optimize budget"
+    }
+  },
   "title": "Maintenance Management",
   "pageTitle": "Maintenance Requests",
   "dashboard": "Manage maintenance requests",

@@ -1,4 +1,36 @@
 {
+  "comparison": {
+    "title": "So sánh nhà cung cấp",
+    "comparing": "So sánh {{count}} nhà cung cấp",
+    "exportPdf": "Xuất PDF",
+    "changeSelection": "Thay đổi lựa chọn",
+    "selectMinVendors": "Vui lòng chọn từ 2 đến 5 nhà cung cấp để so sánh",
+    "vendorLabel": "Nhà cung cấp",
+    "performance": "Hiệu suất",
+    "rating": "Rating",
+    "totalOrders": "Tổng đơn",
+    "totalValue": "Tổng GT",
+    "onTimeRate": "On-time",
+    "totalScore": "Tổng điểm",
+    "scoreBreakdown": {
+      "price": "Giá",
+      "quality": "Chất lượng",
+      "delivery": "Giao hàng",
+      "service": "Dịch vụ",
+      "terms": "Điều khoản"
+    },
+    "recommendation": "Đề xuất",
+    "bestChoice": "{{name}} là lựa chọn tốt nhất với:",
+    "highestRating": "Rating cao nhất ({{rating}}/5)",
+    "bestOnTime": "On-time delivery tốt nhất ({{rate}}%)",
+    "highestScore": "Tổng điểm cao nhất ({{score}}/100)",
+    "alternativeNote": "{{name}} cũng là lựa chọn tốt nếu bạn ưu tiên các yếu tố khác. Có thể xem xét đàm phán điều khoản tốt hơn hoặc so sánh giá cụ thể cho từng sản phẩm.",
+    "categories": {
+      "supplier": "Nhà cung cấp",
+      "service_provider": "Dịch vụ",
+      "contractor": "Thầu phụ"
+    }
+  },
   "title": "Quản lý Nhà cung cấp",
   "list": "Danh sách NCC",
   "addNew": "Thêm NCC mới",
