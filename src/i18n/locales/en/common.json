@@ -1,4 +1,6 @@
 {
+  "types": "types",
+  "products": "products",
   "appTitle": "Hotel Asset Management",
   "buttons": {
     "save": "Save",

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,42 +25,37 @@ import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const requestSchema = z.object({
-  title: z.string().min(1, 'Vui lòng nhập tiêu đề'),
-  description: z.string().min(1, 'Vui lòng nhập mô tả'),
+  title: z.string().min(1, 'validation.titleRequired'),
+  description: z.string().min(1, 'validation.descriptionRequired'),
   priority: z.enum(['low', 'medium', 'high', 'urgent']),
   issue_type: z.enum(['repair', 'replace', 'inspection', 'cleaning', 'other']),
-  location: z.string().min(1, 'Vui lòng nhập vị trí'),
+  location: z.string().min(1, 'validation.locationRequired'),
   room_id: z.string().optional(),
   item_id: z.string().optional(),
 })
 
 type RequestFormData = z.infer<typeof requestSchema>
 
-const STEPS = [
-  { id: 1, title: 'Thông tin cơ bản' },
-  { id: 2, title: 'Vị trí & Đối tượng' },
-  { id: 3, title: 'Xác nhận' },
-]
-
 const PRIORITY_OPTIONS = [
-  { value: 'low', label: 'Thấp', color: 'bg-green-100 text-green-800 border-green-200' },
-  { value: 'medium', label: 'Trung bình', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-  { value: 'high', label: 'Cao', color: 'bg-orange-100 text-orange-800 border-orange-200' },
-  { value: 'urgent', label: 'Khẩn cấp', color: 'bg-red-100 text-red-800 border-red-200' },
+  { value: 'low', color: 'bg-green-100 text-green-800 border-green-200' },
+  { value: 'medium', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+  { value: 'high', color: 'bg-orange-100 text-orange-800 border-orange-200' },
+  { value: 'urgent', color: 'bg-red-100 text-red-800 border-red-200' },
 ]
 
-const ISSUE_TYPE_OPTIONS = [
-  { value: 'repair', label: 'Sửa chữa' },
-  { value: 'replace', label: 'Thay thế' },
-  { value: 'inspection', label: 'Kiểm tra' },
-  { value: 'cleaning', label: 'Vệ sinh' },
-  { value: 'other', label: 'Khác' },
-]
+const ISSUE_TYPE_OPTIONS = ['repair', 'replace', 'inspection', 'cleaning', 'other']
 
 export const MobileMaintenanceRequestForm = () => {
   const navigate = useNavigate()
   const { id } = useParams()
+  const { t } = useTranslation('maintenance')
   const [currentStep, setCurrentStep] = useState(1)
+
+  const STEPS = [
+    { id: 1, title: t('form.steps.basicInfo') },
+    { id: 2, title: t('form.steps.location') },
+    { id: 3, title: t('form.steps.confirm') },
+  ]
 
   const createRequest = useCreateMaintenanceRequest()
   const updateRequest = useUpdateMaintenanceRequest()
@@ -111,7 +107,7 @@ export const MobileMaintenanceRequestForm = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <MobileDetailHeader
-        title={id ? 'Chỉnh sửa yêu cầu' : 'Tạo yêu cầu mới'}
+        title={id ? t('requests.edit') : t('requests.new')}
         showBack
         onBack={handleBack}
       />
@@ -153,34 +149,34 @@ export const MobileMaintenanceRequestForm = () => {
             <Card>
               <CardContent className="p-4 space-y-4">
                 <div className="space-y-2">
-                  <Label>Tiêu đề *</Label>
+                  <Label>{t('form.titleLabel')} *</Label>
                   <Input
-                    placeholder="Nhập tiêu đề yêu cầu"
+                    placeholder={t('form.titlePlaceholder')}
                     {...form.register('title')}
                   />
                   {form.formState.errors.title && (
                     <p className="text-sm text-destructive">
-                      {form.formState.errors.title.message}
+                      {t(form.formState.errors.title.message as string)}
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Mô tả *</Label>
+                  <Label>{t('form.descriptionLabel')} *</Label>
                   <Textarea
-                    placeholder="Mô tả chi tiết vấn đề"
+                    placeholder={t('form.descriptionPlaceholder')}
                     rows={4}
                     {...form.register('description')}
                   />
                   {form.formState.errors.description && (
                     <p className="text-sm text-destructive">
-                      {form.formState.errors.description.message}
+                      {t(form.formState.errors.description.message as string)}
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Mức độ ưu tiên *</Label>
+                  <Label>{t('form.priorityLabel')} *</Label>
                   <RadioGroup
                     value={form.watch('priority')}
                     onValueChange={(value) =>
@@ -199,14 +195,14 @@ export const MobileMaintenanceRequestForm = () => {
                         )}
                       >
                         <RadioGroupItem value={option.value} className="sr-only" />
-                        <span className="text-sm font-medium">{option.label}</span>
+                        <span className="text-sm font-medium">{t(`priority.${option.value}`)}</span>
                       </Label>
                     ))}
                   </RadioGroup>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Loại sự cố *</Label>
+                  <Label>{t('form.issueTypeLabel')} *</Label>
                   <Select
                     value={form.watch('issue_type')}
                     onValueChange={(value) =>
@@ -218,8 +214,8 @@ export const MobileMaintenanceRequestForm = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {ISSUE_TYPE_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
+                        <SelectItem key={option} value={option}>
+                          {t(`issueType.${option}`)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -234,31 +230,31 @@ export const MobileMaintenanceRequestForm = () => {
             <Card>
               <CardContent className="p-4 space-y-4">
                 <div className="space-y-2">
-                  <Label>Vị trí *</Label>
+                  <Label>{t('form.locationLabel')} *</Label>
                   <Input
-                    placeholder="Ví dụ: Phòng 101, Tầng 1"
+                    placeholder={t('form.locationPlaceholder')}
                     {...form.register('location')}
                   />
                   {form.formState.errors.location && (
                     <p className="text-sm text-destructive">
-                      {form.formState.errors.location.message}
+                      {t(form.formState.errors.location.message as string)}
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Phòng (tùy chọn)</Label>
+                  <Label>{t('form.roomLabel')}</Label>
                   <Select
                     value={form.watch('room_id')}
                     onValueChange={(value) => form.setValue('room_id', value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Chọn phòng" />
+                      <SelectValue placeholder={t('form.roomPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
                       {rooms.map((room: any) => (
                         <SelectItem key={room.id} value={room.id}>
-                          Phòng {room.room_number} - Tầng {room.floor}
+                          {t('form.roomDisplay', { number: room.room_number, floor: room.floor })}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -266,13 +262,13 @@ export const MobileMaintenanceRequestForm = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Thiết bị (tùy chọn)</Label>
+                  <Label>{t('form.itemLabel')}</Label>
                   <Select
                     value={form.watch('item_id')}
                     onValueChange={(value) => form.setValue('item_id', value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Chọn thiết bị" />
+                      <SelectValue placeholder={t('form.itemPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
                       {(Array.isArray(items) ? items : items?.items || []).map((item: any) => (
@@ -293,37 +289,29 @@ export const MobileMaintenanceRequestForm = () => {
               <CardContent className="p-4 space-y-4">
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm text-muted-foreground">Tiêu đề</p>
+                    <p className="text-sm text-muted-foreground">{t('fields.title')}</p>
                     <p className="font-medium">{form.watch('title')}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Mô tả</p>
+                    <p className="text-sm text-muted-foreground">{t('fields.description')}</p>
                     <p className="text-sm">{form.watch('description')}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-sm text-muted-foreground">Mức độ</p>
+                      <p className="text-sm text-muted-foreground">{t('fields.priority')}</p>
                       <p className="font-medium">
-                        {
-                          PRIORITY_OPTIONS.find(
-                            (p) => p.value === form.watch('priority')
-                          )?.label
-                        }
+                        {t(`priority.${form.watch('priority')}`)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Loại</p>
+                      <p className="text-sm text-muted-foreground">{t('fields.type')}</p>
                       <p className="font-medium">
-                        {
-                          ISSUE_TYPE_OPTIONS.find(
-                            (t) => t.value === form.watch('issue_type')
-                          )?.label
-                        }
+                        {t(`issueType.${form.watch('issue_type')}`)}
                       </p>
                     </div>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Vị trí</p>
+                    <p className="text-sm text-muted-foreground">{t('fields.location')}</p>
                     <p className="font-medium">{form.watch('location')}</p>
                   </div>
                 </div>
@@ -340,7 +328,7 @@ export const MobileMaintenanceRequestForm = () => {
               onClick={handleBack}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
-              {currentStep === 1 ? 'Hủy' : 'Quay lại'}
+              {currentStep === 1 ? t('actions.cancel') : t('actions.back')}
             </Button>
             <Button
               type="button"
@@ -350,16 +338,16 @@ export const MobileMaintenanceRequestForm = () => {
             >
               {currentStep === STEPS.length ? (
                 createRequest.isPending || updateRequest.isPending ? (
-                  'Đang xử lý...'
+                  t('actions.processing')
                 ) : (
                   <>
                     <Check className="h-4 w-4 mr-1" />
-                    Hoàn thành
+                    {t('actions.submit')}
                   </>
                 )
               ) : (
                 <>
-                  Tiếp theo
+                  {t('actions.next')}
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </>
               )}

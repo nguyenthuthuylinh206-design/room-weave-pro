@@ -5,11 +5,39 @@
     "title": "Maintenance Requests",
     "list": "Request List",
     "new": "Create New Request",
-    "detail": "Request Details"
+    "detail": "Request Details",
+    "edit": "Edit Request"
   },
   "recurring": {
     "title": "Recurring Issues",
     "list": "Issue List"
+  },
+  "form": {
+    "steps": {
+      "basicInfo": "Basic Information",
+      "location": "Location & Item",
+      "confirm": "Confirm"
+    },
+    "titleLabel": "Title",
+    "titlePlaceholder": "Enter request title",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Describe the issue in detail",
+    "priorityLabel": "Priority",
+    "issueTypeLabel": "Issue Type",
+    "locationLabel": "Location",
+    "locationPlaceholder": "E.g., Room 101, Floor 1",
+    "roomLabel": "Room (optional)",
+    "roomPlaceholder": "Select room",
+    "itemLabel": "Item (optional)",
+    "itemPlaceholder": "Select item",
+    "roomDisplay": "Room {{number}} - Floor {{floor}}"
+  },
+  "issueType": {
+    "repair": "Repair",
+    "replace": "Replace",
+    "inspection": "Inspection",
+    "cleaning": "Cleaning",
+    "other": "Other"
   },
   "fields": {
     "requestCode": "Request Code",
@@ -20,13 +48,15 @@
     "status": "Status",
     "location": "Location",
     "room": "Room",
+    "item": "Item",
     "assignedTo": "Assigned To",
     "reportedBy": "Reported By",
     "reportedAt": "Reported At",
     "completedAt": "Completed At",
     "estimatedCost": "Estimated Cost",
     "actualCost": "Actual Cost",
-    "notes": "Notes"
+    "notes": "Notes",
+    "type": "Type"
   },
   "priority": {
     "low": "Low",
@@ -45,7 +75,11 @@
     "assign": "Assign",
     "start": "Start",
     "complete": "Complete",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "next": "Next",
+    "back": "Back",
+    "submit": "Complete",
+    "processing": "Processing..."
   },
   "messages": {
     "createSuccess": "Request created successfully",
@@ -61,5 +95,10 @@
     "byPriority": "By Priority",
     "byRoom": "By Room",
     "search": "Search requests..."
+  },
+  "validation": {
+    "titleRequired": "Please enter a title",
+    "descriptionRequired": "Please enter a description",
+    "locationRequired": "Please enter a location"
   }
 }

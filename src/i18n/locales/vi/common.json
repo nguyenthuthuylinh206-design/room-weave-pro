@@ -1,4 +1,6 @@
 {
+  "types": "loại",
+  "products": "sản phẩm",
   "appTitle": "Quản lý Tài sản Khách sạn",
   "buttons": {
     "save": "Lưu",
