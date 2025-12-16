@@ -1,0 +1,87 @@
+{
+  "buttons": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "add": "Add",
+    "update": "Update",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "print": "Print",
+    "refresh": "Refresh",
+    "viewAll": "View All",
+    "viewDetails": "View Details",
+    "tryAgain": "Try Again",
+    "logout": "Logout",
+    "login": "Login"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "draft": "Draft",
+    "processing": "Processing",
+    "inProgress": "In Progress"
+  },
+  "messages": {
+    "success": "Success",
+    "error": "Error",
+    "loading": "Loading...",
+    "noData": "No data available",
+    "confirmDelete": "Are you sure you want to delete?",
+    "deleteSuccess": "Deleted successfully",
+    "saveSuccess": "Saved successfully",
+    "updateSuccess": "Updated successfully",
+    "createSuccess": "Created successfully",
+    "errorOccurred": "An error occurred",
+    "tryAgainLater": "Please try again later"
+  },
+  "validation": {
+    "required": "This field is required",
+    "invalidEmail": "Invalid email address",
+    "invalidPhone": "Invalid phone number",
+    "minLength": "Minimum {{min}} characters",
+    "maxLength": "Maximum {{max}} characters",
+    "passwordMismatch": "Passwords do not match",
+    "invalidFormat": "Invalid format"
+  },
+  "table": {
+    "actions": "Actions",
+    "noResults": "No results found",
+    "showing": "Showing",
+    "of": "of",
+    "entries": "entries",
+    "rowsPerPage": "Rows per page"
+  },
+  "time": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "thisWeek": "This week",
+    "thisMonth": "This month",
+    "thisYear": "This year",
+    "ago": "ago",
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} minutes ago",
+    "hoursAgo": "{{count}} hours ago",
+    "daysAgo": "{{count}} days ago"
+  },
+  "language": {
+    "vietnamese": "Tiếng Việt",
+    "english": "English",
+    "changeLanguage": "Change Language"
+  }
+}

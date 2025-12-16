@@ -17,6 +17,8 @@ import { useNavigate } from 'react-router-dom'
 import { ROLES } from '@/lib/constants'
 import { HotelSwitcher } from './HotelSwitcher'
 import { NotificationBell } from '@/components/notifications'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { useTranslation } from 'react-i18next'
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -27,6 +29,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   const { signOut } = useAuth()
   const { user, role } = useUser()
   const navigate = useNavigate()
+  const { t } = useTranslation(['common', 'auth', 'settings'])
 
   const handleSignOut = async () => {
     await signOut()
@@ -60,6 +63,9 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
 
       {/* Right Side Actions */}
       <div className="flex items-center gap-2">
+        {/* Language Switcher */}
+        <LanguageSwitcher />
+
         {/* Theme Toggle */}
         <Button
           variant="ghost"
@@ -108,16 +114,16 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate('/profile')}>
               <User className="mr-2 h-4 w-4" />
-              <span>Hồ sơ cá nhân</span>
+              <span>{t('auth:profile')}</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/settings')}>
               <Settings className="mr-2 h-4 w-4" />
-              <span>Cài đặt</span>
+              <span>{t('settings:title')}</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
-              <span>Đăng xuất</span>
+              <span>{t('auth:logout')}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

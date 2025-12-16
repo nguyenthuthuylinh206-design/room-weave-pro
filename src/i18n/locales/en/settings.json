@@ -1,0 +1,61 @@
+{
+  "title": "Settings",
+  "general": {
+    "title": "General Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode",
+    "timezone": "Timezone",
+    "dateFormat": "Date Format",
+    "currency": "Currency"
+  },
+  "profile": {
+    "title": "Profile",
+    "fullName": "Full Name",
+    "email": "Email",
+    "phone": "Phone Number",
+    "avatar": "Avatar",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password"
+  },
+  "users": {
+    "title": "User Management",
+    "addUser": "Add User",
+    "editUser": "Edit User",
+    "userLevel": "User Level",
+    "hotel": "Hotel",
+    "position": "Position",
+    "status": "Status"
+  },
+  "hotels": {
+    "title": "Hotel Management",
+    "addHotel": "Add Hotel",
+    "editHotel": "Edit Hotel",
+    "hotelName": "Hotel Name",
+    "address": "Address",
+    "phone": "Phone",
+    "email": "Email",
+    "totalRooms": "Total Rooms",
+    "totalFloors": "Total Floors"
+  },
+  "categories": {
+    "title": "Category Management",
+    "addCategory": "Add Category",
+    "editCategory": "Edit Category",
+    "categoryName": "Category Name",
+    "description": "Description",
+    "parentCategory": "Parent Category"
+  },
+  "notifications": {
+    "title": "Notification Settings"
+  },
+  "security": {
+    "title": "Security",
+    "twoFactor": "Two-Factor Authentication",
+    "sessions": "Active Sessions",
+    "activityLog": "Activity Log"
+  }
+}

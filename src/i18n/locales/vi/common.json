@@ -1,0 +1,87 @@
+{
+  "buttons": {
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "delete": "Xóa",
+    "edit": "Sửa",
+    "create": "Tạo mới",
+    "add": "Thêm",
+    "update": "Cập nhật",
+    "confirm": "Xác nhận",
+    "close": "Đóng",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "previous": "Trước đó",
+    "submit": "Gửi",
+    "search": "Tìm kiếm",
+    "filter": "Lọc",
+    "export": "Xuất",
+    "import": "Nhập",
+    "print": "In",
+    "refresh": "Làm mới",
+    "viewAll": "Xem tất cả",
+    "viewDetails": "Xem chi tiết",
+    "tryAgain": "Thử lại",
+    "logout": "Đăng xuất",
+    "login": "Đăng nhập"
+  },
+  "status": {
+    "active": "Hoạt động",
+    "inactive": "Không hoạt động",
+    "pending": "Chờ xử lý",
+    "completed": "Hoàn thành",
+    "cancelled": "Đã hủy",
+    "approved": "Đã duyệt",
+    "rejected": "Từ chối",
+    "draft": "Nháp",
+    "processing": "Đang xử lý",
+    "inProgress": "Đang thực hiện"
+  },
+  "messages": {
+    "success": "Thành công",
+    "error": "Lỗi",
+    "loading": "Đang tải...",
+    "noData": "Không có dữ liệu",
+    "confirmDelete": "Bạn có chắc muốn xóa?",
+    "deleteSuccess": "Xóa thành công",
+    "saveSuccess": "Lưu thành công",
+    "updateSuccess": "Cập nhật thành công",
+    "createSuccess": "Tạo mới thành công",
+    "errorOccurred": "Đã xảy ra lỗi",
+    "tryAgainLater": "Vui lòng thử lại sau"
+  },
+  "validation": {
+    "required": "Trường này là bắt buộc",
+    "invalidEmail": "Email không hợp lệ",
+    "invalidPhone": "Số điện thoại không hợp lệ",
+    "minLength": "Tối thiểu {{min}} ký tự",
+    "maxLength": "Tối đa {{max}} ký tự",
+    "passwordMismatch": "Mật khẩu không khớp",
+    "invalidFormat": "Định dạng không hợp lệ"
+  },
+  "table": {
+    "actions": "Thao tác",
+    "noResults": "Không tìm thấy kết quả",
+    "showing": "Hiển thị",
+    "of": "của",
+    "entries": "mục",
+    "rowsPerPage": "Số dòng mỗi trang"
+  },
+  "time": {
+    "today": "Hôm nay",
+    "yesterday": "Hôm qua",
+    "thisWeek": "Tuần này",
+    "thisMonth": "Tháng này",
+    "thisYear": "Năm nay",
+    "ago": "trước",
+    "justNow": "Vừa xong",
+    "minutesAgo": "{{count}} phút trước",
+    "hoursAgo": "{{count}} giờ trước",
+    "daysAgo": "{{count}} ngày trước"
+  },
+  "language": {
+    "vietnamese": "Tiếng Việt",
+    "english": "English",
+    "changeLanguage": "Đổi ngôn ngữ"
+  }
+}
