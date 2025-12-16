@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useTranslation } from 'react-i18next'
 import { useTenant } from '@/hooks/useTenant'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
@@ -22,9 +23,9 @@ import { useAutoSave } from '@/hooks/useAutoSave'
 import { logUpdate } from '@/lib/activityLogger'
 import { SeedDataButton } from '@/components/settings/SeedDataButton'
 
-const generalSettingsSchema = z.object({
-  name: z.string().min(2, 'Tên công ty phải có ít nhất 2 ký tự'),
-  email: z.string().email('Email không hợp lệ'),
+const createGeneralSettingsSchema = (t: (key: string) => string) => z.object({
+  name: z.string().min(2, t('settings:general.validation.companyNameMin')),
+  email: z.string().email(t('settings:general.validation.emailInvalid')),
   phone: z.string().optional(),
   settings: z.object({
     timezone: z.string().default('Asia/Ho_Chi_Minh'),
@@ -34,13 +35,16 @@ const generalSettingsSchema = z.object({
   }),
 })
 
-type GeneralSettingsForm = z.infer<typeof generalSettingsSchema>
+type GeneralSettingsForm = z.infer<ReturnType<typeof createGeneralSettingsSchema>>
 
 export function GeneralSettingsPage() {
+  const { t } = useTranslation(['settings', 'common'])
   const { tenant, isLoading } = useTenant()
   const { toast } = useToast()
   const [isSaving, setIsSaving] = useState(false)
   const [enableAutoSave, setEnableAutoSave] = useState(false)
+
+  const generalSettingsSchema = createGeneralSettingsSchema(t)
 
   const {
     register,
@@ -119,15 +123,15 @@ export function GeneralSettingsPage() {
       if (error) throw error
 
       // Log the activity
-      await logUpdate('tenant_settings', tenant.id, 'Cài đặt chung', oldValues, data)
+      await logUpdate('tenant_settings', tenant.id, t('settings:general.title'), oldValues, data)
 
       toast({
-        title: 'Đã lưu',
-        description: 'Cài đặt đã được cập nhật thành công',
+        title: t('settings:general.saved'),
+        description: t('settings:general.savedDescription'),
       })
     } catch (error: any) {
       toast({
-        title: 'Lỗi',
+        title: t('settings:general.error'),
         description: error.message,
         variant: 'destructive',
       })
@@ -147,9 +151,9 @@ export function GeneralSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Cài đặt chung</h1>
+        <h1 className="text-3xl font-bold">{t('settings:general.pageTitle')}</h1>
         <p className="text-muted-foreground mt-2">
-          Quản lý thông tin và cấu hình chung của hệ thống
+          {t('settings:general.pageDescription')}
         </p>
       </div>
 
@@ -157,16 +161,16 @@ export function GeneralSettingsPage() {
         {/* Company Information */}
         <Card>
           <CardHeader>
-            <CardTitle>Thông tin công ty</CardTitle>
-            <CardDescription>Thông tin cơ bản về doanh nghiệp của bạn</CardDescription>
+            <CardTitle>{t('settings:general.companyInfo.title')}</CardTitle>
+            <CardDescription>{t('settings:general.companyInfo.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Tên công ty *</Label>
+              <Label htmlFor="name">{t('settings:general.companyName')} *</Label>
               <Input
                 id="name"
                 {...register('name')}
-                placeholder="VD: Khách sạn ABC"
+                placeholder={t('settings:general.companyNamePlaceholder')}
               />
               {errors.name && (
                 <p className="text-sm text-destructive">{errors.name.message}</p>
@@ -175,12 +179,12 @@ export function GeneralSettingsPage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="email">{t('settings:general.email')} *</Label>
                 <Input
                   id="email"
                   type="email"
                   {...register('email')}
-                  placeholder="contact@hotel.com"
+                  placeholder={t('settings:general.emailPlaceholder')}
                 />
                 {errors.email && (
                   <p className="text-sm text-destructive">{errors.email.message}</p>
@@ -188,11 +192,11 @@ export function GeneralSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Số điện thoại</Label>
+                <Label htmlFor="phone">{t('settings:general.phone')}</Label>
                 <Input
                   id="phone"
                   {...register('phone')}
-                  placeholder="0901234567"
+                  placeholder={t('settings:general.phonePlaceholder')}
                 />
               </div>
             </div>
@@ -202,13 +206,13 @@ export function GeneralSettingsPage() {
         {/* Regional Settings */}
         <Card>
           <CardHeader>
-            <CardTitle>Cài đặt khu vực</CardTitle>
-            <CardDescription>Múi giờ, ngôn ngữ và đơn vị tiền tệ</CardDescription>
+            <CardTitle>{t('settings:general.regionalSettings.title')}</CardTitle>
+            <CardDescription>{t('settings:general.regionalSettings.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Múi giờ</Label>
+                <Label>{t('settings:general.timezone')}</Label>
                 <Select
                   value={watch('settings.timezone')}
                   onValueChange={(value) => setValue('settings.timezone', value)}
@@ -217,15 +221,15 @@ export function GeneralSettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Asia/Ho_Chi_Minh">GMT+7 (Hồ Chí Minh)</SelectItem>
-                    <SelectItem value="Asia/Bangkok">GMT+7 (Bangkok)</SelectItem>
-                    <SelectItem value="Asia/Singapore">GMT+8 (Singapore)</SelectItem>
+                    <SelectItem value="Asia/Ho_Chi_Minh">{t('settings:general.timezones.hoChiMinh')}</SelectItem>
+                    <SelectItem value="Asia/Bangkok">{t('settings:general.timezones.bangkok')}</SelectItem>
+                    <SelectItem value="Asia/Singapore">{t('settings:general.timezones.singapore')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label>Ngôn ngữ</Label>
+                <Label>{t('settings:general.language')}</Label>
                 <Select
                   value={watch('settings.language')}
                   onValueChange={(value: 'vi' | 'en') => setValue('settings.language', value)}
@@ -234,14 +238,14 @@ export function GeneralSettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="vi">Tiếng Việt</SelectItem>
-                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="vi">{t('settings:general.languages.vi')}</SelectItem>
+                    <SelectItem value="en">{t('settings:general.languages.en')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label>Đơn vị tiền tệ</Label>
+                <Label>{t('settings:general.currency')}</Label>
                 <Select
                   value={watch('settings.currency')}
                   onValueChange={(value) => setValue('settings.currency', value)}
@@ -250,15 +254,15 @@ export function GeneralSettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="VND">VND (₫)</SelectItem>
-                    <SelectItem value="USD">USD ($)</SelectItem>
-                    <SelectItem value="EUR">EUR (€)</SelectItem>
+                    <SelectItem value="VND">{t('settings:general.currencies.VND')}</SelectItem>
+                    <SelectItem value="USD">{t('settings:general.currencies.USD')}</SelectItem>
+                    <SelectItem value="EUR">{t('settings:general.currencies.EUR')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label>Định dạng ngày</Label>
+                <Label>{t('settings:general.dateFormat')}</Label>
                 <Select
                   value={watch('settings.date_format')}
                   onValueChange={(value) => setValue('settings.date_format', value)}
@@ -280,9 +284,9 @@ export function GeneralSettingsPage() {
         {/* Demo Data Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Dữ liệu Demo</CardTitle>
+            <CardTitle>{t('settings:demoData.title')}</CardTitle>
             <CardDescription>
-              Tạo dữ liệu mẫu để kiểm thử hệ thống (chỉ dành cho môi trường phát triển)
+              {t('settings:demoData.description')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -300,18 +304,18 @@ export function GeneralSettingsPage() {
               className="h-4 w-4 rounded border-input"
             />
             <Label htmlFor="auto-save" className="text-sm font-normal cursor-pointer">
-              Tự động lưu thay đổi
+              {t('settings:general.autoSave')}
             </Label>
           </div>
           
           <div className="flex gap-3">
             <Button type="button" variant="outline">
-              Hủy
+              {t('settings:general.cancel')}
             </Button>
             <Button type="submit" disabled={isSaving || !isDirty}>
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {!isSaving && <Save className="mr-2 h-4 w-4" />}
-              Lưu thay đổi
+              {t('settings:general.saveChanges')}
             </Button>
           </div>
         </div>

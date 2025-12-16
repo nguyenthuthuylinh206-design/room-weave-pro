@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -17,6 +18,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import MobileNotificationSettingsPage from '@/pages/mobile/MobileNotificationSettingsPage'
 
 export function NotificationSettingsPage() {
+  const { t } = useTranslation(['settings', 'common'])
   const navigate = useNavigate()
   const { user, tenantId } = useUser()
   const isMobile = useIsMobile()
@@ -41,7 +43,7 @@ export function NotificationSettingsPage() {
   const handleSave = async () => {
     await savePreferences(localPrefs)
     setHasChanges(false)
-    toast({ title: 'Đã lưu cài đặt thông báo' })
+    toast({ title: t('settings:notifications.toast.saved') })
   }
 
   const handleCancel = () => {
@@ -51,7 +53,7 @@ export function NotificationSettingsPage() {
 
   const handleSendTestNotification = async () => {
     if (!user?.id || !tenantId) {
-      toast({ title: 'Lỗi', description: 'Không tìm thấy thông tin user', variant: 'destructive' })
+      toast({ title: t('common:error'), description: t('settings:notifications.toast.userNotFound'), variant: 'destructive' })
       return
     }
     
@@ -60,20 +62,20 @@ export function NotificationSettingsPage() {
       await triggerNotification(
         user.id,
         tenantId,
-        '🔔 Thông báo test',
-        'Đây là thông báo test từ hệ thống. Nếu bạn nhận được thì cài đặt đã hoạt động!',
+        '🔔 Test Notification',
+        'This is a test notification from the system. If you receive this, the settings are working!',
         'info',
         '/settings/notifications',
         isSubscribed
       )
       toast({ 
-        title: 'Đã gửi thông báo test', 
-        description: 'Kiểm tra trong trung tâm thông báo' 
+        title: t('settings:notifications.toast.testSent'), 
+        description: t('settings:notifications.toast.testSentDesc')
       })
     } catch (error) {
       toast({ 
-        title: 'Lỗi', 
-        description: 'Không thể gửi thông báo test',
+        title: t('common:error'), 
+        description: t('settings:notifications.toast.testError'),
         variant: 'destructive'
       })
     } finally {
@@ -98,15 +100,15 @@ export function NotificationSettingsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Cài đặt thông báo</h1>
+          <h1 className="text-3xl font-bold">{t('settings:notifications.pageTitle')}</h1>
           <p className="text-muted-foreground mt-2">
-            Quản lý các loại thông báo và cảnh báo hệ thống
+            {t('settings:notifications.pageDescription')}
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate('/notifications')}>
             <History className="h-4 w-4 mr-2" />
-            Lịch sử
+            {t('settings:notifications.history')}
           </Button>
           <Button 
             variant="outline" 
@@ -118,7 +120,7 @@ export function NotificationSettingsPage() {
             ) : (
               <Send className="h-4 w-4 mr-2" />
             )}
-            Gửi test
+            {t('settings:notifications.sendTest')}
           </Button>
         </div>
       </div>
@@ -129,30 +131,30 @@ export function NotificationSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
-              Thông báo đẩy (Push Notifications)
+              {t('settings:notifications.pushNotifications.title')}
             </CardTitle>
-            <CardDescription>Nhận thông báo ngay cả khi không mở ứng dụng</CardDescription>
+            <CardDescription>{t('settings:notifications.pushNotifications.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {permission === 'denied' ? (
               <div className="text-sm text-destructive">
-                Bạn đã chặn thông báo. Vui lòng bật lại trong cài đặt trình duyệt.
+                {t('settings:notifications.pushNotifications.blocked')}
               </div>
             ) : (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Smartphone className="h-5 w-5 text-muted-foreground" />
                   <div className="space-y-0.5">
-                    <Label>Bật thông báo đẩy</Label>
+                    <Label>{t('settings:notifications.pushNotifications.enable')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Nhận cảnh báo tồn kho, bảo trì và cập nhật quan trọng
+                      {t('settings:notifications.pushNotifications.enableDescription')}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {isSubscribed && <Badge variant="secondary">Đã bật</Badge>}
+                  {isSubscribed && <Badge variant="secondary">{t('settings:notifications.pushNotifications.enabled')}</Badge>}
                   {!isSupported && !isSubscribed && (
-                    <Badge variant="outline" className="text-muted-foreground">Preview</Badge>
+                    <Badge variant="outline" className="text-muted-foreground">{t('settings:notifications.pushNotifications.preview')}</Badge>
                   )}
                   <Button
                     variant={isSubscribed ? "outline" : "default"}
@@ -161,7 +163,7 @@ export function NotificationSettingsPage() {
                     disabled={pushLoading}
                   >
                     {pushLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    {isSubscribed ? 'Tắt' : 'Bật ngay'}
+                    {isSubscribed ? t('settings:notifications.pushNotifications.turnOff') : t('settings:notifications.pushNotifications.turnOn')}
                   </Button>
                 </div>
               </div>
@@ -172,15 +174,15 @@ export function NotificationSettingsPage() {
         {/* Email Notifications */}
         <Card>
           <CardHeader>
-            <CardTitle>Thông báo Email</CardTitle>
-            <CardDescription>Chọn các sự kiện nhận thông báo qua email</CardDescription>
+            <CardTitle>{t('settings:notifications.emailNotifications.title')}</CardTitle>
+            <CardDescription>{t('settings:notifications.emailNotifications.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>Cảnh báo tồn kho thấp</Label>
+                <Label>{t('settings:notifications.emailNotifications.lowStock')}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Nhận email khi tồn kho dưới mức tối thiểu
+                  {t('settings:notifications.emailNotifications.lowStockDesc')}
                 </p>
               </div>
               <Switch 
@@ -192,9 +194,9 @@ export function NotificationSettingsPage() {
             
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>Lô giặt đã hoàn thành</Label>
+                <Label>{t('settings:notifications.emailNotifications.laundryCompleted')}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Thông báo khi lô giặt được nhận về
+                  {t('settings:notifications.emailNotifications.laundryCompletedDesc')}
                 </p>
               </div>
               <Switch 
@@ -206,9 +208,9 @@ export function NotificationSettingsPage() {
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>Yêu cầu bảo trì mới</Label>
+                <Label>{t('settings:notifications.emailNotifications.maintenanceNew')}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Email khi có yêu cầu bảo trì được tạo
+                  {t('settings:notifications.emailNotifications.maintenanceNewDesc')}
                 </p>
               </div>
               <Switch 
@@ -220,9 +222,9 @@ export function NotificationSettingsPage() {
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>Đơn hàng được phê duyệt</Label>
+                <Label>{t('settings:notifications.emailNotifications.poApproved')}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Thông báo khi đơn đặt hàng được phê duyệt
+                  {t('settings:notifications.emailNotifications.poApprovedDesc')}
                 </p>
               </div>
               <Switch 
@@ -234,9 +236,9 @@ export function NotificationSettingsPage() {
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>Báo cáo tổng hợp hàng ngày</Label>
+                <Label>{t('settings:notifications.emailNotifications.dailyReport')}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Gửi báo cáo tổng hợp vào mỗi sáng
+                  {t('settings:notifications.emailNotifications.dailyReportDesc')}
                 </p>
               </div>
               <Switch 
@@ -248,9 +250,9 @@ export function NotificationSettingsPage() {
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>Báo cáo tuần</Label>
+                <Label>{t('settings:notifications.emailNotifications.weeklyReport')}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Gửi báo cáo tổng hợp hàng tuần
+                  {t('settings:notifications.emailNotifications.weeklyReportDesc')}
                 </p>
               </div>
               <Switch 
@@ -264,12 +266,12 @@ export function NotificationSettingsPage() {
         {/* In-App Notifications */}
         <Card>
           <CardHeader>
-            <CardTitle>Thông báo trong ứng dụng</CardTitle>
-            <CardDescription>Cấu hình thông báo real-time</CardDescription>
+            <CardTitle>{t('settings:notifications.inApp.title')}</CardTitle>
+            <CardDescription>{t('settings:notifications.inApp.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <Label>Cập nhật theo thời gian thực</Label>
+              <Label>{t('settings:notifications.inApp.realtime')}</Label>
               <Switch 
                 checked={localPrefs.inapp_realtime ?? true}
                 onCheckedChange={(v) => handleChange('inapp_realtime', v)}
@@ -278,7 +280,7 @@ export function NotificationSettingsPage() {
             <Separator />
 
             <div className="flex items-center justify-between">
-              <Label>Cảnh báo tồn kho</Label>
+              <Label>{t('settings:notifications.inApp.lowStock')}</Label>
               <Switch 
                 checked={localPrefs.inapp_low_stock ?? true}
                 onCheckedChange={(v) => handleChange('inapp_low_stock', v)}
@@ -287,7 +289,7 @@ export function NotificationSettingsPage() {
             <Separator />
 
             <div className="flex items-center justify-between">
-              <Label>Lô giặt hoàn thành</Label>
+              <Label>{t('settings:notifications.inApp.laundryCompleted')}</Label>
               <Switch 
                 checked={localPrefs.inapp_laundry_completed ?? true}
                 onCheckedChange={(v) => handleChange('inapp_laundry_completed', v)}
@@ -296,7 +298,7 @@ export function NotificationSettingsPage() {
             <Separator />
 
             <div className="flex items-center justify-between">
-              <Label>Bảo trì mới</Label>
+              <Label>{t('settings:notifications.inApp.maintenanceNew')}</Label>
               <Switch 
                 checked={localPrefs.inapp_maintenance_new ?? true}
                 onCheckedChange={(v) => handleChange('inapp_maintenance_new', v)}
@@ -305,7 +307,7 @@ export function NotificationSettingsPage() {
             <Separator />
 
             <div className="flex items-center justify-between">
-              <Label>Nhiệm vụ được giao</Label>
+              <Label>{t('settings:notifications.inApp.taskAssigned')}</Label>
               <Switch 
                 checked={localPrefs.inapp_task_assigned ?? true}
                 onCheckedChange={(v) => handleChange('inapp_task_assigned', v)}
@@ -314,7 +316,7 @@ export function NotificationSettingsPage() {
             <Separator />
 
             <div className="flex items-center justify-between">
-              <Label>Yêu cầu phê duyệt</Label>
+              <Label>{t('settings:notifications.inApp.approvalRequest')}</Label>
               <Switch 
                 checked={localPrefs.inapp_approval_request ?? true}
                 onCheckedChange={(v) => handleChange('inapp_approval_request', v)}
@@ -326,13 +328,13 @@ export function NotificationSettingsPage() {
         {/* Alert Thresholds */}
         <Card>
           <CardHeader>
-            <CardTitle>Ngưỡng cảnh báo</CardTitle>
-            <CardDescription>Thiết lập các mức cảnh báo tự động</CardDescription>
+            <CardTitle>{t('settings:notifications.thresholds.title')}</CardTitle>
+            <CardDescription>{t('settings:notifications.thresholds.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="low-stock">Ngưỡng tồn kho thấp</Label>
+                <Label htmlFor="low-stock">{t('settings:notifications.thresholds.lowStock')}</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     id="low-stock"
@@ -341,12 +343,12 @@ export function NotificationSettingsPage() {
                     onChange={(e) => handleChange('low_stock_threshold', parseInt(e.target.value) || 0)}
                     className="w-24"
                   />
-                  <span className="text-sm text-muted-foreground">đơn vị</span>
+                  <span className="text-sm text-muted-foreground">{t('settings:notifications.thresholds.units')}</span>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="critical-stock">Tồn kho nguy hiểm</Label>
+                <Label htmlFor="critical-stock">{t('settings:notifications.thresholds.criticalStock')}</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     id="critical-stock"
@@ -355,12 +357,12 @@ export function NotificationSettingsPage() {
                     onChange={(e) => handleChange('critical_stock_threshold', parseInt(e.target.value) || 0)}
                     className="w-24"
                   />
-                  <span className="text-sm text-muted-foreground">đơn vị</span>
+                  <span className="text-sm text-muted-foreground">{t('settings:notifications.thresholds.units')}</span>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="overdue-maintenance">Bảo trì quá hạn</Label>
+                <Label htmlFor="overdue-maintenance">{t('settings:notifications.thresholds.overdueMaintenance')}</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     id="overdue-maintenance"
@@ -369,12 +371,12 @@ export function NotificationSettingsPage() {
                     onChange={(e) => handleChange('overdue_maintenance_days', parseInt(e.target.value) || 0)}
                     className="w-24"
                   />
-                  <span className="text-sm text-muted-foreground">ngày</span>
+                  <span className="text-sm text-muted-foreground">{t('settings:notifications.thresholds.days')}</span>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="laundry-delay">Giặt ủi chậm trễ</Label>
+                <Label htmlFor="laundry-delay">{t('settings:notifications.thresholds.laundryDelay')}</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     id="laundry-delay"
@@ -383,7 +385,7 @@ export function NotificationSettingsPage() {
                     onChange={(e) => handleChange('laundry_delay_hours', parseInt(e.target.value) || 0)}
                     className="w-24"
                   />
-                  <span className="text-sm text-muted-foreground">giờ</span>
+                  <span className="text-sm text-muted-foreground">{t('settings:notifications.thresholds.hours')}</span>
                 </div>
               </div>
             </div>
@@ -393,13 +395,13 @@ export function NotificationSettingsPage() {
         {/* Notification Schedule */}
         <Card>
           <CardHeader>
-            <CardTitle>Lịch thông báo</CardTitle>
-            <CardDescription>Thiết lập thời gian gửi báo cáo định kỳ</CardDescription>
+            <CardTitle>{t('settings:notifications.schedule.title')}</CardTitle>
+            <CardDescription>{t('settings:notifications.schedule.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="daily-time">Báo cáo hàng ngày</Label>
+                <Label htmlFor="daily-time">{t('settings:notifications.schedule.dailyTime')}</Label>
                 <Input 
                   id="daily-time" 
                   type="time" 
@@ -409,20 +411,20 @@ export function NotificationSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="weekly-day">Báo cáo hàng tuần</Label>
+                <Label htmlFor="weekly-day">{t('settings:notifications.schedule.weeklyDay')}</Label>
                 <select
                   id="weekly-day"
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   value={localPrefs.weekly_report_day ?? 1}
                   onChange={(e) => handleChange('weekly_report_day', parseInt(e.target.value))}
                 >
-                  <option value={0}>Chủ nhật</option>
-                  <option value={1}>Thứ Hai</option>
-                  <option value={2}>Thứ Ba</option>
-                  <option value={3}>Thứ Tư</option>
-                  <option value={4}>Thứ Năm</option>
-                  <option value={5}>Thứ Sáu</option>
-                  <option value={6}>Thứ Bảy</option>
+                  <option value={0}>{t('settings:notifications.schedule.weekdays.sunday')}</option>
+                  <option value={1}>{t('settings:notifications.schedule.weekdays.monday')}</option>
+                  <option value={2}>{t('settings:notifications.schedule.weekdays.tuesday')}</option>
+                  <option value={3}>{t('settings:notifications.schedule.weekdays.wednesday')}</option>
+                  <option value={4}>{t('settings:notifications.schedule.weekdays.thursday')}</option>
+                  <option value={5}>{t('settings:notifications.schedule.weekdays.friday')}</option>
+                  <option value={6}>{t('settings:notifications.schedule.weekdays.saturday')}</option>
                 </select>
               </div>
             </div>
@@ -432,9 +434,9 @@ export function NotificationSettingsPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label>Bật giờ im lặng</Label>
+                  <Label>{t('settings:notifications.schedule.quietHours')}</Label>
                   <p className="text-sm text-muted-foreground">
-                    Không gửi thông báo trong khoảng thời gian này
+                    {t('settings:notifications.schedule.quietHoursDesc')}
                   </p>
                 </div>
                 <Switch 
@@ -451,7 +453,7 @@ export function NotificationSettingsPage() {
                     onChange={(e) => handleChange('quiet_hours_start', e.target.value)}
                     className="w-32" 
                   />
-                  <span className="text-muted-foreground">đến</span>
+                  <span className="text-muted-foreground">→</span>
                   <Input 
                     type="time" 
                     value={localPrefs.quiet_hours_end ?? '07:00'}
@@ -466,12 +468,12 @@ export function NotificationSettingsPage() {
 
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={handleCancel} disabled={!hasChanges || isSaving}>
-            Hủy
+            {t('settings:notifications.actions.cancel')}
           </Button>
           <Button onClick={handleSave} disabled={!hasChanges || isSaving}>
             {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             <Save className="h-4 w-4 mr-2" />
-            Lưu thay đổi
+            {t('settings:notifications.actions.save')}
           </Button>
         </div>
       </div>

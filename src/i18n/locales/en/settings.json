@@ -9,7 +9,47 @@
     "lightMode": "Light",
     "timezone": "Timezone",
     "dateFormat": "Date Format",
-    "currency": "Currency"
+    "currency": "Currency",
+    "pageTitle": "General Settings",
+    "pageDescription": "Manage general system information and configuration",
+    "companyInfo": {
+      "title": "Company Information",
+      "description": "Basic information about your business"
+    },
+    "companyName": "Company Name",
+    "companyNamePlaceholder": "e.g., ABC Hotel",
+    "email": "Email",
+    "emailPlaceholder": "contact@hotel.com",
+    "phone": "Phone Number",
+    "phonePlaceholder": "0901234567",
+    "regionalSettings": {
+      "title": "Regional Settings",
+      "description": "Timezone, language and currency"
+    },
+    "timezones": {
+      "hoChiMinh": "GMT+7 (Ho Chi Minh)",
+      "bangkok": "GMT+7 (Bangkok)",
+      "singapore": "GMT+8 (Singapore)"
+    },
+    "languages": {
+      "vi": "Vietnamese",
+      "en": "English"
+    },
+    "currencies": {
+      "VND": "VND (₫)",
+      "USD": "USD ($)",
+      "EUR": "EUR (€)"
+    },
+    "autoSave": "Auto-save changes",
+    "cancel": "Cancel",
+    "saveChanges": "Save Changes",
+    "saved": "Saved",
+    "savedDescription": "Settings updated successfully",
+    "error": "Error",
+    "validation": {
+      "companyNameMin": "Company name must be at least 2 characters",
+      "emailInvalid": "Invalid email address"
+    }
   },
   "profile": {
     "title": "Profile",
@@ -55,7 +95,89 @@
     "description": "Configure the types of notifications you want to receive",
     "email": "Email Notifications",
     "push": "Push Notifications",
-    "batch": "Laundry Batch Notifications"
+    "batch": "Laundry Batch Notifications",
+    "pageTitle": "Notification Settings",
+    "pageDescription": "Manage notification types and system alerts",
+    "history": "History",
+    "sendTest": "Send Test",
+    "pushNotifications": {
+      "title": "Push Notifications",
+      "description": "Receive notifications even when not using the app",
+      "blocked": "You have blocked notifications. Please enable them in browser settings.",
+      "enable": "Enable Push Notifications",
+      "enableDescription": "Receive inventory alerts, maintenance and important updates",
+      "enabled": "Enabled",
+      "preview": "Preview",
+      "turnOff": "Turn Off",
+      "turnOn": "Turn On"
+    },
+    "emailNotifications": {
+      "title": "Email Notifications",
+      "description": "Choose events to receive email notifications",
+      "lowStock": "Low Stock Alert",
+      "lowStockDesc": "Receive email when inventory is below minimum level",
+      "laundryCompleted": "Laundry Batch Completed",
+      "laundryCompletedDesc": "Notification when laundry batch is received",
+      "maintenanceNew": "New Maintenance Request",
+      "maintenanceNewDesc": "Email when new maintenance request is created",
+      "poApproved": "Order Approved",
+      "poApprovedDesc": "Notification when purchase order is approved",
+      "dailyReport": "Daily Summary Report",
+      "dailyReportDesc": "Send summary report every morning",
+      "weeklyReport": "Weekly Report",
+      "weeklyReportDesc": "Send weekly summary report"
+    },
+    "inApp": {
+      "title": "In-App Notifications",
+      "description": "Configure real-time notifications",
+      "realtime": "Real-time Updates",
+      "lowStock": "Inventory Alert",
+      "laundryCompleted": "Laundry Completed",
+      "maintenanceNew": "New Maintenance",
+      "taskAssigned": "Task Assigned",
+      "approvalRequest": "Approval Request"
+    },
+    "thresholds": {
+      "title": "Alert Thresholds",
+      "description": "Set automatic alert levels",
+      "lowStock": "Low Stock Threshold",
+      "criticalStock": "Critical Stock",
+      "overdueMaintenance": "Overdue Maintenance",
+      "laundryDelay": "Laundry Delay",
+      "units": "units",
+      "days": "days",
+      "hours": "hours"
+    },
+    "schedule": {
+      "title": "Notification Schedule",
+      "description": "Set scheduled report delivery times",
+      "dailyTime": "Daily Report",
+      "weeklyDay": "Weekly Report",
+      "quietHours": "Enable Quiet Hours",
+      "quietHoursDesc": "Do not send notifications during this time",
+      "quietStart": "Start",
+      "quietEnd": "End",
+      "weekdays": {
+        "sunday": "Sunday",
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday"
+      }
+    },
+    "actions": {
+      "cancel": "Cancel Changes",
+      "save": "Save Settings"
+    },
+    "toast": {
+      "saved": "Notification settings saved",
+      "testSent": "Test notification sent",
+      "testSentDesc": "Check your notification center",
+      "testError": "Could not send test notification",
+      "userNotFound": "User information not found"
+    }
   },
   "security": {
     "title": "Security",
@@ -77,6 +199,6 @@
   },
   "demoData": {
     "title": "Demo Data",
-    "description": "Create demo data to test the system"
+    "description": "Create demo data for testing (development environment only)"
   }
 }

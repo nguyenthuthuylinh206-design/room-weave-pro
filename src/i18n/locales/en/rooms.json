@@ -189,5 +189,115 @@
     "cancel": "Cancel",
     "confirm": "Delete",
     "deleting": "Deleting..."
+  },
+  "detail": {
+    "title": "Room {{number}}",
+    "description": "{{type}} - Floor {{floor}}",
+    "roomInfo": "Room Information",
+    "checkRoom": "Check Room",
+    "editInfo": "Edit Info",
+    "notFound": "Room not found",
+    "backToList": "Back to list",
+    "roomNumber": "Room Number",
+    "roomType": "Room Type",
+    "floor": "Floor",
+    "floorNumber": "Floor {{number}}",
+    "area": "Area",
+    "bedType": "Bed Type",
+    "maxGuests": "Capacity",
+    "guestCount": "{{count}} guests",
+    "view": "View",
+    "basePrice": "Base Price",
+    "pricePerNight": "{{price}}/night",
+    "amenities": "Amenities",
+    "notes": "Notes",
+    "recentPhotos": "Recent Check Photos",
+    "checkedBy": "Checked by: {{name}}",
+    "viewFull": "View full",
+    "andMorePhotos": "+{{count}} more photos",
+    "totalItems": "Total Items",
+    "complete": "Complete",
+    "missing": "Missing",
+    "missingTypes": "{{count}} types",
+    "missingItems": "Total {{count}} items",
+    "noItems": "No items",
+    "noItemsDescription": "Click the sync button at the top to add items based on {{type}} room standards.",
+    "applyStandards": "Apply Standards",
+    "syncStandards": "Sync Standards",
+    "printItemList": "Print List",
+    "na": "N/A",
+    "itemsInRoom": "Room Items",
+    "checkHistory": "Check History",
+    "quickActions": "Quick Actions",
+    "checkType": {
+      "daily": "Daily check",
+      "checkin": "Check-in check",
+      "checkout": "Check-out check",
+      "maintenance": "Maintenance check"
+    }
+  },
+  "check": {
+    "pageTitle": "Check Room {{roomNumber}}",
+    "pageDescription": "{{type}} - Floor {{floor}}",
+    "loading": "Loading room information...",
+    "notFound": "Room not found",
+    "backToRooms": "Back to room list",
+    "sessionError": "Cannot create session",
+    "sessionErrorDesc": "Someone else is checking this room",
+    "beingChecked": "Room is being checked",
+    "beingCheckedDesc": "{{name}} is checking this room",
+    "step": "Step {{current}}/{{total}}",
+    "steps": {
+      "checkType": "Check Type",
+      "items": "Items",
+      "review": "Review"
+    },
+    "stepTitles": {
+      "selectType": "Select check type",
+      "checkItems": "Check room items",
+      "reviewComplete": "Review & Complete"
+    },
+    "checkTypes": {
+      "daily": "Daily Check",
+      "checkin": "Check-in Check",
+      "checkout": "Check-out Check",
+      "maintenance": "Maintenance Check"
+    },
+    "resumeDialog": {
+      "title": "Continue check?",
+      "description": "You have an incomplete check. Would you like to continue or start fresh?",
+      "startFresh": "Start Fresh",
+      "continue": "Continue"
+    },
+    "cancelDialog": {
+      "title": "Cancel room check?",
+      "description": "Are you sure you want to cancel? Your progress will be saved so you can continue later.",
+      "continueCheck": "Continue Check",
+      "cancelAndExit": "Cancel and Exit"
+    },
+    "submitDialog": {
+      "title": "Confirm completion?",
+      "description": "Please review the information before completing:",
+      "checkType": "Check Type",
+      "cleanlinessScore": "Cleanliness Score",
+      "stars": "{{score}}/5 stars",
+      "itemStatus": "Items Status",
+      "itemsComplete": "Complete",
+      "itemsIssue": "Has Issues",
+      "missingItems": "Missing {{count}} items",
+      "damagedItems": "Damaged {{count}} items",
+      "confirmMessage": "Are you sure you want to complete this check?",
+      "reviewAgain": "Review Again",
+      "confirm": "Confirm Complete",
+      "saving": "Saving..."
+    },
+    "errors": {
+      "duplicate": "You just checked this room. Please wait 5 minutes."
+    },
+    "actions": {
+      "back": "Back",
+      "next": "Next",
+      "complete": "Complete Check"
+    }
   }
 }

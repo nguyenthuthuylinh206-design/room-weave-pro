@@ -189,5 +189,115 @@
     "cancel": "Hủy",
     "confirm": "Xóa",
     "deleting": "Đang xóa..."
+  },
+  "detail": {
+    "title": "Phòng {{number}}",
+    "description": "{{type}} - Tầng {{floor}}",
+    "roomInfo": "Thông tin phòng",
+    "checkRoom": "Kiểm tra phòng",
+    "editInfo": "Sửa thông tin",
+    "notFound": "Không tìm thấy phòng",
+    "backToList": "Quay lại danh sách",
+    "roomNumber": "Số phòng",
+    "roomType": "Loại phòng",
+    "floor": "Tầng",
+    "floorNumber": "Tầng {{number}}",
+    "area": "Diện tích",
+    "bedType": "Loại giường",
+    "maxGuests": "Sức chứa",
+    "guestCount": "{{count}} khách",
+    "view": "View",
+    "basePrice": "Giá cơ bản",
+    "pricePerNight": "{{price}}/đêm",
+    "amenities": "Tiện nghi",
+    "notes": "Ghi chú",
+    "recentPhotos": "Ảnh kiểm tra gần đây",
+    "checkedBy": "Kiểm tra bởi: {{name}}",
+    "viewFull": "Xem đầy đủ",
+    "andMorePhotos": "+{{count}} ảnh khác",
+    "totalItems": "Tổng đồ dùng",
+    "complete": "Đầy đủ",
+    "missing": "Thiếu",
+    "missingTypes": "{{count}} loại",
+    "missingItems": "Tổng {{count}} món",
+    "noItems": "Chưa có đồ dùng",
+    "noItemsDescription": "Nhấn nút đồng bộ ở trên để thêm đồ dùng theo tiêu chuẩn phòng {{type}}.",
+    "applyStandards": "Áp dụng tiêu chuẩn",
+    "syncStandards": "Đồng bộ tiêu chuẩn",
+    "printItemList": "In danh sách",
+    "na": "N/A",
+    "itemsInRoom": "Đồ dùng trong phòng",
+    "checkHistory": "Lịch sử kiểm tra",
+    "quickActions": "Thao tác nhanh",
+    "checkType": {
+      "daily": "Kiểm tra hàng ngày",
+      "checkin": "Kiểm tra check-in",
+      "checkout": "Kiểm tra check-out",
+      "maintenance": "Kiểm tra bảo trì"
+    }
+  },
+  "check": {
+    "pageTitle": "Kiểm tra phòng {{roomNumber}}",
+    "pageDescription": "{{type}} - Tầng {{floor}}",
+    "loading": "Đang tải thông tin phòng...",
+    "notFound": "Không tìm thấy thông tin phòng",
+    "backToRooms": "Quay lại danh sách phòng",
+    "sessionError": "Không thể tạo session",
+    "sessionErrorDesc": "Có người khác đang kiểm tra phòng này",
+    "beingChecked": "Phòng đang được kiểm tra",
+    "beingCheckedDesc": "{{name}} đang kiểm tra phòng này",
+    "step": "Bước {{current}}/{{total}}",
+    "steps": {
+      "checkType": "Loại kiểm tra",
+      "items": "Đồ dùng",
+      "review": "Đánh giá"
+    },
+    "stepTitles": {
+      "selectType": "Chọn loại kiểm tra",
+      "checkItems": "Kiểm tra đồ dùng trong phòng",
+      "reviewComplete": "Đánh giá & Hoàn tất"
+    },
+    "checkTypes": {
+      "daily": "Kiểm tra hàng ngày",
+      "checkin": "Kiểm tra check-in",
+      "checkout": "Kiểm tra check-out",
+      "maintenance": "Kiểm tra bảo trì"
+    },
+    "resumeDialog": {
+      "title": "Tiếp tục kiểm tra?",
+      "description": "Bạn có kiểm tra chưa hoàn thành. Bạn muốn tiếp tục hay bắt đầu lại?",
+      "startFresh": "Bắt đầu lại",
+      "continue": "Tiếp tục"
+    },
+    "cancelDialog": {
+      "title": "Hủy kiểm tra phòng?",
+      "description": "Bạn có chắc muốn hủy? Tiến trình đã lưu sẽ được giữ lại để bạn có thể tiếp tục sau.",
+      "continueCheck": "Tiếp tục kiểm tra",
+      "cancelAndExit": "Hủy và thoát"
+    },
+    "submitDialog": {
+      "title": "Xác nhận hoàn tất kiểm tra?",
+      "description": "Vui lòng kiểm tra lại thông tin trước khi hoàn tất:",
+      "checkType": "Loại kiểm tra",
+      "cleanlinessScore": "Đánh giá độ sạch",
+      "stars": "{{score}}/5 sao",
+      "itemStatus": "Trạng thái đồ dùng",
+      "itemsComplete": "Đầy đủ",
+      "itemsIssue": "Có vấn đề",
+      "missingItems": "Thiếu {{count}} vật phẩm",
+      "damagedItems": "Hỏng {{count}} vật phẩm",
+      "confirmMessage": "Bạn có chắc chắn muốn hoàn tất kiểm tra này?",
+      "reviewAgain": "Kiểm tra lại",
+      "confirm": "Xác nhận hoàn tất",
+      "saving": "Đang lưu..."
+    },
+    "errors": {
+      "duplicate": "Bạn vừa kiểm tra phòng này rồi. Vui lòng đợi 5 phút."
+    },
+    "actions": {
+      "back": "Quay lại",
+      "next": "Tiếp theo",
+      "complete": "Hoàn tất kiểm tra"
+    }
   }
 }
