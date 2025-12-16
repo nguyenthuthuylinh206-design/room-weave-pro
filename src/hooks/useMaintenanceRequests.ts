@@ -183,8 +183,22 @@ export function useCreateMaintenanceRequest() {
       if (error) throw error
       return request
     },
-    onSuccess: () => {
+    onSuccess: async (request) => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] })
+      
+      // Trigger notification for new maintenance request
+      if (user?.id && tenantId) {
+        const { triggerMaintenanceNotification } = await import('./useNotificationTriggers')
+        await triggerMaintenanceNotification(
+          user.id,
+          tenantId,
+          request.request_code,
+          request.title,
+          request.location,
+          request.id
+        )
+      }
+      
       toast({
         title: 'Thành công',
         description: 'Đã tạo yêu cầu bảo trì',

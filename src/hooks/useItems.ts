@@ -225,6 +225,7 @@ export function useItem(itemId: string | undefined) {
 
 export function useCreateItem() {
   const queryClient = useQueryClient()
+  const { user, tenantId } = useUser()
   
   return useMutation({
     mutationFn: async (data: any) => {
@@ -237,12 +238,29 @@ export function useCreateItem() {
       if (error) throw error
       return item
     },
-    onSuccess: (item) => {
+    onSuccess: async (item) => {
       // Invalidate items queries for the specific hotel
       queryClient.invalidateQueries({ queryKey: ['items'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       queryClient.invalidateQueries({ queryKey: ['check-quota'] })
       queryClient.invalidateQueries({ queryKey: ['categories'] })
+      
+      // Check if low stock and trigger notification
+      if (item.quantity_in_stock !== undefined && 
+          item.minimum_stock !== undefined &&
+          item.quantity_in_stock <= item.minimum_stock &&
+          user?.id && tenantId) {
+        const { triggerLowStockAlert } = await import('./useNotificationTriggers')
+        await triggerLowStockAlert(
+          user.id,
+          tenantId,
+          item.name,
+          item.quantity_in_stock,
+          item.minimum_stock,
+          item.id
+        )
+      }
+      
       toast({
         title: 'Thành công',
         description: 'Đã thêm tài sản mới',
@@ -260,6 +278,7 @@ export function useCreateItem() {
 
 export function useUpdateItem() {
   const queryClient = useQueryClient()
+  const { user, tenantId } = useUser()
   
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
@@ -273,12 +292,29 @@ export function useUpdateItem() {
       if (error) throw error
       return item
     },
-    onSuccess: (item, variables) => {
+    onSuccess: async (item, variables) => {
       // Invalidate all related queries
       queryClient.invalidateQueries({ queryKey: ['items'] })
       queryClient.invalidateQueries({ queryKey: ['item', variables.id] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       queryClient.invalidateQueries({ queryKey: ['categories'] })
+      
+      // Check if low stock and trigger notification
+      if (item.quantity_in_stock !== undefined && 
+          item.minimum_stock !== undefined &&
+          item.quantity_in_stock <= item.minimum_stock &&
+          user?.id && tenantId) {
+        const { triggerLowStockAlert } = await import('./useNotificationTriggers')
+        await triggerLowStockAlert(
+          user.id,
+          tenantId,
+          item.name,
+          item.quantity_in_stock,
+          item.minimum_stock,
+          item.id
+        )
+      }
+      
       toast({
         title: 'Thành công',
         description: 'Đã cập nhật tài sản',
