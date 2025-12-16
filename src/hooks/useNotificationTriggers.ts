@@ -124,6 +124,9 @@ export async function sendPushNotification({
   body,
   actionUrl,
   tag,
+  notificationType,
+  icon,
+  image,
 }: {
   userId: string;
   tenantId: string;
@@ -131,6 +134,9 @@ export async function sendPushNotification({
   body: string;
   actionUrl?: string;
   tag?: string;
+  notificationType?: NotificationType;
+  icon?: string;
+  image?: string;
 }): Promise<boolean> {
   try {
     const { error } = await supabase.functions.invoke('send-push-notification', {
@@ -139,7 +145,10 @@ export async function sendPushNotification({
         tenant_id: tenantId,
         title,
         body,
-        data: { url: actionUrl || '/' },
+        icon,
+        image,
+        notification_type: notificationType,
+        data: { url: actionUrl || '/', type: notificationType },
         tag,
       },
     });
@@ -160,6 +169,9 @@ export async function sendMultiplePushNotifications({
   body,
   actionUrl,
   tag,
+  notificationType,
+  icon,
+  image,
 }: {
   recipientIds: string[];
   tenantId: string;
@@ -167,6 +179,9 @@ export async function sendMultiplePushNotifications({
   body: string;
   actionUrl?: string;
   tag?: string;
+  notificationType?: NotificationType;
+  icon?: string;
+  image?: string;
 }): Promise<number> {
   let successCount = 0;
   
@@ -178,6 +193,9 @@ export async function sendMultiplePushNotifications({
       body,
       actionUrl,
       tag,
+      notificationType,
+      icon,
+      image,
     });
     if (success) successCount++;
   }
@@ -238,6 +256,7 @@ export async function triggerLowStockAlert({
     body,
     actionUrl,
     tag: `low-stock-${itemId}`,
+    notificationType: type,
   });
 }
 
@@ -291,6 +310,7 @@ export async function triggerMaintenanceNewNotification({
     body,
     actionUrl,
     tag: `maintenance-${requestId}`,
+    notificationType: 'maintenance_new',
   });
 }
 
@@ -334,6 +354,7 @@ export async function triggerMaintenanceCompletedNotification({
     body,
     actionUrl,
     tag: `maintenance-complete-${requestId}`,
+    notificationType: 'maintenance_completed',
   });
 }
 
@@ -385,6 +406,7 @@ export async function triggerLaundryCompletedNotification({
     body,
     actionUrl,
     tag: `laundry-${batchId}`,
+    notificationType: 'laundry_completed',
   });
 }
 
@@ -433,6 +455,7 @@ export async function triggerPOPendingApprovalNotification({
     body,
     actionUrl,
     tag: `po-pending-${poId}`,
+    notificationType: 'po_pending_approval',
   });
 }
 
@@ -474,6 +497,7 @@ export async function triggerPOApprovedNotification({
     body,
     actionUrl,
     tag: `po-${poId}`,
+    notificationType: 'po_approved',
   });
 }
 
@@ -526,6 +550,7 @@ export async function triggerTaskAssignedNotification({
     body,
     actionUrl,
     tag: `task-${taskType}-${taskId}`,
+    notificationType: 'task_assigned',
   });
 }
 
@@ -577,6 +602,7 @@ export async function triggerRoomCheckCompletedNotification({
     body,
     actionUrl,
     tag: `room-check-${checkId}`,
+    notificationType: 'room_check_completed',
   });
 }
 
@@ -606,6 +632,7 @@ export async function triggerNotification(
       title,
       body,
       actionUrl,
+      notificationType: type,
     });
   }
 }
@@ -642,6 +669,7 @@ export async function triggerLowStockAlertLegacy(
     body,
     actionUrl,
     tag: `low-stock-${itemId}`,
+    notificationType: currentStock <= 5 ? 'critical_stock' : 'low_stock',
   });
 }
 
@@ -675,6 +703,7 @@ export async function triggerMaintenanceNotification(
     body,
     actionUrl,
     tag: `maintenance-${requestId}`,
+    notificationType: 'maintenance_new',
   });
 }
 
@@ -707,6 +736,7 @@ export async function triggerLaundryCompletedNotificationLegacy(
     body,
     actionUrl,
     tag: `laundry-${batchId}`,
+    notificationType: 'laundry_completed',
   });
 }
 
@@ -738,5 +768,6 @@ export async function triggerPOApprovedNotificationLegacy(
     body,
     actionUrl,
     tag: `po-${poId}`,
+    notificationType: 'po_approved',
   });
 }

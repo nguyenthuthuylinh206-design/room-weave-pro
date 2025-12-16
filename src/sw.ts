@@ -51,11 +51,65 @@ interface PushPayload {
   body?: string;
   icon?: string;
   badge?: string;
+  image?: string;
   tag?: string;
+  notification_type?: string;
   data?: {
     url?: string;
+    type?: string;
     [key: string]: unknown;
   };
+}
+
+// Vietnamese action buttons based on notification type
+type NotificationActions = { action: string; title: string }[];
+
+const NOTIFICATION_ACTIONS: Record<string, NotificationActions> = {
+  low_stock: [
+    { action: 'view', title: '📦 Xem kho' },
+    { action: 'order', title: '🛒 Đặt hàng' },
+  ],
+  critical_stock: [
+    { action: 'view', title: '🚨 Xem ngay' },
+    { action: 'order', title: '🛒 Đặt hàng gấp' },
+  ],
+  maintenance_new: [
+    { action: 'view', title: '🔧 Xem yêu cầu' },
+    { action: 'assign', title: '👤 Phân công' },
+  ],
+  maintenance_completed: [
+    { action: 'view', title: '✅ Xem chi tiết' },
+    { action: 'close', title: '❌ Đóng' },
+  ],
+  laundry_completed: [
+    { action: 'view', title: '👕 Xem chi tiết' },
+    { action: 'receive', title: '📥 Nhận đồ' },
+  ],
+  po_pending_approval: [
+    { action: 'approve', title: '✅ Phê duyệt' },
+    { action: 'view', title: '📋 Xem đơn' },
+  ],
+  po_approved: [
+    { action: 'view', title: '📋 Xem đơn' },
+    { action: 'close', title: '❌ Đóng' },
+  ],
+  task_assigned: [
+    { action: 'accept', title: '✅ Nhận việc' },
+    { action: 'view', title: '📋 Xem chi tiết' },
+  ],
+  room_check_completed: [
+    { action: 'view', title: '🏨 Xem phòng' },
+    { action: 'close', title: '❌ Đóng' },
+  ],
+  default: [
+    { action: 'open', title: '👁️ Xem ngay' },
+    { action: 'dismiss', title: '❌ Bỏ qua' },
+  ],
+};
+
+function getActionsForType(notificationType?: string): NotificationActions {
+  if (!notificationType) return NOTIFICATION_ACTIONS.default;
+  return NOTIFICATION_ACTIONS[notificationType] || NOTIFICATION_ACTIONS.default;
 }
 
 self.addEventListener('push', (event: PushEvent) => {
@@ -73,6 +127,7 @@ self.addEventListener('push', (event: PushEvent) => {
     icon: '/icon-192x192.png',
     badge: '/icon-72x72.png',
     tag: 'default',
+    notification_type: 'default',
     data: { url: '/' },
   };
 
@@ -84,7 +139,9 @@ self.addEventListener('push', (event: PushEvent) => {
         body: payload.body || notificationData.body,
         icon: payload.icon || notificationData.icon,
         badge: payload.badge || notificationData.badge,
+        image: payload.image,
         tag: payload.tag || notificationData.tag,
+        notification_type: payload.notification_type || payload.data?.type || 'default',
         data: payload.data || notificationData.data,
       };
     } catch (e) {
@@ -93,30 +150,39 @@ self.addEventListener('push', (event: PushEvent) => {
     }
   }
 
+  const notificationType = notificationData.notification_type || 'default';
+  const actions = getActionsForType(notificationType);
+
   const options = {
     body: notificationData.body,
     icon: notificationData.icon,
     badge: notificationData.badge,
+    image: notificationData.image,
     tag: notificationData.tag,
     data: notificationData.data,
     vibrate: [100, 50, 100],
-    requireInteraction: true, // Keep notification until user interacts
-    actions: [
-      { action: 'open', title: 'Xem chi tiết' },
-      { action: 'close', title: 'Đóng' },
-    ],
-  } as NotificationOptions & { vibrate?: number[] };
+    requireInteraction: true,
+    silent: false,
+    actions,
+  } as NotificationOptions & { 
+    vibrate?: number[]; 
+    image?: string; 
+    actions?: { action: string; title: string }[];
+  };
 
-  console.log('[SW] Showing notification with title:', notificationData.title);
-  console.log('[SW] Notification options:', JSON.stringify(options));
+  console.log('[SW] Showing notification:', {
+    title: notificationData.title,
+    type: notificationType,
+    actions: actions.map(a => a.title),
+  });
 
   event.waitUntil(
     self.registration.showNotification(notificationData.title!, options)
       .then(() => {
-        console.log('[SW] ✅ Notification shown successfully!');
+        console.log('[SW] ✅ Thông báo hiển thị thành công!');
       })
       .catch((err) => {
-        console.error('[SW] ❌ Failed to show notification:', err);
+        console.error('[SW] ❌ Lỗi hiển thị thông báo:', err);
       })
   );
 });
