@@ -113,9 +113,9 @@ export function NotificationCenter({ onClose, onMarkAllRead }: NotificationCente
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <div className="flex flex-col max-h-[500px]">
+    <div className="flex flex-col h-[500px]">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex-shrink-0 flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2">
           <Bell className="h-5 w-5" />
           <h3 className="font-semibold">Thông báo</h3>
@@ -139,7 +139,7 @@ export function NotificationCenter({ onClose, onMarkAllRead }: NotificationCente
       </div>
 
       {/* Notifications List */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
