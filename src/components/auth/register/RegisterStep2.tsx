@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, ArrowRight, Building, MapPin, Phone, Mail, Hotel } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -10,7 +11,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from '@/components/ui/form'
 import {
   registerStep2Schema,
@@ -24,6 +24,8 @@ interface RegisterStep2Props {
 }
 
 export function RegisterStep2({ onSubmit, onBack, initialData }: RegisterStep2Props) {
+  const { t } = useTranslation('auth')
+
   const form = useForm<RegisterStep2Data>({
     resolver: zodResolver(registerStep2Schema),
     defaultValues: initialData || {
@@ -45,7 +47,7 @@ export function RegisterStep2({ onSubmit, onBack, initialData }: RegisterStep2Pr
           name="tenantName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Tên tổ chức *</FormLabel>
+              <FormLabel>{t('register.tenantName')} *</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -56,9 +58,6 @@ export function RegisterStep2({ onSubmit, onBack, initialData }: RegisterStep2Pr
                   />
                 </div>
               </FormControl>
-              <FormDescription>
-                Tên công ty hoặc tổ chức quản lý khách sạn
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -70,7 +69,7 @@ export function RegisterStep2({ onSubmit, onBack, initialData }: RegisterStep2Pr
           name="hotelName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Tên khách sạn *</FormLabel>
+              <FormLabel>{t('register.hotelName')} *</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Hotel className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -92,7 +91,7 @@ export function RegisterStep2({ onSubmit, onBack, initialData }: RegisterStep2Pr
           name="hotelAddress"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Địa chỉ *</FormLabel>
+              <FormLabel>{t('register.hotelAddress')} *</FormLabel>
               <FormControl>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -114,7 +113,7 @@ export function RegisterStep2({ onSubmit, onBack, initialData }: RegisterStep2Pr
           name="hotelPhone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Số điện thoại</FormLabel>
+              <FormLabel>{t('register.hotelPhone')}</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -137,7 +136,7 @@ export function RegisterStep2({ onSubmit, onBack, initialData }: RegisterStep2Pr
           name="hotelEmail"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email khách sạn</FormLabel>
+              <FormLabel>{t('register.hotelEmail')}</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -160,7 +159,7 @@ export function RegisterStep2({ onSubmit, onBack, initialData }: RegisterStep2Pr
           name="totalRooms"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Tổng số phòng *</FormLabel>
+              <FormLabel>{t('register.totalRooms')} *</FormLabel>
               <FormControl>
                 <Input
                   {...field}
@@ -170,9 +169,6 @@ export function RegisterStep2({ onSubmit, onBack, initialData }: RegisterStep2Pr
                   onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
                 />
               </FormControl>
-              <FormDescription>
-                Số lượng phòng hiện có tại khách sạn
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -182,10 +178,10 @@ export function RegisterStep2({ onSubmit, onBack, initialData }: RegisterStep2Pr
         <div className="flex gap-4">
           <Button type="button" variant="outline" onClick={onBack} className="flex-1">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Quay lại
+            {t('register.back')}
           </Button>
           <Button type="submit" className="flex-1">
-            Tiếp theo
+            {t('register.next')}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>

@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowRight } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -25,6 +26,7 @@ interface RegisterStep1Props {
 }
 
 export function RegisterStep1({ onSubmit, initialData }: RegisterStep1Props) {
+  const { t } = useTranslation('auth')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
@@ -50,7 +52,7 @@ export function RegisterStep1({ onSubmit, initialData }: RegisterStep1Props) {
           name="fullName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Họ và tên *</FormLabel>
+              <FormLabel>{t('register.fullName')} *</FormLabel>
               <FormControl>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -72,7 +74,7 @@ export function RegisterStep1({ onSubmit, initialData }: RegisterStep1Props) {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email *</FormLabel>
+              <FormLabel>{t('register.email')} *</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -85,9 +87,6 @@ export function RegisterStep1({ onSubmit, initialData }: RegisterStep1Props) {
                   />
                 </div>
               </FormControl>
-              <FormDescription>
-                Email này sẽ được sử dụng để đăng nhập
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -99,7 +98,7 @@ export function RegisterStep1({ onSubmit, initialData }: RegisterStep1Props) {
           name="phone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Số điện thoại</FormLabel>
+              <FormLabel>{t('register.phone')}</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -122,7 +121,7 @@ export function RegisterStep1({ onSubmit, initialData }: RegisterStep1Props) {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Mật khẩu *</FormLabel>
+              <FormLabel>{t('register.password')} *</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -160,7 +159,7 @@ export function RegisterStep1({ onSubmit, initialData }: RegisterStep1Props) {
           name="confirmPassword"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Xác nhận mật khẩu *</FormLabel>
+              <FormLabel>{t('register.confirmPassword')} *</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -193,7 +192,7 @@ export function RegisterStep1({ onSubmit, initialData }: RegisterStep1Props) {
 
         {/* Submit Button */}
         <Button type="submit" className="w-full">
-          Tiếp theo
+          {t('register.next')}
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </form>

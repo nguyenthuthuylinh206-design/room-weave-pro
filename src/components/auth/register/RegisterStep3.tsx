@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, Check, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -28,6 +29,8 @@ interface RegisterStep3Props {
 }
 
 export function RegisterStep3({ onSubmit, onBack, step1Data, step2Data, isSubmitting }: RegisterStep3Props) {
+  const { t } = useTranslation(['auth', 'common'])
+
   const form = useForm<RegisterStep3Data>({
     resolver: zodResolver(registerStep3Schema),
     defaultValues: {
@@ -40,12 +43,12 @@ export function RegisterStep3({ onSubmit, onBack, step1Data, step2Data, isSubmit
       {/* Summary */}
       <div className="space-y-4">
         <div>
-          <h3 className="font-semibold mb-2">Thông tin cá nhân</h3>
+          <h3 className="font-semibold mb-2">{t('register.personalInfo')}</h3>
           <div className="space-y-1 text-sm">
-            <p><span className="text-muted-foreground">Họ tên:</span> {step1Data.fullName}</p>
-            <p><span className="text-muted-foreground">Email:</span> {step1Data.email}</p>
+            <p><span className="text-muted-foreground">{t('register.fullName')}:</span> {step1Data.fullName}</p>
+            <p><span className="text-muted-foreground">{t('register.email')}:</span> {step1Data.email}</p>
             {step1Data.phone && (
-              <p><span className="text-muted-foreground">Điện thoại:</span> {step1Data.phone}</p>
+              <p><span className="text-muted-foreground">{t('register.phone')}:</span> {step1Data.phone}</p>
             )}
           </div>
         </div>
@@ -53,18 +56,18 @@ export function RegisterStep3({ onSubmit, onBack, step1Data, step2Data, isSubmit
         <Separator />
 
         <div>
-          <h3 className="font-semibold mb-2">Thông tin khách sạn</h3>
+          <h3 className="font-semibold mb-2">{t('register.hotelInfo')}</h3>
           <div className="space-y-1 text-sm">
-            <p><span className="text-muted-foreground">Tổ chức:</span> {step2Data.tenantName}</p>
-            <p><span className="text-muted-foreground">Khách sạn:</span> {step2Data.hotelName}</p>
-            <p><span className="text-muted-foreground">Địa chỉ:</span> {step2Data.hotelAddress}</p>
+            <p><span className="text-muted-foreground">{t('register.tenantName')}:</span> {step2Data.tenantName}</p>
+            <p><span className="text-muted-foreground">{t('register.hotelName')}:</span> {step2Data.hotelName}</p>
+            <p><span className="text-muted-foreground">{t('register.hotelAddress')}:</span> {step2Data.hotelAddress}</p>
             {step2Data.hotelPhone && (
-              <p><span className="text-muted-foreground">Điện thoại:</span> {step2Data.hotelPhone}</p>
+              <p><span className="text-muted-foreground">{t('register.hotelPhone')}:</span> {step2Data.hotelPhone}</p>
             )}
             {step2Data.hotelEmail && (
-              <p><span className="text-muted-foreground">Email:</span> {step2Data.hotelEmail}</p>
+              <p><span className="text-muted-foreground">{t('register.hotelEmail')}:</span> {step2Data.hotelEmail}</p>
             )}
-            <p><span className="text-muted-foreground">Số phòng:</span> {step2Data.totalRooms} phòng</p>
+            <p><span className="text-muted-foreground">{t('register.totalRooms')}:</span> {step2Data.totalRooms}</p>
           </div>
         </div>
       </div>
@@ -87,14 +90,7 @@ export function RegisterStep3({ onSubmit, onBack, step1Data, step2Data, isSubmit
                 </FormControl>
                 <div className="space-y-1 leading-none">
                   <Label className="cursor-pointer">
-                    Tôi đồng ý với{' '}
-                    <a href="/terms" target="_blank" className="text-primary hover:underline">
-                      Điều khoản sử dụng
-                    </a>
-                    {' '}và{' '}
-                    <a href="/privacy" target="_blank" className="text-primary hover:underline">
-                      Chính sách bảo mật
-                    </a>
+                    {t('register.agreeTerms')}
                   </Label>
                   <FormMessage />
                 </div>
@@ -106,18 +102,18 @@ export function RegisterStep3({ onSubmit, onBack, step1Data, step2Data, isSubmit
           <div className="flex gap-4">
             <Button type="button" variant="outline" onClick={onBack} className="flex-1" disabled={isSubmitting}>
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Quay lại
+              {t('register.back')}
             </Button>
             <Button type="submit" className="flex-1" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Đang xử lý...
+                  {t('common:messages.loading')}
                 </>
               ) : (
                 <>
                   <Check className="mr-2 h-4 w-4" />
-                  Hoàn tất đăng ký
+                  {t('register.submit')}
                 </>
               )}
             </Button>
