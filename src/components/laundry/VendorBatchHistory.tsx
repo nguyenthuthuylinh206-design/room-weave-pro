@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Download, Eye } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -29,6 +30,7 @@ interface VendorBatchHistoryProps {
 }
 
 export function VendorBatchHistory({ vendorId }: VendorBatchHistoryProps) {
+  const { t } = useTranslation(['laundry', 'common'])
   const navigate = useNavigate()
   const [filters, setFilters] = useState({
     status: '',
@@ -51,49 +53,49 @@ export function VendorBatchHistory({ vendorId }: VendorBatchHistoryProps) {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Lịch sử đơn hàng</CardTitle>
+          <CardTitle>{t('laundry:batchHistory.title')}</CardTitle>
           <div className="flex gap-2">
             <Select
               value={filters.status}
               onValueChange={(value) => setFilters({ ...filters, status: value })}
             >
               <SelectTrigger className="w-40">
-                <SelectValue placeholder="Trạng thái" />
+                <SelectValue placeholder={t('laundry:batchHistory.status')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tất cả</SelectItem>
-                <SelectItem value="delivered">Đã giao</SelectItem>
-                <SelectItem value="washing">Đang giặt</SelectItem>
-                <SelectItem value="ready">Sẵn sàng</SelectItem>
-                <SelectItem value="received">Đã nhận</SelectItem>
+                <SelectItem value="">{t('laundry:batchHistory.all')}</SelectItem>
+                <SelectItem value="delivered">{t('laundry:batchHistory.delivered')}</SelectItem>
+                <SelectItem value="washing">{t('laundry:batchHistory.washing')}</SelectItem>
+                <SelectItem value="ready">{t('laundry:batchHistory.ready')}</SelectItem>
+                <SelectItem value="received">{t('laundry:batchHistory.received')}</SelectItem>
               </SelectContent>
             </Select>
             <Button variant="outline" onClick={handleExport}>
               <Download className="mr-2 h-4 w-4" />
-              Xuất Excel
+              {t('laundry:batchHistory.exportExcel')}
             </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div>Loading...</div>
+          <div>{t('common:loading')}</div>
         ) : batches.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
-            Chưa có đơn hàng nào
+            {t('laundry:batchHistory.noOrders')}
           </p>
         ) : (
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Mã lô</TableHead>
-                  <TableHead>Ngày giao</TableHead>
-                  <TableHead>Ngày nhận</TableHead>
-                  <TableHead className="text-center">Items</TableHead>
-                  <TableHead className="text-right">Chi phí</TableHead>
-                  <TableHead className="text-center">Đánh giá</TableHead>
-                  <TableHead>Trạng thái</TableHead>
+                  <TableHead>{t('laundry:batchHistory.columns.batchCode')}</TableHead>
+                  <TableHead>{t('laundry:batchHistory.columns.deliveryDate')}</TableHead>
+                  <TableHead>{t('laundry:batchHistory.columns.returnDate')}</TableHead>
+                  <TableHead className="text-center">{t('laundry:batchHistory.columns.items')}</TableHead>
+                  <TableHead className="text-right">{t('laundry:batchHistory.columns.cost')}</TableHead>
+                  <TableHead className="text-center">{t('laundry:batchHistory.columns.rating')}</TableHead>
+                  <TableHead>{t('laundry:batchHistory.columns.status')}</TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>

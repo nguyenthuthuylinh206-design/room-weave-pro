@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { 
   ArrowLeft, 
   Edit, 
@@ -30,6 +31,7 @@ import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileVendorDetailPage } from '@/components/laundry/MobileVendorDetailPage'
 
 export function VendorDetailPage() {
+  const { t } = useTranslation(['laundry', 'common'])
   const { isMobile } = useBreakpoint()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -48,9 +50,9 @@ export function VendorDetailPage() {
   if (!vendor) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <p className="text-muted-foreground">Không tìm thấy đơn vị giặt</p>
+        <p className="text-muted-foreground">{t('laundry:vendorDetail.notFound')}</p>
         <Button onClick={() => navigate('/laundry/vendors')} className="mt-4">
-          Quay lại danh sách
+          {t('laundry:vendorDetail.backToList')}
         </Button>
       </div>
     )
@@ -74,21 +76,21 @@ export function VendorDetailPage() {
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate('/laundry/vendors')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Quay lại
+            {t('laundry:vendorDetail.back')}
           </Button>
           <Button onClick={() => navigate(`/laundry/vendors/${id}/edit`)}>
             <Edit className="mr-2 h-4 w-4" />
-            Sửa thông tin
+            {t('laundry:vendorDetail.editInfo')}
           </Button>
         </div>
       </PageHeader>
       
       <Tabs defaultValue="info" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="info">Thông tin chung</TabsTrigger>
-          <TabsTrigger value="history">Lịch sử đơn hàng</TabsTrigger>
-          <TabsTrigger value="performance">Đánh giá chi tiết</TabsTrigger>
-          <TabsTrigger value="documents">Tài liệu</TabsTrigger>
+          <TabsTrigger value="info">{t('laundry:vendorDetail.tabs.info')}</TabsTrigger>
+          <TabsTrigger value="history">{t('laundry:vendorDetail.tabs.history')}</TabsTrigger>
+          <TabsTrigger value="performance">{t('laundry:vendorDetail.tabs.performance')}</TabsTrigger>
+          <TabsTrigger value="documents">{t('laundry:vendorDetail.tabs.documents')}</TabsTrigger>
         </TabsList>
         
         {/* TAB 1: Thông tin chung */}
@@ -112,10 +114,10 @@ export function VendorDetailPage() {
                         <p className="text-muted-foreground">{vendor.code}</p>
                         <div className="mt-2 flex items-center gap-2">
                           <Badge variant={vendor.type === 'external' ? 'default' : 'secondary'}>
-                            {vendor.type === 'external' ? 'Đơn vị ngoài' : 'Nội bộ'}
+                            {vendor.type === 'external' ? t('laundry:vendorDetail.type.external') : t('laundry:vendorDetail.type.internal')}
                           </Badge>
                           <Badge variant={vendor.status === 'active' ? 'default' : 'secondary'}>
-                            {vendor.status === 'active' ? 'Hoạt động' : 'Tạm ngưng'}
+                            {vendor.status === 'active' ? t('laundry:vendorDetail.status.active') : t('laundry:vendorDetail.status.inactive')}
                           </Badge>
                         </div>
                       </div>
@@ -127,14 +129,14 @@ export function VendorDetailPage() {
               {/* Contact Info */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Thông tin liên hệ</CardTitle>
+                  <CardTitle>{t('laundry:vendorDetail.contact.title')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="flex items-start gap-3">
                       <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                       <div className="flex-1">
-                        <p className="text-sm text-muted-foreground">Địa chỉ</p>
+                        <p className="text-sm text-muted-foreground">{t('laundry:vendorDetail.contact.address')}</p>
                         <p className="font-medium">{vendor.address}</p>
                       </div>
                     </div>
@@ -142,7 +144,7 @@ export function VendorDetailPage() {
                     <div className="flex items-start gap-3">
                       <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
                       <div className="flex-1">
-                        <p className="text-sm text-muted-foreground">Điện thoại</p>
+                        <p className="text-sm text-muted-foreground">{t('laundry:vendorDetail.contact.phone')}</p>
                         <a href={`tel:${vendor.phone}`} className="font-medium hover:underline">
                           {vendor.phone}
                         </a>
@@ -153,7 +155,7 @@ export function VendorDetailPage() {
                       <div className="flex items-start gap-3">
                         <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
                         <div className="flex-1">
-                          <p className="text-sm text-muted-foreground">Email</p>
+                          <p className="text-sm text-muted-foreground">{t('laundry:vendorDetail.contact.email')}</p>
                           <a href={`mailto:${vendor.email}`} className="font-medium hover:underline">
                             {vendor.email}
                           </a>
@@ -165,7 +167,7 @@ export function VendorDetailPage() {
                       <div className="flex items-start gap-3">
                         <Globe className="h-5 w-5 text-muted-foreground mt-0.5" />
                         <div className="flex-1">
-                          <p className="text-sm text-muted-foreground">Website</p>
+                          <p className="text-sm text-muted-foreground">{t('laundry:vendorDetail.contact.website')}</p>
                           <a 
                             href={contractInfo.website} 
                             target="_blank" 
@@ -180,19 +182,19 @@ export function VendorDetailPage() {
                   </div>
                   
                   <div className="border-t pt-4">
-                    <p className="text-sm text-muted-foreground mb-1">Người liên hệ</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t('laundry:vendorDetail.contact.contactPerson')}</p>
                     <p className="font-medium">{vendor.contact_person}</p>
                   </div>
                   
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => window.open(`tel:${vendor.phone}`)}>
                       <Phone className="mr-2 h-4 w-4" />
-                      Gọi điện
+                      {t('laundry:vendorDetail.contact.call')}
                     </Button>
                     {vendor.email && (
                       <Button variant="outline" size="sm" onClick={() => window.open(`mailto:${vendor.email}`)}>
                         <Mail className="mr-2 h-4 w-4" />
-                        Gửi email
+                        {t('laundry:vendorDetail.contact.sendEmail')}
                       </Button>
                     )}
                   </div>
@@ -202,33 +204,33 @@ export function VendorDetailPage() {
               {/* Contract Info */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Thông tin hợp đồng</CardTitle>
+                  <CardTitle>{t('laundry:vendorDetail.contract.title')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <dl className="grid grid-cols-2 gap-4">
                     <div>
-                      <dt className="text-sm text-muted-foreground">Giá/kg</dt>
+                      <dt className="text-sm text-muted-foreground">{t('laundry:vendorDetail.contract.pricePerKg')}</dt>
                       <dd className="text-lg font-bold">{formatCurrency(pricePerKg)}</dd>
                     </div>
                     <div>
-                      <dt className="text-sm text-muted-foreground">Đơn tối thiểu</dt>
-                      <dd className="text-lg font-bold">{minOrder} kg</dd>
+                      <dt className="text-sm text-muted-foreground">{t('laundry:vendorDetail.contract.minOrder')}</dt>
+                      <dd className="text-lg font-bold">{t('laundry:vendorDetail.contract.minOrderKg', { value: minOrder })}</dd>
                     </div>
                     {paymentTerms && (
                       <div>
-                        <dt className="text-sm text-muted-foreground">Điều khoản thanh toán</dt>
+                        <dt className="text-sm text-muted-foreground">{t('laundry:vendorDetail.contract.paymentTerms')}</dt>
                         <dd className="font-medium">{paymentTerms}</dd>
                       </div>
                     )}
                     {deliveryTime && (
                       <div>
-                        <dt className="text-sm text-muted-foreground">Thời gian giao hàng</dt>
+                        <dt className="text-sm text-muted-foreground">{t('laundry:vendorDetail.contract.deliveryTime')}</dt>
                         <dd className="font-medium">{deliveryTime}</dd>
                       </div>
                     )}
                     {contractStart && (
                       <div>
-                        <dt className="text-sm text-muted-foreground">Hợp đồng từ</dt>
+                        <dt className="text-sm text-muted-foreground">{t('laundry:vendorDetail.contract.contractFrom')}</dt>
                         <dd className="font-medium">
                           {format(new Date(contractStart), 'dd/MM/yyyy', { locale: vi })}
                         </dd>
@@ -236,7 +238,7 @@ export function VendorDetailPage() {
                     )}
                     {contractEnd && (
                       <div>
-                        <dt className="text-sm text-muted-foreground">Hợp đồng đến</dt>
+                        <dt className="text-sm text-muted-foreground">{t('laundry:vendorDetail.contract.contractTo')}</dt>
                         <dd className="font-medium">
                           {format(new Date(contractEnd), 'dd/MM/yyyy', { locale: vi })}
                         </dd>
@@ -246,7 +248,7 @@ export function VendorDetailPage() {
                   
                   {vendor.notes && (
                     <div className="mt-4 pt-4 border-t">
-                      <p className="text-sm text-muted-foreground mb-1">Ghi chú</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t('laundry:vendorDetail.contract.notes')}</p>
                       <p className="text-sm">{vendor.notes}</p>
                     </div>
                   )}
@@ -260,31 +262,31 @@ export function VendorDetailPage() {
               {performance && (
                 <>
                   <DashboardStatCard
-                    title="Tổng đơn hàng"
+                    title={t('laundry:vendorDetail.stats.totalOrders')}
                     value={performance.total_orders?.toString() || '0'}
                     icon={Package}
-                    description="30 ngày gần nhất"
+                    description={t('laundry:vendorDetail.stats.last30Days')}
                   />
                   
                   <DashboardStatCard
-                    title="Tổng chi phí"
+                    title={t('laundry:vendorDetail.stats.totalCost')}
                     value={formatCurrency(performance.total_cost || 0)}
                     icon={DollarSign}
-                    description="30 ngày gần nhất"
+                    description={t('laundry:vendorDetail.stats.last30Days')}
                   />
                   
                   <DashboardStatCard
-                    title="Đánh giá TB"
+                    title={t('laundry:vendorDetail.stats.avgRating')}
                     value={`${(performance.avg_quality || 0).toFixed(1)}/5.0`}
                     icon={Star}
-                    description="Chất lượng giặt"
+                    description={t('laundry:vendorDetail.stats.qualityRating')}
                   />
                   
                   <DashboardStatCard
-                    title="On-time rate"
+                    title={t('laundry:vendorDetail.stats.onTimeRate')}
                     value={`${(performance.on_time_rate || 0).toFixed(0)}%`}
                     icon={TrendingUp}
-                    description="Giao đúng hạn"
+                    description={t('laundry:vendorDetail.stats.onTimeDelivery')}
                   />
                 </>
               )}
@@ -292,7 +294,7 @@ export function VendorDetailPage() {
               {/* Quick Actions */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Thao tác nhanh</CardTitle>
+                  <CardTitle>{t('laundry:vendorDetail.quickActions.title')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <Button 
@@ -300,7 +302,7 @@ export function VendorDetailPage() {
                     onClick={() => navigate(`/laundry/batches/new?vendor=${id}`)}
                   >
                     <Package className="mr-2 h-4 w-4" />
-                    Tạo lô giặt mới
+                    {t('laundry:vendorDetail.quickActions.createBatch')}
                   </Button>
                   <Button 
                     variant="outline" 
@@ -308,14 +310,14 @@ export function VendorDetailPage() {
                     onClick={() => navigate(`/laundry/vendors/${id}/edit`)}
                   >
                     <Edit className="mr-2 h-4 w-4" />
-                    Sửa thông tin
+                    {t('laundry:vendorDetail.quickActions.editInfo')}
                   </Button>
                   <Button 
                     variant="outline" 
                     className="w-full"
                   >
                     <FileText className="mr-2 h-4 w-4" />
-                    Xem hợp đồng
+                    {t('laundry:vendorDetail.quickActions.viewContract')}
                   </Button>
                 </CardContent>
               </Card>

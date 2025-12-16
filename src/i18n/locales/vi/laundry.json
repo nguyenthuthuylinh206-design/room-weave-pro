@@ -1,4 +1,80 @@
 {
+  "vendorDetail": {
+    "back": "Quay lại",
+    "editInfo": "Sửa thông tin",
+    "notFound": "Không tìm thấy đơn vị giặt",
+    "backToList": "Quay lại danh sách",
+    "tabs": {
+      "info": "Thông tin chung",
+      "history": "Lịch sử đơn hàng",
+      "performance": "Đánh giá chi tiết",
+      "documents": "Tài liệu"
+    },
+    "type": {
+      "external": "Đơn vị ngoài",
+      "internal": "Nội bộ"
+    },
+    "status": {
+      "active": "Hoạt động",
+      "inactive": "Tạm ngưng"
+    },
+    "contact": {
+      "title": "Thông tin liên hệ",
+      "address": "Địa chỉ",
+      "phone": "Điện thoại",
+      "email": "Email",
+      "website": "Website",
+      "contactPerson": "Người liên hệ",
+      "call": "Gọi điện",
+      "sendEmail": "Gửi email"
+    },
+    "contract": {
+      "title": "Thông tin hợp đồng",
+      "pricePerKg": "Giá/kg",
+      "minOrder": "Đơn tối thiểu",
+      "minOrderKg": "{{value}} kg",
+      "paymentTerms": "Điều khoản thanh toán",
+      "deliveryTime": "Thời gian giao hàng",
+      "contractFrom": "Hợp đồng từ",
+      "contractTo": "Hợp đồng đến",
+      "notes": "Ghi chú"
+    },
+    "stats": {
+      "totalOrders": "Tổng đơn hàng",
+      "totalCost": "Tổng chi phí",
+      "avgRating": "Đánh giá TB",
+      "onTimeRate": "On-time rate",
+      "last30Days": "30 ngày gần nhất",
+      "qualityRating": "Chất lượng giặt",
+      "onTimeDelivery": "Giao đúng hạn"
+    },
+    "quickActions": {
+      "title": "Thao tác nhanh",
+      "createBatch": "Tạo lô giặt mới",
+      "editInfo": "Sửa thông tin",
+      "viewContract": "Xem hợp đồng"
+    }
+  },
+  "batchHistory": {
+    "title": "Lịch sử đơn hàng",
+    "status": "Trạng thái",
+    "all": "Tất cả",
+    "delivered": "Đã giao",
+    "washing": "Đang giặt",
+    "ready": "Sẵn sàng",
+    "received": "Đã nhận",
+    "exportExcel": "Xuất Excel",
+    "columns": {
+      "batchCode": "Mã lô",
+      "deliveryDate": "Ngày giao",
+      "returnDate": "Ngày nhận",
+      "items": "Items",
+      "cost": "Chi phí",
+      "rating": "Đánh giá",
+      "status": "Trạng thái"
+    },
+    "noOrders": "Chưa có đơn hàng nào"
+  },
   "title": "Quản lý Giặt là",
   "description": "Theo dõi các lô giặt, quản lý nhà cung cấp dịch vụ giặt là",
   "batches": "Lô giặt",
