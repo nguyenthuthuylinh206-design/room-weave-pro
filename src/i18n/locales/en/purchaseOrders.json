@@ -5,6 +5,37 @@
     "title": "Order List",
     "empty": "No orders found"
   },
+  "page": {
+    "title": "Purchase Orders",
+    "description": "Manage purchase orders from vendors",
+    "exportExcel": "Export Excel",
+    "createNew": "Create New Order"
+  },
+  "tabs": {
+    "all": "All",
+    "draft": "Draft",
+    "submitted": "Pending Approval",
+    "approved": "Approved",
+    "ordered": "Ordered",
+    "partial": "Partial Received",
+    "received": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "quickFilters": {
+    "createdByMe": "Created by me",
+    "pendingMyApproval": "Pending my approval",
+    "highValue": "Total value > 10M"
+  },
+  "stats": {
+    "totalOrders": "Total Orders",
+    "allOrders": "All purchase orders",
+    "pendingApproval": "Pending Approval",
+    "needsProcessing": "Needs processing",
+    "value30d": "30d Value",
+    "totalValue": "Total value",
+    "completed30d": "Completed",
+    "last30Days": "Last 30 days"
+  },
   "form": {
     "create": "Create New Purchase Order",
     "edit": "Edit Purchase Order",
@@ -34,7 +65,24 @@
     "stock": "Stock",
     "unit": "Unit",
     "lastPrice": "Last Price",
-    "featureInDevelopment": "Feature in development"
+    "featureInDevelopment": "Feature in development",
+    "orderDate": "Order Date",
+    "expectedDeliveryDate": "Expected Delivery Date",
+    "shippingAddress": "Shipping Address",
+    "shippingAddressPlaceholder": "Enter shipping address...",
+    "vendorNotes": "Notes for Vendor",
+    "vendorNotesPlaceholder": "Special requests, delivery instructions...",
+    "taxRate": "Tax (%)",
+    "shippingFee": "Shipping Fee (₫)",
+    "orderOverview": "Order Overview",
+    "reviewAndSubmit": "Review & Submit",
+    "vendorLabel": "Vendor",
+    "productsCount": "Products ({{count}})",
+    "deliveryInfo": "Delivery Information",
+    "expectedDelivery": "Expected Delivery",
+    "confirmCheckbox": "I have reviewed the information and confirm to create this order",
+    "creating": "Creating...",
+    "saveAndSubmit": "Save & Submit"
   },
   "cart": {
     "title": "Cart",
@@ -61,7 +109,9 @@
     "subtotal": "Subtotal",
     "tax": "Tax ({{rate}}%)",
     "shipping": "Shipping Fee",
-    "total": "Total"
+    "shippingFee": "Shipping",
+    "total": "Total",
+    "grandTotal": "GRAND TOTAL"
   },
   "status": {
     "draft": "Draft",
@@ -101,5 +151,11 @@
     "quantityPositive": "Quantity must be greater than 0",
     "priceNonNegative": "Price cannot be negative",
     "deliveryAfterOrder": "Delivery date must be after order date"
+  },
+  "table": {
+    "product": "Product",
+    "qty": "Qty",
+    "unitPrice": "Unit Price",
+    "amount": "Amount"
   }
 }

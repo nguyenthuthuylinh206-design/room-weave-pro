@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePurchaseOrders, usePOStats } from '@/hooks/usePurchaseOrders';
 import { POFilters as POFiltersType } from '@/types/purchase-order.types';
 import POTable from '@/components/purchase-orders/POTable';
@@ -14,6 +15,7 @@ import { useBreakpoint } from '@/lib/breakpoints';
 import { MobilePOListPage } from '@/components/purchase-orders/MobilePOListPage';
 
 const POListPage: React.FC = () => {
+  const { t } = useTranslation('purchaseOrders');
   const { isMobile } = useBreakpoint();
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState<string>('all');
@@ -24,11 +26,9 @@ const POListPage: React.FC = () => {
   });
   const [selectedPOs, setSelectedPOs] = useState<string[]>([]);
   
-  // Gọi TẤT CẢ hooks trước điều kiện isMobile
   const { data: stats } = usePOStats();
   const { data: purchaseOrders, isLoading } = usePurchaseOrders(filters);
 
-  // Kiểm tra mobile SAU KHI tất cả hooks đã được gọi
   if (isMobile) {
     return <MobilePOListPage />;
   }
@@ -57,19 +57,19 @@ const POListPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Đơn đặt hàng</h1>
+          <h1 className="text-3xl font-bold">{t('page.title')}</h1>
           <p className="text-muted-foreground mt-1">
-            Quản lý đơn đặt hàng từ nhà cung cấp
+            {t('page.description')}
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline">
             <FileDown className="w-4 h-4 mr-2" />
-            Xuất Excel
+            {t('page.exportExcel')}
           </Button>
           <Button onClick={() => navigate('/purchase-orders/new')}>
             <Plus className="w-4 h-4 mr-2" />
-            Tạo đơn mới
+            {t('page.createNew')}
           </Button>
         </div>
       </div>
@@ -78,28 +78,28 @@ const POListPage: React.FC = () => {
       <Tabs value={selectedTab} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="all">
-            Tất cả ({getTabCount('all')})
+            {t('tabs.all')} ({getTabCount('all')})
           </TabsTrigger>
           <TabsTrigger value="draft">
-            Nháp ({getTabCount('draft')})
+            {t('tabs.draft')} ({getTabCount('draft')})
           </TabsTrigger>
           <TabsTrigger value="submitted">
-            Chờ duyệt ({getTabCount('submitted')})
+            {t('tabs.submitted')} ({getTabCount('submitted')})
           </TabsTrigger>
           <TabsTrigger value="approved">
-            Đã duyệt ({getTabCount('approved')})
+            {t('tabs.approved')} ({getTabCount('approved')})
           </TabsTrigger>
           <TabsTrigger value="ordered">
-            Đã đặt ({getTabCount('ordered')})
+            {t('tabs.ordered')} ({getTabCount('ordered')})
           </TabsTrigger>
           <TabsTrigger value="partial">
-            Nhận 1 phần ({getTabCount('partial')})
+            {t('tabs.partial')} ({getTabCount('partial')})
           </TabsTrigger>
           <TabsTrigger value="received">
-            Hoàn thành ({getTabCount('received')})
+            {t('tabs.received')} ({getTabCount('received')})
           </TabsTrigger>
           <TabsTrigger value="cancelled">
-            Đã hủy ({getTabCount('cancelled')})
+            {t('tabs.cancelled')} ({getTabCount('cancelled')})
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -117,21 +117,21 @@ const POListPage: React.FC = () => {
           className="cursor-pointer hover:bg-accent"
           onClick={() => handleFilterChange({ created_by: 'me' })}
         >
-          Do tôi tạo
+          {t('quickFilters.createdByMe')}
         </Badge>
         <Badge
           variant="outline"
           className="cursor-pointer hover:bg-accent"
           onClick={() => handleFilterChange({ status: 'submitted' })}
         >
-          Cần duyệt của tôi
+          {t('quickFilters.pendingMyApproval')}
         </Badge>
         <Badge
           variant="outline"
           className="cursor-pointer hover:bg-accent"
           onClick={() => handleFilterChange({ min_amount: 10000000 })}
         >
-          Tổng giá trị &gt; 10M
+          {t('quickFilters.highValue')}
         </Badge>
       </div>
 

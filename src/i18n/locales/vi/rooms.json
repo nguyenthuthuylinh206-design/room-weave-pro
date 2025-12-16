@@ -299,5 +299,83 @@
       "next": "Tiếp theo",
       "complete": "Hoàn tất kiểm tra"
     }
+  },
+  "form": {
+    "create": "Thêm phòng mới",
+    "edit": "Chỉnh sửa phòng",
+    "createDescription": "Nhập thông tin phòng mới",
+    "editDescription": "Cập nhật thông tin phòng",
+    "loading": "Đang tải...",
+    "basicInfo": "Thông tin cơ bản",
+    "roomDetails": "Chi tiết phòng",
+    "roomNumber": "Số phòng",
+    "roomType": "Loại phòng",
+    "floor": "Tầng",
+    "area": "Diện tích (m²)",
+    "maxGuests": "Số khách tối đa",
+    "basePrice": "Giá cơ bản (₫)",
+    "bedType": "Loại giường",
+    "viewType": "Hướng nhìn",
+    "hasWindow": "Có cửa sổ",
+    "hasBalcony": "Có ban công",
+    "smokingAllowed": "Cho phép hút thuốc",
+    "notes": "Ghi chú",
+    "cancel": "Hủy",
+    "saving": "Đang lưu...",
+    "update": "Cập nhật",
+    "createNew": "Tạo mới",
+    "selectRoomType": "Chọn loại phòng...",
+    "selectBedType": "Chọn loại giường...",
+    "selectViewType": "Chọn hướng nhìn...",
+    "alerts": {
+      "allHotelsMode": "Bạn đang ở chế độ xem tất cả khách sạn. Vui lòng chọn một khách sạn cụ thể để tạo phòng mới.",
+      "noHotelSelected": "Chưa chọn khách sạn. Vui lòng chọn khách sạn từ menu trên cùng."
+    },
+    "toasts": {
+      "selectHotelRequired": "Vui lòng chọn khách sạn trước khi tạo phòng",
+      "allHotelsMode": "Vui lòng chọn một khách sạn cụ thể trước khi tạo phòng",
+      "duplicateError": "Lỗi kiểm tra số phòng trùng lặp",
+      "duplicateExists": "Số phòng \"{{roomNumber}}\" đã tồn tại trong khách sạn này"
+    },
+    "validation": {
+      "roomNumberRequired": "Số phòng là bắt buộc",
+      "roomTypeRequired": "Loại phòng là bắt buộc",
+      "floorMin": "Tầng phải >= 1",
+      "areaMin": "Diện tích phải >= 0",
+      "maxGuestsMin": "Số khách tối đa phải >= 1",
+      "basePriceMin": "Giá cơ bản phải >= 0"
+    },
+    "bedTypes": {
+      "single": "Đơn",
+      "double": "Đôi",
+      "queen": "Queen",
+      "king": "King",
+      "twin": "Twin"
+    },
+    "viewTypes": {
+      "city": "Thành phố",
+      "sea": "Biển",
+      "mountain": "Núi",
+      "garden": "Vườn",
+      "pool": "Hồ bơi"
+    }
+  },
+  "standards": {
+    "title": "Thiết lập chuẩn phòng",
+    "description": "Cấu hình tài sản chuẩn cho từng loại phòng",
+    "roomType": "Loại phòng",
+    "loading": "Đang tải...",
+    "table": {
+      "asset": "Tài sản",
+      "code": "Mã",
+      "category": "Danh mục",
+      "quantity": "Số lượng"
+    },
+    "empty": "Chưa có tài sản nào trong chuẩn phòng này",
+    "addAsset": "Chọn tài sản để thêm...",
+    "note": "Khi tạo phòng mới với loại \"{{type}}\", hệ thống sẽ tự động gán các tài sản theo chuẩn đã thiết lập.",
+    "validation": {
+      "selectAsset": "Vui lòng chọn tài sản và nhập số lượng hợp lệ"
+    }
   }
 }

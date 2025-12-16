@@ -281,18 +281,18 @@ const POForm: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Building className="w-5 h-5" />
-              Chọn nhà cung cấp
+              {t('form.steps.selectVendor')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Nhà cung cấp *</Label>
+              <Label>{t('fields.vendor')} *</Label>
               <Select
                 value={watchedVendorId}
                 onValueChange={(value) => setValue('vendor_id', value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Chọn nhà cung cấp..." />
+                  <SelectValue placeholder={t('placeholders.selectVendor')} />
                 </SelectTrigger>
                 <SelectContent>
                   {vendors?.map(vendor => (
@@ -317,34 +317,34 @@ const POForm: React.FC = () => {
 
             {selectedVendor && (
               <div className="p-4 border rounded-lg bg-muted/50">
-                <h3 className="font-semibold mb-3">Thông tin nhà cung cấp</h3>
+                <h3 className="font-semibold mb-3">{t('form.vendorInfo')}</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Địa chỉ:</span>
+                    <span className="text-muted-foreground">{t('form.address')}:</span>
                     <p className="font-medium">{selectedVendor.address}</p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Liên hệ:</span>
+                    <span className="text-muted-foreground">{t('form.contact')}:</span>
                     <p className="font-medium">{selectedVendor.phone}</p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Thanh toán:</span>
+                    <span className="text-muted-foreground">{t('form.payment')}:</span>
                     <p className="font-medium">{selectedVendor.payment_terms}</p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Giao hàng:</span>
+                    <span className="text-muted-foreground">{t('form.delivery')}:</span>
                     <p className="font-medium">{selectedVendor.delivery_time || 'N/A'}</p>
                   </div>
                   {selectedVendor.minimum_order_value && (
                     <div>
-                      <span className="text-muted-foreground">Đơn TT:</span>
+                      <span className="text-muted-foreground">{t('form.minOrder')}:</span>
                       <p className="font-medium">
                         {formatCurrency(selectedVendor.minimum_order_value)}
                       </p>
                     </div>
                   )}
                   <div>
-                    <span className="text-muted-foreground">Rating:</span>
+                    <span className="text-muted-foreground">{t('form.rating')}:</span>
                     <p className="font-medium">
                       ⭐ {selectedVendor.rating.toFixed(1)}/5.0
                     </p>
@@ -355,14 +355,14 @@ const POForm: React.FC = () => {
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => navigate(-1)}>
-                Hủy
+                {t('actions.cancel')}
               </Button>
               <Button
                 type="button"
                 onClick={() => setStep(2)}
                 disabled={!watchedVendorId}
               >
-                Tiếp theo
+                {t('actions.next')}
               </Button>
             </div>
           </CardContent>
@@ -377,14 +377,14 @@ const POForm: React.FC = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Package className="w-5 h-5" />
-                  Chọn sản phẩm
+                  {t('form.steps.selectProducts')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="catalog">
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="catalog">Từ danh mục</TabsTrigger>
-                    <TabsTrigger value="history">Từ lịch sử</TabsTrigger>
+                    <TabsTrigger value="catalog">{t('form.fromCatalog')}</TabsTrigger>
+                    <TabsTrigger value="history">{t('form.fromHistory')}</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="catalog" className="space-y-4">
@@ -392,7 +392,7 @@ const POForm: React.FC = () => {
                       <div className="flex-1 relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
-                          placeholder="Tìm sản phẩm..."
+                          placeholder={t('form.searchProducts')}
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
                           className="pl-10"
@@ -404,11 +404,11 @@ const POForm: React.FC = () => {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Sản phẩm</TableHead>
-                            <TableHead>Mã</TableHead>
-                            <TableHead>Tồn kho</TableHead>
-                            <TableHead>Đơn vị</TableHead>
-                            <TableHead className="text-right">Giá gần nhất</TableHead>
+                            <TableHead>{t('form.product')}</TableHead>
+                            <TableHead>{t('form.code')}</TableHead>
+                            <TableHead>{t('form.stock')}</TableHead>
+                            <TableHead>{t('form.unit')}</TableHead>
+                            <TableHead className="text-right">{t('form.lastPrice')}</TableHead>
                             <TableHead className="w-24"></TableHead>
                           </TableRow>
                         </TableHeader>
@@ -457,7 +457,7 @@ const POForm: React.FC = () => {
 
                   <TabsContent value="history">
                     <div className="text-center py-12 text-muted-foreground">
-                      Tính năng đang phát triển
+                      {t('form.featureInDevelopment')}
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -470,13 +470,13 @@ const POForm: React.FC = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <ShoppingCart className="w-5 h-5" />
-                  Giỏ hàng ({cart.length})
+                  {t('cart.title')} ({cart.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {cart.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    Chưa có sản phẩm nào
+                    {t('cart.empty')}
                   </div>
                 ) : (
                   <>
@@ -502,7 +502,7 @@ const POForm: React.FC = () => {
 
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <Label className="text-xs">Số lượng</Label>
+                              <Label className="text-xs">{t('cart.quantity')}</Label>
                               <Input
                                 type="number"
                                 min="1"
@@ -518,7 +518,7 @@ const POForm: React.FC = () => {
                               />
                             </div>
                             <div>
-                              <Label className="text-xs">Đơn giá</Label>
+                              <Label className="text-xs">{t('cart.unitPrice')}</Label>
                               <Input
                                 type="number"
                                 min="0"
@@ -546,7 +546,7 @@ const POForm: React.FC = () => {
 
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Tạm tính:</span>
+                        <span className="text-muted-foreground">{t('summary.subtotal')}:</span>
                         <span className="font-medium">{formatCurrency(subtotal)}</span>
                       </div>
                     </div>
@@ -560,7 +560,7 @@ const POForm: React.FC = () => {
                     className="flex-1"
                     onClick={() => setStep(1)}
                   >
-                    Quay lại
+                    {t('actions.back')}
                   </Button>
                   <Button
                     type="button"
@@ -568,7 +568,7 @@ const POForm: React.FC = () => {
                     onClick={() => setStep(3)}
                     disabled={cart.length === 0}
                   >
-                    Tiếp theo
+                    {t('actions.next')}
                   </Button>
                 </div>
               </CardContent>
@@ -583,13 +583,13 @@ const POForm: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5" />
-              Chi tiết đơn hàng
+              {t('form.steps.orderDetails')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label>Ngày đặt *</Label>
+                <Label>{t('form.orderDate')} *</Label>
                 <DatePicker
                   value={watch('order_date')}
                   onChange={(date) => setValue('order_date', date)}
@@ -597,7 +597,7 @@ const POForm: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Ngày giao dự kiến *</Label>
+                <Label>{t('form.expectedDeliveryDate')} *</Label>
                 <DatePicker
                   value={watch('expected_delivery_date')}
                   onChange={(date) => setValue('expected_delivery_date', date)}
@@ -611,9 +611,9 @@ const POForm: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Địa chỉ giao hàng *</Label>
+              <Label>{t('form.shippingAddress')} *</Label>
               <Textarea
-                placeholder="Nhập địa chỉ giao hàng..."
+                placeholder={t('form.shippingAddressPlaceholder')}
                 rows={3}
                 {...register('shipping_address')}
               />
@@ -623,9 +623,9 @@ const POForm: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Ghi chú cho nhà cung cấp</Label>
+              <Label>{t('form.vendorNotes')}</Label>
               <Textarea
-                placeholder="Yêu cầu đặc biệt, hướng dẫn giao hàng..."
+                placeholder={t('form.vendorNotesPlaceholder')}
                 rows={3}
                 {...register('notes')}
               />
@@ -635,7 +635,7 @@ const POForm: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label>Thuế (%)</Label>
+                <Label>{t('form.taxRate')}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -646,7 +646,7 @@ const POForm: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Phí vận chuyển (₫)</Label>
+                <Label>{t('form.shippingFee')}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -656,25 +656,25 @@ const POForm: React.FC = () => {
             </div>
 
             <div className="p-4 border rounded-lg bg-muted/50">
-              <h3 className="font-semibold mb-3">Tổng quan đơn hàng</h3>
+              <h3 className="font-semibold mb-3">{t('form.orderOverview')}</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tạm tính:</span>
+                  <span className="text-muted-foreground">{t('summary.subtotal')}:</span>
                   <span className="font-medium">{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">
-                    Thuế ({watchedTaxRate}%):
+                    {t('summary.tax', { rate: watchedTaxRate })}:
                   </span>
                   <span className="font-medium">{formatCurrency(taxAmount)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Vận chuyển:</span>
+                  <span className="text-muted-foreground">{t('summary.shippingFee')}:</span>
                   <span className="font-medium">{formatCurrency(watchedShippingFee)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-lg font-bold">
-                  <span>TỔNG CỘNG:</span>
+                  <span>{t('summary.grandTotal')}:</span>
                   <span className="text-primary">{formatCurrency(total)}</span>
                 </div>
               </div>
@@ -682,10 +682,10 @@ const POForm: React.FC = () => {
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setStep(2)}>
-                Quay lại
+                {t('actions.back')}
               </Button>
               <Button type="button" onClick={() => setStep(4)}>
-                Tiếp theo
+                {t('actions.next')}
               </Button>
             </div>
           </CardContent>
@@ -696,11 +696,11 @@ const POForm: React.FC = () => {
       {step === 4 && (
         <Card>
           <CardHeader>
-            <CardTitle>Xem lại & Gửi</CardTitle>
+            <CardTitle>{t('form.reviewAndSubmit')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
-              <h3 className="font-semibold mb-2">Nhà cung cấp</h3>
+              <h3 className="font-semibold mb-2">{t('form.vendorLabel')}</h3>
               <div className="p-4 border rounded-lg">
                 <div className="font-medium">{selectedVendor?.name}</div>
                 <div className="text-sm text-muted-foreground mt-1">
@@ -710,14 +710,14 @@ const POForm: React.FC = () => {
             </div>
 
             <div>
-              <h3 className="font-semibold mb-2">Sản phẩm ({cart.length})</h3>
+              <h3 className="font-semibold mb-2">{t('form.productsCount', { count: cart.length })}</h3>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Sản phẩm</TableHead>
-                    <TableHead className="text-right">SL</TableHead>
-                    <TableHead className="text-right">Đơn giá</TableHead>
-                    <TableHead className="text-right">Thành tiền</TableHead>
+                    <TableHead>{t('table.product')}</TableHead>
+                    <TableHead className="text-right">{t('table.qty')}</TableHead>
+                    <TableHead className="text-right">{t('table.unitPrice')}</TableHead>
+                    <TableHead className="text-right">{t('table.amount')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -738,14 +738,14 @@ const POForm: React.FC = () => {
             </div>
 
             <div>
-              <h3 className="font-semibold mb-2">Thông tin giao hàng</h3>
+              <h3 className="font-semibold mb-2">{t('form.deliveryInfo')}</h3>
               <div className="p-4 border rounded-lg space-y-2 text-sm">
                 <div>
-                  <span className="text-muted-foreground">Địa chỉ:</span>
+                  <span className="text-muted-foreground">{t('form.address')}:</span>
                   <p className="font-medium">{watch('shipping_address')}</p>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Ngày giao DK:</span>
+                  <span className="text-muted-foreground">{t('form.expectedDelivery')}:</span>
                   <span className="font-medium ml-2">
                     {formatDate(watch('expected_delivery_date'))}
                   </span>
@@ -756,20 +756,20 @@ const POForm: React.FC = () => {
             <div className="p-4 border rounded-lg bg-primary/5">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Tạm tính:</span>
+                  <span className="text-muted-foreground">{t('summary.subtotal')}:</span>
                   <span className="font-medium">{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Thuế ({watchedTaxRate}%):</span>
+                  <span className="text-muted-foreground">{t('summary.tax', { rate: watchedTaxRate })}:</span>
                   <span className="font-medium">{formatCurrency(taxAmount)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Vận chuyển:</span>
+                  <span className="text-muted-foreground">{t('summary.shippingFee')}:</span>
                   <span className="font-medium">{formatCurrency(watchedShippingFee)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-xl font-bold">
-                  <span>TỔNG CỘNG:</span>
+                  <span>{t('summary.grandTotal')}:</span>
                   <span className="text-primary">{formatCurrency(total)}</span>
                 </div>
               </div>
@@ -778,16 +778,16 @@ const POForm: React.FC = () => {
             <div className="flex items-center space-x-2">
               <Checkbox id="confirm" required />
               <Label htmlFor="confirm" className="cursor-pointer">
-                Tôi đã kiểm tra kỹ thông tin và xác nhận tạo đơn hàng này
+                {t('form.confirmCheckbox')}
               </Label>
             </div>
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setStep(3)}>
-                Quay lại
+                {t('actions.back')}
               </Button>
               <Button type="submit" disabled={createPO.isPending}>
-                {createPO.isPending ? 'Đang tạo...' : 'Lưu & Gửi duyệt'}
+                {createPO.isPending ? t('form.creating') : t('form.saveAndSubmit')}
               </Button>
             </div>
           </CardContent>

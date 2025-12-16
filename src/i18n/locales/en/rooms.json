@@ -299,5 +299,83 @@
       "next": "Next",
       "complete": "Complete Check"
     }
+  },
+  "form": {
+    "create": "Add New Room",
+    "edit": "Edit Room",
+    "createDescription": "Enter new room information",
+    "editDescription": "Update room information",
+    "loading": "Loading...",
+    "basicInfo": "Basic Information",
+    "roomDetails": "Room Details",
+    "roomNumber": "Room Number",
+    "roomType": "Room Type",
+    "floor": "Floor",
+    "area": "Area (m²)",
+    "maxGuests": "Max Guests",
+    "basePrice": "Base Price (₫)",
+    "bedType": "Bed Type",
+    "viewType": "View Type",
+    "hasWindow": "Has Window",
+    "hasBalcony": "Has Balcony",
+    "smokingAllowed": "Smoking Allowed",
+    "notes": "Notes",
+    "cancel": "Cancel",
+    "saving": "Saving...",
+    "update": "Update",
+    "createNew": "Create",
+    "selectRoomType": "Select room type...",
+    "selectBedType": "Select bed type...",
+    "selectViewType": "Select view type...",
+    "alerts": {
+      "allHotelsMode": "You are in all hotels view mode. Please select a specific hotel to create a new room.",
+      "noHotelSelected": "No hotel selected. Please select a hotel from the top menu."
+    },
+    "toasts": {
+      "selectHotelRequired": "Please select a hotel before creating a room",
+      "allHotelsMode": "Please select a specific hotel before creating a room",
+      "duplicateError": "Error checking duplicate room number",
+      "duplicateExists": "Room number \"{{roomNumber}}\" already exists in this hotel"
+    },
+    "validation": {
+      "roomNumberRequired": "Room number is required",
+      "roomTypeRequired": "Room type is required",
+      "floorMin": "Floor must be >= 1",
+      "areaMin": "Area must be >= 0",
+      "maxGuestsMin": "Max guests must be >= 1",
+      "basePriceMin": "Base price must be >= 0"
+    },
+    "bedTypes": {
+      "single": "Single",
+      "double": "Double",
+      "queen": "Queen",
+      "king": "King",
+      "twin": "Twin"
+    },
+    "viewTypes": {
+      "city": "City",
+      "sea": "Sea",
+      "mountain": "Mountain",
+      "garden": "Garden",
+      "pool": "Pool"
+    }
+  },
+  "standards": {
+    "title": "Room Standards Setup",
+    "description": "Configure standard assets for each room type",
+    "roomType": "Room Type",
+    "loading": "Loading...",
+    "table": {
+      "asset": "Asset",
+      "code": "Code",
+      "category": "Category",
+      "quantity": "Quantity"
+    },
+    "empty": "No assets in this room standard",
+    "addAsset": "Select asset to add...",
+    "note": "When creating a new \"{{type}}\" room, the system will automatically assign assets based on the configured standards.",
+    "validation": {
+      "selectAsset": "Please select an asset and enter a valid quantity"
+    }
   }
 }

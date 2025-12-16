@@ -1,4 +1,36 @@
 {
+  "comparison": {
+    "title": "Vendor Comparison",
+    "comparing": "Comparing {{count}} vendors",
+    "exportPdf": "Export PDF",
+    "changeSelection": "Change Selection",
+    "selectMinVendors": "Please select 2 to 5 vendors to compare",
+    "vendorLabel": "Vendor",
+    "performance": "Performance",
+    "rating": "Rating",
+    "totalOrders": "Total Orders",
+    "totalValue": "Total Value",
+    "onTimeRate": "On-time",
+    "totalScore": "Total Score",
+    "scoreBreakdown": {
+      "price": "Price",
+      "quality": "Quality",
+      "delivery": "Delivery",
+      "service": "Service",
+      "terms": "Terms"
+    },
+    "recommendation": "Recommendation",
+    "bestChoice": "{{name}} is the best choice with:",
+    "highestRating": "Highest rating ({{rating}}/5)",
+    "bestOnTime": "Best on-time delivery ({{rate}}%)",
+    "highestScore": "Highest total score ({{score}}/100)",
+    "alternativeNote": "{{name}} is also a good choice if you prioritize other factors. Consider negotiating better terms or comparing prices for specific products.",
+    "categories": {
+      "supplier": "Supplier",
+      "service_provider": "Service",
+      "contractor": "Contractor"
+    }
+  },
   "title": "Vendor Management",
   "list": "Vendor List",
   "addNew": "Add New Vendor",

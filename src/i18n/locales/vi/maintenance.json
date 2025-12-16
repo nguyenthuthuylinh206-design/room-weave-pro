@@ -1,4 +1,27 @@
 {
+  "recurring": {
+    "title": "Vấn đề lặp lại",
+    "description": "Phân tích thiết bị và phòng có sự cố thường xuyên",
+    "tabs": {
+      "30days": "30 ngày",
+      "90days": "90 ngày",
+      "6months": "6 tháng",
+      "1year": "1 năm"
+    },
+    "stats": {
+      "devicesWithIssues": "Thiết bị/Phòng có vấn đề",
+      "totalIncidents": "Tổng sự cố (30 ngày)",
+      "totalCost": "Tổng chi phí"
+    },
+    "noIssues": {
+      "title": "Tuyệt vời! Không có vấn đề lặp lại",
+      "description": "Trong {{days}} ngày qua, không có thiết bị hoặc phòng nào gặp sự cố lặp lại (≥2 lần)",
+      "tipsTitle": "Mẹo phân tích:",
+      "tip1": "Thử tăng khoảng thời gian để xem xu hướng dài hạn",
+      "tip2": "Vấn đề lặp lại giúp xác định thiết bị cần thay thế",
+      "tip3": "Theo dõi chi phí bảo trì để tối ưu ngân sách"
+    }
+  },
   "title": "Quản lý Bảo trì",
   "pageTitle": "Yêu cầu bảo trì",
   "dashboard": "Quản lý yêu cầu bảo trì",

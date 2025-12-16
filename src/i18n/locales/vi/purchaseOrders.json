@@ -5,6 +5,37 @@
     "title": "Danh sách đơn hàng",
     "empty": "Chưa có đơn hàng nào"
   },
+  "page": {
+    "title": "Đơn đặt hàng",
+    "description": "Quản lý đơn đặt hàng từ nhà cung cấp",
+    "exportExcel": "Xuất Excel",
+    "createNew": "Tạo đơn mới"
+  },
+  "tabs": {
+    "all": "Tất cả",
+    "draft": "Nháp",
+    "submitted": "Chờ duyệt",
+    "approved": "Đã duyệt",
+    "ordered": "Đã đặt",
+    "partial": "Nhận 1 phần",
+    "received": "Hoàn thành",
+    "cancelled": "Đã hủy"
+  },
+  "quickFilters": {
+    "createdByMe": "Do tôi tạo",
+    "pendingMyApproval": "Cần duyệt của tôi",
+    "highValue": "Tổng giá trị > 10M"
+  },
+  "stats": {
+    "totalOrders": "Tổng đơn",
+    "allOrders": "Tất cả đơn đặt hàng",
+    "pendingApproval": "Chờ duyệt",
+    "needsProcessing": "Cần xử lý",
+    "value30d": "GT 30 ngày",
+    "totalValue": "Tổng giá trị",
+    "completed30d": "Hoàn thành",
+    "last30Days": "30 ngày qua"
+  },
   "form": {
     "create": "Tạo đơn đặt hàng mới",
     "edit": "Chỉnh sửa đơn hàng",
@@ -34,7 +65,24 @@
     "stock": "Tồn kho",
     "unit": "Đơn vị",
     "lastPrice": "Giá gần nhất",
-    "featureInDevelopment": "Tính năng đang phát triển"
+    "featureInDevelopment": "Tính năng đang phát triển",
+    "orderDate": "Ngày đặt",
+    "expectedDeliveryDate": "Ngày giao dự kiến",
+    "shippingAddress": "Địa chỉ giao hàng",
+    "shippingAddressPlaceholder": "Nhập địa chỉ giao hàng...",
+    "vendorNotes": "Ghi chú cho nhà cung cấp",
+    "vendorNotesPlaceholder": "Yêu cầu đặc biệt, hướng dẫn giao hàng...",
+    "taxRate": "Thuế (%)",
+    "shippingFee": "Phí vận chuyển (₫)",
+    "orderOverview": "Tổng quan đơn hàng",
+    "reviewAndSubmit": "Xem lại & Gửi",
+    "vendorLabel": "Nhà cung cấp",
+    "productsCount": "Sản phẩm ({{count}})",
+    "deliveryInfo": "Thông tin giao hàng",
+    "expectedDelivery": "Ngày giao DK",
+    "confirmCheckbox": "Tôi đã kiểm tra kỹ thông tin và xác nhận tạo đơn hàng này",
+    "creating": "Đang tạo...",
+    "saveAndSubmit": "Lưu & Gửi duyệt"
   },
   "cart": {
     "title": "Giỏ hàng",
@@ -61,7 +109,9 @@
     "subtotal": "Tạm tính",
     "tax": "Thuế ({{rate}}%)",
     "shipping": "Phí vận chuyển",
-    "total": "Tổng cộng"
+    "shippingFee": "Vận chuyển",
+    "total": "Tổng cộng",
+    "grandTotal": "TỔNG CỘNG"
   },
   "status": {
     "draft": "Nháp",
@@ -101,5 +151,11 @@
     "quantityPositive": "Số lượng phải lớn hơn 0",
     "priceNonNegative": "Đơn giá không được âm",
     "deliveryAfterOrder": "Ngày giao phải sau ngày đặt"
+  },
+  "table": {
+    "product": "Sản phẩm",
+    "qty": "SL",
+    "unitPrice": "Đơn giá",
+    "amount": "Thành tiền"
   }
 }
