@@ -80,5 +80,55 @@
     "developing": "Tính năng đang phát triển",
     "comingSoon": "Tạo báo cáo tùy chỉnh sẽ sớm được cung cấp"
   },
-  "tip": "Mẹo"
+  "tip": "Mẹo",
+  "operations": {
+    "pageTitle": "Báo cáo Hoạt động",
+    "pageDescription": "Phân tích giao dịch nhập xuất và kiểm kê",
+    "back": "Quay lại",
+    "exportPdf": "Xuất PDF",
+    "exportExcel": "Xuất Excel",
+    "reportPeriod": "Kỳ báo cáo:",
+    "tabs": {
+      "transactions": "Giao dịch",
+      "stocktake": "Kiểm kê",
+      "efficiency": "Hiệu suất"
+    },
+    "stats": {
+      "inbound": "Nhập kho",
+      "outbound": "Xuất kho",
+      "totalTransactions": "Tổng GD",
+      "transactions": "giao dịch",
+      "netChange": "Biến động ròng",
+      "inPeriod": "trong kỳ"
+    },
+    "chart": {
+      "title": "Xu hướng giao dịch theo tháng",
+      "inbound": "Nhập kho",
+      "outbound": "Xuất kho",
+      "adjustment": "Điều chỉnh"
+    },
+    "topItems": {
+      "title": "Top Items theo vòng quay",
+      "rank": "#",
+      "item": "Đồ dùng",
+      "inbound": "Nhập",
+      "outbound": "Xuất",
+      "turnover": "Vòng quay",
+      "trend": "Xu hướng"
+    },
+    "stocktake": {
+      "checkCount": "Số lần kiểm kê",
+      "itemsChecked": "Items đã kiểm",
+      "accuracy": "Tỷ lệ chính xác",
+      "adjustmentValue": "Giá trị điều chỉnh",
+      "recentResults": "Kết quả kiểm kê gần đây",
+      "noData": "Dữ liệu kiểm kê sẽ được hiển thị tại đây"
+    },
+    "efficiency": {
+      "avgProcessingTime": "Thời gian xử lý TB",
+      "onTime": "Đúng hạn",
+      "errorRate": "Tỷ lệ lỗi",
+      "staffProductivity": "Năng suất nhân viên"
+    }
+  }
 }
