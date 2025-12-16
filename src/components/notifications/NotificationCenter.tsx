@@ -35,6 +35,7 @@ interface Notification {
 interface NotificationCenterProps {
   onClose?: () => void;
   onMarkAllRead?: () => void;
+  fullHeight?: boolean;
 }
 
 const typeIcons: Record<string, React.ReactNode> = {
@@ -47,7 +48,7 @@ const typeIcons: Record<string, React.ReactNode> = {
   info: <Info className="h-4 w-4 text-primary" />,
 };
 
-export function NotificationCenter({ onClose, onMarkAllRead }: NotificationCenterProps) {
+export function NotificationCenter({ onClose, onMarkAllRead, fullHeight = false }: NotificationCenterProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -113,7 +114,7 @@ export function NotificationCenter({ onClose, onMarkAllRead }: NotificationCente
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <div className="flex flex-col h-[500px]">
+    <div className={cn("flex flex-col", fullHeight ? "h-full" : "h-[500px]")}>
       {/* Header */}
       <div className="flex-shrink-0 flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2">
