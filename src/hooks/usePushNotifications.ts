@@ -111,18 +111,10 @@ export function usePushNotifications() {
         return false;
       }
 
-      // Register push-specific service worker
-      let registration = await navigator.serviceWorker.getRegistration('/sw-push.js');
-      
-      if (!registration) {
-        registration = await navigator.serviceWorker.register('/sw-push.js', {
-          scope: '/'
-        });
-      }
-      
-      await navigator.serviceWorker.ready;
+      // Use the main PWA service worker (registered by vite-plugin-pwa)
+      const registration = await navigator.serviceWorker.ready;
 
-      // Subscribe to push
+      // Subscribe to push using the main service worker
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
