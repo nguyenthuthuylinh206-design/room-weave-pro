@@ -1,0 +1,67 @@
+{
+  "title": "Quản lý Nhà cung cấp",
+  "list": "Danh sách NCC",
+  "addNew": "Thêm NCC mới",
+  "editVendor": "Chỉnh sửa NCC",
+  "viewVendor": "Chi tiết NCC",
+  "compare": "So sánh NCC",
+  "purchaseOrders": {
+    "title": "Đơn đặt hàng",
+    "list": "Danh sách đơn hàng",
+    "new": "Tạo đơn mới",
+    "detail": "Chi tiết đơn hàng"
+  },
+  "fields": {
+    "name": "Tên NCC",
+    "code": "Mã NCC",
+    "contactPerson": "Người liên hệ",
+    "phone": "Điện thoại",
+    "email": "Email",
+    "address": "Địa chỉ",
+    "rating": "Đánh giá",
+    "totalOrders": "Tổng đơn hàng",
+    "totalValue": "Tổng giá trị",
+    "status": "Trạng thái",
+    "type": "Loại NCC",
+    "notes": "Ghi chú"
+  },
+  "type": {
+    "supplier": "Nhà cung cấp",
+    "laundry": "Giặt là",
+    "maintenance": "Bảo trì"
+  },
+  "status": {
+    "active": "Hoạt động",
+    "inactive": "Ngưng hoạt động"
+  },
+  "po": {
+    "fields": {
+      "poNumber": "Số PO",
+      "vendor": "Nhà cung cấp",
+      "orderDate": "Ngày đặt",
+      "expectedDate": "Ngày dự kiến",
+      "totalAmount": "Tổng tiền",
+      "status": "Trạng thái"
+    },
+    "status": {
+      "draft": "Nháp",
+      "pending": "Chờ duyệt",
+      "approved": "Đã duyệt",
+      "ordered": "Đã đặt",
+      "received": "Đã nhận",
+      "cancelled": "Đã hủy"
+    }
+  },
+  "messages": {
+    "createSuccess": "Tạo NCC thành công",
+    "updateSuccess": "Cập nhật NCC thành công",
+    "deleteSuccess": "Xóa NCC thành công",
+    "noVendors": "Chưa có NCC nào"
+  },
+  "filters": {
+    "all": "Tất cả",
+    "byType": "Theo loại",
+    "byStatus": "Theo trạng thái",
+    "search": "Tìm kiếm NCC..."
+  }
+}

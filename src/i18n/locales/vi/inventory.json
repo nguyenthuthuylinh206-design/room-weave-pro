@@ -1,0 +1,71 @@
+{
+  "title": "Quản lý Kho",
+  "dashboard": "Tổng quan kho",
+  "transactions": "Giao dịch kho",
+  "inbound": {
+    "title": "Nhập kho",
+    "new": "Tạo phiếu nhập",
+    "list": "Danh sách phiếu nhập"
+  },
+  "outbound": {
+    "title": "Xuất kho",
+    "new": "Tạo phiếu xuất",
+    "list": "Danh sách phiếu xuất"
+  },
+  "adjustment": {
+    "title": "Kiểm kê",
+    "new": "Tạo phiếu kiểm kê",
+    "list": "Danh sách kiểm kê"
+  },
+  "distribution": {
+    "title": "Phiếu giao hàng",
+    "new": "Tạo phiếu giao",
+    "list": "Danh sách phiếu giao"
+  },
+  "fields": {
+    "transactionCode": "Mã giao dịch",
+    "transactionType": "Loại giao dịch",
+    "transactionDate": "Ngày giao dịch",
+    "item": "Tài sản",
+    "quantity": "Số lượng",
+    "quantityBefore": "SL trước",
+    "quantityAfter": "SL sau",
+    "unitPrice": "Đơn giá",
+    "totalValue": "Tổng giá trị",
+    "location": "Vị trí",
+    "notes": "Ghi chú",
+    "createdBy": "Người tạo"
+  },
+  "transactionType": {
+    "in": "Nhập",
+    "out": "Xuất",
+    "adjustment": "Điều chỉnh",
+    "transfer": "Chuyển kho"
+  },
+  "category": {
+    "purchase": "Mua hàng",
+    "return": "Trả hàng",
+    "laundry": "Giặt là",
+    "other": "Khác"
+  },
+  "status": {
+    "pending": "Chờ duyệt",
+    "approved": "Đã duyệt",
+    "completed": "Hoàn thành",
+    "cancelled": "Đã hủy"
+  },
+  "messages": {
+    "createSuccess": "Tạo giao dịch thành công",
+    "updateSuccess": "Cập nhật giao dịch thành công",
+    "approveSuccess": "Duyệt thành công",
+    "cancelSuccess": "Hủy giao dịch thành công",
+    "noTransactions": "Chưa có giao dịch nào"
+  },
+  "filters": {
+    "all": "Tất cả",
+    "byType": "Theo loại",
+    "byDate": "Theo ngày",
+    "byItem": "Theo tài sản",
+    "search": "Tìm kiếm giao dịch..."
+  }
+}

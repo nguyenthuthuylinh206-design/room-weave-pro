@@ -1,0 +1,58 @@
+{
+  "title": "Laundry Management",
+  "dashboard": "Laundry Dashboard",
+  "batches": {
+    "title": "Laundry Batches",
+    "list": "Batch List",
+    "new": "Create New Batch",
+    "detail": "Batch Details"
+  },
+  "vendors": {
+    "title": "Laundry Vendors",
+    "list": "Vendor List",
+    "new": "Add New Vendor"
+  },
+  "fields": {
+    "batchCode": "Batch Code",
+    "vendor": "Vendor",
+    "deliveryDate": "Delivery Date",
+    "expectedReturnDate": "Expected Return",
+    "actualReturnDate": "Actual Return",
+    "totalItems": "Total Items",
+    "totalWeight": "Total Weight",
+    "estimatedCost": "Estimated Cost",
+    "actualCost": "Actual Cost",
+    "status": "Status",
+    "notes": "Notes"
+  },
+  "status": {
+    "pending": "Pending",
+    "sent": "Sent",
+    "processing": "Processing",
+    "ready": "Ready",
+    "received": "Received",
+    "completed": "Completed"
+  },
+  "actions": {
+    "send": "Send to Laundry",
+    "receive": "Receive Items",
+    "complete": "Complete",
+    "cancel": "Cancel Batch"
+  },
+  "messages": {
+    "createSuccess": "Batch created successfully",
+    "updateSuccess": "Batch updated successfully",
+    "sendSuccess": "Batch sent to laundry",
+    "receiveSuccess": "Items received",
+    "completeSuccess": "Batch completed",
+    "cancelSuccess": "Batch cancelled",
+    "noBatches": "No batches found"
+  },
+  "filters": {
+    "all": "All",
+    "byStatus": "By Status",
+    "byVendor": "By Vendor",
+    "byDate": "By Date",
+    "search": "Search batches..."
+  }
+}

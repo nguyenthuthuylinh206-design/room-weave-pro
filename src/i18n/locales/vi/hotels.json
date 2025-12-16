@@ -1,0 +1,52 @@
+{
+  "title": "Quản lý Khách sạn",
+  "list": "Danh sách khách sạn",
+  "addNew": "Thêm khách sạn mới",
+  "editHotel": "Chỉnh sửa khách sạn",
+  "viewHotel": "Chi tiết khách sạn",
+  "performance": "Hiệu suất khách sạn",
+  "switcher": {
+    "title": "Chọn khách sạn",
+    "allHotels": "Tất cả khách sạn",
+    "searchPlaceholder": "Tìm kiếm khách sạn...",
+    "noHotels": "Chưa có khách sạn nào",
+    "createFirst": "Tạo khách sạn đầu tiên"
+  },
+  "fields": {
+    "name": "Tên khách sạn",
+    "code": "Mã khách sạn",
+    "address": "Địa chỉ",
+    "city": "Thành phố",
+    "phone": "Điện thoại",
+    "email": "Email",
+    "website": "Website",
+    "totalRooms": "Tổng số phòng",
+    "totalFloors": "Tổng số tầng",
+    "manager": "Quản lý",
+    "status": "Trạng thái",
+    "type": "Loại hình"
+  },
+  "status": {
+    "active": "Hoạt động",
+    "inactive": "Ngưng hoạt động",
+    "maintenance": "Bảo trì"
+  },
+  "stats": {
+    "totalRooms": "Tổng phòng",
+    "totalUsers": "Nhân viên",
+    "totalItems": "Tài sản",
+    "occupancyRate": "Tỷ lệ lấp đầy"
+  },
+  "messages": {
+    "createSuccess": "Tạo khách sạn thành công",
+    "updateSuccess": "Cập nhật khách sạn thành công",
+    "deleteSuccess": "Xóa khách sạn thành công",
+    "switchSuccess": "Đã chuyển sang khách sạn",
+    "noHotels": "Chưa có khách sạn nào"
+  },
+  "filters": {
+    "all": "Tất cả",
+    "byStatus": "Theo trạng thái",
+    "search": "Tìm kiếm khách sạn..."
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "title": "Quản lý Bảo trì",
+  "dashboard": "Tổng quan bảo trì",
+  "requests": {
+    "title": "Yêu cầu bảo trì",
+    "list": "Danh sách yêu cầu",
+    "new": "Tạo yêu cầu mới",
+    "detail": "Chi tiết yêu cầu"
+  },
+  "recurring": {
+    "title": "Vấn đề lặp lại",
+    "list": "Danh sách vấn đề"
+  },
+  "fields": {
+    "requestCode": "Mã yêu cầu",
+    "title": "Tiêu đề",
+    "description": "Mô tả",
+    "category": "Danh mục",
+    "priority": "Độ ưu tiên",
+    "status": "Trạng thái",
+    "location": "Vị trí",
+    "room": "Phòng",
+    "assignedTo": "Phân công cho",
+    "reportedBy": "Người báo cáo",
+    "reportedAt": "Ngày báo cáo",
+    "completedAt": "Ngày hoàn thành",
+    "estimatedCost": "Chi phí ước tính",
+    "actualCost": "Chi phí thực tế",
+    "notes": "Ghi chú"
+  },
+  "priority": {
+    "low": "Thấp",
+    "medium": "Trung bình",
+    "high": "Cao",
+    "urgent": "Khẩn cấp"
+  },
+  "status": {
+    "pending": "Chờ xử lý",
+    "assigned": "Đã phân công",
+    "inProgress": "Đang thực hiện",
+    "completed": "Hoàn thành",
+    "cancelled": "Đã hủy"
+  },
+  "actions": {
+    "assign": "Phân công",
+    "start": "Bắt đầu",
+    "complete": "Hoàn thành",
+    "cancel": "Hủy"
+  },
+  "messages": {
+    "createSuccess": "Tạo yêu cầu thành công",
+    "updateSuccess": "Cập nhật yêu cầu thành công",
+    "assignSuccess": "Đã phân công thành công",
+    "completeSuccess": "Hoàn thành yêu cầu",
+    "cancelSuccess": "Đã hủy yêu cầu",
+    "noRequests": "Chưa có yêu cầu nào"
+  },
+  "filters": {
+    "all": "Tất cả",
+    "byStatus": "Theo trạng thái",
+    "byPriority": "Theo độ ưu tiên",
+    "byRoom": "Theo phòng",
+    "search": "Tìm kiếm yêu cầu..."
+  }
+}

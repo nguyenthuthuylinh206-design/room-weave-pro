@@ -1,0 +1,52 @@
+{
+  "title": "Hotel Management",
+  "list": "Hotel List",
+  "addNew": "Add New Hotel",
+  "editHotel": "Edit Hotel",
+  "viewHotel": "Hotel Details",
+  "performance": "Hotel Performance",
+  "switcher": {
+    "title": "Select Hotel",
+    "allHotels": "All Hotels",
+    "searchPlaceholder": "Search hotels...",
+    "noHotels": "No hotels yet",
+    "createFirst": "Create your first hotel"
+  },
+  "fields": {
+    "name": "Hotel Name",
+    "code": "Hotel Code",
+    "address": "Address",
+    "city": "City",
+    "phone": "Phone",
+    "email": "Email",
+    "website": "Website",
+    "totalRooms": "Total Rooms",
+    "totalFloors": "Total Floors",
+    "manager": "Manager",
+    "status": "Status",
+    "type": "Type"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "maintenance": "Maintenance"
+  },
+  "stats": {
+    "totalRooms": "Total Rooms",
+    "totalUsers": "Staff",
+    "totalItems": "Assets",
+    "occupancyRate": "Occupancy Rate"
+  },
+  "messages": {
+    "createSuccess": "Hotel created successfully",
+    "updateSuccess": "Hotel updated successfully",
+    "deleteSuccess": "Hotel deleted successfully",
+    "switchSuccess": "Switched to hotel",
+    "noHotels": "No hotels found"
+  },
+  "filters": {
+    "all": "All",
+    "byStatus": "By Status",
+    "search": "Search hotels..."
+  }
+}

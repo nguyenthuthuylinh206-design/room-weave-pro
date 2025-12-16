@@ -1,0 +1,67 @@
+{
+  "title": "Vendor Management",
+  "list": "Vendor List",
+  "addNew": "Add New Vendor",
+  "editVendor": "Edit Vendor",
+  "viewVendor": "Vendor Details",
+  "compare": "Compare Vendors",
+  "purchaseOrders": {
+    "title": "Purchase Orders",
+    "list": "Order List",
+    "new": "Create New Order",
+    "detail": "Order Details"
+  },
+  "fields": {
+    "name": "Vendor Name",
+    "code": "Vendor Code",
+    "contactPerson": "Contact Person",
+    "phone": "Phone",
+    "email": "Email",
+    "address": "Address",
+    "rating": "Rating",
+    "totalOrders": "Total Orders",
+    "totalValue": "Total Value",
+    "status": "Status",
+    "type": "Vendor Type",
+    "notes": "Notes"
+  },
+  "type": {
+    "supplier": "Supplier",
+    "laundry": "Laundry",
+    "maintenance": "Maintenance"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "po": {
+    "fields": {
+      "poNumber": "PO Number",
+      "vendor": "Vendor",
+      "orderDate": "Order Date",
+      "expectedDate": "Expected Date",
+      "totalAmount": "Total Amount",
+      "status": "Status"
+    },
+    "status": {
+      "draft": "Draft",
+      "pending": "Pending",
+      "approved": "Approved",
+      "ordered": "Ordered",
+      "received": "Received",
+      "cancelled": "Cancelled"
+    }
+  },
+  "messages": {
+    "createSuccess": "Vendor created successfully",
+    "updateSuccess": "Vendor updated successfully",
+    "deleteSuccess": "Vendor deleted successfully",
+    "noVendors": "No vendors found"
+  },
+  "filters": {
+    "all": "All",
+    "byType": "By Type",
+    "byStatus": "By Status",
+    "search": "Search vendors..."
+  }
+}

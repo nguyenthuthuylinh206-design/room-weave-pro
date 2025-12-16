@@ -1,0 +1,65 @@
+{
+  "title": "Maintenance Management",
+  "dashboard": "Maintenance Dashboard",
+  "requests": {
+    "title": "Maintenance Requests",
+    "list": "Request List",
+    "new": "Create New Request",
+    "detail": "Request Details"
+  },
+  "recurring": {
+    "title": "Recurring Issues",
+    "list": "Issue List"
+  },
+  "fields": {
+    "requestCode": "Request Code",
+    "title": "Title",
+    "description": "Description",
+    "category": "Category",
+    "priority": "Priority",
+    "status": "Status",
+    "location": "Location",
+    "room": "Room",
+    "assignedTo": "Assigned To",
+    "reportedBy": "Reported By",
+    "reportedAt": "Reported At",
+    "completedAt": "Completed At",
+    "estimatedCost": "Estimated Cost",
+    "actualCost": "Actual Cost",
+    "notes": "Notes"
+  },
+  "priority": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "urgent": "Urgent"
+  },
+  "status": {
+    "pending": "Pending",
+    "assigned": "Assigned",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "actions": {
+    "assign": "Assign",
+    "start": "Start",
+    "complete": "Complete",
+    "cancel": "Cancel"
+  },
+  "messages": {
+    "createSuccess": "Request created successfully",
+    "updateSuccess": "Request updated successfully",
+    "assignSuccess": "Assigned successfully",
+    "completeSuccess": "Request completed",
+    "cancelSuccess": "Request cancelled",
+    "noRequests": "No requests found"
+  },
+  "filters": {
+    "all": "All",
+    "byStatus": "By Status",
+    "byPriority": "By Priority",
+    "byRoom": "By Room",
+    "search": "Search requests..."
+  }
+}

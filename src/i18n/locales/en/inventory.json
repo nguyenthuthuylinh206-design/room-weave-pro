@@ -1,0 +1,71 @@
+{
+  "title": "Inventory Management",
+  "dashboard": "Inventory Dashboard",
+  "transactions": "Inventory Transactions",
+  "inbound": {
+    "title": "Inbound",
+    "new": "Create Inbound",
+    "list": "Inbound List"
+  },
+  "outbound": {
+    "title": "Outbound",
+    "new": "Create Outbound",
+    "list": "Outbound List"
+  },
+  "adjustment": {
+    "title": "Stock Adjustment",
+    "new": "Create Adjustment",
+    "list": "Adjustment List"
+  },
+  "distribution": {
+    "title": "Distribution Orders",
+    "new": "Create Distribution",
+    "list": "Distribution List"
+  },
+  "fields": {
+    "transactionCode": "Transaction Code",
+    "transactionType": "Transaction Type",
+    "transactionDate": "Transaction Date",
+    "item": "Item",
+    "quantity": "Quantity",
+    "quantityBefore": "Qty Before",
+    "quantityAfter": "Qty After",
+    "unitPrice": "Unit Price",
+    "totalValue": "Total Value",
+    "location": "Location",
+    "notes": "Notes",
+    "createdBy": "Created By"
+  },
+  "transactionType": {
+    "in": "Inbound",
+    "out": "Outbound",
+    "adjustment": "Adjustment",
+    "transfer": "Transfer"
+  },
+  "category": {
+    "purchase": "Purchase",
+    "return": "Return",
+    "laundry": "Laundry",
+    "other": "Other"
+  },
+  "status": {
+    "pending": "Pending",
+    "approved": "Approved",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "messages": {
+    "createSuccess": "Transaction created successfully",
+    "updateSuccess": "Transaction updated successfully",
+    "approveSuccess": "Approved successfully",
+    "cancelSuccess": "Transaction cancelled",
+    "noTransactions": "No transactions found"
+  },
+  "filters": {
+    "all": "All",
+    "byType": "By Type",
+    "byDate": "By Date",
+    "byItem": "By Item",
+    "search": "Search transactions..."
+  }
+}

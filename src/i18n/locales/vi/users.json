@@ -1,0 +1,61 @@
+{
+  "title": "Quản lý Người dùng",
+  "list": "Danh sách người dùng",
+  "addNew": "Thêm người dùng mới",
+  "editUser": "Chỉnh sửa người dùng",
+  "viewUser": "Thông tin người dùng",
+  "profile": "Hồ sơ cá nhân",
+  "changePassword": "Đổi mật khẩu",
+  "fields": {
+    "fullName": "Họ và tên",
+    "email": "Email",
+    "phone": "Điện thoại",
+    "avatar": "Ảnh đại diện",
+    "role": "Vai trò",
+    "userLevel": "Cấp bậc",
+    "position": "Chức vụ",
+    "hotel": "Khách sạn",
+    "status": "Trạng thái",
+    "createdAt": "Ngày tạo",
+    "lastLogin": "Đăng nhập cuối"
+  },
+  "role": {
+    "superAdmin": "Super Admin",
+    "owner": "Chủ sở hữu",
+    "hotelManager": "Quản lý khách sạn",
+    "departmentManager": "Quản lý bộ phận",
+    "staff": "Nhân viên"
+  },
+  "userLevel": {
+    "tenantOwner": "Chủ tài khoản",
+    "manager": "Quản lý",
+    "staff": "Nhân viên"
+  },
+  "status": {
+    "active": "Hoạt động",
+    "inactive": "Ngưng hoạt động",
+    "pending": "Chờ xác nhận"
+  },
+  "permissions": {
+    "title": "Phân quyền",
+    "module": "Module",
+    "view": "Xem",
+    "create": "Tạo",
+    "update": "Sửa",
+    "delete": "Xóa"
+  },
+  "messages": {
+    "createSuccess": "Tạo người dùng thành công",
+    "updateSuccess": "Cập nhật thành công",
+    "deleteSuccess": "Xóa người dùng thành công",
+    "passwordChanged": "Đổi mật khẩu thành công",
+    "noUsers": "Chưa có người dùng nào"
+  },
+  "filters": {
+    "all": "Tất cả",
+    "byRole": "Theo vai trò",
+    "byStatus": "Theo trạng thái",
+    "byHotel": "Theo khách sạn",
+    "search": "Tìm kiếm người dùng..."
+  }
+}

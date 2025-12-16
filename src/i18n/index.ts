@@ -2,37 +2,74 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
-// Import translations
+// Import translations - Common
 import viCommon from './locales/vi/common.json';
-import viDashboard from './locales/vi/dashboard.json';
 import viAuth from './locales/vi/auth.json';
+import viNavigation from './locales/vi/navigation.json';
+import viDashboard from './locales/vi/dashboard.json';
 import viNotifications from './locales/vi/notifications.json';
 import viSettings from './locales/vi/settings.json';
-import viNavigation from './locales/vi/navigation.json';
 
+// Import translations - Modules
+import viItems from './locales/vi/items.json';
+import viRooms from './locales/vi/rooms.json';
+import viInventory from './locales/vi/inventory.json';
+import viLaundry from './locales/vi/laundry.json';
+import viMaintenance from './locales/vi/maintenance.json';
+import viVendors from './locales/vi/vendors.json';
+import viHotels from './locales/vi/hotels.json';
+import viUsers from './locales/vi/users.json';
+
+// Import translations - English Common
 import enCommon from './locales/en/common.json';
-import enDashboard from './locales/en/dashboard.json';
 import enAuth from './locales/en/auth.json';
+import enNavigation from './locales/en/navigation.json';
+import enDashboard from './locales/en/dashboard.json';
 import enNotifications from './locales/en/notifications.json';
 import enSettings from './locales/en/settings.json';
-import enNavigation from './locales/en/navigation.json';
+
+// Import translations - English Modules
+import enItems from './locales/en/items.json';
+import enRooms from './locales/en/rooms.json';
+import enInventory from './locales/en/inventory.json';
+import enLaundry from './locales/en/laundry.json';
+import enMaintenance from './locales/en/maintenance.json';
+import enVendors from './locales/en/vendors.json';
+import enHotels from './locales/en/hotels.json';
+import enUsers from './locales/en/users.json';
 
 export const resources = {
   vi: {
     common: viCommon,
-    dashboard: viDashboard,
     auth: viAuth,
+    navigation: viNavigation,
+    dashboard: viDashboard,
     notifications: viNotifications,
     settings: viSettings,
-    navigation: viNavigation,
+    items: viItems,
+    rooms: viRooms,
+    inventory: viInventory,
+    laundry: viLaundry,
+    maintenance: viMaintenance,
+    vendors: viVendors,
+    hotels: viHotels,
+    users: viUsers,
   },
   en: {
     common: enCommon,
-    dashboard: enDashboard,
     auth: enAuth,
+    navigation: enNavigation,
+    dashboard: enDashboard,
     notifications: enNotifications,
     settings: enSettings,
-    navigation: enNavigation,
+    items: enItems,
+    rooms: enRooms,
+    inventory: enInventory,
+    laundry: enLaundry,
+    maintenance: enMaintenance,
+    vendors: enVendors,
+    hotels: enHotels,
+    users: enUsers,
   },
 };
 
@@ -43,7 +80,22 @@ i18n
     resources,
     fallbackLng: 'vi',
     defaultNS: 'common',
-    ns: ['common', 'dashboard', 'auth', 'notifications', 'settings', 'navigation'],
+    ns: [
+      'common',
+      'auth',
+      'navigation',
+      'dashboard',
+      'notifications',
+      'settings',
+      'items',
+      'rooms',
+      'inventory',
+      'laundry',
+      'maintenance',
+      'vendors',
+      'hotels',
+      'users',
+    ],
     interpolation: {
       escapeValue: false,
     },
