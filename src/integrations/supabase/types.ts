@@ -5031,6 +5031,19 @@ export type Database = {
         }
         Returns: Json
       }
+      create_laundry_return_transaction: {
+        Args: {
+          p_created_by: string
+          p_from_location: string
+          p_hotel_id: string
+          p_items: Json
+          p_notes?: string
+          p_related_id?: string
+          p_tenant_id: string
+          p_to_location: string
+        }
+        Returns: Json
+      }
       create_outbound_transaction: {
         Args: {
           p_created_by: string
