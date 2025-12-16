@@ -63,6 +63,49 @@
     "items": "món",
     "kg": "kg"
   },
+  "activeBatches": {
+    "title": "Lô giặt đang xử lý",
+    "viewAll": "Xem tất cả",
+    "noActiveBatches": "Không có lô giặt nào đang xử lý",
+    "table": {
+      "batchCode": "Mã lô",
+      "vendor": "Đơn vị giặt",
+      "deliveryDate": "Ngày giao",
+      "expectedReturn": "Dự kiến nhận",
+      "items": "Items",
+      "weight": "Cân nặng",
+      "cost": "Chi phí",
+      "status": "Trạng thái"
+    },
+    "overdue": "Trễ",
+    "costNotUpdated": "Chưa cập nhật",
+    "receive": "Nhận"
+  },
+  "batchItems": {
+    "tabs": {
+      "all": "Tất cả",
+      "received": "Đã nhận",
+      "lost": "Mất",
+      "damaged": "Hỏng"
+    },
+    "noItems": "Không có items",
+    "table": {
+      "image": "Ảnh",
+      "item": "Đồ dùng",
+      "deliveryQty": "SL giao",
+      "weight": "Cân nặng",
+      "deliveryCondition": "Tình trạng giao",
+      "receivedQty": "SL nhận",
+      "lost": "Mất",
+      "damaged": "Hỏng",
+      "receiveCondition": "Tình trạng nhận"
+    },
+    "condition": {
+      "normal": "Bình thường",
+      "notChecked": "Chưa kiểm tra",
+      "good": "Tốt"
+    }
+  },
   "vendorDetail": {
     "back": "Quay lại",
     "editInfo": "Sửa thông tin",

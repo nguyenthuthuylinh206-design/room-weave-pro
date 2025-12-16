@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { 
   Download, 
   Upload, 
@@ -19,7 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TransactionDetailDialog } from './TransactionDetailDialog'
 import { useInventoryTransactions } from '@/hooks/useInventoryTransactions'
 import { formatDistanceToNow } from 'date-fns'
-import { vi } from 'date-fns/locale'
+import { vi, enUS } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 
 const transactionIcons: Record<string, any> = {
@@ -38,29 +39,12 @@ const transactionColors: Record<string, string> = {
   lost: 'text-destructive bg-destructive/10',
 }
 
-const transactionLabels: Record<string, string> = {
-  in: 'NHẬP',
-  out: 'XUẤT',
-  transfer: 'CHUYỂN',
-  adjust: 'ĐIỀU CHỈNH',
-  damaged: 'HƯ HỎNG',
-  lost: 'MẤT MÁT',
-}
-
-const categoryLabels: Record<string, string> = {
-  purchase: 'Mua hàng',
-  return: 'Trả hàng / Nhận từ giặt',
-  room_assign: 'Giao phòng',
-  laundry: 'Gửi giặt',
-  maintenance: 'Bảo trì',
-  disposal: 'Thanh lý',
-  other: 'Khác',
-}
-
 export function RecentTransactions() {
+  const { t, i18n } = useTranslation(['inventory'])
   const navigate = useNavigate()
   const [filter, setFilter] = useState<string>('all')
   const [selectedTransaction, setSelectedTransaction] = useState<string | null>(null)
+  const dateLocale = i18n.language === 'vi' ? vi : enUS
   
   const { data, isLoading } = useInventoryTransactions(
     filter === 'all' ? {} : { transaction_type: filter as any },
@@ -92,23 +76,23 @@ export function RecentTransactions() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Giao dịch gần đây</CardTitle>
+            <CardTitle>{t('recentTransactions.title')}</CardTitle>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/inventory/transactions')}
             >
-              Xem tất cả
+              {t('recentTransactions.viewAll')}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
           
           <Tabs value={filter} onValueChange={setFilter} className="mt-4">
             <TabsList>
-              <TabsTrigger value="all">Tất cả</TabsTrigger>
-              <TabsTrigger value="in">Nhập</TabsTrigger>
-              <TabsTrigger value="out">Xuất</TabsTrigger>
-              <TabsTrigger value="adjust">Điều chỉnh</TabsTrigger>
+              <TabsTrigger value="all">{t('filters.all')}</TabsTrigger>
+              <TabsTrigger value="in">{t('transactionType.in')}</TabsTrigger>
+              <TabsTrigger value="out">{t('transactionType.out')}</TabsTrigger>
+              <TabsTrigger value="adjust">{t('transactionType.adjustment')}</TabsTrigger>
             </TabsList>
           </Tabs>
         </CardHeader>
@@ -118,7 +102,7 @@ export function RecentTransactions() {
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <Clock className="h-12 w-12 text-muted-foreground/50" />
               <p className="mt-2 text-sm text-muted-foreground">
-                Chưa có giao dịch nào
+                {t('recentTransactions.noTransactions')}
               </p>
             </div>
           ) : (
@@ -126,7 +110,7 @@ export function RecentTransactions() {
               {transactions.map((transaction) => {
                 const Icon = transactionIcons[transaction.transaction_type] || Package
                 const colorClass = transactionColors[transaction.transaction_type] || ''
-                const label = transactionLabels[transaction.transaction_type] || transaction.transaction_type
+                const label = t(`transactionLabel.${transaction.transaction_type}`, { defaultValue: transaction.transaction_type })
                 
                 return (
                   <div
@@ -151,14 +135,14 @@ export function RecentTransactions() {
                               </Badge>
                               {transaction.transaction_category && (
                                 <Badge variant="secondary" className="text-xs">
-                                  {categoryLabels[transaction.transaction_category] || transaction.transaction_category}
+                                  {t(`category.${transaction.transaction_category}`, { defaultValue: transaction.transaction_category })}
                                 </Badge>
                               )}
                             </div>
                             <p className="text-sm text-muted-foreground">
                               {formatDistanceToNow(new Date(transaction.created_at), {
                                 addSuffix: true,
-                                locale: vi,
+                                locale: dateLocale,
                               })}
                             </p>
                           </div>
@@ -171,7 +155,7 @@ export function RecentTransactions() {
                               {transaction.transaction_type === 'in' ? '+' : '-'}{transaction.quantity}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {new Intl.NumberFormat('vi-VN', {
+                              {new Intl.NumberFormat(i18n.language === 'vi' ? 'vi-VN' : 'en-US', {
                                 style: 'currency',
                                 currency: 'VND',
                                 notation: 'compact',

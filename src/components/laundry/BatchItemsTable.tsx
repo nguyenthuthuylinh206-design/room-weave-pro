@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Package } from 'lucide-react'
 import {
   Table,
@@ -18,6 +19,8 @@ interface BatchItemsTableProps {
 }
 
 export function BatchItemsTable({ items, batchStatus }: BatchItemsTableProps) {
+  const { t } = useTranslation(['laundry'])
+  
   const allItems = items
   const receivedItems = items.filter(item => item.quantity_returned > 0)
   const lostItems = items.filter(item => item.quantity_lost > 0)
@@ -26,15 +29,15 @@ export function BatchItemsTable({ items, batchStatus }: BatchItemsTableProps) {
   return (
     <Tabs defaultValue="all">
       <TabsList>
-        <TabsTrigger value="all">Tất cả ({allItems.length})</TabsTrigger>
+        <TabsTrigger value="all">{t('batchItems.tabs.all')} ({allItems.length})</TabsTrigger>
         {batchStatus === 'received' && (
           <>
-            <TabsTrigger value="received">Đã nhận ({receivedItems.length})</TabsTrigger>
+            <TabsTrigger value="received">{t('batchItems.tabs.received')} ({receivedItems.length})</TabsTrigger>
             {lostItems.length > 0 && (
-              <TabsTrigger value="lost">Mất ({lostItems.length})</TabsTrigger>
+              <TabsTrigger value="lost">{t('batchItems.tabs.lost')} ({lostItems.length})</TabsTrigger>
             )}
             {damagedItems.length > 0 && (
-              <TabsTrigger value="damaged">Hỏng ({damagedItems.length})</TabsTrigger>
+              <TabsTrigger value="damaged">{t('batchItems.tabs.damaged')} ({damagedItems.length})</TabsTrigger>
             )}
           </>
         )}
@@ -70,11 +73,13 @@ function ItemsTableContent({
   batchStatus: string
   highlightIssues?: boolean
 }) {
+  const { t } = useTranslation(['laundry'])
+  
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8">
         <Package className="h-12 w-12 text-muted-foreground/50" />
-        <p className="mt-2 text-sm text-muted-foreground">Không có items</p>
+        <p className="mt-2 text-sm text-muted-foreground">{t('batchItems.noItems')}</p>
       </div>
     )
   }
@@ -84,17 +89,17 @@ function ItemsTableContent({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-16">Ảnh</TableHead>
-            <TableHead>Đồ dùng</TableHead>
-            <TableHead className="text-center">SL giao</TableHead>
-            <TableHead className="text-center">Cân nặng</TableHead>
-            <TableHead>Tình trạng giao</TableHead>
+            <TableHead className="w-16">{t('batchItems.table.image')}</TableHead>
+            <TableHead>{t('batchItems.table.item')}</TableHead>
+            <TableHead className="text-center">{t('batchItems.table.deliveryQty')}</TableHead>
+            <TableHead className="text-center">{t('batchItems.table.weight')}</TableHead>
+            <TableHead>{t('batchItems.table.deliveryCondition')}</TableHead>
             {batchStatus === 'received' && (
               <>
-                <TableHead className="text-center">SL nhận</TableHead>
-                <TableHead className="text-center">Mất</TableHead>
-                <TableHead className="text-center">Hỏng</TableHead>
-                <TableHead>Tình trạng nhận</TableHead>
+                <TableHead className="text-center">{t('batchItems.table.receivedQty')}</TableHead>
+                <TableHead className="text-center">{t('batchItems.table.lost')}</TableHead>
+                <TableHead className="text-center">{t('batchItems.table.damaged')}</TableHead>
+                <TableHead>{t('batchItems.table.receiveCondition')}</TableHead>
               </>
             )}
           </TableRow>
@@ -146,7 +151,7 @@ function ItemsTableContent({
                   {item.weight_kg} kg
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{item.condition_note || 'Bình thường'}</Badge>
+                  <Badge variant="outline">{item.condition_note || t('batchItems.condition.normal')}</Badge>
                 </TableCell>
                 {batchStatus === 'received' && (
                   <>
@@ -174,10 +179,10 @@ function ItemsTableContent({
                     <TableCell>
                       <Badge
                         variant={
-                          item.return_condition === 'Tốt' ? 'default' : 'secondary'
+                          item.return_condition === t('batchItems.condition.good') ? 'default' : 'secondary'
                         }
                       >
-                        {item.return_condition || 'Chưa kiểm tra'}
+                        {item.return_condition || t('batchItems.condition.notChecked')}
                       </Badge>
                     </TableCell>
                   </>

@@ -115,12 +115,25 @@
     "in": "Inbound",
     "out": "Outbound",
     "adjustment": "Adjustment",
-    "transfer": "Transfer"
+    "transfer": "Transfer",
+    "damaged": "Damaged",
+    "lost": "Lost"
+  },
+  "transactionLabel": {
+    "in": "INBOUND",
+    "out": "OUTBOUND",
+    "transfer": "TRANSFER",
+    "adjust": "ADJUSTMENT",
+    "damaged": "DAMAGED",
+    "lost": "LOST"
   },
   "category": {
     "purchase": "Purchase",
-    "return": "Return",
-    "laundry": "Laundry",
+    "return": "Return / From Laundry",
+    "room_assign": "Room Assignment",
+    "laundry": "To Laundry",
+    "maintenance": "Maintenance",
+    "disposal": "Disposal",
     "other": "Other"
   },
   "status": {
@@ -135,8 +148,10 @@
     "updateSuccess": "Transaction updated successfully",
     "approveSuccess": "Approved successfully",
     "cancelSuccess": "Transaction cancelled successfully",
+    "deleteSuccess": "Transaction deleted successfully",
     "noTransactions": "No transactions yet",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "copiedCode": "Transaction code copied"
   },
   "filters": {
     "all": "All",
@@ -163,5 +178,43 @@
     "title": "Quick Actions",
     "viewTransactions": "View Transactions",
     "manageItems": "Manage Items"
+  },
+  "lowStock": {
+    "title": "Low Stock Alert",
+    "items": "items",
+    "table": {
+      "image": "Image",
+      "name": "Item Name",
+      "category": "Category",
+      "inStock": "In Stock",
+      "minimum": "Minimum",
+      "shortage": "Shortage"
+    }
+  },
+  "recentTransactions": {
+    "title": "Recent Transactions",
+    "viewAll": "View All",
+    "noTransactions": "No transactions yet"
+  },
+  "transactionDetail": {
+    "title": "Transaction Details",
+    "transactionInfo": "Transaction Information",
+    "time": "Time",
+    "executor": "Executor",
+    "from": "From",
+    "to": "To",
+    "itemDetail": "Item Details",
+    "quantityBeforeAfter": "Quantity Before/After",
+    "beforeTransaction": "Before Transaction",
+    "afterTransaction": "After Transaction",
+    "change": "Change",
+    "notes": "Notes",
+    "photos": "Photos",
+    "documents": "Documents",
+    "document": "Document",
+    "copyCode": "Copy Transaction Code",
+    "print": "Print",
+    "deleteTransaction": "Delete Transaction",
+    "creator": "Creator"
   }
 }
