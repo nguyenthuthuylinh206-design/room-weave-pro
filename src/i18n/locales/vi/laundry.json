@@ -43,7 +43,8 @@
     "createSuccess": "Tạo lô giặt thành công",
     "updateSuccess": "Cập nhật lô giặt thành công",
     "returnSuccess": "Nhận lô giặt thành công",
-    "noBatches": "Chưa có lô giặt nào"
+    "noBatches": "Chưa có lô giặt nào",
+    "loading": "Đang tải..."
   },
   "stats": {
     "totalBatches": "Tổng lô giặt",
@@ -51,5 +52,32 @@
     "returned": "Đã nhận về",
     "totalCost": "Tổng chi phí",
     "thisMonth": "Tháng này"
+  },
+  "vendorForm": {
+    "addTitle": "Thêm đơn vị giặt",
+    "editTitle": "Sửa đơn vị giặt",
+    "addDescription": "Thêm đơn vị giặt là mới",
+    "basicInfo": "Thông tin cơ bản",
+    "contactInfo": "Thông tin liên hệ",
+    "name": "Tên đơn vị",
+    "type": "Loại",
+    "typeExternal": "Đơn vị ngoài",
+    "typeInHouse": "Nội bộ",
+    "address": "Địa chỉ",
+    "phone": "Điện thoại",
+    "email": "Email",
+    "contactPerson": "Người liên hệ",
+    "notes": "Ghi chú",
+    "notesPlaceholder": "Thêm ghi chú về đơn vị giặt...",
+    "processing": "Đang xử lý...",
+    "create": "Tạo mới",
+    "update": "Cập nhật"
+  },
+  "validation": {
+    "nameMin": "Tên đơn vị phải có ít nhất 2 ký tự",
+    "addressMin": "Địa chỉ phải có ít nhất 5 ký tự",
+    "phoneInvalid": "Số điện thoại không hợp lệ",
+    "emailInvalid": "Email không hợp lệ",
+    "contactMin": "Tên người liên hệ phải có ít nhất 2 ký tự"
   }
 }
