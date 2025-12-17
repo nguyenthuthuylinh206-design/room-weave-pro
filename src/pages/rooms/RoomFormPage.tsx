@@ -24,6 +24,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
 import { HotelBadge } from '@/components/layout/HotelBadge'
 import { toast } from 'sonner'
+import { useRoomSubscriptionLimit } from '@/hooks/useRoomSubscriptionLimit'
+import { RoomLimitWarning } from '@/components/rooms/RoomLimitWarning'
 
 // Dynamic schema with i18n
 const createRoomSchema = (t: (key: string) => string) => z.object({
@@ -56,6 +58,7 @@ export function RoomFormPage() {
   const createRoom = useCreateRoom()
   const updateRoom = useUpdateRoom()
   const quotaCheck = useQuotaCheck('room')
+  const { canCreateRoom, isLoading: limitLoading } = useRoomSubscriptionLimit()
   
   const room = roomData?.room
 
@@ -116,6 +119,12 @@ export function RoomFormPage() {
     // Check if hotel is selected
     if (!selectedHotel?.id) {
       toast.error(t('rooms:form.toasts.selectHotelRequired'))
+      return
+    }
+
+    // Check room subscription limit for new rooms
+    if (!isEdit && !canCreateRoom) {
+      toast.error('Đã đạt giới hạn phòng đăng ký. Vui lòng mua thêm phòng để tiếp tục.')
       return
     }
 
@@ -229,6 +238,9 @@ export function RoomFormPage() {
             </AlertDescription>
           </Alert>
         )}
+
+        {/* Room Subscription Limit Warning */}
+        {!isEdit && <RoomLimitWarning variant="banner" />}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <Card>
@@ -420,7 +432,7 @@ export function RoomFormPage() {
           </Button>
           <Button 
             type="submit" 
-            disabled={isSubmitting || isAllHotelsMode || !selectedHotel}
+            disabled={isSubmitting || isAllHotelsMode || !selectedHotel || (!isEdit && !canCreateRoom)}
           >
             <Save className="w-4 h-4 mr-2" />
             {isSubmitting ? t('rooms:form.saving') : isEdit ? t('rooms:form.update') : t('rooms:form.createNew')}
