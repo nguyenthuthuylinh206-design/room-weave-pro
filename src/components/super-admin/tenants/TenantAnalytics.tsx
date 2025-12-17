@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSuperAdminStats, useTenantGrowth, useChurnRate } from '@/hooks/useSuperAdminStats';
 import { 
@@ -11,6 +12,7 @@ import { TenantGrowthChart } from '../analytics/TenantGrowthChart';
 import { ChurnRateCard } from '../analytics/ChurnRateCard';
 
 export function TenantAnalytics() {
+  const { t } = useTranslation('superAdmin');
   const { data: stats } = useSuperAdminStats();
   const { data: growth } = useTenantGrowth(30);
   const { data: churn } = useChurnRate(30);
@@ -26,14 +28,14 @@ export function TenantAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Tenants
+              {t('tenants.analytics.totalTenants')}
             </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{stats?.total_tenants || 0}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {stats?.active_tenants || 0} active
+              {stats?.active_tenants || 0} {t('tenants.analytics.active')}
             </p>
           </CardContent>
         </Card>
@@ -41,14 +43,14 @@ export function TenantAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Growth Rate
+              {t('tenants.analytics.growthRate')}
             </CardTitle>
             <TrendingUp className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-green-600">+{growthRate}%</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Last 30 days
+              {t('tenants.analytics.last30Days')}
             </p>
           </CardContent>
         </Card>
@@ -56,7 +58,7 @@ export function TenantAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Churn Rate
+              {t('tenants.analytics.churnRate')}
             </CardTitle>
             <TrendingDown className="h-4 w-4 text-red-600" />
           </CardHeader>
@@ -65,7 +67,7 @@ export function TenantAnalytics() {
               {churn?.churnRate || '0'}%
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {churn?.churnedTenants || 0} churned
+              {churn?.churnedTenants || 0} {t('tenants.analytics.churned')}
             </p>
           </CardContent>
         </Card>
@@ -73,7 +75,7 @@ export function TenantAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              At Risk
+              {t('tenants.analytics.atRisk')}
             </CardTitle>
             <AlertTriangle className="h-4 w-4 text-orange-600" />
           </CardHeader>
@@ -82,7 +84,7 @@ export function TenantAnalytics() {
               {(stats?.expiring_7_days || 0) + (stats?.in_grace_period || 0)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Need attention
+              {t('tenants.analytics.needAttention')}
             </p>
           </CardContent>
         </Card>
@@ -91,7 +93,7 @@ export function TenantAnalytics() {
       {/* Growth Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Tenant Growth Trend</CardTitle>
+          <CardTitle>{t('tenants.analytics.growthTrend')}</CardTitle>
         </CardHeader>
         <CardContent>
           <TenantGrowthChart />
@@ -104,30 +106,30 @@ export function TenantAnalytics() {
       {/* Status Breakdown */}
       <Card>
         <CardHeader>
-          <CardTitle>Tenant Status Distribution</CardTitle>
+          <CardTitle>{t('tenants.analytics.statusDistribution')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <StatusBar
-              label="Active"
+              label={t('tenants.status.active')}
               count={stats?.active_tenants || 0}
               total={stats?.total_tenants || 1}
               color="bg-green-500"
             />
             <StatusBar
-              label="Trial"
+              label={t('tenants.status.trial')}
               count={stats?.trial_tenants || 0}
               total={stats?.total_tenants || 1}
               color="bg-blue-500"
             />
             <StatusBar
-              label="Grace Period"
+              label={t('tenants.status.gracePeriod')}
               count={stats?.in_grace_period || 0}
               total={stats?.total_tenants || 1}
               color="bg-yellow-500"
             />
             <StatusBar
-              label="Suspended"
+              label={t('tenants.status.suspended')}
               count={stats?.suspended_tenants || 0}
               total={stats?.total_tenants || 1}
               color="bg-red-500"

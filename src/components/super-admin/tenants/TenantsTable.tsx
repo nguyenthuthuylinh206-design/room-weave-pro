@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   flexRender,
   getCoreRowModel,
@@ -61,6 +62,7 @@ export function TenantsTable({
   selectedTenants = [],
   onSelectionChange,
 }: TenantsTableProps) {
+  const { t } = useTranslation('superAdmin');
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [selectedTenant, setSelectedTenant] = useState<any | null>(null);
@@ -105,6 +107,17 @@ export function TenantsTable({
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    const statusMap: Record<string, string> = {
+      active: t('tenants.status.active'),
+      trial: t('tenants.status.trial'),
+      cancelled: t('tenants.status.cancelled'),
+      suspended: t('tenants.status.suspended'),
+      grace_period: t('tenants.status.gracePeriod'),
+    };
+    return statusMap[status] || status;
+  };
+
   const columns: ColumnDef<any>[] = [
     {
       id: 'select',
@@ -133,7 +146,7 @@ export function TenantsTable({
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           >
-            Tenant Name
+            {t('tenants.table.tenantName')}
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         );
@@ -147,7 +160,7 @@ export function TenantsTable({
     },
     {
       accessorKey: 'subscription_status',
-      header: 'Status',
+      header: t('tenants.table.status'),
       cell: ({ row }) => {
         const status = row.original.subscription_status;
         const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -159,21 +172,21 @@ export function TenantsTable({
         };
         return (
           <Badge variant={variants[status] || 'outline'}>
-            {status.replace('_', ' ').toUpperCase()}
+            {getStatusLabel(status)}
           </Badge>
         );
       },
     },
     {
       accessorKey: 'subscription_plan_id',
-      header: 'Plan',
+      header: t('tenants.table.plan'),
       cell: ({ row }) => {
         const plan = row.original.subscription_plan;
         return (
           <div>
-            <div className="font-medium text-foreground">{plan?.name || 'No Plan'}</div>
+            <div className="font-medium text-foreground">{plan?.name || t('tenants.table.noPlan')}</div>
             <div className="text-xs text-muted-foreground">
-              {row.original.billing_cycle === 'monthly' ? 'Monthly' : 'Yearly'}
+              {row.original.billing_cycle === 'monthly' ? t('tenants.table.monthly') : t('tenants.table.yearly')}
             </div>
           </div>
         );
@@ -181,7 +194,7 @@ export function TenantsTable({
     },
     {
       id: 'usage',
-      header: 'Usage',
+      header: t('tenants.table.usage'),
       cell: ({ row }) => {
         const tenant = row.original;
         const usage = tenant.tenant_usage?.[0];
@@ -215,7 +228,7 @@ export function TenantsTable({
             {isOverLimit && (
               <div className="flex items-center gap-1 text-xs text-destructive">
                 <AlertCircle className="h-3 w-3" />
-                Over limit
+                {t('tenants.table.overLimit')}
               </div>
             )}
           </div>
@@ -230,7 +243,7 @@ export function TenantsTable({
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           >
-            Expires
+            {t('tenants.table.expires')}
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         );
@@ -249,11 +262,11 @@ export function TenantsTable({
             <div className="text-foreground">{expiryDate.toLocaleDateString()}</div>
             {daysUntilExpiry <= 7 && daysUntilExpiry > 0 && (
               <div className="text-xs text-orange-600">
-                {daysUntilExpiry} days left
+                {t('tenants.table.daysLeft', { count: daysUntilExpiry })}
               </div>
             )}
             {daysUntilExpiry < 0 && (
-              <div className="text-xs text-destructive">Expired</div>
+              <div className="text-xs text-destructive">{t('tenants.table.expired')}</div>
             )}
           </div>
         );
@@ -261,7 +274,7 @@ export function TenantsTable({
     },
     {
       accessorKey: 'created_at',
-      header: 'Created',
+      header: t('tenants.table.created'),
       cell: ({ row }) => <span className="text-foreground">{new Date(row.original.created_at).toLocaleDateString()}</span>,
     },
     {
@@ -276,14 +289,14 @@ export function TenantsTable({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('tenants.actions.label')}</DropdownMenuLabel>
               <DropdownMenuItem
                 onClick={() => {
                   setSelectedTenant(tenant);
                   setDetailsOpen(true);
                 }}
               >
-                View Details
+                {t('tenants.actions.viewDetails')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
@@ -292,7 +305,7 @@ export function TenantsTable({
                 }}
               >
                 <Receipt className="h-4 w-4 mr-2" />
-                View Billing
+                {t('tenants.actions.viewBilling')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
@@ -300,7 +313,7 @@ export function TenantsTable({
                   setChangePlanOpen(true);
                 }}
               >
-                Change Plan
+                {t('tenants.actions.changePlan')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {tenant.subscription_status === 'suspended' ? (
@@ -308,7 +321,7 @@ export function TenantsTable({
                   className="text-green-600"
                   onClick={() => reactivateMutation.mutate(tenant.id)}
                 >
-                  Reactivate Tenant
+                  {t('tenants.actions.reactivate')}
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem
@@ -318,7 +331,7 @@ export function TenantsTable({
                     setSuspendDialogOpen(true);
                   }}
                 >
-                  Suspend Tenant
+                  {t('tenants.actions.suspend')}
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem
@@ -328,7 +341,7 @@ export function TenantsTable({
                   setDeleteDialogOpen(true);
                 }}
               >
-                Delete Tenant
+                {t('tenants.actions.delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -378,7 +391,7 @@ export function TenantsTable({
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Loading...
+                  {t('tenants.table.loading')}
                 </TableCell>
               </TableRow>
             ) : table.getRowModel().rows?.length ? (
@@ -394,7 +407,7 @@ export function TenantsTable({
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No tenants found.
+                  {t('tenants.table.noTenants')}
                 </TableCell>
               </TableRow>
             )}
@@ -405,7 +418,7 @@ export function TenantsTable({
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} tenant(s) total
+          {t('tenants.table.tenantsTotal', { count: table.getFilteredRowModel().rows.length })}
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -414,7 +427,7 @@ export function TenantsTable({
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            Previous
+            {t('tenants.table.previous')}
           </Button>
           <Button
             variant="outline"
@@ -422,7 +435,7 @@ export function TenantsTable({
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Next
+            {t('tenants.table.next')}
           </Button>
         </div>
       </div>
@@ -456,13 +469,13 @@ export function TenantsTable({
       <AlertDialog open={suspendDialogOpen} onOpenChange={setSuspendDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Suspend Tenant?</AlertDialogTitle>
+            <AlertDialogTitle>{t('tenants.dialogs.suspendTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will suspend access for <strong>{tenantToSuspend?.name}</strong>. They will not be able to log in until reactivated.
+              {t('tenants.dialogs.suspendDescription', { name: tenantToSuspend?.name })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('tenants.dialogs.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (tenantToSuspend) {
@@ -472,7 +485,7 @@ export function TenantsTable({
                 }
               }}
             >
-              Suspend
+              {t('tenants.dialogs.suspendConfirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

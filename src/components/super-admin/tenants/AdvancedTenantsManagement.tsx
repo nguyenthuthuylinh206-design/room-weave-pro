@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,7 @@ import { Plus, Download, Search } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
 export function AdvancedTenantsManagement() {
+  const { t } = useTranslation('superAdmin');
   const [statusFilter, setStatusFilter] = useState('all');
   const [planFilter, setPlanFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,14 +32,14 @@ export function AdvancedTenantsManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Quản lý khách hàng</h1>
+          <h1 className="text-3xl font-bold">{t('tenants.title')}</h1>
           <p className="text-muted-foreground mt-1">
-            Quản lý tất cả khách hàng và gói đăng ký của họ
+            {t('tenants.subtitle')}
           </p>
         </div>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          Thêm khách hàng
+          {t('tenants.addTenant')}
         </Button>
       </div>
 
@@ -47,7 +49,7 @@ export function AdvancedTenantsManagement() {
           <div className="relative flex-1 min-w-[200px] max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Tìm kiếm khách hàng..."
+              placeholder={t('tenants.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -56,33 +58,33 @@ export function AdvancedTenantsManagement() {
           
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Lọc theo trạng thái" />
+              <SelectValue placeholder={t('tenants.filterByStatus')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả trạng thái</SelectItem>
-              <SelectItem value="active">Hoạt động</SelectItem>
-              <SelectItem value="trial">Dùng thử</SelectItem>
-              <SelectItem value="cancelled">Đã hủy</SelectItem>
-              <SelectItem value="suspended">Tạm ngưng</SelectItem>
-              <SelectItem value="grace_period">Gia hạn</SelectItem>
+              <SelectItem value="all">{t('tenants.allStatus')}</SelectItem>
+              <SelectItem value="active">{t('tenants.status.active')}</SelectItem>
+              <SelectItem value="trial">{t('tenants.status.trial')}</SelectItem>
+              <SelectItem value="cancelled">{t('tenants.status.cancelled')}</SelectItem>
+              <SelectItem value="suspended">{t('tenants.status.suspended')}</SelectItem>
+              <SelectItem value="grace_period">{t('tenants.status.gracePeriod')}</SelectItem>
             </SelectContent>
           </Select>
 
           <Select value={planFilter} onValueChange={setPlanFilter}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Lọc theo gói" />
+              <SelectValue placeholder={t('tenants.filterByPlan')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả gói</SelectItem>
-              <SelectItem value="basic">Cơ bản</SelectItem>
-              <SelectItem value="premium">Cao cấp</SelectItem>
-              <SelectItem value="enterprise">Doanh nghiệp</SelectItem>
+              <SelectItem value="all">{t('tenants.allPlans')}</SelectItem>
+              <SelectItem value="basic">{t('tenants.plans.basic')}</SelectItem>
+              <SelectItem value="premium">{t('tenants.plans.premium')}</SelectItem>
+              <SelectItem value="enterprise">{t('tenants.plans.enterprise')}</SelectItem>
             </SelectContent>
           </Select>
 
           <Button variant="outline" onClick={handleExport}>
             <Download className="h-4 w-4 mr-2" />
-            Xuất dữ liệu
+            {t('tenants.exportData')}
           </Button>
         </div>
       </Card>
@@ -98,8 +100,8 @@ export function AdvancedTenantsManagement() {
       {/* Content Tabs */}
       <Tabs defaultValue="list" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="list">Danh sách khách hàng</TabsTrigger>
-          <TabsTrigger value="analytics">Phân tích</TabsTrigger>
+          <TabsTrigger value="list">{t('tenants.listTab')}</TabsTrigger>
+          <TabsTrigger value="analytics">{t('tenants.analyticsTab')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="list">

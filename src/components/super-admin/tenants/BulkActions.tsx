@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,35 +28,36 @@ interface BulkActionsProps {
 }
 
 export function BulkActions({ selectedTenants, onClearSelection }: BulkActionsProps) {
+  const { t } = useTranslation('superAdmin');
   const { toast } = useToast();
 
   const handleSendEmail = () => {
     toast({
-      title: 'Emails Sent',
-      description: `Sent emails to ${selectedTenants.length} tenants`,
+      title: t('tenants.toasts.emailsSent'),
+      description: t('tenants.toasts.emailsSentDesc', { count: selectedTenants.length }),
     });
   };
 
   const handleSuspend = () => {
     toast({
-      title: 'Tenants Suspended',
-      description: `${selectedTenants.length} tenants have been suspended`,
+      title: t('tenants.toasts.tenantsSuspended'),
+      description: t('tenants.toasts.tenantsSuspendedDesc', { count: selectedTenants.length }),
     });
     onClearSelection();
   };
 
   const handleReactivate = () => {
     toast({
-      title: 'Tenants Reactivated',
-      description: `${selectedTenants.length} tenants have been reactivated`,
+      title: t('tenants.toasts.tenantsReactivated'),
+      description: t('tenants.toasts.tenantsReactivatedDesc', { count: selectedTenants.length }),
     });
     onClearSelection();
   };
 
   const handleDelete = () => {
     toast({
-      title: 'Tenants Deleted',
-      description: `${selectedTenants.length} tenants have been deleted`,
+      title: t('tenants.toasts.tenantsDeleted'),
+      description: t('tenants.toasts.tenantsDeletedDesc', { count: selectedTenants.length }),
       variant: 'destructive',
     });
     onClearSelection();
@@ -67,7 +69,7 @@ export function BulkActions({ selectedTenants, onClearSelection }: BulkActionsPr
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Badge variant="secondary" className="text-base px-3 py-1">
-              {selectedTenants.length} Selected
+              {t('tenants.bulk.selected', { count: selectedTenants.length })}
             </Badge>
             <Button
               variant="ghost"
@@ -75,7 +77,7 @@ export function BulkActions({ selectedTenants, onClearSelection }: BulkActionsPr
               onClick={onClearSelection}
             >
               <X className="h-4 w-4 mr-1" />
-              Clear
+              {t('tenants.bulk.clear')}
             </Button>
           </div>
           
@@ -86,7 +88,7 @@ export function BulkActions({ selectedTenants, onClearSelection }: BulkActionsPr
               onClick={handleSendEmail}
             >
               <Mail className="h-4 w-4 mr-2" />
-              Send Email
+              {t('tenants.bulk.sendEmail')}
             </Button>
             
             <AlertDialog>
@@ -96,21 +98,20 @@ export function BulkActions({ selectedTenants, onClearSelection }: BulkActionsPr
                   size="sm"
                 >
                   <XCircle className="h-4 w-4 mr-2" />
-                  Suspend
+                  {t('tenants.bulk.suspend')}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Suspend Tenants</AlertDialogTitle>
+                  <AlertDialogTitle>{t('tenants.dialogs.suspendTenantsTitle')}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to suspend {selectedTenants.length} tenant(s)? 
-                    They will lose access to their accounts.
+                    {t('tenants.dialogs.suspendTenantsDescription', { count: selectedTenants.length })}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel>{t('tenants.dialogs.cancel')}</AlertDialogCancel>
                   <AlertDialogAction onClick={handleSuspend}>
-                    Suspend
+                    {t('tenants.dialogs.suspendConfirm')}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -122,7 +123,7 @@ export function BulkActions({ selectedTenants, onClearSelection }: BulkActionsPr
               onClick={handleReactivate}
             >
               <PlayCircle className="h-4 w-4 mr-2" />
-              Reactivate
+              {t('tenants.bulk.reactivate')}
             </Button>
 
             <AlertDialog>
@@ -132,21 +133,20 @@ export function BulkActions({ selectedTenants, onClearSelection }: BulkActionsPr
                   size="sm"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
+                  {t('tenants.bulk.delete')}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Tenants</AlertDialogTitle>
+                  <AlertDialogTitle>{t('tenants.dialogs.deleteTenantsTitle')}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to permanently delete {selectedTenants.length} tenant(s)? 
-                    This action cannot be undone.
+                    {t('tenants.dialogs.deleteTenantsDescription', { count: selectedTenants.length })}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel>{t('tenants.dialogs.cancel')}</AlertDialogCancel>
                   <AlertDialogAction onClick={handleDelete} className="bg-destructive">
-                    Delete
+                    {t('tenants.bulk.delete')}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
