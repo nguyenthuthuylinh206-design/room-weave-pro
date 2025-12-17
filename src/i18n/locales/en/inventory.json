@@ -185,6 +185,12 @@
     "notesPlaceholder": "Notes about this outbound batch...",
     "stockError": "Outbound quantity cannot exceed stock",
     "success": "Outbound successful",
+    "placeholders": {
+      "defaultWarehouse": "Floor 1 Warehouse",
+      "fromLocation": "E.g.: Floor 1 Warehouse",
+      "toLocation": "E.g.: Room 301, Laundry",
+      "itemNote": "E.g.: Condition, purpose..."
+    },
     "categories": {
       "room_assign": "Room",
       "room_assignDesc": "Deliver to room",
