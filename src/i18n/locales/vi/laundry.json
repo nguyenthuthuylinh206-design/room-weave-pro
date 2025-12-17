@@ -2,9 +2,19 @@
   "title": "Quản lý Giặt là",
   "pageTitle": "Giặt là",
   "description": "Theo dõi các lô giặt, quản lý nhà cung cấp dịch vụ giặt là",
-  "batches": "Lô giặt",
+  "batches": {
+    "title": "Danh sách lô giặt",
+    "list": "Quản lý tất cả các lô giặt",
+    "new": "Tạo lô mới"
+  },
   "vendors": "Nhà cung cấp giặt",
   "newBatch": "Tạo lô giặt mới",
+  "actions": {
+    "exportExcel": "Xuất Excel",
+    "view": "Xem chi tiết",
+    "edit": "Chỉnh sửa",
+    "delete": "Xóa"
+  },
   "dashboard": {
     "title": "Quản lý Giặt là",
     "description": "Quản lý các lô giặt và đơn vị giặt là",
@@ -206,13 +216,17 @@
     "pending": "Chờ xử lý",
     "processing": "Đang giặt",
     "returned": "Đã nhận",
-    "search": "Tìm kiếm lô giặt..."
+    "search": "Tìm kiếm",
+    "searchPlaceholder": "Tìm mã lô, nhà cung cấp...",
+    "showFilters": "Hiện bộ lọc",
+    "hideFilters": "Ẩn bộ lọc"
   },
   "fields": {
     "batchCode": "Mã lô",
     "vendor": "Nhà cung cấp",
     "deliveryDate": "Ngày gửi",
     "returnDate": "Ngày nhận",
+    "expectedReturnDate": "Ngày trả dự kiến",
     "totalItems": "Tổng số đồ",
     "totalWeight": "Tổng cân nặng",
     "status": "Trạng thái",
@@ -225,7 +239,9 @@
   "status": {
     "pending": "Chờ xử lý",
     "delivered": "Đã giao",
+    "sent": "Đã gửi",
     "washing": "Đang giặt",
+    "processing": "Đang xử lý",
     "ready": "Sẵn sàng",
     "received": "Đã nhận",
     "returned": "Đã nhận",
@@ -243,6 +259,11 @@
   },
   "stats": {
     "totalBatches": "Tổng lô giặt",
+    "totalBatchesDesc": "Tất cả lô giặt trong hệ thống",
+    "inProgress": "Đang xử lý",
+    "inProgressDesc": "Lô đang giao hoặc đang giặt",
+    "completedThisMonth": "Hoàn thành tháng này",
+    "completedThisMonthDesc": "Lô đã nhận về trong tháng",
     "pending": "Đang gửi giặt",
     "returned": "Đã nhận về",
     "totalCost": "Tổng chi phí",

@@ -2,9 +2,19 @@
   "title": "Laundry Management",
   "pageTitle": "Laundry",
   "description": "Track laundry batches, manage laundry service vendors",
-  "batches": "Batches",
+  "batches": {
+    "title": "Laundry Batches",
+    "list": "Manage all laundry batches",
+    "new": "New Batch"
+  },
   "vendors": "Laundry Vendors",
   "newBatch": "Create New Batch",
+  "actions": {
+    "exportExcel": "Export Excel",
+    "view": "View Details",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
   "dashboard": {
     "title": "Laundry Management",
     "description": "Manage laundry batches and vendors",
@@ -206,13 +216,17 @@
     "pending": "Pending",
     "processing": "Processing",
     "returned": "Returned",
-    "search": "Search batches..."
+    "search": "Search",
+    "searchPlaceholder": "Search batch code, vendor...",
+    "showFilters": "Show Filters",
+    "hideFilters": "Hide Filters"
   },
   "fields": {
     "batchCode": "Batch Code",
     "vendor": "Vendor",
     "deliveryDate": "Delivery Date",
     "returnDate": "Return Date",
+    "expectedReturnDate": "Expected Return Date",
     "totalItems": "Total Items",
     "totalWeight": "Total Weight",
     "status": "Status",
@@ -225,7 +239,9 @@
   "status": {
     "pending": "Pending",
     "delivered": "Delivered",
+    "sent": "Sent",
     "washing": "Washing",
+    "processing": "Processing",
     "ready": "Ready",
     "received": "Received",
     "returned": "Returned",
@@ -243,6 +259,11 @@
   },
   "stats": {
     "totalBatches": "Total Batches",
+    "totalBatchesDesc": "All batches in system",
+    "inProgress": "In Progress",
+    "inProgressDesc": "Batches being delivered or washed",
+    "completedThisMonth": "Completed This Month",
+    "completedThisMonthDesc": "Batches received this month",
     "pending": "Pending",
     "returned": "Returned",
     "totalCost": "Total Cost",
