@@ -4,8 +4,6 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Checkbox } from '@/components/ui/checkbox'
 import { useRooms } from '@/hooks/useRooms'
 
 interface RoomMultiSelectProps {
@@ -83,6 +81,20 @@ export function RoomMultiSelect({
     onSelectionChange([])
   }
 
+  const FloorCheckbox = ({ checked }: { checked: boolean }) => (
+    <div
+      aria-hidden="true"
+      className={cn(
+        "h-4 w-4 shrink-0 rounded-sm border flex items-center justify-center pointer-events-none",
+        checked
+          ? "bg-primary border-primary text-primary-foreground"
+          : "border-input bg-background",
+      )}
+    >
+      {checked && <Check className="h-3 w-3" />}
+    </div>
+  )
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -128,7 +140,7 @@ export function RoomMultiSelect({
                   className="flex items-center gap-2 px-2 py-1 bg-muted/50 rounded cursor-pointer hover:bg-muted"
                   onClick={() => toggleFloor(floorRooms)}
                 >
-                  <Checkbox checked={allSelected} className="pointer-events-none" />
+                  <FloorCheckbox checked={allSelected} />
                   <Building2 className="h-4 w-4" />
                   <span className="font-medium text-sm">Tầng {floor}</span>
                   <Badge variant="outline" className="ml-auto">
