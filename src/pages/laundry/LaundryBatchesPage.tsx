@@ -221,7 +221,7 @@ export function LaundryBatchesPage() {
                         <TableCell className="text-right">
                           {(batch.actual_cost || batch.estimated_cost) > 0
                             ? formatCurrency(batch.actual_cost || batch.estimated_cost)
-                            : <span className="text-muted-foreground italic">Chưa cập nhật</span>
+                            : <span className="text-muted-foreground italic">{t('batchDetail.notUpdated')}</span>
                           }
                         </TableCell>
                         <TableCell>
