@@ -205,9 +205,48 @@
     }
   },
   "adjustment": {
-    "title": "Kiểm kê",
+    "title": "Kiểm kê kho",
+    "description": "Quản lý phiếu kiểm kê và điều chỉnh tồn kho",
     "new": "Tạo phiếu kiểm kê",
-    "list": "Danh sách kiểm kê"
+    "list": "Danh sách kiểm kê",
+    "noAdjustments": "Không có phiếu kiểm kê nào",
+    "deleteFunctionDeveloping": "Chức năng xóa đang được phát triển",
+    "tabs": {
+      "all": "Tất cả",
+      "draft": "Nháp",
+      "in_progress": "Đang kiểm",
+      "completed": "Hoàn thành",
+      "approved": "Đã duyệt"
+    },
+    "status": {
+      "draft": "Nháp",
+      "in_progress": "Đang kiểm",
+      "completed": "Hoàn thành",
+      "approved": "Đã duyệt",
+      "rejected": "Từ chối"
+    },
+    "type": {
+      "inventory_check": "📋 Kiểm kê định kỳ",
+      "damage": "❌ Kiểm tra hư hỏng",
+      "loss": "🚫 Kiểm tra mất mát",
+      "correction": "🔧 Điều chỉnh số liệu"
+    },
+    "table": {
+      "code": "Mã phiếu",
+      "type": "Loại",
+      "date": "Ngày lập",
+      "creator": "Người tạo",
+      "assignee": "Người thực hiện",
+      "totalItems": "Tổng items",
+      "discrepancy": "Chênh lệch",
+      "valueDiff": "Giá trị CL",
+      "status": "Trạng thái"
+    },
+    "swipe": {
+      "start": "Bắt đầu",
+      "continue": "Tiếp tục",
+      "delete": "Xóa"
+    }
   },
   "distribution": {
     "title": "Phiếu giao hàng",

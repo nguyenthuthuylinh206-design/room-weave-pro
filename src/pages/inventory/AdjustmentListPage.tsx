@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { 
   ArrowLeft, 
   Plus, 
@@ -42,40 +43,29 @@ import { toast } from 'sonner'
 const statusConfig = {
   draft: {
     icon: Clock,
-    label: 'Nháp',
     color: 'bg-gray-100 text-gray-800',
   },
   in_progress: {
     icon: ClipboardCheck,
-    label: 'Đang kiểm',
     color: 'bg-blue-100 text-blue-800',
   },
   completed: {
     icon: Clock,
-    label: 'Hoàn thành',
     color: 'bg-yellow-100 text-yellow-800',
   },
   approved: {
     icon: CheckCircle,
-    label: 'Đã duyệt',
     color: 'bg-green-100 text-green-800',
   },
   rejected: {
     icon: XCircle,
-    label: 'Từ chối',
     color: 'bg-red-100 text-red-800',
   },
 }
 
-const typeLabels = {
-  inventory_check: '📋 Kiểm kê định kỳ',
-  damage: '❌ Kiểm tra hư hỏng',
-  loss: '🚫 Kiểm tra mất mát',
-  correction: '🔧 Điều chỉnh số liệu',
-}
-
 export function AdjustmentListPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation('inventory')
   const { isMobile } = useBreakpoint()
   const [status, setStatus] = useState<string>('all')
   const [filters, setFilters] = useState({
@@ -110,25 +100,25 @@ export function AdjustmentListPage() {
 
   const handleDeleteAdjustment = (adjustmentId: string) => {
     // TODO: Implement delete functionality
-    toast.info('Chức năng xóa đang được phát triển')
+    toast.info(t('adjustment.deleteFunctionDeveloping'))
   }
 
   const getSwipeActions = (adjustment: any) => {
-    const status = adjustment.status
+    const adjustmentStatus = adjustment.status
     
-    if (status === 'draft') {
+    if (adjustmentStatus === 'draft') {
       return {
         left: () => handleCheckAdjustment(adjustment.id),
         right: () => handleDeleteAdjustment(adjustment.id),
-        leftLabel: 'Bắt đầu',
-        rightLabel: 'Xóa'
+        leftLabel: t('adjustment.swipe.start'),
+        rightLabel: t('adjustment.swipe.delete')
       }
     }
     
-    if (status === 'in_progress') {
+    if (adjustmentStatus === 'in_progress') {
       return {
         left: () => handleCheckAdjustment(adjustment.id),
-        leftLabel: 'Tiếp tục'
+        leftLabel: t('adjustment.swipe.continue')
       }
     }
     
@@ -151,7 +141,7 @@ export function AdjustmentListPage() {
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
-                <h1 className="text-lg font-semibold">Kiểm kê kho</h1>
+                <h1 className="text-lg font-semibold">{t('adjustment.title')}</h1>
                 <Button 
                   size="icon"
                   onClick={() => navigate('/inventory/adjustments/new')}
@@ -165,11 +155,11 @@ export function AdjustmentListPage() {
             <div className="overflow-x-auto px-4 -mx-4">
               <Tabs value={status} onValueChange={setStatus} className="w-full">
                 <TabsList className="inline-flex w-auto min-w-full">
-                  <TabsTrigger value="all" className="flex-shrink-0">Tất cả</TabsTrigger>
-                  <TabsTrigger value="draft" className="flex-shrink-0">Nháp</TabsTrigger>
-                  <TabsTrigger value="in_progress" className="flex-shrink-0">Đang kiểm</TabsTrigger>
-                  <TabsTrigger value="completed" className="flex-shrink-0">Hoàn thành</TabsTrigger>
-                  <TabsTrigger value="approved" className="flex-shrink-0">Đã duyệt</TabsTrigger>
+                  <TabsTrigger value="all" className="flex-shrink-0">{t('adjustment.tabs.all')}</TabsTrigger>
+                  <TabsTrigger value="draft" className="flex-shrink-0">{t('adjustment.tabs.draft')}</TabsTrigger>
+                  <TabsTrigger value="in_progress" className="flex-shrink-0">{t('adjustment.tabs.in_progress')}</TabsTrigger>
+                  <TabsTrigger value="completed" className="flex-shrink-0">{t('adjustment.tabs.completed')}</TabsTrigger>
+                  <TabsTrigger value="approved" className="flex-shrink-0">{t('adjustment.tabs.approved')}</TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
@@ -232,17 +222,17 @@ export function AdjustmentListPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Kiểm kê kho"
-        description="Quản lý phiếu kiểm kê và điều chỉnh tồn kho"
+        title={t('adjustment.title')}
+        description={t('adjustment.description')}
       >
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate('/inventory')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Quay lại
+            {t('back')}
           </Button>
           <Button onClick={() => navigate('/inventory/adjustments/new')}>
             <Plus className="mr-2 h-4 w-4" />
-            Tạo phiếu kiểm kê
+            {t('adjustment.new')}
           </Button>
         </div>
       </PageHeader>
@@ -253,11 +243,11 @@ export function AdjustmentListPage() {
           <div className="flex items-center justify-between">
             <Tabs value={status} onValueChange={setStatus}>
               <TabsList>
-                <TabsTrigger value="all">Tất cả</TabsTrigger>
-                <TabsTrigger value="draft">Nháp</TabsTrigger>
-                <TabsTrigger value="in_progress">Đang kiểm</TabsTrigger>
-                <TabsTrigger value="completed">Hoàn thành</TabsTrigger>
-                <TabsTrigger value="approved">Đã duyệt</TabsTrigger>
+                <TabsTrigger value="all">{t('adjustment.tabs.all')}</TabsTrigger>
+                <TabsTrigger value="draft">{t('adjustment.tabs.draft')}</TabsTrigger>
+                <TabsTrigger value="in_progress">{t('adjustment.tabs.in_progress')}</TabsTrigger>
+                <TabsTrigger value="completed">{t('adjustment.tabs.completed')}</TabsTrigger>
+                <TabsTrigger value="approved">{t('adjustment.tabs.approved')}</TabsTrigger>
               </TabsList>
             </Tabs>
             
@@ -284,15 +274,15 @@ export function AdjustmentListPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Mã phiếu</TableHead>
-                  <TableHead>Loại</TableHead>
-                  <TableHead>Ngày lập</TableHead>
-                  <TableHead>Người tạo</TableHead>
-                  <TableHead>Người thực hiện</TableHead>
-                  <TableHead className="text-center">Tổng items</TableHead>
-                  <TableHead className="text-center">Chênh lệch</TableHead>
-                  <TableHead className="text-right">Giá trị CL</TableHead>
-                  <TableHead>Trạng thái</TableHead>
+                  <TableHead>{t('adjustment.table.code')}</TableHead>
+                  <TableHead>{t('adjustment.table.type')}</TableHead>
+                  <TableHead>{t('adjustment.table.date')}</TableHead>
+                  <TableHead>{t('adjustment.table.creator')}</TableHead>
+                  <TableHead>{t('adjustment.table.assignee')}</TableHead>
+                  <TableHead className="text-center">{t('adjustment.table.totalItems')}</TableHead>
+                  <TableHead className="text-center">{t('adjustment.table.discrepancy')}</TableHead>
+                  <TableHead className="text-right">{t('adjustment.table.valueDiff')}</TableHead>
+                  <TableHead>{t('adjustment.table.status')}</TableHead>
                   <TableHead className="w-20"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -300,19 +290,20 @@ export function AdjustmentListPage() {
                 {isLoading ? (
                   <TableRow>
                     <TableCell colSpan={10} className="text-center py-8">
-                      Đang tải...
+                      {t('loading')}
                     </TableCell>
                   </TableRow>
                 ) : adjustments.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={10} className="text-center py-8">
-                      Không có phiếu kiểm kê nào
+                      {t('adjustment.noAdjustments')}
                     </TableCell>
                   </TableRow>
                 ) : (
                   adjustments.map((adjustment: any) => {
                     const statusInfo = statusConfig[adjustment.status as keyof typeof statusConfig]
                     const StatusIcon = statusInfo.icon
+                    const typeKey = `adjustment.type.${adjustment.adjustment_type}` as const
                     
                     return (
                       <TableRow
@@ -325,7 +316,7 @@ export function AdjustmentListPage() {
                         </TableCell>
                         <TableCell>
                           <span className="text-sm">
-                            {typeLabels[adjustment.adjustment_type as keyof typeof typeLabels]}
+                            {t(typeKey)}
                           </span>
                         </TableCell>
                         <TableCell>
@@ -383,7 +374,7 @@ export function AdjustmentListPage() {
                         <TableCell>
                           <Badge className={statusInfo.color}>
                             <StatusIcon className="mr-1 h-3 w-3" />
-                            {statusInfo.label}
+                            {t(`adjustment.status.${adjustment.status}`)}
                           </Badge>
                         </TableCell>
                         <TableCell>

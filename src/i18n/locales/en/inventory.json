@@ -205,9 +205,48 @@
     }
   },
   "adjustment": {
-    "title": "Adjustment",
+    "title": "Stock Adjustment",
+    "description": "Manage stock adjustment and inventory checks",
     "new": "Create Adjustment",
-    "list": "Adjustment List"
+    "list": "Adjustment List",
+    "noAdjustments": "No adjustments found",
+    "deleteFunctionDeveloping": "Delete function is under development",
+    "tabs": {
+      "all": "All",
+      "draft": "Draft",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "approved": "Approved"
+    },
+    "status": {
+      "draft": "Draft",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "type": {
+      "inventory_check": "📋 Periodic Check",
+      "damage": "❌ Damage Check",
+      "loss": "🚫 Loss Check",
+      "correction": "🔧 Data Correction"
+    },
+    "table": {
+      "code": "Code",
+      "type": "Type",
+      "date": "Date",
+      "creator": "Creator",
+      "assignee": "Assignee",
+      "totalItems": "Total Items",
+      "discrepancy": "Discrepancy",
+      "valueDiff": "Value Diff",
+      "status": "Status"
+    },
+    "swipe": {
+      "start": "Start",
+      "continue": "Continue",
+      "delete": "Delete"
+    }
   },
   "distribution": {
     "title": "Distribution Orders",
