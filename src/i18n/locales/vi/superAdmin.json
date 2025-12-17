@@ -127,7 +127,10 @@
       "monthly": "Hàng tháng",
       "yearly": "Hàng năm",
       "daysLeft": "còn {{count}} ngày",
-      "expired": "Đã hết hạn"
+      "expired": "Đã hết hạn",
+      "rooms": "phòng",
+      "days": "ngày",
+      "standardPlan": "Gói Tiêu Chuẩn"
     },
     "actions": {
       "label": "Thao tác",
@@ -143,7 +146,10 @@
       "trial": "Dùng thử",
       "cancelled": "Đã hủy",
       "suspended": "Tạm ngưng",
-      "gracePeriod": "Gia hạn"
+      "gracePeriod": "Gia hạn",
+      "expired": "Đã hết hạn",
+      "notRegistered": "Chưa đăng ký",
+      "expiringSoon": "Sắp hết hạn"
     },
     "plans": {
       "basic": "Cơ bản",

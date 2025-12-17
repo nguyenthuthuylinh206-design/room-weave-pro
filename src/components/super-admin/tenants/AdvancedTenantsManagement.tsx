@@ -65,6 +65,9 @@ export function AdvancedTenantsManagement() {
               <SelectItem value="all">{t('tenants.allStatus')}</SelectItem>
               <SelectItem value="active">{t('tenants.status.active')}</SelectItem>
               <SelectItem value="trial">{t('tenants.status.trial')}</SelectItem>
+              <SelectItem value="expired">{t('tenants.status.expired')}</SelectItem>
+              <SelectItem value="not_registered">{t('tenants.status.notRegistered')}</SelectItem>
+              <SelectItem value="expiring_soon">{t('tenants.status.expiringSoon')}</SelectItem>
               <SelectItem value="cancelled">{t('tenants.status.cancelled')}</SelectItem>
               <SelectItem value="suspended">{t('tenants.status.suspended')}</SelectItem>
               <SelectItem value="grace_period">{t('tenants.status.gracePeriod')}</SelectItem>
