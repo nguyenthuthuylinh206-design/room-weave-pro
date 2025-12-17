@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { 
   Edit, 
   Phone, 
@@ -23,18 +24,22 @@ import { VendorBatchHistory } from '@/components/laundry/VendorBatchHistory'
 import { useLaundryVendor, useVendorPerformance } from '@/hooks/useLaundryVendors'
 import { formatCurrency } from '@/lib/utils'
 import { format } from 'date-fns'
-import { vi } from 'date-fns/locale'
+import { vi, enUS } from 'date-fns/locale'
 
 export function MobileVendorDetailPage() {
+  const { t, i18n } = useTranslation('laundry')
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   
   const { data: vendor, isLoading } = useLaundryVendor(id)
   const { data: performance } = useVendorPerformance(id, 30)
   
+  const dateLocale = i18n.language === 'vi' ? vi : enUS
+  
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <MobileDetailHeader title="Đang tải..." onBack={() => navigate('/laundry/vendors')} />
+        <MobileDetailHeader title={t('common:loading')} onBack={() => navigate('/laundry/vendors')} />
         <div className="px-4 py-4 space-y-4">
           <Skeleton className="h-32" />
           <Skeleton className="h-24" />
@@ -42,15 +47,16 @@ export function MobileVendorDetailPage() {
         </div>
       </div>
     )
+  }
   
   if (!vendor) {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <MobileDetailHeader title="Không tìm thấy" onBack={() => navigate('/laundry/vendors')} />
+        <MobileDetailHeader title={t('vendorDetail.notFound')} onBack={() => navigate('/laundry/vendors')} />
         <div className="flex flex-col items-center justify-center py-12 px-4">
-          <p className="text-muted-foreground text-center">Không tìm thấy đơn vị giặt</p>
+          <p className="text-muted-foreground text-center">{t('vendorDetail.notFound')}</p>
           <Button onClick={() => navigate('/laundry/vendors')} className="mt-4">
-            Quay lại danh sách
+            {t('vendorDetail.backToList')}
           </Button>
         </div>
       </div>
@@ -74,7 +80,7 @@ export function MobileVendorDetailPage() {
         action={{
           icon: Edit,
           onClick: () => navigate(`/laundry/vendors/${id}/edit`),
-          label: 'Sửa thông tin'
+          label: t('vendorDetail.editInfo')
         }}
       />
       
@@ -93,10 +99,10 @@ export function MobileVendorDetailPage() {
               <p className="text-sm text-muted-foreground">{vendor.code}</p>
               <div className="flex items-center gap-2 mt-2">
                 <Badge variant={vendor.type === 'external' ? 'default' : 'secondary'}>
-                  {vendor.type === 'external' ? 'Ngoài' : 'Nội bộ'}
+                  {vendor.type === 'external' ? t('vendorDetail.type.external') : t('vendorDetail.type.internal')}
                 </Badge>
                 <Badge variant={vendor.status === 'active' ? 'outline' : 'secondary'}>
-                  {vendor.status === 'active' ? 'Hoạt động' : 'Tạm ngưng'}
+                  {vendor.status === 'active' ? t('vendorDetail.status.active') : t('vendorDetail.status.inactive')}
                 </Badge>
               </div>
             </div>
@@ -112,7 +118,7 @@ export function MobileVendorDetailPage() {
               </div>
               <div>
                 <p className="text-lg font-bold">{performance?.total_orders || 0}</p>
-                <p className="text-xs text-muted-foreground">Đơn hàng</p>
+                <p className="text-xs text-muted-foreground">{t('vendorDetail.stats.totalOrders')}</p>
               </div>
             </div>
           </Card>
@@ -124,7 +130,7 @@ export function MobileVendorDetailPage() {
               </div>
               <div>
                 <p className="text-lg font-bold">{formatCurrency(performance?.total_cost || 0)}</p>
-                <p className="text-xs text-muted-foreground">Tổng chi phí</p>
+                <p className="text-xs text-muted-foreground">{t('vendorDetail.stats.totalCost')}</p>
               </div>
             </div>
           </Card>
@@ -136,7 +142,7 @@ export function MobileVendorDetailPage() {
               </div>
               <div>
                 <p className="text-lg font-bold">{(performance?.avg_quality || 0).toFixed(1)}/5</p>
-                <p className="text-xs text-muted-foreground">Đánh giá</p>
+                <p className="text-xs text-muted-foreground">{t('vendorDetail.stats.avgRating')}</p>
               </div>
             </div>
           </Card>
@@ -148,7 +154,7 @@ export function MobileVendorDetailPage() {
               </div>
               <div>
                 <p className="text-lg font-bold">{(performance?.on_time_rate || 0).toFixed(0)}%</p>
-                <p className="text-xs text-muted-foreground">Đúng hạn</p>
+                <p className="text-xs text-muted-foreground">{t('vendorDetail.stats.onTimeRate')}</p>
               </div>
             </div>
           </Card>
@@ -157,9 +163,9 @@ export function MobileVendorDetailPage() {
         {/* Tabs */}
         <Tabs defaultValue="info" className="space-y-4">
           <TabsList className="w-full grid grid-cols-3">
-            <TabsTrigger value="info">Thông tin</TabsTrigger>
-            <TabsTrigger value="contract">Hợp đồng</TabsTrigger>
-            <TabsTrigger value="history">Lịch sử</TabsTrigger>
+            <TabsTrigger value="info">{t('vendorDetail.tabs.info')}</TabsTrigger>
+            <TabsTrigger value="contract">{t('vendorDetail.contract.title')}</TabsTrigger>
+            <TabsTrigger value="history">{t('vendorDetail.tabs.history')}</TabsTrigger>
           </TabsList>
           
           {/* Info Tab */}
@@ -173,7 +179,7 @@ export function MobileVendorDetailPage() {
                 >
                   <Phone className="h-5 w-5 text-primary" />
                   <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">Điện thoại</p>
+                    <p className="text-sm text-muted-foreground">{t('vendorDetail.contact.phone')}</p>
                     <p className="font-medium">{vendor.phone}</p>
                   </div>
                   <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -187,7 +193,7 @@ export function MobileVendorDetailPage() {
                 >
                   <Mail className="h-5 w-5 text-primary" />
                   <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">Email</p>
+                    <p className="text-sm text-muted-foreground">{t('vendorDetail.contact.email')}</p>
                     <p className="font-medium">{vendor.email}</p>
                   </div>
                   <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -198,7 +204,7 @@ export function MobileVendorDetailPage() {
                 <div className="flex items-start gap-3 p-4">
                   <MapPin className="h-5 w-5 text-primary mt-0.5" />
                   <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">Địa chỉ</p>
+                    <p className="text-sm text-muted-foreground">{t('vendorDetail.contact.address')}</p>
                     <p className="font-medium">{vendor.address}</p>
                   </div>
                 </div>
@@ -208,7 +214,7 @@ export function MobileVendorDetailPage() {
                 <div className="flex items-start gap-3 p-4">
                   <FileText className="h-5 w-5 text-primary mt-0.5" />
                   <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">Người liên hệ</p>
+                    <p className="text-sm text-muted-foreground">{t('vendorDetail.contact.contactPerson')}</p>
                     <p className="font-medium">{vendor.contact_person}</p>
                   </div>
                 </div>
@@ -218,7 +224,7 @@ export function MobileVendorDetailPage() {
             {/* Notes */}
             {vendor.notes && (
               <Card className="p-4">
-                <p className="text-sm text-muted-foreground mb-1">Ghi chú</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('vendorDetail.contract.notes')}</p>
                 <p className="text-sm">{vendor.notes}</p>
               </Card>
             )}
@@ -230,7 +236,7 @@ export function MobileVendorDetailPage() {
                 onClick={() => navigate(`/laundry/batches/new?vendor=${id}`)}
               >
                 <Package className="mr-2 h-4 w-4" />
-                Tạo lô giặt mới
+                {t('vendorDetail.quickActions.createBatch')}
               </Button>
               <div className="grid grid-cols-2 gap-2">
                 {vendor.phone && (
@@ -239,7 +245,7 @@ export function MobileVendorDetailPage() {
                     onClick={() => window.open(`tel:${vendor.phone}`)}
                   >
                     <Phone className="mr-2 h-4 w-4" />
-                    Gọi điện
+                    {t('vendorDetail.contact.call')}
                   </Button>
                 )}
                 {vendor.email && (
@@ -248,7 +254,7 @@ export function MobileVendorDetailPage() {
                     onClick={() => window.open(`mailto:${vendor.email}`)}
                   >
                     <Mail className="mr-2 h-4 w-4" />
-                    Gửi email
+                    {t('vendorDetail.contact.sendEmail')}
                   </Button>
                 )}
               </div>
@@ -258,25 +264,25 @@ export function MobileVendorDetailPage() {
           {/* Contract Tab */}
           <TabsContent value="contract" className="space-y-4">
             <Card className="p-4">
-              <h3 className="font-semibold mb-4">Thông tin hợp đồng</h3>
+              <h3 className="font-semibold mb-4">{t('vendorDetail.contract.title')}</h3>
               <dl className="space-y-4">
                 <div className="flex justify-between">
-                  <dt className="text-sm text-muted-foreground">Giá/kg</dt>
+                  <dt className="text-sm text-muted-foreground">{t('vendorDetail.contract.pricePerKg')}</dt>
                   <dd className="font-bold text-primary">{formatCurrency(pricePerKg)}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-sm text-muted-foreground">Đơn tối thiểu</dt>
-                  <dd className="font-medium">{minOrder} kg</dd>
+                  <dt className="text-sm text-muted-foreground">{t('vendorDetail.contract.minOrder')}</dt>
+                  <dd className="font-medium">{t('vendorDetail.contract.minOrderKg', { value: minOrder })}</dd>
                 </div>
                 {paymentTerms && (
                   <div className="flex justify-between">
-                    <dt className="text-sm text-muted-foreground">Điều khoản thanh toán</dt>
+                    <dt className="text-sm text-muted-foreground">{t('vendorDetail.contract.paymentTerms')}</dt>
                     <dd className="font-medium">{paymentTerms}</dd>
                   </div>
                 )}
                 {deliveryTime && (
                   <div className="flex justify-between">
-                    <dt className="text-sm text-muted-foreground">Thời gian giao</dt>
+                    <dt className="text-sm text-muted-foreground">{t('vendorDetail.contract.deliveryTime')}</dt>
                     <dd className="font-medium">{deliveryTime}</dd>
                   </div>
                 )}
@@ -285,7 +291,7 @@ export function MobileVendorDetailPage() {
             
             {(contractStart || contractEnd) && (
               <Card className="p-4">
-                <h3 className="font-semibold mb-4">Thời hạn hợp đồng</h3>
+                <h3 className="font-semibold mb-4">{t('common:contractPeriod', 'Thời hạn hợp đồng')}</h3>
                 <div className="flex items-center gap-4">
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                     <Clock className="h-5 w-5 text-primary" />
@@ -293,17 +299,17 @@ export function MobileVendorDetailPage() {
                   <div>
                     {contractStart && (
                       <p className="text-sm">
-                        <span className="text-muted-foreground">Từ: </span>
+                        <span className="text-muted-foreground">{t('vendorDetail.contract.contractFrom')}: </span>
                         <span className="font-medium">
-                          {format(new Date(contractStart), 'dd/MM/yyyy', { locale: vi })}
+                          {format(new Date(contractStart), 'dd/MM/yyyy', { locale: dateLocale })}
                         </span>
                       </p>
                     )}
                     {contractEnd && (
                       <p className="text-sm">
-                        <span className="text-muted-foreground">Đến: </span>
+                        <span className="text-muted-foreground">{t('vendorDetail.contract.contractTo')}: </span>
                         <span className="font-medium">
-                          {format(new Date(contractEnd), 'dd/MM/yyyy', { locale: vi })}
+                          {format(new Date(contractEnd), 'dd/MM/yyyy', { locale: dateLocale })}
                         </span>
                       </p>
                     )}

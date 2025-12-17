@@ -57,6 +57,7 @@
     "errorOccurred": "Đã xảy ra lỗi",
     "tryAgainLater": "Vui lòng thử lại sau"
   },
+  "contractPeriod": "Thời hạn hợp đồng",
   "errors": {
     "missingTenant": "Thiếu thông tin tenant"
   },

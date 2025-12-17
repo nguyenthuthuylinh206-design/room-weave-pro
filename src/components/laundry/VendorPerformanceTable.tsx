@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Star, Eye, Package } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -16,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useLaundryVendors } from '@/hooks/useLaundryVendors'
 
 export function VendorPerformanceTable() {
+  const { t } = useTranslation('laundry')
   const navigate = useNavigate()
   const { data: vendors, isLoading } = useLaundryVendors()
   
@@ -45,14 +47,14 @@ export function VendorPerformanceTable() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Đánh giá đơn vị giặt</CardTitle>
+        <CardTitle>{t('vendorPerformance.title')}</CardTitle>
       </CardHeader>
       <CardContent>
         {activeVendors.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Package className="h-12 w-12 text-muted-foreground/50" />
             <p className="mt-2 text-sm text-muted-foreground">
-              Chưa có đơn vị giặt nào
+              {t('vendorPerformance.noVendors')}
             </p>
           </div>
         ) : (
@@ -60,9 +62,9 @@ export function VendorPerformanceTable() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Đơn vị</TableHead>
-                  <TableHead>Loại</TableHead>
-                  <TableHead>Đánh giá</TableHead>
+                  <TableHead>{t('vendorPerformance.columns.vendor')}</TableHead>
+                  <TableHead>{t('vendorPerformance.columns.type')}</TableHead>
+                  <TableHead>{t('vendorPerformance.columns.rating')}</TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -86,7 +88,7 @@ export function VendorPerformanceTable() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {vendor.type === 'external' ? 'Ngoài' : 'Nội bộ'}
+                        {vendor.type === 'external' ? t('vendorPerformance.typeExternal') : t('vendorPerformance.typeInternal')}
                       </Badge>
                     </TableCell>
                     <TableCell>
