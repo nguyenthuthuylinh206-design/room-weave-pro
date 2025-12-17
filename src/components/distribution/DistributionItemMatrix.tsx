@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react'
-import { Plus, Minus, Trash2, Search, Package, Shirt, Zap, Armchair, Check } from 'lucide-react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { Plus, Minus, Trash2, Package, Shirt, Zap, Armchair } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -247,9 +247,17 @@ export function DistributionItemMatrix({
     }
   }, [allocatedItemIds, allocations, items])
 
-  // Notify parent of validation changes
+  // Notify parent of validation changes - use ref to prevent infinite loop
+  const prevValidationRef = useRef<string>('')
   useEffect(() => {
-    onStockValidationChange?.(stockValidation)
+    const validationKey = JSON.stringify({
+      isValid: stockValidation.isValid,
+      items: stockValidation.overStockItems.map(i => i.itemId)
+    })
+    if (validationKey !== prevValidationRef.current) {
+      prevValidationRef.current = validationKey
+      onStockValidationChange?.(stockValidation)
+    }
   }, [stockValidation, onStockValidationChange])
 
   if (selectedRoomIds.length === 0) {
