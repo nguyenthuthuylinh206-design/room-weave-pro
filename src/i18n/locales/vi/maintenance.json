@@ -178,5 +178,11 @@
       "manageTech": "Quản lý thợ",
       "manageTechDesc": "Phân công công việc"
     }
+  },
+  "select": {
+    "placeholder": "Chọn yêu cầu bảo trì...",
+    "search": "Tìm yêu cầu...",
+    "empty": "Không có yêu cầu đang xử lý",
+    "pendingRequests": "Yêu cầu đang chờ xử lý"
   }
 }

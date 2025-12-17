@@ -461,5 +461,10 @@
     "stock": "Tồn kho",
     "itemAdded": "Đã thêm {{name}}",
     "itemRemoved": "Đã xóa item"
+  },
+  "vendor": {
+    "selectPlaceholder": "Chọn nhà giặt...",
+    "search": "Tìm nhà giặt...",
+    "empty": "Không tìm thấy nhà giặt"
   }
 }
