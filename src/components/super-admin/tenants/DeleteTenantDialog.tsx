@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,7 @@ export function DeleteTenantDialog({
   open,
   onOpenChange,
 }: DeleteTenantDialogProps) {
+  const { t } = useTranslation('superAdmin');
   const [confirmText, setConfirmText] = useState('');
   const deleteMutation = useDeleteTenant();
 
@@ -47,9 +49,9 @@ export function DeleteTenantDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-destructive">Delete Tenant Account</DialogTitle>
+          <DialogTitle className="text-destructive">{t('tenants.delete.title')}</DialogTitle>
           <DialogDescription>
-            This action cannot be undone. All data associated with this tenant will be permanently deleted.
+            {t('tenants.delete.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -57,26 +59,26 @@ export function DeleteTenantDialog({
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Warning:</strong> This will delete:
+              <strong>{t('tenants.delete.warning')}:</strong> {t('tenants.delete.willDelete')}:
               <ul className="list-disc list-inside mt-2 text-sm">
-                <li>All hotels and rooms</li>
-                <li>All items and inventory</li>
-                <li>All users and permissions</li>
-                <li>All transactions and history</li>
-                <li>All uploaded files</li>
+                <li>{t('tenants.delete.allHotels')}</li>
+                <li>{t('tenants.delete.allItems')}</li>
+                <li>{t('tenants.delete.allUsers')}</li>
+                <li>{t('tenants.delete.allTransactions')}</li>
+                <li>{t('tenants.delete.allFiles')}</li>
               </ul>
             </AlertDescription>
           </Alert>
 
           <div className="rounded-lg border p-3 bg-muted/30">
-            <div className="text-sm text-muted-foreground">Tenant to delete</div>
+            <div className="text-sm text-muted-foreground">{t('tenants.delete.tenantToDelete')}</div>
             <div className="font-medium text-foreground">{tenant.name}</div>
             <div className="text-sm text-muted-foreground">{tenant.primary_contact_email}</div>
           </div>
 
           <div className="space-y-2">
             <Label>
-              Type <code className="text-destructive font-mono bg-muted px-1 py-0.5 rounded">{tenant.name}</code> to confirm
+              {t('tenants.delete.typeToConfirm')} <code className="text-destructive font-mono bg-muted px-1 py-0.5 rounded">{tenant.name}</code>
             </Label>
             <Input
               value={confirmText}
@@ -92,14 +94,14 @@ export function DeleteTenantDialog({
             onOpenChange(false);
             setConfirmText('');
           }}>
-            Cancel
+            {t('tenants.dialogs.cancel')}
           </Button>
           <Button
             variant="destructive"
             onClick={handleDelete}
             disabled={!isConfirmed || deleteMutation.isPending}
           >
-            {deleteMutation.isPending ? 'Deleting...' : 'Delete Permanently'}
+            {deleteMutation.isPending ? t('tenants.delete.deleting') : t('tenants.delete.deletePermanently')}
           </Button>
         </DialogFooter>
       </DialogContent>

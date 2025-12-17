@@ -86,5 +86,133 @@
     "newCampaign": "New Campaign",
     "scheduleReminders": "Schedule Reminders",
     "generateReport": "Generate Report"
+  },
+  "tenants": {
+    "title": "Customer Management",
+    "subtitle": "Manage all customers and their subscriptions",
+    "addTenant": "Add Customer",
+    "searchPlaceholder": "Search customers...",
+    "filterByStatus": "Filter by status",
+    "filterByPlan": "Filter by plan",
+    "allStatus": "All statuses",
+    "allPlans": "All plans",
+    "exportData": "Export Data",
+    "listTab": "Customer List",
+    "analyticsTab": "Analytics",
+    "table": {
+      "tenantName": "Customer Name",
+      "status": "Status",
+      "plan": "Plan",
+      "usage": "Usage",
+      "expires": "Expires",
+      "created": "Created",
+      "actions": "Actions",
+      "loading": "Loading...",
+      "noTenants": "No customers found.",
+      "tenantsTotal": "{{count}} customer(s)",
+      "previous": "Previous",
+      "next": "Next",
+      "overLimit": "Over limit",
+      "noPlan": "No Plan",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "daysLeft": "{{count}} days left",
+      "expired": "Expired"
+    },
+    "actions": {
+      "label": "Actions",
+      "viewDetails": "View Details",
+      "viewBilling": "View Billing",
+      "changePlan": "Change Plan",
+      "reactivate": "Reactivate",
+      "suspend": "Suspend",
+      "delete": "Delete"
+    },
+    "status": {
+      "active": "Active",
+      "trial": "Trial",
+      "cancelled": "Cancelled",
+      "suspended": "Suspended",
+      "gracePeriod": "Grace Period"
+    },
+    "plans": {
+      "basic": "Basic",
+      "premium": "Premium",
+      "enterprise": "Enterprise"
+    },
+    "details": {
+      "subscription": "Subscription",
+      "plan": "Plan",
+      "autoRenew": "Auto-renew",
+      "contactInfo": "Contact Information",
+      "email": "Email",
+      "phone": "Phone",
+      "subscriptionDates": "Subscription Dates",
+      "started": "Started",
+      "currentPeriod": "Current Period",
+      "nextBilling": "Next Billing",
+      "createdAt": "Created",
+      "resourceUsage": "Resource Usage",
+      "hotels": "Hotels",
+      "users": "Users",
+      "storage": "Storage",
+      "peakUsage": "Peak Usage",
+      "na": "N/A"
+    },
+    "analytics": {
+      "totalTenants": "Total Customers",
+      "active": "active",
+      "growthRate": "Growth Rate",
+      "last30Days": "Last 30 days",
+      "churnRate": "Churn Rate",
+      "churned": "churned",
+      "atRisk": "At Risk",
+      "needAttention": "Need attention",
+      "growthTrend": "Growth Trend",
+      "statusDistribution": "Status Distribution"
+    },
+    "bulk": {
+      "selected": "{{count}} Selected",
+      "clear": "Clear",
+      "sendEmail": "Send Email",
+      "suspend": "Suspend",
+      "reactivate": "Reactivate",
+      "delete": "Delete"
+    },
+    "dialogs": {
+      "suspendTitle": "Suspend Customer?",
+      "suspendDescription": "This will suspend access for <strong>{{name}}</strong>. They will not be able to log in until reactivated.",
+      "suspendConfirm": "Suspend",
+      "suspendTenantsTitle": "Suspend Customers",
+      "suspendTenantsDescription": "Are you sure you want to suspend {{count}} customer(s)? They will lose access to their accounts.",
+      "deleteTenantsTitle": "Delete Customers",
+      "deleteTenantsDescription": "Are you sure you want to permanently delete {{count}} customer(s)? This action cannot be undone.",
+      "cancel": "Cancel"
+    },
+    "toasts": {
+      "emailsSent": "Emails Sent",
+      "emailsSentDesc": "Sent emails to {{count}} customers",
+      "tenantsSuspended": "Suspended",
+      "tenantsSuspendedDesc": "{{count}} customer(s) have been suspended",
+      "tenantsReactivated": "Reactivated",
+      "tenantsReactivatedDesc": "{{count}} customer(s) have been reactivated",
+      "tenantsDeleted": "Deleted",
+      "tenantsDeletedDesc": "{{count}} customer(s) have been deleted"
+    },
+    "delete": {
+      "title": "Delete Tenant Account",
+      "description": "This action cannot be undone. All data associated with this tenant will be permanently deleted.",
+      "warning": "Warning",
+      "willDelete": "This will delete",
+      "allHotels": "All hotels and rooms",
+      "allItems": "All items and inventory",
+      "allUsers": "All users and permissions",
+      "allTransactions": "All transactions and history",
+      "allFiles": "All uploaded files",
+      "tenantToDelete": "Tenant to delete",
+      "typeToConfirm": "Type",
+      "deleting": "Deleting...",
+      "deletePermanently": "Delete Permanently"
+    }
   }
 }
