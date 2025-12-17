@@ -30,7 +30,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, ArrowUpDown, Building2, Users, AlertCircle, Receipt, Clock, DollarSign, ShieldCheck, ShieldAlert, ShieldX, DoorOpen } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Building2, Users, AlertCircle, Receipt, DollarSign, ShieldCheck, ShieldAlert, ShieldX, DoorOpen } from 'lucide-react';
 import { useTenants, useSuspendTenant, useReactivateTenant, useDeleteTenant } from '@/hooks/super-admin/useTenants';
 import { TenantDetailsDialog } from './TenantDetailsDialog';
 import { ChangePlanDialog } from './ChangePlanDialog';
@@ -202,6 +202,7 @@ export function TenantsTable({
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            className="whitespace-nowrap"
           >
             {t('tenants.table.tenantName')}
             <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -209,16 +210,11 @@ export function TenantsTable({
         );
       },
       cell: ({ row }) => (
-        <div>
+        <div className="min-w-[180px]">
           <div className="font-medium text-foreground">{row.original.name}</div>
-          <div className="text-sm text-muted-foreground">{row.original.primary_contact_email}</div>
+          <div className="text-sm text-muted-foreground truncate max-w-[200px]">{row.original.primary_contact_email}</div>
         </div>
       ),
-    },
-    {
-      accessorKey: 'approval_status',
-      header: t('tenants.table.approvalStatus'),
-      cell: ({ row }) => getApprovalStatusBadge(row.original.approval_status || 'pending'),
     },
     {
       accessorKey: 'subscription_status',
@@ -235,7 +231,7 @@ export function TenantsTable({
           not_registered: 'outline',
         };
         return (
-          <Badge variant={variants[actualStatus] || 'outline'}>
+          <Badge variant={variants[actualStatus] || 'outline'} className="whitespace-nowrap">
             {getStatusLabel(actualStatus)}
           </Badge>
         );
@@ -255,9 +251,9 @@ export function TenantsTable({
         }
         
         return (
-          <div>
-            <div className="font-medium text-foreground">{plan?.name || t('tenants.table.standardPlan')}</div>
-            <div className="text-xs text-muted-foreground">
+          <div className="min-w-[140px]">
+            <div className="font-medium text-foreground whitespace-nowrap">{plan?.name || t('tenants.table.standardPlan')}</div>
+            <div className="text-xs text-muted-foreground whitespace-nowrap">
               {registeredRooms} {t('tenants.table.rooms')} • {durationDays} {t('tenants.table.days')}
             </div>
           </div>
@@ -289,29 +285,28 @@ export function TenantsTable({
         const isOverLimit = hotelsPercent > 100 || usersPercent > 100 || roomsOverLimit;
         
         return (
-          <div className="space-y-1">
-            {/* Room usage - primary metric */}
-            <div className="flex items-center gap-2 text-xs">
-              <DoorOpen className="h-3 w-3" />
+          <div className="space-y-1 min-w-[100px]">
+            <div className="flex items-center gap-2 text-xs whitespace-nowrap">
+              <DoorOpen className="h-3 w-3 flex-shrink-0" />
               <span className={roomsOverLimit ? 'text-destructive font-medium' : 'text-foreground'}>
                 {currentRooms}/{registeredRooms || '-'} {t('tenants.table.rooms')}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-xs">
-              <Building2 className="h-3 w-3" />
+            <div className="flex items-center gap-2 text-xs whitespace-nowrap">
+              <Building2 className="h-3 w-3 flex-shrink-0" />
               <span className={hotelsPercent > 100 ? 'text-destructive' : 'text-muted-foreground'}>
                 {usage?.current_hotels_count || 0}/{plan?.max_hotels || '∞'}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-xs">
-              <Users className="h-3 w-3" />
+            <div className="flex items-center gap-2 text-xs whitespace-nowrap">
+              <Users className="h-3 w-3 flex-shrink-0" />
               <span className={usersPercent > 100 ? 'text-destructive' : 'text-muted-foreground'}>
                 {usage?.current_users_count || 0}/{plan?.max_users || '∞'}
               </span>
             </div>
             {isOverLimit && (
-              <div className="flex items-center gap-1 text-xs text-destructive">
-                <AlertCircle className="h-3 w-3" />
+              <div className="flex items-center gap-1 text-xs text-destructive whitespace-nowrap">
+                <AlertCircle className="h-3 w-3 flex-shrink-0" />
                 {t('tenants.table.overLimit')}
               </div>
             )}
@@ -326,6 +321,7 @@ export function TenantsTable({
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            className="whitespace-nowrap"
           >
             {t('tenants.table.expires')}
             <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -342,7 +338,7 @@ export function TenantsTable({
         );
         
         return (
-          <div>
+          <div className="whitespace-nowrap">
             <div className="text-foreground">{expiryDate.toLocaleDateString()}</div>
             {daysUntilExpiry <= 7 && daysUntilExpiry > 0 && (
               <div className="text-xs text-orange-600">
@@ -362,6 +358,7 @@ export function TenantsTable({
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          className="whitespace-nowrap"
         >
           {t('tenants.table.lifetimeRevenue')}
           <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -370,8 +367,8 @@ export function TenantsTable({
       cell: ({ row }) => {
         const revenue = row.original.lifetime_revenue || 0;
         return (
-          <div className="flex items-center gap-1">
-            <DollarSign className="h-3 w-3 text-muted-foreground" />
+          <div className="flex items-center gap-1 whitespace-nowrap text-right">
+            <DollarSign className="h-3 w-3 text-muted-foreground flex-shrink-0" />
             <span className={revenue > 0 ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
               {formatCurrency(revenue)}
             </span>
@@ -380,26 +377,13 @@ export function TenantsTable({
       },
     },
     {
-      accessorKey: 'last_activity',
-      header: t('tenants.table.lastActivity'),
-      cell: ({ row }) => {
-        const lastActivity = row.original.last_activity;
-        if (!lastActivity) return <span className="text-muted-foreground">-</span>;
-        
-        return (
-          <div className="flex items-center gap-1 text-sm">
-            <Clock className="h-3 w-3 text-muted-foreground" />
-            <span className="text-foreground">
-              {formatDistanceToNow(new Date(lastActivity), { addSuffix: true, locale: vi })}
-            </span>
-          </div>
-        );
-      },
-    },
-    {
       accessorKey: 'created_at',
       header: t('tenants.table.created'),
-      cell: ({ row }) => <span className="text-foreground">{new Date(row.original.created_at).toLocaleDateString()}</span>,
+      cell: ({ row }) => (
+        <span className="text-foreground whitespace-nowrap">
+          {new Date(row.original.created_at).toLocaleDateString()}
+        </span>
+      ),
     },
     {
       id: 'actions',
