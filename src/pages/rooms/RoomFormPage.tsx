@@ -1,9 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ArrowLeft, Save } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useQuotaCheck } from '@/hooks/useQuotaCheck'
 import { QuotaExceededDialog } from '@/components/settings/usage/QuotaExceededDialog'
 import { supabase } from '@/integrations/supabase/client'
@@ -24,13 +25,14 @@ import { AlertCircle } from 'lucide-react'
 import { HotelBadge } from '@/components/layout/HotelBadge'
 import { toast } from 'sonner'
 
-const roomSchema = z.object({
-  room_number: z.string().min(1, 'Số phòng là bắt buộc'),
-  room_type: z.string().min(1, 'Loại phòng là bắt buộc'),
-  floor: z.number().min(1, 'Tầng phải >= 1'),
-  area_sqm: z.number().min(0, 'Diện tích phải >= 0').optional(),
-  max_guests: z.number().min(1, 'Số khách tối đa phải >= 1'),
-  base_price: z.number().min(0, 'Giá cơ bản phải >= 0'),
+// Dynamic schema with i18n
+const createRoomSchema = (t: (key: string) => string) => z.object({
+  room_number: z.string().min(1, t('rooms:form.validation.roomNumberRequired')),
+  room_type: z.string().min(1, t('rooms:form.validation.roomTypeRequired')),
+  floor: z.number().min(1, t('rooms:form.validation.floorMin')),
+  area_sqm: z.number().min(0, t('rooms:form.validation.areaMin')).optional(),
+  max_guests: z.number().min(1, t('rooms:form.validation.maxGuestsMin')),
+  base_price: z.number().min(0, t('rooms:form.validation.basePriceMin')),
   bed_type: z.string().optional(),
   view_type: z.string().optional(),
   has_window: z.boolean(),
@@ -39,11 +41,12 @@ const roomSchema = z.object({
   notes: z.string().optional(),
 })
 
-type RoomFormData = z.infer<typeof roomSchema>
+type RoomFormData = z.infer<ReturnType<typeof createRoomSchema>>
 
 export function RoomFormPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const isEdit = !!id
   const { isMobile } = useBreakpoint()
 
@@ -55,6 +58,9 @@ export function RoomFormPage() {
   const quotaCheck = useQuotaCheck('room')
   
   const room = roomData?.room
+
+  // Memoize schema to prevent recreation on every render
+  const roomSchema = useMemo(() => createRoomSchema(t), [t])
 
   const {
     register,
@@ -103,13 +109,13 @@ export function RoomFormPage() {
   const onSubmit = async (data: RoomFormData) => {
     // Prevent creation when in All Hotels mode
     if (isAllHotelsMode) {
-      toast.error('Vui lòng chọn một khách sạn cụ thể trước khi tạo phòng')
+      toast.error(t('rooms:form.toasts.allHotelsMode'))
       return
     }
 
     // Check if hotel is selected
     if (!selectedHotel?.id) {
-      toast.error('Vui lòng chọn khách sạn trước khi tạo phòng')
+      toast.error(t('rooms:form.toasts.selectHotelRequired'))
       return
     }
 
@@ -126,7 +132,7 @@ export function RoomFormPage() {
       .eq('room_number', data.room_number)
 
     if (checkError) {
-      toast.error('Lỗi kiểm tra số phòng trùng lặp')
+      toast.error(t('rooms:form.toasts.duplicateError'))
       return
     }
 
@@ -136,7 +142,7 @@ export function RoomFormPage() {
       : existingRooms && existingRooms.length > 0
 
     if (duplicateExists) {
-      toast.error(`Số phòng "${data.room_number}" đã tồn tại trong khách sạn này`)
+      toast.error(t('rooms:form.toasts.duplicateExists', { roomNumber: data.room_number }))
       return
     }
 
@@ -174,7 +180,7 @@ export function RoomFormPage() {
           <Button variant="ghost" size="icon" onClick={() => navigate('/rooms')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-3xl font-bold">Đang tải...</h1>
+          <h1 className="text-3xl font-bold">{t('rooms:form.loading')}</h1>
         </div>
       </div>
     )
@@ -196,10 +202,10 @@ export function RoomFormPage() {
           </Button>
           <div className="flex-1">
             <h1 className="text-3xl font-bold">
-              {isEdit ? 'Chỉnh sửa phòng' : 'Thêm phòng mới'}
+              {isEdit ? t('rooms:form.edit') : t('rooms:form.create')}
             </h1>
             <p className="text-muted-foreground">
-              {isEdit ? 'Cập nhật thông tin phòng' : 'Nhập thông tin phòng mới'}
+              {isEdit ? t('rooms:form.editDescription') : t('rooms:form.createDescription')}
             </p>
           </div>
           <HotelBadge />
@@ -210,7 +216,7 @@ export function RoomFormPage() {
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Bạn đang ở chế độ xem tất cả khách sạn. Vui lòng chọn một khách sạn cụ thể để tạo phòng mới.
+              {t('rooms:form.alerts.allHotelsMode')}
             </AlertDescription>
           </Alert>
         )}
@@ -219,7 +225,7 @@ export function RoomFormPage() {
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Chưa chọn khách sạn. Vui lòng chọn khách sạn từ menu trên cùng.
+              {t('rooms:form.alerts.noHotelSelected')}
             </AlertDescription>
           </Alert>
         )}
@@ -227,12 +233,12 @@ export function RoomFormPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Thông tin cơ bản</CardTitle>
+            <CardTitle>{t('rooms:form.basicInfo')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="room_number">Số phòng *</Label>
+                <Label htmlFor="room_number">{t('rooms:form.roomNumber')} *</Label>
                 <Input id="room_number" {...register('room_number')} />
                 {errors.room_number && (
                   <p className="text-sm text-destructive">{errors.room_number.message}</p>
@@ -240,20 +246,20 @@ export function RoomFormPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="room_type">Loại phòng *</Label>
+                <Label htmlFor="room_type">{t('rooms:form.roomType')} *</Label>
                 <Controller
                   control={control}
                   name="room_type"
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Chọn loại phòng..." />
+                        <SelectValue placeholder={t('rooms:form.selectRoomType')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="standard">Standard</SelectItem>
-                        <SelectItem value="deluxe">Deluxe</SelectItem>
-                        <SelectItem value="suite">Suite</SelectItem>
-                        <SelectItem value="vip">VIP</SelectItem>
+                        <SelectItem value="standard">{t('rooms:roomTypes.standard')}</SelectItem>
+                        <SelectItem value="deluxe">{t('rooms:roomTypes.deluxe')}</SelectItem>
+                        <SelectItem value="suite">{t('rooms:roomTypes.suite')}</SelectItem>
+                        <SelectItem value="vip">{t('rooms:roomTypes.vip')}</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
@@ -264,7 +270,7 @@ export function RoomFormPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="floor">Tầng *</Label>
+                <Label htmlFor="floor">{t('rooms:form.floor')} *</Label>
                 <Input
                   id="floor"
                   type="number"
@@ -278,7 +284,7 @@ export function RoomFormPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="area_sqm">Diện tích (m²)</Label>
+                <Label htmlFor="area_sqm">{t('rooms:form.area')}</Label>
                 <Input
                   id="area_sqm"
                   type="number"
@@ -288,7 +294,7 @@ export function RoomFormPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="max_guests">Số khách tối đa *</Label>
+                <Label htmlFor="max_guests">{t('rooms:form.maxGuests')} *</Label>
                 <Input
                   id="max_guests"
                   type="number"
@@ -300,7 +306,7 @@ export function RoomFormPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="base_price">Giá cơ bản (₫) *</Label>
+                <Label htmlFor="base_price">{t('rooms:form.basePrice')} *</Label>
                 <Input
                   id="base_price"
                   type="number"
@@ -317,26 +323,26 @@ export function RoomFormPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Chi tiết phòng</CardTitle>
+            <CardTitle>{t('rooms:form.roomDetails')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="bed_type">Loại giường</Label>
+                <Label htmlFor="bed_type">{t('rooms:form.bedType')}</Label>
                 <Controller
                   control={control}
                   name="bed_type"
                   render={({ field }) => (
                     <Select value={field.value || ''} onValueChange={field.onChange}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Chọn loại giường..." />
+                        <SelectValue placeholder={t('rooms:form.selectBedType')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="single">Đơn</SelectItem>
-                        <SelectItem value="double">Đôi</SelectItem>
-                        <SelectItem value="queen">Queen</SelectItem>
-                        <SelectItem value="king">King</SelectItem>
-                        <SelectItem value="twin">Twin</SelectItem>
+                        <SelectItem value="single">{t('rooms:form.bedTypes.single')}</SelectItem>
+                        <SelectItem value="double">{t('rooms:form.bedTypes.double')}</SelectItem>
+                        <SelectItem value="queen">{t('rooms:form.bedTypes.queen')}</SelectItem>
+                        <SelectItem value="king">{t('rooms:form.bedTypes.king')}</SelectItem>
+                        <SelectItem value="twin">{t('rooms:form.bedTypes.twin')}</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
@@ -344,21 +350,21 @@ export function RoomFormPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="view_type">Hướng nhìn</Label>
+                <Label htmlFor="view_type">{t('rooms:form.viewType')}</Label>
                 <Controller
                   control={control}
                   name="view_type"
                   render={({ field }) => (
                     <Select value={field.value || ''} onValueChange={field.onChange}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Chọn hướng nhìn..." />
+                        <SelectValue placeholder={t('rooms:form.selectViewType')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="city">Thành phố</SelectItem>
-                        <SelectItem value="sea">Biển</SelectItem>
-                        <SelectItem value="mountain">Núi</SelectItem>
-                        <SelectItem value="garden">Vườn</SelectItem>
-                        <SelectItem value="pool">Hồ bơi</SelectItem>
+                        <SelectItem value="city">{t('rooms:form.viewTypes.city')}</SelectItem>
+                        <SelectItem value="sea">{t('rooms:form.viewTypes.sea')}</SelectItem>
+                        <SelectItem value="mountain">{t('rooms:form.viewTypes.mountain')}</SelectItem>
+                        <SelectItem value="garden">{t('rooms:form.viewTypes.garden')}</SelectItem>
+                        <SelectItem value="pool">{t('rooms:form.viewTypes.pool')}</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
@@ -374,7 +380,7 @@ export function RoomFormPage() {
                   onCheckedChange={(checked) => setValue('has_window', !!checked)}
                 />
                 <Label htmlFor="has_window" className="cursor-pointer">
-                  Có cửa sổ
+                  {t('rooms:form.hasWindow')}
                 </Label>
               </div>
 
@@ -385,7 +391,7 @@ export function RoomFormPage() {
                   onCheckedChange={(checked) => setValue('has_balcony', !!checked)}
                 />
                 <Label htmlFor="has_balcony" className="cursor-pointer">
-                  Có ban công
+                  {t('rooms:form.hasBalcony')}
                 </Label>
               </div>
 
@@ -396,13 +402,13 @@ export function RoomFormPage() {
                   onCheckedChange={(checked) => setValue('smoking_allowed', !!checked)}
                 />
                 <Label htmlFor="smoking_allowed" className="cursor-pointer">
-                  Cho phép hút thuốc
+                  {t('rooms:form.smokingAllowed')}
                 </Label>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notes">Ghi chú</Label>
+              <Label htmlFor="notes">{t('rooms:form.notes')}</Label>
               <Textarea id="notes" {...register('notes')} rows={3} />
             </div>
           </CardContent>
@@ -410,14 +416,14 @@ export function RoomFormPage() {
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => navigate('/rooms')}>
-            Hủy
+            {t('rooms:form.cancel')}
           </Button>
           <Button 
             type="submit" 
             disabled={isSubmitting || isAllHotelsMode || !selectedHotel}
           >
             <Save className="w-4 h-4 mr-2" />
-            {isSubmitting ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Tạo mới'}
+            {isSubmitting ? t('rooms:form.saving') : isEdit ? t('rooms:form.update') : t('rooms:form.createNew')}
           </Button>
         </div>
       </form>
