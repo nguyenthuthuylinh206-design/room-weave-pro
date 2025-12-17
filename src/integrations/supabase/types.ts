@@ -4078,9 +4078,12 @@ export type Database = {
           max_rooms: number | null
           max_storage_gb: number
           max_users: number
+          min_subscription_days: number | null
           name: string
           price_monthly: number
+          price_per_room_daily: number | null
           price_yearly: number
+          pricing_model: string | null
           updated_at: string | null
         }
         Insert: {
@@ -4096,9 +4099,12 @@ export type Database = {
           max_rooms?: number | null
           max_storage_gb?: number
           max_users?: number
+          min_subscription_days?: number | null
           name: string
           price_monthly?: number
+          price_per_room_daily?: number | null
           price_yearly?: number
+          pricing_model?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -4114,9 +4120,12 @@ export type Database = {
           max_rooms?: number | null
           max_storage_gb?: number
           max_users?: number
+          min_subscription_days?: number | null
           name?: string
           price_monthly?: number
+          price_per_room_daily?: number | null
           price_yearly?: number
+          pricing_model?: string | null
           updated_at?: string | null
         }
         Relationships: []

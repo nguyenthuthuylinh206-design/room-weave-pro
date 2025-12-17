@@ -24,16 +24,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCreatePlan } from '@/hooks/super-admin/usePricingManagement';
-import { Settings, DollarSign, Database, Sparkles } from 'lucide-react';
+import { Settings, DollarSign, Database, Sparkles, Building2, Calendar } from 'lucide-react';
 
 const planSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  code: z.string().min(1, 'Code is required'),
+  name: z.string().min(1, 'Tên gói là bắt buộc'),
+  code: z.string().min(1, 'Mã gói là bắt buộc'),
   description: z.string().optional(),
-  price_monthly: z.number().min(0),
-  price_yearly: z.number().min(0),
-  max_hotels: z.number().min(1),
-  max_users: z.number().min(1),
+  price_per_room_daily: z.number().min(1, 'Giá phải lớn hơn 0'),
+  min_subscription_days: z.number().min(1, 'Số ngày tối thiểu phải lớn hơn 0'),
+  max_hotels: z.number().min(-1),
+  max_users: z.number().min(-1),
   max_storage_gb: z.number().min(0),
   display_order: z.number().min(0),
   is_active: z.boolean(),
@@ -63,31 +63,38 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
       name: '',
       code: '',
       description: '',
-      price_monthly: 0,
-      price_yearly: 0,
-      max_hotels: 1,
-      max_users: 5,
-      max_storage_gb: 1,
+      price_per_room_daily: 1000,
+      min_subscription_days: 30,
+      max_hotels: -1,
+      max_users: -1,
+      max_storage_gb: 10,
       display_order: 0,
       is_active: true,
       features: {
-        advanced_reporting: false,
-        api_access: false,
-        priority_support: false,
-        custom_branding: false,
+        advanced_reporting: true,
+        api_access: true,
+        priority_support: true,
+        custom_branding: true,
         sso: false,
-        audit_logs: false,
+        audit_logs: true,
       },
     },
   });
 
   const onSubmit = async (data: PlanFormValues) => {
+    // Calculate monthly/yearly prices for compatibility
+    const monthlyPrice = 50 * data.price_per_room_daily * 30; // Sample: 50 rooms
+    const yearlyPrice = 50 * data.price_per_room_daily * 365 * 0.9; // 10% discount
+
     await createPlan.mutateAsync({
       name: data.name,
       code: data.code,
       description: data.description,
-      price_monthly: data.price_monthly,
-      price_yearly: data.price_yearly,
+      pricing_model: 'room_based',
+      price_per_room_daily: data.price_per_room_daily,
+      min_subscription_days: data.min_subscription_days,
+      price_monthly: monthlyPrice,
+      price_yearly: yearlyPrice,
       max_hotels: data.max_hotels,
       max_users: data.max_users,
       max_storage_gb: data.max_storage_gb,
@@ -99,17 +106,17 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
     form.reset();
   };
 
-  const monthlySaving = form.watch('price_monthly')
-    ? Math.round((1 - form.watch('price_yearly') / (form.watch('price_monthly') * 12)) * 100)
-    : 0;
+  const pricePerDay = form.watch('price_per_room_daily');
+  const minDays = form.watch('min_subscription_days');
+  const samplePrice50Rooms = 50 * pricePerDay * minDays;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Plan</DialogTitle>
+          <DialogTitle>Tạo gói mới</DialogTitle>
           <DialogDescription>
-            Define a new subscription plan with pricing, limits, and features
+            Thiết lập gói đăng ký mới với giá theo số phòng
           </DialogDescription>
         </DialogHeader>
 
@@ -119,15 +126,15 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="general">
                   <Settings className="h-4 w-4 mr-2" />
-                  General & Pricing
+                  Thông tin & Giá
                 </TabsTrigger>
                 <TabsTrigger value="limits">
                   <Database className="h-4 w-4 mr-2" />
-                  Limits
+                  Giới hạn
                 </TabsTrigger>
                 <TabsTrigger value="features">
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Features
+                  Tính năng
                 </TabsTrigger>
               </TabsList>
 
@@ -137,9 +144,9 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Plan Name</FormLabel>
+                      <FormLabel>Tên gói</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Professional" {...field} />
+                        <Input placeholder="VD: Gói Tiêu chuẩn" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -151,11 +158,11 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
                   name="code"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Plan Code</FormLabel>
+                      <FormLabel>Mã gói</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., professional" {...field} />
+                        <Input placeholder="VD: standard" {...field} />
                       </FormControl>
-                      <FormDescription>Unique identifier for this plan</FormDescription>
+                      <FormDescription>Mã định danh duy nhất cho gói này</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -166,10 +173,10 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Description</FormLabel>
+                      <FormLabel>Mô tả</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="Describe what's included in this plan..."
+                          placeholder="Mô tả những gì có trong gói này..."
                           rows={3}
                           {...field}
                         />
@@ -179,51 +186,71 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
                   )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="price_monthly"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Monthly Price ($)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="29.99"
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                {/* Room-based pricing */}
+                <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 space-y-4">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-primary" />
+                    Mô hình giá theo phòng
+                  </h4>
 
-                  <FormField
-                    control={form.control}
-                    name="price_yearly"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Yearly Price ($)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="299.99"
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
-                          />
-                        </FormControl>
-                        {monthlySaving > 0 && (
-                          <FormDescription className="text-green-600">
-                            Save {monthlySaving}% with yearly billing
-                          </FormDescription>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="price_per_room_daily"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4" />
+                            Giá mỗi phòng/ngày (VNĐ)
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={1}
+                              placeholder="1000"
+                              {...field}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="min_subscription_days"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4" />
+                            Đăng ký tối thiểu (ngày)
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={1}
+                              placeholder="30"
+                              {...field}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Price preview */}
+                  <div className="p-3 rounded-lg bg-background">
+                    <p className="text-sm text-muted-foreground mb-2">Ví dụ tính giá (50 phòng):</p>
+                    <div className="text-lg font-bold text-primary">
+                      {samplePrice50Rooms.toLocaleString('vi-VN')}đ
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      50 phòng × {pricePerDay.toLocaleString('vi-VN')}đ × {minDays} ngày
+                    </p>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -232,7 +259,7 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
                     name="display_order"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Display Order</FormLabel>
+                        <FormLabel>Thứ tự hiển thị</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -240,7 +267,7 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
                             onChange={(e) => field.onChange(Number(e.target.value))}
                           />
                         </FormControl>
-                        <FormDescription>Lower numbers appear first</FormDescription>
+                        <FormDescription>Số nhỏ hơn hiển thị trước</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -252,9 +279,9 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
-                          <FormLabel className="text-base">Active</FormLabel>
+                          <FormLabel className="text-base">Kích hoạt</FormLabel>
                           <FormDescription>
-                            Available for new subscriptions
+                            Cho phép đăng ký mới
                           </FormDescription>
                         </div>
                         <FormControl>
@@ -270,16 +297,20 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
               </TabsContent>
 
               <TabsContent value="limits" className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Nhập -1 để không giới hạn
+                </p>
                 <div className="grid grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
                     name="max_hotels"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Max Hotels</FormLabel>
+                        <FormLabel>Số khách sạn tối đa</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
+                            min={-1}
                             {...field}
                             onChange={(e) => field.onChange(Number(e.target.value))}
                           />
@@ -294,10 +325,11 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
                     name="max_users"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Max Users</FormLabel>
+                        <FormLabel>Số người dùng tối đa</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
+                            min={-1}
                             {...field}
                             onChange={(e) => field.onChange(Number(e.target.value))}
                           />
@@ -312,10 +344,11 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
                     name="max_storage_gb"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Storage Limit (GB)</FormLabel>
+                        <FormLabel>Dung lượng (GB)</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
+                            min={0}
                             step="0.1"
                             {...field}
                             onChange={(e) => field.onChange(Number(e.target.value))}
@@ -336,9 +369,9 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
-                          <FormLabel className="text-base">Advanced Reporting</FormLabel>
+                          <FormLabel className="text-base">Báo cáo nâng cao</FormLabel>
                           <FormDescription>
-                            Access to detailed analytics and custom reports
+                            Truy cập phân tích chi tiết và báo cáo tùy chỉnh
                           </FormDescription>
                         </div>
                         <FormControl>
@@ -357,9 +390,9 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
-                          <FormLabel className="text-base">API Access</FormLabel>
+                          <FormLabel className="text-base">Truy cập API</FormLabel>
                           <FormDescription>
-                            RESTful API for integrations
+                            RESTful API để tích hợp hệ thống
                           </FormDescription>
                         </div>
                         <FormControl>
@@ -378,9 +411,9 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
-                          <FormLabel className="text-base">Priority Support</FormLabel>
+                          <FormLabel className="text-base">Hỗ trợ ưu tiên</FormLabel>
                           <FormDescription>
-                            24/7 priority customer support
+                            Hỗ trợ khách hàng ưu tiên 24/7
                           </FormDescription>
                         </div>
                         <FormControl>
@@ -399,9 +432,9 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
-                          <FormLabel className="text-base">Custom Branding</FormLabel>
+                          <FormLabel className="text-base">Thương hiệu riêng</FormLabel>
                           <FormDescription>
-                            White-label with custom logo and colors
+                            Tùy chỉnh logo và màu sắc
                           </FormDescription>
                         </div>
                         <FormControl>
@@ -420,9 +453,9 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
-                          <FormLabel className="text-base">Single Sign-On (SSO)</FormLabel>
+                          <FormLabel className="text-base">Đăng nhập một lần (SSO)</FormLabel>
                           <FormDescription>
-                            SAML 2.0 / OAuth integration
+                            Tích hợp SAML 2.0 / OAuth
                           </FormDescription>
                         </div>
                         <FormControl>
@@ -441,9 +474,9 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
-                          <FormLabel className="text-base">Audit Logs</FormLabel>
+                          <FormLabel className="text-base">Nhật ký hoạt động</FormLabel>
                           <FormDescription>
-                            Complete activity tracking and compliance
+                            Theo dõi hoạt động và tuân thủ
                           </FormDescription>
                         </div>
                         <FormControl>
@@ -468,10 +501,10 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
                   form.reset();
                 }}
               >
-                Cancel
+                Hủy
               </Button>
               <Button type="submit" disabled={createPlan.isPending}>
-                {createPlan.isPending ? 'Creating...' : 'Create Plan'}
+                {createPlan.isPending ? 'Đang tạo...' : 'Tạo gói'}
               </Button>
             </DialogFooter>
           </form>
