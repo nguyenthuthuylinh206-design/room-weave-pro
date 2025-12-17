@@ -127,7 +127,10 @@
       "monthly": "Monthly",
       "yearly": "Yearly",
       "daysLeft": "{{count}} days left",
-      "expired": "Expired"
+      "expired": "Expired",
+      "rooms": "rooms",
+      "days": "days",
+      "standardPlan": "Standard Plan"
     },
     "actions": {
       "label": "Actions",
@@ -143,7 +146,10 @@
       "trial": "Trial",
       "cancelled": "Cancelled",
       "suspended": "Suspended",
-      "gracePeriod": "Grace Period"
+      "gracePeriod": "Grace Period",
+      "expired": "Expired",
+      "notRegistered": "Not Registered",
+      "expiringSoon": "Expiring Soon"
     },
     "plans": {
       "basic": "Basic",

@@ -30,7 +30,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, ArrowUpDown, Building2, Users, AlertCircle, Receipt, Clock, DollarSign, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Building2, Users, AlertCircle, Receipt, Clock, DollarSign, ShieldCheck, ShieldAlert, ShieldX, DoorOpen } from 'lucide-react';
 import { useTenants, useSuspendTenant, useReactivateTenant, useDeleteTenant } from '@/hooks/super-admin/useTenants';
 import { TenantDetailsDialog } from './TenantDetailsDialog';
 import { ChangePlanDialog } from './ChangePlanDialog';
@@ -86,7 +86,22 @@ export function TenantsTable({
   // Filter tenants based on props
   const filteredTenants = useMemo(() => {
     return tenants.filter((tenant: any) => {
-      const matchesStatus = statusFilter === 'all' || tenant.subscription_status === statusFilter;
+      // Status filter with new options
+      let matchesStatus = statusFilter === 'all';
+      if (!matchesStatus) {
+        if (statusFilter === 'expired') {
+          matchesStatus = tenant.actual_status === 'expired';
+        } else if (statusFilter === 'not_registered') {
+          matchesStatus = tenant.actual_status === 'not_registered';
+        } else if (statusFilter === 'expiring_soon') {
+          matchesStatus = tenant.days_until_expiry !== null && 
+            tenant.days_until_expiry > 0 && 
+            tenant.days_until_expiry <= 7;
+        } else {
+          matchesStatus = tenant.subscription_status === statusFilter;
+        }
+      }
+      
       const matchesApproval = approvalFilter === 'all' || tenant.approval_status === approvalFilter;
       const matchesSearch = !searchQuery || 
         tenant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -119,6 +134,8 @@ export function TenantsTable({
       cancelled: t('tenants.status.cancelled'),
       suspended: t('tenants.status.suspended'),
       grace_period: t('tenants.status.gracePeriod'),
+      expired: t('tenants.status.expired'),
+      not_registered: t('tenants.status.notRegistered'),
     };
     return statusMap[status] || status;
   };
@@ -207,17 +224,19 @@ export function TenantsTable({
       accessorKey: 'subscription_status',
       header: t('tenants.table.status'),
       cell: ({ row }) => {
-        const status = row.original.subscription_status;
+        const actualStatus = row.original.actual_status;
         const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
           active: 'default',
           trial: 'secondary',
           cancelled: 'destructive',
           suspended: 'destructive',
           grace_period: 'outline',
+          expired: 'destructive',
+          not_registered: 'outline',
         };
         return (
-          <Badge variant={variants[status] || 'outline'}>
-            {getStatusLabel(status)}
+          <Badge variant={variants[actualStatus] || 'outline'}>
+            {getStatusLabel(actualStatus)}
           </Badge>
         );
       },
@@ -226,12 +245,20 @@ export function TenantsTable({
       accessorKey: 'subscription_plan_id',
       header: t('tenants.table.plan'),
       cell: ({ row }) => {
-        const plan = row.original.subscription_plan;
+        const tenant = row.original;
+        const plan = tenant.subscription_plan;
+        const registeredRooms = tenant.registered_rooms || 0;
+        const durationDays = tenant.subscription_duration_days || 0;
+        
+        if (!tenant.has_subscription) {
+          return <span className="text-muted-foreground">-</span>;
+        }
+        
         return (
           <div>
-            <div className="font-medium text-foreground">{plan?.name || t('tenants.table.noPlan')}</div>
+            <div className="font-medium text-foreground">{plan?.name || t('tenants.table.standardPlan')}</div>
             <div className="text-xs text-muted-foreground">
-              {row.original.billing_cycle === 'monthly' ? t('tenants.table.monthly') : t('tenants.table.yearly')}
+              {registeredRooms} {t('tenants.table.rooms')} • {durationDays} {t('tenants.table.days')}
             </div>
           </div>
         );
@@ -244,30 +271,42 @@ export function TenantsTable({
         const tenant = row.original;
         const usage = tenant.tenant_usage?.[0];
         const plan = tenant.subscription_plan;
+        const registeredRooms = tenant.registered_rooms || 0;
+        const currentRooms = usage?.current_rooms_count || 0;
         
-        if (!usage) return <span className="text-muted-foreground">-</span>;
+        if (!usage && !tenant.has_subscription) {
+          return <span className="text-muted-foreground">-</span>;
+        }
         
         const hotelsPercent = plan?.max_hotels 
-          ? Math.round((usage.current_hotels_count / plan.max_hotels) * 100)
+          ? Math.round(((usage?.current_hotels_count || 0) / plan.max_hotels) * 100)
           : 0;
         const usersPercent = plan?.max_users
-          ? Math.round((usage.current_users_count / plan.max_users) * 100)
+          ? Math.round(((usage?.current_users_count || 0) / plan.max_users) * 100)
           : 0;
+        const roomsOverLimit = registeredRooms > 0 && currentRooms > registeredRooms;
           
-        const isOverLimit = hotelsPercent > 100 || usersPercent > 100;
+        const isOverLimit = hotelsPercent > 100 || usersPercent > 100 || roomsOverLimit;
         
         return (
           <div className="space-y-1">
+            {/* Room usage - primary metric */}
+            <div className="flex items-center gap-2 text-xs">
+              <DoorOpen className="h-3 w-3" />
+              <span className={roomsOverLimit ? 'text-destructive font-medium' : 'text-foreground'}>
+                {currentRooms}/{registeredRooms || '-'} {t('tenants.table.rooms')}
+              </span>
+            </div>
             <div className="flex items-center gap-2 text-xs">
               <Building2 className="h-3 w-3" />
-              <span className={isOverLimit ? 'text-destructive' : 'text-foreground'}>
-                {usage.current_hotels_count}/{plan?.max_hotels || '∞'}
+              <span className={hotelsPercent > 100 ? 'text-destructive' : 'text-muted-foreground'}>
+                {usage?.current_hotels_count || 0}/{plan?.max_hotels || '∞'}
               </span>
             </div>
             <div className="flex items-center gap-2 text-xs">
               <Users className="h-3 w-3" />
-              <span className={isOverLimit ? 'text-destructive' : 'text-foreground'}>
-                {usage.current_users_count}/{plan?.max_users || '∞'}
+              <span className={usersPercent > 100 ? 'text-destructive' : 'text-muted-foreground'}>
+                {usage?.current_users_count || 0}/{plan?.max_users || '∞'}
               </span>
             </div>
             {isOverLimit && (

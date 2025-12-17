@@ -69,12 +69,34 @@ export function useTenants() {
         }
       });
 
-      // Merge data
-      return tenants?.map(tenant => ({
-        ...tenant,
-        lifetime_revenue: revenueByTenant[tenant.id] || 0,
-        last_activity: lastActivityByTenant[tenant.id] || null,
-      })) || [];
+      // Merge data and calculate actual status
+      const now = new Date();
+      return tenants?.map(tenant => {
+        const subscriptionEndDate = tenant.subscription_end_date ? new Date(tenant.subscription_end_date) : null;
+        const isExpired = subscriptionEndDate && subscriptionEndDate < now;
+        const daysUntilExpiry = subscriptionEndDate 
+          ? Math.ceil((subscriptionEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+          : null;
+        const hasSubscription = (tenant.registered_rooms || 0) > 0 && subscriptionEndDate;
+        
+        // Calculate actual status
+        let actualStatus = tenant.subscription_status;
+        if (isExpired && tenant.subscription_status !== 'suspended') {
+          actualStatus = 'expired';
+        } else if (!hasSubscription) {
+          actualStatus = 'not_registered';
+        }
+        
+        return {
+          ...tenant,
+          lifetime_revenue: revenueByTenant[tenant.id] || 0,
+          last_activity: lastActivityByTenant[tenant.id] || null,
+          actual_status: actualStatus,
+          is_expired: isExpired,
+          days_until_expiry: daysUntilExpiry,
+          has_subscription: hasSubscription,
+        };
+      }) || [];
     },
   });
 }
