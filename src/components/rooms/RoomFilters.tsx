@@ -1,4 +1,5 @@
 import { Search } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -17,13 +18,15 @@ interface RoomFiltersProps {
 }
 
 export function RoomFilters({ filters, onFilterChange }: RoomFiltersProps) {
+  const { t } = useTranslation('rooms')
+
   return (
     <div className="flex flex-wrap items-center gap-3">
       {/* Search */}
       <div className="relative w-64">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Tìm số phòng..."
+          placeholder={t('filters.searchRoomNumber')}
           value={filters.search || ''}
           onChange={(e) => onFilterChange({ search: e.target.value })}
           className="pl-10"
@@ -39,13 +42,13 @@ export function RoomFilters({ filters, onFilterChange }: RoomFiltersProps) {
         }
       >
         <SelectTrigger className="w-32">
-          <SelectValue placeholder="Tầng" />
+          <SelectValue placeholder={t('filters.floorPlaceholder')} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Tất cả tầng</SelectItem>
+          <SelectItem value="all">{t('filters.allFloors')}</SelectItem>
           {[...Array(10)].map((_, i) => (
             <SelectItem key={i + 1} value={(i + 1).toString()}>
-              Tầng {i + 1}
+              {t('filters.floorN', { number: i + 1 })}
             </SelectItem>
           ))}
         </SelectContent>
@@ -59,14 +62,14 @@ export function RoomFilters({ filters, onFilterChange }: RoomFiltersProps) {
         }
       >
         <SelectTrigger className="w-40">
-          <SelectValue placeholder="Loại phòng" />
+          <SelectValue placeholder={t('filters.roomTypePlaceholder')} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Tất cả loại</SelectItem>
-          <SelectItem value="standard">Standard</SelectItem>
-          <SelectItem value="deluxe">Deluxe</SelectItem>
-          <SelectItem value="suite">Suite</SelectItem>
-          <SelectItem value="vip">VIP</SelectItem>
+          <SelectItem value="all">{t('filters.allTypes')}</SelectItem>
+          <SelectItem value="standard">{t('roomTypes.standard')}</SelectItem>
+          <SelectItem value="deluxe">{t('roomTypes.deluxe')}</SelectItem>
+          <SelectItem value="suite">{t('roomTypes.suite')}</SelectItem>
+          <SelectItem value="vip">{t('roomTypes.vip')}</SelectItem>
         </SelectContent>
       </Select>
       
@@ -78,15 +81,15 @@ export function RoomFilters({ filters, onFilterChange }: RoomFiltersProps) {
         }
       >
         <SelectTrigger className="w-40">
-          <SelectValue placeholder="Trạng thái" />
+          <SelectValue placeholder={t('filters.statusPlaceholder')} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Tất cả</SelectItem>
-          <SelectItem value="vacant">Trống</SelectItem>
-          <SelectItem value="occupied">Có khách</SelectItem>
-          <SelectItem value="cleaning">Đang dọn</SelectItem>
-          <SelectItem value="maintenance">Bảo trì</SelectItem>
-          <SelectItem value="out_of_order">Hỏng</SelectItem>
+          <SelectItem value="all">{t('filters.all')}</SelectItem>
+          <SelectItem value="vacant">{t('status.vacant')}</SelectItem>
+          <SelectItem value="occupied">{t('status.occupied')}</SelectItem>
+          <SelectItem value="cleaning">{t('status.cleaning')}</SelectItem>
+          <SelectItem value="maintenance">{t('status.maintenance')}</SelectItem>
+          <SelectItem value="out_of_order">{t('status.out_of_order')}</SelectItem>
         </SelectContent>
       </Select>
       
@@ -100,7 +103,7 @@ export function RoomFilters({ filters, onFilterChange }: RoomFiltersProps) {
           }
         />
         <Label htmlFor="missing-items" className="text-sm cursor-pointer">
-          Chỉ phòng thiếu đồ
+          {t('filters.missingItemsOnly')}
         </Label>
       </div>
     </div>
