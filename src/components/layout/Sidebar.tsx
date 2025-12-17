@@ -61,8 +61,19 @@ const navigation: NavItem[] = [
     icon: LayoutDashboard,
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
   },
-  // Super Admin uses /super-admin/* routes with dedicated SuperAdminLayout
-  // No longer shown in MainLayout sidebar
+  {
+    titleKey: 'superAdmin',
+    icon: Shield,
+    roles: ['super_admin'],
+    children: [
+      { titleKey: 'adminDashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+      { titleKey: 'tenants', href: '/admin/tenants', icon: Users },
+      { titleKey: 'promoCodes', href: '/admin/promo-codes', icon: Tag },
+      { titleKey: 'campaigns', href: '/admin/campaigns', icon: TrendingUp },
+      { titleKey: 'reminders', href: '/admin/reminders', icon: Bell },
+      { titleKey: 'pricingPlans', href: '/admin/pricing', icon: DollarSign },
+    ],
+  },
   {
     titleKey: 'inventory',
     icon: Warehouse,
