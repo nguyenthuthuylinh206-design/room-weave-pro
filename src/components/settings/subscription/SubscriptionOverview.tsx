@@ -3,7 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
 import { useTenantSubscription } from '@/hooks/useSubscription';
+import { useRoomSubscriptionLimit } from '@/hooks/useRoomSubscriptionLimit';
 import {
   Package,
   Calendar,
@@ -15,6 +17,7 @@ import {
   HardDrive,
   Box,
   Home,
+  Plus,
 } from 'lucide-react';
 import {
   PRICE_PER_ROOM_DAILY,
@@ -23,6 +26,7 @@ import {
 } from '@/lib/pricing';
 import { useState } from 'react';
 import { PlanChangeDialog } from './PlanChangeDialog';
+import { AddRoomsDialog } from './AddRoomsDialog';
 
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   active: { label: 'Đang hoạt động', variant: 'default' },
@@ -34,7 +38,9 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
 
 export function SubscriptionOverview() {
   const { data: subscription, isLoading, error } = useTenantSubscription();
+  const { registeredRooms, actualRooms, remainingSlots, canCreateRoom } = useRoomSubscriptionLimit();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [addRoomsDialogOpen, setAddRoomsDialogOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -57,10 +63,14 @@ export function SubscriptionOverview() {
   const remainingDays = calculateRemainingDays(subscription.subscription_end_date);
   const status = subscription.subscription_status || 'inactive';
   const statusInfo = statusConfig[status] || statusConfig.inactive;
-  const registeredRooms = subscription.registered_rooms || 0;
 
   const isExpiringSoon = remainingDays > 0 && remainingDays <= 7;
   const isExpired = remainingDays === 0 && subscription.subscription_end_date;
+  
+  // Room usage percentage
+  const roomUsagePercent = registeredRooms > 0 ? Math.min(100, (actualRooms / registeredRooms) * 100) : 0;
+  const isNearRoomLimit = remainingSlots <= 5 && remainingSlots > 0;
+  const isAtRoomLimit = !canCreateRoom;
 
   return (
     <div className="space-y-6">
@@ -97,6 +107,30 @@ export function SubscriptionOverview() {
               </div>
               <div className="text-sm text-muted-foreground">Ngày còn lại</div>
             </div>
+          </div>
+
+          {/* Room Usage Progress */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Sử dụng phòng</span>
+              <span className={`font-medium ${isAtRoomLimit ? 'text-destructive' : isNearRoomLimit ? 'text-yellow-600' : ''}`}>
+                {actualRooms} / {registeredRooms} phòng
+              </span>
+            </div>
+            <Progress 
+              value={roomUsagePercent} 
+              className={`h-2 ${isAtRoomLimit ? '[&>div]:bg-destructive' : isNearRoomLimit ? '[&>div]:bg-yellow-500' : ''}`}
+            />
+            {isAtRoomLimit && (
+              <p className="text-xs text-destructive">
+                Đã đạt giới hạn! Mua thêm phòng để tiếp tục tạo mới.
+              </p>
+            )}
+            {isNearRoomLimit && (
+              <p className="text-xs text-yellow-600">
+                Còn {remainingSlots} slot phòng. Cân nhắc mua thêm.
+              </p>
+            )}
           </div>
 
           {/* Dates */}
@@ -149,10 +183,18 @@ export function SubscriptionOverview() {
             </Alert>
           )}
 
-          {/* CTA */}
-          <Button className="w-full sm:w-auto" onClick={() => setDialogOpen(true)}>
-            {isExpired || status === 'past_due' ? 'Gia hạn ngay' : 'Điều chỉnh đăng ký'}
-          </Button>
+          {/* CTAs */}
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => setDialogOpen(true)}>
+              {isExpired || status === 'past_due' ? 'Gia hạn ngay' : 'Gia hạn/Điều chỉnh'}
+            </Button>
+            {!isExpired && remainingDays > 0 && (
+              <Button variant="outline" onClick={() => setAddRoomsDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Mua thêm phòng
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -195,8 +237,13 @@ export function SubscriptionOverview() {
       <PlanChangeDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        initialRooms={registeredRooms || 50}
+        initialRooms={actualRooms || registeredRooms || 50}
         initialDuration={subscription.subscription_duration_days || 365}
+      />
+      
+      <AddRoomsDialog
+        open={addRoomsDialogOpen}
+        onOpenChange={setAddRoomsDialogOpen}
       />
     </div>
   );

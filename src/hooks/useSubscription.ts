@@ -192,15 +192,37 @@ export const useUpdateTenantSubscription = () => {
     mutationFn: async ({
       rooms,
       durationDays,
+      isAddingRooms = false,
     }: {
       rooms: number
       durationDays: number
+      isAddingRooms?: boolean
     }) => {
       if (!tenantId) throw new Error('Tenant ID not found')
 
+      // Get current subscription for adding rooms scenario
+      const { data: currentTenant } = await supabase
+        .from('tenants')
+        .select('subscription_end_date, registered_rooms')
+        .eq('id', tenantId)
+        .single()
+
       const now = new Date()
-      const endDate = calculateEndDate(now, durationDays)
-      const pricing = calculateSubscriptionPrice(rooms, durationDays)
+      let startDate = now
+      let endDate: Date
+
+      if (isAddingRooms && currentTenant?.subscription_end_date) {
+        // When adding rooms, keep the current end date
+        endDate = new Date(currentTenant.subscription_end_date)
+        // Don't change start date for existing subscription
+        startDate = now
+      } else {
+        // New subscription or renewal
+        endDate = calculateEndDate(now, durationDays)
+      }
+
+      const effectiveDays = isAddingRooms ? durationDays : durationDays
+      const pricing = calculateSubscriptionPrice(rooms, effectiveDays)
 
       // Get standard plan ID
       const { data: standardPlan, error: planError } = await supabase
@@ -215,19 +237,25 @@ export const useUpdateTenantSubscription = () => {
       }
 
       // Update tenant subscription
+      const updateData: Record<string, unknown> = {
+        subscription_plan_id: standardPlan.id,
+        registered_rooms: rooms,
+        subscription_status: 'active',
+        updated_at: now.toISOString(),
+      }
+
+      // Only update dates if not adding rooms (renewal/new subscription)
+      if (!isAddingRooms) {
+        updateData.subscription_duration_days = durationDays
+        updateData.subscription_start_date = startDate.toISOString().split('T')[0]
+        updateData.subscription_end_date = endDate.toISOString().split('T')[0]
+        updateData.subscription_current_period_start = startDate.toISOString()
+        updateData.subscription_current_period_end = endDate.toISOString()
+      }
+
       const { data, error } = await supabase
         .from('tenants')
-        .update({
-          subscription_plan_id: standardPlan.id,
-          registered_rooms: rooms,
-          subscription_duration_days: durationDays,
-          subscription_status: 'active',
-          subscription_start_date: now.toISOString().split('T')[0],
-          subscription_end_date: endDate.toISOString().split('T')[0],
-          subscription_current_period_start: now.toISOString(),
-          subscription_current_period_end: endDate.toISOString(),
-          updated_at: now.toISOString(),
-        })
+        .update(updateData)
         .eq('id', tenantId)
         .select()
         .single()
@@ -241,15 +269,21 @@ export const useUpdateTenantSubscription = () => {
 
       if (usageError) console.error('Failed to update usage:', usageError)
 
-      return { data, pricing }
+      return { data, pricing, isAddingRooms }
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['tenant-subscription'] })
       queryClient.invalidateQueries({ queryKey: ['tenant-usage'] })
       queryClient.invalidateQueries({ queryKey: ['check-quota'] })
+      queryClient.invalidateQueries({ queryKey: ['actual-room-count'] })
+      
+      const message = result.isAddingRooms
+        ? `Đã thêm phòng. Tổng: ${result.pricing.rooms} phòng`
+        : `Đã đăng ký ${result.pricing.rooms} phòng trong ${result.pricing.days} ngày`
+      
       toast({
         title: 'Thành công',
-        description: `Đã đăng ký ${result.pricing.rooms} phòng trong ${result.pricing.days} ngày`,
+        description: message,
       })
     },
     onError: (error: Error) => {
