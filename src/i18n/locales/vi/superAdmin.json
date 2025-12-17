@@ -99,11 +99,21 @@
     "exportData": "Xuất dữ liệu",
     "listTab": "Danh sách khách hàng",
     "analyticsTab": "Phân tích",
+    "filterByApproval": "Lọc theo phê duyệt",
+    "allApproval": "Tất cả",
+    "approval": {
+      "approved": "Đã duyệt",
+      "pending": "Chờ duyệt",
+      "rejected": "Từ chối"
+    },
     "table": {
       "tenantName": "Tên khách hàng",
+      "approvalStatus": "Phê duyệt",
       "status": "Trạng thái",
       "plan": "Gói dịch vụ",
       "usage": "Sử dụng",
+      "lifetimeRevenue": "Doanh thu",
+      "lastActivity": "Hoạt động gần nhất",
       "expires": "Hết hạn",
       "created": "Ngày tạo",
       "actions": "Thao tác",

@@ -30,7 +30,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, ArrowUpDown, Building2, Users, AlertCircle, Receipt } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Building2, Users, AlertCircle, Receipt, Clock, DollarSign, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react';
 import { useTenants, useSuspendTenant, useReactivateTenant, useDeleteTenant } from '@/hooks/super-admin/useTenants';
 import { TenantDetailsDialog } from './TenantDetailsDialog';
 import { ChangePlanDialog } from './ChangePlanDialog';
@@ -46,10 +46,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { formatDistanceToNow } from 'date-fns';
+import { vi } from 'date-fns/locale';
 
 interface TenantsTableProps {
   statusFilter?: string;
   planFilter?: string;
+  approvalFilter?: string;
   searchQuery?: string;
   selectedTenants?: string[];
   onSelectionChange?: (selected: string[]) => void;
@@ -58,6 +61,7 @@ interface TenantsTableProps {
 export function TenantsTable({
   statusFilter = 'all',
   planFilter = 'all',
+  approvalFilter = 'all',
   searchQuery = '',
   selectedTenants = [],
   onSelectionChange,
@@ -83,13 +87,14 @@ export function TenantsTable({
   const filteredTenants = useMemo(() => {
     return tenants.filter((tenant: any) => {
       const matchesStatus = statusFilter === 'all' || tenant.subscription_status === statusFilter;
+      const matchesApproval = approvalFilter === 'all' || tenant.approval_status === approvalFilter;
       const matchesSearch = !searchQuery || 
         tenant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tenant.primary_contact_email.toLowerCase().includes(searchQuery.toLowerCase());
+        tenant.primary_contact_email?.toLowerCase().includes(searchQuery.toLowerCase());
       
-      return matchesStatus && matchesSearch;
+      return matchesStatus && matchesApproval && matchesSearch;
     });
-  }, [tenants, statusFilter, searchQuery]);
+  }, [tenants, statusFilter, approvalFilter, searchQuery]);
 
   const handleSelectAll = (checked: boolean) => {
     if (onSelectionChange) {
@@ -116,6 +121,41 @@ export function TenantsTable({
       grace_period: t('tenants.status.gracePeriod'),
     };
     return statusMap[status] || status;
+  };
+
+  const getApprovalStatusBadge = (status: string) => {
+    const config: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: React.ReactNode }> = {
+      approved: { 
+        label: t('tenants.approval.approved'), 
+        variant: 'default', 
+        icon: <ShieldCheck className="h-3 w-3 mr-1" /> 
+      },
+      pending: { 
+        label: t('tenants.approval.pending'), 
+        variant: 'secondary', 
+        icon: <ShieldAlert className="h-3 w-3 mr-1" /> 
+      },
+      rejected: { 
+        label: t('tenants.approval.rejected'), 
+        variant: 'destructive', 
+        icon: <ShieldX className="h-3 w-3 mr-1" /> 
+      },
+    };
+    const { label, variant, icon } = config[status] || { label: status, variant: 'outline' as const, icon: null };
+    return (
+      <Badge variant={variant} className="flex items-center">
+        {icon}
+        {label}
+      </Badge>
+    );
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      maximumFractionDigits: 0,
+    }).format(value);
   };
 
   const columns: ColumnDef<any>[] = [
@@ -157,6 +197,11 @@ export function TenantsTable({
           <div className="text-sm text-muted-foreground">{row.original.primary_contact_email}</div>
         </div>
       ),
+    },
+    {
+      accessorKey: 'approval_status',
+      header: t('tenants.table.approvalStatus'),
+      cell: ({ row }) => getApprovalStatusBadge(row.original.approval_status || 'pending'),
     },
     {
       accessorKey: 'subscription_status',
@@ -268,6 +313,46 @@ export function TenantsTable({
             {daysUntilExpiry < 0 && (
               <div className="text-xs text-destructive">{t('tenants.table.expired')}</div>
             )}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'lifetime_revenue',
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          {t('tenants.table.lifetimeRevenue')}
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => {
+        const revenue = row.original.lifetime_revenue || 0;
+        return (
+          <div className="flex items-center gap-1">
+            <DollarSign className="h-3 w-3 text-muted-foreground" />
+            <span className={revenue > 0 ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
+              {formatCurrency(revenue)}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'last_activity',
+      header: t('tenants.table.lastActivity'),
+      cell: ({ row }) => {
+        const lastActivity = row.original.last_activity;
+        if (!lastActivity) return <span className="text-muted-foreground">-</span>;
+        
+        return (
+          <div className="flex items-center gap-1 text-sm">
+            <Clock className="h-3 w-3 text-muted-foreground" />
+            <span className="text-foreground">
+              {formatDistanceToNow(new Date(lastActivity), { addSuffix: true, locale: vi })}
+            </span>
           </div>
         );
       },

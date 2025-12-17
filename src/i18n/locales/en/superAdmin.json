@@ -99,11 +99,21 @@
     "exportData": "Export Data",
     "listTab": "Customer List",
     "analyticsTab": "Analytics",
+    "filterByApproval": "Filter by approval",
+    "allApproval": "All",
+    "approval": {
+      "approved": "Approved",
+      "pending": "Pending",
+      "rejected": "Rejected"
+    },
     "table": {
       "tenantName": "Customer Name",
+      "approvalStatus": "Approval",
       "status": "Status",
       "plan": "Plan",
       "usage": "Usage",
+      "lifetimeRevenue": "Revenue",
+      "lastActivity": "Last Activity",
       "expires": "Expires",
       "created": "Created",
       "actions": "Actions",
