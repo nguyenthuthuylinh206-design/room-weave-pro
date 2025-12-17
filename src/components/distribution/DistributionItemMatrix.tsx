@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { Plus, Minus, Trash2, Package, Shirt, Zap, Armchair } from 'lucide-react'
+import { Plus, Minus, Trash2, Package, Shirt, Zap, Armchair, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -17,14 +17,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useItems } from '@/hooks/useItems'
 import { useRooms } from '@/hooks/useRooms'
@@ -283,13 +275,20 @@ export function DistributionItemMatrix({
             )}
           </Button>
         </PopoverTrigger>
-          <PopoverContent className="w-[400px] p-0" align="start">
-            <Command>
-              <CommandInput 
-                placeholder="Tìm sản phẩm..." 
-                value={itemSearch}
-                onValueChange={setItemSearch}
-              />
+        <PopoverContent className="w-[400px] p-0" align="start">
+          <div className="flex flex-col">
+            {/* Search input */}
+            <div className="p-2 border-b">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Tìm sản phẩm..."
+                  value={itemSearch}
+                  onChange={(e) => setItemSearch(e.target.value)}
+                  className="h-9 pl-8"
+                />
+              </div>
+            </div>
             
             {/* Type filter tabs */}
             <div className="border-b px-2 py-2">
@@ -316,10 +315,13 @@ export function DistributionItemMatrix({
               </Tabs>
             </div>
 
-            <CommandList className="max-h-[300px]">
-              <CommandEmpty>Không tìm thấy sản phẩm</CommandEmpty>
-              
-              {selectedType === 'all' ? (
+            {/* Items list - native scroll */}
+            <ScrollArea className="max-h-[300px]">
+              {availableItems.length === 0 ? (
+                <div className="py-6 text-center text-sm text-muted-foreground">
+                  Không tìm thấy sản phẩm
+                </div>
+              ) : selectedType === 'all' ? (
                 // Show grouped by type
                 Object.entries(groupedItems).map(([type, typeItems]) => {
                   if (typeItems.length === 0) return null
@@ -327,21 +329,16 @@ export function DistributionItemMatrix({
                   const Icon = config.icon
                   
                   return (
-                    <CommandGroup 
-                      key={type} 
-                      heading={
-                        <div className="flex items-center gap-2">
-                          <Icon className="h-3 w-3" />
-                          {config.label}
-                        </div>
-                      }
-                    >
+                    <div key={type}>
+                      <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50 flex items-center gap-2 sticky top-0">
+                        <Icon className="h-3 w-3" />
+                        {config.label}
+                      </div>
                       {typeItems.map(item => (
-                        <CommandItem
+                        <div
                           key={item.id}
-                          value={`${item.id} ${item.name} ${item.code} ${item.category_name ?? ''}`}
-                          onSelect={() => addItemToAllRooms(item.id, 1)}
-                          className="flex items-center gap-2 py-2"
+                          className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-accent transition-colors"
+                          onClick={() => addItemToAllRooms(item.id, 1)}
                         >
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-sm truncate">{item.name}</div>
@@ -358,45 +355,42 @@ export function DistributionItemMatrix({
                           <Badge variant="outline" className="shrink-0">
                             Tồn: {item.quantity_in_stock}
                           </Badge>
-                        </CommandItem>
+                        </div>
                       ))}
-                    </CommandGroup>
+                    </div>
                   )
                 })
               ) : (
                 // Show flat list for selected type
-                <CommandGroup>
-                  {availableItems.map(item => {
-                    const config = ITEM_TYPE_CONFIG[item.item_type as ItemType]
-                    return (
-                      <CommandItem
-                        key={item.id}
-                        value={`${item.id} ${item.name} ${item.code} ${item.category_name ?? ''}`}
-                        onSelect={() => addItemToAllRooms(item.id, 1)}
-                        className="flex items-center gap-2 py-2"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate">{item.name}</div>
-                          <div className="text-xs text-muted-foreground flex items-center gap-2">
-                            <span>{item.code}</span>
-                            {item.category_name && (
-                              <>
-                                <span>•</span>
-                                <span>{item.category_name}</span>
-                              </>
-                            )}
-                          </div>
+                availableItems.map(item => {
+                  const config = ITEM_TYPE_CONFIG[item.item_type as ItemType]
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-accent transition-colors"
+                      onClick={() => addItemToAllRooms(item.id, 1)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm truncate">{item.name}</div>
+                        <div className="text-xs text-muted-foreground flex items-center gap-2">
+                          <span>{item.code}</span>
+                          {item.category_name && (
+                            <>
+                              <span>•</span>
+                              <span>{item.category_name}</span>
+                            </>
+                          )}
                         </div>
-                        <Badge variant="outline" className={cn("shrink-0", config?.color)}>
-                          Tồn: {item.quantity_in_stock}
-                        </Badge>
-                      </CommandItem>
-                    )
-                  })}
-                </CommandGroup>
+                      </div>
+                      <Badge variant="outline" className={cn("shrink-0", config?.color)}>
+                        Tồn: {item.quantity_in_stock}
+                      </Badge>
+                    </div>
+                  )
+                })
               )}
-            </CommandList>
-          </Command>
+            </ScrollArea>
+          </div>
         </PopoverContent>
       </Popover>
 
