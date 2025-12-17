@@ -8,14 +8,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTenantSubscription, useUpdateTenantSubscription } from '@/hooks/useSubscription';
-import { Info, Loader2 } from 'lucide-react';
+import { Info, Loader2, Package } from 'lucide-react';
 import {
   PRICE_PER_ROOM_DAILY,
   DURATION_OPTIONS,
@@ -40,26 +39,29 @@ export function PlanChangeDialog({
   const { data: subscription } = useTenantSubscription();
   const updateSubscription = useUpdateTenantSubscription();
 
-  const [rooms, setRooms] = useState(initialRooms);
   const [selectedDuration, setSelectedDuration] = useState(initialDuration);
 
-  // Update state when initial values change
+  // Use registered rooms from subscription (read-only)
+  const registeredRooms = subscription?.registered_rooms || initialRooms;
+
+  // Update duration when initial value changes
   useEffect(() => {
-    setRooms(initialRooms);
     setSelectedDuration(initialDuration);
-  }, [initialRooms, initialDuration]);
+  }, [initialDuration]);
 
   const pricing = useMemo(
-    () => calculateSubscriptionPrice(rooms, selectedDuration),
-    [rooms, selectedDuration]
+    () => calculateSubscriptionPrice(registeredRooms, selectedDuration),
+    [registeredRooms, selectedDuration]
   );
 
-  const currentRooms = subscription?.registered_rooms || 0;
-  const endDate = calculateEndDate(new Date(), selectedDuration);
+  const currentEndDate = subscription?.subscription_end_date 
+    ? new Date(subscription.subscription_end_date) 
+    : new Date();
+  const newEndDate = calculateEndDate(currentEndDate, selectedDuration);
 
   const handleConfirm = async () => {
     await updateSubscription.mutateAsync({
-      rooms,
+      rooms: registeredRooms,
       durationDays: selectedDuration,
     });
     onOpenChange(false);
@@ -67,21 +69,21 @@ export function PlanChangeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Đăng ký / Gia hạn gói dịch vụ</DialogTitle>
+          <DialogTitle>Gia hạn gói dịch vụ</DialogTitle>
           <DialogDescription>
-            Điều chỉnh số phòng và thời hạn đăng ký theo nhu cầu
+            Chọn thời hạn gia hạn theo nhu cầu
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5">
           {/* Current Info */}
-          {currentRooms > 0 && (
+          {registeredRooms > 0 && (
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                Đăng ký hiện tại: <strong>{currentRooms} phòng</strong>
+                Đăng ký hiện tại: <strong>{registeredRooms} phòng</strong>
                 {subscription?.subscription_end_date && (
                   <>
                     {' '}• Hết hạn:{' '}
@@ -94,28 +96,21 @@ export function PlanChangeDialog({
             </Alert>
           )}
 
-          {/* Room Input */}
+          {/* Room Count - Read Only */}
           <div className="space-y-2">
-            <Label htmlFor="dialog-rooms">Số phòng đăng ký</Label>
-            <div className="flex items-center gap-3">
-              <Input
-                id="dialog-rooms"
-                type="number"
-                min={1}
-                value={rooms}
-                onChange={(e) => setRooms(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-32"
-              />
-              <span className="text-muted-foreground">phòng</span>
+            <Label>Số phòng gia hạn</Label>
+            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
+              <Package className="h-5 w-5 text-muted-foreground" />
+              <span className="font-semibold text-lg">{registeredRooms} phòng</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Giá: {formatVNCurrency(PRICE_PER_ROOM_DAILY)}/phòng/ngày
+              Cần mua thêm phòng? Sử dụng nút "Mua thêm phòng" ở trang gói dịch vụ.
             </p>
           </div>
 
           {/* Duration Selection */}
           <div className="space-y-3">
-            <Label>Thời hạn đăng ký</Label>
+            <Label>Thời hạn gia hạn</Label>
             <RadioGroup
               value={selectedDuration.toString()}
               onValueChange={(v) => setSelectedDuration(parseInt(v))}
@@ -151,7 +146,7 @@ export function PlanChangeDialog({
             <div className="flex justify-between">
               <span className="text-muted-foreground">Giá gốc</span>
               <span>
-                {rooms} × {formatVNCurrency(PRICE_PER_ROOM_DAILY)} × {pricing.days} ngày ={' '}
+                {registeredRooms} × {formatVNCurrency(PRICE_PER_ROOM_DAILY)} × {pricing.days} ngày ={' '}
                 {formatVNCurrency(pricing.basePrice)}
               </span>
             </div>
@@ -167,8 +162,8 @@ export function PlanChangeDialog({
               <span className="text-primary">{formatVNCurrency(pricing.finalPrice)}</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
-              <span>Hết hạn vào</span>
-              <span>{endDate.toLocaleDateString('vi-VN')}</span>
+              <span>Hạn mới</span>
+              <span>{newEndDate.toLocaleDateString('vi-VN')}</span>
             </div>
           </div>
         </div>
@@ -179,7 +174,7 @@ export function PlanChangeDialog({
           </Button>
           <Button onClick={handleConfirm} disabled={updateSubscription.isPending}>
             {updateSubscription.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Xác nhận đăng ký
+            Xác nhận gia hạn
           </Button>
         </DialogFooter>
       </DialogContent>

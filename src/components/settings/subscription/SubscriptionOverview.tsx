@@ -186,7 +186,7 @@ export function SubscriptionOverview() {
           {/* CTAs */}
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => setDialogOpen(true)}>
-              {isExpired || status === 'past_due' ? 'Gia hạn ngay' : 'Gia hạn/Điều chỉnh'}
+              {isExpired || status === 'past_due' ? 'Gia hạn ngay' : 'Gia hạn gói'}
             </Button>
             {!isExpired && remainingDays > 0 && (
               <Button variant="outline" onClick={() => setAddRoomsDialogOpen(true)}>
@@ -237,7 +237,7 @@ export function SubscriptionOverview() {
       <PlanChangeDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        initialRooms={actualRooms || registeredRooms || 50}
+        initialRooms={registeredRooms || 50}
         initialDuration={subscription.subscription_duration_days || 365}
       />
       
