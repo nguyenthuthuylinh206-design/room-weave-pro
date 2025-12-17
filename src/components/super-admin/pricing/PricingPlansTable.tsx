@@ -27,11 +27,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, ArrowUpDown, Plus } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { MoreHorizontal, ArrowUpDown, Plus, Calculator, Building2, Calendar, DollarSign } from 'lucide-react';
 import { usePlansWithTenantCounts, useArchivePlan, useReactivatePlan } from '@/hooks/super-admin/usePricingManagement';
 import { PricingEditor } from './PricingEditor';
 import { PlanEditor } from './PlanEditor';
 import { CreatePlanDialog } from './CreatePlanDialog';
+import { RoomPriceCalculator } from './RoomPriceCalculator';
 import type { SubscriptionPlan } from '@/types/subscription.types';
 
 export function PricingPlansTable() {
@@ -44,6 +46,11 @@ export function PricingPlansTable() {
   const { data: plans = [], isLoading } = usePlansWithTenantCounts();
   const archivePlan = useArchivePlan();
   const reactivatePlan = useReactivatePlan();
+
+  // Get room-based pricing info from first active plan
+  const activePlan = plans.find((p: any) => p.is_active);
+  const pricePerRoomDaily = (activePlan as any)?.price_per_room_daily || 1000;
+  const minDays = (activePlan as any)?.min_subscription_days || 30;
 
   const columns: ColumnDef<SubscriptionPlan & { tenant_count?: number }>[] = [
     {
@@ -76,43 +83,74 @@ export function PricingPlansTable() {
       ),
     },
     {
-      accessorKey: 'price_monthly',
+      id: 'room_pricing',
       header: ({ column }) => {
         return (
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           >
-            Giá/tháng
+            Giá/phòng/ngày
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         );
       },
-      cell: ({ row }) => (
-        <span className="font-medium">{row.original.price_monthly?.toLocaleString('vi-VN')}đ</span>
-      ),
+      cell: ({ row }) => {
+        const plan = row.original as any;
+        return (
+          <div>
+            <div className="font-medium text-primary">
+              {(plan.price_per_room_daily || 1000).toLocaleString('vi-VN')}đ
+            </div>
+            <div className="text-xs text-muted-foreground">
+              /phòng/ngày
+            </div>
+          </div>
+        );
+      },
     },
     {
-      accessorKey: 'price_yearly',
-      header: 'Giá/năm',
-      cell: ({ row }) => (
-        <div>
-          <div className="font-medium">{row.original.price_yearly?.toLocaleString('vi-VN')}đ</div>
-          {row.original.price_monthly && (
+      id: 'min_days',
+      header: 'Tối thiểu',
+      cell: ({ row }) => {
+        const plan = row.original as any;
+        return (
+          <div>
+            <div className="font-medium">{plan.min_subscription_days || 30} ngày</div>
             <div className="text-xs text-muted-foreground">
-              Tiết kiệm {Math.round((1 - row.original.price_yearly / (row.original.price_monthly * 12)) * 100)}%
+              = {((plan.min_subscription_days || 30) / 30).toFixed(0)} tháng
             </div>
-          )}
-        </div>
-      ),
+          </div>
+        );
+      },
+    },
+    {
+      id: 'sample_price',
+      header: 'Giá mẫu (50 phòng)',
+      cell: ({ row }) => {
+        const plan = row.original as any;
+        const pricePerDay = plan.price_per_room_daily || 1000;
+        const minDays = plan.min_subscription_days || 30;
+        const samplePrice = 50 * pricePerDay * minDays;
+        return (
+          <div>
+            <div className="font-medium text-green-600">
+              {samplePrice.toLocaleString('vi-VN')}đ
+            </div>
+            <div className="text-xs text-muted-foreground">
+              50 × {pricePerDay.toLocaleString()}đ × {minDays} ngày
+            </div>
+          </div>
+        );
+      },
     },
     {
       id: 'limits',
       header: 'Giới hạn',
       cell: ({ row }) => (
         <div className="text-sm">
-          <div>{row.original.max_hotels} khách sạn</div>
-          <div className="text-muted-foreground">{row.original.max_users} người dùng</div>
+          <div>{row.original.max_hotels === -1 ? 'Không giới hạn' : `${row.original.max_hotels} khách sạn`}</div>
+          <div className="text-muted-foreground">{row.original.max_users === -1 ? 'Không giới hạn' : `${row.original.max_users} người dùng`}</div>
         </div>
       ),
     },
@@ -120,7 +158,7 @@ export function PricingPlansTable() {
       accessorKey: 'tenant_count',
       header: 'Khách hàng',
       cell: ({ row }) => (
-        <Badge variant="outline">{row.original.tenant_count || 0}</Badge>
+        <Badge variant="outline">{(row.original as any).activeTenantCount || 0}</Badge>
       ),
     },
     {
@@ -186,7 +224,52 @@ export function PricingPlansTable() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Pricing Model Info */}
+      <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-primary" />
+            Mô hình giá theo phòng
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
+              <Building2 className="h-8 w-8 text-primary" />
+              <div>
+                <div className="text-2xl font-bold text-primary">
+                  {pricePerRoomDaily.toLocaleString('vi-VN')}đ
+                </div>
+                <div className="text-sm text-muted-foreground">/phòng/ngày</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
+              <Calendar className="h-8 w-8 text-primary" />
+              <div>
+                <div className="text-2xl font-bold">{minDays} ngày</div>
+                <div className="text-sm text-muted-foreground">Đăng ký tối thiểu</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
+              <Calculator className="h-8 w-8 text-primary" />
+              <div>
+                <div className="text-sm font-medium">Công thức tính giá</div>
+                <div className="text-xs text-muted-foreground">
+                  Số phòng × {pricePerRoomDaily.toLocaleString()}đ × Số ngày
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Price Calculator */}
+      <RoomPriceCalculator 
+        pricePerRoomDaily={pricePerRoomDaily} 
+        minDays={minDays} 
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

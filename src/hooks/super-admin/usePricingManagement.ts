@@ -140,18 +140,22 @@ export function useUpdatePlanPricing() {
       planId,
       newMonthlyPrice,
       newYearlyPrice,
+      pricePerRoomDaily,
+      minSubscriptionDays,
       changedBy,
       reason,
     }: {
       planId: string;
       newMonthlyPrice: number;
       newYearlyPrice: number;
+      pricePerRoomDaily?: number;
+      minSubscriptionDays?: number;
       changedBy: string;
       reason?: string;
     }) => {
       const { data: currentPlan, error: fetchError } = await supabase
         .from('subscription_plans')
-        .select('price_monthly, price_yearly')
+        .select('price_monthly, price_yearly, price_per_room_daily, min_subscription_days')
         .eq('id', planId)
         .single();
 
@@ -171,12 +175,21 @@ export function useUpdatePlanPricing() {
 
       if (historyError) throw historyError;
 
+      const updateData: any = {
+        price_monthly: newMonthlyPrice,
+        price_yearly: newYearlyPrice,
+      };
+
+      if (pricePerRoomDaily !== undefined) {
+        updateData.price_per_room_daily = pricePerRoomDaily;
+      }
+      if (minSubscriptionDays !== undefined) {
+        updateData.min_subscription_days = minSubscriptionDays;
+      }
+
       const { data, error } = await supabase
         .from('subscription_plans')
-        .update({
-          price_monthly: newMonthlyPrice,
-          price_yearly: newYearlyPrice,
-        })
+        .update(updateData)
         .eq('id', planId)
         .select()
         .single();
@@ -189,6 +202,7 @@ export function useUpdatePlanPricing() {
       queryClient.invalidateQueries({ queryKey: ['subscription-plans'] });
       queryClient.invalidateQueries({ queryKey: ['subscription-plan', variables.planId] });
       queryClient.invalidateQueries({ queryKey: ['plan-price-history', variables.planId] });
+      queryClient.invalidateQueries({ queryKey: ['plans-with-tenant-counts'] });
       toast.success('Đã cập nhật giá');
     },
     onError: (error: any) => {
