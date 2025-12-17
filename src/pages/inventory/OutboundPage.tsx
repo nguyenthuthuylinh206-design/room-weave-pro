@@ -11,7 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -196,42 +195,18 @@ export function OutboundPage() {
                   <FormItem>
                     <FormLabel>{t('inventory:outbound.type')} *</FormLabel>
                     <FormControl>
-                      <RadioGroup 
-                        value={field.value}
-                        onValueChange={field.onChange} 
-                        className="grid grid-cols-2 gap-4"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="room_assign" id="room_assign" />
-                          <label htmlFor="room_assign" className="cursor-pointer">
-                            🏠 {t('inventory:outbound.toRoom')}
-                          </label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="laundry" id="laundry" />
-                          <label htmlFor="laundry" className="cursor-pointer">
-                            🧺 {t('inventory:outbound.toLaundry')}
-                          </label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="maintenance" id="maintenance" />
-                          <label htmlFor="maintenance" className="cursor-pointer">
-                            🔧 {t('inventory:outbound.toMaintenance')}
-                          </label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="disposal" id="disposal" />
-                          <label htmlFor="disposal" className="cursor-pointer">
-                            🗑️ {t('inventory:outbound.toDisposal')}
-                          </label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="other" id="other" />
-                          <label htmlFor="other" className="cursor-pointer">
-                            ➖ {t('inventory:outbound.toOther')}
-                          </label>
-                        </div>
-                      </RadioGroup>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('inventory:outbound.type')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="room_assign">🏠 {t('inventory:outbound.toRoom')}</SelectItem>
+                          <SelectItem value="laundry">🧺 {t('inventory:outbound.toLaundry')}</SelectItem>
+                          <SelectItem value="maintenance">🔧 {t('inventory:outbound.toMaintenance')}</SelectItem>
+                          <SelectItem value="disposal">🗑️ {t('inventory:outbound.toDisposal')}</SelectItem>
+                          <SelectItem value="other">➖ {t('inventory:outbound.toOther')}</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
