@@ -3,13 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 /**
- * Get all tenants with subscription details
+ * Get all tenants with subscription details, lifetime revenue, and last activity
  */
 export function useTenants() {
   return useQuery({
     queryKey: ['super-admin-tenants'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch tenants with subscription and usage
+      const { data: tenants, error } = await supabase
         .from('tenants')
         .select(`
           *,
@@ -37,7 +38,43 @@ export function useTenants() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+
+      // Fetch lifetime revenue for each tenant from invoices
+      const tenantIds = tenants?.map(t => t.id) || [];
+      
+      const { data: invoices } = await supabase
+        .from('invoices')
+        .select('tenant_id, total_amount, status')
+        .in('tenant_id', tenantIds)
+        .eq('status', 'paid');
+
+      // Calculate lifetime revenue per tenant
+      const revenueByTenant: Record<string, number> = {};
+      invoices?.forEach(inv => {
+        revenueByTenant[inv.tenant_id] = (revenueByTenant[inv.tenant_id] || 0) + (inv.total_amount || 0);
+      });
+
+      // Fetch last activity for each tenant
+      const { data: activities } = await supabase
+        .from('activity_logs')
+        .select('tenant_id, created_at')
+        .in('tenant_id', tenantIds)
+        .order('created_at', { ascending: false });
+
+      // Get last activity per tenant
+      const lastActivityByTenant: Record<string, string> = {};
+      activities?.forEach(act => {
+        if (!lastActivityByTenant[act.tenant_id]) {
+          lastActivityByTenant[act.tenant_id] = act.created_at || '';
+        }
+      });
+
+      // Merge data
+      return tenants?.map(tenant => ({
+        ...tenant,
+        lifetime_revenue: revenueByTenant[tenant.id] || 0,
+        last_activity: lastActivityByTenant[tenant.id] || null,
+      })) || [];
     },
   });
 }

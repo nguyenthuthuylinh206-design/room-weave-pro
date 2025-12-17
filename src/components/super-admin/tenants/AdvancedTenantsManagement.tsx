@@ -20,6 +20,7 @@ export function AdvancedTenantsManagement() {
   const { t } = useTranslation('superAdmin');
   const [statusFilter, setStatusFilter] = useState('all');
   const [planFilter, setPlanFilter] = useState('all');
+  const [approvalFilter, setApprovalFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTenants, setSelectedTenants] = useState<string[]>([]);
 
@@ -82,6 +83,18 @@ export function AdvancedTenantsManagement() {
             </SelectContent>
           </Select>
 
+          <Select value={approvalFilter} onValueChange={setApprovalFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder={t('tenants.filterByApproval')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('tenants.allApproval')}</SelectItem>
+              <SelectItem value="approved">{t('tenants.approval.approved')}</SelectItem>
+              <SelectItem value="pending">{t('tenants.approval.pending')}</SelectItem>
+              <SelectItem value="rejected">{t('tenants.approval.rejected')}</SelectItem>
+            </SelectContent>
+          </Select>
+
           <Button variant="outline" onClick={handleExport}>
             <Download className="h-4 w-4 mr-2" />
             {t('tenants.exportData')}
@@ -108,6 +121,7 @@ export function AdvancedTenantsManagement() {
           <TenantsTable
             statusFilter={statusFilter}
             planFilter={planFilter}
+            approvalFilter={approvalFilter}
             searchQuery={searchQuery}
             selectedTenants={selectedTenants}
             onSelectionChange={setSelectedTenants}
