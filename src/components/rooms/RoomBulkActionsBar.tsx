@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation, Trans } from 'react-i18next'
 import { X, Trash2, RefreshCw, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,17 +27,18 @@ interface RoomBulkActionsBarProps {
   onClearSelection: () => void
 }
 
-const statusOptions: { value: RoomStatus; label: string }[] = [
-  { value: 'vacant', label: 'Trống' },
-  { value: 'occupied', label: 'Có khách' },
-  { value: 'cleaning', label: 'Đang dọn' },
-  { value: 'maintenance', label: 'Bảo trì' },
-  { value: 'out_of_order', label: 'Không sử dụng' },
-  { value: 'check_in', label: 'Check-in' },
-  { value: 'check_out', label: 'Check-out' },
+const statusKeys: RoomStatus[] = [
+  'vacant',
+  'occupied', 
+  'cleaning',
+  'maintenance',
+  'out_of_order',
+  'check_in',
+  'check_out',
 ]
 
 export function RoomBulkActionsBar({ selectedIds, onClearSelection }: RoomBulkActionsBarProps) {
+  const { t } = useTranslation('rooms')
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState<RoomStatus | ''>('')
   
@@ -74,7 +76,12 @@ export function RoomBulkActionsBar({ selectedIds, onClearSelection }: RoomBulkAc
           <div className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-primary" />
             <span className="font-medium">
-              Đã chọn <span className="text-primary">{selectedIds.length}</span> phòng
+              <Trans 
+                i18nKey="bulkActions.selected" 
+                ns="rooms"
+                values={{ count: selectedIds.length }}
+                components={{ 1: <span className="text-primary" /> }}
+              />
             </span>
           </div>
           <Button
@@ -84,7 +91,7 @@ export function RoomBulkActionsBar({ selectedIds, onClearSelection }: RoomBulkAc
             className="h-8 px-2"
           >
             <X className="h-4 w-4" />
-            <span className="ml-1">Bỏ chọn</span>
+            <span className="ml-1">{t('bulkActions.clear')}</span>
           </Button>
         </div>
 
@@ -97,12 +104,12 @@ export function RoomBulkActionsBar({ selectedIds, onClearSelection }: RoomBulkAc
           >
             <SelectTrigger className="w-[160px] bg-background">
               <RefreshCw className={`mr-2 h-4 w-4 ${bulkUpdateStatus.isPending ? 'animate-spin' : ''}`} />
-              <SelectValue placeholder="Đổi trạng thái" />
+              <SelectValue placeholder={t('bulkActions.changeStatus')} />
             </SelectTrigger>
             <SelectContent>
-              {statusOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
+              {statusKeys.map((statusKey) => (
+                <SelectItem key={statusKey} value={statusKey}>
+                  {t(`status.${statusKey}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -116,7 +123,7 @@ export function RoomBulkActionsBar({ selectedIds, onClearSelection }: RoomBulkAc
             disabled={bulkDelete.isPending}
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Xóa ({selectedIds.length})
+            {t('bulkActions.delete', { count: selectedIds.length })}
           </Button>
         </div>
       </div>
@@ -125,25 +132,38 @@ export function RoomBulkActionsBar({ selectedIds, onClearSelection }: RoomBulkAc
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận xóa {selectedIds.length} phòng</AlertDialogTitle>
-            <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa <strong>{selectedIds.length}</strong> phòng đã chọn?
-              <br />
-              <span className="text-destructive">Hành động này không thể hoàn tác.</span>
-              <br />
-              <span className="text-muted-foreground text-sm">
-                Lưu ý: Phòng có đồ dùng hoặc lịch sử kiểm tra sẽ không thể xóa.
-              </span>
+            <AlertDialogTitle>
+              {t('bulkActions.deleteTitle', { count: selectedIds.length })}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <Trans 
+                  i18nKey="bulkActions.deleteDescription" 
+                  ns="rooms"
+                  values={{ count: selectedIds.length }}
+                  components={{ 1: <strong /> }}
+                />
+                <br />
+                <span className="text-destructive">{t('bulkActions.deleteWarning')}</span>
+                <br />
+                <span className="text-muted-foreground text-sm">
+                  {t('bulkActions.deleteNote')}
+                </span>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={bulkDelete.isPending}>Hủy</AlertDialogCancel>
+            <AlertDialogCancel disabled={bulkDelete.isPending}>
+              {t('bulkActions.cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={bulkDelete.isPending}
             >
-              {bulkDelete.isPending ? 'Đang xóa...' : `Xóa ${selectedIds.length} phòng`}
+              {bulkDelete.isPending 
+                ? t('bulkActions.deleting') 
+                : t('bulkActions.deleteConfirm', { count: selectedIds.length })}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

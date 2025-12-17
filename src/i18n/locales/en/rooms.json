@@ -50,7 +50,20 @@
     "byStatus": "By Status",
     "byType": "By Type",
     "search": "Search rooms...",
-    "searchRoomFloor": "Search room number, floor..."
+    "searchRoomFloor": "Search room number, floor...",
+    "searchRoomNumber": "Search room number...",
+    "floorPlaceholder": "Floor",
+    "allFloors": "All floors",
+    "floorN": "Floor {{number}}",
+    "roomTypePlaceholder": "Room type",
+    "allTypes": "All types",
+    "statusPlaceholder": "Status",
+    "statusVacant": "Vacant",
+    "statusOccupied": "Occupied",
+    "statusCleaning": "Cleaning",
+    "statusMaintenance": "Maintenance",
+    "statusOutOfOrder": "Out of order",
+    "missingItemsOnly": "Missing items only"
   },
   "stats": {
     "total": "Total",
@@ -84,12 +97,18 @@
     "basePrice": "Base Price",
     "perNight": "/night"
   },
+  "viewModes": {
+    "grid": "Grid",
+    "list": "List",
+    "floorPlan": "Floor Plan"
+  },
   "actions": {
     "viewDetail": "View Details",
     "backToList": "Back to list",
     "edit": "Edit",
     "delete": "Delete",
-    "checkRoom": "Check Room"
+    "checkRoom": "Check Room",
+    "bulkImport": "Bulk Import"
   },
   "detail": {
     "title": "Room {{number}}",
@@ -189,6 +208,19 @@
     "cancel": "Cancel",
     "confirm": "Delete",
     "deleting": "Deleting..."
+  },
+  "bulkActions": {
+    "selected": "Selected <1>{{count}}</1> rooms",
+    "clear": "Clear",
+    "changeStatus": "Change status",
+    "delete": "Delete ({{count}})",
+    "deleteTitle": "Confirm delete {{count}} rooms",
+    "deleteDescription": "Are you sure you want to delete <1>{{count}}</1> selected rooms?",
+    "deleteWarning": "This action cannot be undone.",
+    "deleteNote": "Note: Rooms with items or check history cannot be deleted.",
+    "cancel": "Cancel",
+    "deleting": "Deleting...",
+    "deleteConfirm": "Delete {{count}} rooms"
   },
   "detail": {
     "title": "Room {{number}}",

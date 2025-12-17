@@ -50,7 +50,20 @@
     "byStatus": "Theo trạng thái",
     "byType": "Theo loại phòng",
     "search": "Tìm kiếm phòng...",
-    "searchRoomFloor": "Tìm số phòng, tầng..."
+    "searchRoomFloor": "Tìm số phòng, tầng...",
+    "searchRoomNumber": "Tìm số phòng...",
+    "floorPlaceholder": "Tầng",
+    "allFloors": "Tất cả tầng",
+    "floorN": "Tầng {{number}}",
+    "roomTypePlaceholder": "Loại phòng",
+    "allTypes": "Tất cả loại",
+    "statusPlaceholder": "Trạng thái",
+    "statusVacant": "Trống",
+    "statusOccupied": "Có khách",
+    "statusCleaning": "Đang dọn",
+    "statusMaintenance": "Bảo trì",
+    "statusOutOfOrder": "Hỏng",
+    "missingItemsOnly": "Chỉ phòng thiếu đồ"
   },
   "stats": {
     "total": "Tổng",
@@ -84,12 +97,18 @@
     "basePrice": "Giá cơ bản",
     "perNight": "/đêm"
   },
+  "viewModes": {
+    "grid": "Lưới",
+    "list": "Danh sách",
+    "floorPlan": "Sơ đồ tầng"
+  },
   "actions": {
     "viewDetail": "Xem chi tiết",
     "backToList": "Quay lại danh sách",
     "edit": "Sửa",
     "delete": "Xóa",
-    "checkRoom": "Kiểm tra phòng"
+    "checkRoom": "Kiểm tra phòng",
+    "bulkImport": "Nhập hàng loạt"
   },
   "detail": {
     "title": "Phòng {{number}}",
@@ -189,6 +208,19 @@
     "cancel": "Hủy",
     "confirm": "Xóa",
     "deleting": "Đang xóa..."
+  },
+  "bulkActions": {
+    "selected": "Đã chọn <1>{{count}}</1> phòng",
+    "clear": "Bỏ chọn",
+    "changeStatus": "Đổi trạng thái",
+    "delete": "Xóa ({{count}})",
+    "deleteTitle": "Xác nhận xóa {{count}} phòng",
+    "deleteDescription": "Bạn có chắc chắn muốn xóa <1>{{count}}</1> phòng đã chọn?",
+    "deleteWarning": "Hành động này không thể hoàn tác.",
+    "deleteNote": "Lưu ý: Phòng có đồ dùng hoặc lịch sử kiểm tra sẽ không thể xóa.",
+    "cancel": "Hủy",
+    "deleting": "Đang xóa...",
+    "deleteConfirm": "Xóa {{count}} phòng"
   },
   "detail": {
     "title": "Phòng {{number}}",
