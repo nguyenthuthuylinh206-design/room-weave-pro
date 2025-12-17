@@ -4073,11 +4073,11 @@ export type Database = {
           features: Json | null
           id: string
           is_active: boolean | null
-          max_hotels: number
+          max_hotels: number | null
           max_items: number | null
           max_rooms: number | null
-          max_storage_gb: number
-          max_users: number
+          max_storage_gb: number | null
+          max_users: number | null
           min_subscription_days: number | null
           name: string
           price_monthly: number
@@ -4094,11 +4094,11 @@ export type Database = {
           features?: Json | null
           id?: string
           is_active?: boolean | null
-          max_hotels?: number
+          max_hotels?: number | null
           max_items?: number | null
           max_rooms?: number | null
-          max_storage_gb?: number
-          max_users?: number
+          max_storage_gb?: number | null
+          max_users?: number | null
           min_subscription_days?: number | null
           name: string
           price_monthly?: number
@@ -4115,11 +4115,11 @@ export type Database = {
           features?: Json | null
           id?: string
           is_active?: boolean | null
-          max_hotels?: number
+          max_hotels?: number | null
           max_items?: number | null
           max_rooms?: number | null
-          max_storage_gb?: number
-          max_users?: number
+          max_storage_gb?: number | null
+          max_users?: number | null
           min_subscription_days?: number | null
           name?: string
           price_monthly?: number
@@ -4253,10 +4253,12 @@ export type Database = {
           name: string
           payment_method: string | null
           phone: string | null
+          registered_rooms: number | null
           rejection_reason: string | null
           settings: Json | null
           subscription_current_period_end: string | null
           subscription_current_period_start: string | null
+          subscription_duration_days: number | null
           subscription_end_date: string | null
           subscription_expires_at: string | null
           subscription_plan: string | null
@@ -4284,10 +4286,12 @@ export type Database = {
           name: string
           payment_method?: string | null
           phone?: string | null
+          registered_rooms?: number | null
           rejection_reason?: string | null
           settings?: Json | null
           subscription_current_period_end?: string | null
           subscription_current_period_start?: string | null
+          subscription_duration_days?: number | null
           subscription_end_date?: string | null
           subscription_expires_at?: string | null
           subscription_plan?: string | null
@@ -4315,10 +4319,12 @@ export type Database = {
           name?: string
           payment_method?: string | null
           phone?: string | null
+          registered_rooms?: number | null
           rejection_reason?: string | null
           settings?: Json | null
           subscription_current_period_end?: string | null
           subscription_current_period_start?: string | null
+          subscription_duration_days?: number | null
           subscription_end_date?: string | null
           subscription_expires_at?: string | null
           subscription_plan?: string | null

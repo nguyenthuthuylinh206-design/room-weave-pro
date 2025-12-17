@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,21 +8,23 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useSubscriptionPlans } from '@/hooks/useSubscription';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { Badge } from '@/components/ui/badge';
-import { formatCurrency } from '@/lib/utils';
+import { Info, Loader2, Building2 } from 'lucide-react';
+import {
+  PRICE_PER_ROOM_DAILY,
+  DURATION_OPTIONS,
+  calculateSubscriptionPrice,
+  formatVNCurrency,
+  calculateEndDate,
+} from '@/lib/pricing';
 
 interface ChangePlanDialogProps {
   tenant: any | null;
@@ -35,41 +37,96 @@ export function ChangePlanDialog({
   open,
   onOpenChange,
 }: ChangePlanDialogProps) {
-  const [selectedPlanId, setSelectedPlanId] = useState('');
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [rooms, setRooms] = useState(50);
+  const [selectedDuration, setSelectedDuration] = useState(365);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [actualRoomCount, setActualRoomCount] = useState<number | null>(null);
 
-  const { data: plans = [] } = useSubscriptionPlans();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const selectedPlan = plans.find(p => p.id === selectedPlanId);
+  // Fetch actual room count for tenant
+  useEffect(() => {
+    if (!tenant?.id || !open) return;
+
+    const fetchRoomCount = async () => {
+      const { count } = await supabase
+        .from('rooms')
+        .select('id', { count: 'exact', head: true })
+        .eq('hotel_id', tenant.id);
+      
+      // This won't work directly, we need to count rooms via hotels
+      const { data: hotels } = await supabase
+        .from('hotels')
+        .select('id')
+        .eq('tenant_id', tenant.id)
+        .eq('status', 'active');
+
+      if (hotels && hotels.length > 0) {
+        const hotelIds = hotels.map((h) => h.id);
+        const { count: roomCount } = await supabase
+          .from('rooms')
+          .select('id', { count: 'exact', head: true })
+          .in('hotel_id', hotelIds);
+        
+        setActualRoomCount(roomCount || 0);
+      } else {
+        setActualRoomCount(0);
+      }
+    };
+
+    fetchRoomCount();
+    
+    // Set initial values from tenant
+    setRooms(tenant.registered_rooms || 50);
+    setSelectedDuration(tenant.subscription_duration_days || 365);
+  }, [tenant?.id, open]);
+
+  const pricing = useMemo(
+    () => calculateSubscriptionPrice(rooms, selectedDuration),
+    [rooms, selectedDuration]
+  );
+
+  const endDate = calculateEndDate(new Date(), selectedDuration);
 
   const handleChangePlan = async () => {
-    if (!tenant || !selectedPlanId) return;
+    if (!tenant) return;
 
     setIsUpdating(true);
     try {
       const now = new Date();
-      const periodEnd = billingCycle === 'monthly'
-        ? new Date(now.setMonth(now.getMonth() + 1))
-        : new Date(now.setFullYear(now.getFullYear() + 1));
 
+      // Get standard plan ID
+      const { data: standardPlan } = await supabase
+        .from('subscription_plans')
+        .select('id')
+        .eq('code', 'standard')
+        .eq('is_active', true)
+        .single();
+
+      if (!standardPlan) {
+        throw new Error('Không tìm thấy gói tiêu chuẩn');
+      }
+
+      // Update tenant subscription
       const { error } = await supabase
         .from('tenants')
         .update({
-          subscription_plan_id: selectedPlanId,
-          billing_cycle: billingCycle,
-          subscription_current_period_start: new Date().toISOString(),
-          subscription_current_period_end: periodEnd.toISOString(),
+          subscription_plan_id: standardPlan.id,
+          registered_rooms: rooms,
+          subscription_duration_days: selectedDuration,
+          subscription_start_date: now.toISOString().split('T')[0],
+          subscription_end_date: endDate.toISOString().split('T')[0],
+          subscription_current_period_start: now.toISOString(),
+          subscription_current_period_end: endDate.toISOString(),
           subscription_status: 'active',
-          updated_at: new Date().toISOString(),
+          updated_at: now.toISOString(),
         })
         .eq('id', tenant.id);
 
       if (error) throw error;
 
-      // Recalculate tenant usage to ensure quotas reflect new plan
+      // Recalculate tenant usage
       const { error: usageError } = await supabase.rpc('update_tenant_usage', {
         p_tenant_id: tenant.id,
       });
@@ -79,8 +136,8 @@ export function ChangePlanDialog({
       }
 
       toast({
-        title: 'Plan Updated',
-        description: `${tenant.name} has been switched to ${selectedPlan?.name}`,
+        title: 'Cập nhật thành công',
+        description: `Đã cập nhật gói cho ${tenant.name}: ${rooms} phòng, ${selectedDuration} ngày`,
       });
 
       queryClient.invalidateQueries({ queryKey: ['super-admin-tenants'] });
@@ -90,7 +147,7 @@ export function ChangePlanDialog({
       onOpenChange(false);
     } catch (error: any) {
       toast({
-        title: 'Error',
+        title: 'Lỗi',
         description: error.message,
         variant: 'destructive',
       });
@@ -101,88 +158,134 @@ export function ChangePlanDialog({
 
   if (!tenant) return null;
 
+  const currentRooms = tenant.registered_rooms || 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Change Subscription Plan</DialogTitle>
+          <DialogTitle>Điều chỉnh đăng ký</DialogTitle>
           <DialogDescription>
-            Change the subscription plan for <strong>{tenant.name}</strong>
+            Cập nhật gói dịch vụ cho <strong>{tenant.name}</strong>
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Current Plan */}
-          <div className="rounded-lg border p-3 bg-muted/30">
-            <div className="text-sm text-muted-foreground">Current Plan</div>
-            <div className="font-medium text-foreground">
-              {tenant.subscription_plan?.name || 'No Plan'} • {tenant.billing_cycle === 'monthly' ? 'Monthly' : 'Yearly'}
-            </div>
-          </div>
-
-          {/* Select New Plan */}
-          <div className="space-y-2">
-            <Label>New Plan</Label>
-            <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a plan" />
-              </SelectTrigger>
-              <SelectContent>
-                {plans.filter(p => p.is_active).map((plan) => (
-                  <SelectItem key={plan.id} value={plan.id}>
-                    {plan.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Billing Cycle */}
-          {selectedPlanId && (
-            <div className="space-y-2">
-              <Label>Billing Cycle</Label>
-              <RadioGroup value={billingCycle} onValueChange={(v) => setBillingCycle(v as 'monthly' | 'yearly')}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="monthly" id="monthly" />
-                  <Label htmlFor="monthly" className="font-normal cursor-pointer">
-                    Monthly - {formatCurrency(selectedPlan?.price_monthly || 0)}/month
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="yearly" id="yearly" />
-                  <Label htmlFor="yearly" className="font-normal cursor-pointer">
-                    Yearly - {formatCurrency(selectedPlan?.price_yearly || 0)}/year
-                    <Badge variant="secondary" className="ml-2">
-                      Save {Math.round(((selectedPlan?.price_monthly || 0) * 12 - (selectedPlan?.price_yearly || 0)) / ((selectedPlan?.price_monthly || 0) * 12) * 100)}%
-                    </Badge>
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
-          )}
-
-          {/* Plan Details */}
-          {selectedPlan && (
-            <div className="rounded-lg border p-3 space-y-2">
-              <div className="text-sm font-medium">Plan Limits</div>
-              <div className="text-xs space-y-1 text-muted-foreground">
-                <div>• Hotels: {selectedPlan.max_hotels || 'Unlimited'}</div>
-                <div>• Users: {selectedPlan.max_users || 'Unlimited'}</div>
-                <div>• Storage: {selectedPlan.max_storage_gb || 'Unlimited'} GB</div>
+        <div className="space-y-5">
+          {/* Current Info */}
+          <Alert>
+            <Building2 className="h-4 w-4" />
+            <AlertDescription className="space-y-1">
+              <div>
+                Đăng ký hiện tại: <strong>{currentRooms} phòng</strong>
               </div>
+              {actualRoomCount !== null && (
+                <div className="text-muted-foreground">
+                  Số phòng thực tế: <strong>{actualRoomCount} phòng</strong>
+                </div>
+              )}
+              {tenant.subscription_end_date && (
+                <div>
+                  Hết hạn:{' '}
+                  <strong>
+                    {new Date(tenant.subscription_end_date).toLocaleDateString('vi-VN')}
+                  </strong>
+                </div>
+              )}
+            </AlertDescription>
+          </Alert>
+
+          {/* Room Input */}
+          <div className="space-y-2">
+            <Label htmlFor="sa-rooms">Số phòng đăng ký</Label>
+            <div className="flex items-center gap-3">
+              <Input
+                id="sa-rooms"
+                type="number"
+                min={1}
+                value={rooms}
+                onChange={(e) => setRooms(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-32"
+              />
+              <span className="text-muted-foreground">phòng</span>
+              {actualRoomCount !== null && actualRoomCount > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setRooms(actualRoomCount)}
+                >
+                  Dùng thực tế ({actualRoomCount})
+                </Button>
+              )}
             </div>
-          )}
+            <p className="text-xs text-muted-foreground">
+              Giá: {formatVNCurrency(PRICE_PER_ROOM_DAILY)}/phòng/ngày
+            </p>
+          </div>
+
+          {/* Duration Selection */}
+          <div className="space-y-3">
+            <Label>Thời hạn đăng ký</Label>
+            <RadioGroup
+              value={selectedDuration.toString()}
+              onValueChange={(v) => setSelectedDuration(parseInt(v))}
+              className="grid grid-cols-2 gap-2"
+            >
+              {DURATION_OPTIONS.map((option) => (
+                <div key={option.days} className="relative">
+                  <RadioGroupItem
+                    value={option.days.toString()}
+                    id={`sa-duration-${option.days}`}
+                    className="peer sr-only"
+                  />
+                  <Label
+                    htmlFor={`sa-duration-${option.days}`}
+                    className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer transition-colors"
+                  >
+                    <span className="font-medium">{option.label}</span>
+                    {option.discount > 0 && (
+                      <Badge variant="secondary" className="mt-1 text-xs">
+                        -{option.discount}%
+                      </Badge>
+                    )}
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+
+          <Separator />
+
+          {/* Price Summary */}
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Giá gốc</span>
+              <span>{formatVNCurrency(pricing.basePrice)}</span>
+            </div>
+            {pricing.discountPercent > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>Giảm giá ({pricing.discountPercent}%)</span>
+                <span>- {formatVNCurrency(pricing.discount)}</span>
+              </div>
+            )}
+            <Separator />
+            <div className="flex justify-between font-semibold text-base">
+              <span>Tổng cộng</span>
+              <span className="text-primary">{formatVNCurrency(pricing.finalPrice)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Hết hạn vào</span>
+              <span>{endDate.toLocaleDateString('vi-VN')}</span>
+            </div>
+          </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            Hủy
           </Button>
-          <Button
-            onClick={handleChangePlan}
-            disabled={!selectedPlanId || isUpdating}
-          >
-            {isUpdating ? 'Updating...' : 'Change Plan'}
+          <Button onClick={handleChangePlan} disabled={isUpdating}>
+            {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Cập nhật đăng ký
           </Button>
         </DialogFooter>
       </DialogContent>

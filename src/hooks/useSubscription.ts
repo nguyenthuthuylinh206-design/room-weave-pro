@@ -10,6 +10,10 @@ import type {
   InvoiceInsert,
   InvoiceWithRelations,
 } from '@/types/subscription.types'
+import {
+  calculateSubscriptionPrice,
+  calculateEndDate,
+} from '@/lib/pricing'
 
 // Fetch all active subscription plans
 export const useSubscriptionPlans = () => {
@@ -179,37 +183,50 @@ export const useCreateInvoice = () => {
   })
 }
 
-// Update tenant subscription plan
+// Update tenant subscription with room-based pricing
 export const useUpdateTenantSubscription = () => {
   const queryClient = useQueryClient()
   const { tenantId } = useUser()
 
   return useMutation({
     mutationFn: async ({
-      planId,
-      billingCycle,
+      rooms,
+      durationDays,
     }: {
-      planId: string
-      billingCycle: 'monthly' | 'yearly'
+      rooms: number
+      durationDays: number
     }) => {
       if (!tenantId) throw new Error('Tenant ID not found')
 
       const now = new Date()
-      const periodEnd = billingCycle === 'monthly'
-        ? new Date(now.setMonth(now.getMonth() + 1))
-        : new Date(now.setFullYear(now.getFullYear() + 1))
+      const endDate = calculateEndDate(now, durationDays)
+      const pricing = calculateSubscriptionPrice(rooms, durationDays)
 
+      // Get standard plan ID
+      const { data: standardPlan, error: planError } = await supabase
+        .from('subscription_plans')
+        .select('id')
+        .eq('code', 'standard')
+        .eq('is_active', true)
+        .single()
+
+      if (planError || !standardPlan) {
+        throw new Error('Không tìm thấy gói tiêu chuẩn')
+      }
+
+      // Update tenant subscription
       const { data, error } = await supabase
         .from('tenants')
         .update({
-          subscription_plan_id: planId,
+          subscription_plan_id: standardPlan.id,
+          registered_rooms: rooms,
+          subscription_duration_days: durationDays,
           subscription_status: 'active',
-          billing_cycle: billingCycle,
-          subscription_start_date: new Date().toISOString().split('T')[0],
-          subscription_end_date: periodEnd.toISOString().split('T')[0],
-          subscription_current_period_start: new Date().toISOString(),
-          subscription_current_period_end: periodEnd.toISOString(),
-          updated_at: new Date().toISOString(),
+          subscription_start_date: now.toISOString().split('T')[0],
+          subscription_end_date: endDate.toISOString().split('T')[0],
+          subscription_current_period_start: now.toISOString(),
+          subscription_current_period_end: endDate.toISOString(),
+          updated_at: now.toISOString(),
         })
         .eq('id', tenantId)
         .select()
@@ -217,22 +234,22 @@ export const useUpdateTenantSubscription = () => {
 
       if (error) throw error
 
-      // Recalculate tenant usage to ensure quotas reflect new plan
+      // Recalculate tenant usage
       const { error: usageError } = await supabase.rpc('update_tenant_usage', {
         p_tenant_id: tenantId,
       })
 
       if (usageError) console.error('Failed to update usage:', usageError)
 
-      return data
+      return { data, pricing }
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['tenant-subscription'] })
       queryClient.invalidateQueries({ queryKey: ['tenant-usage'] })
       queryClient.invalidateQueries({ queryKey: ['check-quota'] })
       toast({
         title: 'Thành công',
-        description: 'Gói đăng ký đã được cập nhật',
+        description: `Đã đăng ký ${result.pricing.rooms} phòng trong ${result.pricing.days} ngày`,
       })
     },
     onError: (error: Error) => {
