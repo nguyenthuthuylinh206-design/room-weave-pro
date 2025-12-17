@@ -87,6 +87,42 @@
     "complete": "Complete",
     "inLaundry": "{{count}} in laundry"
   },
+  "itemsList": {
+    "noStandardSetup": "No standard items set up for this room type.",
+    "noStandardSetupWithLink": "No standard items set up for this room type. Please go to",
+    "manageStandards": "Room Standards",
+    "toSetup": "to set up.",
+    "unverifiedAlert": "{{count}} item types have not been checked.",
+    "missingSummary": "Missing {{count}} types ({{total}} items).",
+    "tabs": {
+      "required": "Required",
+      "current": "Current",
+      "missing": "Missing"
+    },
+    "labels": {
+      "required": "required",
+      "current": "current",
+      "difference": "Difference"
+    },
+    "status": {
+      "complete": "Complete",
+      "enough": "OK",
+      "excess": "Excess",
+      "excessAmount": "Excess {{count}}",
+      "missing": "Missing",
+      "missingAmount": "Missing {{count}}"
+    },
+    "condition": {
+      "good": "Good",
+      "fair": "Fair",
+      "poor": "Poor",
+      "damaged": "Damaged"
+    },
+    "allComplete": "All Complete",
+    "allCompleteDesc": "All items are up to standard",
+    "missingTypes": "Missing {{count}} types",
+    "totalMissing": "Total: {{count}} items"
+  },
   "checkSession": {
     "checking": "{{name}} is checking {{type}}",
     "check": "Check",
@@ -405,6 +441,7 @@
     },
     "empty": "No assets in this room standard",
     "addAsset": "Select asset to add...",
+    "noteLabel": "Note",
     "note": "When creating a new \"{{type}}\" room, the system will automatically assign assets based on the configured standards.",
     "validation": {
       "selectAsset": "Please select an asset and enter a valid quantity"

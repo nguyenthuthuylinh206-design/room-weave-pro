@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,15 +27,10 @@ import { useCategories } from '@/hooks/useCategories'
 import { useItems } from '@/hooks/useItems'
 import { toast } from 'sonner'
 
-const ROOM_TYPES = [
-  { value: 'standard', label: 'Standard' },
-  { value: 'superior', label: 'Superior' },
-  { value: 'deluxe', label: 'Deluxe' },
-  { value: 'suite', label: 'Suite' },
-  { value: 'penthouse', label: 'Penthouse' },
-]
+const ROOM_TYPE_KEYS: RoomType[] = ['standard', 'deluxe', 'suite', 'vip']
 
 export function RoomStandardsPage() {
+  const { t } = useTranslation('rooms')
   const navigate = useNavigate()
   const [selectedRoomType, setSelectedRoomType] = useState<RoomType>('standard')
 
@@ -53,7 +49,7 @@ export function RoomStandardsPage() {
 
   const handleAddItem = async () => {
     if (!newItem.item_id || newItem.quantity < 1) {
-      toast.error('Vui lòng chọn tài sản và nhập số lượng hợp lệ')
+      toast.error(t('standards.validation.selectAsset'))
       return
     }
 
@@ -102,9 +98,9 @@ export function RoomStandardsPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Thiết lập chuẩn phòng</h1>
+            <h1 className="text-3xl font-bold">{t('standards.title')}</h1>
             <p className="text-muted-foreground">
-              Cấu hình tài sản chuẩn cho từng loại phòng
+              {t('standards.description')}
             </p>
           </div>
         </div>
@@ -113,15 +109,15 @@ export function RoomStandardsPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Loại phòng</CardTitle>
+            <CardTitle>{t('standards.roomType')}</CardTitle>
             <Select value={selectedRoomType} onValueChange={(value) => setSelectedRoomType(value as RoomType)}>
               <SelectTrigger className="w-48">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {ROOM_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
+                {ROOM_TYPE_KEYS.map((typeKey) => (
+                  <SelectItem key={typeKey} value={typeKey}>
+                    {t(`roomTypes.${typeKey}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -130,16 +126,16 @@ export function RoomStandardsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Đang tải...</div>
+            <div className="text-center py-8 text-muted-foreground">{t('standards.loading')}</div>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Tài sản</TableHead>
-                    <TableHead>Mã</TableHead>
-                    <TableHead>Danh mục</TableHead>
-                    <TableHead className="text-right">Số lượng</TableHead>
+                    <TableHead>{t('standards.table.asset')}</TableHead>
+                    <TableHead>{t('standards.table.code')}</TableHead>
+                    <TableHead>{t('standards.table.category')}</TableHead>
+                    <TableHead className="text-right">{t('standards.table.quantity')}</TableHead>
                     <TableHead className="w-24"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -189,7 +185,7 @@ export function RoomStandardsPage() {
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-8">
                         <div className="text-muted-foreground">
-                          Chưa có tài sản nào trong chuẩn phòng này
+                          {t('standards.empty')}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -205,7 +201,7 @@ export function RoomStandardsPage() {
                         }
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Chọn tài sản để thêm..." />
+                          <SelectValue placeholder={t('standards.addAsset')} />
                         </SelectTrigger>
                         <SelectContent>
                           {categories?.map((category) => {
@@ -256,9 +252,7 @@ export function RoomStandardsPage() {
 
               <div className="mt-4 p-4 bg-muted rounded-lg">
                 <p className="text-sm text-muted-foreground">
-                  <strong>Lưu ý:</strong> Khi tạo phòng mới với loại "
-                  {ROOM_TYPES.find((t) => t.value === selectedRoomType)?.label}", hệ
-                  thống sẽ tự động gán các tài sản theo chuẩn đã thiết lập.
+                  <strong>{t('standards.noteLabel')}:</strong> {t('standards.note', { type: t(`roomTypes.${selectedRoomType}`) })}
                 </p>
               </div>
             </>

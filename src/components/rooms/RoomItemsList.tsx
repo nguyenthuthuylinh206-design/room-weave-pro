@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Package, CheckCircle2, AlertCircle, Minus, Loader2 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useTranslation } from 'react-i18next'
+import { Package, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -31,6 +31,7 @@ interface RoomItemsListProps {
 }
 
 export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
+  const { t } = useTranslation('rooms')
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [savingItemId, setSavingItemId] = useState<string | null>(null)
   const updateQuantity = useUpdateRoomItemQuantity()
@@ -40,11 +41,11 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Chưa có chuẩn đồ dùng cho loại phòng này. Vui lòng vào{' '}
+          {t('itemsList.noStandardSetupWithLink')}{' '}
           <Link to="/rooms/standards" className="font-medium underline">
-            Quản lý chuẩn phòng
+            {t('itemsList.manageStandards')}
           </Link>{' '}
-          để thiết lập.
+          {t('itemsList.toSetup')}
         </AlertDescription>
       </Alert>
     )
@@ -101,17 +102,9 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
     }
   }
 
-  const getStatusBadge = (item: RoomItem) => {
-    const currentQty = quantities[item.item_id] ?? item.current_quantity
-    const diff = currentQty - item.standard_quantity
-
-    if (diff === 0) {
-      return <Badge variant="default" className="bg-success">Đầy đủ</Badge>
-    } else if (diff > 0) {
-      return <Badge variant="default" className="bg-blue-500">Dư +{diff}</Badge>
-    } else {
-      return <Badge variant="destructive">Thiếu {diff}</Badge>
-    }
+  const getConditionLabel = (condition: string) => {
+    const conditionKey = condition as 'good' | 'fair' | 'poor' | 'damaged'
+    return t(`itemsList.condition.${conditionKey}`, { defaultValue: condition })
   }
 
   return (
@@ -120,10 +113,10 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Còn {unverifiedCount} loại đồ chưa được kiểm tra.
+            {t('itemsList.unverifiedAlert', { count: unverifiedCount })}
             {missingItems.length > 0 && (
               <span className="font-semibold">
-                {' '}Thiếu {missingItems.length} loại đồ ({totalMissing} món).
+                {' '}{t('itemsList.missingSummary', { count: missingItems.length, total: totalMissing })}
               </span>
             )}
           </AlertDescription>
@@ -134,25 +127,25 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
         <TabsList className="w-full flex overflow-x-auto no-scrollbar">
           <TabsTrigger value="required" className="flex-shrink-0 text-xs sm:text-sm">
             <Package className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="whitespace-nowrap">Cần có</span>
+            <span className="whitespace-nowrap">{t('itemsList.tabs.required')}</span>
           </TabsTrigger>
           <TabsTrigger value="current" className="flex-shrink-0 text-xs sm:text-sm">
             <CheckCircle2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="whitespace-nowrap">Đã có</span>
+            <span className="whitespace-nowrap">{t('itemsList.tabs.current')}</span>
           </TabsTrigger>
           <TabsTrigger value="missing" className="flex-shrink-0 text-xs sm:text-sm">
             <AlertCircle className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="whitespace-nowrap">Còn thiếu</span>
+            <span className="whitespace-nowrap">{t('itemsList.tabs.missing')}</span>
           </TabsTrigger>
         </TabsList>
 
-        {/* Tab 1: Đồ dùng cần có - Hiển thị tất cả với trạng thái */}
+        {/* Tab 1: Required items */}
         <TabsContent value="required" className="space-y-2 mt-4">
           {standardItems.length === 0 ? (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Chưa có chuẩn đồ dùng cho loại phòng này.
+                {t('itemsList.noStandardSetup')}
               </AlertDescription>
             </Alert>
           ) : (
@@ -185,19 +178,19 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
                   <div className="flex items-center gap-3">
                     <div className="text-center">
                       <div className="text-xl font-bold text-primary">{item.standard_quantity}</div>
-                      <p className="text-xs text-muted-foreground">cần có</p>
+                      <p className="text-xs text-muted-foreground">{t('itemsList.labels.required')}</p>
                     </div>
                     <div className="text-center">
                       <div className="text-xl font-bold">{currentQty}</div>
-                      <p className="text-xs text-muted-foreground">hiện có</p>
+                      <p className="text-xs text-muted-foreground">{t('itemsList.labels.current')}</p>
                     </div>
                     <div className="w-20">
                       {diff === 0 ? (
-                        <Badge className="w-full justify-center bg-success">Đủ</Badge>
+                        <Badge className="w-full justify-center bg-success">{t('itemsList.status.enough')}</Badge>
                       ) : diff > 0 ? (
-                        <Badge className="w-full justify-center bg-blue-500">Dư {diff}</Badge>
+                        <Badge className="w-full justify-center bg-blue-500">{t('itemsList.status.excessAmount', { count: diff })}</Badge>
                       ) : (
-                        <Badge variant="destructive" className="w-full justify-center">Thiếu {Math.abs(diff)}</Badge>
+                        <Badge variant="destructive" className="w-full justify-center">{t('itemsList.status.missingAmount', { count: Math.abs(diff) })}</Badge>
                       )}
                     </div>
                   </div>
@@ -207,13 +200,13 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
           )}
         </TabsContent>
 
-        {/* Tab 2: Đồ đã có trong phòng - Hiển thị tất cả để dễ thao tác */}
+        {/* Tab 2: Current items */}
         <TabsContent value="current" className="space-y-3 mt-4">
           {standardItems.length === 0 ? (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Chưa có chuẩn đồ dùng cho loại phòng này.
+                {t('itemsList.noStandardSetup')}
               </AlertDescription>
             </Alert>
           ) : (
@@ -240,25 +233,22 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
                       <p className="font-semibold text-base truncate">{item.item_name}</p>
                       <p className="text-sm text-muted-foreground">{item.item_code}</p>
                       <Badge variant="outline" className="mt-1">
-                        {item.condition === 'good' && 'Tốt'}
-                        {item.condition === 'fair' && 'Khá'}
-                        {item.condition === 'poor' && 'Kém'}
-                        {item.condition === 'damaged' && 'Hỏng'}
+                        {getConditionLabel(item.condition)}
                       </Badge>
                     </div>
                     {/* Status Badge */}
                     <div className="flex-shrink-0">
                       {diff === 0 ? (
                         <Badge className="bg-success text-white text-base px-3 py-1">
-                          ✓ Đủ
+                          ✓ {t('itemsList.status.enough')}
                         </Badge>
                       ) : diff > 0 ? (
                         <Badge className="bg-blue-500 text-white text-base px-3 py-1">
-                          ↑ Dư {diff}
+                          ↑ {t('itemsList.status.excessAmount', { count: diff })}
                         </Badge>
                       ) : (
                         <Badge variant="destructive" className="text-base px-3 py-1">
-                          ↓ Thiếu {Math.abs(diff)}
+                          ↓ {t('itemsList.status.missingAmount', { count: Math.abs(diff) })}
                         </Badge>
                       )}
                     </div>
@@ -268,7 +258,7 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
                   <div className="flex items-center gap-4 bg-muted/50 p-3 rounded-lg">
                     {/* Current Quantity Input */}
                     <div className="flex-1 space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Hiện có</label>
+                      <label className="text-xs font-medium text-muted-foreground">{t('itemsList.tabs.current')}</label>
                       <div className="relative">
                         <Input
                           type="number"
@@ -293,7 +283,7 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
 
                     {/* Standard Quantity Display */}
                     <div className="flex-1 space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Cần có</label>
+                      <label className="text-xs font-medium text-muted-foreground">{t('itemsList.tabs.required')}</label>
                       <div className="h-12 flex items-center justify-center rounded-md border bg-background">
                         <span className="text-xl font-bold text-primary">{item.standard_quantity}</span>
                       </div>
@@ -301,7 +291,7 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
 
                     {/* Difference Display */}
                     <div className="flex-1 space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Chênh lệch</label>
+                      <label className="text-xs font-medium text-muted-foreground">{t('itemsList.labels.difference')}</label>
                       <div className={`h-12 flex items-center justify-center rounded-md border font-bold text-xl ${
                         diff === 0 ? 'bg-success/10 text-success border-success/20' :
                         diff > 0 ? 'bg-blue-500/10 text-blue-600 border-blue-500/20' :
@@ -317,24 +307,24 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
           )}
         </TabsContent>
 
-        {/* Tab 3: Đồ còn thiếu - Chỉ hiển thị đồ có missing_quantity > 0 */}
+        {/* Tab 3: Missing items */}
         <TabsContent value="missing" className="space-y-2 mt-4">
           {missingItems.length === 0 ? (
             <div className="text-center py-12">
               <CheckCircle2 className="h-16 w-16 text-success mx-auto mb-3" />
-              <p className="font-medium text-lg">Đã đầy đủ</p>
+              <p className="font-medium text-lg">{t('itemsList.allComplete')}</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Tất cả đồ dùng đã đủ theo chuẩn
+                {t('itemsList.allCompleteDesc')}
               </p>
             </div>
           ) : (
             <>
               <div className="bg-destructive/10 p-4 rounded-lg border border-destructive/20 mb-4">
                 <p className="font-medium text-destructive">
-                  Thiếu {missingItems.length} loại đồ
+                  {t('itemsList.missingTypes', { count: missingItems.length })}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Tổng cộng: {totalMissing} món
+                  {t('itemsList.totalMissing', { count: totalMissing })}
                 </p>
               </div>
               {missingItems.map((item) => {
@@ -360,15 +350,15 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-center">
-                        <div className="text-sm text-muted-foreground">Hiện có</div>
+                        <div className="text-sm text-muted-foreground">{t('itemsList.tabs.current')}</div>
                         <div className="text-lg font-medium">{currentQty}</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-sm text-muted-foreground">Cần có</div>
+                        <div className="text-sm text-muted-foreground">{t('itemsList.tabs.required')}</div>
                         <div className="text-lg font-medium">{item.standard_quantity}</div>
                       </div>
                       <div className="text-center bg-destructive/10 px-3 py-2 rounded">
-                        <div className="text-sm text-destructive font-medium">Thiếu</div>
+                        <div className="text-sm text-destructive font-medium">{t('itemsList.status.missing')}</div>
                         <div className="text-2xl font-bold text-destructive">{missing}</div>
                       </div>
                     </div>

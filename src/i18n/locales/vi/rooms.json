@@ -87,6 +87,42 @@
     "complete": "Đầy đủ",
     "inLaundry": "{{count}} đang giặt"
   },
+  "itemsList": {
+    "noStandardSetup": "Chưa có chuẩn đồ dùng cho loại phòng này.",
+    "noStandardSetupWithLink": "Chưa có chuẩn đồ dùng cho loại phòng này. Vui lòng vào",
+    "manageStandards": "Quản lý chuẩn phòng",
+    "toSetup": "để thiết lập.",
+    "unverifiedAlert": "Còn {{count}} loại đồ chưa được kiểm tra.",
+    "missingSummary": "Thiếu {{count}} loại đồ ({{total}} món).",
+    "tabs": {
+      "required": "Cần có",
+      "current": "Đã có",
+      "missing": "Còn thiếu"
+    },
+    "labels": {
+      "required": "cần có",
+      "current": "hiện có",
+      "difference": "Chênh lệch"
+    },
+    "status": {
+      "complete": "Đầy đủ",
+      "enough": "Đủ",
+      "excess": "Dư",
+      "excessAmount": "Dư {{count}}",
+      "missing": "Thiếu",
+      "missingAmount": "Thiếu {{count}}"
+    },
+    "condition": {
+      "good": "Tốt",
+      "fair": "Khá",
+      "poor": "Kém",
+      "damaged": "Hỏng"
+    },
+    "allComplete": "Đã đầy đủ",
+    "allCompleteDesc": "Tất cả đồ dùng đã đủ theo chuẩn",
+    "missingTypes": "Thiếu {{count}} loại đồ",
+    "totalMissing": "Tổng cộng: {{count}} món"
+  },
   "checkSession": {
     "checking": "{{name}} đang kiểm tra {{type}}",
     "check": "Kiểm tra",
@@ -405,6 +441,7 @@
     },
     "empty": "Chưa có tài sản nào trong chuẩn phòng này",
     "addAsset": "Chọn tài sản để thêm...",
+    "noteLabel": "Lưu ý",
     "note": "Khi tạo phòng mới với loại \"{{type}}\", hệ thống sẽ tự động gán các tài sản theo chuẩn đã thiết lập.",
     "validation": {
       "selectAsset": "Vui lòng chọn tài sản và nhập số lượng hợp lệ"
