@@ -291,6 +291,17 @@
     "costNotUpdated": "Chưa cập nhật",
     "receive": "Nhận"
   },
+  "vendorPerformance": {
+    "title": "Đánh giá đơn vị giặt",
+    "noVendors": "Chưa có đơn vị giặt nào",
+    "columns": {
+      "vendor": "Đơn vị",
+      "type": "Loại",
+      "rating": "Đánh giá"
+    },
+    "typeExternal": "Ngoài",
+    "typeInternal": "Nội bộ"
+  },
   "batchItems": {
     "tabs": {
       "all": "Tất cả",

@@ -291,6 +291,17 @@
     "costNotUpdated": "Not updated",
     "receive": "Receive"
   },
+  "vendorPerformance": {
+    "title": "Laundry Vendor Ratings",
+    "noVendors": "No laundry vendors yet",
+    "columns": {
+      "vendor": "Vendor",
+      "type": "Type",
+      "rating": "Rating"
+    },
+    "typeExternal": "External",
+    "typeInternal": "In-house"
+  },
   "batchItems": {
     "tabs": {
       "all": "All",

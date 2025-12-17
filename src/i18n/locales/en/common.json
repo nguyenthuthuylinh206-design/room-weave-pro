@@ -57,6 +57,7 @@
     "errorOccurred": "An error occurred",
     "tryAgainLater": "Please try again later"
   },
+  "contractPeriod": "Contract Period",
   "errors": {
     "missingTenant": "Missing tenant information"
   },
