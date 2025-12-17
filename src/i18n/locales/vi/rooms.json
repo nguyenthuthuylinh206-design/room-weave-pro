@@ -446,5 +446,10 @@
     "validation": {
       "selectAsset": "Vui lòng chọn tài sản và nhập số lượng hợp lệ"
     }
+  },
+  "select": {
+    "placeholder": "Chọn phòng...",
+    "search": "Tìm phòng...",
+    "empty": "Không tìm thấy phòng"
   }
 }

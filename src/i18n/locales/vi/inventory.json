@@ -185,11 +185,20 @@
     "notesPlaceholder": "Ghi chú về lô xuất kho này...",
     "stockError": "Số lượng xuất không được vượt quá tồn kho",
     "success": "Xuất kho thành công",
+    "selectRoom": "Chọn phòng",
+    "selectVendor": "Chọn nhà giặt",
+    "selectMaintenanceRequest": "Liên kết yêu cầu bảo trì",
+    "roomAssignDescription": "Đồ dùng sẽ được gán vào danh sách tài sản của phòng",
+    "laundryDescription": "Đồ dùng sẽ được chuyển sang trạng thái đang giặt",
+    "maintenanceDescription": "Có thể liên kết với yêu cầu bảo trì đang xử lý (không bắt buộc)",
     "placeholders": {
       "defaultWarehouse": "Kho tầng 1",
       "fromLocation": "VD: Kho tầng 1",
       "toLocation": "VD: Phòng 301, Giặt là",
-      "itemNote": "VD: Tình trạng, mục đích sử dụng..."
+      "itemNote": "VD: Tình trạng, mục đích sử dụng...",
+      "selectRoom": "Chọn phòng cần giao đồ...",
+      "selectVendor": "Chọn nhà giặt...",
+      "selectMaintenanceRequest": "Chọn yêu cầu bảo trì..."
     },
     "categories": {
       "room_assign": "Phòng",
@@ -459,7 +468,8 @@
     "toRequired": "Vui lòng nhập vị trí đích",
     "itemRequired": "Vui lòng chọn đồ dùng",
     "quantityMin": "Số lượng phải > 0",
-    "itemsMin": "Phải có ít nhất 1 đồ dùng"
+    "itemsMin": "Phải có ít nhất 1 đồ dùng",
+    "destinationRequired": "Vui lòng chọn điểm đến phù hợp với loại xuất kho"
   },
   "exitDialog": {
     "title": "Thoát?",

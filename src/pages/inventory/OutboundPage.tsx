@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, X, AlertTriangle, Truck } from 'lucide-react';
+import { ArrowLeft, Plus, X, AlertTriangle, Truck, Info } from 'lucide-react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,10 +11,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ItemSelect } from '@/components/shared/ItemSelect';
 import { ImageUpload } from '@/components/shared/ImageUpload';
+import { RoomSelect } from '@/components/shared/RoomSelect';
+import { LaundryVendorSelect } from '@/components/shared/LaundryVendorSelect';
+import { MaintenanceRequestSelect } from '@/components/shared/MaintenanceRequestSelect';
 import { useCreateOutboundTransaction } from '@/hooks/useInventoryTransactions';
 import { useBreakpoint } from '@/lib/breakpoints';
 import { MobileOutboundForm } from '@/components/inventory/MobileOutboundForm';
@@ -23,7 +25,11 @@ import { MobileOutboundForm } from '@/components/inventory/MobileOutboundForm';
 const createOutboundSchema = (t: (key: string) => string) => z.object({
   transaction_category: z.enum(['room_assign', 'laundry', 'maintenance', 'disposal', 'other']),
   from_location: z.string().min(1, t('inventory:validation.fromRequired')),
-  to_location: z.string().min(1, t('inventory:validation.toRequired')),
+  to_location: z.string().optional(),
+  // Dynamic fields based on category
+  room_id: z.string().uuid().optional(),
+  vendor_id: z.string().uuid().optional(),
+  maintenance_request_id: z.string().uuid().optional(),
   items: z.array(z.object({
     item_id: z.string().uuid(t('inventory:validation.itemRequired')),
     quantity: z.number().min(1, t('inventory:validation.quantityMin')),
@@ -31,18 +37,29 @@ const createOutboundSchema = (t: (key: string) => string) => z.object({
     notes: z.string().optional()
   })).min(1, t('inventory:validation.itemsMin')),
   recipient_name: z.string().optional(),
-  recipient_signature: z.string().optional(),
   photos: z.array(z.string()).optional(),
   notes: z.string().optional(),
-  auto_assign_to_room: z.boolean().optional()
 }).refine(data => data.items.every(item => item.quantity <= item.available_quantity), {
   message: t('inventory:outbound.stockError'),
   path: ['items']
+}).refine(data => {
+  // Validate that appropriate field is set based on category
+  if (data.transaction_category === 'room_assign') return !!data.room_id;
+  if (data.transaction_category === 'laundry') return !!data.vendor_id;
+  if (data.transaction_category === 'maintenance') return !!data.maintenance_request_id || !!data.to_location;
+  return true;
+}, {
+  message: t('inventory:validation.destinationRequired'),
+  path: ['to_location']
 });
+
 type OutboundFormData = {
   transaction_category: 'room_assign' | 'laundry' | 'maintenance' | 'disposal' | 'other';
   from_location: string;
-  to_location: string;
+  to_location?: string;
+  room_id?: string;
+  vendor_id?: string;
+  maintenance_request_id?: string;
   items: Array<{
     item_id: string;
     quantity: number;
@@ -50,10 +67,8 @@ type OutboundFormData = {
     notes?: string;
   }>;
   recipient_name?: string;
-  recipient_signature?: string;
   photos?: string[];
   notes?: string;
-  auto_assign_to_room?: boolean;
 };
 
 export function OutboundPage() {
@@ -73,6 +88,9 @@ export function OutboundPage() {
       transaction_category: 'room_assign',
       from_location: t('inventory:outbound.placeholders.defaultWarehouse'),
       to_location: '',
+      room_id: undefined,
+      vendor_id: undefined,
+      maintenance_request_id: undefined,
       items: [{
         item_id: '',
         quantity: 1,
@@ -80,10 +98,8 @@ export function OutboundPage() {
         notes: ''
       }],
       recipient_name: '',
-      recipient_signature: '',
       photos: [],
       notes: '',
-      auto_assign_to_room: false
     }
   });
   
@@ -197,42 +213,95 @@ export function OutboundPage() {
                   )} 
                 />
                 
-                <FormField 
-                  control={form.control} 
-                  name="to_location" 
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('inventory:outbound.toLocation')} *</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder={t('inventory:outbound.placeholders.toLocation')} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              {category === 'room_assign' && (
-                <FormField 
-                  control={form.control} 
-                  name="auto_assign_to_room" 
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                      <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          {t('inventory:outbound.autoAssignToRoom')}
-                        </FormLabel>
+                {/* Dynamic destination field based on category */}
+                {category === 'room_assign' && (
+                  <FormField 
+                    control={form.control} 
+                    name="room_id" 
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('inventory:outbound.selectRoom')} *</FormLabel>
+                        <FormControl>
+                          <RoomSelect
+                            value={field.value || ''}
+                            onChange={(value) => field.onChange(value)}
+                            placeholder={t('inventory:outbound.placeholders.selectRoom')}
+                          />
+                        </FormControl>
                         <FormDescription>
-                          {t('inventory:outbound.autoAssignDescription')}
+                          <Info className="h-3 w-3 inline mr-1" />
+                          {t('inventory:outbound.roomAssignDescription')}
                         </FormDescription>
-                      </div>
-                    </FormItem>
-                  )} 
-                />
-              )}
+                        <FormMessage />
+                      </FormItem>
+                    )} 
+                  />
+                )}
+
+                {category === 'laundry' && (
+                  <FormField 
+                    control={form.control} 
+                    name="vendor_id" 
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('inventory:outbound.selectVendor')} *</FormLabel>
+                        <FormControl>
+                          <LaundryVendorSelect
+                            value={field.value || ''}
+                            onChange={(value) => field.onChange(value)}
+                            placeholder={t('inventory:outbound.placeholders.selectVendor')}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          <Info className="h-3 w-3 inline mr-1" />
+                          {t('inventory:outbound.laundryDescription')}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )} 
+                  />
+                )}
+
+                {category === 'maintenance' && (
+                  <FormField 
+                    control={form.control} 
+                    name="maintenance_request_id" 
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('inventory:outbound.selectMaintenanceRequest')}</FormLabel>
+                        <FormControl>
+                          <MaintenanceRequestSelect
+                            value={field.value || ''}
+                            onChange={(value) => field.onChange(value)}
+                            placeholder={t('inventory:outbound.placeholders.selectMaintenanceRequest')}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          <Info className="h-3 w-3 inline mr-1" />
+                          {t('inventory:outbound.maintenanceDescription')}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )} 
+                  />
+                )}
+
+                {(category === 'disposal' || category === 'other') && (
+                  <FormField 
+                    control={form.control} 
+                    name="to_location" 
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('inventory:outbound.toLocation')} *</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder={t('inventory:outbound.placeholders.toLocation')} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
             </CardContent>
           </Card>
           
