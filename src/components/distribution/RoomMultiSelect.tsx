@@ -70,6 +70,12 @@ export function RoomMultiSelect({
   }
 
   const selectAll = () => {
+    // Select ALL rooms, not just filtered
+    onSelectionChange(rooms.map(r => r.id))
+  }
+
+  const selectFiltered = () => {
+    // Select only filtered/search results
     onSelectionChange(filteredRooms.map(r => r.id))
   }
 
@@ -90,8 +96,13 @@ export function RoomMultiSelect({
           />
         </div>
         <Button variant="outline" size="sm" onClick={selectAll}>
-          Chọn tất cả
+          Chọn tất cả ({rooms.length})
         </Button>
+        {search && filteredRooms.length !== rooms.length && (
+          <Button variant="outline" size="sm" onClick={selectFiltered}>
+            Chọn kết quả ({filteredRooms.length})
+          </Button>
+        )}
         <Button variant="ghost" size="sm" onClick={clearAll}>
           Bỏ chọn
         </Button>
