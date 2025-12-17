@@ -126,13 +126,15 @@ const router = createBrowserRouter([
     ),
   },
 
-  // Super Admin Routes
+  // Super Admin Routes - Completely separate from tenant context
   {
     path: "/super-admin",
     element: (
-      <SuperAdminErrorBoundary>
-        <SuperAdminLayout />
-      </SuperAdminErrorBoundary>
+      <AuthGuard>
+        <SuperAdminErrorBoundary>
+          <SuperAdminLayout />
+        </SuperAdminErrorBoundary>
+      </AuthGuard>
     ),
     children: [
       { index: true, element: <SuperAdminDashboard /> },
@@ -164,56 +166,6 @@ const router = createBrowserRouter([
         )
       },
       { path: "more", element: <MorePage /> },
-      
-      // Super Admin Dashboard
-      {
-        path: "admin/dashboard",
-        element: (
-          <RoleGuard allowedRoles={['super_admin']}>
-            <SuperAdminDashboard />
-          </RoleGuard>
-        ),
-      },
-      {
-        path: "admin/tenants",
-        element: (
-          <RoleGuard allowedRoles={['super_admin']}>
-            <TenantsPage />
-          </RoleGuard>
-        ),
-      },
-      {
-        path: "admin/promo-codes",
-        element: (
-          <RoleGuard allowedRoles={['super_admin']}>
-            <PromoCodesPage />
-          </RoleGuard>
-        ),
-      },
-      {
-        path: "admin/campaigns",
-        element: (
-          <RoleGuard allowedRoles={['super_admin']}>
-            <MarketingCampaignsPage />
-          </RoleGuard>
-        ),
-      },
-      {
-        path: "admin/reminders",
-        element: (
-          <RoleGuard allowedRoles={['super_admin']}>
-            <RenewalRemindersPage />
-          </RoleGuard>
-        ),
-      },
-      {
-        path: "admin/pricing",
-        element: (
-          <RoleGuard allowedRoles={['super_admin']}>
-            <PricingPlansPage />
-          </RoleGuard>
-        ),
-      },
       
       // Inventory - Permission Based
       { 
