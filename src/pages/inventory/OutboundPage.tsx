@@ -22,8 +22,7 @@ import { ItemSelect } from '@/components/shared/ItemSelect';
 import { ImageUpload } from '@/components/shared/ImageUpload';
 import { LaundryVendorSelect } from '@/components/shared/LaundryVendorSelect';
 import { MaintenanceRequestSelect } from '@/components/shared/MaintenanceRequestSelect';
-import { RoomMultiSelect } from '@/components/distribution/RoomMultiSelect';
-import { DistributionItemMatrix, RoomItemAllocation, StockValidation } from '@/components/distribution/DistributionItemMatrix';
+import { DistributionPanel, RoomItemAllocation, StockValidation } from '@/components/distribution/DistributionPanel';
 import { useCreateOutboundTransaction } from '@/hooks/useInventoryTransactions';
 import { useCreateDistributionOrder } from '@/hooks/useDistributionOrders';
 import { useCreateLaundryBatch } from '@/hooks/useLaundryBatches';
@@ -127,7 +126,6 @@ export function OutboundPage() {
   const { isMobile } = useBreakpoint();
   
   // Distribution states for room_assign
-  const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>([]);
   const [allocations, setAllocations] = useState<RoomItemAllocation[]>([]);
   const [assignedTo, setAssignedTo] = useState<string>('');
   const [distributionNotes, setDistributionNotes] = useState('');
@@ -229,7 +227,8 @@ export function OutboundPage() {
   const onSubmit = (data: OutboundFormData) => {
     if (data.transaction_category === 'room_assign') {
       // Use Distribution Order for room assignments
-      if (selectedRoomIds.length === 0) {
+      const validAllocations = allocations.filter(a => a.items.length > 0);
+      if (validAllocations.length === 0) {
         return;
       }
       
@@ -416,84 +415,12 @@ export function OutboundPage() {
           
           {/* Distribution Form for room_assign */}
           {category === 'room_assign' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  {t('distribution:createOrder.title')}
-                </CardTitle>
-                <CardDescription>
-                  {t('distribution:createOrder.description')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Step 1: Select rooms */}
-                <div className="space-y-2">
-                  <Label>{t('distribution:createOrder.selectRooms')} *</Label>
-                  <RoomMultiSelect
-                    selectedRoomIds={selectedRoomIds}
-                    onSelectionChange={setSelectedRoomIds}
-                    maxHeight="250px"
-                  />
-                </div>
-                
-                {/* Step 2: Item allocation matrix */}
-                <div className="space-y-2">
-                  <Label>{t('distribution:createOrder.itemAllocation')}</Label>
-                  <DistributionItemMatrix
-                    selectedRoomIds={selectedRoomIds}
-                    allocations={allocations}
-                    onAllocationsChange={setAllocations}
-                    onStockValidationChange={handleStockValidationChange}
-                  />
-                </div>
-                
-                {/* Stock validation warnings */}
-                {!stockValidation.isValid && (
-                  <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>
-                      {t('distribution:createOrder.stockExceeded')}:
-                      <ul className="mt-2 list-disc list-inside">
-                        {stockValidation.overStockItems.map(item => (
-                          <li key={item.itemId}>
-                            {item.itemName}: {t('distribution:createOrder.requested')} {item.requested}, {t('distribution:createOrder.available')} {item.available}
-                          </li>
-                        ))}
-                      </ul>
-                    </AlertDescription>
-                  </Alert>
-                )}
-                
-                {/* Step 3: Assignee and notes */}
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>{t('distribution:createOrder.assignTo')}</Label>
-                    <Select value={assignedTo} onValueChange={setAssignedTo}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('distribution:createOrder.selectStaff')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {staffUsers.map(user => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.full_name} ({user.position?.name || user.user_level_code})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>{t('distribution:createOrder.notes')}</Label>
-                    <Textarea 
-                      value={distributionNotes}
-                      onChange={(e) => setDistributionNotes(e.target.value)}
-                      placeholder={t('distribution:createOrder.notesPlaceholder')}
-                      rows={3}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <DistributionPanel
+              onAllocationsChange={setAllocations}
+              onValidationChange={handleStockValidationChange}
+              onAssignedToChange={setAssignedTo}
+              onNotesChange={setDistributionNotes}
+            />
           )}
           
           {/* Laundry Batch Form */}
@@ -1083,7 +1010,7 @@ export function OutboundPage() {
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="rounded-lg border p-4 text-center">
                     <p className="text-sm text-muted-foreground">{t('distribution:createOrder.totalRooms')}</p>
-                    <p className="text-3xl font-bold">{selectedRoomIds.length}</p>
+                    <p className="text-3xl font-bold">{allocations.length}</p>
                   </div>
                   <div className="rounded-lg border p-4 text-center">
                     <p className="text-sm text-muted-foreground">{t('distribution:createOrder.totalItemTypes')}</p>
@@ -1109,7 +1036,7 @@ export function OutboundPage() {
             {category === 'room_assign' ? (
               <Button 
                 type="submit" 
-                disabled={isDistributionLoading || !stockValidation.isValid || selectedRoomIds.length === 0 || allocations.length === 0}
+                disabled={isDistributionLoading || !stockValidation.isValid || allocations.filter(a => a.items.length > 0).length === 0}
               >
                 {isDistributionLoading ? t('distribution:createOrder.creating') : t('distribution:createOrder.create')}
               </Button>
