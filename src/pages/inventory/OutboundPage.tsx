@@ -19,32 +19,50 @@ import { useCreateOutboundTransaction } from '@/hooks/useInventoryTransactions';
 import { useBreakpoint } from '@/lib/breakpoints';
 import { MobileOutboundForm } from '@/components/inventory/MobileOutboundForm';
 
-const outboundSchema = z.object({
+// Schema được tạo bên trong component để sử dụng t() function
+const createOutboundSchema = (t: (key: string) => string) => z.object({
   transaction_category: z.enum(['room_assign', 'laundry', 'maintenance', 'disposal', 'other']),
-  from_location: z.string().min(1, 'Vui lòng nhập vị trí'),
-  to_location: z.string().min(1, 'Vui lòng nhập vị trí'),
+  from_location: z.string().min(1, t('inventory:validation.fromRequired')),
+  to_location: z.string().min(1, t('inventory:validation.toRequired')),
   items: z.array(z.object({
-    item_id: z.string().uuid('Vui lòng chọn đồ dùng'),
-    quantity: z.number().min(1, 'Số lượng phải > 0'),
+    item_id: z.string().uuid(t('inventory:validation.itemRequired')),
+    quantity: z.number().min(1, t('inventory:validation.quantityMin')),
     available_quantity: z.number(),
     notes: z.string().optional()
-  })).min(1, 'Phải có ít nhất 1 đồ dùng'),
+  })).min(1, t('inventory:validation.itemsMin')),
   recipient_name: z.string().optional(),
   recipient_signature: z.string().optional(),
   photos: z.array(z.string()).optional(),
   notes: z.string().optional(),
   auto_assign_to_room: z.boolean().optional()
 }).refine(data => data.items.every(item => item.quantity <= item.available_quantity), {
-  message: 'Số lượng xuất không được vượt quá tồn kho',
+  message: t('inventory:outbound.stockError'),
   path: ['items']
 });
-
-type OutboundFormData = z.infer<typeof outboundSchema>;
+type OutboundFormData = {
+  transaction_category: 'room_assign' | 'laundry' | 'maintenance' | 'disposal' | 'other';
+  from_location: string;
+  to_location: string;
+  items: Array<{
+    item_id: string;
+    quantity: number;
+    available_quantity: number;
+    notes?: string;
+  }>;
+  recipient_name?: string;
+  recipient_signature?: string;
+  photos?: string[];
+  notes?: string;
+  auto_assign_to_room?: boolean;
+};
 
 export function OutboundPage() {
   const { t } = useTranslation(['inventory', 'common'])
   const navigate = useNavigate();
   const { isMobile } = useBreakpoint();
+  
+  // Create schema with translations
+  const outboundSchema = createOutboundSchema(t);
   
   // ALL hooks MUST be declared BEFORE any conditional returns
   const { mutate: createOutbound, isPending: isLoading } = useCreateOutboundTransaction();
@@ -53,7 +71,7 @@ export function OutboundPage() {
     resolver: zodResolver(outboundSchema),
     defaultValues: {
       transaction_category: 'room_assign',
-      from_location: 'Kho tầng 1',
+      from_location: t('inventory:outbound.placeholders.defaultWarehouse'),
       to_location: '',
       items: [{
         item_id: '',
@@ -172,7 +190,7 @@ export function OutboundPage() {
                     <FormItem>
                       <FormLabel>{t('inventory:outbound.fromLocation')} *</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="VD: Kho tầng 1" />
+                        <Input {...field} placeholder={t('inventory:outbound.placeholders.fromLocation')} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -186,11 +204,11 @@ export function OutboundPage() {
                     <FormItem>
                       <FormLabel>{t('inventory:outbound.toLocation')} *</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="VD: Phòng 301, Giặt là" />
+                        <Input {...field} placeholder={t('inventory:outbound.placeholders.toLocation')} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
-                  )} 
+                  )}
                 />
               </div>
               
@@ -343,11 +361,11 @@ export function OutboundPage() {
                                 <FormItem>
                                   <FormLabel>{t('inventory:outbound.itemNote')}</FormLabel>
                                 <FormControl>
-                                  <Input {...field} placeholder="VD: Tình trạng, mục đích sử dụng..." />
+                                  <Input {...field} placeholder={t('inventory:outbound.placeholders.itemNote')} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
-                            )} 
+                            )}
                           />
                         </div>
                       </CardContent>
@@ -403,16 +421,16 @@ export function OutboundPage() {
           
           <Card>
             <CardHeader>
-              <CardTitle>Tổng kết</CardTitle>
+              <CardTitle>{t('inventory:outbound.summary')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-lg border p-4 text-center">
-                  <p className="text-sm text-muted-foreground">Tổng số loại</p>
+                  <p className="text-sm text-muted-foreground">{t('inventory:outbound.totalTypes')}</p>
                   <p className="text-3xl font-bold">{items.length}</p>
                 </div>
                 <div className="rounded-lg border p-4 text-center">
-                  <p className="text-sm text-muted-foreground">Tổng số lượng</p>
+                  <p className="text-sm text-muted-foreground">{t('inventory:outbound.totalQuantity')}</p>
                   <p className="text-3xl font-bold text-blue-600">-{totalQuantity}</p>
                 </div>
               </div>
@@ -421,7 +439,7 @@ export function OutboundPage() {
                 <Alert className="mt-4">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    ⚠️ Cảnh báo: {lowStockWarnings.length} item(s) sẽ xuống dưới mức tối thiểu sau khi xuất
+                    ⚠️ {t('inventory:outbound.lowStockWarningCount', { count: lowStockWarnings.length })}
                   </AlertDescription>
                 </Alert>
               )}

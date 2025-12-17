@@ -185,6 +185,12 @@
     "notesPlaceholder": "Ghi chú về lô xuất kho này...",
     "stockError": "Số lượng xuất không được vượt quá tồn kho",
     "success": "Xuất kho thành công",
+    "placeholders": {
+      "defaultWarehouse": "Kho tầng 1",
+      "fromLocation": "VD: Kho tầng 1",
+      "toLocation": "VD: Phòng 301, Giặt là",
+      "itemNote": "VD: Tình trạng, mục đích sử dụng..."
+    },
     "categories": {
       "room_assign": "Phòng",
       "room_assignDesc": "Giao cho phòng",
