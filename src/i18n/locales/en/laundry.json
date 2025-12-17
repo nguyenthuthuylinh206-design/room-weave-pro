@@ -461,5 +461,36 @@
     "stock": "Stock",
     "itemAdded": "Added {{name}}",
     "itemRemoved": "Item removed"
+  },
+  "vendor": {
+    "selectPlaceholder": "Select vendor...",
+    "search": "Search vendor...",
+    "empty": "No vendor found"
+  },
+  "batch": {
+    "createNew": "Create New Batch",
+    "createDescription": "Fill in information and select items to create batch",
+    "deliveryDate": "Delivery Date",
+    "expectedReturnDate": "Expected Return Date",
+    "deliveryStaff": "Delivery Staff",
+    "selectStaff": "Select staff",
+    "receiverName": "Receiver Name",
+    "receiverNamePlaceholder": "Enter receiver name",
+    "itemsList": "Items List",
+    "addItem": "Add Item",
+    "selectItem": "Select item",
+    "inStock": "In Stock",
+    "quantity": "Quantity",
+    "weightKg": "KG",
+    "note": "Note",
+    "notes": "Notes",
+    "notesPlaceholder": "Notes about the batch...",
+    "summary": "Summary",
+    "totalItems": "Total Items",
+    "totalWeight": "Total Weight",
+    "estimatedCost": "Estimated Cost",
+    "pricePerKg": "Price/kg",
+    "creating": "Creating...",
+    "createBatch": "Create Batch"
   }
 }

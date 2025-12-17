@@ -1,10 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, X, AlertTriangle, Info, Users } from 'lucide-react';
+import { ArrowLeft, Plus, X, AlertTriangle, Info, Users, WashingMachine, Calendar, Scale, DollarSign } from 'lucide-react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
+import { format, addDays } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -14,6 +16,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarUI } from '@/components/ui/calendar';
 import { ItemSelect } from '@/components/shared/ItemSelect';
 import { ImageUpload } from '@/components/shared/ImageUpload';
 import { LaundryVendorSelect } from '@/components/shared/LaundryVendorSelect';
@@ -22,9 +26,13 @@ import { RoomMultiSelect } from '@/components/distribution/RoomMultiSelect';
 import { DistributionItemMatrix, RoomItemAllocation, StockValidation } from '@/components/distribution/DistributionItemMatrix';
 import { useCreateOutboundTransaction } from '@/hooks/useInventoryTransactions';
 import { useCreateDistributionOrder } from '@/hooks/useDistributionOrders';
+import { useCreateLaundryBatch } from '@/hooks/useLaundryBatches';
+import { useLaundryVendors } from '@/hooks/useLaundryVendors';
 import { useUsers } from '@/hooks/useUsers';
+import { useItems } from '@/hooks/useItems';
 import { useBreakpoint } from '@/lib/breakpoints';
 import { MobileOutboundForm } from '@/components/inventory/MobileOutboundForm';
+import { cn } from '@/lib/utils';
 
 // Schema cho các category không phải room_assign
 const createOutboundSchema = (t: (key: string) => string) => z.object({
@@ -42,21 +50,41 @@ const createOutboundSchema = (t: (key: string) => string) => z.object({
   recipient_name: z.string().optional(),
   photos: z.array(z.string()).optional(),
   notes: z.string().optional(),
+  // Laundry-specific fields
+  delivery_date: z.date().optional(),
+  expected_return_date: z.date().optional(),
+  delivery_staff_id: z.string().uuid().optional(),
+  receiver_name: z.string().optional(),
+  laundry_items: z.array(z.object({
+    item_id: z.string().uuid(),
+    quantity: z.number().min(1),
+    weight_kg: z.number().min(0),
+    available_quantity: z.number(),
+    condition_note: z.string().optional()
+  })).optional(),
 }).refine(data => {
-  // Skip item validation for room_assign (handled separately)
+  // Skip item validation for room_assign and laundry (handled separately)
   if (data.transaction_category === 'room_assign') return true;
+  if (data.transaction_category === 'laundry') {
+    return data.laundry_items && data.laundry_items.length > 0 && data.laundry_items.some(i => i.item_id);
+  }
   return data.items && data.items.length > 0;
 }, {
   message: t('inventory:validation.itemsMin'),
   path: ['items']
 }).refine(data => {
   if (data.transaction_category === 'room_assign') return true;
+  if (data.transaction_category === 'laundry') {
+    return data.laundry_items?.every(item => item.quantity <= item.available_quantity) ?? true;
+  }
   return data.items?.every(item => item.quantity <= item.available_quantity) ?? true;
 }, {
   message: t('inventory:outbound.stockError'),
   path: ['items']
 }).refine(data => {
-  if (data.transaction_category === 'laundry') return !!data.vendor_id;
+  if (data.transaction_category === 'laundry') {
+    return !!data.vendor_id && !!data.delivery_date && !!data.expected_return_date && !!data.delivery_staff_id && !!data.receiver_name;
+  }
   if (data.transaction_category === 'maintenance') return !!data.maintenance_request_id || !!data.to_location;
   return true;
 }, {
@@ -79,10 +107,22 @@ type OutboundFormData = {
   recipient_name?: string;
   photos?: string[];
   notes?: string;
+  // Laundry-specific
+  delivery_date?: Date;
+  expected_return_date?: Date;
+  delivery_staff_id?: string;
+  receiver_name?: string;
+  laundry_items?: Array<{
+    item_id: string;
+    quantity: number;
+    weight_kg: number;
+    available_quantity: number;
+    condition_note?: string;
+  }>;
 };
 
 export function OutboundPage() {
-  const { t } = useTranslation(['inventory', 'common', 'distribution'])
+  const { t } = useTranslation(['inventory', 'common', 'distribution', 'laundry'])
   const navigate = useNavigate();
   const { isMobile } = useBreakpoint();
   
@@ -93,13 +133,25 @@ export function OutboundPage() {
   const [distributionNotes, setDistributionNotes] = useState('');
   const [stockValidation, setStockValidation] = useState<StockValidation>({ isValid: true, overStockItems: [] });
   
+  // Laundry state
+  const [selectedVendor, setSelectedVendor] = useState<any>(null);
+  
   // Create schema with translations
   const outboundSchema = createOutboundSchema(t);
   
   // ALL hooks MUST be declared BEFORE any conditional returns
   const { mutate: createOutbound, isPending: isLoading } = useCreateOutboundTransaction();
   const { mutate: createDistributionOrder, isPending: isDistributionLoading } = useCreateDistributionOrder();
+  const { mutate: createLaundryBatch, isPending: isLaundryLoading } = useCreateLaundryBatch();
+  const { data: vendors = [] } = useLaundryVendors({ status: 'active' });
   const { users } = useUsers();
+  const { data: itemsData } = useItems();
+  const allItems = itemsData?.items || [];
+  
+  // Filter launderable items (linen type items can be sent to laundry)
+  const launderableItems = useMemo(() => {
+    return allItems.filter(item => item.item_type === 'linen');
+  }, [allItems]);
   
   // Filter staff users for assignment
   const staffUsers = users?.filter(u => 
@@ -123,6 +175,18 @@ export function OutboundPage() {
       recipient_name: '',
       photos: [],
       notes: '',
+      // Laundry defaults
+      delivery_date: new Date(),
+      expected_return_date: addDays(new Date(), 3),
+      delivery_staff_id: undefined,
+      receiver_name: '',
+      laundry_items: [{
+        item_id: '',
+        quantity: 1,
+        weight_kg: 0,
+        available_quantity: 0,
+        condition_note: ''
+      }],
     }
   });
   
@@ -131,11 +195,27 @@ export function OutboundPage() {
     name: 'items'
   });
   
+  const { fields: laundryFields, append: appendLaundryItem, remove: removeLaundryItem } = useFieldArray({
+    control: form.control,
+    name: 'laundry_items'
+  });
+  
   const formItems = form.watch('items') || [];
+  const laundryItems = form.watch('laundry_items') || [];
   const category = form.watch('transaction_category');
   const totalQuantity = formItems.reduce((sum, item) => sum + item.quantity, 0);
   const hasStockError = formItems.some(item => item.quantity > item.available_quantity);
   const lowStockWarnings = formItems.filter(item => item.available_quantity > 0 && item.available_quantity - item.quantity < 10);
+  
+  // Laundry calculations
+  const laundryTotalItems = laundryItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+  const laundryTotalWeight = laundryItems.reduce((sum, item) => sum + (item.weight_kg || 0), 0);
+  const laundryEstimatedCost = useMemo(() => {
+    if (!selectedVendor?.contract_info) return laundryTotalWeight * 20000; // Default 20k/kg
+    const pricePerKg = selectedVendor.contract_info.price_per_kg || 20000;
+    return laundryTotalWeight * pricePerKg;
+  }, [selectedVendor, laundryTotalWeight]);
+  const laundryHasStockError = laundryItems.some(item => item.quantity > item.available_quantity);
   
   const handleStockValidationChange = useCallback((validation: StockValidation) => {
     setStockValidation(validation);
@@ -160,6 +240,40 @@ export function OutboundPage() {
       }, {
         onSuccess: (result) => {
           navigate(`/inventory/distributions/${result.order_id}`);
+        }
+      });
+    } else if (data.transaction_category === 'laundry') {
+      // Use Create Laundry Batch
+      if (!data.vendor_id || !data.delivery_date || !data.expected_return_date || !data.delivery_staff_id || !data.receiver_name) {
+        return;
+      }
+      
+      const validLaundryItems = (data.laundry_items || []).filter(item => item.item_id && item.quantity > 0);
+      if (validLaundryItems.length === 0) {
+        return;
+      }
+      
+      createLaundryBatch({
+        step1: {
+          vendor_id: data.vendor_id,
+          delivery_date: data.delivery_date,
+          expected_return_date: data.expected_return_date,
+          delivery_staff_id: data.delivery_staff_id,
+          receiver_name: data.receiver_name,
+          notes: data.notes,
+        },
+        step2: {
+          items: validLaundryItems.map(item => ({
+            item_id: item.item_id,
+            quantity: item.quantity,
+            weight_kg: item.weight_kg || 0,
+            condition_note: item.condition_note,
+          }))
+        },
+        step3: { confirmed: true }
+      }, {
+        onSuccess: (result) => {
+          navigate(`/laundry/batches/${result.id}`);
         }
       });
     } else {
@@ -240,7 +354,10 @@ export function OutboundPage() {
                         <FormControl>
                           <LaundryVendorSelect
                             value={field.value || ''}
-                            onChange={(value) => field.onChange(value)}
+                            onChange={(value, vendor) => {
+                              field.onChange(value);
+                              setSelectedVendor(vendor);
+                            }}
                             placeholder={t('inventory:outbound.placeholders.selectVendor')}
                           />
                         </FormControl>
@@ -379,8 +496,367 @@ export function OutboundPage() {
             </Card>
           )}
           
-          {/* Items Card - for non room_assign categories */}
-          {category !== 'room_assign' && (
+          {/* Laundry Batch Form */}
+          {category === 'laundry' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <WashingMachine className="h-5 w-5" />
+                  {t('laundry:batch.createNew')}
+                </CardTitle>
+                <CardDescription>
+                  {t('laundry:batch.createDescription')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Dates and Staff */}
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <FormField 
+                    control={form.control} 
+                    name="delivery_date" 
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>{t('laundry:batch.deliveryDate')} *</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "dd/MM/yyyy", { locale: vi })
+                                ) : (
+                                  <span>{t('common:selectDate')}</span>
+                                )}
+                                <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarUI
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )} 
+                  />
+                  
+                  <FormField 
+                    control={form.control} 
+                    name="expected_return_date" 
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>{t('laundry:batch.expectedReturnDate')} *</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "dd/MM/yyyy", { locale: vi })
+                                ) : (
+                                  <span>{t('common:selectDate')}</span>
+                                )}
+                                <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarUI
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )} 
+                  />
+                  
+                  <FormField 
+                    control={form.control} 
+                    name="delivery_staff_id" 
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('laundry:batch.deliveryStaff')} *</FormLabel>
+                        <Select value={field.value || ''} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={t('laundry:batch.selectStaff')} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {staffUsers.map(user => (
+                              <SelectItem key={user.id} value={user.id}>
+                                {user.full_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} 
+                  />
+                  
+                  <FormField 
+                    control={form.control} 
+                    name="receiver_name" 
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('laundry:batch.receiverName')} *</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder={t('laundry:batch.receiverNamePlaceholder')} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} 
+                  />
+                </div>
+                
+                {/* Laundry Items List */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-medium">{t('laundry:batch.itemsList')}</Label>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => appendLaundryItem({
+                        item_id: '',
+                        quantity: 1,
+                        weight_kg: 0,
+                        available_quantity: 0,
+                        condition_note: ''
+                      })}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      {t('laundry:batch.addItem')}
+                    </Button>
+                  </div>
+                  
+                  <div className="rounded-lg border">
+                    <div className="grid grid-cols-12 gap-2 p-3 bg-muted/50 text-sm font-medium border-b">
+                      <div className="col-span-4">{t('inventory:fields.item')}</div>
+                      <div className="col-span-2 text-center">{t('laundry:batch.inStock')}</div>
+                      <div className="col-span-2 text-center">{t('laundry:batch.quantity')}</div>
+                      <div className="col-span-2 text-center">{t('laundry:batch.weightKg')}</div>
+                      <div className="col-span-1 text-center">{t('laundry:batch.note')}</div>
+                      <div className="col-span-1"></div>
+                    </div>
+                    
+                    <div className="divide-y">
+                      {laundryFields.map((field, index) => {
+                        const currentItem = laundryItems[index];
+                        const hasError = currentItem?.quantity > currentItem?.available_quantity;
+                        
+                        return (
+                          <div key={field.id} className={cn("grid grid-cols-12 gap-2 p-3 items-center", hasError && "bg-destructive/5")}>
+                            <div className="col-span-4">
+                              <FormField 
+                                control={form.control} 
+                                name={`laundry_items.${index}.item_id`} 
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <Select 
+                                        value={field.value || ''} 
+                                        onValueChange={(value) => {
+                                          field.onChange(value);
+                                          const selectedItem = launderableItems.find(i => i.id === value);
+                                          if (selectedItem) {
+                                            form.setValue(`laundry_items.${index}.available_quantity`, selectedItem.quantity_in_stock || 0);
+                                          }
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-full">
+                                          <SelectValue placeholder={t('laundry:batch.selectItem')} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {launderableItems.map(item => (
+                                            <SelectItem key={item.id} value={item.id}>
+                                              {item.name} ({item.code})
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )} 
+                              />
+                            </div>
+                            
+                            <div className="col-span-2 text-center">
+                              <span className={cn(
+                                "font-medium",
+                                (currentItem?.available_quantity || 0) < 10 && "text-orange-600"
+                              )}>
+                                {currentItem?.available_quantity || 0}
+                              </span>
+                            </div>
+                            
+                            <div className="col-span-2">
+                              <FormField 
+                                control={form.control} 
+                                name={`laundry_items.${index}.quantity`} 
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <Input 
+                                        type="number" 
+                                        min={1}
+                                        max={currentItem?.available_quantity}
+                                        className={cn("text-center", hasError && "border-destructive")}
+                                        {...field} 
+                                        onChange={e => field.onChange(parseInt(e.target.value) || 1)} 
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )} 
+                              />
+                            </div>
+                            
+                            <div className="col-span-2">
+                              <FormField 
+                                control={form.control} 
+                                name={`laundry_items.${index}.weight_kg`} 
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <Input 
+                                        type="number" 
+                                        step="0.1"
+                                        min={0}
+                                        className="text-center"
+                                        placeholder="0.0"
+                                        {...field} 
+                                        onChange={e => field.onChange(parseFloat(e.target.value) || 0)} 
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )} 
+                              />
+                            </div>
+                            
+                            <div className="col-span-1">
+                              <FormField 
+                                control={form.control} 
+                                name={`laundry_items.${index}.condition_note`} 
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <Input 
+                                        className="text-xs"
+                                        placeholder="..."
+                                        {...field} 
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )} 
+                              />
+                            </div>
+                            
+                            <div className="col-span-1 text-center">
+                              {laundryFields.length > 1 && (
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8"
+                                  onClick={() => removeLaundryItem(index)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  
+                  {laundryHasStockError && (
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        {t('inventory:outbound.exceedStock')}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+                
+                {/* Notes */}
+                <FormField 
+                  control={form.control} 
+                  name="notes" 
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('laundry:batch.notes')}</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} placeholder={t('laundry:batch.notesPlaceholder')} rows={3} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} 
+                />
+                
+                {/* Summary */}
+                <div className="rounded-lg border bg-muted/30 p-4">
+                  <h4 className="font-medium mb-3">{t('laundry:batch.summary')}</h4>
+                  <div className="grid gap-4 md:grid-cols-4">
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">{t('laundry:batch.totalItems')}</p>
+                      <p className="text-2xl font-bold">{laundryTotalItems}</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground">
+                        <Scale className="h-3 w-3" />
+                        {t('laundry:batch.totalWeight')}
+                      </div>
+                      <p className="text-2xl font-bold">{laundryTotalWeight.toFixed(1)} kg</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground">
+                        <DollarSign className="h-3 w-3" />
+                        {t('laundry:batch.estimatedCost')}
+                      </div>
+                      <p className="text-2xl font-bold text-primary">
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(laundryEstimatedCost)}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">{t('laundry:batch.pricePerKg')}</p>
+                      <p className="text-lg font-medium">
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(selectedVendor?.contract_info?.price_per_kg || 20000)}/kg
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Items Card - for non room_assign and non laundry categories */}
+          {category !== 'room_assign' && category !== 'laundry' && (
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -522,8 +998,8 @@ export function OutboundPage() {
             </Card>
           )}
           
-          {/* Photos and Notes - for non room_assign categories */}
-          {category !== 'room_assign' && (
+          {/* Photos and Notes - for non room_assign and non laundry categories */}
+          {category !== 'room_assign' && category !== 'laundry' && (
             <>
               <Card>
                 <CardHeader>
@@ -636,6 +1112,14 @@ export function OutboundPage() {
                 disabled={isDistributionLoading || !stockValidation.isValid || selectedRoomIds.length === 0 || allocations.length === 0}
               >
                 {isDistributionLoading ? t('distribution:createOrder.creating') : t('distribution:createOrder.create')}
+              </Button>
+            ) : category === 'laundry' ? (
+              <Button 
+                type="submit" 
+                disabled={isLaundryLoading || laundryHasStockError || laundryItems.filter(i => i.item_id).length === 0}
+              >
+                <WashingMachine className="mr-2 h-4 w-4" />
+                {isLaundryLoading ? t('laundry:batch.creating') : t('laundry:batch.createBatch')}
               </Button>
             ) : (
               <Button type="submit" disabled={isLoading || hasStockError}>
