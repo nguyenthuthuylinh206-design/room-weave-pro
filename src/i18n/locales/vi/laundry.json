@@ -466,5 +466,31 @@
     "selectPlaceholder": "Chọn nhà giặt...",
     "search": "Tìm nhà giặt...",
     "empty": "Không tìm thấy nhà giặt"
+  },
+  "batch": {
+    "createNew": "Tạo lô giặt mới",
+    "createDescription": "Điền thông tin và chọn đồ giặt để tạo lô",
+    "deliveryDate": "Ngày gửi giặt",
+    "expectedReturnDate": "Ngày trả dự kiến",
+    "deliveryStaff": "Nhân viên giao",
+    "selectStaff": "Chọn nhân viên",
+    "receiverName": "Người nhận (bên giặt)",
+    "receiverNamePlaceholder": "Nhập tên người nhận",
+    "itemsList": "Danh sách đồ giặt",
+    "addItem": "Thêm item",
+    "selectItem": "Chọn đồ giặt",
+    "inStock": "Tồn kho",
+    "quantity": "Số lượng",
+    "weightKg": "KG",
+    "note": "Ghi chú",
+    "notes": "Ghi chú",
+    "notesPlaceholder": "Ghi chú về lô giặt...",
+    "summary": "Tổng kết",
+    "totalItems": "Tổng số đồ",
+    "totalWeight": "Tổng cân nặng",
+    "estimatedCost": "Chi phí ước tính",
+    "pricePerKg": "Giá/kg",
+    "creating": "Đang tạo...",
+    "createBatch": "Tạo lô giặt"
   }
 }
