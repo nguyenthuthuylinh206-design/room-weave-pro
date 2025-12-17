@@ -128,7 +128,7 @@ export function RoomMultiSelect({
                   className="flex items-center gap-2 px-2 py-1 bg-muted/50 rounded cursor-pointer hover:bg-muted"
                   onClick={() => toggleFloor(floorRooms)}
                 >
-                  <Checkbox checked={allSelected} />
+                  <Checkbox checked={allSelected} className="pointer-events-none" />
                   <Building2 className="h-4 w-4" />
                   <span className="font-medium text-sm">Tầng {floor}</span>
                   <Badge variant="outline" className="ml-auto">
