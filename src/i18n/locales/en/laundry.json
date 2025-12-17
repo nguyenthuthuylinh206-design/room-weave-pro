@@ -445,5 +445,21 @@
     "statusInactive": "Inactive",
     "emptyTitle": "No laundry vendors yet",
     "emptyDescription": "Add laundry vendors to get started"
+  },
+  "mobileBatch": {
+    "stepOf": "Step {{step}}/{{total}}",
+    "selectVendor": "Select laundry vendor",
+    "noItemsYet": "No laundry items yet",
+    "condition": "Condition",
+    "addLaundryItem": "Add laundry item",
+    "returnDate": "Return date",
+    "totalLaundry": "Total laundry",
+    "types": "types",
+    "products": "products",
+    "selectLaundryItem": "Select laundry item",
+    "searchItems": "Search laundry items...",
+    "stock": "Stock",
+    "itemAdded": "Added {{name}}",
+    "itemRemoved": "Item removed"
   }
 }

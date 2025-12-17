@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ArrowLeft, Plus, Trash2, Check, Package } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -21,26 +22,23 @@ import { useUsers } from '@/hooks/useUsers'
 import { toast } from 'sonner'
 import { addDays, format } from 'date-fns'
 
-const step1Schema = z.object({
-  vendor_id: z.string().uuid('Vui lòng chọn đơn vị giặt'),
-  delivery_date: z.string(),
-  expected_return_date: z.string().optional(),
-  delivery_staff_id: z.string().uuid('Vui lòng chọn nhân viên giao'),
-  receiver_name: z.string().min(2, 'Tên người nhận phải có ít nhất 2 ký tự'),
-  notes: z.string().optional(),
-})
+type Step1Data = {
+  vendor_id: string
+  delivery_date: string
+  expected_return_date?: string
+  delivery_staff_id: string
+  receiver_name: string
+  notes?: string
+}
 
-const step2Schema = z.object({
-  items: z.array(z.object({
-    item_id: z.string().uuid(),
-    quantity: z.number().positive(),
-    weight_kg: z.number().nonnegative(),
-    condition_note: z.string().optional(),
-  })).min(1, 'Phải có ít nhất 1 item'),
-})
-
-type Step1Data = z.infer<typeof step1Schema>
-type Step2Data = z.infer<typeof step2Schema>
+type Step2Data = {
+  items: {
+    item_id: string
+    quantity: number
+    weight_kg: number
+    condition_note?: string
+  }[]
+}
 
 interface BatchItem {
   item_id: string
@@ -52,6 +50,7 @@ interface BatchItem {
 
 export function MobileBatchForm() {
   const navigate = useNavigate()
+  const { t } = useTranslation('laundry')
   const [step, setStep] = useState(1)
   const [step1Data, setStep1Data] = useState<Step1Data | null>(null)
   const [items, setItems] = useState<BatchItem[]>([])
@@ -62,6 +61,16 @@ export function MobileBatchForm() {
   const { data: itemsData } = useItems({})
   const { users } = useUsers()
   const { mutate: createBatch, isPending } = useCreateLaundryBatch()
+  
+  // Dynamic schema with translations
+  const step1Schema = useMemo(() => z.object({
+    vendor_id: z.string().uuid(t('createBatch.validation.selectVendor')),
+    delivery_date: z.string(),
+    expected_return_date: z.string().optional(),
+    delivery_staff_id: z.string().uuid(t('createBatch.validation.selectDeliveryStaff')),
+    receiver_name: z.string().min(2, t('createBatch.validation.enterReceiverName')),
+    notes: z.string().optional(),
+  }), [t])
   
   // Filter launderable items
   const laundrableItems = itemsData?.items?.filter(item => 
@@ -100,12 +109,12 @@ export function MobileBatchForm() {
         condition_note: '',
       }])
     }
-    toast.success(`Đã thêm ${item.name}`)
+    toast.success(t('mobileBatch.itemAdded', { name: item.name }))
   }
   
   const removeItem = (itemId: string) => {
     setItems(items.filter(i => i.item_id !== itemId))
-    toast.success('Đã xóa item')
+    toast.success(t('mobileBatch.itemRemoved'))
   }
   
   const updateItem = (itemId: string, field: keyof BatchItem, value: any) => {
@@ -123,7 +132,7 @@ export function MobileBatchForm() {
   
   const handleStep2Complete = () => {
     if (items.length === 0) {
-      toast.error('Vui lòng thêm ít nhất 1 item')
+      toast.error(t('createBatch.validation.addAtLeastOneItem'))
       return
     }
     setStep(3)
@@ -163,9 +172,9 @@ export function MobileBatchForm() {
   )
   
   const steps = [
-    { number: 1, title: 'Thông tin cơ bản' },
-    { number: 2, title: 'Chọn đồ giặt' },
-    { number: 3, title: 'Xác nhận' },
+    { number: 1, title: t('createBatch.steps.basicInfo') },
+    { number: 2, title: t('createBatch.steps.selectItems') },
+    { number: 3, title: t('createBatch.steps.confirm') },
   ]
   
   return (
@@ -181,8 +190,8 @@ export function MobileBatchForm() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="font-semibold">Tạo lô giặt mới</h1>
-            <p className="text-xs text-muted-foreground">Bước {step}/3</p>
+            <h1 className="font-semibold">{t('createBatch.title')}</h1>
+            <p className="text-xs text-muted-foreground">{t('mobileBatch.stepOf', { step, total: 3 })}</p>
           </div>
           {step === 2 && (
             <Badge variant="secondary">
@@ -225,13 +234,13 @@ export function MobileBatchForm() {
             <Card>
               <CardContent className="pt-4 space-y-4">
                 <div className="space-y-2">
-                  <Label>Đơn vị giặt *</Label>
+                  <Label>{t('createBatch.step1.vendor')} *</Label>
                   <Select
                     value={step1Form.watch('vendor_id')}
                     onValueChange={(value) => step1Form.setValue('vendor_id', value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Chọn đơn vị giặt" />
+                      <SelectValue placeholder={t('mobileBatch.selectVendor')} />
                     </SelectTrigger>
                     <SelectContent>
                       {vendors?.map(vendor => (
@@ -257,7 +266,7 @@ export function MobileBatchForm() {
                 )}
                 
                 <div className="space-y-2">
-                  <Label>Ngày giao</Label>
+                  <Label>{t('createBatch.step1.deliveryDate')}</Label>
                   <Input
                     type="date"
                     {...step1Form.register('delivery_date')}
@@ -265,7 +274,7 @@ export function MobileBatchForm() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Ngày nhận dự kiến</Label>
+                  <Label>{t('createBatch.step1.expectedReturn')}</Label>
                   <Input
                     type="date"
                     {...step1Form.register('expected_return_date')}
@@ -273,13 +282,13 @@ export function MobileBatchForm() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Nhân viên giao *</Label>
+                  <Label>{t('createBatch.step1.deliveryStaff')} *</Label>
                   <Select
                     value={step1Form.watch('delivery_staff_id')}
                     onValueChange={(value) => step1Form.setValue('delivery_staff_id', value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Chọn nhân viên" />
+                      <SelectValue placeholder={t('createBatch.step1.selectStaff')} />
                     </SelectTrigger>
                     <SelectContent>
                       {users?.map(user => (
@@ -297,10 +306,10 @@ export function MobileBatchForm() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Người nhận *</Label>
+                  <Label>{t('createBatch.step1.receiverName')} *</Label>
                   <Input
                     {...step1Form.register('receiver_name')}
-                    placeholder="Tên người nhận"
+                    placeholder={t('createBatch.step1.receiverPlaceholder')}
                   />
                   {step1Form.formState.errors.receiver_name && (
                     <p className="text-sm text-destructive">
@@ -310,10 +319,10 @@ export function MobileBatchForm() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Ghi chú</Label>
+                  <Label>{t('createBatch.step1.notes')}</Label>
                   <Textarea
                     {...step1Form.register('notes')}
-                    placeholder="Ghi chú thêm..."
+                    placeholder={t('createBatch.step1.notesPlaceholder')}
                     rows={3}
                   />
                 </div>
@@ -325,7 +334,7 @@ export function MobileBatchForm() {
               size="lg"
               onClick={handleStep1Complete}
             >
-              Tiếp theo
+              {t('createBatch.step1.next')}
             </Button>
           </>
         )}
@@ -338,7 +347,7 @@ export function MobileBatchForm() {
                 {items.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>Chưa có đồ giặt nào</p>
+                    <p>{t('mobileBatch.noItemsYet')}</p>
                   </div>
                 ) : (
                   items.map((item) => (
@@ -360,7 +369,7 @@ export function MobileBatchForm() {
                       
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <Label className="text-xs">Số lượng</Label>
+                          <Label className="text-xs">{t('createBatch.step2.quantity')}</Label>
                           <Input
                             type="number"
                             min="1"
@@ -370,7 +379,7 @@ export function MobileBatchForm() {
                           />
                         </div>
                         <div>
-                          <Label className="text-xs">Cân nặng (kg)</Label>
+                          <Label className="text-xs">{t('createBatch.step2.weight')}</Label>
                           <Input
                             type="number"
                             min="0"
@@ -383,11 +392,11 @@ export function MobileBatchForm() {
                       </div>
                       
                       <div>
-                        <Label className="text-xs">Tình trạng</Label>
+                        <Label className="text-xs">{t('mobileBatch.condition')}</Label>
                         <Input
                           value={item.condition_note || ''}
                           onChange={(e) => updateItem(item.item_id, 'condition_note', e.target.value)}
-                          placeholder="Ghi chú tình trạng..."
+                          placeholder={t('createBatch.step2.conditionPlaceholder')}
                           className="h-9"
                         />
                       </div>
@@ -403,15 +412,15 @@ export function MobileBatchForm() {
               onClick={() => setShowItemSheet(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Thêm đồ giặt
+              {t('mobileBatch.addLaundryItem')}
             </Button>
             
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
-                Quay lại
+                {t('createBatch.step2.back')}
               </Button>
               <Button className="flex-1" onClick={handleStep2Complete}>
-                Tiếp theo
+                {t('createBatch.step2.next')}
               </Button>
             </div>
           </>
@@ -423,43 +432,43 @@ export function MobileBatchForm() {
             <Card>
               <CardContent className="pt-4 space-y-4">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Đơn vị giặt</Label>
+                  <Label className="text-xs text-muted-foreground">{t('createBatch.step3.vendor')}</Label>
                   <p className="font-medium">{selectedVendor?.name}</p>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-xs text-muted-foreground">Ngày giao</Label>
+                    <Label className="text-xs text-muted-foreground">{t('createBatch.step3.deliveryDate')}</Label>
                     <p className="text-sm">{step1Data?.delivery_date ? format(new Date(step1Data.delivery_date), 'dd/MM/yyyy') : '-'}</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Ngày nhận</Label>
+                    <Label className="text-xs text-muted-foreground">{t('mobileBatch.returnDate')}</Label>
                     <p className="text-sm">{step1Data?.expected_return_date ? format(new Date(step1Data.expected_return_date), 'dd/MM/yyyy') : '-'}</p>
                   </div>
                 </div>
                 
                 <div>
-                  <Label className="text-xs text-muted-foreground">Tổng đồ giặt</Label>
-                  <p className="text-sm">{items.length} loại ({items.reduce((sum, item) => sum + item.quantity, 0)} sản phẩm)</p>
+                  <Label className="text-xs text-muted-foreground">{t('mobileBatch.totalLaundry')}</Label>
+                  <p className="text-sm">{items.length} {t('mobileBatch.types')} ({items.reduce((sum, item) => sum + item.quantity, 0)} {t('mobileBatch.products')})</p>
                 </div>
                 
                 <div>
-                  <Label className="text-xs text-muted-foreground">Tổng cân nặng</Label>
-                  <p className="text-sm">{items.reduce((sum, item) => sum + item.weight_kg, 0).toFixed(1)} kg</p>
+                  <Label className="text-xs text-muted-foreground">{t('createBatch.step3.totalWeight')}</Label>
+                  <p className="text-sm">{items.reduce((sum, item) => sum + item.weight_kg, 0).toFixed(1)} {t('units.kg')}</p>
                 </div>
               </CardContent>
             </Card>
             
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>
-                Quay lại
+                {t('createBatch.step3.back')}
               </Button>
               <Button
                 className="flex-1"
                 onClick={handleSubmit}
                 disabled={isPending}
               >
-                {isPending ? 'Đang tạo...' : 'Tạo lô giặt'}
+                {isPending ? t('createBatch.step3.creating') : t('createBatch.step3.create')}
               </Button>
             </div>
           </>
@@ -470,12 +479,12 @@ export function MobileBatchForm() {
       <Sheet open={showItemSheet} onOpenChange={setShowItemSheet}>
         <SheetContent side="bottom" className="h-[85vh]">
           <SheetHeader>
-            <SheetTitle>Chọn đồ giặt</SheetTitle>
+            <SheetTitle>{t('mobileBatch.selectLaundryItem')}</SheetTitle>
           </SheetHeader>
           
           <div className="mt-4 space-y-4">
             <Input
-              placeholder="Tìm kiếm đồ giặt..."
+              placeholder={t('mobileBatch.searchItems')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -491,7 +500,7 @@ export function MobileBatchForm() {
                     <p className="font-medium text-sm">{item.name}</p>
                     <p className="text-xs text-muted-foreground">{item.code}</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Tồn kho: {item.quantity_in_stock || 0} {item.unit}
+                      {t('mobileBatch.stock')}: {item.quantity_in_stock || 0} {item.unit}
                     </p>
                   </div>
                   <Button size="sm">

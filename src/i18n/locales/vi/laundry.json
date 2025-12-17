@@ -445,5 +445,21 @@
     "statusInactive": "Tạm ngưng",
     "emptyTitle": "Chưa có đơn vị giặt",
     "emptyDescription": "Thêm đơn vị giặt để bắt đầu quản lý"
+  },
+  "mobileBatch": {
+    "stepOf": "Bước {{step}}/{{total}}",
+    "selectVendor": "Chọn đơn vị giặt",
+    "noItemsYet": "Chưa có đồ giặt nào",
+    "condition": "Tình trạng",
+    "addLaundryItem": "Thêm đồ giặt",
+    "returnDate": "Ngày nhận",
+    "totalLaundry": "Tổng đồ giặt",
+    "types": "loại",
+    "products": "sản phẩm",
+    "selectLaundryItem": "Chọn đồ giặt",
+    "searchItems": "Tìm kiếm đồ giặt...",
+    "stock": "Tồn kho",
+    "itemAdded": "Đã thêm {{name}}",
+    "itemRemoved": "Đã xóa item"
   }
 }
