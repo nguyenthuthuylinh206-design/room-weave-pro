@@ -115,7 +115,7 @@ export function RoomMultiSelect({
         </div>
       )}
 
-      <ScrollArea className="border rounded-lg" style={{ maxHeight }}>
+      <div className="border rounded-lg overflow-y-auto" style={{ maxHeight }}>
         <div className="p-2 space-y-4">
           {roomsByFloor.map(({ floor, rooms: floorRooms }) => {
             const floorRoomIds = floorRooms.map(r => r.id)
@@ -170,7 +170,7 @@ export function RoomMultiSelect({
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }
