@@ -283,13 +283,13 @@ export function DistributionItemMatrix({
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[400px] p-0" align="start">
-          <Command shouldFilter={false}>
-            <CommandInput 
-              placeholder="Tìm sản phẩm..." 
-              value={itemSearch}
-              onValueChange={setItemSearch}
-            />
+          <PopoverContent className="w-[400px] p-0" align="start">
+            <Command>
+              <CommandInput 
+                placeholder="Tìm sản phẩm..." 
+                value={itemSearch}
+                onValueChange={setItemSearch}
+              />
             
             {/* Type filter tabs */}
             <div className="border-b px-2 py-2">
@@ -339,7 +339,7 @@ export function DistributionItemMatrix({
                       {typeItems.map(item => (
                         <CommandItem
                           key={item.id}
-                          value={item.id}
+                          value={`${item.id} ${item.name} ${item.code} ${item.category_name ?? ''}`}
                           onSelect={() => addItemToAllRooms(item.id, 1)}
                           className="flex items-center gap-2 py-2"
                         >
@@ -371,7 +371,7 @@ export function DistributionItemMatrix({
                     return (
                       <CommandItem
                         key={item.id}
-                        value={item.id}
+                        value={`${item.id} ${item.name} ${item.code} ${item.category_name ?? ''}`}
                         onSelect={() => addItemToAllRooms(item.id, 1)}
                         className="flex items-center gap-2 py-2"
                       >
