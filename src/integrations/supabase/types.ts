@@ -5621,6 +5621,7 @@ export type Database = {
           expected_lifetime_days: number
           hotel_id: string
           id: string
+          item_type: string
           max_wash_cycles: number
           minimum_stock: number
           model: string
