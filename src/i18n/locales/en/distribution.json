@@ -57,6 +57,7 @@
     "title": "Delivery History",
     "empty": "No delivery orders yet",
     "pendingCount": "pending confirmation",
+    "pendingDeliveries": "{{count}} pending",
     "status": {
       "pending": "Pending",
       "delivered": "Delivering",
