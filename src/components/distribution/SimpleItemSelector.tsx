@@ -27,7 +27,8 @@ export function SimpleItemSelector({ allocatedItemIds, onSelectItem, disabled }:
   const [search, setSearch] = useState('')
   const [selectedType, setSelectedType] = useState<'all' | ItemType>('all')
   
-  const { data: itemsData } = useItems()
+  // Fetch ALL items (no pagination limit) - use large pageSize
+  const { data: itemsData } = useItems({}, 1, 1000)
   const items = itemsData?.items || []
   
   const filteredItems = useMemo(() => {
