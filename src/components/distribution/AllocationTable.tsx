@@ -23,7 +23,8 @@ export function AllocationTable({
   onRemoveItem,
   onSetQuantityForAll,
 }: AllocationTableProps) {
-  const { data: itemsData } = useItems()
+  // Fetch all items (1000) to ensure all selected items can be displayed
+  const { data: itemsData } = useItems({}, 1, 1000)
   const { data: rooms = [] } = useRooms()
   
   const items = itemsData?.items || []
