@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Package, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
+import { Package, CheckCircle2, AlertCircle, Loader2, BoxesIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -36,22 +36,10 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
   const [savingItemId, setSavingItemId] = useState<string | null>(null)
   const updateQuantity = useUpdateRoomItemQuantity()
 
-  if (items.length === 0) {
-    return (
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          {t('itemsList.noStandardSetupWithLink')}{' '}
-          <Link to="/rooms/standards" className="font-medium underline">
-            {t('itemsList.manageStandards')}
-          </Link>{' '}
-          {t('itemsList.toSetup')}
-        </AlertDescription>
-      </Alert>
-    )
-  }
-
+  // Separate standard items and other items (distributed but not in standards)
   const standardItems = items.filter(item => item.has_standard)
+  const otherItems = items.filter(item => !item.has_standard)
+  
   const unverifiedCount = standardItems.filter(item => !item.is_verified).length
   
   // Calculate missing items dynamically based on current quantities
@@ -107,6 +95,22 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
     return t(`itemsList.condition.${conditionKey}`, { defaultValue: condition })
   }
 
+  // Show message if no items at all
+  if (items.length === 0) {
+    return (
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          {t('itemsList.noStandardSetupWithLink')}{' '}
+          <Link to="/rooms/standards" className="font-medium underline">
+            {t('itemsList.manageStandards')}
+          </Link>{' '}
+          {t('itemsList.toSetup')}
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
   return (
     <div className="space-y-4">
       {unverifiedCount > 0 && (
@@ -123,23 +127,37 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
         </Alert>
       )}
 
-      <Tabs defaultValue="required" className="w-full">
+      <Tabs defaultValue={standardItems.length > 0 ? "required" : "other"} className="w-full">
         <TabsList className="w-full flex overflow-x-auto no-scrollbar">
           <TabsTrigger value="required" className="flex-shrink-0 text-xs sm:text-sm">
             <Package className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
             <span className="whitespace-nowrap">{t('itemsList.tabs.required')}</span>
+            {standardItems.length > 0 && (
+              <Badge variant="secondary" className="ml-1 text-xs">{standardItems.length}</Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="current" className="flex-shrink-0 text-xs sm:text-sm">
             <CheckCircle2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
             <span className="whitespace-nowrap">{t('itemsList.tabs.current')}</span>
+            <Badge variant="secondary" className="ml-1 text-xs">{items.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="missing" className="flex-shrink-0 text-xs sm:text-sm">
             <AlertCircle className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
             <span className="whitespace-nowrap">{t('itemsList.tabs.missing')}</span>
+            {missingItems.length > 0 && (
+              <Badge variant="destructive" className="ml-1 text-xs">{missingItems.length}</Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="other" className="flex-shrink-0 text-xs sm:text-sm">
+            <BoxesIcon className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="whitespace-nowrap">{t('itemsList.tabs.other')}</span>
+            {otherItems.length > 0 && (
+              <Badge variant="outline" className="ml-1 text-xs">{otherItems.length}</Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
-        {/* Tab 1: Required items */}
+        {/* Tab 1: Required items (standards) */}
         <TabsContent value="required" className="space-y-2 mt-4">
           {standardItems.length === 0 ? (
             <Alert>
@@ -200,19 +218,19 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
           )}
         </TabsContent>
 
-        {/* Tab 2: Current items */}
+        {/* Tab 2: Current items - ALL items in room */}
         <TabsContent value="current" className="space-y-3 mt-4">
-          {standardItems.length === 0 ? (
+          {items.length === 0 ? (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                {t('itemsList.noStandardSetup')}
+                {t('itemsList.noItems')}
               </AlertDescription>
             </Alert>
           ) : (
-            standardItems.map((item) => {
+            items.map((item) => {
               const currentQty = quantities[item.item_id] ?? item.current_quantity
-              const diff = currentQty - item.standard_quantity
+              const diff = item.has_standard ? currentQty - item.standard_quantity : null
               
               return (
                 <div key={item.item_id} className="p-4 rounded-lg border bg-card hover:shadow-sm transition-shadow space-y-3">
@@ -232,26 +250,33 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-base truncate">{item.item_name}</p>
                       <p className="text-sm text-muted-foreground">{item.item_code}</p>
-                      <Badge variant="outline" className="mt-1">
-                        {getConditionLabel(item.condition)}
-                      </Badge>
+                      <div className="flex gap-2 mt-1">
+                        <Badge variant="outline">
+                          {getConditionLabel(item.condition)}
+                        </Badge>
+                        {!item.has_standard && (
+                          <Badge variant="secondary">{t('itemsList.otherItem')}</Badge>
+                        )}
+                      </div>
                     </div>
-                    {/* Status Badge */}
-                    <div className="flex-shrink-0">
-                      {diff === 0 ? (
-                        <Badge className="bg-success text-white text-base px-3 py-1">
-                          ✓ {t('itemsList.status.enough')}
-                        </Badge>
-                      ) : diff > 0 ? (
-                        <Badge className="bg-blue-500 text-white text-base px-3 py-1">
-                          ↑ {t('itemsList.status.excessAmount', { count: diff })}
-                        </Badge>
-                      ) : (
-                        <Badge variant="destructive" className="text-base px-3 py-1">
-                          ↓ {t('itemsList.status.missingAmount', { count: Math.abs(diff) })}
-                        </Badge>
-                      )}
-                    </div>
+                    {/* Status Badge - only for standard items */}
+                    {item.has_standard && diff !== null && (
+                      <div className="flex-shrink-0">
+                        {diff === 0 ? (
+                          <Badge className="bg-success text-white text-base px-3 py-1">
+                            ✓ {t('itemsList.status.enough')}
+                          </Badge>
+                        ) : diff > 0 ? (
+                          <Badge className="bg-blue-500 text-white text-base px-3 py-1">
+                            ↑ {t('itemsList.status.excessAmount', { count: diff })}
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive" className="text-base px-3 py-1">
+                            ↓ {t('itemsList.status.missingAmount', { count: Math.abs(diff) })}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Quantity comparison and input */}
@@ -278,28 +303,28 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
                       </div>
                     </div>
 
-                    {/* Separator */}
-                    <div className="text-2xl font-light text-muted-foreground">/</div>
-
-                    {/* Standard Quantity Display */}
-                    <div className="flex-1 space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">{t('itemsList.tabs.required')}</label>
-                      <div className="h-12 flex items-center justify-center rounded-md border bg-background">
-                        <span className="text-xl font-bold text-primary">{item.standard_quantity}</span>
-                      </div>
-                    </div>
-
-                    {/* Difference Display */}
-                    <div className="flex-1 space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">{t('itemsList.labels.difference')}</label>
-                      <div className={`h-12 flex items-center justify-center rounded-md border font-bold text-xl ${
-                        diff === 0 ? 'bg-success/10 text-success border-success/20' :
-                        diff > 0 ? 'bg-blue-500/10 text-blue-600 border-blue-500/20' :
-                        'bg-destructive/10 text-destructive border-destructive/20'
-                      }`}>
-                        {diff === 0 ? '0' : diff > 0 ? `+${diff}` : diff}
-                      </div>
-                    </div>
+                    {/* Separator and standard info - only for standard items */}
+                    {item.has_standard && (
+                      <>
+                        <div className="text-2xl font-light text-muted-foreground">/</div>
+                        <div className="flex-1 space-y-1">
+                          <label className="text-xs font-medium text-muted-foreground">{t('itemsList.tabs.required')}</label>
+                          <div className="h-12 flex items-center justify-center rounded-md border bg-background">
+                            <span className="text-xl font-bold text-primary">{item.standard_quantity}</span>
+                          </div>
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <label className="text-xs font-medium text-muted-foreground">{t('itemsList.labels.difference')}</label>
+                          <div className={`h-12 flex items-center justify-center rounded-md border font-bold text-xl ${
+                            diff === 0 ? 'bg-success/10 text-success border-success/20' :
+                            diff !== null && diff > 0 ? 'bg-blue-500/10 text-blue-600 border-blue-500/20' :
+                            'bg-destructive/10 text-destructive border-destructive/20'
+                          }`}>
+                            {diff === 0 ? '0' : diff !== null && diff > 0 ? `+${diff}` : diff}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               )
@@ -361,6 +386,70 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
                         <div className="text-sm text-destructive font-medium">{t('itemsList.status.missing')}</div>
                         <div className="text-2xl font-bold text-destructive">{missing}</div>
                       </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </>
+          )}
+        </TabsContent>
+
+        {/* Tab 4: Other items (not in standards - distributed items) */}
+        <TabsContent value="other" className="space-y-2 mt-4">
+          {otherItems.length === 0 ? (
+            <div className="text-center py-12">
+              <BoxesIcon className="h-16 w-16 text-muted-foreground mx-auto mb-3" />
+              <p className="font-medium text-lg">{t('itemsList.noOtherItems')}</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {t('itemsList.noOtherItemsDesc')}
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="bg-muted p-4 rounded-lg border mb-4">
+                <p className="font-medium">
+                  {t('itemsList.otherItemsCount', { count: otherItems.length })}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {t('itemsList.otherItemsDesc')}
+                </p>
+              </div>
+              {otherItems.map((item) => {
+                const currentQty = quantities[item.item_id] ?? item.current_quantity
+                
+                return (
+                  <div key={item.item_id} className="flex items-center gap-3 p-4 rounded-lg border bg-card hover:shadow-sm transition-shadow">
+                    {item.item_thumbnail ? (
+                      <img
+                        src={item.item_thumbnail}
+                        alt={item.item_name}
+                        className="h-14 w-14 rounded object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="flex h-14 w-14 items-center justify-center rounded bg-muted flex-shrink-0">
+                        <Package className="h-7 w-7 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <Link
+                        to={`/items/${item.item_id}`}
+                        className="font-medium hover:underline block truncate"
+                      >
+                        {item.item_name}
+                      </Link>
+                      <p className="text-sm text-muted-foreground">{item.item_code}</p>
+                      {item.category_name && (
+                        <Badge variant="outline" className="mt-1 text-xs">{item.category_name}</Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-center">
+                        <div className="text-xl font-bold">{currentQty}</div>
+                        <p className="text-xs text-muted-foreground">{t('itemsList.labels.current')}</p>
+                      </div>
+                      <Badge variant="outline" className="px-3 py-1">
+                        {getConditionLabel(item.condition)}
+                      </Badge>
                     </div>
                   </div>
                 )

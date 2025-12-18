@@ -92,12 +92,14 @@
     "noStandardSetupWithLink": "Chưa có chuẩn đồ dùng cho loại phòng này. Vui lòng vào",
     "manageStandards": "Quản lý chuẩn phòng",
     "toSetup": "để thiết lập.",
+    "noItems": "Chưa có đồ dùng nào trong phòng",
     "unverifiedAlert": "Còn {{count}} loại đồ chưa được kiểm tra.",
     "missingSummary": "Thiếu {{count}} loại đồ ({{total}} món).",
     "tabs": {
-      "required": "Cần có",
-      "current": "Đã có",
-      "missing": "Còn thiếu"
+      "required": "Tiêu chuẩn",
+      "current": "Tất cả",
+      "missing": "Còn thiếu",
+      "other": "Đồ khác"
     },
     "labels": {
       "required": "cần có",
@@ -121,7 +123,12 @@
     "allComplete": "Đã đầy đủ",
     "allCompleteDesc": "Tất cả đồ dùng đã đủ theo chuẩn",
     "missingTypes": "Thiếu {{count}} loại đồ",
-    "totalMissing": "Tổng cộng: {{count}} món"
+    "totalMissing": "Tổng cộng: {{count}} món",
+    "otherItem": "Đồ khác",
+    "noOtherItems": "Không có đồ dùng khác",
+    "noOtherItemsDesc": "Tất cả đồ dùng trong phòng đều nằm trong tiêu chuẩn",
+    "otherItemsCount": "{{count}} đồ dùng khác",
+    "otherItemsDesc": "Các đồ dùng được phân phối vào phòng nhưng không thuộc tiêu chuẩn loại phòng"
   },
   "checkSession": {
     "checking": "{{name}} đang kiểm tra {{type}}",
