@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { format } from 'date-fns'
+import { format, differenceInHours } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { ArrowLeft, CheckCircle, Clock, Truck, XCircle, User, Package, DoorOpen, Ban, Printer, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Clock, Truck, XCircle, User, Package, DoorOpen, Ban, Printer, AlertTriangle, Undo2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,12 +20,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { useDistributionOrderDetail, useCompleteRoomDelivery, useCancelDistributionOrder } from '@/hooks/useDistributionOrders'
+import { useRejectRoomDelivery, useUndoRoomDelivery } from '@/hooks/useRoomDistributionHistory'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useAuth } from '@/contexts/AuthContext'
 import { cn } from '@/lib/utils'
 import { printDistributionOrder } from '@/utils/printDistributionOrder'
-import type { DistributionOrderStatus, DistributionRoomStatus } from '@/types/distribution.types'
+import type { DistributionOrderStatus, DistributionRoomStatus, DistributionOrderRoom } from '@/types/distribution.types'
 
 const STATUS_CONFIG: Record<DistributionOrderStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof Clock }> = {
   pending: { label: 'Chờ giao', variant: 'outline', icon: Clock },
@@ -46,10 +57,16 @@ export default function DistributionOrderDetailPage() {
   const { user } = useAuth()
   
   const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [showRejectDialog, setShowRejectDialog] = useState(false)
+  const [showUndoDialog, setShowUndoDialog] = useState(false)
+  const [selectedRoom, setSelectedRoom] = useState<DistributionOrderRoom | null>(null)
+  const [rejectionReason, setRejectionReason] = useState('')
   
   const { data: order, isLoading } = useDistributionOrderDetail(id)
   const { mutate: completeDelivery, isPending } = useCompleteRoomDelivery()
   const { mutate: cancelOrder, isPending: isCancelling } = useCancelDistributionOrder()
+  const { mutate: rejectDelivery, isPending: isRejecting } = useRejectRoomDelivery()
+  const { mutate: undoDelivery, isPending: isUndoing } = useUndoRoomDelivery()
 
   // Check if current user is the assigned staff member
   const isAssignedStaff = order?.assigned_to === user?.id
@@ -74,12 +91,40 @@ export default function DistributionOrderDetailPage() {
   }
 
   const config = STATUS_CONFIG[order.status]
-  const completedRooms = order.rooms?.filter(r => r.status === 'confirmed').length || 0
+  const completedRooms = order.rooms?.filter(r => r.status === 'confirmed' || r.status === 'rejected').length || 0
   const totalRooms = order.rooms?.length || 0
   const progress = totalRooms > 0 ? Math.round((completedRooms / totalRooms) * 100) : 0
 
   const handleConfirmRoom = (roomOrderId: string) => {
     completeDelivery({ roomOrderId })
+  }
+
+  const handleRejectRoom = () => {
+    if (!selectedRoom || !user?.id || !rejectionReason.trim()) return
+    rejectDelivery({
+      distributionOrderRoomId: selectedRoom.id,
+      rejectedBy: user.id,
+      rejectionReason: rejectionReason.trim()
+    }, {
+      onSuccess: () => {
+        setShowRejectDialog(false)
+        setSelectedRoom(null)
+        setRejectionReason('')
+      }
+    })
+  }
+
+  const handleUndoRoom = () => {
+    if (!selectedRoom || !user?.id) return
+    undoDelivery({
+      distributionOrderRoomId: selectedRoom.id,
+      performedBy: user.id
+    }, {
+      onSuccess: () => {
+        setShowUndoDialog(false)
+        setSelectedRoom(null)
+      }
+    })
   }
 
   const handleCancelOrder = () => {
@@ -92,7 +137,127 @@ export default function DistributionOrderDetailPage() {
     })
   }
 
+  const canUndoRoom = (room: DistributionOrderRoom) => {
+    if (room.status !== 'confirmed' || !room.confirmed_at) return false
+    const hoursSinceConfirm = differenceInHours(new Date(), new Date(room.confirmed_at))
+    return hoursSinceConfirm < 24 && isAssignedStaff
+  }
+
   const canCancel = order.status === 'pending' || order.status === 'in_progress'
+
+  // Room card component for reuse
+  const RoomCard = ({ room }: { room: DistributionOrderRoom }) => {
+    const roomConfig = ROOM_STATUS_CONFIG[room.status]
+    const canConfirmStatus = room.status === 'pending' || room.status === 'delivered'
+    const canConfirm = canConfirmStatus && isAssignedStaff
+    const canUndo = canUndoRoom(room)
+
+    return (
+      <Card className={cn(
+        'transition-all',
+        room.status === 'confirmed' && 'border-green-200 bg-green-50/30',
+        room.status === 'rejected' && 'border-red-200 bg-red-50/30'
+      )}>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <DoorOpen className="h-5 w-5" />
+              Phòng {room.room_number}
+            </CardTitle>
+            <Badge className={roomConfig.color}>{roomConfig.label}</Badge>
+          </div>
+          <div className="text-sm text-muted-foreground">Tầng {room.floor}</div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Separator />
+          <div className="space-y-2">
+            {room.items?.map(item => (
+              <div key={item.id} className="flex items-center justify-between text-sm">
+                <div className="flex-1 truncate">
+                  <span className="font-medium">{item.item_name}</span>
+                  <span className="text-muted-foreground ml-1">({item.item_code})</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">x{item.quantity}</Badge>
+                  {item.quantity_confirmed !== null && item.quantity_confirmed !== item.quantity && (
+                    <Badge variant={item.quantity_confirmed < item.quantity ? 'destructive' : 'outline'}>
+                      Nhận: {item.quantity_confirmed}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Action buttons */}
+          {canConfirm && (
+            <div className="flex gap-2 pt-2">
+              <Button 
+                className="flex-1" 
+                onClick={() => handleConfirmRoom(room.id)}
+                disabled={isPending}
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Xác nhận
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={() => {
+                  setSelectedRoom(room)
+                  setShowRejectDialog(true)
+                }}
+              >
+                <XCircle className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {canConfirmStatus && !isAssignedStaff && (
+            <div className="flex items-center gap-2 p-2 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-xs">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              <span>Chỉ nhân viên được phân công ({order.assigned_to_name || 'Chưa phân công'}) mới có thể xác nhận</span>
+            </div>
+          )}
+
+          {/* Confirmed info with undo */}
+          {room.status === 'confirmed' && room.confirmed_at && (
+            <div className="flex items-center justify-between pt-2">
+              <div className="text-xs text-muted-foreground">
+                Xác nhận bởi {room.confirmed_by_name} lúc{' '}
+                {format(new Date(room.confirmed_at), 'HH:mm dd/MM', { locale: vi })}
+              </div>
+              {canUndo && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    setSelectedRoom(room)
+                    setShowUndoDialog(true)
+                  }}
+                >
+                  <Undo2 className="h-3 w-3 mr-1" />
+                  Hoàn tác
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Rejected info */}
+          {room.status === 'rejected' && (
+            <div className="flex items-start gap-2 p-2 rounded-md bg-red-50 border border-red-200 text-red-700 text-xs">
+              <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <div>
+                <p>Từ chối bởi {room.confirmed_by_name}</p>
+                {(room as any).rejection_reason && (
+                  <p className="mt-1">Lý do: {(room as any).rejection_reason}</p>
+                )}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    )
+  }
 
   if (isMobile) {
     return (
@@ -142,69 +307,13 @@ export default function DistributionOrderDetailPage() {
 
         {/* Rooms List */}
         <div className="flex-1 overflow-auto p-4 space-y-3">
-          {order.rooms?.map(room => {
-            const roomConfig = ROOM_STATUS_CONFIG[room.status]
-            const canConfirmStatus = room.status === 'pending' || room.status === 'delivered'
-            const canConfirm = canConfirmStatus && isAssignedStaff
-
-            return (
-              <Card key={room.id}>
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <DoorOpen className="h-5 w-5 text-muted-foreground" />
-                      <span className="font-semibold">Phòng {room.room_number}</span>
-                      <Badge variant="outline">Tầng {room.floor}</Badge>
-                    </div>
-                    <Badge className={roomConfig.color}>{roomConfig.label}</Badge>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-2">
-                    {room.items?.map(item => (
-                      <div key={item.id} className="flex items-center justify-between text-sm">
-                        <div>
-                          <span className="font-medium">{item.item_name}</span>
-                          <span className="text-muted-foreground ml-2">({item.item_code})</span>
-                        </div>
-                        <Badge variant="secondary">x{item.quantity}</Badge>
-                      </div>
-                    ))}
-                  </div>
-
-                  {canConfirm && (
-                    <Button 
-                      className="w-full" 
-                      onClick={() => handleConfirmRoom(room.id)}
-                      disabled={isPending}
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Xác nhận đã giao
-                    </Button>
-                  )}
-
-                  {canConfirmStatus && !isAssignedStaff && (
-                    <div className="flex items-center gap-2 p-2 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-xs">
-                      <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                      <span>Chỉ nhân viên được phân công ({order.assigned_to_name || 'Chưa phân công'}) mới có thể xác nhận</span>
-                    </div>
-                  )}
-
-                  {room.confirmed_at && (
-                    <div className="text-xs text-muted-foreground text-center">
-                      Xác nhận bởi {room.confirmed_by_name} lúc{' '}
-                      {format(new Date(room.confirmed_at), 'HH:mm dd/MM', { locale: vi })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )
-          })}
+          {order.rooms?.map(room => (
+            <RoomCard key={room.id} room={room} />
+          ))}
         </div>
       </div>
 
-      {/* Cancel Dialog */}
+      {/* Dialogs */}
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -222,6 +331,56 @@ export default function DistributionOrderDetailPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isCancelling ? 'Đang hủy...' : 'Xác nhận hủy'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Từ chối giao hàng</DialogTitle>
+            <DialogDescription>
+              Từ chối giao hàng cho phòng {selectedRoom?.room_number}. Sản phẩm sẽ được hoàn trả về kho.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="rejection-reason">Lý do từ chối *</Label>
+              <Textarea
+                id="rejection-reason"
+                placeholder="Nhập lý do từ chối..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>Hủy</Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleRejectRoom}
+              disabled={isRejecting || !rejectionReason.trim()}
+            >
+              {isRejecting ? 'Đang xử lý...' : 'Xác nhận từ chối'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={showUndoDialog} onOpenChange={setShowUndoDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hoàn tác xác nhận</AlertDialogTitle>
+            <AlertDialogDescription>
+              Hoàn tác xác nhận giao hàng cho phòng {selectedRoom?.room_number}? 
+              Sản phẩm sẽ được chuyển về trạng thái chờ giao.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isUndoing}>Đóng</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUndoRoom} disabled={isUndoing}>
+              {isUndoing ? 'Đang xử lý...' : 'Xác nhận hoàn tác'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -290,7 +449,7 @@ export default function DistributionOrderDetailPage() {
             </div>
             <div>
               <div className="text-2xl font-bold">{completedRooms}</div>
-              <div className="text-sm text-muted-foreground">Đã hoàn thành</div>
+              <div className="text-sm text-muted-foreground">Đã xử lý</div>
             </div>
           </CardContent>
         </Card>
@@ -333,68 +492,9 @@ export default function DistributionOrderDetailPage() {
 
       {/* Rooms Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {order.rooms?.map(room => {
-          const roomConfig = ROOM_STATUS_CONFIG[room.status]
-          const canConfirmStatus = room.status === 'pending' || room.status === 'delivered'
-          const canConfirm = canConfirmStatus && isAssignedStaff
-
-          return (
-            <Card key={room.id} className={cn(
-              'transition-all',
-              room.status === 'confirmed' && 'opacity-75'
-            )}>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <DoorOpen className="h-5 w-5" />
-                    Phòng {room.room_number}
-                  </CardTitle>
-                  <Badge className={roomConfig.color}>{roomConfig.label}</Badge>
-                </div>
-                <div className="text-sm text-muted-foreground">Tầng {room.floor}</div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Separator />
-                <div className="space-y-2">
-                  {room.items?.map(item => (
-                    <div key={item.id} className="flex items-center justify-between text-sm">
-                      <div className="flex-1 truncate">
-                        <span className="font-medium">{item.item_name}</span>
-                        <span className="text-muted-foreground ml-1">({item.item_code})</span>
-                      </div>
-                      <Badge variant="secondary">x{item.quantity}</Badge>
-                    </div>
-                  ))}
-                </div>
-
-                {canConfirm && (
-                  <Button 
-                    className="w-full" 
-                    onClick={() => handleConfirmRoom(room.id)}
-                    disabled={isPending}
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Xác nhận đã giao
-                  </Button>
-                )}
-
-                {canConfirmStatus && !isAssignedStaff && (
-                  <div className="flex items-center gap-2 p-2 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-xs">
-                    <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                    <span>Chỉ nhân viên được phân công ({order.assigned_to_name || 'Chưa phân công'}) mới có thể xác nhận</span>
-                  </div>
-                )}
-
-                {room.confirmed_at && (
-                  <div className="text-xs text-muted-foreground text-center pt-2">
-                    Xác nhận bởi {room.confirmed_by_name} lúc{' '}
-                    {format(new Date(room.confirmed_at), 'HH:mm dd/MM/yyyy', { locale: vi })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )
-        })}
+        {order.rooms?.map(room => (
+          <RoomCard key={room.id} room={room} />
+        ))}
       </div>
 
       {order.notes && (
@@ -408,7 +508,7 @@ export default function DistributionOrderDetailPage() {
         </Card>
       )}
 
-      {/* Cancel Dialog */}
+      {/* Dialogs */}
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -426,6 +526,56 @@ export default function DistributionOrderDetailPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isCancelling ? 'Đang hủy...' : 'Xác nhận hủy'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Từ chối giao hàng</DialogTitle>
+            <DialogDescription>
+              Từ chối giao hàng cho phòng {selectedRoom?.room_number}. Sản phẩm sẽ được hoàn trả về kho.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="rejection-reason-desktop">Lý do từ chối *</Label>
+              <Textarea
+                id="rejection-reason-desktop"
+                placeholder="Nhập lý do từ chối..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>Hủy</Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleRejectRoom}
+              disabled={isRejecting || !rejectionReason.trim()}
+            >
+              {isRejecting ? 'Đang xử lý...' : 'Xác nhận từ chối'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={showUndoDialog} onOpenChange={setShowUndoDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hoàn tác xác nhận</AlertDialogTitle>
+            <AlertDialogDescription>
+              Hoàn tác xác nhận giao hàng cho phòng {selectedRoom?.room_number}? 
+              Sản phẩm sẽ được chuyển về trạng thái chờ giao.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isUndoing}>Đóng</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUndoRoom} disabled={isUndoing}>
+              {isUndoing ? 'Đang xử lý...' : 'Xác nhận hoàn tác'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
