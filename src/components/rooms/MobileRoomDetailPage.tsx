@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -16,12 +17,14 @@ import {
   Eye,
   Printer,
   User,
+  Truck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
 import { RoomItemsList } from '@/components/rooms/RoomItemsList'
 import { EnhancedCheckHistory } from '@/components/rooms/EnhancedCheckHistory'
@@ -30,6 +33,7 @@ import { RoomDistributionHistory } from '@/components/rooms/RoomDistributionHist
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { useRoom } from '@/hooks/useRooms'
 import { useApplyStandards } from '@/hooks/useRoomStandards'
+import { useRoomDistributionHistory } from '@/hooks/useRoomDistributionHistory'
 import { formatCurrency } from '@/lib/utils'
 import type { RoomStatus, CheckType } from '@/types/rooms.types'
 
@@ -90,12 +94,26 @@ const handlePrintItemList = (roomNumber: string | undefined, items: any[], t: an
 }
 
 export function MobileRoomDetailPage() {
-  const { t } = useTranslation(['rooms', 'common'])
+  const { t } = useTranslation(['rooms', 'common', 'distribution'])
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { data, isLoading, refetch } = useRoom(id)
   const applyStandards = useApplyStandards()
+  const { data: deliveryHistory } = useRoomDistributionHistory(id)
+  
+  // Count pending deliveries
+  const pendingDeliveryCount = deliveryHistory?.filter(
+    h => h.room_status === 'pending' || h.room_status === 'delivered'
+  ).length || 0
+  
+  // Auto-switch to delivery tab when pending orders exist
+  const [activeTab, setActiveTab] = useState('info')
+  useEffect(() => {
+    if (pendingDeliveryCount > 0 && !isLoading) {
+      setActiveTab('delivery')
+    }
+  }, [pendingDeliveryCount, isLoading])
 
   const handleRefresh = async () => {
     await refetch()
@@ -226,8 +244,26 @@ export function MobileRoomDetailPage() {
         />
       </div>
 
+      {/* Alert Banner for Pending Deliveries */}
+      {pendingDeliveryCount > 0 && activeTab !== 'delivery' && (
+        <div className="px-4 pb-2">
+          <Alert 
+            className="border-amber-500 bg-amber-50 dark:bg-amber-950/30 cursor-pointer"
+            onClick={() => setActiveTab('delivery')}
+          >
+            <Truck className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-800 dark:text-amber-200 flex items-center justify-between">
+              <span>
+                {t('distribution:roomHistory.pendingAlert', { count: pendingDeliveryCount })}
+              </span>
+              <ChevronRight className="h-4 w-4" />
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+
       {/* Tabs */}
-      <Tabs defaultValue="info" className="flex-1">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
         <TabsList className="w-full justify-start px-4 bg-transparent border-b rounded-none h-auto gap-2 overflow-x-auto">
           <TabsTrigger 
             value="info" 
@@ -248,9 +284,14 @@ export function MobileRoomDetailPage() {
           </TabsTrigger>
           <TabsTrigger 
             value="delivery"
-            className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-2 text-sm"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-2 text-sm relative"
           >
-            Giao hàng
+            {t('distribution:roomHistory.tabTitle')}
+            {pendingDeliveryCount > 0 && (
+              <Badge variant="destructive" className="ml-1 h-5 px-1.5 animate-pulse">
+                {pendingDeliveryCount}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger 
             value="history"

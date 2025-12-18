@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { 
@@ -7,6 +8,7 @@ import {
   AlertCircle,
   CheckCircle2,
   RefreshCw,
+  Truck,
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -23,16 +25,28 @@ import { RoomHealthScore } from '@/components/rooms/RoomHealthScore'
 import { MobileRoomDetailPage } from '@/components/rooms/MobileRoomDetailPage'
 import { useRoom } from '@/hooks/useRooms'
 import { useApplyStandards } from '@/hooks/useRoomStandards'
+import { useRoomDistributionHistory } from '@/hooks/useRoomDistributionHistory'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { formatCurrency } from '@/lib/utils'
 
 export function RoomDetailPage() {
-  const { t } = useTranslation(['rooms', 'common'])
+  const { t } = useTranslation(['rooms', 'common', 'distribution'])
   const { isMobile } = useBreakpoint()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data, isLoading } = useRoom(id)
   const applyStandards = useApplyStandards()
+  const { data: deliveryHistory } = useRoomDistributionHistory(id)
+  const deliveryRef = useRef<HTMLDivElement>(null)
+  
+  // Count pending deliveries
+  const pendingDeliveryCount = deliveryHistory?.filter(
+    h => h.room_status === 'pending' || h.room_status === 'delivered'
+  ).length || 0
+  
+  const scrollToDelivery = () => {
+    deliveryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   // Mobile view
   if (isMobile) {
@@ -88,6 +102,22 @@ export function RoomDetailPage() {
         </Button>
       </PageHeader>
       
+      {/* Alert Banner for Pending Deliveries */}
+      {pendingDeliveryCount > 0 && (
+        <Alert 
+          className="border-amber-500 bg-amber-50 dark:bg-amber-950/30 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors"
+          onClick={scrollToDelivery}
+        >
+          <Truck className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-800 dark:text-amber-200">
+            {t('distribution:roomHistory.pendingAlertTitle', { count: pendingDeliveryCount })}
+          </AlertTitle>
+          <AlertDescription className="text-amber-700 dark:text-amber-300">
+            {t('distribution:roomHistory.pendingAlertDescription')}
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left Column */}
         <div className="space-y-6 lg:col-span-2">
@@ -286,7 +316,9 @@ export function RoomDetailPage() {
           </div>
 
           {/* Distribution History */}
-          <RoomDistributionHistory roomId={id!} roomNumber={room.room_number} />
+          <div ref={deliveryRef}>
+            <RoomDistributionHistory roomId={id!} roomNumber={room.room_number} />
+          </div>
           
           {/* Check History */}
           <Card>

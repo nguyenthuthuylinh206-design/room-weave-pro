@@ -190,21 +190,128 @@ export function RoomDistributionHistory({ roomId, roomNumber }: RoomDistribution
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Truck className="h-4 w-4" />
-            Lịch sử giao hàng
+            {t('distribution:roomHistory.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-6 text-muted-foreground">
             <Package className="h-10 w-10 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Chưa có phiếu giao hàng nào</p>
+            <p className="text-sm">{t('distribution:roomHistory.empty')}</p>
           </div>
         </CardContent>
       </Card>
     )
   }
 
-  // Count pending deliveries for badge
-  const pendingCount = history.filter(h => h.room_status === 'pending' || h.room_status === 'delivered').length
+  // Separate pending vs processed orders
+  const pendingOrders = history.filter(h => h.room_status === 'pending' || h.room_status === 'delivered')
+  const processedOrders = history.filter(h => h.room_status !== 'pending' && h.room_status !== 'delivered')
+  const pendingCount = pendingOrders.length
+
+  const renderOrderItem = (item: typeof history[0]) => {
+    const config = STATUS_CONFIG[item.room_status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending
+    const StatusIcon = config.icon
+    const showActions = item.room_status === 'pending' || item.room_status === 'delivered'
+    const showUndoBtn = canUndo(item)
+
+    return (
+      <div 
+        key={item.order_id} 
+        className={cn(
+          "p-3 rounded-lg border transition-colors",
+          showActions && "border-primary/50 bg-primary/5"
+        )}
+      >
+        <div className="flex items-start gap-3">
+          <div className={cn("mt-0.5", config.color)}>
+            <StatusIcon className="h-5 w-5" />
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <Link 
+                to={`/inventory/distribution/${item.order_id}`}
+                className="font-medium text-sm hover:underline"
+              >
+                {item.order_code}
+              </Link>
+              <Badge variant={config.variant} className="text-xs">
+                {t(`distribution:roomHistory.status.${item.room_status}`, { defaultValue: config.label })}
+              </Badge>
+            </div>
+            
+            <div className="text-xs text-muted-foreground space-y-0.5">
+              <p className="flex items-center gap-1">
+                <Package className="h-3 w-3" />
+                {t('distribution:roomHistory.itemsSummary', { types: item.total_items, total: item.total_quantity })}
+              </p>
+              
+              {item.confirmed_at ? (
+                <p>
+                  {t('distribution:roomHistory.confirmedBy', { name: item.confirmed_by_name })} • {' '}
+                  {format(new Date(item.confirmed_at), 'dd/MM/yyyy HH:mm', { locale: vi })}
+                </p>
+              ) : (
+                <p>
+                  {t('distribution:roomHistory.createdAt', { date: format(new Date(item.created_at), 'dd/MM/yyyy HH:mm', { locale: vi }) })}
+                  {item.assigned_to_name && ` • ${t('distribution:roomHistory.assignedTo', { name: item.assigned_to_name })}`}
+                </p>
+              )}
+
+              {item.rejection_reason && (
+                <p className="flex items-center gap-1 text-destructive">
+                  <AlertCircle className="h-3 w-3" />
+                  {t('distribution:roomHistory.rejectionReason', { reason: item.rejection_reason })}
+                </p>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            {showActions && (
+              <div className="flex gap-2 mt-3">
+                <Button 
+                  size="sm" 
+                  onClick={() => handleConfirm(item)}
+                  disabled={completeDelivery.isPending}
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  {t('distribution:roomHistory.confirmButton')}
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => handleOpenRejectDialog(item)}
+                  disabled={rejectDelivery.isPending}
+                >
+                  <XCircle className="h-4 w-4 mr-1" />
+                  {t('distribution:roomHistory.rejectButton')}
+                </Button>
+              </div>
+            )}
+
+            {/* Undo button for recently confirmed */}
+            {showUndoBtn && (
+              <div className="mt-3">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => handleUndo(item)}
+                  disabled={undoDelivery.isPending}
+                >
+                  <Undo2 className="h-4 w-4 mr-1" />
+                  {t('distribution:roomHistory.undoButton', { hours: 24 - differenceInHours(new Date(), new Date(item.confirmed_at!)) })}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <Link to={`/inventory/distribution/${item.order_id}`}>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -212,120 +319,43 @@ export function RoomDistributionHistory({ roomId, roomNumber }: RoomDistribution
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Truck className="h-4 w-4" />
-            Lịch sử giao hàng
+            {t('distribution:roomHistory.title')}
             <Badge variant="secondary" className="ml-auto">{history.length}</Badge>
             {pendingCount > 0 && (
               <Badge variant="destructive" className="animate-pulse">
-                {pendingCount} chờ xác nhận
+                {t('distribution:roomHistory.pendingBadge', { count: pendingCount })}
               </Badge>
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {history.map(item => {
-            const config = STATUS_CONFIG[item.room_status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending
-            const StatusIcon = config.icon
-            const showActions = item.room_status === 'pending' || item.room_status === 'delivered'
-            const showUndo = canUndo(item)
-
-            return (
-              <div 
-                key={item.order_id} 
-                className={cn(
-                  "p-3 rounded-lg border transition-colors",
-                  showActions && "border-primary/50 bg-primary/5"
-                )}
-              >
-                <div className="flex items-start gap-3">
-                  <div className={cn("mt-0.5", config.color)}>
-                    <StatusIcon className="h-5 w-5" />
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Link 
-                        to={`/inventory/distribution/${item.order_id}`}
-                        className="font-medium text-sm hover:underline"
-                      >
-                        {item.order_code}
-                      </Link>
-                      <Badge variant={config.variant} className="text-xs">
-                        {config.label}
-                      </Badge>
-                    </div>
-                    
-                    <div className="text-xs text-muted-foreground space-y-0.5">
-                      <p className="flex items-center gap-1">
-                        <Package className="h-3 w-3" />
-                        {item.total_items} loại • {item.total_quantity} sản phẩm
-                      </p>
-                      
-                      {item.confirmed_at ? (
-                        <p>
-                          Xác nhận bởi <span className="font-medium">{item.confirmed_by_name}</span> • {' '}
-                          {format(new Date(item.confirmed_at), 'dd/MM/yyyy HH:mm', { locale: vi })}
-                        </p>
-                      ) : (
-                        <p>
-                          Tạo lúc {format(new Date(item.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })}
-                          {item.assigned_to_name && ` • Giao cho ${item.assigned_to_name}`}
-                        </p>
-                      )}
-
-                      {item.rejection_reason && (
-                        <p className="flex items-center gap-1 text-destructive">
-                          <AlertCircle className="h-3 w-3" />
-                          Lý do: {item.rejection_reason}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Action buttons */}
-                    {showActions && (
-                      <div className="flex gap-2 mt-3">
-                        <Button 
-                          size="sm" 
-                          onClick={() => handleConfirm(item)}
-                          disabled={completeDelivery.isPending}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Xác nhận nhận hàng
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleOpenRejectDialog(item)}
-                          disabled={rejectDelivery.isPending}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Từ chối
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* Undo button for recently confirmed */}
-                    {showUndo && (
-                      <div className="mt-3">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleUndo(item)}
-                          disabled={undoDelivery.isPending}
-                        >
-                          <Undo2 className="h-4 w-4 mr-1" />
-                          Hoàn tác (còn {24 - differenceInHours(new Date(), new Date(item.confirmed_at!))}h)
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  <Link to={`/inventory/distribution/${item.order_id}`}>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </Link>
-                </div>
+        <CardContent className="space-y-4">
+          {/* Pending Section - Highlighted */}
+          {pendingCount > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-400">
+                <AlertCircle className="h-4 w-4" />
+                {t('distribution:roomHistory.needsAction')}
               </div>
-            )
-          })}
+              <div className="space-y-3">
+                {pendingOrders.map(renderOrderItem)}
+              </div>
+            </div>
+          )}
+
+          {/* Processed Section */}
+          {processedOrders.length > 0 && (
+            <div className="space-y-2">
+              {pendingCount > 0 && (
+                <div className="text-sm font-medium text-muted-foreground pt-2 border-t">
+                  {t('distribution:roomHistory.processedHistory')}
+                </div>
+              )}
+              <div className="space-y-3">
+                {processedOrders.map(renderOrderItem)}
+              </div>
+            </div>
+          )}
+
         </CardContent>
       </Card>
 
@@ -333,17 +363,17 @@ export function RoomDistributionHistory({ roomId, roomNumber }: RoomDistribution
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Từ chối nhận hàng</DialogTitle>
+            <DialogTitle>{t('distribution:rejectDialog.title')}</DialogTitle>
             <DialogDescription>
-              Vui lòng nhập lý do từ chối nhận hàng. Hàng sẽ được trả về kho.
+              {t('distribution:rejectDialog.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="rejection-reason">Lý do từ chối *</Label>
+              <Label htmlFor="rejection-reason">{t('distribution:rejectDialog.reasonLabel')}</Label>
               <Textarea
                 id="rejection-reason"
-                placeholder="Ví dụ: Sản phẩm không đúng yêu cầu, số lượng không khớp..."
+                placeholder={t('distribution:rejectDialog.reasonPlaceholder')}
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 rows={3}
@@ -352,14 +382,14 @@ export function RoomDistributionHistory({ roomId, roomNumber }: RoomDistribution
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
-              Hủy
+              {t('distribution:rejectDialog.cancel')}
             </Button>
             <Button 
               variant="destructive" 
               onClick={handleReject}
               disabled={!rejectionReason.trim() || rejectDelivery.isPending}
             >
-              {rejectDelivery.isPending ? 'Đang xử lý...' : 'Xác nhận từ chối'}
+              {rejectDelivery.isPending ? t('distribution:rejectDialog.processing') : t('distribution:rejectDialog.confirm')}
             </Button>
           </DialogFooter>
         </DialogContent>
