@@ -41,7 +41,9 @@ const createOutboundSchema = (t: (key: string) => string) => z.object({
   vendor_id: z.string().uuid().optional(),
   maintenance_request_id: z.string().uuid().optional(),
   items: z.array(z.object({
-    item_id: z.string().uuid(t('inventory:validation.itemRequired')),
+    item_id: z.string().refine(val => val === '' || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val), {
+      message: t('inventory:validation.itemRequired')
+    }),
     quantity: z.number().min(1, t('inventory:validation.quantityMin')),
     available_quantity: z.number(),
     notes: z.string().optional()
@@ -55,7 +57,7 @@ const createOutboundSchema = (t: (key: string) => string) => z.object({
   delivery_staff_id: z.string().uuid().optional(),
   receiver_name: z.string().optional(),
   laundry_items: z.array(z.object({
-    item_id: z.string().uuid(),
+    item_id: z.string().refine(val => val === '' || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)),
     quantity: z.number().min(1),
     weight_kg: z.number().min(0),
     available_quantity: z.number(),
