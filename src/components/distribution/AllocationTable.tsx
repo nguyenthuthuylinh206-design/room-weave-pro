@@ -1,11 +1,13 @@
-import { useMemo } from 'react'
-import { Minus, Plus, Trash2, AlertTriangle } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Minus, Plus, Trash2, AlertTriangle, Copy, ClipboardPaste } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useItems } from '@/hooks/useItems'
 import { useRooms } from '@/hooks/useRooms'
+import { toast } from 'sonner'
 import type { RoomItemAllocation } from './DistributionPanel'
 
 interface AllocationTableProps {
@@ -23,6 +25,8 @@ export function AllocationTable({
   onRemoveItem,
   onSetQuantityForAll,
 }: AllocationTableProps) {
+  const [copiedQuantities, setCopiedQuantities] = useState<Record<string, number> | null>(null)
+  
   // Fetch all items (1000) to ensure all selected items can be displayed
   const { data: itemsData } = useItems({}, 1, 1000)
   const { data: rooms = [] } = useRooms()
@@ -82,6 +86,26 @@ export function AllocationTable({
     return getTotalForItem(itemId) > (item.quantity_in_stock ?? 0)
   }
   
+  // Copy quantities for an item across all rooms
+  const handleCopy = (itemId: string) => {
+    const quantities: Record<string, number> = {}
+    selectedRoomIds.forEach(roomId => {
+      quantities[roomId] = getQuantity(roomId, itemId)
+    })
+    setCopiedQuantities(quantities)
+    toast.success('Đã sao chép số lượng')
+  }
+  
+  // Paste copied quantities to an item
+  const handlePaste = (itemId: string) => {
+    if (!copiedQuantities) return
+    selectedRoomIds.forEach(roomId => {
+      const qty = copiedQuantities[roomId] ?? 0
+      onQuantityChange(roomId, itemId, qty)
+    })
+    toast.success('Đã dán số lượng')
+  }
+  
   if (selectedRooms.length === 0) {
     return (
       <div className="border rounded-lg p-8 text-center text-muted-foreground bg-muted/20">
@@ -117,7 +141,7 @@ export function AllocationTable({
             <div className="w-[80px] shrink-0 px-2 py-2 text-center font-medium text-sm border-r">
               Tổng
             </div>
-            <div className="w-[100px] shrink-0 px-2 py-2 text-center font-medium text-sm">
+            <div className="w-[140px] shrink-0 px-2 py-2 text-center font-medium text-sm">
               Thao tác
             </div>
           </div>
@@ -193,12 +217,41 @@ export function AllocationTable({
                 </div>
                 
                 {/* Actions */}
-                <div className="w-[100px] shrink-0 px-2 py-2 flex items-center justify-center gap-1">
+                <div className="w-[140px] shrink-0 px-2 py-2 flex items-center justify-center gap-1">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleCopy(itemId)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Sao chép số lượng</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handlePaste(itemId)}
+                        disabled={!copiedQuantities}
+                      >
+                        <ClipboardPaste className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Dán số lượng</TooltipContent>
+                  </Tooltip>
                   <Input
                     type="number"
                     min={0}
                     placeholder="Tất cả"
-                    className="w-14 h-7 text-xs p-1"
+                    className="w-12 h-7 text-xs p-1"
                     onBlur={e => {
                       const val = parseInt(e.target.value)
                       if (!isNaN(val) && val >= 0) {
@@ -216,15 +269,20 @@ export function AllocationTable({
                       }
                     }}
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-destructive hover:text-destructive"
-                    onClick={() => onRemoveItem(itemId)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => onRemoveItem(itemId)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Xóa sản phẩm</TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
             )
