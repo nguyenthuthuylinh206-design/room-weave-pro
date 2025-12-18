@@ -230,7 +230,7 @@ export function RoomDistributionHistory({ roomId, roomNumber }: RoomDistribution
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <Link 
-                to={`/inventory/distribution/${item.order_id}`}
+                to={`/inventory/distributions/${item.order_id}`}
                 className="font-medium text-sm hover:underline"
               >
                 {item.order_code}
@@ -305,7 +305,7 @@ export function RoomDistributionHistory({ roomId, roomNumber }: RoomDistribution
             )}
           </div>
 
-          <Link to={`/inventory/distribution/${item.order_id}`}>
+          <Link to={`/inventory/distributions/${item.order_id}`}>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </Link>
         </div>
