@@ -128,8 +128,12 @@ export default function DistributionOrderDetailPage() {
   }
 
   const handleCancelOrder = () => {
-    if (!id) return
-    cancelOrder(id, {
+    if (!id || !order) return
+    cancelOrder({
+      orderId: id,
+      orderCode: order.order_code,
+      assignedToUserId: order.assigned_to,
+    }, {
       onSuccess: () => {
         setShowCancelDialog(false)
         navigate('/inventory/distributions')

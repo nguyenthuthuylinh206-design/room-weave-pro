@@ -52,5 +52,47 @@
     "items": "Sản phẩm",
     "assignee": "Giao",
     "notAssigned": "Chưa phân công"
+  },
+  "roomHistory": {
+    "title": "Lịch sử giao hàng",
+    "empty": "Chưa có phiếu giao hàng nào",
+    "pendingCount": "chờ xác nhận",
+    "status": {
+      "pending": "Chờ giao",
+      "delivered": "Đang giao",
+      "confirmed": "Đã xác nhận",
+      "rejected": "Từ chối"
+    },
+    "itemTypes": "loại",
+    "products": "sản phẩm",
+    "confirmedBy": "Xác nhận bởi",
+    "createdAt": "Tạo lúc",
+    "assignedTo": "Giao cho",
+    "reason": "Lý do",
+    "confirmReceive": "Xác nhận nhận hàng",
+    "reject": "Từ chối",
+    "undo": "Hoàn tác",
+    "hoursLeft": "h"
+  },
+  "rejectDialog": {
+    "title": "Từ chối nhận hàng",
+    "description": "Vui lòng nhập lý do từ chối nhận hàng. Hàng sẽ được trả về kho.",
+    "reasonLabel": "Lý do từ chối *",
+    "reasonPlaceholder": "Ví dụ: Sản phẩm không đúng yêu cầu, số lượng không khớp...",
+    "cancel": "Hủy",
+    "confirm": "Xác nhận từ chối",
+    "processing": "Đang xử lý..."
+  },
+  "notifications": {
+    "orderCreated": "Phiếu giao hàng mới",
+    "orderCreatedBody": "{{orderCode}}: {{totalRooms}} phòng, {{totalItems}} sản phẩm - Phân công bởi {{creatorName}}",
+    "deliveryConfirmed": "Xác nhận giao hàng",
+    "deliveryConfirmedBody": "{{orderCode}}: Phòng {{roomNumber}} đã xác nhận nhận hàng - bởi {{confirmerName}}",
+    "allDeliveriesCompleted": "Phiếu giao hàng hoàn thành",
+    "allDeliveriesCompletedBody": "{{orderCode}}: Tất cả các phòng đã xác nhận nhận hàng",
+    "deliveryRejected": "Giao hàng bị từ chối",
+    "deliveryRejectedBody": "{{orderCode}}: Phòng {{roomNumber}} từ chối nhận hàng - {{reason}}",
+    "orderCancelled": "Phiếu giao hàng đã hủy",
+    "orderCancelledBody": "{{orderCode}} đã bị hủy bởi {{cancellerName}}"
   }
 }

@@ -52,5 +52,47 @@
     "items": "Items",
     "assignee": "Assigned",
     "notAssigned": "Not assigned"
+  },
+  "roomHistory": {
+    "title": "Delivery History",
+    "empty": "No delivery orders yet",
+    "pendingCount": "pending confirmation",
+    "status": {
+      "pending": "Pending",
+      "delivered": "Delivering",
+      "confirmed": "Confirmed",
+      "rejected": "Rejected"
+    },
+    "itemTypes": "types",
+    "products": "products",
+    "confirmedBy": "Confirmed by",
+    "createdAt": "Created at",
+    "assignedTo": "Assigned to",
+    "reason": "Reason",
+    "confirmReceive": "Confirm Receipt",
+    "reject": "Reject",
+    "undo": "Undo",
+    "hoursLeft": "h left"
+  },
+  "rejectDialog": {
+    "title": "Reject Delivery",
+    "description": "Please enter the reason for rejection. Items will be returned to stock.",
+    "reasonLabel": "Rejection reason *",
+    "reasonPlaceholder": "Example: Items don't match requirements, quantity mismatch...",
+    "cancel": "Cancel",
+    "confirm": "Confirm Rejection",
+    "processing": "Processing..."
+  },
+  "notifications": {
+    "orderCreated": "New distribution order",
+    "orderCreatedBody": "{{orderCode}}: {{totalRooms}} rooms, {{totalItems}} items - Assigned by {{creatorName}}",
+    "deliveryConfirmed": "Delivery confirmed",
+    "deliveryConfirmedBody": "{{orderCode}}: Room {{roomNumber}} confirmed receipt - by {{confirmerName}}",
+    "allDeliveriesCompleted": "Distribution order completed",
+    "allDeliveriesCompletedBody": "{{orderCode}}: All rooms have confirmed receipt",
+    "deliveryRejected": "Delivery rejected",
+    "deliveryRejectedBody": "{{orderCode}}: Room {{roomNumber}} rejected delivery - {{reason}}",
+    "orderCancelled": "Distribution order cancelled",
+    "orderCancelledBody": "{{orderCode}} cancelled by {{cancellerName}}"
   }
 }
