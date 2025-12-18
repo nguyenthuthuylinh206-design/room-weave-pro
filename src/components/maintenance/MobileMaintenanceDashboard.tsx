@@ -42,22 +42,10 @@ export const MobileMaintenanceDashboard = () => {
       color: 'text-primary',
     },
     {
-      icon: Calendar,
-      label: 'Lịch bảo trì',
-      onClick: () => navigate('/maintenance/schedules'),
-      color: 'text-blue-600',
-    },
-    {
       icon: FileText,
-      label: 'Báo cáo',
-      onClick: () => navigate('/maintenance/reports'),
-      color: 'text-green-600',
-    },
-    {
-      icon: Users,
-      label: 'Kỹ thuật viên',
-      onClick: () => navigate('/maintenance/technicians'),
-      color: 'text-purple-600',
+      label: 'Tất cả yêu cầu',
+      onClick: () => navigate('/maintenance/requests'),
+      color: 'text-blue-600',
     },
   ]
 

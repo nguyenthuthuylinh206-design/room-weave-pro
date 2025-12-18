@@ -52,7 +52,7 @@ export const MobileBottomNav = () => {
     { id: 'home', label: 'Home', icon: Home, path: '/' },
     { id: 'inventory', label: 'Kho', icon: Package, path: '/inventory', module: 'inventory,items' },
     { id: 'rooms', label: 'Phòng', icon: DoorOpen, path: '/rooms', module: 'rooms' },
-    { id: 'laundry', label: 'Laundry', icon: Shirt, path: '/laundry', module: 'laundry', badge: true },
+    { id: 'laundry', label: 'Giặt là', icon: Shirt, path: '/laundry', module: 'laundry', badge: true },
     { id: 'maintenance', label: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badge: true },
   ]
 

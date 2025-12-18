@@ -1,11 +1,12 @@
 import { useNavigate } from 'react-router-dom'
-import { Plus, Wind, DollarSign, Package, Star, Truck } from 'lucide-react'
+import { Plus, Wind, DollarSign, Package, Star, Truck, CheckCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PullToRefresh } from '@/components/mobile/TouchOptimized'
 import { StatScrollContainer, MobileStatCard } from '@/components/mobile/MobileDashboardStats'
 import { SwipeableCard } from '@/components/mobile/TouchOptimized'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { MobileLaundryExpenseChart } from '@/components/laundry/MobileLaundryExpenseChart'
 import { MobileLaundryVendorPerformance } from '@/components/laundry/MobileLaundryVendorPerformance'
 import { useLaundryDashboardStats } from '@/hooks/useLaundryDashboard'
@@ -37,6 +38,11 @@ export function MobileLaundryDashboard() {
   const handleRefresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['laundry-dashboard-stats'] })
     await queryClient.invalidateQueries({ queryKey: ['laundry-batches'] })
+  }
+
+  const handleQuickReceive = (batchId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    navigate(`/laundry/batches/${batchId}/receive`)
   }
 
   const statusLabels: Record<string, string> = {
@@ -150,7 +156,9 @@ export function MobileLaundryDashboard() {
                   onSwipeLeft={() => navigate(`/laundry/batches/${batch.id}`)}
                   onSwipeRight={() => navigate(`/laundry/batches/${batch.id}/receive`)}
                 >
-                  <Card>
+                  <Card className="relative overflow-hidden">
+                    {/* Swipe hint */}
+                    <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-r from-primary/30 to-transparent" />
                     <CardContent className="p-4">
                       <div className="space-y-2">
                         <div className="flex justify-between items-start">
@@ -160,9 +168,11 @@ export function MobileLaundryDashboard() {
                               {batch.vendor_name}
                             </p>
                           </div>
-                          <Badge className={statusColors[batch.status as keyof typeof statusColors]}>
-                            {statusLabels[batch.status]}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge className={statusColors[batch.status as keyof typeof statusColors]}>
+                              {statusLabels[batch.status]}
+                            </Badge>
+                          </div>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">
@@ -174,6 +184,18 @@ export function MobileLaundryDashboard() {
                             </span>
                           )}
                         </div>
+                        {/* Quick Receive Button - only show for ready batches */}
+                        {batch.status === 'ready' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full mt-2 text-green-600 border-green-200 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-950"
+                            onClick={(e) => handleQuickReceive(batch.id, e)}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Nhận hàng nhanh
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -215,11 +237,16 @@ export function MobileLaundryDashboard() {
 
         {/* Tips */}
         <div className="px-4 pb-4">
-          <Card className="bg-muted/50">
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">
-                💡 <strong>{t('dashboard.tip')}:</strong> {t('dashboard.tipContent')}
-              </p>
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="p-3 flex items-center gap-3">
+              <div className="flex items-center gap-1 text-primary">
+                <span className="text-lg">👆</span>
+                <span className="text-xs font-medium">Vuốt</span>
+              </div>
+              <div className="flex-1 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">← Trái:</span> Xem chi tiết • 
+                <span className="font-medium text-foreground ml-1">Phải →:</span> Nhận hàng
+              </div>
             </CardContent>
           </Card>
         </div>
