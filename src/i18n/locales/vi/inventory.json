@@ -476,5 +476,37 @@
     "description": "Bạn có dữ liệu chưa lưu. Bạn muốn lưu nháp hay hủy bỏ?",
     "saveDraft": "Lưu nháp",
     "discard": "Bỏ qua"
+  },
+  "quickEntry": {
+    "inbound": "Nhập kho nhanh",
+    "outbound": "Xuất kho nhanh",
+    "quickInbound": "Nhập nhanh",
+    "quickOutbound": "Xuất nhanh",
+    "scanCode": "Quét mã",
+    "scanDeveloping": "Tính năng quét mã đang được phát triển",
+    "selectItem": "Chọn sản phẩm",
+    "customLocation": "Nhập vị trí khác...",
+    "enterLocation": "Nhập vị trí...",
+    "reset": "Đặt lại",
+    "confirm": "Xác nhận"
+  },
+  "mobileLowStock": {
+    "title": "Cảnh báo tồn kho",
+    "critical": "nghiêm trọng",
+    "criticalMessage": "{{count}} sản phẩm hết hàng nghiêm trọng!",
+    "lowMessage": "{{count}} sản phẩm sắp hết hàng",
+    "swipeHint": "Vuốt để xem chi tiết hoặc đặt hàng nhanh",
+    "outOfStock": "Hết hàng",
+    "remaining": "Còn {{count}}",
+    "minimum": "Tối thiểu",
+    "shortage": "Thiếu",
+    "viewMore": "Xem thêm {{count}}",
+    "orderAll": "Đặt hàng tất cả"
+  },
+  "mobileTransactions": {
+    "todayTitle": "Giao dịch hôm nay",
+    "viewAll": "Xem tất cả",
+    "inboundSlips": "Phiếu nhập kho",
+    "outboundSlips": "Phiếu xuất kho"
   }
 }

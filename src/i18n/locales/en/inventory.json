@@ -466,5 +466,37 @@
     "description": "You have unsaved data. Do you want to save as draft or discard?",
     "saveDraft": "Save Draft",
     "discard": "Discard"
+  },
+  "quickEntry": {
+    "inbound": "Quick Inbound",
+    "outbound": "Quick Outbound",
+    "quickInbound": "Quick In",
+    "quickOutbound": "Quick Out",
+    "scanCode": "Scan Code",
+    "scanDeveloping": "Barcode scanning feature is under development",
+    "selectItem": "Select Product",
+    "customLocation": "Enter custom location...",
+    "enterLocation": "Enter location...",
+    "reset": "Reset",
+    "confirm": "Confirm"
+  },
+  "mobileLowStock": {
+    "title": "Low Stock Alert",
+    "critical": "critical",
+    "criticalMessage": "{{count}} products critically out of stock!",
+    "lowMessage": "{{count}} products running low",
+    "swipeHint": "Swipe to view details or quick order",
+    "outOfStock": "Out of stock",
+    "remaining": "{{count}} left",
+    "minimum": "Minimum",
+    "shortage": "Short",
+    "viewMore": "View {{count}} more",
+    "orderAll": "Order All"
+  },
+  "mobileTransactions": {
+    "todayTitle": "Today's Transactions",
+    "viewAll": "View All",
+    "inboundSlips": "Inbound slips",
+    "outboundSlips": "Outbound slips"
   }
 }

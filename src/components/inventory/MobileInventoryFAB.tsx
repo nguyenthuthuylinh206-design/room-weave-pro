@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Plus, X, PackagePlus, PackageMinus, ClipboardList, QrCode } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { QuickEntrySheet } from './QuickEntrySheet'
 
 interface FABAction {
   icon: React.ElementType
@@ -13,30 +16,32 @@ interface FABAction {
 
 export function MobileInventoryFAB() {
   const navigate = useNavigate()
+  const { t } = useTranslation('inventory')
   const [isOpen, setIsOpen] = useState(false)
+  const [quickEntryType, setQuickEntryType] = useState<'in' | 'out' | null>(null)
 
   const actions: FABAction[] = [
     {
       icon: PackagePlus,
-      label: 'Nhập kho nhanh',
+      label: t('quickEntry.quickInbound'),
       onClick: () => {
         setIsOpen(false)
-        navigate('/inventory/inbound/new')
+        setQuickEntryType('in')
       },
       color: 'bg-blue-500',
     },
     {
       icon: PackageMinus,
-      label: 'Xuất kho nhanh',
+      label: t('quickEntry.quickOutbound'),
       onClick: () => {
         setIsOpen(false)
-        navigate('/inventory/outbound/new')
+        setQuickEntryType('out')
       },
       color: 'bg-orange-500',
     },
     {
       icon: ClipboardList,
-      label: 'Kiểm kê',
+      label: t('adjustment.title'),
       onClick: () => {
         setIsOpen(false)
         navigate('/inventory/adjustments/new')
@@ -45,10 +50,10 @@ export function MobileInventoryFAB() {
     },
     {
       icon: QrCode,
-      label: 'Quét mã',
+      label: t('quickEntry.scanCode'),
       onClick: () => {
         setIsOpen(false)
-        // Future: implement barcode scanning
+        toast.info(t('quickEntry.scanDeveloping'))
       },
       color: 'bg-emerald-500',
     },
@@ -125,6 +130,13 @@ export function MobileInventoryFAB() {
           </motion.div>
         </motion.button>
       </div>
+
+      {/* Quick Entry Sheet */}
+      <QuickEntrySheet
+        open={quickEntryType !== null}
+        onOpenChange={(open) => !open && setQuickEntryType(null)}
+        type={quickEntryType || 'in'}
+      />
     </>
   )
 }

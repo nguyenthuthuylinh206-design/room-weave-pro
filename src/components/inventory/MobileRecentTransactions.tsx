@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowRightLeft, ChevronRight, PackagePlus, PackageMinus, Clock } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -7,6 +8,7 @@ import { motion } from 'framer-motion'
 
 export function MobileRecentTransactions() {
   const navigate = useNavigate()
+  const { t } = useTranslation('inventory')
   const { data: stats } = useInventoryDashboard()
 
   const todayIn = stats?.today_transactions?.in || 0
@@ -21,7 +23,7 @@ export function MobileRecentTransactions() {
           <div className="p-1.5 rounded-lg bg-muted">
             <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
           </div>
-          <h2 className="text-base font-semibold">Giao dịch hôm nay</h2>
+          <h2 className="text-base font-semibold">{t('mobileTransactions.todayTitle')}</h2>
           <Badge variant="outline" className="rounded-full">
             {total}
           </Badge>
@@ -30,7 +32,7 @@ export function MobileRecentTransactions() {
           onClick={() => navigate('/inventory/transactions')}
           className="text-sm text-primary hover:underline flex items-center gap-1"
         >
-          Xem tất cả
+          {t('mobileTransactions.viewAll')}
           <ChevronRight className="h-4 w-4" />
         </button>
       </div>
@@ -55,7 +57,7 @@ export function MobileRecentTransactions() {
                 {todayIn}
               </p>
               <p className="text-xs text-blue-600/70 dark:text-blue-400/70 font-medium mt-1">
-                Phiếu nhập kho
+                {t('mobileTransactions.inboundSlips')}
               </p>
             </CardContent>
           </Card>
@@ -80,7 +82,7 @@ export function MobileRecentTransactions() {
                 {todayOut}
               </p>
               <p className="text-xs text-orange-600/70 dark:text-orange-400/70 font-medium mt-1">
-                Phiếu xuất kho
+                {t('mobileTransactions.outboundSlips')}
               </p>
             </CardContent>
           </Card>
