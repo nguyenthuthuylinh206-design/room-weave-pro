@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { ArrowLeft, CheckCircle, Clock, Truck, XCircle, User, Package, DoorOpen, Ban, Printer } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Clock, Truck, XCircle, User, Package, DoorOpen, Ban, Printer, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useDistributionOrderDetail, useCompleteRoomDelivery, useCancelDistributionOrder } from '@/hooks/useDistributionOrders'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useAuth } from '@/contexts/AuthContext'
 import { cn } from '@/lib/utils'
 import { printDistributionOrder } from '@/utils/printDistributionOrder'
 import type { DistributionOrderStatus, DistributionRoomStatus } from '@/types/distribution.types'
@@ -42,12 +43,16 @@ export default function DistributionOrderDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const isMobile = useIsMobile()
+  const { user } = useAuth()
   
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   
   const { data: order, isLoading } = useDistributionOrderDetail(id)
   const { mutate: completeDelivery, isPending } = useCompleteRoomDelivery()
   const { mutate: cancelOrder, isPending: isCancelling } = useCancelDistributionOrder()
+
+  // Check if current user is the assigned staff member
+  const isAssignedStaff = order?.assigned_to === user?.id
 
   if (isLoading) {
     return (
@@ -139,7 +144,8 @@ export default function DistributionOrderDetailPage() {
         <div className="flex-1 overflow-auto p-4 space-y-3">
           {order.rooms?.map(room => {
             const roomConfig = ROOM_STATUS_CONFIG[room.status]
-            const canConfirm = room.status === 'pending' || room.status === 'delivered'
+            const canConfirmStatus = room.status === 'pending' || room.status === 'delivered'
+            const canConfirm = canConfirmStatus && isAssignedStaff
 
             return (
               <Card key={room.id}>
@@ -176,6 +182,13 @@ export default function DistributionOrderDetailPage() {
                       <CheckCircle className="h-4 w-4 mr-2" />
                       Xác nhận đã giao
                     </Button>
+                  )}
+
+                  {canConfirmStatus && !isAssignedStaff && (
+                    <div className="flex items-center gap-2 p-2 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-xs">
+                      <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                      <span>Chỉ nhân viên được phân công ({order.assigned_to_name || 'Chưa phân công'}) mới có thể xác nhận</span>
+                    </div>
                   )}
 
                   {room.confirmed_at && (
@@ -322,7 +335,8 @@ export default function DistributionOrderDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {order.rooms?.map(room => {
           const roomConfig = ROOM_STATUS_CONFIG[room.status]
-          const canConfirm = room.status === 'pending' || room.status === 'delivered'
+          const canConfirmStatus = room.status === 'pending' || room.status === 'delivered'
+          const canConfirm = canConfirmStatus && isAssignedStaff
 
           return (
             <Card key={room.id} className={cn(
@@ -362,6 +376,13 @@ export default function DistributionOrderDetailPage() {
                     <CheckCircle className="h-4 w-4 mr-2" />
                     Xác nhận đã giao
                   </Button>
+                )}
+
+                {canConfirmStatus && !isAssignedStaff && (
+                  <div className="flex items-center gap-2 p-2 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-xs">
+                    <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                    <span>Chỉ nhân viên được phân công ({order.assigned_to_name || 'Chưa phân công'}) mới có thể xác nhận</span>
+                  </div>
                 )}
 
                 {room.confirmed_at && (
