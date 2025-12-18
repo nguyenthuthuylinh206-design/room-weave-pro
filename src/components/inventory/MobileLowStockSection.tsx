@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { AlertTriangle, ChevronRight, ShoppingCart, Package } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -11,6 +12,7 @@ import { cn } from '@/lib/utils'
 
 export function MobileLowStockSection() {
   const navigate = useNavigate()
+  const { t } = useTranslation('inventory')
   const { data: lowStockItems = [] } = useLowStockItems(5)
 
   if (lowStockItems.length === 0) {
@@ -30,12 +32,12 @@ export function MobileLowStockSection() {
           <div className="p-1.5 rounded-lg bg-orange-100 dark:bg-orange-900/30">
             <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
           </div>
-          <h2 className="text-base font-semibold">Cảnh báo tồn kho</h2>
+          <h2 className="text-base font-semibold">{t('mobileLowStock.title')}</h2>
         </div>
         <div className="flex items-center gap-2">
           {criticalCount > 0 && (
             <Badge variant="destructive" className="rounded-full animate-pulse">
-              {criticalCount} nghiêm trọng
+              {criticalCount} {t('mobileLowStock.critical')}
             </Badge>
           )}
           <Badge variant="secondary" className="rounded-full">
@@ -67,12 +69,12 @@ export function MobileLowStockSection() {
             criticalCount > 0 ? "text-red-700 dark:text-red-300" : "text-orange-700 dark:text-orange-300"
           )}>
             {criticalCount > 0 
-              ? `${criticalCount} sản phẩm hết hàng nghiêm trọng!`
-              : `${lowStockItems.length} sản phẩm sắp hết hàng`
+              ? t('mobileLowStock.criticalMessage', { count: criticalCount })
+              : t('mobileLowStock.lowMessage', { count: lowStockItems.length })
             }
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Vuốt để xem chi tiết hoặc đặt hàng nhanh
+            {t('mobileLowStock.swipeHint')}
           </p>
         </div>
       </motion.div>
@@ -126,7 +128,9 @@ export function MobileLowStockSection() {
                             variant={isCritical ? "destructive" : "secondary"}
                             className="shrink-0 text-xs rounded-full"
                           >
-                            {item.quantity_in_stock === 0 ? 'Hết hàng' : `Còn ${item.quantity_in_stock}`}
+                            {item.quantity_in_stock === 0 
+                              ? t('mobileLowStock.outOfStock') 
+                              : t('mobileLowStock.remaining', { count: item.quantity_in_stock })}
                           </Badge>
                         </div>
                         
@@ -140,12 +144,12 @@ export function MobileLowStockSection() {
                             )}
                           />
                           <div className="flex justify-between text-[10px] text-muted-foreground">
-                            <span>Tối thiểu: {item.minimum_stock}</span>
+                            <span>{t('mobileLowStock.minimum')}: {item.minimum_stock}</span>
                             <span className={cn(
                               "font-medium",
                               isCritical ? "text-red-600" : "text-orange-600"
                             )}>
-                              Thiếu {item.shortage || (item.minimum_stock || 0) - (item.quantity_in_stock || 0)}
+                              {t('mobileLowStock.shortage')} {item.shortage || (item.minimum_stock || 0) - (item.quantity_in_stock || 0)}
                             </span>
                           </div>
                         </div>
@@ -168,7 +172,7 @@ export function MobileLowStockSection() {
             onClick={() => navigate('/inventory?filter=low_stock')}
             className="flex-1"
           >
-            Xem thêm {lowStockItems.length - 4}
+            {t('mobileLowStock.viewMore', { count: lowStockItems.length - 4 })}
             <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         )}
@@ -178,7 +182,7 @@ export function MobileLowStockSection() {
           className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
         >
           <ShoppingCart className="h-4 w-4 mr-1.5" />
-          Đặt hàng tất cả
+          {t('mobileLowStock.orderAll')}
         </Button>
       </div>
     </div>
