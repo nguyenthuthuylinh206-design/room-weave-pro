@@ -6119,10 +6119,15 @@ export type Database = {
             }
             Returns: Json
           }
-      undo_room_delivery_confirmation: {
-        Args: { p_distribution_order_room_id: string; p_performed_by: string }
-        Returns: Json
-      }
+      undo_room_delivery_confirmation:
+        | { Args: { p_distribution_order_room_id: string }; Returns: Json }
+        | {
+            Args: {
+              p_distribution_order_room_id: string
+              p_performed_by: string
+            }
+            Returns: Json
+          }
       update_tenant_usage: { Args: { p_tenant_id: string }; Returns: undefined }
       user_has_hotel_access: {
         Args: { p_hotel_id: string; p_user_id: string }
