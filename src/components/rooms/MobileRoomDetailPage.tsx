@@ -147,8 +147,10 @@ export function MobileRoomDetailPage() {
   
   const { room, items, recent_checks: checks } = data
   
+  // Calculate item statistics
   const standardItems = items.filter(item => item.has_standard)
-  const totalItems = standardItems.length
+  const otherItems = items.filter(item => !item.has_standard)
+  const totalItemsInRoom = items.length
   const completeItems = standardItems.filter(item => item.missing_quantity === 0).length
   const missingCount = standardItems.filter(item => item.missing_quantity > 0).length
   const totalMissingQuantity = standardItems.reduce((sum, item) => sum + item.missing_quantity, 0)
@@ -188,7 +190,7 @@ export function MobileRoomDetailPage() {
               className="h-8 w-8"
               onClick={() => applyStandards.mutate(id!)}
               disabled={applyStandards.isPending}
-              title={totalItems === 0 ? t('detail.applyStandards') : t('detail.syncStandards')}
+              title={standardItems.length === 0 ? t('detail.applyStandards') : t('detail.syncStandards')}
             >
               <RefreshCw className={`h-4 w-4 ${applyStandards.isPending ? 'animate-spin' : ''}`} />
             </Button>
@@ -213,8 +215,11 @@ export function MobileRoomDetailPage() {
         <div className="grid grid-cols-3 gap-3">
           <Card>
             <CardContent className="p-3 text-center">
-              <p className="text-2xl font-bold text-blue-600">{totalItems}</p>
+              <p className="text-2xl font-bold text-blue-600">{totalItemsInRoom}</p>
               <p className="text-xs text-muted-foreground">{t('detail.totalItems')}</p>
+              {otherItems.length > 0 && (
+                <p className="text-[10px] text-muted-foreground">{t('itemsList.tabs.other')}: {otherItems.length}</p>
+              )}
             </CardContent>
           </Card>
           <Card>
@@ -239,7 +244,7 @@ export function MobileRoomDetailPage() {
       <div className="px-4 pb-3">
         <RoomHealthScore 
           checks={checks} 
-          totalItems={totalItems} 
+          totalItems={standardItems.length} 
           missingItems={missingCount}
         />
       </div>
@@ -428,7 +433,7 @@ export function MobileRoomDetailPage() {
         </TabsContent>
 
         <TabsContent value="items" className="flex-1 p-4 pb-20 m-0">
-          {totalItems === 0 && (
+          {totalItemsInRoom === 0 && (
             <Card className="mb-4 border-amber-200 bg-amber-50 dark:bg-amber-950/20">
               <CardContent className="p-3 flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />

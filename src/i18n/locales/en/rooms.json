@@ -92,12 +92,14 @@
     "noStandardSetupWithLink": "No standard items set up for this room type. Please go to",
     "manageStandards": "Room Standards",
     "toSetup": "to set up.",
+    "noItems": "No items in this room",
     "unverifiedAlert": "{{count}} item types have not been checked.",
     "missingSummary": "Missing {{count}} types ({{total}} items).",
     "tabs": {
-      "required": "Required",
-      "current": "Current",
-      "missing": "Missing"
+      "required": "Standard",
+      "current": "All Items",
+      "missing": "Missing",
+      "other": "Other"
     },
     "labels": {
       "required": "required",
@@ -121,7 +123,12 @@
     "allComplete": "All Complete",
     "allCompleteDesc": "All items are up to standard",
     "missingTypes": "Missing {{count}} types",
-    "totalMissing": "Total: {{count}} items"
+    "totalMissing": "Total: {{count}} items",
+    "otherItem": "Other item",
+    "noOtherItems": "No other items",
+    "noOtherItemsDesc": "All items in this room are part of the room standard",
+    "otherItemsCount": "{{count}} other items",
+    "otherItemsDesc": "Items distributed to this room that are not part of the room type standard"
   },
   "checkSession": {
     "checking": "{{name}} is checking {{type}}",

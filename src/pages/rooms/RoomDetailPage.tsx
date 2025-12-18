@@ -72,8 +72,10 @@ export function RoomDetailPage() {
   // Destructure data from useRoom
   const { room, hotel, items, recent_checks: checks } = data
   
+  // Calculate item statistics
   const standardItems = items.filter(item => item.has_standard)
-  const totalItems = standardItems.length
+  const otherItems = items.filter(item => !item.has_standard)
+  const totalItemsInRoom = items.length
   const completeItems = standardItems.filter(item => item.missing_quantity === 0).length
   const missingCount = standardItems.filter(item => item.missing_quantity > 0).length
   
@@ -244,7 +246,7 @@ export function RoomDetailPage() {
             </CardHeader>
             <CardContent>
               {/* Alert when no items */}
-              {totalItems === 0 && (
+              {totalItemsInRoom === 0 && (
                 <Alert className="mb-4">
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>{t('rooms:detail.noItems')}</AlertTitle>
@@ -265,7 +267,7 @@ export function RoomDetailPage() {
           <div className="grid gap-4">
             <RoomHealthScore 
               checks={checks}
-              totalItems={totalItems}
+              totalItems={standardItems.length}
               missingItems={missingCount}
             />
             
@@ -274,7 +276,12 @@ export function RoomDetailPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">{t('rooms:detail.totalItems')}</p>
-                    <p className="text-2xl font-bold">{totalItems}</p>
+                    <p className="text-2xl font-bold">{totalItemsInRoom}</p>
+                    {otherItems.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {t('rooms:itemsList.tabs.required')}: {standardItems.length} | {t('rooms:itemsList.tabs.other')}: {otherItems.length}
+                      </p>
+                    )}
                   </div>
                   <div className="rounded-full bg-blue-100 p-3">
                     <CheckCircle2 className="h-6 w-6 text-blue-600" />
@@ -345,13 +352,13 @@ export function RoomDetailPage() {
                 {t('rooms:detail.checkRoom')}
               </Button>
               <Button 
-                variant={totalItems === 0 ? "default" : "outline"}
+                variant={standardItems.length === 0 ? "default" : "outline"}
                 className="w-full justify-start"
                 onClick={() => applyStandards.mutate(id!)}
                 disabled={applyStandards.isPending}
               >
                 <RefreshCw className={`mr-2 h-4 w-4 ${applyStandards.isPending ? 'animate-spin' : ''}`} />
-                {totalItems === 0 ? t('rooms:detail.applyStandards') : t('rooms:detail.syncStandards')}
+                {standardItems.length === 0 ? t('rooms:detail.applyStandards') : t('rooms:detail.syncStandards')}
               </Button>
               <Button 
                 variant="outline" 
