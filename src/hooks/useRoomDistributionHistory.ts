@@ -67,7 +67,7 @@ export function useRejectRoomDelivery() {
       return result
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['distribution-order'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
       queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
       queryClient.invalidateQueries({ queryKey: ['room-distribution-history'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
@@ -102,7 +102,7 @@ export function useUndoRoomDelivery() {
       return result
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['distribution-order'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
       queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
       queryClient.invalidateQueries({ queryKey: ['room-distribution-history'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
