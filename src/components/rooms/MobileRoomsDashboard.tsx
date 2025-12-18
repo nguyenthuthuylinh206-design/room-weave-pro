@@ -81,6 +81,22 @@ export function MobileRoomsDashboard() {
   return (
     <PullToRefresh onRefresh={handleRefresh}>
       <div className="space-y-4 pb-20">
+        {/* Tips - Moved to top for discoverability */}
+        <div className="px-4 pt-2">
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="p-3 flex items-center gap-3">
+              <div className="flex items-center gap-1 text-primary">
+                <span className="text-lg">👆</span>
+                <span className="text-xs font-medium">Vuốt</span>
+              </div>
+              <div className="flex-1 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">← Trái:</span> Xem chi tiết • 
+                <span className="font-medium text-foreground ml-1">Phải →:</span> Kiểm tra phòng
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Stats Overview */}
         <div className="space-y-2">
           <h2 className="text-lg font-semibold px-4">Trạng thái phòng</h2>
@@ -172,7 +188,10 @@ export function MobileRoomsDashboard() {
                 onSwipeLeft={() => navigate(`/rooms/${room.id}`)}
                 onSwipeRight={() => navigate(`/rooms/${room.id}/check`)}
               >
-                <Card>
+                <Card className="relative overflow-hidden">
+                  {/* Swipe hint indicators */}
+                  <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-r from-primary/30 to-transparent" />
+                  <div className="absolute inset-y-0 right-0 w-1 bg-gradient-to-l from-green-500/30 to-transparent" />
                   <CardContent className="p-4">
                     <div className="space-y-2">
                       <div className="flex justify-between items-start">
@@ -223,17 +242,6 @@ export function MobileRoomsDashboard() {
             </Card>
           </div>
         )}
-
-        {/* Tips */}
-        <div className="px-4 pb-4">
-          <Card className="bg-muted/50">
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">
-                💡 <strong>Mẹo:</strong> Vuốt sang trái để xem chi tiết phòng, vuốt sang phải để kiểm tra phòng
-              </p>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </PullToRefresh>
   )
