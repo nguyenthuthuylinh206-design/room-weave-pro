@@ -6,16 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useItems } from '@/hooks/useItems'
+import { useCategories } from '@/hooks/useCategories'
 import { cn } from '@/lib/utils'
-import type { ItemType } from '@/types/items.types'
-
-const ITEM_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
-  all: { label: 'Tất cả', color: 'bg-muted' },
-  linen: { label: 'Đồ vải', color: 'bg-blue-100 text-blue-800' },
-  consumable: { label: 'Tiêu hao', color: 'bg-green-100 text-green-800' },
-  equipment: { label: 'Thiết bị', color: 'bg-orange-100 text-orange-800' },
-  furniture: { label: 'Nội thất', color: 'bg-purple-100 text-purple-800' },
-}
 
 interface SimpleItemSelectorProps {
   allocatedItemIds: string[]
@@ -25,17 +17,20 @@ interface SimpleItemSelectorProps {
 
 export function SimpleItemSelector({ allocatedItemIds, onSelectItem, disabled }: SimpleItemSelectorProps) {
   const [search, setSearch] = useState('')
-  const [selectedType, setSelectedType] = useState<'all' | ItemType>('all')
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   
-  // Fetch ALL items (no pagination limit) - use large pageSize
+  // Fetch ALL items (no pagination limit)
   const { data: itemsData } = useItems({}, 1, 1000)
   const items = itemsData?.items || []
+  
+  // Fetch categories for filter tabs
+  const { data: categories = [] } = useCategories()
   
   const filteredItems = useMemo(() => {
     return items
       .filter(item => !allocatedItemIds.includes(item.id))
       .filter(item => (item.quantity_in_stock ?? 0) > 0)
-      .filter(item => selectedType === 'all' || item.item_type === selectedType)
+      .filter(item => !selectedCategoryId || item.category_id === selectedCategoryId)
       .filter(item => {
         if (!search.trim()) return true
         const searchLower = search.toLowerCase()
@@ -45,20 +40,24 @@ export function SimpleItemSelector({ allocatedItemIds, onSelectItem, disabled }:
           (item.category_name?.toLowerCase().includes(searchLower))
         )
       })
-  }, [items, allocatedItemIds, selectedType, search])
+  }, [items, allocatedItemIds, selectedCategoryId, search])
 
+  // Group items by category for display
   const groupedItems = useMemo(() => {
-    const groups: Record<ItemType, typeof filteredItems> = {
-      linen: [],
-      consumable: [],
-      equipment: [],
-      furniture: [],
-    }
+    const groups: Record<string, { name: string; color: string | null; items: typeof filteredItems }> = {}
+    
     filteredItems.forEach(item => {
-      if (item.item_type && groups[item.item_type as ItemType]) {
-        groups[item.item_type as ItemType].push(item)
+      const categoryId = item.category_id || 'uncategorized'
+      if (!groups[categoryId]) {
+        groups[categoryId] = {
+          name: item.category_name || 'Chưa phân loại',
+          color: item.category_color || null,
+          items: []
+        }
       }
+      groups[categoryId].items.push(item)
     })
+    
     return groups
   }, [filteredItems])
   
@@ -84,22 +83,42 @@ export function SimpleItemSelector({ allocatedItemIds, onSelectItem, disabled }:
         />
       </div>
       
-      {/* Type filter buttons */}
-      <div className="flex gap-2 flex-wrap">
-        {Object.entries(ITEM_TYPE_CONFIG).map(([type, config]) => (
+      {/* Category filter tabs */}
+      <ScrollArea className="w-full">
+        <div className="flex gap-2 pb-2">
           <Button
-            key={type}
             type="button"
-            variant={selectedType === type ? 'default' : 'outline'}
+            variant={selectedCategoryId === null ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setSelectedType(type as 'all' | ItemType)}
+            onClick={() => setSelectedCategoryId(null)}
             disabled={disabled}
-            className="text-xs"
+            className="text-xs shrink-0"
           >
-            {config.label}
+            Tất cả ({items.filter(i => !allocatedItemIds.includes(i.id) && (i.quantity_in_stock ?? 0) > 0).length})
           </Button>
-        ))}
-      </div>
+          {categories.map(category => {
+            const count = items.filter(i => 
+              i.category_id === category.id && 
+              !allocatedItemIds.includes(i.id) && 
+              (i.quantity_in_stock ?? 0) > 0
+            ).length
+            if (count === 0) return null
+            return (
+              <Button
+                key={category.id}
+                type="button"
+                variant={selectedCategoryId === category.id ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedCategoryId(category.id)}
+                disabled={disabled}
+                className="text-xs shrink-0"
+              >
+                {category.name} ({count})
+              </Button>
+            )
+          })}
+        </div>
+      </ScrollArea>
       
       {/* Item list */}
       <ScrollArea className="h-[250px] border rounded-md">
@@ -109,17 +128,25 @@ export function SimpleItemSelector({ allocatedItemIds, onSelectItem, disabled }:
             <p className="text-sm">Không tìm thấy sản phẩm</p>
             {search && <p className="text-xs">Thử từ khóa khác</p>}
           </div>
-        ) : selectedType === 'all' ? (
-          // Grouped view
+        ) : selectedCategoryId === null ? (
+          // Grouped view by category
           <div className="divide-y">
-            {Object.entries(groupedItems).map(([type, typeItems]) => {
-              if (typeItems.length === 0) return null
+            {Object.entries(groupedItems).map(([categoryId, group]) => {
+              if (group.items.length === 0) return null
               return (
-                <div key={type}>
-                  <div className="px-3 py-2 text-xs font-medium text-muted-foreground bg-muted sticky top-0 z-10 border-b">
-                    {ITEM_TYPE_CONFIG[type]?.label} ({typeItems.length})
+                <div key={categoryId}>
+                  <div 
+                    className="px-3 py-2 text-xs font-medium text-muted-foreground bg-muted sticky top-0 z-10 border-b flex items-center gap-2"
+                  >
+                    {group.color && (
+                      <span 
+                        className="w-2 h-2 rounded-full shrink-0" 
+                        style={{ backgroundColor: group.color }}
+                      />
+                    )}
+                    {group.name} ({group.items.length})
                   </div>
-                  {typeItems.map(item => (
+                  {group.items.map(item => (
                     <div
                       key={item.id}
                       className="flex items-center justify-between gap-2 px-3 py-2 cursor-pointer hover:bg-accent transition-colors"
@@ -129,13 +156,17 @@ export function SimpleItemSelector({ allocatedItemIds, onSelectItem, disabled }:
                         <div className="font-medium text-sm truncate">{item.name}</div>
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <span className="shrink-0">{item.code}</span>
-                          {item.item_type && (
-                            <Badge variant="secondary" className={cn("text-[10px] px-1.5 py-0 shrink-0", ITEM_TYPE_CONFIG[item.item_type]?.color)}>
-                              {ITEM_TYPE_CONFIG[item.item_type]?.label}
-                            </Badge>
-                          )}
                           {item.category_name && (
-                            <span className="truncate">• {item.category_name}</span>
+                            <Badge 
+                              variant="secondary" 
+                              className="text-[10px] px-1.5 py-0 shrink-0"
+                              style={item.category_color ? { 
+                                backgroundColor: `${item.category_color}20`,
+                                color: item.category_color
+                              } : undefined}
+                            >
+                              {item.category_name}
+                            </Badge>
                           )}
                         </div>
                       </div>
@@ -152,7 +183,7 @@ export function SimpleItemSelector({ allocatedItemIds, onSelectItem, disabled }:
             })}
           </div>
         ) : (
-          // Flat list view
+          // Flat list view for specific category
           <div className="divide-y">
             {filteredItems.map(item => (
               <div
@@ -164,13 +195,17 @@ export function SimpleItemSelector({ allocatedItemIds, onSelectItem, disabled }:
                   <div className="font-medium text-sm truncate">{item.name}</div>
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span className="shrink-0">{item.code}</span>
-                    {item.item_type && (
-                      <Badge variant="secondary" className={cn("text-[10px] px-1.5 py-0 shrink-0", ITEM_TYPE_CONFIG[item.item_type]?.color)}>
-                        {ITEM_TYPE_CONFIG[item.item_type]?.label}
-                      </Badge>
-                    )}
                     {item.category_name && (
-                      <span className="truncate">• {item.category_name}</span>
+                      <Badge 
+                        variant="secondary" 
+                        className="text-[10px] px-1.5 py-0 shrink-0"
+                        style={item.category_color ? { 
+                          backgroundColor: `${item.category_color}20`,
+                          color: item.category_color
+                        } : undefined}
+                      >
+                        {item.category_name}
+                      </Badge>
                     )}
                   </div>
                 </div>
