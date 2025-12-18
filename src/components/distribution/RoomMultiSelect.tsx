@@ -22,11 +22,15 @@ export function RoomMultiSelect({
 
   const filteredRooms = useMemo(() => {
     if (!search) return rooms
-    const searchLower = search.toLowerCase()
-    return rooms.filter(room => 
-      room.room_number.toLowerCase().includes(searchLower) ||
-      room.room_type?.toLowerCase().includes(searchLower)
-    )
+    // Fuzzy search: split query into words, all words must match somewhere
+    const searchWords = search.toLowerCase().trim().split(/\s+/).filter(Boolean)
+    if (searchWords.length === 0) return rooms
+    
+    return rooms.filter(room => {
+      const roomText = `${room.room_number} ${room.room_type || ''}`.toLowerCase()
+      // All search words must be found in room text
+      return searchWords.every(word => roomText.includes(word))
+    })
   }, [rooms, search])
 
   const roomsByFloor = useMemo(() => {
