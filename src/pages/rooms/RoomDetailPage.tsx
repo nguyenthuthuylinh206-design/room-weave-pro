@@ -286,7 +286,7 @@ export function RoomDetailPage() {
           </div>
 
           {/* Distribution History */}
-          <RoomDistributionHistory roomId={id!} />
+          <RoomDistributionHistory roomId={id!} roomNumber={room.room_number} />
           
           {/* Check History */}
           <Card>

@@ -406,7 +406,7 @@ export function MobileRoomDetailPage() {
         </TabsContent>
 
         <TabsContent value="delivery" className="flex-1 p-4 pb-20 m-0">
-          <RoomDistributionHistory roomId={id!} />
+          <RoomDistributionHistory roomId={id!} roomNumber={room.room_number} />
         </TabsContent>
 
         <TabsContent value="history" className="flex-1 p-4 pb-20 m-0">

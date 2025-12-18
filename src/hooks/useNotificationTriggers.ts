@@ -606,6 +606,225 @@ export async function triggerRoomCheckCompletedNotification({
   });
 }
 
+// ==================== DISTRIBUTION ORDER TRIGGERS ====================
+
+// Trigger when distribution order is created - notify assigned staff
+export async function triggerDistributionOrderCreated({
+  tenantId,
+  hotelId,
+  orderId,
+  orderCode,
+  assignedToUserId,
+  createdByUserId,
+  totalRooms,
+  totalItems,
+}: {
+  tenantId: string;
+  hotelId: string;
+  orderId: string;
+  orderCode: string;
+  assignedToUserId: string | null;
+  createdByUserId: string;
+  totalRooms: number;
+  totalItems: number;
+}) {
+  if (!assignedToUserId || assignedToUserId === createdByUserId) return;
+
+  const creator = await getUserById(createdByUserId);
+  const title = 'Phiếu giao hàng mới';
+  const body = `${orderCode}: ${totalRooms} phòng, ${totalItems} sản phẩm - Phân công bởi ${creator?.full_name || 'Quản lý'}`;
+  const actionUrl = `/inventory/distribution/${orderId}`;
+
+  await createInAppNotification({
+    userId: assignedToUserId,
+    tenantId,
+    title,
+    body,
+    type: 'task_assigned',
+    actionUrl,
+    icon: 'truck',
+    metadata: { orderId, orderCode, totalRooms, totalItems, createdBy: createdByUserId } as Json,
+  });
+
+  await sendPushNotification({
+    userId: assignedToUserId,
+    tenantId,
+    title,
+    body,
+    actionUrl,
+    tag: `distribution-${orderId}`,
+    notificationType: 'task_assigned',
+  });
+}
+
+// Trigger when delivery is confirmed - notify order creator
+export async function triggerDistributionDeliveryConfirmed({
+  tenantId,
+  orderId,
+  orderCode,
+  roomNumber,
+  createdByUserId,
+  confirmedByUserId,
+  allCompleted,
+}: {
+  tenantId: string;
+  orderId: string;
+  orderCode: string;
+  roomNumber: string;
+  createdByUserId: string;
+  confirmedByUserId: string;
+  allCompleted: boolean;
+}) {
+  if (createdByUserId === confirmedByUserId) return;
+
+  const confirmer = await getUserById(confirmedByUserId);
+  const title = allCompleted ? 'Phiếu giao hàng hoàn thành' : 'Xác nhận giao hàng';
+  const body = allCompleted 
+    ? `${orderCode}: Tất cả các phòng đã xác nhận nhận hàng`
+    : `${orderCode}: Phòng ${roomNumber} đã xác nhận nhận hàng - bởi ${confirmer?.full_name || 'Nhân viên'}`;
+  const actionUrl = `/inventory/distribution/${orderId}`;
+
+  await createInAppNotification({
+    userId: createdByUserId,
+    tenantId,
+    title,
+    body,
+    type: allCompleted ? 'success' : 'info',
+    actionUrl,
+    icon: allCompleted ? 'check-circle' : 'truck',
+    metadata: { orderId, orderCode, roomNumber, confirmedBy: confirmedByUserId, allCompleted } as Json,
+  });
+
+  await sendPushNotification({
+    userId: createdByUserId,
+    tenantId,
+    title,
+    body,
+    actionUrl,
+    tag: `distribution-confirm-${orderId}`,
+    notificationType: allCompleted ? 'success' : 'info',
+  });
+}
+
+// Trigger when delivery is rejected - notify creator and assigned staff
+export async function triggerDistributionDeliveryRejected({
+  tenantId,
+  hotelId,
+  orderId,
+  orderCode,
+  roomNumber,
+  createdByUserId,
+  assignedToUserId,
+  rejectedByUserId,
+  rejectionReason,
+}: {
+  tenantId: string;
+  hotelId: string;
+  orderId: string;
+  orderCode: string;
+  roomNumber: string;
+  createdByUserId: string;
+  assignedToUserId: string | null;
+  rejectedByUserId: string;
+  rejectionReason: string;
+}) {
+  const rejecter = await getUserById(rejectedByUserId);
+  const title = 'Giao hàng bị từ chối';
+  const body = `${orderCode}: Phòng ${roomNumber} từ chối nhận hàng - ${rejectionReason}`;
+  const actionUrl = `/inventory/distribution/${orderId}`;
+
+  // Notify creator
+  if (createdByUserId !== rejectedByUserId) {
+    await createInAppNotification({
+      userId: createdByUserId,
+      tenantId,
+      title,
+      body,
+      type: 'warning',
+      actionUrl,
+      icon: 'alert-triangle',
+      metadata: { orderId, orderCode, roomNumber, rejectedBy: rejectedByUserId, reason: rejectionReason } as Json,
+    });
+
+    await sendPushNotification({
+      userId: createdByUserId,
+      tenantId,
+      title,
+      body,
+      actionUrl,
+      tag: `distribution-reject-${orderId}`,
+      notificationType: 'warning',
+    });
+  }
+
+  // Notify assigned staff
+  if (assignedToUserId && assignedToUserId !== rejectedByUserId && assignedToUserId !== createdByUserId) {
+    await createInAppNotification({
+      userId: assignedToUserId,
+      tenantId,
+      title,
+      body,
+      type: 'warning',
+      actionUrl,
+      icon: 'alert-triangle',
+      metadata: { orderId, orderCode, roomNumber, rejectedBy: rejectedByUserId, reason: rejectionReason } as Json,
+    });
+
+    await sendPushNotification({
+      userId: assignedToUserId,
+      tenantId,
+      title,
+      body,
+      actionUrl,
+      tag: `distribution-reject-${orderId}`,
+      notificationType: 'warning',
+    });
+  }
+}
+
+// Trigger when distribution order is cancelled - notify assigned staff
+export async function triggerDistributionOrderCancelled({
+  tenantId,
+  orderId,
+  orderCode,
+  assignedToUserId,
+  cancelledByUserId,
+}: {
+  tenantId: string;
+  orderId: string;
+  orderCode: string;
+  assignedToUserId: string | null;
+  cancelledByUserId: string;
+}) {
+  if (!assignedToUserId || assignedToUserId === cancelledByUserId) return;
+
+  const canceller = await getUserById(cancelledByUserId);
+  const title = 'Phiếu giao hàng đã hủy';
+  const body = `${orderCode} đã bị hủy bởi ${canceller?.full_name || 'Quản lý'}`;
+  const actionUrl = `/inventory/distribution`;
+
+  await createInAppNotification({
+    userId: assignedToUserId,
+    tenantId,
+    title,
+    body,
+    type: 'warning',
+    actionUrl,
+    icon: 'x-circle',
+    metadata: { orderId, orderCode, cancelledBy: cancelledByUserId } as Json,
+  });
+
+  await sendPushNotification({
+    userId: assignedToUserId,
+    tenantId,
+    title,
+    body,
+    actionUrl,
+    tag: `distribution-cancel-${orderId}`,
+    notificationType: 'warning',
+  });
+}
+
 // Generic notification trigger (legacy support)
 export async function triggerNotification(
   userId: string,

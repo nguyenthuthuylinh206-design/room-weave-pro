@@ -5,6 +5,11 @@ import { useHotelContext } from '@/contexts/HotelContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { toast } from 'sonner'
 import type { DistributionOrder, DistributionOrderDetail, CreateDistributionData, DistributionFilters } from '@/types/distribution.types'
+import { 
+  triggerDistributionOrderCreated, 
+  triggerDistributionDeliveryConfirmed, 
+  triggerDistributionOrderCancelled 
+} from './useNotificationTriggers'
 
 export function useDistributionOrders(filters: DistributionFilters = {}, page = 1, pageSize = 25) {
   const { tenant } = useTenant()
@@ -74,12 +79,42 @@ export function useCreateDistributionOrder() {
       })
 
       if (error) throw error
-      return result as { success: boolean; order_id: string; order_code: string }
+      
+      // Calculate totals for notification
+      const totalRooms = data.rooms.length
+      const totalItems = data.rooms.reduce((sum, room) => {
+        return sum + room.items.reduce((itemSum, item) => itemSum + item.quantity, 0)
+      }, 0)
+
+      return { 
+        ...(result as { success: boolean; order_id: string; order_code: string }),
+        assigned_to: data.assigned_to,
+        totalRooms,
+        totalItems,
+      }
     },
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
       toast.success(`Tạo phiếu giao hàng ${result.order_code} thành công`)
+
+      // Send notification to assigned staff
+      if (tenant?.id && selectedHotel?.id && user?.id && result.assigned_to) {
+        try {
+          await triggerDistributionOrderCreated({
+            tenantId: tenant.id,
+            hotelId: selectedHotel.id,
+            orderId: result.order_id,
+            orderCode: result.order_code,
+            assignedToUserId: result.assigned_to,
+            createdByUserId: user.id,
+            totalRooms: result.totalRooms,
+            totalItems: result.totalItems,
+          })
+        } catch (e) {
+          console.error('Failed to send notification:', e)
+        }
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Không thể tạo phiếu giao hàng')
@@ -90,9 +125,22 @@ export function useCreateDistributionOrder() {
 export function useCompleteRoomDelivery() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
+  const { tenant } = useTenant()
 
   return useMutation({
-    mutationFn: async ({ roomOrderId, items }: { roomOrderId: string; items?: { item_id: string; quantity_confirmed: number }[] }) => {
+    mutationFn: async ({ 
+      roomOrderId, 
+      items,
+      orderCode,
+      roomNumber,
+      createdByUserId,
+    }: { 
+      roomOrderId: string
+      items?: { item_id: string; quantity_confirmed: number }[]
+      orderCode?: string
+      roomNumber?: string
+      createdByUserId?: string
+    }) => {
       if (!user?.id) throw new Error('User not authenticated')
 
       // Build item confirmations as JSONB format expected by RPC
@@ -110,18 +158,41 @@ export function useCompleteRoomDelivery() {
       })
 
       if (error) throw error
-      return data as { success: boolean; room_id: string; all_completed: boolean }
+      return { 
+        ...(data as { success: boolean; room_id: string; all_completed: boolean }),
+        orderCode,
+        roomNumber,
+        createdByUserId,
+      }
     },
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
       queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
       queryClient.invalidateQueries({ queryKey: ['room-items'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['room-distribution-history'] })
       
       if (result.all_completed) {
         toast.success('Đã hoàn thành giao hàng cho tất cả các phòng!')
       } else {
         toast.success('Xác nhận giao hàng thành công')
+      }
+
+      // Send notification to order creator
+      if (tenant?.id && user?.id && result.createdByUserId && result.orderCode && result.roomNumber) {
+        try {
+          await triggerDistributionDeliveryConfirmed({
+            tenantId: tenant.id,
+            orderId: '', // We don't have order ID here but it's okay
+            orderCode: result.orderCode,
+            roomNumber: result.roomNumber,
+            createdByUserId: result.createdByUserId,
+            confirmedByUserId: user.id,
+            allCompleted: result.all_completed,
+          })
+        } catch (e) {
+          console.error('Failed to send notification:', e)
+        }
       }
     },
     onError: (error: Error) => {
@@ -133,9 +204,14 @@ export function useCompleteRoomDelivery() {
 export function useCancelDistributionOrder() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
+  const { tenant } = useTenant()
 
   return useMutation({
-    mutationFn: async (orderId: string) => {
+    mutationFn: async ({ orderId, orderCode, assignedToUserId }: { 
+      orderId: string
+      orderCode?: string
+      assignedToUserId?: string | null 
+    }) => {
       if (!user?.id) throw new Error('User not authenticated')
 
       const { data, error } = await supabase.rpc('cancel_distribution_order', {
@@ -144,13 +220,32 @@ export function useCancelDistributionOrder() {
       })
 
       if (error) throw error
-      return data as { success: boolean; order_id: string }
+      return { 
+        ...(data as { success: boolean; order_id: string }),
+        orderCode,
+        assignedToUserId,
+      }
     },
-    onSuccess: () => {
+    onSuccess: async (result) => {
       queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
       queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
       toast.success('Đã hủy phiếu giao hàng')
+
+      // Send notification to assigned staff
+      if (tenant?.id && user?.id && result.assignedToUserId && result.orderCode) {
+        try {
+          await triggerDistributionOrderCancelled({
+            tenantId: tenant.id,
+            orderId: result.order_id,
+            orderCode: result.orderCode,
+            assignedToUserId: result.assignedToUserId,
+            cancelledByUserId: user.id,
+          })
+        } catch (e) {
+          console.error('Failed to send notification:', e)
+        }
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Không thể hủy phiếu giao hàng')
