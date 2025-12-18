@@ -26,6 +26,7 @@ import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
 import { RoomItemsList } from '@/components/rooms/RoomItemsList'
 import { EnhancedCheckHistory } from '@/components/rooms/EnhancedCheckHistory'
 import { RoomHealthScore } from '@/components/rooms/RoomHealthScore'
+import { RoomDistributionHistory } from '@/components/rooms/RoomDistributionHistory'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { useRoom } from '@/hooks/useRooms'
 import { useApplyStandards } from '@/hooks/useRoomStandards'
@@ -227,16 +228,16 @@ export function MobileRoomDetailPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="info" className="flex-1">
-        <TabsList className="w-full justify-start px-4 bg-transparent border-b rounded-none h-auto gap-4">
+        <TabsList className="w-full justify-start px-4 bg-transparent border-b rounded-none h-auto gap-2 overflow-x-auto">
           <TabsTrigger 
             value="info" 
-            className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-2"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-2 text-sm"
           >
             {t('tabs.info')}
           </TabsTrigger>
           <TabsTrigger 
             value="items"
-            className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-2"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-2 text-sm"
           >
             {t('tabs.items')}
             {missingCount > 0 && (
@@ -246,8 +247,14 @@ export function MobileRoomDetailPage() {
             )}
           </TabsTrigger>
           <TabsTrigger 
+            value="delivery"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-2 text-sm"
+          >
+            Giao hàng
+          </TabsTrigger>
+          <TabsTrigger 
             value="history"
-            className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-2"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-2 text-sm"
           >
             {t('tabs.history')}
           </TabsTrigger>
@@ -396,6 +403,10 @@ export function MobileRoomDetailPage() {
             </Card>
           )}
           <RoomItemsList items={items} roomId={id!} />
+        </TabsContent>
+
+        <TabsContent value="delivery" className="flex-1 p-4 pb-20 m-0">
+          <RoomDistributionHistory roomId={id!} />
         </TabsContent>
 
         <TabsContent value="history" className="flex-1 p-4 pb-20 m-0">

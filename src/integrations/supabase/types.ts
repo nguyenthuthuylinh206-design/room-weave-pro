@@ -449,6 +449,7 @@ export type Database = {
           id: string
           notes: string | null
           order_code: string
+          rooms_completed: number | null
           started_at: string | null
           status: string
           tenant_id: string
@@ -466,6 +467,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_code: string
+          rooms_completed?: number | null
           started_at?: string | null
           status?: string
           tenant_id: string
@@ -483,6 +485,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_code?: string
+          rooms_completed?: number | null
           started_at?: string | null
           status?: string
           tenant_id?: string
@@ -5258,7 +5261,7 @@ export type Database = {
         Args: {
           p_confirmed_by: string
           p_distribution_order_room_id: string
-          p_items?: Json
+          p_item_confirmations?: Json
         }
         Returns: Json
       }
@@ -6090,6 +6093,10 @@ export type Database = {
             }
             Returns: Json
           }
+      undo_room_delivery_confirmation: {
+        Args: { p_distribution_order_room_id: string; p_performed_by: string }
+        Returns: Json
+      }
       update_tenant_usage: { Args: { p_tenant_id: string }; Returns: undefined }
       user_has_hotel_access: {
         Args: { p_hotel_id: string; p_user_id: string }
