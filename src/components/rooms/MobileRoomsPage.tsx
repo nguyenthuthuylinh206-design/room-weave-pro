@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useRooms } from '@/hooks/useRooms'
 import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
+import { usePendingRoomDistributions } from '@/hooks/usePendingRoomDistributions'
 import { useAuth } from '@/contexts/AuthContext'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { RoomStatusBadge } from './RoomStatusBadge'
@@ -18,7 +19,7 @@ import { MobileRoomBulkActionsBar } from './MobileRoomBulkActionsBar'
 import { 
   Bed, CheckCircle, Wrench, Plus, Search, 
   Users, Square, LogIn, LogOut, Sparkles, XCircle,
-  Package, AlertTriangle, Loader2
+  Package, AlertTriangle, Loader2, Truck
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { RoomFilters as IRoomFilters, RoomStatus, RoomType, RoomWithStats } from '@/types/rooms.types'
@@ -38,7 +39,7 @@ const STATUS_ICONS: Record<RoomStatus, typeof Bed> = {
 const ALL_STATUSES: RoomStatus[] = ['vacant', 'occupied', 'check_in', 'check_out', 'cleaning', 'maintenance', 'out_of_order']
 
 export const MobileRoomsPage = () => {
-  const { t } = useTranslation(['rooms', 'common'])
+  const { t } = useTranslation(['rooms', 'common', 'distribution'])
   const navigate = useNavigate()
   const { user } = useAuth()
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all')
@@ -57,6 +58,7 @@ export const MobileRoomsPage = () => {
   
   const { data: rooms = [], isLoading, refetch } = useRooms(filters)
   const checkSessions = useAllRoomCheckSessions()
+  const { data: pendingDistributions } = usePendingRoomDistributions()
 
   // Get unique floors for filter
   const availableFloors = useMemo(() => {
@@ -363,6 +365,7 @@ export const MobileRoomsPage = () => {
               const itemStatus = getItemStatusDisplay(room)
               const session = checkSessions[room.id]
               const isSelected = selectedIds.includes(room.id)
+              const pendingCount = pendingDistributions?.get(room.id) || 0
 
               return (
                 <Card
@@ -385,7 +388,15 @@ export const MobileRoomsPage = () => {
                           />
                         )}
                         <div>
-                          <div className="font-bold text-xl">{room.room_number}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xl">{room.room_number}</span>
+                            {pendingCount > 0 && (
+                              <Badge variant="secondary" className="bg-amber-100 text-amber-700 text-xs">
+                                <Truck className="h-3 w-3 mr-1" />
+                                {pendingCount}
+                              </Badge>
+                            )}
+                          </div>
                           <div className="text-sm text-muted-foreground">
                             {t(`roomTypes.${room.room_type}`, { defaultValue: room.room_type || 'N/A' })}
                           </div>
@@ -437,6 +448,12 @@ export const MobileRoomsPage = () => {
                         <Badge variant="outline" className="text-xs bg-cyan-100 text-cyan-700">
                           <Loader2 className="h-3 w-3 mr-1" />
                           {t('itemStatus.inLaundry', { count: room.items_in_laundry })}
+                        </Badge>
+                      )}
+                      {pendingCount > 0 && (
+                        <Badge variant="outline" className="text-xs bg-amber-100 text-amber-700">
+                          <Truck className="h-3 w-3 mr-1" />
+                          {t('distribution:roomHistory.pendingDeliveries', { count: pendingCount })}
                         </Badge>
                       )}
                     </div>

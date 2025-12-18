@@ -57,6 +57,7 @@
     "title": "Lịch sử giao hàng",
     "empty": "Chưa có phiếu giao hàng nào",
     "pendingCount": "chờ xác nhận",
+    "pendingDeliveries": "{{count}} phiếu chờ",
     "status": {
       "pending": "Chờ giao",
       "delivered": "Đang giao",

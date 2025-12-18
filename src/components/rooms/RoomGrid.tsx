@@ -8,13 +8,16 @@ import {
   AlertTriangle,
   Wind,
   Clock,
+  Truck,
 } from 'lucide-react'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
 import { RoomStatusSelector } from './RoomStatusSelector'
 import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
+import { usePendingRoomDistributions } from '@/hooks/usePendingRoomDistributions'
 import { useUser } from '@/hooks/useUser'
 import { formatCurrency } from '@/lib/utils'
 import type { RoomWithStats, RoomStatus } from '@/types/rooms.types'
@@ -27,9 +30,10 @@ interface RoomGridProps {
 }
 
 export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: RoomGridProps) {
-  const { t } = useTranslation(['rooms'])
+  const { t } = useTranslation(['rooms', 'distribution'])
   const navigate = useNavigate()
   const checkSessions = useAllRoomCheckSessions()
+  const { data: pendingDistributions } = usePendingRoomDistributions()
   const { user } = useUser()
 
   const handleSelectRoom = (roomId: string, checked: boolean) => {
@@ -81,6 +85,7 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {rooms.map((room) => {
         const isSelected = selectedIds.includes(room.id)
+        const pendingCount = pendingDistributions?.get(room.id) || 0
         return (
           <Card
             key={room.id}
@@ -158,6 +163,13 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
                 <div className="flex items-center gap-1 text-cyan-600">
                   <Wind className="h-3 w-3" />
                   <span>{t('grid.itemsInLaundry', { count: room.items_in_laundry })}</span>
+                </div>
+              )}
+              
+              {pendingCount > 0 && (
+                <div className="flex items-center gap-1 text-amber-600">
+                  <Truck className="h-3 w-3" />
+                  <span>{t('distribution:roomHistory.pendingDeliveries', { count: pendingCount })}</span>
                 </div>
               )}
             </div>
