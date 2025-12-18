@@ -95,10 +95,18 @@ export function useCompleteRoomDelivery() {
     mutationFn: async ({ roomOrderId, items }: { roomOrderId: string; items?: { item_id: string; quantity_confirmed: number }[] }) => {
       if (!user?.id) throw new Error('User not authenticated')
 
+      // Build item confirmations as JSONB format expected by RPC
+      const itemConfirmations = items 
+        ? items.reduce((acc, item) => {
+            acc[item.item_id] = { quantity_confirmed: item.quantity_confirmed }
+            return acc
+          }, {} as Record<string, { quantity_confirmed: number }>)
+        : null
+
       const { data, error } = await supabase.rpc('complete_room_delivery', {
         p_distribution_order_room_id: roomOrderId,
         p_confirmed_by: user.id,
-        p_items: items || null,
+        p_item_confirmations: itemConfirmations,
       })
 
       if (error) throw error

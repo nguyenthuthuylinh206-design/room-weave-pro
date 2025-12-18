@@ -5785,6 +5785,24 @@ export type Database = {
             }[]
           }
       get_room_detail: { Args: { p_room_id: string }; Returns: Json }
+      get_room_distribution_history: {
+        Args: { p_room_id: string }
+        Returns: {
+          assigned_to_name: string
+          confirmed_at: string
+          confirmed_by_name: string
+          created_at: string
+          delivered_at: string
+          items: Json
+          order_code: string
+          order_id: string
+          order_status: string
+          rejection_reason: string
+          room_status: string
+          total_items: number
+          total_quantity: number
+        }[]
+      }
       get_room_items_with_standards: {
         Args: { p_room_id: string }
         Returns: {
@@ -6063,6 +6081,14 @@ export type Database = {
         Returns: number
       }
       refresh_monthly_expenses: { Args: never; Returns: undefined }
+      reject_room_delivery: {
+        Args: {
+          p_distribution_order_room_id: string
+          p_rejected_by: string
+          p_rejection_reason: string
+        }
+        Returns: Json
+      }
       reject_tenant: {
         Args: { p_admin_id: string; p_reason: string; p_tenant_id: string }
         Returns: Json
