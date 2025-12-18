@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useItems } from '@/hooks/useItems'
+import { cn } from '@/lib/utils'
 import type { ItemType } from '@/types/items.types'
 
 const ITEM_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
@@ -114,7 +115,7 @@ export function SimpleItemSelector({ allocatedItemIds, onSelectItem, disabled }:
               if (typeItems.length === 0) return null
               return (
                 <div key={type}>
-                  <div className="px-3 py-2 text-xs font-medium text-muted-foreground bg-muted/50 sticky top-0">
+                  <div className="px-3 py-2 text-xs font-medium text-muted-foreground bg-muted sticky top-0 z-10 border-b">
                     {ITEM_TYPE_CONFIG[type]?.label} ({typeItems.length})
                   </div>
                   {typeItems.map(item => (
@@ -125,8 +126,16 @@ export function SimpleItemSelector({ allocatedItemIds, onSelectItem, disabled }:
                     >
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-sm truncate">{item.name}</div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {item.code} • {item.category_name || 'Không phân loại'}
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <span className="shrink-0">{item.code}</span>
+                          {item.item_type && (
+                            <Badge variant="secondary" className={cn("text-[10px] px-1.5 py-0 shrink-0", ITEM_TYPE_CONFIG[item.item_type]?.color)}>
+                              {ITEM_TYPE_CONFIG[item.item_type]?.label}
+                            </Badge>
+                          )}
+                          {item.category_name && (
+                            <span className="truncate">• {item.category_name}</span>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
@@ -152,8 +161,16 @@ export function SimpleItemSelector({ allocatedItemIds, onSelectItem, disabled }:
               >
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-sm truncate">{item.name}</div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    {item.code} • {item.category_name || 'Không phân loại'}
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span className="shrink-0">{item.code}</span>
+                    {item.item_type && (
+                      <Badge variant="secondary" className={cn("text-[10px] px-1.5 py-0 shrink-0", ITEM_TYPE_CONFIG[item.item_type]?.color)}>
+                        {ITEM_TYPE_CONFIG[item.item_type]?.label}
+                      </Badge>
+                    )}
+                    {item.category_name && (
+                      <span className="truncate">• {item.category_name}</span>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
