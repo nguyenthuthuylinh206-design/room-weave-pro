@@ -187,7 +187,28 @@
     "applyStandards": "Áp dụng tiêu chuẩn",
     "syncStandards": "Đồng bộ tiêu chuẩn",
     "printItemList": "In danh sách",
-    "na": "N/A"
+    "na": "N/A",
+    "supplement": "Bổ sung"
+  },
+  "supplement": {
+    "title": "Bổ sung đồ - Phòng {{roomNumber}}",
+    "noData": "Không có dữ liệu",
+    "selected": "Đã chọn",
+    "items": "loại",
+    "quantity": "SL",
+    "stockWarning": "Số lượng vượt quá tồn kho",
+    "missingTab": "Còn thiếu",
+    "consumableTab": "Tiêu hao",
+    "noMissing": "Phòng đã đủ đồ theo tiêu chuẩn",
+    "noConsumable": "Không có đồ tiêu hao",
+    "notes": "Ghi chú",
+    "notesPlaceholder": "Ghi chú bổ sung (tùy chọn)",
+    "processing": "Đang xử lý...",
+    "confirm": "Xác nhận bổ sung ({{count}} món)",
+    "need": "Cần",
+    "inStock": "Tồn kho",
+    "extra": "Thêm",
+    "fillMissing": "Bổ sung {{count}} món thiếu"
   },
   "tabs": {
     "info": "Thông tin",

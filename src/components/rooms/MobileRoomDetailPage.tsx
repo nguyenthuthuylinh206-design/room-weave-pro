@@ -18,6 +18,7 @@ import {
   Printer,
   User,
   Truck,
+  PackagePlus,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,6 +31,7 @@ import { RoomItemsList } from '@/components/rooms/RoomItemsList'
 import { EnhancedCheckHistory } from '@/components/rooms/EnhancedCheckHistory'
 import { RoomHealthScore } from '@/components/rooms/RoomHealthScore'
 import { RoomDistributionHistory } from '@/components/rooms/RoomDistributionHistory'
+import { RoomSupplementSheet } from '@/components/rooms/RoomSupplementSheet'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { useRoom } from '@/hooks/useRooms'
 import { useApplyStandards } from '@/hooks/useRoomStandards'
@@ -109,6 +111,8 @@ export function MobileRoomDetailPage() {
   
   // Auto-switch to delivery tab when pending orders exist
   const [activeTab, setActiveTab] = useState('info')
+  const [showSupplementSheet, setShowSupplementSheet] = useState(false)
+  
   useEffect(() => {
     if (pendingDeliveryCount > 0 && !isLoading) {
       setActiveTab('delivery')
@@ -175,6 +179,21 @@ export function MobileRoomDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-1">
+            {/* Supplement button - prominent when items missing */}
+            {missingCount > 0 && (
+              <Button 
+                variant="default" 
+                size="sm"
+                className="h-8 gap-1 bg-amber-500 hover:bg-amber-600 text-white"
+                onClick={() => setShowSupplementSheet(true)}
+              >
+                <PackagePlus className="h-4 w-4" />
+                <span className="hidden sm:inline">{t('detail.supplement')}</span>
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5 bg-white/20 text-white">
+                  {missingCount}
+                </Badge>
+              </Button>
+            )}
             <Button 
               variant="ghost" 
               size="icon"
@@ -209,6 +228,14 @@ export function MobileRoomDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Room Supplement Sheet */}
+      <RoomSupplementSheet
+        open={showSupplementSheet}
+        onOpenChange={setShowSupplementSheet}
+        roomId={id!}
+        roomNumber={room.room_number}
+      />
 
       {/* Stats Cards */}
       <div className="px-4 py-3">

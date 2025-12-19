@@ -187,7 +187,28 @@
     "applyStandards": "Apply Standards",
     "syncStandards": "Sync Standards",
     "printItemList": "Print List",
-    "na": "N/A"
+    "na": "N/A",
+    "supplement": "Supplement"
+  },
+  "supplement": {
+    "title": "Supplement - Room {{roomNumber}}",
+    "noData": "No data available",
+    "selected": "Selected",
+    "items": "items",
+    "quantity": "Qty",
+    "stockWarning": "Quantity exceeds stock",
+    "missingTab": "Missing",
+    "consumableTab": "Consumables",
+    "noMissing": "Room has all required items",
+    "noConsumable": "No consumable items",
+    "notes": "Notes",
+    "notesPlaceholder": "Optional notes",
+    "processing": "Processing...",
+    "confirm": "Confirm supplement ({{count}} items)",
+    "need": "Need",
+    "inStock": "In stock",
+    "extra": "Extra",
+    "fillMissing": "Fill {{count}} missing"
   },
   "tabs": {
     "info": "Info",
