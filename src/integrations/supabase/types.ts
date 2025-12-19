@@ -5815,6 +5815,7 @@ export type Database = {
           item_id: string
           item_name: string
           item_thumbnail: string
+          item_type: string
           missing_quantity: number
           room_item_id: string
           standard_quantity: number
