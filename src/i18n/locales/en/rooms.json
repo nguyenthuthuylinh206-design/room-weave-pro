@@ -130,6 +130,20 @@
     "otherItemsCount": "{{count}} other items",
     "otherItemsDesc": "Items distributed to this room that are not part of the room type standard"
   },
+  "quickActions": {
+    "customerUsed": "Customer used",
+    "supplement": "Supplement",
+    "supplementNow": "Supplement {{count}}",
+    "customerUsedTitle": "Record customer usage",
+    "howManyUsed": "How many were used?",
+    "inRoom": "In room",
+    "afterUsed": "Remaining after use",
+    "all": "All",
+    "confirm": "Confirm",
+    "customerUsedSuccess": "Recorded {{quantity}} {{itemName}} used by customer",
+    "customerUsedError": "Could not record. Please try again.",
+    "invalidQuantity": "Invalid quantity"
+  },
   "checkSession": {
     "checking": "{{name}} is checking {{type}}",
     "check": "Check",

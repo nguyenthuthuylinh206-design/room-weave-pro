@@ -130,6 +130,20 @@
     "otherItemsCount": "{{count}} đồ dùng khác",
     "otherItemsDesc": "Các đồ dùng được phân phối vào phòng nhưng không thuộc tiêu chuẩn loại phòng"
   },
+  "quickActions": {
+    "customerUsed": "Khách dùng",
+    "supplement": "Bổ sung",
+    "supplementNow": "Bổ sung {{count}}",
+    "customerUsedTitle": "Ghi nhận khách sử dụng",
+    "howManyUsed": "Số lượng khách đã dùng?",
+    "inRoom": "Trong phòng",
+    "afterUsed": "Sau khi dùng còn lại",
+    "all": "Tất cả",
+    "confirm": "Xác nhận",
+    "customerUsedSuccess": "Đã ghi nhận khách dùng {{quantity}} {{itemName}}",
+    "customerUsedError": "Không thể ghi nhận. Vui lòng thử lại.",
+    "invalidQuantity": "Số lượng không hợp lệ"
+  },
   "checkSession": {
     "checking": "{{name}} đang kiểm tra {{type}}",
     "check": "Kiểm tra",
