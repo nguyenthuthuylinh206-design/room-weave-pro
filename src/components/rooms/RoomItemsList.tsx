@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Package, CheckCircle2, AlertCircle, Loader2, BoxesIcon } from 'lucide-react'
+import { Package, CheckCircle2, AlertCircle, Loader2, BoxesIcon, Coffee, PackagePlus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useUpdateRoomItemQuantity } from '@/hooks/useRoomItems'
+import { CustomerUsedDialog } from './CustomerUsedDialog'
 
 interface RoomItem {
   item_id: string
@@ -28,13 +30,18 @@ interface RoomItem {
 interface RoomItemsListProps {
   items: RoomItem[]
   roomId: string
+  onRequestSupplement?: (item: RoomItem) => void
 }
 
-export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
+export function RoomItemsList({ items, roomId, onRequestSupplement }: RoomItemsListProps) {
   const { t } = useTranslation('rooms')
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [savingItemId, setSavingItemId] = useState<string | null>(null)
   const updateQuantity = useUpdateRoomItemQuantity()
+
+  // Dialog state for customer used
+  const [customerUsedDialogOpen, setCustomerUsedDialogOpen] = useState(false)
+  const [selectedItemForUsed, setSelectedItemForUsed] = useState<RoomItem | null>(null)
 
   // Separate standard items and other items (distributed but not in standards)
   const standardItems = items.filter(item => item.has_standard)
@@ -90,9 +97,56 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
     }
   }
 
+  const handleCustomerUsed = (item: RoomItem) => {
+    setSelectedItemForUsed(item)
+    setCustomerUsedDialogOpen(true)
+  }
+
+  const handleRequestSupplement = (item: RoomItem) => {
+    if (onRequestSupplement) {
+      onRequestSupplement(item)
+    }
+  }
+
   const getConditionLabel = (condition: string) => {
     const conditionKey = condition as 'good' | 'fair' | 'poor' | 'damaged'
     return t(`itemsList.condition.${conditionKey}`, { defaultValue: condition })
+  }
+
+  // Render quick action buttons for an item
+  const renderQuickActions = (item: RoomItem) => {
+    const currentQty = quantities[item.item_id] ?? item.current_quantity
+    const showCustomerUsed = currentQty > 0
+    const showSupplement = item.has_standard ? (item.standard_quantity - currentQty) > 0 : false
+    
+    if (!showCustomerUsed && !showSupplement) return null
+
+    return (
+      <div className="flex gap-2 mt-3 pt-3 border-t">
+        {showCustomerUsed && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 h-9 gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50 hover:text-amber-700 dark:border-amber-800 dark:hover:bg-amber-950"
+            onClick={() => handleCustomerUsed(item)}
+          >
+            <Coffee className="h-4 w-4" />
+            {t('quickActions.customerUsed')}
+          </Button>
+        )}
+        {showSupplement && onRequestSupplement && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 h-9 gap-1.5 text-primary border-primary/20 hover:bg-primary/5"
+            onClick={() => handleRequestSupplement(item)}
+          >
+            <PackagePlus className="h-4 w-4" />
+            {t('quickActions.supplement')}
+          </Button>
+        )}
+      </div>
+    )
   }
 
   // Show message if no items at all
@@ -113,6 +167,14 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
 
   return (
     <div className="space-y-4">
+      {/* Customer Used Dialog */}
+      <CustomerUsedDialog
+        open={customerUsedDialogOpen}
+        onOpenChange={setCustomerUsedDialogOpen}
+        item={selectedItemForUsed}
+        roomId={roomId}
+      />
+
       {unverifiedCount > 0 && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -172,46 +234,49 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
               const diff = currentQty - item.standard_quantity
               
               return (
-                <div key={item.item_id} className="flex items-center gap-3 p-4 rounded-lg border bg-card hover:shadow-sm transition-shadow">
-                  {item.item_thumbnail ? (
-                    <img
-                      src={item.item_thumbnail}
-                      alt={item.item_name}
-                      className="h-14 w-14 rounded object-cover flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="flex h-14 w-14 items-center justify-center rounded bg-muted flex-shrink-0">
-                      <Package className="h-7 w-7 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <Link
-                      to={`/items/${item.item_id}`}
-                      className="font-medium hover:underline block truncate"
-                    >
-                      {item.item_name}
-                    </Link>
-                    <p className="text-sm text-muted-foreground">{item.item_code}</p>
-                  </div>
+                <div key={item.item_id} className="p-4 rounded-lg border bg-card hover:shadow-sm transition-shadow">
                   <div className="flex items-center gap-3">
-                    <div className="text-center">
-                      <div className="text-xl font-bold text-primary">{item.standard_quantity}</div>
-                      <p className="text-xs text-muted-foreground">{t('itemsList.labels.required')}</p>
+                    {item.item_thumbnail ? (
+                      <img
+                        src={item.item_thumbnail}
+                        alt={item.item_name}
+                        className="h-14 w-14 rounded object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="flex h-14 w-14 items-center justify-center rounded bg-muted flex-shrink-0">
+                        <Package className="h-7 w-7 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <Link
+                        to={`/items/${item.item_id}`}
+                        className="font-medium hover:underline block truncate"
+                      >
+                        {item.item_name}
+                      </Link>
+                      <p className="text-sm text-muted-foreground">{item.item_code}</p>
                     </div>
-                    <div className="text-center">
-                      <div className="text-xl font-bold">{currentQty}</div>
-                      <p className="text-xs text-muted-foreground">{t('itemsList.labels.current')}</p>
-                    </div>
-                    <div className="w-20">
-                      {diff === 0 ? (
-                        <Badge className="w-full justify-center bg-success">{t('itemsList.status.enough')}</Badge>
-                      ) : diff > 0 ? (
-                        <Badge className="w-full justify-center bg-blue-500">{t('itemsList.status.excessAmount', { count: diff })}</Badge>
-                      ) : (
-                        <Badge variant="destructive" className="w-full justify-center">{t('itemsList.status.missingAmount', { count: Math.abs(diff) })}</Badge>
-                      )}
+                    <div className="flex items-center gap-3">
+                      <div className="text-center">
+                        <div className="text-xl font-bold text-primary">{item.standard_quantity}</div>
+                        <p className="text-xs text-muted-foreground">{t('itemsList.labels.required')}</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xl font-bold">{currentQty}</div>
+                        <p className="text-xs text-muted-foreground">{t('itemsList.labels.current')}</p>
+                      </div>
+                      <div className="w-20">
+                        {diff === 0 ? (
+                          <Badge className="w-full justify-center bg-success">{t('itemsList.status.enough')}</Badge>
+                        ) : diff > 0 ? (
+                          <Badge className="w-full justify-center bg-blue-500">{t('itemsList.status.excessAmount', { count: diff })}</Badge>
+                        ) : (
+                          <Badge variant="destructive" className="w-full justify-center">{t('itemsList.status.missingAmount', { count: Math.abs(diff) })}</Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  {renderQuickActions(item)}
                 </div>
               )
             })
@@ -326,6 +391,9 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
                       </>
                     )}
                   </div>
+
+                  {/* Quick Actions */}
+                  {renderQuickActions(item)}
                 </div>
               )
             })
@@ -357,36 +425,52 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
                 const missing = Math.max(0, item.standard_quantity - currentQty)
                 
                 return (
-                  <div key={item.item_id} className="flex items-center gap-3 p-4 rounded-lg border border-destructive/20 bg-destructive/5 hover:shadow-sm transition-shadow">
-                    {item.item_thumbnail ? (
-                      <img
-                        src={item.item_thumbnail}
-                        alt={item.item_name}
-                        className="h-14 w-14 rounded object-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="flex h-14 w-14 items-center justify-center rounded bg-muted flex-shrink-0">
-                        <Package className="h-7 w-7 text-muted-foreground" />
+                  <div key={item.item_id} className="p-4 rounded-lg border border-destructive/20 bg-destructive/5 hover:shadow-sm transition-shadow">
+                    <div className="flex items-center gap-3">
+                      {item.item_thumbnail ? (
+                        <img
+                          src={item.item_thumbnail}
+                          alt={item.item_name}
+                          className="h-14 w-14 rounded object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="flex h-14 w-14 items-center justify-center rounded bg-muted flex-shrink-0">
+                          <Package className="h-7 w-7 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{item.item_name}</p>
+                        <p className="text-sm text-muted-foreground">{item.item_code}</p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-center">
+                          <div className="text-sm text-muted-foreground">{t('itemsList.tabs.current')}</div>
+                          <div className="text-lg font-medium">{currentQty}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm text-muted-foreground">{t('itemsList.tabs.required')}</div>
+                          <div className="text-lg font-medium">{item.standard_quantity}</div>
+                        </div>
+                        <div className="text-center bg-destructive/10 px-3 py-2 rounded">
+                          <div className="text-sm text-destructive font-medium">{t('itemsList.status.missing')}</div>
+                          <div className="text-2xl font-bold text-destructive">{missing}</div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Quick Actions for missing items */}
+                    {onRequestSupplement && (
+                      <div className="flex gap-2 mt-3 pt-3 border-t border-destructive/20">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="flex-1 h-9 gap-1.5"
+                          onClick={() => handleRequestSupplement(item)}
+                        >
+                          <PackagePlus className="h-4 w-4" />
+                          {t('quickActions.supplementNow', { count: missing })}
+                        </Button>
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{item.item_name}</p>
-                      <p className="text-sm text-muted-foreground">{item.item_code}</p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-center">
-                        <div className="text-sm text-muted-foreground">{t('itemsList.tabs.current')}</div>
-                        <div className="text-lg font-medium">{currentQty}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm text-muted-foreground">{t('itemsList.tabs.required')}</div>
-                        <div className="text-lg font-medium">{item.standard_quantity}</div>
-                      </div>
-                      <div className="text-center bg-destructive/10 px-3 py-2 rounded">
-                        <div className="text-sm text-destructive font-medium">{t('itemsList.status.missing')}</div>
-                        <div className="text-2xl font-bold text-destructive">{missing}</div>
-                      </div>
-                    </div>
                   </div>
                 )
               })}
@@ -418,39 +502,55 @@ export function RoomItemsList({ items, roomId }: RoomItemsListProps) {
                 const currentQty = quantities[item.item_id] ?? item.current_quantity
                 
                 return (
-                  <div key={item.item_id} className="flex items-center gap-3 p-4 rounded-lg border bg-card hover:shadow-sm transition-shadow">
-                    {item.item_thumbnail ? (
-                      <img
-                        src={item.item_thumbnail}
-                        alt={item.item_name}
-                        className="h-14 w-14 rounded object-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="flex h-14 w-14 items-center justify-center rounded bg-muted flex-shrink-0">
-                        <Package className="h-7 w-7 text-muted-foreground" />
+                  <div key={item.item_id} className="p-4 rounded-lg border bg-card hover:shadow-sm transition-shadow">
+                    <div className="flex items-center gap-3">
+                      {item.item_thumbnail ? (
+                        <img
+                          src={item.item_thumbnail}
+                          alt={item.item_name}
+                          className="h-14 w-14 rounded object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="flex h-14 w-14 items-center justify-center rounded bg-muted flex-shrink-0">
+                          <Package className="h-7 w-7 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <Link
+                          to={`/items/${item.item_id}`}
+                          className="font-medium hover:underline block truncate"
+                        >
+                          {item.item_name}
+                        </Link>
+                        <p className="text-sm text-muted-foreground">{item.item_code}</p>
+                        {item.category_name && (
+                          <Badge variant="outline" className="mt-1 text-xs">{item.category_name}</Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-center">
+                          <div className="text-xl font-bold">{currentQty}</div>
+                          <p className="text-xs text-muted-foreground">{t('itemsList.labels.current')}</p>
+                        </div>
+                        <Badge variant="outline" className="px-3 py-1">
+                          {getConditionLabel(item.condition)}
+                        </Badge>
+                      </div>
+                    </div>
+                    {/* Quick action for other items - only customer used */}
+                    {currentQty > 0 && (
+                      <div className="flex gap-2 mt-3 pt-3 border-t">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 h-9 gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50 hover:text-amber-700 dark:border-amber-800 dark:hover:bg-amber-950"
+                          onClick={() => handleCustomerUsed(item)}
+                        >
+                          <Coffee className="h-4 w-4" />
+                          {t('quickActions.customerUsed')}
+                        </Button>
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <Link
-                        to={`/items/${item.item_id}`}
-                        className="font-medium hover:underline block truncate"
-                      >
-                        {item.item_name}
-                      </Link>
-                      <p className="text-sm text-muted-foreground">{item.item_code}</p>
-                      {item.category_name && (
-                        <Badge variant="outline" className="mt-1 text-xs">{item.category_name}</Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-center">
-                        <div className="text-xl font-bold">{currentQty}</div>
-                        <p className="text-xs text-muted-foreground">{t('itemsList.labels.current')}</p>
-                      </div>
-                      <Badge variant="outline" className="px-3 py-1">
-                        {getConditionLabel(item.condition)}
-                      </Badge>
-                    </div>
                   </div>
                 )
               })}

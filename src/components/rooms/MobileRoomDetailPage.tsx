@@ -494,7 +494,14 @@ export function MobileRoomDetailPage() {
               </CardContent>
             </Card>
           )}
-          <RoomItemsList items={items} roomId={id!} />
+          <RoomItemsList 
+            items={items} 
+            roomId={id!} 
+            onRequestSupplement={() => {
+              setSupplementMode('missing')
+              setShowSupplementSheet(true)
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="delivery" className="flex-1 p-4 pb-20 m-0">
