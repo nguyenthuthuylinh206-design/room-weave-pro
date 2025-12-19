@@ -34,7 +34,8 @@ export function RoomStatusSelector({ roomId, currentStatus, className }: RoomSta
   const handleStatusChange = (newStatus: RoomStatus) => {
     updateRoom.mutate({
       id: roomId,
-      data: { status: newStatus }
+      data: { status: newStatus },
+      previousStatus: currentStatus
     })
   }
 
