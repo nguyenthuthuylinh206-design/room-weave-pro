@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
-import { sendNotificationByRole } from '@/lib/notifications'
+import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
 import type { RoomWithStats, RoomFilters } from '@/types/rooms.types'
 
 export function useRooms(filters: RoomFilters = {}) {
@@ -220,7 +220,7 @@ export function useCreateRoom() {
 
 export function useUpdateRoom() {
   const queryClient = useQueryClient()
-  const { tenantId } = useUser()
+  const { tenantId, user } = useUser()
   
   return useMutation({
     mutationFn: async ({ id, data, previousStatus }: { 
@@ -232,25 +232,20 @@ export function useUpdateRoom() {
         .from('rooms')
         .update(data)
         .eq('id', id)
-        .select('*, room_number')
+        .select('*, room_number, hotel_id')
         .single()
       
       if (error) throw error
       
       // Send notification when status changes to check_out
-      if (data.status === 'check_out' && previousStatus !== 'check_out' && tenantId) {
-        await sendNotificationByRole({
-          tenantId: tenantId,
-          role: 'department_manager',
-          title: `Phòng ${room.room_number} cần kiểm tra checkout`,
-          body: `Khách đã trả phòng. Vui lòng kiểm tra đồ dùng trong phòng.`,
-          type: 'info',
-          actionUrl: `/rooms/${id}/check?type=checkout`,
-          metadata: {
-            room_id: id,
-            action: 'checkout_required',
-          },
-        })
+      if (data.status === 'check_out' && previousStatus !== 'check_out' && tenantId && room.hotel_id) {
+        triggerRoomCheckoutNotification({
+          tenantId,
+          hotelId: room.hotel_id,
+          roomId: id,
+          roomNumber: room.room_number,
+          changedByUserId: user?.id,
+        }).catch(err => console.error('Failed to send checkout notification:', err))
       }
       
       return room

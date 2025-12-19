@@ -18,6 +18,7 @@ export type NotificationType =
   | 'po_pending_approval'
   | 'task_assigned'
   | 'room_check_completed'
+  | 'room_checkout'
   | 'approval_request'
   | 'info'
   | 'warning'
@@ -293,7 +294,56 @@ export async function triggerLowStockAlert({
   });
 }
 
-// Trigger for new maintenance request - sends to managers
+// Trigger when room status changes to check_out - notify hotel staff
+export async function triggerRoomCheckoutNotification({
+  tenantId,
+  hotelId,
+  roomId,
+  roomNumber,
+  changedByUserId,
+}: {
+  tenantId: string;
+  hotelId: string;
+  roomId: string;
+  roomNumber: string;
+  changedByUserId?: string;
+}) {
+  const title = `Phòng ${roomNumber} - Checkout`;
+  const body = `Khách đã trả phòng. Vui lòng kiểm tra đồ dùng trong phòng.`;
+  const actionUrl = `/rooms/${roomId}/check?type=checkout`;
+
+  // Get all hotel staff
+  const recipients = await getNotificationRecipients({
+    tenantId,
+    hotelId,
+    targetRoles: ['all_hotel_staff'],
+    excludeUserId: changedByUserId,
+  });
+
+  const recipientIds = recipients.map(r => r.id);
+
+  await createMultipleNotifications({
+    recipientIds,
+    tenantId,
+    title,
+    body,
+    type: 'room_checkout',
+    actionUrl,
+    icon: 'door-open',
+    metadata: { roomId, roomNumber, hotelId } as Json,
+  });
+
+  await sendMultiplePushNotifications({
+    recipientIds,
+    tenantId,
+    title,
+    body,
+    actionUrl,
+    tag: `room-checkout-${roomId}`,
+    notificationType: 'room_checkout',
+  });
+}
+
 export async function triggerMaintenanceNewNotification({
   tenantId,
   hotelId,
