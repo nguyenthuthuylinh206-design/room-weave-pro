@@ -485,46 +485,36 @@ export function DistributionItemMatrix({
                     
                     return (
                       <TableHead key={room.id} className="text-center min-w-[100px]">
-                        <div className="flex flex-col items-center gap-0.5">
+                        <div className="flex flex-col items-center gap-1">
                           <div className="font-medium">{room.room_number}</div>
-                          <div className="text-xs font-normal text-muted-foreground">T{room.floor}</div>
+                          <div className="text-xs font-normal text-muted-foreground">Tầng {room.floor}</div>
                           
-                          {/* Copy/Paste buttons */}
-                          <div className="flex items-center gap-0.5 mt-1">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className={cn(
-                                    "h-5 w-5",
-                                    isCopiedSource && "text-primary bg-primary/10"
-                                  )}
-                                  onClick={() => copyRoomData(room.id)}
-                                  disabled={hasData === 0}
-                                >
-                                  <Copy className="h-3 w-3" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="bottom">Copy dữ liệu phòng này</TooltipContent>
-                            </Tooltip>
+                          {/* Copy/Paste buttons - always visible */}
+                          <div className="flex items-center gap-1 mt-1">
+                            <Button
+                              variant={isCopiedSource ? "default" : "outline"}
+                              size="sm"
+                              className={cn(
+                                "h-6 px-2 text-xs gap-1",
+                                isCopiedSource && "bg-primary text-primary-foreground"
+                              )}
+                              onClick={() => copyRoomData(room.id)}
+                              disabled={hasData === 0}
+                            >
+                              <Copy className="h-3 w-3" />
+                              Copy
+                            </Button>
                             
                             {copiedRoomData && !isCopiedSource && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-5 w-5 text-green-600 hover:text-green-700 hover:bg-green-50"
-                                    onClick={() => pasteRoomData(room.id)}
-                                  >
-                                    <ClipboardPaste className="h-3 w-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom">
-                                  Dán từ phòng {roomsMap.get(copiedFromRoom!)?.room_number}
-                                </TooltipContent>
-                              </Tooltip>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-6 px-2 text-xs gap-1 border-green-500 text-green-600 hover:bg-green-50"
+                                onClick={() => pasteRoomData(room.id)}
+                              >
+                                <ClipboardPaste className="h-3 w-3" />
+                                Dán
+                              </Button>
                             )}
                           </div>
                         </div>
