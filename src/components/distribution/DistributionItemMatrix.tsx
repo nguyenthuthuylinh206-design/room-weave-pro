@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { Plus, Minus, Trash2, Package, Shirt, Zap, Armchair, Search } from 'lucide-react'
+import { Plus, Minus, Trash2, Package, Shirt, Zap, Armchair, Search, Copy, ClipboardPaste } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -18,9 +18,15 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useItems } from '@/hooks/useItems'
 import { useRooms } from '@/hooks/useRooms'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 import type { ItemType } from '@/types/items.types'
 
 export interface RoomItemAllocation {
@@ -59,6 +65,10 @@ export function DistributionItemMatrix({
   const [itemSelectorOpen, setItemSelectorOpen] = useState(false)
   const [itemSearch, setItemSearch] = useState('')
   const [selectedType, setSelectedType] = useState<ItemType | 'all'>('all')
+  
+  // Copy/Paste state
+  const [copiedRoomData, setCopiedRoomData] = useState<{ item_id: string; quantity: number }[] | null>(null)
+  const [copiedFromRoom, setCopiedFromRoom] = useState<string | null>(null)
   
   const { data: itemsData } = useItems()
   const items = itemsData?.items || []
@@ -168,6 +178,52 @@ export function DistributionItemMatrix({
       return { room_id: roomId, items: newItems }
     })
     onAllocationsChange(newAllocations)
+  }
+
+  // Copy room data
+  const copyRoomData = (roomId: string) => {
+    const roomAlloc = allocations.find(a => a.room_id === roomId)
+    if (roomAlloc && roomAlloc.items.length > 0) {
+      setCopiedRoomData([...roomAlloc.items])
+      setCopiedFromRoom(roomId)
+      toast.success(`Đã copy dữ liệu từ phòng ${roomsMap.get(roomId)?.room_number}`)
+    } else {
+      toast.error('Phòng này chưa có dữ liệu để copy')
+    }
+  }
+
+  // Paste room data to a single room
+  const pasteRoomData = (roomId: string) => {
+    if (!copiedRoomData || copiedRoomData.length === 0) return
+    
+    const newAllocations = [...allocations]
+    const roomIndex = newAllocations.findIndex(a => a.room_id === roomId)
+    
+    if (roomIndex >= 0) {
+      newAllocations[roomIndex] = { room_id: roomId, items: [...copiedRoomData] }
+    } else {
+      newAllocations.push({ room_id: roomId, items: [...copiedRoomData] })
+    }
+    
+    onAllocationsChange(newAllocations)
+    toast.success(`Đã dán dữ liệu vào phòng ${roomsMap.get(roomId)?.room_number}`)
+  }
+
+  // Paste to all other rooms
+  const pasteToAllRooms = () => {
+    if (!copiedRoomData || copiedRoomData.length === 0 || !copiedFromRoom) return
+    
+    const newAllocations = selectedRoomIds.map(roomId => {
+      if (roomId === copiedFromRoom) {
+        // Keep the original source room unchanged
+        const existing = allocations.find(a => a.room_id === roomId)
+        return existing || { room_id: roomId, items: [] }
+      }
+      return { room_id: roomId, items: [...copiedRoomData] }
+    }).filter(a => a.items.length > 0)
+    
+    onAllocationsChange(newAllocations)
+    toast.success(`Đã dán vào ${selectedRoomIds.length - 1} phòng`)
   }
 
   // Filter available items (not yet allocated and has stock)
@@ -408,14 +464,71 @@ export function DistributionItemMatrix({
                     Sản phẩm
                   </TableHead>
                   <TableHead className="text-center min-w-[120px] bg-muted/30">
-                    Tất cả phòng
+                    <div>Tất cả phòng</div>
+                    {copiedRoomData && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-xs mt-1 gap-1"
+                        onClick={pasteToAllRooms}
+                      >
+                        <ClipboardPaste className="h-3 w-3" />
+                        Dán tất cả
+                      </Button>
+                    )}
                   </TableHead>
-                  {selectedRooms.map(room => (
-                    <TableHead key={room.id} className="text-center min-w-[90px]">
-                      <div className="font-medium">{room.room_number}</div>
-                      <div className="text-xs font-normal text-muted-foreground">T{room.floor}</div>
-                    </TableHead>
-                  ))}
+                  {selectedRooms.map(room => {
+                    const hasData = allocations.find(a => a.room_id === room.id)?.items.length ?? 0
+                    const isCopiedSource = copiedFromRoom === room.id
+                    
+                    return (
+                      <TableHead key={room.id} className="text-center min-w-[100px]">
+                        <div className="flex flex-col items-center gap-0.5">
+                          <div className="font-medium">{room.room_number}</div>
+                          <div className="text-xs font-normal text-muted-foreground">T{room.floor}</div>
+                          
+                          {/* Copy/Paste buttons */}
+                          <div className="flex items-center gap-0.5 mt-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className={cn(
+                                    "h-5 w-5",
+                                    isCopiedSource && "text-primary bg-primary/10"
+                                  )}
+                                  onClick={() => copyRoomData(room.id)}
+                                  disabled={hasData === 0}
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom">Copy dữ liệu phòng này</TooltipContent>
+                            </Tooltip>
+                            
+                            {copiedRoomData && !isCopiedSource && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-5 w-5 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                    onClick={() => pasteRoomData(room.id)}
+                                  >
+                                    <ClipboardPaste className="h-3 w-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom">
+                                  Dán từ phòng {roomsMap.get(copiedFromRoom!)?.room_number}
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </div>
+                      </TableHead>
+                    )
+                  })}
                 </TableRow>
               </TableHeader>
               <TableBody>
