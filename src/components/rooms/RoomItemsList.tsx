@@ -14,6 +14,7 @@ interface RoomItem {
   item_id: string
   item_code: string
   item_name: string
+  item_type: 'linen' | 'consumable' | 'equipment' | 'furniture'
   item_thumbnail?: string
   category_name?: string
   standard_quantity: number
@@ -116,7 +117,8 @@ export function RoomItemsList({ items, roomId, onRequestSupplement }: RoomItemsL
   // Render quick action buttons for an item
   const renderQuickActions = (item: RoomItem) => {
     const currentQty = quantities[item.item_id] ?? item.current_quantity
-    const showCustomerUsed = currentQty > 0
+    // Only show "Customer Used" for consumable items (water, toothbrush, etc.)
+    const showCustomerUsed = item.item_type === 'consumable' && currentQty > 0
     const showSupplement = item.has_standard ? (item.standard_quantity - currentQty) > 0 : false
     
     if (!showCustomerUsed && !showSupplement) return null

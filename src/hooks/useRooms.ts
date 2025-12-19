@@ -116,6 +116,7 @@ export function useRoom(roomId: string | undefined) {
         item_id: item.item_id,
         item_code: item.item_code,
         item_name: item.item_name,
+        item_type: item.item_type,
         item_thumbnail: item.item_thumbnail,
         category_name: item.category_name,
         standard_quantity: item.standard_quantity,
