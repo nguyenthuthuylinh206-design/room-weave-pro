@@ -50,6 +50,7 @@ import SubscriptionPage from "./pages/settings/SubscriptionPage";
 import UsageDashboardPage from "./pages/settings/UsageDashboardPage";
 import SystemSecurityPage from "./pages/settings/SystemSecurityPage";
 import { NotificationSettingsPage } from "./pages/settings/NotificationSettingsPage";
+import PushDevicesPage from "./pages/settings/PushDevicesPage";
 import { BusinessConfigurationPage } from "./pages/settings/BusinessConfigurationPage";
 import CategoryManagementPage from "./pages/settings/CategoryManagementPage";
 import WorkflowsPage from "./pages/settings/WorkflowsPage";
@@ -519,6 +520,14 @@ const router = createBrowserRouter([
             element: (
               <PermissionRoute module="settings">
                 <NotificationSettingsPage />
+              </PermissionRoute>
+            )
+          },
+          { 
+            path: "notifications/devices", 
+            element: (
+              <PermissionRoute module="settings">
+                <PushDevicesPage />
               </PermissionRoute>
             )
           },

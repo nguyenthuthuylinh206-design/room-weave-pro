@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { Bell, Smartphone, Loader2, Save, Send, History } from 'lucide-react'
+import { Bell, Smartphone, Loader2, Save, Send, History, Settings2 } from 'lucide-react'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { useNotificationPreferences, NotificationPreferences } from '@/hooks/useNotificationPreferences'
 import { triggerNotification } from '@/hooks/useNotificationTriggers'
@@ -185,6 +185,14 @@ export function NotificationSettingsPage() {
                   >
                     {pushLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                     {isSubscribed ? t('settings:notifications.pushNotifications.turnOff') : t('settings:notifications.pushNotifications.turnOn')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/settings/notifications/devices')}
+                  >
+                    <Settings2 className="h-4 w-4 mr-2" />
+                    Quản lý thiết bị
                   </Button>
                 </div>
               </div>
