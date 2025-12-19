@@ -33,7 +33,8 @@ import { toast } from '@/hooks/use-toast'
 
 export default function MobileNotificationSettingsPage() {
   const navigate = useNavigate()
-  const { user, tenantId } = useUser()
+  const { user, tenantId, hasAnyRole } = useUser()
+  const isAdmin = hasAnyRole(['super_admin', 'owner', 'hotel_manager', 'department_manager'])
   const { preferences, isLoading, savePreferences, isSaving } = useNotificationPreferences()
   const { 
     isSubscribed, 
@@ -140,7 +141,7 @@ export default function MobileNotificationSettingsPage() {
             </Button>
             <h1 className="font-semibold">Cài đặt thông báo</h1>
           </div>
-          {hasChanges && (
+          {isAdmin && hasChanges && (
             <Button size="sm" onClick={handleSave} disabled={isSaving}>
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Lưu'}
             </Button>
@@ -228,145 +229,150 @@ export default function MobileNotificationSettingsPage() {
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Email Notifications Section */}
-        <Collapsible open={emailOpen} onOpenChange={setEmailOpen}>
-          <CollapsibleTrigger className="w-full">
-            <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
-              <div className="flex items-center gap-3">
-                <Mail className="h-5 w-5 text-primary" />
-                <div className="text-left">
-                  <p className="font-medium">Email</p>
-                  <p className="text-sm text-muted-foreground">
-                    {localPrefs?.email_low_stock || localPrefs?.email_laundry_completed 
-                      ? 'Đang bật' : 'Tắt'}
-                  </p>
+        {/* Admin-only settings */}
+        {isAdmin && (
+          <>
+            {/* Email Notifications Section */}
+            <Collapsible open={emailOpen} onOpenChange={setEmailOpen}>
+              <CollapsibleTrigger className="w-full">
+                <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-5 w-5 text-primary" />
+                    <div className="text-left">
+                      <p className="font-medium">Email</p>
+                      <p className="text-sm text-muted-foreground">
+                        {localPrefs?.email_low_stock || localPrefs?.email_laundry_completed 
+                          ? 'Đang bật' : 'Tắt'}
+                      </p>
+                    </div>
+                  </div>
+                  {emailOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                 </div>
-              </div>
-              {emailOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-            </div>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="mt-2 p-4 rounded-lg border bg-card space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  <Label>Cảnh báo tồn kho thấp</Label>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="mt-2 p-4 rounded-lg border bg-card space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Package className="h-4 w-4" />
+                      <Label>Cảnh báo tồn kho thấp</Label>
+                    </div>
+                    <Switch
+                      checked={localPrefs?.email_low_stock}
+                      onCheckedChange={(v) => handleChange('email_low_stock', v)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Shirt className="h-4 w-4" />
+                      <Label>Đồ giặt hoàn thành</Label>
+                    </div>
+                    <Switch
+                      checked={localPrefs?.email_laundry_completed}
+                      onCheckedChange={(v) => handleChange('email_laundry_completed', v)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Wrench className="h-4 w-4" />
+                      <Label>Yêu cầu bảo trì mới</Label>
+                    </div>
+                    <Switch
+                      checked={localPrefs?.email_maintenance_new}
+                      onCheckedChange={(v) => handleChange('email_maintenance_new', v)}
+                    />
+                  </div>
                 </div>
-                <Switch
-                  checked={localPrefs?.email_low_stock}
-                  onCheckedChange={(v) => handleChange('email_low_stock', v)}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Shirt className="h-4 w-4" />
-                  <Label>Đồ giặt hoàn thành</Label>
-                </div>
-                <Switch
-                  checked={localPrefs?.email_laundry_completed}
-                  onCheckedChange={(v) => handleChange('email_laundry_completed', v)}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Wrench className="h-4 w-4" />
-                  <Label>Yêu cầu bảo trì mới</Label>
-                </div>
-                <Switch
-                  checked={localPrefs?.email_maintenance_new}
-                  onCheckedChange={(v) => handleChange('email_maintenance_new', v)}
-                />
-              </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+              </CollapsibleContent>
+            </Collapsible>
 
-        {/* In-App Notifications Section */}
-        <Collapsible open={inAppOpen} onOpenChange={setInAppOpen}>
-          <CollapsibleTrigger className="w-full">
-            <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
-              <div className="flex items-center gap-3">
-                <Bell className="h-5 w-5 text-primary" />
-                <div className="text-left">
-                  <p className="font-medium">Thông báo trong ứng dụng</p>
-                  <p className="text-sm text-muted-foreground">
-                    {localPrefs?.inapp_realtime ? 'Đang bật' : 'Tắt'}
-                  </p>
+            {/* In-App Notifications Section */}
+            <Collapsible open={inAppOpen} onOpenChange={setInAppOpen}>
+              <CollapsibleTrigger className="w-full">
+                <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+                  <div className="flex items-center gap-3">
+                    <Bell className="h-5 w-5 text-primary" />
+                    <div className="text-left">
+                      <p className="font-medium">Thông báo trong ứng dụng</p>
+                      <p className="text-sm text-muted-foreground">
+                        {localPrefs?.inapp_realtime ? 'Đang bật' : 'Tắt'}
+                      </p>
+                    </div>
+                  </div>
+                  {inAppOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                 </div>
-              </div>
-              {inAppOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-            </div>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="mt-2 p-4 rounded-lg border bg-card space-y-4">
-              <div className="flex items-center justify-between">
-                <Label>Cập nhật real-time</Label>
-                <Switch
-                  checked={localPrefs?.inapp_realtime}
-                  onCheckedChange={(v) => handleChange('inapp_realtime', v)}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label>Cảnh báo tồn kho</Label>
-                <Switch
-                  checked={localPrefs?.inapp_low_stock}
-                  onCheckedChange={(v) => handleChange('inapp_low_stock', v)}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label>Công việc được giao</Label>
-                <Switch
-                  checked={localPrefs?.inapp_task_assigned}
-                  onCheckedChange={(v) => handleChange('inapp_task_assigned', v)}
-                />
-              </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="mt-2 p-4 rounded-lg border bg-card space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label>Cập nhật real-time</Label>
+                    <Switch
+                      checked={localPrefs?.inapp_realtime}
+                      onCheckedChange={(v) => handleChange('inapp_realtime', v)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label>Cảnh báo tồn kho</Label>
+                    <Switch
+                      checked={localPrefs?.inapp_low_stock}
+                      onCheckedChange={(v) => handleChange('inapp_low_stock', v)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label>Công việc được giao</Label>
+                    <Switch
+                      checked={localPrefs?.inapp_task_assigned}
+                      onCheckedChange={(v) => handleChange('inapp_task_assigned', v)}
+                    />
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
 
-        {/* Thresholds Section */}
-        <Collapsible open={thresholdsOpen} onOpenChange={setThresholdsOpen}>
-          <CollapsibleTrigger className="w-full">
-            <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
-              <div className="flex items-center gap-3">
-                <Clock className="h-5 w-5 text-primary" />
-                <div className="text-left">
-                  <p className="font-medium">Ngưỡng cảnh báo</p>
-                  <p className="text-sm text-muted-foreground">Tùy chỉnh ngưỡng</p>
+            {/* Thresholds Section */}
+            <Collapsible open={thresholdsOpen} onOpenChange={setThresholdsOpen}>
+              <CollapsibleTrigger className="w-full">
+                <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+                  <div className="flex items-center gap-3">
+                    <Clock className="h-5 w-5 text-primary" />
+                    <div className="text-left">
+                      <p className="font-medium">Ngưỡng cảnh báo</p>
+                      <p className="text-sm text-muted-foreground">Tùy chỉnh ngưỡng</p>
+                    </div>
+                  </div>
+                  {thresholdsOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                 </div>
-              </div>
-              {thresholdsOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-            </div>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="mt-2 p-4 rounded-lg border bg-card space-y-4">
-              <div className="space-y-2">
-                <Label>Ngưỡng tồn kho thấp (%)</Label>
-                <Input
-                  type="number"
-                  value={localPrefs?.low_stock_threshold || 20}
-                  onChange={(e) => handleChange('low_stock_threshold', parseInt(e.target.value))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Ngưỡng tồn kho nguy hiểm (%)</Label>
-                <Input
-                  type="number"
-                  value={localPrefs?.critical_stock_threshold || 10}
-                  onChange={(e) => handleChange('critical_stock_threshold', parseInt(e.target.value))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Ngưỡng bảo trì quá hạn (ngày)</Label>
-                <Input
-                  type="number"
-                  value={localPrefs?.overdue_maintenance_days || 3}
-                  onChange={(e) => handleChange('overdue_maintenance_days', parseInt(e.target.value))}
-                />
-              </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="mt-2 p-4 rounded-lg border bg-card space-y-4">
+                  <div className="space-y-2">
+                    <Label>Ngưỡng tồn kho thấp (%)</Label>
+                    <Input
+                      type="number"
+                      value={localPrefs?.low_stock_threshold || 20}
+                      onChange={(e) => handleChange('low_stock_threshold', parseInt(e.target.value))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Ngưỡng tồn kho nguy hiểm (%)</Label>
+                    <Input
+                      type="number"
+                      value={localPrefs?.critical_stock_threshold || 10}
+                      onChange={(e) => handleChange('critical_stock_threshold', parseInt(e.target.value))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Ngưỡng bảo trì quá hạn (ngày)</Label>
+                    <Input
+                      type="number"
+                      value={localPrefs?.overdue_maintenance_days || 3}
+                      onChange={(e) => handleChange('overdue_maintenance_days', parseInt(e.target.value))}
+                    />
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </>
+        )}
 
         {/* Link to full history */}
         <Button 
