@@ -74,6 +74,7 @@
     "itemTypes": "types",
     "products": "products",
     "itemsSummary": "{{types}} types • {{total}} items",
+    "itemsToDeliver": "Items to deliver:",
     "confirmedBy": "Confirmed by {{name}}",
     "createdAt": "Created at {{date}}",
     "assignedTo": "Assigned to {{name}}",
