@@ -188,7 +188,9 @@
     "syncStandards": "Đồng bộ tiêu chuẩn",
     "printItemList": "In danh sách",
     "na": "N/A",
-    "supplement": "Bổ sung"
+    "supplement": "Bổ sung",
+    "supplementMissing": "Bổ sung thiếu",
+    "extraItems": "Cấp thêm"
   },
   "supplement": {
     "title": "Bổ sung đồ - Phòng {{roomNumber}}",

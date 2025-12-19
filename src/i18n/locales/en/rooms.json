@@ -188,7 +188,9 @@
     "syncStandards": "Sync Standards",
     "printItemList": "Print List",
     "na": "N/A",
-    "supplement": "Supplement"
+    "supplement": "Supplement",
+    "supplementMissing": "Fill Missing",
+    "extraItems": "Extra Items"
   },
   "supplement": {
     "title": "Supplement - Room {{roomNumber}}",
