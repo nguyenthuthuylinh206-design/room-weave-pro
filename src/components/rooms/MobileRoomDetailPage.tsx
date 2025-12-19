@@ -20,6 +20,7 @@ import {
   Truck,
   PackagePlus,
   Gift,
+  LogOut,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -294,6 +295,33 @@ export function MobileRoomDetailPage() {
           missingItems={missingCount}
         />
       </div>
+
+      {/* Alert Banner for Checkout Required */}
+      {room.status === 'check_out' && (
+        <div className="px-4 pb-2">
+          <Alert className="border-orange-500 bg-orange-50 dark:bg-orange-950/30">
+            <LogOut className="h-4 w-4 text-orange-600" />
+            <AlertDescription className="text-orange-800 dark:text-orange-200">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">
+                  Phòng này cần kiểm tra checkout
+                </span>
+                <Button 
+                  size="sm" 
+                  className="h-7 bg-orange-600 hover:bg-orange-700"
+                  onClick={() => navigate(`/rooms/${id}/check?type=checkout`)}
+                >
+                  <ClipboardCheck className="h-3.5 w-3.5 mr-1" />
+                  Kiểm tra ngay
+                </Button>
+              </div>
+              <p className="text-xs mt-1 opacity-80">
+                Khách đã trả phòng. Vui lòng kiểm tra đồ dùng, ghi nhận mất mát và hư hỏng.
+              </p>
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
 
       {/* Alert Banner for Pending Deliveries */}
       {pendingDeliveryCount > 0 && activeTab !== 'delivery' && (

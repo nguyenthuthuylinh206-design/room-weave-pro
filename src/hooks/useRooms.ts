@@ -219,17 +219,38 @@ export function useCreateRoom() {
 
 export function useUpdateRoom() {
   const queryClient = useQueryClient()
+  const { tenantId } = useUser()
   
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async ({ id, data, previousStatus }: { 
+      id: string
+      data: any
+      previousStatus?: string 
+    }) => {
       const { data: room, error } = await supabase
         .from('rooms')
         .update(data)
         .eq('id', id)
-        .select()
+        .select('*, room_number')
         .single()
       
       if (error) throw error
+      
+      // Send notification when status changes to check_out
+      if (data.status === 'check_out' && previousStatus !== 'check_out' && tenantId) {
+        await supabase.from('notifications').insert({
+          tenant_id: tenantId,
+          role: 'department_manager',
+          type: 'info',
+          category: 'room',
+          title: `Phòng ${room.room_number} cần kiểm tra checkout`,
+          message: `Khách đã trả phòng. Vui lòng kiểm tra đồ dùng trong phòng.`,
+          action_url: `/rooms/${id}/check?type=checkout`,
+          related_type: 'room',
+          related_id: id,
+        })
+      }
+      
       return room
     },
     onSuccess: (_, variables) => {
