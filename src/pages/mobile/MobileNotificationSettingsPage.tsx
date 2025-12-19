@@ -73,25 +73,42 @@ export default function MobileNotificationSettingsPage() {
 
   const handleSendTestNotification = async () => {
     if (!user?.id || !tenantId) return
-    
+
     setSendingTest(true)
     try {
-      await triggerNotification(
+      let shouldSendPush = isSupported && permission !== 'denied'
+
+      if (shouldSendPush && !isSubscribed) {
+        const ok = await subscribe()
+        shouldSendPush = ok
+      }
+
+      const result = await triggerNotification(
         user.id,
         tenantId,
         '🔔 Thông báo test',
         'Đây là thông báo test từ hệ thống. Nếu bạn nhận được thì cài đặt đã hoạt động!',
         'info',
         '/settings/notifications',
-        isSubscribed
+        shouldSendPush
       )
-      toast({ 
-        title: 'Đã gửi thông báo test', 
-        description: 'Kiểm tra trong trung tâm thông báo' 
+
+      if (shouldSendPush && !result.push.ok) {
+        toast({
+          title: 'Lỗi',
+          description: result.push.message || 'Web Push chưa gửi được (chưa có thiết bị đăng ký hoặc subscription không hợp lệ).',
+          variant: 'destructive'
+        })
+        return
+      }
+
+      toast({
+        title: 'Đã gửi thông báo test',
+        description: 'Kiểm tra trong trung tâm thông báo'
       })
     } catch (error) {
-      toast({ 
-        title: 'Lỗi', 
+      toast({
+        title: 'Lỗi',
         description: 'Không thể gửi thông báo test',
         variant: 'destructive'
       })

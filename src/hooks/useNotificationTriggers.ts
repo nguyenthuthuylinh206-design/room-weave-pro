@@ -114,7 +114,14 @@ export async function createMultipleNotifications({
   return successCount;
 }
 
-export async function sendPushNotification({
+export type PushSendResult = {
+  ok: boolean;
+  sent: number;
+  message?: string;
+  error?: string;
+};
+
+async function sendPushNotificationWithResult({
   userId,
   tenantId,
   title,
@@ -134,9 +141,9 @@ export async function sendPushNotification({
   notificationType?: NotificationType;
   icon?: string;
   image?: string;
-}): Promise<boolean> {
+}): Promise<PushSendResult> {
   try {
-    const { error } = await supabase.functions.invoke('send-push-notification', {
+    const { data, error } = await supabase.functions.invoke('send-push-notification', {
       body: {
         user_id: userId,
         tenant_id: tenantId,
@@ -151,11 +158,40 @@ export async function sendPushNotification({
     });
 
     if (error) throw error;
-    return true;
-  } catch (error) {
-    console.error('Error sending push notification:', error);
-    return false;
+
+    const sent = typeof (data as any)?.sent === 'number' ? (data as any).sent : 0;
+    const message = typeof (data as any)?.message === 'string' ? (data as any).message : undefined;
+
+    return {
+      ok: sent > 0,
+      sent,
+      message,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      sent: 0,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
+}
+
+export async function sendPushNotification(params: {
+  userId: string;
+  tenantId: string;
+  title: string;
+  body: string;
+  actionUrl?: string;
+  tag?: string;
+  notificationType?: NotificationType;
+  icon?: string;
+  image?: string;
+}): Promise<boolean> {
+  const result = await sendPushNotificationWithResult(params);
+  if (!result.ok) {
+    console.warn('[Push] sendPushNotification failed:', result);
+  }
+  return result.ok;
 }
 
 // Send push notifications to multiple users
@@ -831,8 +867,8 @@ export async function triggerNotification(
   type: NotificationType = 'info',
   actionUrl?: string,
   sendPush: boolean = true
-) {
-  await createInAppNotification({
+): Promise<{ inAppId: string | null; push: PushSendResult & { attempted: boolean } }> {
+  const inAppId = await createInAppNotification({
     userId,
     tenantId,
     title,
@@ -841,16 +877,26 @@ export async function triggerNotification(
     actionUrl,
   });
 
-  if (sendPush) {
-    await sendPushNotification({
-      userId,
-      tenantId,
-      title,
-      body,
-      actionUrl,
-      notificationType: type,
-    });
+  if (!sendPush) {
+    return {
+      inAppId,
+      push: { attempted: false, ok: false, sent: 0, message: 'Push not requested' },
+    };
   }
+
+  const pushResult = await sendPushNotificationWithResult({
+    userId,
+    tenantId,
+    title,
+    body,
+    actionUrl,
+    notificationType: type,
+  });
+
+  return {
+    inAppId,
+    push: { attempted: true, ...pushResult },
+  };
 }
 
 // ==================== LEGACY FUNCTIONS (for backward compatibility) ====================

@@ -56,25 +56,43 @@ export function NotificationSettingsPage() {
       toast({ title: t('common:error'), description: t('settings:notifications.toast.userNotFound'), variant: 'destructive' })
       return
     }
-    
+
     setSendingTest(true)
     try {
-      await triggerNotification(
+      // Ensure push is actually subscribed (permission alone is not enough)
+      let shouldSendPush = isSupported && permission !== 'denied'
+
+      if (shouldSendPush && !isSubscribed) {
+        const ok = await subscribe()
+        shouldSendPush = ok
+      }
+
+      const result = await triggerNotification(
         user.id,
         tenantId,
         '🔔 Test Notification',
         'This is a test notification from the system. If you receive this, the settings are working!',
         'info',
         '/settings/notifications',
-        isSubscribed
+        shouldSendPush
       )
-      toast({ 
-        title: t('settings:notifications.toast.testSent'), 
+
+      if (shouldSendPush && !result.push.ok) {
+        toast({
+          title: t('common:error'),
+          description: result.push.message || 'Web Push chưa gửi được (chưa có thiết bị đăng ký hoặc subscription không hợp lệ).',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      toast({
+        title: t('settings:notifications.toast.testSent'),
         description: t('settings:notifications.toast.testSentDesc')
       })
     } catch (error) {
-      toast({ 
-        title: t('common:error'), 
+      toast({
+        title: t('common:error'),
         description: t('settings:notifications.toast.testError'),
         variant: 'destructive'
       })
