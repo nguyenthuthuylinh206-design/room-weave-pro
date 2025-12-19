@@ -59,14 +59,13 @@ export function NotificationSettingsPage() {
 
     setSendingTest(true)
     try {
-      // Ensure push is actually subscribed (permission alone is not enough)
-      let shouldSendPush = isSupported && permission !== 'denied'
-
-      if (shouldSendPush && !isSubscribed) {
-        const ok = await subscribe()
-        shouldSendPush = ok
+      // Nếu thiết bị hiện tại chưa subscribe và có thể subscribe, thử subscribe
+      if (isSupported && permission !== 'denied' && !isSubscribed) {
+        await subscribe()
       }
 
+      // LUÔN gọi triggerNotification với sendPush = true
+      // Vì user có thể có thiết bị khác đã đăng ký nhận push
       const result = await triggerNotification(
         user.id,
         tenantId,
@@ -74,22 +73,26 @@ export function NotificationSettingsPage() {
         'This is a test notification from the system. If you receive this, the settings are working!',
         'info',
         '/settings/notifications',
-        shouldSendPush
+        true // LUÔN true để edge function được gọi
       )
 
-      if (shouldSendPush && !result.push.ok) {
+      // Hiển thị kết quả chi tiết
+      if (result.push.sent && result.push.sent > 0) {
         toast({
-          title: t('common:error'),
-          description: result.push.message || 'Web Push chưa gửi được (chưa có thiết bị đăng ký hoặc subscription không hợp lệ).',
-          variant: 'destructive',
+          title: t('settings:notifications.toast.testSent'),
+          description: `Đã gửi Web Push đến ${result.push.sent} thiết bị`
         })
-        return
+      } else if (!result.push.ok) {
+        toast({
+          title: 'Thông báo in-app đã gửi',
+          description: result.push.message || 'Chưa có thiết bị nào đăng ký nhận Web Push',
+        })
+      } else {
+        toast({
+          title: t('settings:notifications.toast.testSent'),
+          description: t('settings:notifications.toast.testSentDesc')
+        })
       }
-
-      toast({
-        title: t('settings:notifications.toast.testSent'),
-        description: t('settings:notifications.toast.testSentDesc')
-      })
     } catch (error) {
       toast({
         title: t('common:error'),
