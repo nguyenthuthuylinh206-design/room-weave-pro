@@ -31,6 +31,7 @@ interface RoomSupplementSheetProps {
   onOpenChange: (open: boolean) => void
   roomId: string
   roomNumber: string
+  initialMode?: 'missing' | 'extra'
 }
 
 export function RoomSupplementSheet({
@@ -38,6 +39,7 @@ export function RoomSupplementSheet({
   onOpenChange,
   roomId,
   roomNumber,
+  initialMode = 'missing',
 }: RoomSupplementSheetProps) {
   const { t } = useTranslation(['rooms', 'inventory', 'common'])
   const { data: supplementData, isLoading } = useRoomSupplements(open ? roomId : undefined)
@@ -45,20 +47,25 @@ export function RoomSupplementSheet({
 
   const [selectedItems, setSelectedItems] = useState<Record<string, number>>({})
   const [notes, setNotes] = useState('')
-  const [activeTab, setActiveTab] = useState('missing')
+  const [activeTab, setActiveTab] = useState(initialMode === 'extra' ? 'consumable' : 'missing')
 
   // Reset state when opened
   useEffect(() => {
     if (open && supplementData) {
       const initial: Record<string, number> = {}
-      // Pre-select all missing items with their missing quantity
-      supplementData.missing_items.forEach(item => {
-        initial[item.item_id] = item.missing_quantity
-      })
+      // Pre-select based on mode
+      if (initialMode === 'missing') {
+        supplementData.missing_items.forEach(item => {
+          initial[item.item_id] = item.missing_quantity
+        })
+        setActiveTab('missing')
+      } else {
+        setActiveTab('consumable')
+      }
       setSelectedItems(initial)
       setNotes('')
     }
-  }, [open, supplementData])
+  }, [open, supplementData, initialMode])
 
   const handleQuantityChange = (itemId: string, delta: number, maxQty: number) => {
     triggerHaptic('light')

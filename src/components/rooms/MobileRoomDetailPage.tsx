@@ -19,6 +19,7 @@ import {
   User,
   Truck,
   PackagePlus,
+  Gift,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -112,6 +113,7 @@ export function MobileRoomDetailPage() {
   // Auto-switch to delivery tab when pending orders exist
   const [activeTab, setActiveTab] = useState('info')
   const [showSupplementSheet, setShowSupplementSheet] = useState(false)
+  const [supplementMode, setSupplementMode] = useState<'missing' | 'extra'>('missing')
   
   useEffect(() => {
     if (pendingDeliveryCount > 0 && !isLoading) {
@@ -178,23 +180,39 @@ export function MobileRoomDetailPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            {/* Supplement button - prominent when items missing */}
+        <div className="flex items-center gap-1">
+            {/* Button 1: Bổ sung thiếu - only show when missing items */}
             {missingCount > 0 && (
               <Button 
                 variant="default" 
                 size="sm"
                 className="h-8 gap-1 bg-amber-500 hover:bg-amber-600 text-white"
-                onClick={() => setShowSupplementSheet(true)}
+                onClick={() => {
+                  setSupplementMode('missing')
+                  setShowSupplementSheet(true)
+                }}
               >
                 <PackagePlus className="h-4 w-4" />
-                <span className="hidden sm:inline">{t('detail.supplement')}</span>
+                <span className="hidden sm:inline">{t('detail.supplementMissing')}</span>
                 <Badge variant="secondary" className="ml-1 h-5 px-1.5 bg-white/20 text-white">
                   {missingCount}
                 </Badge>
               </Button>
             )}
+            {/* Button 2: Cấp thêm đồ - always show for consumables */}
             <Button 
+              variant="outline" 
+              size="sm"
+              className="h-8 gap-1"
+              onClick={() => {
+                setSupplementMode('extra')
+                setShowSupplementSheet(true)
+              }}
+            >
+              <Gift className="h-4 w-4" />
+              <span className="hidden sm:inline">{t('detail.extraItems')}</span>
+            </Button>
+            <Button
               variant="ghost" 
               size="icon"
               className="h-8 w-8"
@@ -235,6 +253,7 @@ export function MobileRoomDetailPage() {
         onOpenChange={setShowSupplementSheet}
         roomId={id!}
         roomNumber={room.room_number}
+        initialMode={supplementMode}
       />
 
       {/* Stats Cards */}
