@@ -33,28 +33,35 @@ export async function sendNotificationByRole({
   metadata,
 }: SendNotificationByRoleParams): Promise<void> {
   try {
-    // Find all users with the specified role in this tenant
-    const { data: users, error: usersError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('tenant_id', tenantId)
-      .eq('role', role)
-      .eq('status', 'active')
+    // Query from user_roles table with join to users for tenant and status check
+    const { data: userRoles, error: rolesError } = await supabase
+      .from('user_roles')
+      .select(`
+        user_id,
+        users!inner(id, tenant_id, status)
+      `)
+      .eq('role', role as any)
     
-    if (usersError) {
-      console.error('Error fetching users for notification:', usersError)
+    if (rolesError) {
+      console.error('Error fetching users for notification:', rolesError)
       return
     }
     
-    if (!users || users.length === 0) {
-      console.log(`No active users found with role: ${role}`)
+    // Filter by tenant and active status
+    const activeUsers = userRoles?.filter(ur => {
+      const user = ur.users as any
+      return user?.tenant_id === tenantId && user?.status === 'active'
+    }) || []
+    
+    if (activeUsers.length === 0) {
+      console.log(`No active users found with role: ${role} in tenant ${tenantId}`)
       return
     }
     
     // Create notifications for all matching users
-    const notifications = users.map(user => ({
+    const notifications = activeUsers.map(ur => ({
       tenant_id: tenantId,
-      user_id: user.id,
+      user_id: ur.user_id,
       title,
       body,
       type,
@@ -69,6 +76,8 @@ export async function sendNotificationByRole({
     
     if (insertError) {
       console.error('Error inserting notifications:', insertError)
+    } else {
+      console.log(`Successfully sent ${notifications.length} notifications to ${role}`)
     }
   } catch (error) {
     console.error('Error sending notification by role:', error)
