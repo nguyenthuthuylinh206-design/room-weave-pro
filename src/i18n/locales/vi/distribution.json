@@ -74,6 +74,7 @@
     "itemTypes": "loại",
     "products": "sản phẩm",
     "itemsSummary": "{{types}} loại • {{total}} sản phẩm",
+    "itemsToDeliver": "Đồ cần giao:",
     "confirmedBy": "Xác nhận bởi {{name}}",
     "createdAt": "Tạo lúc {{date}}",
     "assignedTo": "Giao cho {{name}}",

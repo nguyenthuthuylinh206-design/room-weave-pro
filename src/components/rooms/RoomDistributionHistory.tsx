@@ -266,6 +266,26 @@ export function RoomDistributionHistory({ roomId, roomNumber }: RoomDistribution
               )}
             </div>
 
+            {/* Items list for pending orders */}
+            {item.items && item.items.length > 0 && showActions && (
+              <div className="mt-3 bg-accent/50 dark:bg-accent/30 rounded-lg border border-border/50 p-3">
+                <p className="text-xs font-medium mb-2 flex items-center gap-1.5 text-foreground">
+                  <Package className="h-3.5 w-3.5" />
+                  {t('distribution:roomHistory.itemsToDeliver')}
+                </p>
+                <ul className="text-xs space-y-1.5">
+                  {item.items.map((i) => (
+                    <li key={i.item_id} className="flex justify-between items-center py-1 px-2 bg-background rounded">
+                      <span className="text-muted-foreground">{i.item_name}</span>
+                      <Badge variant="secondary" className="text-xs font-medium">
+                        x{i.quantity}
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {/* Action buttons */}
             {showActions && (
               <div className="flex gap-2 mt-3">
