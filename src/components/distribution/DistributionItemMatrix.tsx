@@ -21,6 +21,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useItems } from '@/hooks/useItems'
@@ -317,6 +318,7 @@ export function DistributionItemMatrix({
   }
 
   return (
+    <TooltipProvider>
     <div className="space-y-4">
       {/* Item selector with Combobox */}
       <Popover open={itemSelectorOpen} onOpenChange={setItemSelectorOpen}>
@@ -662,5 +664,6 @@ export function DistributionItemMatrix({
         </div>
       )}
     </div>
+    </TooltipProvider>
   )
 }
