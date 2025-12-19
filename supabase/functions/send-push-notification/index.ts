@@ -330,11 +330,16 @@ Deno.serve(async (req) => {
       throw fetchError
     }
 
-    console.log(`Found ${subscriptions?.length || 0} active subscriptions`)
+    console.log(`Found ${subscriptions?.length || 0} active subscriptions for users: ${userIds.join(', ')}`)
 
     if (!subscriptions || subscriptions.length === 0) {
+      console.log('No active push subscriptions found - user(s) may not have enabled push notifications on any device')
       return new Response(
-        JSON.stringify({ success: true, sent: 0, message: 'No active subscriptions' }),
+        JSON.stringify({ 
+          success: true, 
+          sent: 0, 
+          message: 'Người dùng chưa đăng ký thiết bị nào để nhận thông báo đẩy' 
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }

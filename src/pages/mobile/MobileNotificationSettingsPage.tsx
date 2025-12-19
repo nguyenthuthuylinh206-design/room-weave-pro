@@ -76,13 +76,13 @@ export default function MobileNotificationSettingsPage() {
 
     setSendingTest(true)
     try {
-      let shouldSendPush = isSupported && permission !== 'denied'
-
-      if (shouldSendPush && !isSubscribed) {
-        const ok = await subscribe()
-        shouldSendPush = ok
+      // Nếu thiết bị hiện tại chưa subscribe và có thể subscribe, thử subscribe
+      if (isSupported && permission !== 'denied' && !isSubscribed) {
+        await subscribe()
       }
 
+      // LUÔN gọi triggerNotification với sendPush = true
+      // Vì user có thể có thiết bị khác đã đăng ký nhận push
       const result = await triggerNotification(
         user.id,
         tenantId,
@@ -90,22 +90,26 @@ export default function MobileNotificationSettingsPage() {
         'Đây là thông báo test từ hệ thống. Nếu bạn nhận được thì cài đặt đã hoạt động!',
         'info',
         '/settings/notifications',
-        shouldSendPush
+        true // LUÔN true để edge function được gọi
       )
 
-      if (shouldSendPush && !result.push.ok) {
+      // Hiển thị kết quả chi tiết
+      if (result.push.sent && result.push.sent > 0) {
         toast({
-          title: 'Lỗi',
-          description: result.push.message || 'Web Push chưa gửi được (chưa có thiết bị đăng ký hoặc subscription không hợp lệ).',
-          variant: 'destructive'
+          title: 'Đã gửi thông báo test',
+          description: `Đã gửi Web Push đến ${result.push.sent} thiết bị`
         })
-        return
+      } else if (!result.push.ok) {
+        toast({
+          title: 'Thông báo in-app đã gửi',
+          description: result.push.message || 'Chưa có thiết bị nào đăng ký nhận Web Push',
+        })
+      } else {
+        toast({
+          title: 'Đã gửi thông báo test',
+          description: 'Kiểm tra trong trung tâm thông báo'
+        })
       }
-
-      toast({
-        title: 'Đã gửi thông báo test',
-        description: 'Kiểm tra trong trung tâm thông báo'
-      })
     } catch (error) {
       toast({
         title: 'Lỗi',
