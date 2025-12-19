@@ -140,9 +140,55 @@ export function useCreateRoomCheck() {
           .eq('room_id', roomId)
       }
       
-      // Create notification for managers about check completion
+      // Get room info for notifications
+      const { data: roomInfo } = await supabase
+        .from('rooms')
+        .select('room_number')
+        .eq('id', roomId)
+        .single()
+      
+      const roomNumber = roomInfo?.room_number || 'N/A'
+      
+      // Handle checkout check type - send summary report to manager
+      if (data.check_type === 'checkout') {
+        const consumedCount = data.items_consumed?.length || 0
+        const lostCount = data.items_lost?.length || 0
+        const damagedCount = data.items_damaged?.length || 0
+        const hasIssues = lostCount > 0 || damagedCount > 0
+        
+        // Build summary message
+        const summaryParts = []
+        if (consumedCount > 0) summaryParts.push(`Khách dùng ${consumedCount} items`)
+        if (lostCount > 0) summaryParts.push(`Mất ${lostCount} items`)
+        if (damagedCount > 0) summaryParts.push(`Hỏng ${damagedCount} items`)
+        
+        const summaryMessage = summaryParts.length > 0 
+          ? summaryParts.join(', ')
+          : 'Không có vấn đề'
+        
+        // Send checkout report to hotel manager
+        await supabase.from('notifications').insert({
+          tenant_id: tenantId,
+          role: 'hotel_manager',
+          type: hasIssues ? 'warning' : 'success',
+          category: 'room',
+          title: `Báo cáo checkout phòng ${roomNumber}`,
+          message: summaryMessage,
+          action_url: `/rooms/${roomId}?tab=history`,
+          related_type: 'room_check',
+          related_id: check.id,
+        })
+        
+        // Auto-change room status to cleaning after checkout
+        await supabase
+          .from('rooms')
+          .update({ status: 'cleaning' })
+          .eq('id', roomId)
+      }
+      
+      // Create notification for managers about check completion (non-checkout)
       const totalIssues = (data.items_missing?.length || 0) + (data.items_damaged?.length || 0)
-      if (totalIssues > 0) {
+      if (totalIssues > 0 && data.check_type !== 'checkout') {
         await supabase
           .from('notifications')
           .insert({
@@ -150,7 +196,7 @@ export function useCreateRoomCheck() {
             role: 'hotel_manager',
             type: 'warning',
             category: 'room',
-            title: 'Kiểm tra phòng phát hiện vấn đề',
+            title: `Kiểm tra phòng ${roomNumber} phát hiện vấn đề`,
             message: `Phòng có ${totalIssues} vấn đề cần xử lý`,
             related_type: 'room',
             related_id: roomId,

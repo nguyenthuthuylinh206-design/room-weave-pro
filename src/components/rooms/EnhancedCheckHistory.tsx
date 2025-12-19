@@ -1,14 +1,16 @@
 import { useState } from 'react'
-import { CheckCircle, AlertTriangle, Star, Filter, TrendingUp, Image as ImageIcon } from 'lucide-react'
+import { CheckCircle, AlertTriangle, Star, Filter, TrendingUp, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { CheckoutReportCard } from './CheckoutReportCard'
 import type { RoomCheckWithUser, CheckType } from '@/types/rooms.types'
 
 interface EnhancedCheckHistoryProps {
@@ -20,6 +22,7 @@ export function EnhancedCheckHistory({ checks }: EnhancedCheckHistoryProps) {
   const [showChart, setShowChart] = useState(false)
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([])
   const [showPhotoDialog, setShowPhotoDialog] = useState(false)
+  const [expandedCheckId, setExpandedCheckId] = useState<string | null>(null)
   
   // Filter checks by type
   const filteredChecks = filterType === 'all' 
@@ -148,113 +151,165 @@ export function EnhancedCheckHistory({ checks }: EnhancedCheckHistoryProps) {
           Hiển thị {filteredChecks.length}/{checks.length} lần kiểm tra
         </p>
         
-        {filteredChecks.map((check) => (
-          <div key={check.id} className="flex gap-3 pb-3 border-b last:border-0">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={check.checked_by_avatar || undefined} />
-              <AvatarFallback>
-                {check.checked_by_name.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            
-            <div className="flex-1 space-y-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">{check.checked_by_name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(check.checked_at), { addSuffix: true, locale: vi })}
-                  </p>
-                </div>
-                <Badge variant="outline" className="text-xs">
-                  {check.check_type === 'daily' && 'Hàng ngày'}
-                  {check.check_type === 'checkin' && 'Check-in'}
-                  {check.check_type === 'checkout' && 'Check-out'}
-                  {check.check_type === 'maintenance' && 'Bảo trì'}
-                </Badge>
-              </div>
-              
-              {check.cleanliness_score && (
-                <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`h-3 w-3 ${
-                        i < check.cleanliness_score!
-                          ? 'fill-yellow-400 text-yellow-400'
-                          : 'text-muted'
-                      }`}
-                    />
-                  ))}
-                  <span className="text-xs text-muted-foreground ml-1">
-                    {check.cleanliness_score}/5
-                  </span>
-                </div>
-              )}
-              
-              {check.items_complete ? (
-                <div className="flex items-center gap-1 text-xs text-green-600">
-                  <CheckCircle className="h-3 w-3" />
-                  <span>Đồ dùng đầy đủ</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1 text-xs text-red-600">
-                  <AlertTriangle className="h-3 w-3" />
-                  <span>
-                    Thiếu {(check.items_missing as any[])?.length || 0} items
-                    {(check.items_damaged as any[])?.length > 0 && 
-                      `, hư ${(check.items_damaged as any[]).length} items`
-                    }
-                  </span>
-                </div>
-              )}
-              
-            {check.notes && (
-              <p className="text-xs text-muted-foreground">
-                {check.notes}
-              </p>
-            )}
-            
-            {/* Photos */}
-            {check.photos && Array.isArray(check.photos) && check.photos.length > 0 && (
-              <div className="space-y-1">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <ImageIcon className="h-3 w-3" />
-                  <span>{check.photos.length} ảnh</span>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  {check.photos.slice(0, 4).map((photo: string, idx: number) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        setSelectedPhotos(check.photos as string[])
-                        setShowPhotoDialog(true)
-                      }}
-                      className="relative w-16 h-16 rounded border overflow-hidden hover:opacity-80 transition-opacity"
-                    >
-                      <img 
-                        src={photo} 
-                        alt={`Photo ${idx + 1}`}
-                        className="w-full h-full object-cover"
+        {filteredChecks.map((check) => {
+          const isCheckout = check.check_type === 'checkout'
+          const isExpanded = expandedCheckId === check.id
+          const hasCheckoutData = isCheckout && (
+            (check as any).items_consumed?.length > 0 ||
+            (check as any).items_lost?.length > 0 ||
+            (check.items_damaged as any[])?.length > 0
+          )
+          
+          return (
+            <div key={check.id} className="pb-3 border-b last:border-0">
+              <div className="flex gap-3">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={check.checked_by_avatar || undefined} />
+                  <AvatarFallback>
+                    {check.checked_by_name.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">{check.checked_by_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(check.checked_at), { addSuffix: true, locale: vi })}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={isCheckout ? 'default' : 'outline'} 
+                        className={`text-xs ${isCheckout ? 'bg-orange-500' : ''}`}
+                      >
+                        {check.check_type === 'daily' && 'Hàng ngày'}
+                        {check.check_type === 'checkin' && 'Check-in'}
+                        {check.check_type === 'checkout' && 'Check-out'}
+                        {check.check_type === 'maintenance' && 'Bảo trì'}
+                      </Badge>
+                      {isCheckout && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() => setExpandedCheckId(isExpanded ? null : check.id)}
+                        >
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {check.cleanliness_score && (
+                    <div className="flex items-center gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`h-3 w-3 ${
+                            i < check.cleanliness_score!
+                              ? 'fill-yellow-400 text-yellow-400'
+                              : 'text-muted'
+                          }`}
+                        />
+                      ))}
+                      <span className="text-xs text-muted-foreground ml-1">
+                        {check.cleanliness_score}/5
+                      </span>
+                    </div>
+                  )}
+                  
+                  {check.items_complete ? (
+                    <div className="flex items-center gap-1 text-xs text-green-600">
+                      <CheckCircle className="h-3 w-3" />
+                      <span>Đồ dùng đầy đủ</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 text-xs text-red-600">
+                      <AlertTriangle className="h-3 w-3" />
+                      <span>
+                        Thiếu {(check.items_missing as any[])?.length || 0} items
+                        {(check.items_damaged as any[])?.length > 0 && 
+                          `, hư ${(check.items_damaged as any[]).length} items`
+                        }
+                      </span>
+                    </div>
+                  )}
+                  
+                  {check.notes && (
+                    <p className="text-xs text-muted-foreground">
+                      {check.notes}
+                    </p>
+                  )}
+                  
+                  {/* Photos */}
+                  {check.photos && Array.isArray(check.photos) && check.photos.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <ImageIcon className="h-3 w-3" />
+                        <span>{check.photos.length} ảnh</span>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        {check.photos.slice(0, 4).map((photo: string, idx: number) => (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              setSelectedPhotos(check.photos as string[])
+                              setShowPhotoDialog(true)
+                            }}
+                            className="relative w-16 h-16 rounded border overflow-hidden hover:opacity-80 transition-opacity"
+                          >
+                            <img 
+                              src={photo} 
+                              alt={`Photo ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </button>
+                        ))}
+                        {check.photos.length > 4 && (
+                          <button
+                            onClick={() => {
+                              setSelectedPhotos(check.photos as string[])
+                              setShowPhotoDialog(true)
+                            }}
+                            className="w-16 h-16 rounded border flex items-center justify-center bg-muted hover:bg-muted/80 transition-colors"
+                          >
+                            <span className="text-xs font-medium">+{check.photos.length - 4}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Checkout Report Card - expandable */}
+                  {isCheckout && isExpanded && (
+                    <div className="mt-3">
+                      <CheckoutReportCard
+                        items_consumed={(check as any).items_consumed}
+                        items_lost={(check as any).items_lost}
+                        items_damaged={check.items_damaged as any[]}
                       />
-                    </button>
-                  ))}
-                  {check.photos.length > 4 && (
+                    </div>
+                  )}
+                  
+                  {/* Show hint to expand for checkout checks with data */}
+                  {isCheckout && !isExpanded && hasCheckoutData && (
                     <button
-                      onClick={() => {
-                        setSelectedPhotos(check.photos as string[])
-                        setShowPhotoDialog(true)
-                      }}
-                      className="w-16 h-16 rounded border flex items-center justify-center bg-muted hover:bg-muted/80 transition-colors"
+                      onClick={() => setExpandedCheckId(check.id)}
+                      className="text-xs text-orange-600 hover:underline"
                     >
-                      <span className="text-xs font-medium">+{check.photos.length - 4}</span>
+                      Xem báo cáo checkout chi tiết →
                     </button>
                   )}
                 </div>
               </div>
-            )}
-          </div>
-        </div>
-      ))}
+            </div>
+          )
+        })}
       
       {/* Photo Viewer Dialog */}
       <Dialog open={showPhotoDialog} onOpenChange={setShowPhotoDialog}>
