@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/hooks/useUser';
@@ -50,6 +50,57 @@ export function usePushNotifications() {
     subscription: null,
   });
 
+  // Avoid writing the same subscription to DB repeatedly in a single session/tab
+  const savedDbEndpointsRef = useRef<Set<string>>(new Set());
+
+  const saveSubscriptionToDb = useCallback(
+    async (subscription: PushSubscription, options?: { throwOnError?: boolean }) => {
+      if (!authUser?.id || !tenantId) return;
+
+      const cacheKey = `${authUser.id}:${subscription.endpoint}`;
+      if (!options?.throwOnError && savedDbEndpointsRef.current.has(cacheKey)) return;
+
+      try {
+        const p256dh = subscription.getKey('p256dh');
+        const auth = subscription.getKey('auth');
+        if (!p256dh || !auth) {
+          throw new Error('Missing subscription keys');
+        }
+
+        const p256dhKey = arrayBufferToBase64(p256dh);
+        const authKey = arrayBufferToBase64(auth);
+
+        const deviceName = getDeviceName();
+        const userAgent = navigator.userAgent;
+
+        const { error } = await supabase.from('push_subscriptions').upsert(
+          {
+            user_id: authUser.id,
+            tenant_id: tenantId,
+            endpoint: subscription.endpoint,
+            p256dh_key: p256dhKey,
+            auth_key: authKey,
+            device_name: deviceName,
+            user_agent: userAgent,
+            is_active: true,
+            failed_count: 0,
+          },
+          {
+            onConflict: 'user_id,endpoint',
+          }
+        );
+
+        if (error) throw error;
+
+        savedDbEndpointsRef.current.add(cacheKey);
+      } catch (err) {
+        console.warn('[Push] Failed to persist subscription to DB:', err);
+        if (options?.throwOnError) throw err;
+      }
+    },
+    [authUser?.id, tenantId]
+  );
+
   // Check if push notifications are supported
   const checkSupport = useCallback(() => {
     // Check basic APIs exist
@@ -79,6 +130,13 @@ export function usePushNotifications() {
       const subscription = await registration.pushManager.getSubscription();
       const permission = Notification.permission;
 
+      // Permission/subscription are per-origin (browser), not per-account.
+      // If a user logs in on a device that already has a subscription, we must
+      // persist it for that user too, otherwise the backend will find 0 subscriptions.
+      if (subscription && permission === 'granted') {
+        void saveSubscriptionToDb(subscription);
+      }
+
       setState({
         isSupported: true,
         isSubscribed: !!subscription,
@@ -90,7 +148,7 @@ export function usePushNotifications() {
       console.error('Error checking push subscription:', error);
       setState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [checkSupport]);
+  }, [checkSupport, saveSubscriptionToDb]);
 
   // Subscribe to push notifications
   const subscribe = useCallback(async (): Promise<boolean> => {
@@ -136,36 +194,10 @@ export function usePushNotifications() {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
       });
 
-      // Extract keys
-      const p256dhKey = arrayBufferToBase64(subscription.getKey('p256dh')!);
-      const authKey = arrayBufferToBase64(subscription.getKey('auth')!);
 
-      // Get device info
-      const deviceName = getDeviceName();
-      const userAgent = navigator.userAgent;
+      // Persist to database for the current user
+      await saveSubscriptionToDb(subscription, { throwOnError: true });
 
-      // Save to database
-      const { error } = await supabase.from('push_subscriptions').upsert(
-        {
-          user_id: authUser.id,
-          tenant_id: tenantId,
-          endpoint: subscription.endpoint,
-          p256dh_key: p256dhKey,
-          auth_key: authKey,
-          device_name: deviceName,
-          user_agent: userAgent,
-          is_active: true,
-          failed_count: 0,
-        },
-        {
-          onConflict: 'user_id,endpoint',
-        }
-      );
-
-      if (error) {
-        console.error('Error saving subscription:', error);
-        throw error;
-      }
 
       setState(prev => ({
         ...prev,
@@ -183,7 +215,7 @@ export function usePushNotifications() {
       setState(prev => ({ ...prev, isLoading: false }));
       return false;
     }
-  }, [authUser?.id, tenantId]);
+  }, [authUser?.id, tenantId, saveSubscriptionToDb]);
 
   // Unsubscribe from push notifications
   const unsubscribe = useCallback(async (): Promise<boolean> => {
