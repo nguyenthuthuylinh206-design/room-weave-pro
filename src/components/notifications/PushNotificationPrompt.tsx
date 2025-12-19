@@ -14,22 +14,17 @@ export function PushNotificationPrompt({ className }: PushNotificationPromptProp
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    // Check if user has dismissed the prompt before
-    const dismissedTime = localStorage.getItem('push-prompt-dismissed');
-    if (dismissedTime) {
-      const dismissedDate = new Date(parseInt(dismissedTime));
-      const daysSinceDismissed = (Date.now() - dismissedDate.getTime()) / (1000 * 60 * 60 * 24);
-      // Show again after 7 days
-      if (daysSinceDismissed < 7) {
-        setDismissed(true);
-        return;
-      }
+    // Check if user has dismissed the prompt in this session only
+    const dismissedSession = sessionStorage.getItem('push-prompt-dismissed-session');
+    if (dismissedSession) {
+      setDismissed(true);
+      return;
     }
 
-    // Delay showing the prompt for better UX
+    // Short delay for better UX
     const timer = setTimeout(() => {
       setShow(true);
-    }, 3000);
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -41,7 +36,7 @@ export function PushNotificationPrompt({ className }: PushNotificationPromptProp
 
   const handleDismiss = () => {
     setDismissed(true);
-    localStorage.setItem('push-prompt-dismissed', Date.now().toString());
+    sessionStorage.setItem('push-prompt-dismissed-session', 'true');
   };
 
   const handleEnable = async () => {
