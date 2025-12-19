@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
 import { useToast } from '@/hooks/use-toast'
 import { useImageUpload } from './useImageUpload'
+import { sendNotificationByRole } from '@/lib/notifications'
 import type { RoomCheckFormData } from '@/types/rooms.types'
 
 export function useRoomChecks(roomId: string | undefined) {
@@ -166,17 +167,19 @@ export function useCreateRoomCheck() {
           ? summaryParts.join(', ')
           : 'Không có vấn đề'
         
-        // Send checkout report to hotel manager
-        await supabase.from('notifications').insert({
-          tenant_id: tenantId,
+        // Send checkout report to hotel manager using in_app_notifications
+        await sendNotificationByRole({
+          tenantId: tenantId!,
           role: 'hotel_manager',
-          type: hasIssues ? 'warning' : 'success',
-          category: 'room',
           title: `Báo cáo checkout phòng ${roomNumber}`,
-          message: summaryMessage,
-          action_url: `/rooms/${roomId}?tab=history`,
-          related_type: 'room_check',
-          related_id: check.id,
+          body: summaryMessage,
+          type: hasIssues ? 'warning' : 'success',
+          actionUrl: `/rooms/${roomId}?tab=history`,
+          metadata: {
+            room_id: roomId,
+            check_id: check.id,
+            check_type: 'checkout',
+          },
         })
         
         // Auto-change room status to cleaning after checkout
@@ -189,18 +192,18 @@ export function useCreateRoomCheck() {
       // Create notification for managers about check completion (non-checkout)
       const totalIssues = (data.items_missing?.length || 0) + (data.items_damaged?.length || 0)
       if (totalIssues > 0 && data.check_type !== 'checkout') {
-        await supabase
-          .from('notifications')
-          .insert({
-            tenant_id: tenantId,
-            role: 'hotel_manager',
-            type: 'warning',
-            category: 'room',
-            title: `Kiểm tra phòng ${roomNumber} phát hiện vấn đề`,
-            message: `Phòng có ${totalIssues} vấn đề cần xử lý`,
-            related_type: 'room',
-            related_id: roomId,
-          })
+        await sendNotificationByRole({
+          tenantId: tenantId!,
+          role: 'hotel_manager',
+          title: `Kiểm tra phòng ${roomNumber} phát hiện vấn đề`,
+          body: `Phòng có ${totalIssues} vấn đề cần xử lý`,
+          type: 'warning',
+          actionUrl: `/rooms/${roomId}`,
+          metadata: {
+            room_id: roomId,
+            check_type: data.check_type,
+          },
+        })
       }
       
       return check

@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
+import { sendNotificationByRole } from '@/lib/notifications'
 import type { RoomWithStats, RoomFilters } from '@/types/rooms.types'
 
 export function useRooms(filters: RoomFilters = {}) {
@@ -238,16 +239,17 @@ export function useUpdateRoom() {
       
       // Send notification when status changes to check_out
       if (data.status === 'check_out' && previousStatus !== 'check_out' && tenantId) {
-        await supabase.from('notifications').insert({
-          tenant_id: tenantId,
+        await sendNotificationByRole({
+          tenantId: tenantId,
           role: 'department_manager',
-          type: 'info',
-          category: 'room',
           title: `Phòng ${room.room_number} cần kiểm tra checkout`,
-          message: `Khách đã trả phòng. Vui lòng kiểm tra đồ dùng trong phòng.`,
-          action_url: `/rooms/${id}/check?type=checkout`,
-          related_type: 'room',
-          related_id: id,
+          body: `Khách đã trả phòng. Vui lòng kiểm tra đồ dùng trong phòng.`,
+          type: 'info',
+          actionUrl: `/rooms/${id}/check?type=checkout`,
+          metadata: {
+            room_id: id,
+            action: 'checkout_required',
+          },
         })
       }
       
