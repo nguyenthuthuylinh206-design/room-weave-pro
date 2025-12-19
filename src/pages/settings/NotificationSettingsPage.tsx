@@ -20,7 +20,8 @@ import MobileNotificationSettingsPage from '@/pages/mobile/MobileNotificationSet
 export function NotificationSettingsPage() {
   const { t } = useTranslation(['settings', 'common'])
   const navigate = useNavigate()
-  const { user, tenantId } = useUser()
+  const { user, tenantId, hasAnyRole } = useUser()
+  const isAdmin = hasAnyRole(['super_admin', 'owner', 'hotel_manager', 'department_manager'])
   const isMobile = useIsMobile()
   const { isSupported, isSubscribed, isLoading: pushLoading, permission, subscribe, unsubscribe } = usePushNotifications()
   const { preferences, isLoading: prefsLoading, savePreferences, isSaving } = useNotificationPreferences()
@@ -200,8 +201,11 @@ export function NotificationSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Email Notifications */}
-        <Card>
+        {/* Admin-only settings */}
+        {isAdmin && (
+          <>
+            {/* Email Notifications */}
+            <Card>
           <CardHeader>
             <CardTitle>{t('settings:notifications.emailNotifications.title')}</CardTitle>
             <CardDescription>{t('settings:notifications.emailNotifications.description')}</CardDescription>
@@ -505,6 +509,8 @@ export function NotificationSettingsPage() {
             {t('settings:notifications.actions.save')}
           </Button>
         </div>
+          </>
+        )}
       </div>
     </div>
   )
