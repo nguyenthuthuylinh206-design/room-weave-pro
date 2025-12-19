@@ -5382,6 +5382,19 @@ export type Database = {
         }
         Returns: string
       }
+      create_notification_for_user: {
+        Args: {
+          p_action_url?: string
+          p_body: string
+          p_icon?: string
+          p_metadata?: Json
+          p_tenant_id: string
+          p_title: string
+          p_type?: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       create_outbound_transaction: {
         Args: {
           p_created_by: string

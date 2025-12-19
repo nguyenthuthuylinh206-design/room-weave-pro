@@ -35,7 +35,7 @@ interface CreateNotificationParams {
   metadata?: Json;
 }
 
-// Create a single in-app notification
+// Create a single in-app notification using RPC to bypass RLS
 export async function createInAppNotification({
   userId,
   tenantId,
@@ -47,30 +47,27 @@ export async function createInAppNotification({
   metadata,
 }: CreateNotificationParams): Promise<string | null> {
   try {
-    const { data, error } = await supabase
-      .from('in_app_notifications')
-      .insert([{
-        user_id: userId,
-        tenant_id: tenantId,
-        title,
-        body,
-        type,
-        action_url: actionUrl,
-        icon,
-        metadata: metadata ?? null,
-      }])
-      .select('id')
-      .single();
+    // Use RPC function to bypass RLS while maintaining tenant security
+    const { data, error } = await supabase.rpc('create_notification_for_user', {
+      p_user_id: userId,
+      p_tenant_id: tenantId,
+      p_title: title,
+      p_body: body,
+      p_type: type,
+      p_action_url: actionUrl ?? null,
+      p_icon: icon ?? null,
+      p_metadata: metadata ?? null,
+    });
 
     if (error) throw error;
-    return data.id;
+    return data as string;
   } catch (error) {
     console.error('Error creating notification:', error);
     return null;
   }
 }
 
-// Create notifications for multiple recipients
+// Create notifications for multiple recipients using RPC
 export async function createMultipleNotifications({
   recipientIds,
   tenantId,
@@ -92,29 +89,29 @@ export async function createMultipleNotifications({
 }): Promise<number> {
   if (recipientIds.length === 0) return 0;
 
-  try {
-    const notifications = recipientIds.map(userId => ({
-      user_id: userId,
-      tenant_id: tenantId,
-      title,
-      body,
-      type,
-      action_url: actionUrl,
-      icon,
-      metadata: metadata ?? null,
-    }));
+  let successCount = 0;
+  
+  // Create notifications one by one using RPC function
+  for (const userId of recipientIds) {
+    try {
+      const { error } = await supabase.rpc('create_notification_for_user', {
+        p_user_id: userId,
+        p_tenant_id: tenantId,
+        p_title: title,
+        p_body: body,
+        p_type: type,
+        p_action_url: actionUrl ?? null,
+        p_icon: icon ?? null,
+        p_metadata: metadata ?? null,
+      });
 
-    const { data, error } = await supabase
-      .from('in_app_notifications')
-      .insert(notifications)
-      .select('id');
-
-    if (error) throw error;
-    return data?.length || 0;
-  } catch (error) {
-    console.error('Error creating multiple notifications:', error);
-    return 0;
+      if (!error) successCount++;
+    } catch (error) {
+      console.error(`Error creating notification for user ${userId}:`, error);
+    }
   }
+
+  return successCount;
 }
 
 export async function sendPushNotification({
