@@ -153,6 +153,7 @@ async function sendPushNotificationWithResult({
         icon,
         image,
         notification_type: notificationType,
+        action_url: actionUrl || '/',
         data: { url: actionUrl || '/', type: notificationType },
         tag,
       },
@@ -312,15 +313,29 @@ export async function triggerRoomCheckoutNotification({
   const body = `Khách đã trả phòng. Vui lòng kiểm tra đồ dùng trong phòng.`;
   const actionUrl = `/rooms/${roomId}/check?type=checkout`;
 
-  // Get all hotel staff
-  const recipients = await getNotificationRecipients({
-    tenantId,
-    hotelId,
-    targetRoles: ['all_hotel_staff'],
-    excludeUserId: changedByUserId,
-  });
+  // Get all hotel staff user IDs (avoid joining users table to prevent RLS issues)
+  const { data: staffRows, error: staffError } = await supabase
+    .from('user_hotels')
+    .select('user_id')
+    .eq('hotel_id', hotelId);
 
-  const recipientIds = recipients.map(r => r.id);
+  if (staffError) {
+    console.error('Error fetching hotel staff for checkout notification:', staffError);
+    return;
+  }
+
+  const recipientIds = Array.from(
+    new Set(
+      (staffRows || [])
+        .map(r => r.user_id)
+        .filter((id): id is string => !!id && id !== changedByUserId)
+    )
+  );
+
+  if (recipientIds.length === 0) {
+    console.warn('[Room Checkout] No recipients found for hotel:', hotelId);
+    return;
+  }
 
   await createMultipleNotifications({
     recipientIds,
