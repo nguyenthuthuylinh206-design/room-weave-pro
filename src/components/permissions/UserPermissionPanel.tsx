@@ -114,16 +114,11 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
   const handleSave = () => {
     if (!user) return
     
-    // Save module-level permissions
-    saveConfiguration({ userId: user.id, modules: localPermissions })
-    
-    // Save action-level permissions for enabled modules
-    Object.entries(localActions).forEach(([module, actions]) => {
-      if (localPermissions[module]) {
-        Object.entries(actions).forEach(([action, enabled]) => {
-          toggleAction({ userId: user.id, module, action, enabled })
-        })
-      }
+    // Save all module and action permissions in one call
+    saveConfiguration({ 
+      userId: user.id, 
+      modules: localPermissions,
+      actions: localActions,
     })
     
     setHasActionChanges(false)
