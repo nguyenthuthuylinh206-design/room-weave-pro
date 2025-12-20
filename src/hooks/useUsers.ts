@@ -5,18 +5,20 @@ import { toast } from 'sonner'
 import { UserFormData } from '@/lib/validations/user.schemas'
 import { logCreate, logUpdate, logDelete } from '@/lib/activityLogger'
 import { useTenant } from './useTenant'
+import { useUser } from './useUser'
 
 export function useUsers() {
   const { tenant } = useTenant()
+  const { user: currentUser } = useUser()
 
   const { data: users, isLoading, error } = useQuery({
-    queryKey: ['users', tenant?.id],
+    queryKey: ['users', tenant?.id, currentUser?.id, currentUser?.user_level_code],
     queryFn: async () => {
       if (!tenant?.id) {
         throw new Error('Tenant ID is required to fetch users')
       }
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('users')
         .select(`
           *,
@@ -25,10 +27,21 @@ export function useUsers() {
         .eq('tenant_id', tenant.id)
         .order('created_at', { ascending: false })
 
+      // If current user is a manager, only show their subordinates
+      if (currentUser?.user_level_code === 'manager') {
+        // Manager can see:
+        // 1. Staff they created (created_by = manager id)
+        // 2. Staff that reports to them (reports_to = manager id)
+        // 3. Themselves
+        query = query.or(`reports_to.eq.${currentUser.id},created_by.eq.${currentUser.id},id.eq.${currentUser.id}`)
+      }
+
+      const { data, error } = await query
+
       if (error) throw error
       return data as UserWithRelations[]
     },
-    enabled: !!tenant?.id,
+    enabled: !!tenant?.id && !!currentUser,
   })
 
   return {
@@ -57,6 +70,7 @@ export function useCreateUser() {
           userLevelCode: data.userLevelCode,
           hotelId: data.hotelId || null,
           positionId: data.positionId || null,
+          reportsTo: data.reportsTo || null,
           tenantId: tenant.id,
         }
       })

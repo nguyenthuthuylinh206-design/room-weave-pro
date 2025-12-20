@@ -49,6 +49,16 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
   const managers = users.filter((u) => u.user_level_code === 'manager')
   const staff = users.filter((u) => u.user_level_code === 'staff')
 
+  // Group staff by their manager (reports_to)
+  const staffByManager = staff.reduce((acc, staffMember) => {
+    const managerId = staffMember.reports_to || 'unassigned'
+    if (!acc[managerId]) {
+      acc[managerId] = []
+    }
+    acc[managerId].push(staffMember)
+    return acc
+  }, {} as Record<string, UserWithRelations[]>)
+
   // Get creator name for a user
   const getCreatorName = (createdBy: string | null) => {
     if (!createdBy) return null
@@ -56,9 +66,16 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
     return creator?.full_name || t('common:deleted')
   }
 
-  // Count subordinates for a user
+  // Get manager name for a user
+  const getManagerName = (reportsTo: string | null) => {
+    if (!reportsTo) return null
+    const manager = users.find(u => u.id === reportsTo)
+    return manager?.full_name || t('common:deleted')
+  }
+
+  // Count subordinates for a user (staff that reports to them)
   const countSubordinates = (userId: string) => {
-    return users.filter(u => u.created_by === userId).length
+    return users.filter(u => u.reports_to === userId).length
   }
 
   const dateLocale = i18n.language === 'vi' ? vi : enUS
@@ -195,7 +212,7 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
         </Card>
       )}
 
-      {/* Managers Section */}
+      {/* Managers Section - with their staff */}
       {managers.length > 0 && (
         <Card>
           <CardHeader 
@@ -216,26 +233,41 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
             </CardTitle>
           </CardHeader>
           {expandedSections.managers && (
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-4">
               <Alert>
                 <AlertDescription className="text-sm">
                   {t('users:hierarchy.managerDescription')}
                 </AlertDescription>
               </Alert>
-              <div className="space-y-2 relative">
-                {managers.map((manager, index) => (
-                  <div key={manager.id} className="relative ml-4">
-                    <UserCard user={manager} icon={Users} showCreator />
-                  </div>
-                ))}
+              <div className="space-y-4">
+                {managers.map((manager) => {
+                  const managerStaff = staffByManager[manager.id] || []
+                  return (
+                    <div key={manager.id} className="space-y-2">
+                      <div className="relative ml-4">
+                        <UserCard user={manager} icon={Users} showCreator />
+                      </div>
+                      {/* Staff under this manager */}
+                      {managerStaff.length > 0 && (
+                        <div className="ml-12 space-y-2 border-l-2 border-dashed border-muted-foreground/30 pl-4">
+                          {managerStaff.map((staffMember) => (
+                            <div key={staffMember.id} className="relative">
+                              <UserCard user={staffMember} icon={UserIcon} />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </CardContent>
           )}
         </Card>
       )}
 
-      {/* Staff Section */}
-      {staff.length > 0 && (
+      {/* Unassigned Staff Section */}
+      {staffByManager['unassigned']?.length > 0 && (
         <Card>
           <CardHeader 
             className="cursor-pointer hover:bg-accent/50 transition-colors"
@@ -244,8 +276,8 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <UserIcon className="h-5 w-5 text-gray-500" />
-                <span>{t('users:userLevel.staff')}</span>
-                <Badge variant="outline">{staff.length}</Badge>
+                <span>{t('users:userLevel.staff')} ({t('users:hierarchy.unassigned')})</span>
+                <Badge variant="outline">{staffByManager['unassigned']?.length || 0}</Badge>
               </div>
               {expandedSections.staff ? (
                 <ChevronUp className="h-4 w-4" />
@@ -258,11 +290,11 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
             <CardContent className="space-y-2">
               <Alert>
                 <AlertDescription className="text-sm">
-                  {t('users:hierarchy.staffDescription')}
+                  {t('users:hierarchy.unassignedDescription')}
                 </AlertDescription>
               </Alert>
               <div className="space-y-2 relative">
-                {staff.map((staffMember) => (
+                {staffByManager['unassigned']?.map((staffMember) => (
                   <div key={staffMember.id} className="relative ml-4">
                     <UserCard user={staffMember} icon={UserIcon} showCreator />
                   </div>

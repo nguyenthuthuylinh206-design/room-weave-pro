@@ -38,6 +38,7 @@ interface CreateUserRequest {
   userLevelCode: 'tenant_owner' | 'manager' | 'staff'
   hotelId?: string
   positionId?: string
+  reportsTo?: string
 }
 
 serve(async (req) => {
@@ -70,7 +71,7 @@ serve(async (req) => {
 
     // Parse request body
     const requestData: CreateUserRequest = await req.json()
-    const { email, fullName, password, tenantId, userLevelCode, hotelId, positionId } = requestData
+    const { email, fullName, password, tenantId, userLevelCode, hotelId, positionId, reportsTo } = requestData
 
     // Validate required fields
     if (!email || !fullName || !password || !tenantId || !userLevelCode) {
@@ -188,6 +189,26 @@ serve(async (req) => {
       isPrimaryOwner = (count === 0)
     }
 
+    // Determine reports_to based on creator and user level
+    let finalReportsTo = null
+    if (userLevelCode === 'staff') {
+      // If reportsTo is explicitly provided (Owner selecting manager), use it
+      if (reportsTo) {
+        finalReportsTo = reportsTo
+      } else {
+        // Check if creator is a manager - staff created by manager reports to that manager
+        const { data: creatorData } = await supabaseAdmin
+          .from('users')
+          .select('user_level_code')
+          .eq('id', requestingUser.id)
+          .single()
+        
+        if (creatorData?.user_level_code === 'manager') {
+          finalReportsTo = requestingUser.id
+        }
+      }
+    }
+
     // Create user profile
     const userProfile = {
       id: authUser.user.id,
@@ -199,6 +220,7 @@ serve(async (req) => {
       is_primary_owner: isPrimaryOwner,
       status: 'active',
       created_by: userLevelCode === 'tenant_owner' ? null : requestingUser.id,
+      reports_to: finalReportsTo,
       must_change_password: true,
       login_count: 0,
       account_locked: false
