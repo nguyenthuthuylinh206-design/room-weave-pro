@@ -77,10 +77,11 @@
     "editDescription": "Cập nhật thông tin người dùng",
     "fullNamePlaceholder": "Nhập họ và tên",
     "emailPlaceholder": "email@example.com",
-    "passwordPlaceholder": "Nhập mật khẩu",
+  "passwordPlaceholder": "Nhập mật khẩu",
     "selectLevel": "Chọn cấp bậc",
     "selectHotel": "Chọn khách sạn",
     "selectPosition": "Chọn chức vụ",
+    "selectManager": "Chọn quản lý phụ trách",
     "createUser": "Tạo người dùng"
   },
   "validation": {
@@ -92,6 +93,9 @@
     "subordinates": "{{count}} người dưới quyền",
     "noPosition": "Chưa có chức vụ",
     "createdBy": "Được tạo bởi",
+    "reportsTo": "Báo cáo cho",
+    "unassigned": "Chưa phân công",
+    "unassignedDescription": "Các nhân viên chưa được gán cho quản lý cụ thể. Họ được Owner quản lý trực tiếp.",
     "ownerDescription": "Chủ sở hữu có toàn quyền trong hệ thống và không thể bị xóa. Được tạo lúc khởi tạo doanh nghiệp.",
     "managerDescription": "Quản lý có thể tạo Quản lý khác và Nhân viên. Họ quản lý các khách sạn cụ thể và có quyền phê duyệt yêu cầu.",
     "staffDescription": "Nhân viên thực hiện các công việc hàng ngày. Họ không có quyền tạo người dùng mới."

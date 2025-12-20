@@ -25,6 +25,7 @@ export const userFormSchema = z.object({
   }),
   hotelId: z.string().uuid().optional().nullable(),
   positionId: z.string().uuid().optional().nullable(),
+  reportsTo: z.string().uuid().optional().nullable(),
 })
 
 export type UserFormData = z.infer<typeof userFormSchema>

@@ -32,6 +32,7 @@ import { useHotels } from '@/hooks/useHotels'
 import { useAvailableUserLevels } from '@/hooks/useUserLevels'
 import { usePositions } from '@/hooks/usePositions'
 import { useUser } from '@/hooks/useUser'
+import { useManagersByHotel } from '@/hooks/useManagersByHotel'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { Eye, EyeOff, Info } from 'lucide-react'
 import { UserWithRelations } from '@/types/database.types'
@@ -65,12 +66,22 @@ export function UserFormDialog({
       userLevelCode: 'staff',
       hotelId: null,
       positionId: null,
+      reportsTo: null,
     },
   })
   
   const selectedLevel = form.watch('userLevelCode')
+  const selectedHotelId = form.watch('hotelId')
+  
   const { data: positions } = usePositions(
     selectedLevel === 'tenant_owner' ? undefined : selectedLevel as 'manager' | 'staff'
+  )
+  
+  // Fetch managers for selected hotel when Owner is creating Staff
+  const { data: hotelManagers } = useManagersByHotel(
+    currentUser?.user_level_code === 'tenant_owner' && selectedLevel === 'staff' 
+      ? selectedHotelId 
+      : null
   )
 
   // Determine available user levels based on current user's level
@@ -100,9 +111,17 @@ export function UserFormDialog({
         userLevelCode: 'staff',
         hotelId: null,
         positionId: null,
+        reportsTo: null,
       })
     }
   }, [open, user, form])
+
+  // Reset reportsTo when hotel changes
+  useEffect(() => {
+    if (selectedHotelId) {
+      form.setValue('reportsTo', null)
+    }
+  }, [selectedHotelId, form])
 
   // Check if hotel is required for both manager and staff
   const isHotelRequired = selectedLevel === 'manager' || selectedLevel === 'staff'
@@ -374,6 +393,37 @@ export function UserFormDialog({
                   </FormItem>
                 )}
               />
+
+              {/* Manager Selection - Only for Owner creating Staff */}
+              {currentUser?.user_level_code === 'tenant_owner' && selectedLevel === 'staff' && selectedHotelId && (
+                <FormField
+                  control={form.control}
+                  name="reportsTo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('users:form.selectManager')}</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || undefined}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={t('users:form.selectManager')} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {hotelManagers?.map((manager) => (
+                            <SelectItem key={manager.id} value={manager.id}>
+                              {manager.full_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <div className="flex justify-end gap-2 pt-4">
                 <Button
