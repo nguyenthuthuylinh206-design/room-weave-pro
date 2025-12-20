@@ -134,38 +134,62 @@ export function useUserPermissionConfiguration(userId?: string) {
     },
   })
 
-  // Save all configuration
+  // Save all configuration with action-level details
   const saveConfiguration = useMutation({
     mutationFn: async ({ 
       userId, 
-      modules 
+      modules,
+      actions: moduleActions,
     }: { 
       userId: string
-      modules: Record<string, boolean> 
+      modules: Record<string, boolean>
+      actions?: Record<string, Record<string, boolean>>
     }) => {
       if (!tenantId) throw new Error('No tenant')
 
-      const actions = ['view', 'create', 'update', 'delete', 'export', 'approve']
+      const allActions = ['view', 'create', 'update', 'delete', 'export', 'approve']
       
       // Delete all existing user permissions
-      await supabase
+      const { error: deleteError } = await supabase
         .from('user_permissions' as any)
         .delete()
         .eq('user_id', userId)
 
-      // Insert enabled modules
+      if (deleteError) throw deleteError
+
+      // Build permissions to insert
       const permissionsToInsert: any[] = []
+      
       Object.entries(modules).forEach(([module, enabled]) => {
         if (enabled) {
-          actions.forEach((action) => {
-            permissionsToInsert.push({
-              user_id: userId,
-              tenant_id: tenantId,
-              module,
-              action,
-              enabled: true,
+          // If we have action-level details, use them
+          const actionsForModule = moduleActions?.[module]
+          
+          if (actionsForModule) {
+            // Insert only enabled actions
+            Object.entries(actionsForModule).forEach(([action, actionEnabled]) => {
+              if (actionEnabled) {
+                permissionsToInsert.push({
+                  user_id: userId,
+                  tenant_id: tenantId,
+                  module,
+                  action,
+                  enabled: true,
+                })
+              }
             })
-          })
+          } else {
+            // No action details, enable all actions
+            allActions.forEach((action) => {
+              permissionsToInsert.push({
+                user_id: userId,
+                tenant_id: tenantId,
+                module,
+                action,
+                enabled: true,
+              })
+            })
+          }
         }
       })
 
