@@ -39,10 +39,11 @@ export function useFirstAccessibleRoute() {
       return null
     }
 
-    // Tìm route đầu tiên user có quyền view
+    // Tìm route đầu tiên user có quyền view hoặc có quyền khác (update/create)
     for (const route of ROUTE_PRIORITY) {
       const permission = permissions.find(p => p.module === route.module)
-      if (permission?.can_view) {
+      // Cho phép truy cập nếu có bất kỳ quyền nào trong module
+      if (permission && (permission.can_view || permission.can_update || permission.can_create)) {
         return route.path
       }
     }
@@ -54,7 +55,8 @@ export function useFirstAccessibleRoute() {
   const hasAnyPermission = useMemo(() => {
     if (hasAnyRole(['super_admin', 'owner'])) return true
     if (!permissions || permissions.length === 0) return false
-    return permissions.some(p => p.can_view)
+    // Có quyền nếu có bất kỳ quyền nào (view, update, create)
+    return permissions.some(p => p.can_view || p.can_update || p.can_create)
   }, [permissions, hasAnyRole])
 
   return {
