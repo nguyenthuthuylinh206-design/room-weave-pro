@@ -2,6 +2,13 @@
   "title": "Phiếu giao hàng",
   "description": "Quản lý giao đồ từ kho đến các phòng",
   "createNew": "Tạo mới",
+  "warehouseDelivery": {
+    "confirmButton": "Xác nhận xuất kho",
+    "confirming": "Đang xử lý...",
+    "deliveredBy": "Xuất kho bởi {{name}}",
+    "deliveredAt": "lúc {{date}}",
+    "onlyWarehouseManager": "Chỉ quản lý kho mới có thể xác nhận xuất hàng"
+  },
   "createOrder": {
     "title": "Phiếu giao hàng đến phòng",
     "description": "Chọn nhiều phòng và phân bổ sản phẩm cần giao",

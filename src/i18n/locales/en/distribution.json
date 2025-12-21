@@ -2,6 +2,13 @@
   "title": "Distribution Orders",
   "description": "Manage item distribution from warehouse to rooms",
   "createNew": "Create new",
+  "warehouseDelivery": {
+    "confirmButton": "Confirm warehouse delivery",
+    "confirming": "Processing...",
+    "deliveredBy": "Delivered by {{name}}",
+    "deliveredAt": "at {{date}}",
+    "onlyWarehouseManager": "Only warehouse manager can confirm delivery"
+  },
   "createOrder": {
     "title": "Distribution Order to Rooms",
     "description": "Select multiple rooms and allocate items for delivery",
