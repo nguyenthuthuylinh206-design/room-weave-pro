@@ -416,7 +416,7 @@ export default function EditDistributionOrderDialog({
                     Thêm sản phẩm
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-72 p-2" align="start" sideOffset={8}>
+                <PopoverContent className="w-72 p-2" align="start" sideOffset={8} portalled={false}>
                   <div className="space-y-2">
                     <div className="relative">
                       <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
