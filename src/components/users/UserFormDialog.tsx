@@ -78,7 +78,7 @@ export function UserFormDialog({
   )
   
   // Fetch managers for selected hotel when Owner is creating Staff
-  const { data: hotelManagers } = useManagersByHotel(
+  const { data: hotelManagers, isFetching: isFetchingManagers } = useManagersByHotel(
     currentUser?.user_level_code === 'tenant_owner' && selectedLevel === 'staff' 
       ? selectedHotelId 
       : null
@@ -403,38 +403,48 @@ export function UserFormDialog({
                     <FormItem>
                       <FormLabel>{t('users:form.selectManager')}</FormLabel>
                       
-                      {/* Warning when hotel has no managers */}
-                      {hotelManagers?.length === 0 && (
-                        <Alert variant="default" className="mb-2 border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
-                          <AlertTriangle className="h-4 w-4 text-amber-600" />
-                          <AlertDescription className="text-amber-700 dark:text-amber-400">
-                            {t('users:form.noManagersWarning')}
-                          </AlertDescription>
-                        </Alert>
-                      )}
-                      
-                      <Select
-                        onValueChange={(value) => field.onChange(value === 'none' ? null : value)}
-                        value={field.value || 'none'}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={t('users:form.selectManager')} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {/* Option for direct Owner management */}
-                          <SelectItem value="none">
-                            {t('users:form.noSupervisorOption')}
-                          </SelectItem>
+                      {/* Loading state when fetching managers */}
+                      {isFetchingManagers ? (
+                        <div className="flex items-center gap-2 py-2 text-muted-foreground">
+                          <LoadingSpinner size="sm" />
+                          <span className="text-sm">{t('users:form.loadingManagers')}</span>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Warning when hotel has no managers */}
+                          {hotelManagers?.length === 0 && (
+                            <Alert variant="default" className="mb-2 border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+                              <AlertTriangle className="h-4 w-4 text-amber-600" />
+                              <AlertDescription className="text-amber-700 dark:text-amber-400">
+                                {t('users:form.noManagersWarning')}
+                              </AlertDescription>
+                            </Alert>
+                          )}
                           
-                          {hotelManagers?.map((manager) => (
-                            <SelectItem key={manager.id} value={manager.id}>
-                              {manager.full_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                          <Select
+                            onValueChange={(value) => field.onChange(value === 'none' ? null : value)}
+                            value={field.value || 'none'}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={t('users:form.selectManager')} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {/* Option for direct Owner management */}
+                              <SelectItem value="none">
+                                {t('users:form.noSupervisorOption')}
+                              </SelectItem>
+                              
+                              {hotelManagers?.map((manager) => (
+                                <SelectItem key={manager.id} value={manager.id}>
+                                  {manager.full_name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}

@@ -48,5 +48,7 @@ export function useManagersByHotel(hotelId: string | null | undefined) {
       return managers
     },
     enabled: !!tenant?.id && !!hotelId,
+    // Don't keep previous data when hotel changes - prevents showing old managers
+    placeholderData: undefined,
   })
 }
