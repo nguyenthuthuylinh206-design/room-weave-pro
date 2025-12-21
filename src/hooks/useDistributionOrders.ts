@@ -287,3 +287,44 @@ export function useConfirmWarehouseDelivery() {
     },
   })
 }
+
+interface UpdateDistributionData {
+  orderId: string
+  assignedTo?: string
+  notes?: string
+  rooms?: {
+    room_id: string
+    items: { item_id: string; quantity: number }[]
+  }[]
+}
+
+export function useUpdateDistributionOrder() {
+  const queryClient = useQueryClient()
+  const { tenant } = useTenant()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async (data: UpdateDistributionData) => {
+      if (!user?.id) throw new Error('User not authenticated')
+
+      const { data: result, error } = await supabase.rpc('update_distribution_order', {
+        p_order_id: data.orderId,
+        p_assigned_to: data.assignedTo || null,
+        p_notes: data.notes || null,
+        p_rooms: data.rooms || null,
+      })
+
+      if (error) throw error
+      return result as { success: boolean; order_id: string; old_assigned_to: string | null }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+      toast.success('Cập nhật phiếu giao hàng thành công')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Không thể cập nhật phiếu giao hàng')
+    },
+  })
+}

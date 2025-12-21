@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { format, differenceInHours } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { ArrowLeft, CheckCircle, Clock, Truck, XCircle, User, Package, DoorOpen, Ban, Printer, AlertTriangle, Undo2, AlertCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Clock, Truck, XCircle, User, Package, DoorOpen, Ban, Printer, AlertTriangle, Undo2, AlertCircle, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -37,6 +37,7 @@ import { printDistributionOrder } from '@/utils/printDistributionOrder'
 import { useTranslation } from 'react-i18next'
 import type { DistributionOrderStatus, DistributionRoomStatus, DistributionOrderRoom } from '@/types/distribution.types'
 import ConfirmReceiptDialog from '@/components/inventory/ConfirmReceiptDialog'
+import EditDistributionOrderDialog from '@/components/inventory/EditDistributionOrderDialog'
 
 const STATUS_CONFIG: Record<DistributionOrderStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof Clock }> = {
   pending: { label: 'Chờ giao', variant: 'outline', icon: Clock },
@@ -66,6 +67,7 @@ export default function DistributionOrderDetailPage() {
   const [showRejectDialog, setShowRejectDialog] = useState(false)
   const [showUndoDialog, setShowUndoDialog] = useState(false)
   const [showConfirmReceiptDialog, setShowConfirmReceiptDialog] = useState(false)
+  const [showEditDialog, setShowEditDialog] = useState(false)
   const [selectedRoom, setSelectedRoom] = useState<DistributionOrderRoom | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
   
@@ -179,7 +181,7 @@ export default function DistributionOrderDetailPage() {
   }
 
   const canCancel = order.status === 'pending' || order.status === 'in_progress'
-
+  const canEdit = order.status === 'pending'
   // Room card component for reuse
   const RoomCard = ({ room }: { room: DistributionOrderRoom }) => {
     const roomConfig = ROOM_STATUS_CONFIG[room.status]
@@ -354,6 +356,15 @@ export default function DistributionOrderDetailPage() {
                 {config.label}
               </Badge>
             </div>
+            {canEdit && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowEditDialog(true)}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
             {canCancel && (
               <Button 
                 variant="destructive" 
@@ -487,6 +498,15 @@ export default function DistributionOrderDetailPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {canEdit && (
+            <Button 
+              variant="outline" 
+              onClick={() => setShowEditDialog(true)}
+            >
+              <Pencil className="h-4 w-4 mr-2" />
+              Chỉnh sửa
+            </Button>
+          )}
           {canCancel && (
             <Button 
               variant="destructive" 
@@ -658,6 +678,12 @@ export default function DistributionOrderDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <EditDistributionOrderDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        order={order}
+      />
     </div>
   )
 }
