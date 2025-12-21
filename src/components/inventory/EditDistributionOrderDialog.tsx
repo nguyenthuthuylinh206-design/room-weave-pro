@@ -416,7 +416,7 @@ export default function EditDistributionOrderDialog({
                     Thêm sản phẩm
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-72 p-2" align="start">
+                <PopoverContent className="w-72 p-2" align="start" sideOffset={8}>
                   <div className="space-y-2">
                     <div className="relative">
                       <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -424,35 +424,34 @@ export default function EditDistributionOrderDialog({
                         placeholder="Tìm sản phẩm..."
                         value={itemSearchTerm}
                         onChange={(e) => setItemSearchTerm(e.target.value)}
+                        onKeyDown={(e) => e.stopPropagation()}
                         className="pl-8 h-9"
                       />
                     </div>
-                    <ScrollArea className="h-[200px] pr-3">
-                      <div className="space-y-1 pr-1">
-                        {getAvailableItemsForRoom(selectedRoom).length > 0 ? (
-                          getAvailableItemsForRoom(selectedRoom).map(item => (
-                            <Button
-                              key={item.id}
-                              variant="ghost"
-                              size="sm"
-                              className="w-full justify-start h-auto py-2"
-                              onClick={() => addItemToRoom(selectedRoom, item.id)}
-                            >
-                              <div className="text-left">
-                                <p className="font-medium">{item.name}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Tồn: {item.quantity_in_stock || 0}
-                                </p>
-                              </div>
-                            </Button>
-                          ))
-                        ) : (
-                          <p className="text-sm text-muted-foreground text-center py-4">
-                            Không còn sản phẩm nào
-                          </p>
-                        )}
-                      </div>
-                    </ScrollArea>
+                    <div className="max-h-[200px] overflow-y-auto space-y-1">
+                      {getAvailableItemsForRoom(selectedRoom).length > 0 ? (
+                        getAvailableItemsForRoom(selectedRoom).map(item => (
+                          <Button
+                            key={item.id}
+                            variant="ghost"
+                            size="sm"
+                            className="w-full justify-start h-auto py-2"
+                            onClick={() => addItemToRoom(selectedRoom, item.id)}
+                          >
+                            <div className="text-left">
+                              <p className="font-medium">{item.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Tồn: {item.quantity_in_stock || 0}
+                              </p>
+                            </div>
+                          </Button>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          {itemSearchTerm ? 'Không tìm thấy sản phẩm' : 'Không còn sản phẩm nào'}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </PopoverContent>
               </Popover>
