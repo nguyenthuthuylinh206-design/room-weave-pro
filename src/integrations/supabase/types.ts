@@ -374,6 +374,7 @@ export type Database = {
           confirmed_by: string | null
           created_at: string | null
           delivered_at: string | null
+          delivered_by: string | null
           distribution_order_id: string
           id: string
           notes: string | null
@@ -387,6 +388,7 @@ export type Database = {
           confirmed_by?: string | null
           created_at?: string | null
           delivered_at?: string | null
+          delivered_by?: string | null
           distribution_order_id: string
           id?: string
           notes?: string | null
@@ -400,6 +402,7 @@ export type Database = {
           confirmed_by?: string | null
           created_at?: string | null
           delivered_at?: string | null
+          delivered_by?: string | null
           distribution_order_id?: string
           id?: string
           notes?: string | null
@@ -419,6 +422,20 @@ export type Database = {
           {
             foreignKeyName: "distribution_order_rooms_confirmed_by_fkey"
             columns: ["confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_order_rooms_delivered_by_fkey"
+            columns: ["delivered_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_order_rooms_delivered_by_fkey"
+            columns: ["delivered_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
