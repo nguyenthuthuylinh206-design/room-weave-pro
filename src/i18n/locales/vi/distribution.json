@@ -9,6 +9,36 @@
     "deliveredAt": "lúc {{date}}",
     "onlyWarehouseManager": "Chỉ quản lý kho mới có thể xác nhận xuất hàng"
   },
+  "confirmReceipt": {
+    "title": "Xác nhận nhận hàng",
+    "room": "Phòng",
+    "description": "Điều chỉnh số lượng thực tế nhận và thêm đồ phát sinh nếu có",
+    "orderedItems": "Đồ trong phiếu",
+    "requested": "Yêu cầu",
+    "actualReceived": "Thực nhận",
+    "missing": "Thiếu",
+    "additionalItems": "Đồ phát sinh",
+    "quantity": "Số lượng",
+    "inStock": "Tồn",
+    "addIncidentals": "Thêm đồ phát sinh",
+    "cancel": "Hủy",
+    "confirm": "Xác nhận nhận hàng",
+    "processing": "Đang xử lý..."
+  },
+  "addItems": {
+    "title": "Thêm đồ phát sinh",
+    "description": "Chọn vật tư từ kho để thêm vào phiếu",
+    "searchPlaceholder": "Tìm kiếm vật tư...",
+    "loading": "Đang tải...",
+    "noItems": "Không tìm thấy vật tư",
+    "minChars": "Nhập ít nhất 2 ký tự để tìm kiếm",
+    "inStock": "Tồn",
+    "selected": "Đã chọn",
+    "items": "vật tư",
+    "clearAll": "Bỏ chọn tất cả",
+    "cancel": "Đóng",
+    "add": "Thêm"
+  },
   "createOrder": {
     "title": "Phiếu giao hàng đến phòng",
     "description": "Chọn nhiều phòng và phân bổ sản phẩm cần giao",

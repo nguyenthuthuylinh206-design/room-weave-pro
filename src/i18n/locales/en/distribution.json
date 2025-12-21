@@ -9,6 +9,36 @@
     "deliveredAt": "at {{date}}",
     "onlyWarehouseManager": "Only warehouse manager can confirm delivery"
   },
+  "confirmReceipt": {
+    "title": "Confirm Receipt",
+    "room": "Room",
+    "description": "Adjust actual received quantities and add incidental items if needed",
+    "orderedItems": "Ordered Items",
+    "requested": "Requested",
+    "actualReceived": "Actual received",
+    "missing": "Missing",
+    "additionalItems": "Additional Items",
+    "quantity": "Quantity",
+    "inStock": "Stock",
+    "addIncidentals": "Add incidental items",
+    "cancel": "Cancel",
+    "confirm": "Confirm Receipt",
+    "processing": "Processing..."
+  },
+  "addItems": {
+    "title": "Add Incidental Items",
+    "description": "Select items from inventory to add to the order",
+    "searchPlaceholder": "Search items...",
+    "loading": "Loading...",
+    "noItems": "No items found",
+    "minChars": "Enter at least 2 characters to search",
+    "inStock": "Stock",
+    "selected": "Selected",
+    "items": "items",
+    "clearAll": "Clear all",
+    "cancel": "Close",
+    "add": "Add"
+  },
   "createOrder": {
     "title": "Distribution Order to Rooms",
     "description": "Select multiple rooms and allocate items for delivery",

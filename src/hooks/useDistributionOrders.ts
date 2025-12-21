@@ -131,12 +131,14 @@ export function useCompleteRoomDelivery() {
     mutationFn: async ({ 
       roomOrderId, 
       items,
+      additionalItems,
       orderCode,
       roomNumber,
       createdByUserId,
     }: { 
       roomOrderId: string
       items?: { item_id: string; quantity_confirmed: number }[]
+      additionalItems?: { item_id: string; quantity: number }[]
       orderCode?: string
       roomNumber?: string
       createdByUserId?: string
@@ -151,10 +153,16 @@ export function useCompleteRoomDelivery() {
           }, {} as Record<string, { quantity_confirmed: number }>)
         : null
 
+      // Build additional items array
+      const additionalItemsData = additionalItems && additionalItems.length > 0
+        ? additionalItems
+        : null
+
       const { data, error } = await supabase.rpc('complete_room_delivery', {
         p_distribution_order_room_id: roomOrderId,
         p_confirmed_by: user.id,
         p_item_confirmations: itemConfirmations,
+        p_additional_items: additionalItemsData,
       })
 
       if (error) throw error
