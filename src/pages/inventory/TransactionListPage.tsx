@@ -315,12 +315,13 @@ export function TransactionListPage() {
               <SelectContent>
                 <SelectItem value="all">{t('filters.all')}</SelectItem>
                 <SelectItem value="purchase">{t('category.purchase')}</SelectItem>
-                <SelectItem value="sale">{t('category.sale')}</SelectItem>
-                <SelectItem value="transfer_in">{t('category.transfer_in')}</SelectItem>
-                <SelectItem value="transfer_out">{t('category.transfer_out')}</SelectItem>
-                <SelectItem value="internal_use">{t('category.internal_use')}</SelectItem>
-                <SelectItem value="loss">{t('category.loss')}</SelectItem>
-                <SelectItem value="damaged">{t('category.damaged')}</SelectItem>
+                <SelectItem value="return">{t('category.return')}</SelectItem>
+                <SelectItem value="room_assign">{t('category.room_assign')}</SelectItem>
+                <SelectItem value="staff_assign">{t('category.staff_assign')}</SelectItem>
+                <SelectItem value="laundry">{t('category.laundry')}</SelectItem>
+                <SelectItem value="maintenance">{t('category.maintenance')}</SelectItem>
+                <SelectItem value="disposal">{t('category.disposal')}</SelectItem>
+                <SelectItem value="other">{t('category.other')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
