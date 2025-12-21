@@ -194,6 +194,7 @@ export function HotelProvider({ children }: { children: ReactNode }) {
     savePreferenceMutation.mutate({ hotelId: hotel.id, isAllHotels: false })
     
     // Invalidate ALL queries to refresh data with new hotel context
+    queryClient.invalidateQueries({ queryKey: ['users'] })
     queryClient.invalidateQueries({ queryKey: ['items'] })
     queryClient.invalidateQueries({ queryKey: ['rooms'] })
     queryClient.invalidateQueries({ queryKey: ['floor-plan'] })
@@ -214,6 +215,7 @@ export function HotelProvider({ children }: { children: ReactNode }) {
     savePreferenceMutation.mutate({ hotelId: null, isAllHotels: enabled })
     
     // Invalidate ALL queries to refresh data
+    queryClient.invalidateQueries({ queryKey: ['users'] })
     queryClient.invalidateQueries({ queryKey: ['items'] })
     queryClient.invalidateQueries({ queryKey: ['rooms'] })
     queryClient.invalidateQueries({ queryKey: ['floor-plan'] })
