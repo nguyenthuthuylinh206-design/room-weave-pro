@@ -83,14 +83,17 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
   const UserCard = ({ 
     user, 
     icon: Icon, 
-    showCreator = false 
+    showCreator = false,
+    showSupervisor = false 
   }: { 
     user: UserWithRelations
     icon: any
     showCreator?: boolean
+    showSupervisor?: boolean
   }) => {
     const subordinatesCount = countSubordinates(user.id)
     const creatorName = getCreatorName(user.created_by)
+    const supervisorName = getManagerName(user.reports_to)
 
     return (
       <div className="flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors relative">
@@ -124,6 +127,18 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
               {user.hotel_id && (
                 <Badge variant="outline" className="text-xs">
                   {user.hotel?.name || t('users:fields.hotel')}
+                </Badge>
+              )}
+              {/* Show supervisor for staff members */}
+              {showSupervisor && supervisorName && (
+                <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                  <Users className="h-3 w-3 mr-1" />
+                  {t('users:hierarchy.reportsTo', { name: supervisorName })}
+                </Badge>
+              )}
+              {showSupervisor && !supervisorName && (
+                <Badge variant="outline" className="text-xs text-amber-600 border-amber-400">
+                  {t('users:hierarchy.noSupervisor')}
                 </Badge>
               )}
               {showCreator && creatorName && (
@@ -252,7 +267,7 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
                         <div className="ml-12 space-y-2 border-l-2 border-dashed border-muted-foreground/30 pl-4">
                           {managerStaff.map((staffMember) => (
                             <div key={staffMember.id} className="relative">
-                              <UserCard user={staffMember} icon={UserIcon} />
+                              <UserCard user={staffMember} icon={UserIcon} showSupervisor />
                             </div>
                           ))}
                         </div>
@@ -296,7 +311,7 @@ export function UserHierarchyView({ users, onEdit, onManagePermissions }: UserHi
               <div className="space-y-2 relative">
                 {staffByManager['unassigned']?.map((staffMember) => (
                   <div key={staffMember.id} className="relative ml-4">
-                    <UserCard user={staffMember} icon={UserIcon} showCreator />
+                    <UserCard user={staffMember} icon={UserIcon} showCreator showSupervisor />
                   </div>
                 ))}
               </div>

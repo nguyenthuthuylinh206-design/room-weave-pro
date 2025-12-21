@@ -4,6 +4,8 @@ import {
   getNotificationRecipients, 
   getUserById, 
   getUserReportsTo,
+  getStaffSupervisor,
+  getManagersOfHotel,
   RecipientRole 
 } from '@/utils/notificationRecipients';
 
@@ -238,6 +240,94 @@ export async function sendMultiplePushNotifications({
   return successCount;
 }
 
+// ==================== SUPERVISOR-BASED NOTIFICATIONS ====================
+
+// Helper: Notify the supervisor of a staff member
+// If staff has a reports_to manager, notify only that manager
+// If no supervisor, notify all managers of the hotel
+export async function notifyStaffSupervisor({
+  staffUserId,
+  tenantId,
+  hotelId,
+  title,
+  body,
+  type = 'info',
+  actionUrl,
+  icon,
+  metadata,
+}: {
+  staffUserId: string;
+  tenantId: string;
+  hotelId?: string;
+  title: string;
+  body: string;
+  type?: NotificationType;
+  actionUrl?: string;
+  icon?: string;
+  metadata?: Json;
+}): Promise<{ supervisorId?: string; fallbackToAllManagers: boolean; recipientCount: number }> {
+  // 1. Try to get the specific supervisor from reports_to
+  const supervisor = await getStaffSupervisor(staffUserId);
+  
+  if (supervisor) {
+    // Send to specific supervisor only
+    await createInAppNotification({
+      userId: supervisor.id,
+      tenantId,
+      title,
+      body,
+      type,
+      actionUrl,
+      icon,
+      metadata,
+    });
+
+    await sendPushNotification({
+      userId: supervisor.id,
+      tenantId,
+      title,
+      body,
+      actionUrl,
+      notificationType: type,
+    });
+
+    return { supervisorId: supervisor.id, fallbackToAllManagers: false, recipientCount: 1 };
+  }
+
+  // 2. No supervisor assigned - fallback to all managers of the hotel
+  if (hotelId) {
+    const managers = await getManagersOfHotel(hotelId);
+    const recipientIds = managers.map(m => m.id).filter(id => id !== staffUserId);
+
+    if (recipientIds.length > 0) {
+      await createMultipleNotifications({
+        recipientIds,
+        tenantId,
+        title,
+        body,
+        type,
+        actionUrl,
+        icon,
+        metadata,
+      });
+
+      await sendMultiplePushNotifications({
+        recipientIds,
+        tenantId,
+        title,
+        body,
+        actionUrl,
+        notificationType: type,
+      });
+
+      return { fallbackToAllManagers: true, recipientCount: recipientIds.length };
+    }
+  }
+
+  console.warn('[notifyStaffSupervisor] No supervisor or managers found for staff:', staffUserId);
+  return { fallbackToAllManagers: true, recipientCount: 0 };
+}
+
 // ==================== ROLE-BASED TRIGGERS ====================
 
 // Trigger for low stock alert - sends to managers and owner
@@ -380,35 +470,18 @@ export async function triggerMaintenanceNewNotification({
   const body = `${requestCode}: ${title} tại ${location}`;
   const actionUrl = `/maintenance/${requestId}`;
 
-  // Get managers of the hotel
-  const recipients = await getNotificationRecipients({
+  // Use supervisor-based notification: notify the staff's supervisor first
+  // If no supervisor, fallback to all hotel managers
+  await notifyStaffSupervisor({
+    staffUserId: createdByUserId,
     tenantId,
     hotelId,
-    targetRoles: ['manager', 'owner'],
-    excludeUserId: createdByUserId,
-  });
-
-  const recipientIds = recipients.map(r => r.id);
-
-  await createMultipleNotifications({
-    recipientIds,
-    tenantId,
     title: notifTitle,
     body,
     type: 'maintenance_new',
     actionUrl,
     icon: 'wrench',
     metadata: { requestId, requestCode, hotelId, createdBy: createdByUserId } as Json,
-  });
-
-  await sendMultiplePushNotifications({
-    recipientIds,
-    tenantId,
-    title: notifTitle,
-    body,
-    actionUrl,
-    tag: `maintenance-${requestId}`,
-    notificationType: 'maintenance_new',
   });
 }
 
@@ -652,7 +725,7 @@ export async function triggerTaskAssignedNotification({
   });
 }
 
-// Trigger for room check completed - sends to managers
+// Trigger for room check completed - sends to staff's supervisor
 export async function triggerRoomCheckCompletedNotification({
   tenantId,
   hotelId,
@@ -673,34 +746,17 @@ export async function triggerRoomCheckCompletedNotification({
   const body = `Phòng ${roomNumber} đã được kiểm tra bởi ${checker?.full_name || 'Nhân viên'}${hasIssues ? ' - Có vấn đề cần xử lý' : ''}`;
   const actionUrl = `/room-checks/${checkId}`;
 
-  const recipients = await getNotificationRecipients({
+  // Use supervisor-based notification
+  await notifyStaffSupervisor({
+    staffUserId: completedByUserId,
     tenantId,
     hotelId,
-    targetRoles: ['manager'],
-    excludeUserId: completedByUserId,
-  });
-
-  const recipientIds = recipients.map(r => r.id);
-
-  await createMultipleNotifications({
-    recipientIds,
-    tenantId,
     title,
     body,
     type: 'room_check_completed',
     actionUrl,
     icon: hasIssues ? 'alert-circle' : 'check-circle',
     metadata: { checkId, roomNumber, hotelId, completedBy: completedByUserId, hasIssues } as Json,
-  });
-
-  await sendMultiplePushNotifications({
-    recipientIds,
-    tenantId,
-    title,
-    body,
-    actionUrl,
-    tag: `room-check-${checkId}`,
-    notificationType: 'room_check_completed',
   });
 }
 

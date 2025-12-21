@@ -187,3 +187,23 @@ export async function getUserById(userId: string): Promise<User | null> {
 
   return data;
 }
+
+// Get the supervisor (manager) of a staff member via reports_to
+export async function getStaffSupervisor(staffUserId: string): Promise<User | null> {
+  return getUserReportsTo(staffUserId);
+}
+
+// Get staff members that report to a specific manager
+export async function getStaffReportingTo(managerId: string): Promise<User[]> {
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, full_name, email')
+    .eq('reports_to', managerId);
+
+  if (error) {
+    console.error('Error fetching staff reporting to manager:', error);
+    return [];
+  }
+
+  return data || [];
+}
