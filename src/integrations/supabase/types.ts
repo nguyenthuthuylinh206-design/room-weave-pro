@@ -6173,6 +6173,15 @@ export type Database = {
             }
             Returns: Json
           }
+      update_distribution_order: {
+        Args: {
+          p_assigned_to?: string
+          p_notes?: string
+          p_order_id: string
+          p_rooms?: Json
+        }
+        Returns: Json
+      }
       update_tenant_usage: { Args: { p_tenant_id: string }; Returns: undefined }
       user_has_hotel_access: {
         Args: { p_hotel_id: string; p_user_id: string }
