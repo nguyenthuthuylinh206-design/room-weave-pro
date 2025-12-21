@@ -84,7 +84,8 @@
     "selectManager": "Chọn quản lý phụ trách",
     "createUser": "Tạo người dùng",
     "noManagersWarning": "Khách sạn này chưa có Quản lý. Nhân viên sẽ báo cáo trực tiếp cho Owner.",
-    "noSupervisorOption": "Không có (Owner quản lý trực tiếp)"
+    "noSupervisorOption": "Không có (Owner quản lý trực tiếp)",
+    "loadingManagers": "Đang tải danh sách quản lý..."
   },
   "validation": {
     "selectHotel": "Vui lòng chọn khách sạn",
