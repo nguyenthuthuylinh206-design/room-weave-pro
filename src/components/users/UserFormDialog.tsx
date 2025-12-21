@@ -34,7 +34,7 @@ import { usePositions } from '@/hooks/usePositions'
 import { useUser } from '@/hooks/useUser'
 import { useManagersByHotel } from '@/hooks/useManagersByHotel'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
-import { Eye, EyeOff, Info } from 'lucide-react'
+import { Eye, EyeOff, Info, AlertTriangle } from 'lucide-react'
 import { UserWithRelations } from '@/types/database.types'
 
 interface UserFormDialogProps {
@@ -402,9 +402,20 @@ export function UserFormDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('users:form.selectManager')}</FormLabel>
+                      
+                      {/* Warning when hotel has no managers */}
+                      {hotelManagers?.length === 0 && (
+                        <Alert variant="default" className="mb-2 border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+                          <AlertTriangle className="h-4 w-4 text-amber-600" />
+                          <AlertDescription className="text-amber-700 dark:text-amber-400">
+                            {t('users:form.noManagersWarning')}
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                      
                       <Select
-                        onValueChange={field.onChange}
-                        value={field.value || undefined}
+                        onValueChange={(value) => field.onChange(value === 'none' ? null : value)}
+                        value={field.value || 'none'}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -412,6 +423,11 @@ export function UserFormDialog({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          {/* Option for direct Owner management */}
+                          <SelectItem value="none">
+                            {t('users:form.noSupervisorOption')}
+                          </SelectItem>
+                          
                           {hotelManagers?.map((manager) => (
                             <SelectItem key={manager.id} value={manager.id}>
                               {manager.full_name}

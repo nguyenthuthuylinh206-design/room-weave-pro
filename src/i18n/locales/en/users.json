@@ -82,7 +82,9 @@
     "selectHotel": "Select hotel",
     "selectPosition": "Select position",
     "selectManager": "Select responsible manager",
-    "createUser": "Create User"
+    "createUser": "Create User",
+    "noManagersWarning": "This hotel has no Manager. Staff will report directly to Owner.",
+    "noSupervisorOption": "None (Direct to Owner)"
   },
   "validation": {
     "selectHotel": "Please select a hotel",
