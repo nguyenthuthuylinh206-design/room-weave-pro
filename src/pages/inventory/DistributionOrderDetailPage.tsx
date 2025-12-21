@@ -381,15 +381,14 @@ export default function DistributionOrderDetailPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {canEdit && (
-            <Button 
-              variant="outline" 
-              onClick={() => setShowEditDialog(true)}
-            >
-              <Pencil className="h-4 w-4 mr-2" />
-              Chỉnh sửa
-            </Button>
-          )}
+          <Button 
+            variant="outline" 
+            onClick={() => setShowEditDialog(true)}
+            disabled={!canEdit}
+          >
+            <Pencil className="h-4 w-4 mr-2" />
+            Chỉnh sửa
+          </Button>
           {canCancel && (
             <Button 
               variant="destructive" 
