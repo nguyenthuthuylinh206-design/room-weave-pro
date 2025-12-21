@@ -6,13 +6,16 @@ import { UserFormData } from '@/lib/validations/user.schemas'
 import { logCreate, logUpdate, logDelete } from '@/lib/activityLogger'
 import { useTenant } from './useTenant'
 import { useUser } from './useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
 
 export function useUsers() {
   const { tenant } = useTenant()
   const { user: currentUser } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
+  const selectedHotelId = selectedHotel?.id ?? null
 
   const { data: users, isLoading, error } = useQuery({
-    queryKey: ['users', tenant?.id, currentUser?.id, currentUser?.user_level_code],
+    queryKey: ['users', tenant?.id, currentUser?.id, currentUser?.user_level_code, selectedHotelId, isAllHotelsMode],
     queryFn: async () => {
       if (!tenant?.id) {
         throw new Error('Tenant ID is required to fetch users')
@@ -34,6 +37,22 @@ export function useUsers() {
         // 2. Staff that reports to them (reports_to = manager id)
         // 3. Themselves
         query = query.or(`reports_to.eq.${currentUser.id},created_by.eq.${currentUser.id},id.eq.${currentUser.id}`)
+      }
+
+      // Hotel scoping based on current hotel selector
+      // - Owners/Super admins: in single-hotel mode, show that hotel's users + all tenant owners
+      // - Others: limit to selected hotel
+      if (selectedHotelId) {
+        const isOwnerLike =
+          currentUser?.user_level_code === 'tenant_owner' || currentUser?.user_level_code === 'super_admin'
+
+        if (isOwnerLike) {
+          if (!isAllHotelsMode) {
+            query = query.or(`user_level_code.eq.tenant_owner,hotel_id.eq.${selectedHotelId}`)
+          }
+        } else {
+          query = query.eq('hotel_id', selectedHotelId)
+        }
       }
 
       const { data, error } = await query
