@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Pencil, Truck, Users, X, AlertTriangle } from 'lucide-react'
+import { Pencil, Truck, Users, X, AlertTriangle, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -29,9 +29,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { RoomMultiSelect } from '@/components/distribution/RoomMultiSelect'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useUsers } from '@/hooks/useUsers'
@@ -71,6 +75,8 @@ export default function EditDistributionOrderDialog({
   const [assignedTo, setAssignedTo] = useState<string>('')
   const [notes, setNotes] = useState('')
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null)
+  const [showAddItemPopover, setShowAddItemPopover] = useState(false)
+  const [itemSearchTerm, setItemSearchTerm] = useState('')
 
   // Staff users for assignment
   const staffUsers = users.filter(u => 
@@ -169,6 +175,31 @@ export default function EditDistributionOrderDialog({
 
   // Get item info
   const getItemInfo = (itemId: string) => items.find(i => i.id === itemId)
+
+  // Get allocated items for a room
+  const getAllocatedItems = (roomId: string) => {
+    const alloc = getRoomAllocation(roomId)
+    return alloc.items
+      .filter(i => i.quantity > 0)
+      .map(i => ({ ...i, item: getItemInfo(i.item_id) }))
+      .filter(i => i.item)
+  }
+
+  // Get available items to add (not yet allocated to this room)
+  const getAvailableItemsForRoom = (roomId: string) => {
+    const alloc = getRoomAllocation(roomId)
+    const allocatedItemIds = alloc.items.filter(i => i.quantity > 0).map(i => i.item_id)
+    return items
+      .filter(i => i.status === 'active' && !allocatedItemIds.includes(i.id))
+      .filter(i => i.name.toLowerCase().includes(itemSearchTerm.toLowerCase()))
+  }
+
+  // Add item to room
+  const addItemToRoom = (roomId: string, itemId: string) => {
+    updateItemQuantity(roomId, itemId, 1)
+    setShowAddItemPopover(false)
+    setItemSearchTerm('')
+  }
 
   // Get room name from order rooms or roomsData
   const getRoomName = (roomId: string): string => {
@@ -329,19 +360,16 @@ export default function EditDistributionOrderDialog({
 
           {/* Items for selected room */}
           {selectedRoom && (
-            <ScrollArea className="h-[200px] border rounded-md p-3">
-              <div className="space-y-2">
-                {items.filter(i => i.status === 'active').map(item => {
-                  const alloc = getRoomAllocation(selectedRoom)
-                  const allocItem = alloc.items.find(i => i.item_id === item.id)
-                  const qty = allocItem?.quantity || 0
-                  
-                  return (
-                    <div key={item.id} className="flex items-center justify-between gap-2 p-2 border rounded">
+            <div className="border rounded-md p-3 space-y-3">
+              {/* Allocated items */}
+              {getAllocatedItems(selectedRoom).length > 0 ? (
+                <div className="space-y-2">
+                  {getAllocatedItems(selectedRoom).map(({ item_id, quantity, item }) => (
+                    <div key={item_id} className="flex items-center justify-between gap-2 p-2 border rounded">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{item.name}</p>
+                        <p className="text-sm font-medium truncate">{item?.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          Tồn: {item.quantity_in_stock || 0}
+                          Tồn: {item?.quantity_in_stock || 0}
                         </p>
                       </div>
                       <div className="flex items-center gap-1">
@@ -349,15 +377,14 @@ export default function EditDistributionOrderDialog({
                           variant="outline"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() => updateItemQuantity(selectedRoom, item.id, qty - 1)}
-                          disabled={qty <= 0}
+                          onClick={() => updateItemQuantity(selectedRoom, item_id, quantity - 1)}
                         >
                           -
                         </Button>
                         <Input
                           type="number"
-                          value={qty}
-                          onChange={(e) => updateItemQuantity(selectedRoom, item.id, parseInt(e.target.value) || 0)}
+                          value={quantity}
+                          onChange={(e) => updateItemQuantity(selectedRoom, item_id, parseInt(e.target.value) || 0)}
                           className="w-14 h-7 text-center"
                           min={0}
                         />
@@ -365,16 +392,69 @@ export default function EditDistributionOrderDialog({
                           variant="outline"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() => updateItemQuantity(selectedRoom, item.id, qty + 1)}
+                          onClick={() => updateItemQuantity(selectedRoom, item_id, quantity + 1)}
                         >
                           +
                         </Button>
                       </div>
                     </div>
-                  )
-                })}
-              </div>
-            </ScrollArea>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Chưa có sản phẩm nào được giao cho phòng này
+                </p>
+              )}
+
+              {/* Add item button */}
+              <Popover open={showAddItemPopover} onOpenChange={setShowAddItemPopover}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Thêm sản phẩm
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 p-2" align="start">
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Tìm sản phẩm..."
+                        value={itemSearchTerm}
+                        onChange={(e) => setItemSearchTerm(e.target.value)}
+                        className="pl-8 h-9"
+                      />
+                    </div>
+                    <ScrollArea className="h-[200px]">
+                      <div className="space-y-1">
+                        {getAvailableItemsForRoom(selectedRoom).length > 0 ? (
+                          getAvailableItemsForRoom(selectedRoom).map(item => (
+                            <Button
+                              key={item.id}
+                              variant="ghost"
+                              size="sm"
+                              className="w-full justify-start h-auto py-2"
+                              onClick={() => addItemToRoom(selectedRoom, item.id)}
+                            >
+                              <div className="text-left">
+                                <p className="font-medium">{item.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Tồn: {item.quantity_in_stock || 0}
+                                </p>
+                              </div>
+                            </Button>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground text-center py-4">
+                            Không còn sản phẩm nào
+                          </p>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
           )}
         </div>
       )}
