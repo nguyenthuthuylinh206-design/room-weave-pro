@@ -190,10 +190,16 @@ export default function EditDistributionOrderDialog({
     if (!roomId) return []
     const alloc = getRoomAllocation(roomId)
     const allocatedItemIds = alloc.items.filter(i => i.quantity > 0).map(i => i.item_id)
-    const searchLower = itemSearchTerm.toLowerCase().trim()
+    const searchLower = itemSearchTerm.trim().toLowerCase()
+
     return items
-      .filter(i => i.status === 'active' && !allocatedItemIds.includes(i.id))
-      .filter(i => !searchLower || i.name.toLowerCase().includes(searchLower))
+      .filter(i => i?.status === 'active' && !allocatedItemIds.includes(i.id))
+      .filter(i => {
+        if (!searchLower) return true
+        const nameLower = (i?.name ?? '').toLowerCase()
+        const codeLower = ((i as any)?.code ?? '').toLowerCase()
+        return nameLower.includes(searchLower) || codeLower.includes(searchLower)
+      })
   }
 
   // Add item to room
