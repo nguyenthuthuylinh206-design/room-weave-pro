@@ -411,9 +411,9 @@ export default function EditDistributionOrderDialog({
               Mã phiếu: {order?.order_code}
             </DrawerDescription>
           </DrawerHeader>
-          <ScrollArea className="flex-1 min-h-0 px-4 pb-4 max-h-[60vh]">
+          <div className="flex-1 min-h-0 px-4 pb-4 max-h-[60vh] overflow-y-auto">
             <Content />
-          </ScrollArea>
+          </div>
           <DrawerFooter>
             <Footer />
           </DrawerFooter>
@@ -431,9 +431,9 @@ export default function EditDistributionOrderDialog({
             Mã phiếu: {order?.order_code}
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="flex-1 min-h-0 pr-4">
+        <div className="flex-1 min-h-0 pr-4 overflow-y-auto">
           <Content />
-        </ScrollArea>
+        </div>
         <DialogFooter className="pt-4">
           <Footer />
         </DialogFooter>
