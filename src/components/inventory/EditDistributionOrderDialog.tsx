@@ -186,12 +186,14 @@ export default function EditDistributionOrderDialog({
   }
 
   // Get available items to add (not yet allocated to this room)
-  const getAvailableItemsForRoom = (roomId: string) => {
+  const getAvailableItemsForRoom = (roomId: string | null) => {
+    if (!roomId) return []
     const alloc = getRoomAllocation(roomId)
     const allocatedItemIds = alloc.items.filter(i => i.quantity > 0).map(i => i.item_id)
+    const searchLower = itemSearchTerm.toLowerCase().trim()
     return items
       .filter(i => i.status === 'active' && !allocatedItemIds.includes(i.id))
-      .filter(i => i.name.toLowerCase().includes(itemSearchTerm.toLowerCase()))
+      .filter(i => !searchLower || i.name.toLowerCase().includes(searchLower))
   }
 
   // Add item to room
@@ -425,8 +427,8 @@ export default function EditDistributionOrderDialog({
                         className="pl-8 h-9"
                       />
                     </div>
-                    <ScrollArea className="h-[200px]">
-                      <div className="space-y-1">
+                    <ScrollArea className="h-[200px] pr-3">
+                      <div className="space-y-1 pr-1">
                         {getAvailableItemsForRoom(selectedRoom).length > 0 ? (
                           getAvailableItemsForRoom(selectedRoom).map(item => (
                             <Button
