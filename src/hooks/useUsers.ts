@@ -40,18 +40,49 @@ export function useUsers() {
       }
 
       // Hotel scoping based on current hotel selector
-      // - Owners/Super admins: in single-hotel mode, show that hotel's users + all tenant owners
-      // - Others: limit to selected hotel
-      if (selectedHotelId) {
+      // IMPORTANT: a user can be assigned to multiple hotels via user_hotels.
+      // So we must filter by user_hotels (not users.hotel_id) to avoid missing multi-hotel managers.
+      if (selectedHotelId && !isAllHotelsMode) {
+        const { data: hotelUsers, error: hotelUsersError } = await supabase
+          .from('user_hotels')
+          .select('user_id')
+          .eq('hotel_id', selectedHotelId)
+
+        if (hotelUsersError) throw hotelUsersError
+
+        // Backward-compatible: some records may still rely on users.hotel_id as the primary hotel.
+        const { data: primaryHotelUsers, error: primaryHotelUsersError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('tenant_id', tenant.id)
+          .eq('hotel_id', selectedHotelId)
+
+        if (primaryHotelUsersError) throw primaryHotelUsersError
+
+        const userIds = Array.from(
+          new Set([
+            ...(hotelUsers || []).map((r) => r.user_id),
+            ...(primaryHotelUsers || []).map((r) => r.id),
+          ])
+        ).filter(Boolean)
+
         const isOwnerLike =
           currentUser?.user_level_code === 'tenant_owner' || currentUser?.user_level_code === 'super_admin'
 
+        // Owner-like: always show tenant owners + users assigned to selected hotel
         if (isOwnerLike) {
-          if (!isAllHotelsMode) {
-            query = query.or(`user_level_code.eq.tenant_owner,hotel_id.eq.${selectedHotelId}`)
+          if (userIds.length === 0) {
+            query = query.eq('user_level_code', 'tenant_owner')
+          } else {
+            const userIdsIn = `(${userIds.join(',')})`
+            query = query.or(`user_level_code.eq.tenant_owner,id.in.${userIdsIn}`)
           }
         } else {
-          query = query.eq('hotel_id', selectedHotelId)
+          // Non-owner: only users assigned to selected hotel
+          if (userIds.length === 0) {
+            return [] as UserWithRelations[]
+          }
+          query = query.in('id', userIds)
         }
       }
 
