@@ -246,12 +246,12 @@ export default function EditDistributionOrderDialog({
       {/* Assigned To */}
       <div className="space-y-2">
         <Label>Người giao hàng</Label>
-        <Select value={assignedTo} onValueChange={setAssignedTo}>
+        <Select value={assignedTo || 'unassigned'} onValueChange={(val) => setAssignedTo(val === 'unassigned' ? '' : val)}>
           <SelectTrigger>
             <SelectValue placeholder="Chọn nhân viên..." />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Chưa phân công</SelectItem>
+            <SelectItem value="unassigned">Chưa phân công</SelectItem>
             {staffUsers.map(user => (
               <SelectItem key={user.id} value={user.id}>
                 {user.full_name}
