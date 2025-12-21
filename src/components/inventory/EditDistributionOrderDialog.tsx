@@ -36,6 +36,7 @@ import { RoomMultiSelect } from '@/components/distribution/RoomMultiSelect'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useUsers } from '@/hooks/useUsers'
 import { useItems } from '@/hooks/useItems'
+import { useRooms } from '@/hooks/useRooms'
 import { useUpdateDistributionOrder } from '@/hooks/useDistributionOrders'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
@@ -62,6 +63,7 @@ export default function EditDistributionOrderDialog({
   const { selectedHotel } = useHotelContext()
   const { data: itemsData } = useItems({ hotelId: selectedHotel?.id })
   const items = Array.isArray(itemsData) ? itemsData : itemsData?.items || []
+  const { data: roomsData = [] } = useRooms()
   const { mutate: updateOrder, isPending } = useUpdateDistributionOrder()
 
   const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>([])
@@ -167,6 +169,17 @@ export default function EditDistributionOrderDialog({
 
   // Get item info
   const getItemInfo = (itemId: string) => items.find(i => i.id === itemId)
+
+  // Get room name from order rooms or roomsData
+  const getRoomName = (roomId: string): string => {
+    // Priority: get from order.rooms (already has room_number)
+    const orderRoom = order?.rooms?.find(r => r.room_id === roomId)
+    if (orderRoom?.room_number) return orderRoom.room_number
+    
+    // Fallback: get from roomsData (for newly added rooms)
+    const room = roomsData.find(r => r.id === roomId)
+    return room?.room_number || `Phòng ${roomId.substring(0, 6)}...`
+  }
 
   // Calculate stock validation
   const calculateStockValidation = useCallback(() => {
@@ -307,7 +320,7 @@ export default function EditDistributionOrderDialog({
                   className="cursor-pointer"
                   onClick={() => setSelectedRoom(roomId)}
                 >
-                  {roomId.substring(0, 8)}...
+                  {getRoomName(roomId)}
                   {itemCount > 0 && <span className="ml-1">({itemCount})</span>}
                 </Badge>
               )
