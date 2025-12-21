@@ -64,6 +64,7 @@ import { LaundryReportPage } from "./pages/reports/LaundryReportPage";
 import { OperationsReportPage } from "./pages/reports/OperationsReportPage";
 import { RoomsReportPage } from "./pages/reports/RoomsReportPage";
 import { MaintenanceReportPage } from "./pages/reports/MaintenanceReportPage";
+import { OutboundReportPage } from "./pages/reports/OutboundReportPage";
 import { HotelsPage } from "./pages/hotels/HotelsPage";
 import HotelPerformancePage from "./pages/hotels/HotelPerformancePage";
 import { VendorListPage as VendorManagementListPage } from "./pages/vendors/VendorListPage";
@@ -627,6 +628,14 @@ const router = createBrowserRouter([
         element: (
           <PermissionRoute module="reports">
             <MaintenanceReportPage />
+          </PermissionRoute>
+        ),
+      },
+      {
+        path: "reports/outbound",
+        element: (
+          <PermissionRoute module="reports">
+            <OutboundReportPage />
           </PermissionRoute>
         ),
       },
