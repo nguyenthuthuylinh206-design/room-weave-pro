@@ -404,14 +404,14 @@ export default function EditDistributionOrderDialog({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[90vh]">
+        <DrawerContent className="max-h-[90vh] min-h-0">
           <DrawerHeader>
             <DrawerTitle>Chỉnh sửa phiếu giao hàng</DrawerTitle>
             <DrawerDescription>
               Mã phiếu: {order?.order_code}
             </DrawerDescription>
           </DrawerHeader>
-          <ScrollArea className="flex-1 px-4 pb-4 max-h-[60vh]">
+          <ScrollArea className="flex-1 min-h-0 px-4 pb-4 max-h-[60vh]">
             <Content />
           </ScrollArea>
           <DrawerFooter>
@@ -424,14 +424,14 @@ export default function EditDistributionOrderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col min-h-0">
         <DialogHeader>
           <DialogTitle>Chỉnh sửa phiếu giao hàng</DialogTitle>
           <DialogDescription>
             Mã phiếu: {order?.order_code}
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="flex-1 pr-4">
+        <ScrollArea className="flex-1 min-h-0 pr-4">
           <Content />
         </ScrollArea>
         <DialogFooter className="pt-4">
