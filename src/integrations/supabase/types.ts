@@ -5274,14 +5274,24 @@ export type Database = {
         }
         Returns: Json
       }
-      complete_room_delivery: {
-        Args: {
-          p_confirmed_by: string
-          p_distribution_order_room_id: string
-          p_item_confirmations?: Json
-        }
-        Returns: Json
-      }
+      complete_room_delivery:
+        | {
+            Args: {
+              p_confirmed_by: string
+              p_distribution_order_room_id: string
+              p_item_confirmations?: Json
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_additional_items?: Json
+              p_confirmed_by: string
+              p_distribution_order_room_id: string
+              p_item_confirmations?: Json
+            }
+            Returns: Json
+          }
       confirm_warehouse_delivery: {
         Args: { p_delivered_by: string; p_room_order_id: string }
         Returns: Json

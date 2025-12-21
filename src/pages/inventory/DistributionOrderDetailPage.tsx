@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils'
 import { printDistributionOrder } from '@/utils/printDistributionOrder'
 import { useTranslation } from 'react-i18next'
 import type { DistributionOrderStatus, DistributionRoomStatus, DistributionOrderRoom } from '@/types/distribution.types'
+import ConfirmReceiptDialog from '@/components/inventory/ConfirmReceiptDialog'
 
 const STATUS_CONFIG: Record<DistributionOrderStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof Clock }> = {
   pending: { label: 'Chờ giao', variant: 'outline', icon: Clock },
@@ -64,6 +65,7 @@ export default function DistributionOrderDetailPage() {
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [showRejectDialog, setShowRejectDialog] = useState(false)
   const [showUndoDialog, setShowUndoDialog] = useState(false)
+  const [showConfirmReceiptDialog, setShowConfirmReceiptDialog] = useState(false)
   const [selectedRoom, setSelectedRoom] = useState<DistributionOrderRoom | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
   
@@ -104,8 +106,24 @@ export default function DistributionOrderDetailPage() {
   const totalRooms = order.rooms?.length || 0
   const progress = totalRooms > 0 ? Math.round((completedRooms / totalRooms) * 100) : 0
 
-  const handleConfirmRoom = (roomOrderId: string) => {
-    completeDelivery({ roomOrderId })
+  const handleConfirmRoom = (
+    roomOrderId: string,
+    items: { item_id: string; quantity_confirmed: number }[],
+    additionalItems: { item_id: string; quantity: number }[]
+  ) => {
+    completeDelivery({ 
+      roomOrderId, 
+      items,
+      additionalItems,
+      orderCode: order?.order_code,
+      roomNumber: selectedRoom?.room_number,
+      createdByUserId: order?.created_by,
+    }, {
+      onSuccess: () => {
+        setShowConfirmReceiptDialog(false)
+        setSelectedRoom(null)
+      }
+    })
   }
 
   const handleConfirmWarehouseDelivery = (roomOrderId: string) => {
@@ -251,7 +269,10 @@ export default function DistributionOrderDetailPage() {
                 <div className="flex gap-2 pt-2">
                   <Button 
                     className="flex-1" 
-                    onClick={() => handleConfirmRoom(room.id)}
+                    onClick={() => {
+                      setSelectedRoom(room)
+                      setShowConfirmReceiptDialog(true)
+                    }}
                     disabled={isPending}
                   >
                     <CheckCircle className="h-4 w-4 mr-2" />
