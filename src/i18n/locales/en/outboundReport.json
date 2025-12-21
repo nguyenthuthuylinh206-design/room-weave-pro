@@ -1,0 +1,93 @@
+{
+  "title": "Outbound Report",
+  "description": "Detailed analysis of outbound transaction types",
+  "back": "Back",
+  "exportPdf": "Export PDF",
+  "exportExcel": "Export Excel",
+  "allCategories": "All",
+  "dateRange": "Date Range",
+  "categories": {
+    "room_assign": "Room Delivery",
+    "staff_assign": "Staff Issue",
+    "laundry": "Laundry",
+    "maintenance": "Maintenance",
+    "disposal": "Disposal",
+    "other": "Other"
+  },
+  "summary": {
+    "totalTransactions": "Total Transactions",
+    "totalQuantity": "Total Quantity",
+    "totalValue": "Total Value",
+    "avgPerTransaction": "Avg per TX"
+  },
+  "roomAssign": {
+    "title": "Room Delivery Report",
+    "totalDeliveries": "Deliveries",
+    "itemsDelivered": "Items Delivered",
+    "roomsCovered": "Rooms",
+    "avgItemsPerRoom": "Avg items/room",
+    "topRooms": "Top Receiving Rooms",
+    "topItems": "Top Delivered Items",
+    "monthlyTrend": "Monthly Trend"
+  },
+  "staffAssign": {
+    "title": "Staff Issue Report",
+    "totalIssues": "Issues",
+    "itemsIssued": "Items Issued",
+    "staffReceived": "Staff Received",
+    "pendingReturns": "Pending Returns",
+    "topStaff": "Top Receiving Staff",
+    "topItems": "Top Issued Items",
+    "returnRate": "Return Rate"
+  },
+  "laundry": {
+    "title": "Laundry Report",
+    "totalBatches": "Batches",
+    "itemsSent": "Items Sent",
+    "totalWeight": "Total Weight",
+    "totalCost": "Total Cost",
+    "avgCostPerKg": "Cost/kg",
+    "topVendors": "Frequent Vendors",
+    "topItems": "Most Washed Items",
+    "costTrend": "Cost Trend"
+  },
+  "maintenance": {
+    "title": "Maintenance Outbound Report",
+    "totalRequests": "Requests",
+    "itemsUsed": "Items Used",
+    "totalCost": "Total Cost",
+    "avgCostPerRequest": "Avg/request",
+    "topItems": "Common Maintenance Items",
+    "costByCategory": "Cost by Category"
+  },
+  "disposal": {
+    "title": "Disposal Report",
+    "totalDisposals": "Disposals",
+    "itemsDisposed": "Items Disposed",
+    "totalValue": "Disposed Value",
+    "reasons": "Disposal Reasons",
+    "topItems": "Most Disposed Items",
+    "monthlyTrend": "Monthly Trend"
+  },
+  "other": {
+    "title": "Other Outbound Report",
+    "totalTransactions": "Transactions",
+    "totalItems": "Total Items",
+    "destinations": "Common Destinations"
+  },
+  "chart": {
+    "transactions": "Transactions",
+    "quantity": "Quantity",
+    "value": "Value",
+    "month": "Month"
+  },
+  "table": {
+    "rank": "#",
+    "name": "Name",
+    "count": "Count",
+    "percentage": "Percentage",
+    "value": "Value"
+  },
+  "noData": "No data available",
+  "loading": "Loading..."
+}

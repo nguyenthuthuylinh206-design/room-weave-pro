@@ -164,6 +164,7 @@
     "typeTitle": "Outbound Type",
     "typeDesc": "Select appropriate outbound type",
     "toRoom": "To Room",
+    "toStaff": "To Staff",
     "toLaundry": "To Laundry",
     "toMaintenance": "To Maintenance",
     "toDisposal": "Disposal",
@@ -194,6 +195,8 @@
     "categories": {
       "room_assign": "Room",
       "room_assignDesc": "Deliver to room",
+      "staff_assign": "Staff",
+      "staff_assignDesc": "Issue to staff",
       "laundry": "Laundry",
       "laundryDesc": "Send to laundry",
       "maintenance": "Maintenance",
@@ -202,6 +205,14 @@
       "disposalDesc": "Discard",
       "other": "Other",
       "otherDesc": "Other reason"
+    },
+    "staffAssign": {
+      "selectStaff": "Select Staff",
+      "selectStaffPlaceholder": "Select staff member...",
+      "reason": "Issue Reason",
+      "reasonPlaceholder": "E.g.: Event service, replacement...",
+      "expectedReturn": "Expected Return Date",
+      "noReturnDate": "No return"
     }
   },
   "adjustment": {
@@ -304,6 +315,7 @@
     "purchase": "Purchase",
     "return": "Return / From Laundry",
     "room_assign": "Room Assignment",
+    "staff_assign": "Staff Issue",
     "laundry": "To Laundry",
     "maintenance": "Maintenance",
     "disposal": "Disposal",

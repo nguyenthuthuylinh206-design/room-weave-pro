@@ -164,6 +164,7 @@
     "typeTitle": "Loại xuất kho",
     "typeDesc": "Chọn loại xuất kho phù hợp",
     "toRoom": "Xuất cho phòng",
+    "toStaff": "Giao cho nhân viên",
     "toLaundry": "Xuất đi giặt",
     "toMaintenance": "Xuất cho bảo trì",
     "toDisposal": "Thanh lý",
@@ -203,6 +204,8 @@
     "categories": {
       "room_assign": "Phòng",
       "room_assignDesc": "Giao cho phòng",
+      "staff_assign": "Nhân viên",
+      "staff_assignDesc": "Giao cho nhân viên",
       "laundry": "Giặt là",
       "laundryDesc": "Gửi giặt",
       "maintenance": "Bảo trì",
@@ -211,6 +214,14 @@
       "disposalDesc": "Hủy bỏ",
       "other": "Khác",
       "otherDesc": "Lý do khác"
+    },
+    "staffAssign": {
+      "selectStaff": "Chọn nhân viên",
+      "selectStaffPlaceholder": "Chọn nhân viên nhận đồ...",
+      "reason": "Lý do cấp phát",
+      "reasonPlaceholder": "VD: Phục vụ sự kiện, thay thế...",
+      "expectedReturn": "Ngày dự kiến hoàn trả",
+      "noReturnDate": "Không hoàn trả"
     }
   },
   "adjustment": {
@@ -313,6 +324,7 @@
     "purchase": "Mua hàng",
     "return": "Trả hàng / Nhận từ giặt",
     "room_assign": "Giao phòng",
+    "staff_assign": "Giao nhân viên",
     "laundry": "Gửi giặt",
     "maintenance": "Bảo trì",
     "disposal": "Thanh lý",

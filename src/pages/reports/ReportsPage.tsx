@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,7 +10,8 @@ import {
   DollarSign,
   Calendar,
   BarChart3,
-  PieChart
+  PieChart,
+  ArrowUpRight
 } from 'lucide-react'
 import { MobileReportsDashboard } from '@/components/reports/MobileReportsDashboard'
 import { useBreakpoint } from '@/lib/breakpoints'
@@ -18,6 +20,7 @@ import { useTranslation } from 'react-i18next'
 export function ReportsPage() {
   const { isMobile } = useBreakpoint()
   const { t } = useTranslation('reports')
+  const navigate = useNavigate()
 
   if (isMobile) {
     return <MobileReportsDashboard />
@@ -30,6 +33,15 @@ export function ReportsPage() {
       description: t('types.inventory.description'),
       icon: Package,
       color: 'text-blue-500',
+      path: '/reports/inventory',
+    },
+    {
+      id: 'outbound',
+      title: 'Báo cáo Xuất kho',
+      description: 'Phân tích chi tiết giao dịch xuất kho theo từng loại',
+      icon: ArrowUpRight,
+      color: 'text-emerald-500',
+      path: '/reports/outbound',
     },
     {
       id: 'expenses',
@@ -44,6 +56,7 @@ export function ReportsPage() {
       description: t('types.laundry.description'),
       icon: TrendingUp,
       color: 'text-purple-500',
+      path: '/reports/laundry',
     },
     {
       id: 'rooms',
@@ -51,6 +64,7 @@ export function ReportsPage() {
       description: t('types.rooms.description'),
       icon: Calendar,
       color: 'text-orange-500',
+      path: '/reports/rooms',
     },
     {
       id: 'performance',
@@ -97,7 +111,13 @@ export function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => report.path && navigate(report.path)}
+                    disabled={!report.path}
+                  >
                     <FileText className="mr-2 h-4 w-4" />
                     {t('view')}
                   </Button>

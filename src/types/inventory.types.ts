@@ -9,6 +9,7 @@ export type TransactionCategory =
   | 'purchase' 
   | 'return' 
   | 'room_assign'
+  | 'staff_assign'
   | 'laundry' 
   | 'maintenance' 
   | 'disposal' 
