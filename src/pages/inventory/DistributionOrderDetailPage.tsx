@@ -28,15 +28,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useDistributionOrderDetail, useCompleteRoomDelivery, useCancelDistributionOrder, useConfirmWarehouseDelivery } from '@/hooks/useDistributionOrders'
-import { useRejectRoomDelivery, useUndoRoomDelivery } from '@/hooks/useRoomDistributionHistory'
+import { useDistributionOrderDetail, useCancelDistributionOrder, useConfirmWarehouseDelivery } from '@/hooks/useDistributionOrders'
+import { useUndoRoomDelivery } from '@/hooks/useRoomDistributionHistory'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useUser } from '@/hooks/useUser'
 import { cn } from '@/lib/utils'
 import { printDistributionOrder } from '@/utils/printDistributionOrder'
 import { useTranslation } from 'react-i18next'
 import type { DistributionOrderStatus, DistributionRoomStatus, DistributionOrderRoom } from '@/types/distribution.types'
-import ConfirmReceiptDialog from '@/components/inventory/ConfirmReceiptDialog'
 import EditDistributionOrderDialog from '@/components/inventory/EditDistributionOrderDialog'
 
 const STATUS_CONFIG: Record<DistributionOrderStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof Clock }> = {
@@ -47,14 +46,14 @@ const STATUS_CONFIG: Record<DistributionOrderStatus, { label: string; variant: '
 }
 
 const ROOM_STATUS_CONFIG: Record<DistributionRoomStatus, { label: string; color: string }> = {
-  pending: { label: 'Chờ xuất kho', color: 'bg-muted text-muted-foreground' },
-  delivered: { label: 'Đã xuất kho', color: 'bg-blue-100 text-blue-700' },
-  confirmed: { label: 'Đã xác nhận', color: 'bg-green-100 text-green-700' },
+  pending: { label: 'Chờ xác nhận', color: 'bg-muted text-muted-foreground' },
+  delivered: { label: 'Đang giao', color: 'bg-blue-100 text-blue-700' },
+  confirmed: { label: 'Đã giao', color: 'bg-green-100 text-green-700' },
   rejected: { label: 'Từ chối', color: 'bg-red-100 text-red-700' },
 }
 
 // Roles that can confirm warehouse delivery
-const WAREHOUSE_MANAGER_ROLES = ['tenant_owner', 'manager', 'warehouse_manager']
+const WAREHOUSE_MANAGER_ROLES = ['tenant_owner', 'manager', 'warehouse_manager', 'hotel_manager']
 
 export default function DistributionOrderDetailPage() {
   const { id } = useParams()
@@ -64,24 +63,16 @@ export default function DistributionOrderDetailPage() {
   const { t } = useTranslation('distribution')
   
   const [showCancelDialog, setShowCancelDialog] = useState(false)
-  const [showRejectDialog, setShowRejectDialog] = useState(false)
   const [showUndoDialog, setShowUndoDialog] = useState(false)
-  const [showConfirmReceiptDialog, setShowConfirmReceiptDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [selectedRoom, setSelectedRoom] = useState<DistributionOrderRoom | null>(null)
-  const [rejectionReason, setRejectionReason] = useState('')
   
   const { data: order, isLoading } = useDistributionOrderDetail(id)
-  const { mutate: completeDelivery, isPending } = useCompleteRoomDelivery()
   const { mutate: cancelOrder, isPending: isCancelling } = useCancelDistributionOrder()
-  const { mutate: rejectDelivery, isPending: isRejecting } = useRejectRoomDelivery()
   const { mutate: undoDelivery, isPending: isUndoing } = useUndoRoomDelivery()
   const { mutate: confirmWarehouseDelivery, isPending: isConfirmingWarehouse } = useConfirmWarehouseDelivery()
 
-  // Check if current user is the assigned staff member
-  const isAssignedStaff = order?.assigned_to === user?.id
-  
-  // Check if current user is warehouse manager (can confirm warehouse delivery)
+  // Check if current user is warehouse manager (can confirm delivery)
   const isWarehouseManager = WAREHOUSE_MANAGER_ROLES.includes(user?.user_level_code || '')
 
   if (isLoading) {
@@ -108,43 +99,13 @@ export default function DistributionOrderDetailPage() {
   const totalRooms = order.rooms?.length || 0
   const progress = totalRooms > 0 ? Math.round((completedRooms / totalRooms) * 100) : 0
 
-  const handleConfirmRoom = (
-    roomOrderId: string,
-    items: { item_id: string; quantity_confirmed: number }[],
-    additionalItems: { item_id: string; quantity: number }[]
-  ) => {
-    completeDelivery({ 
-      roomOrderId, 
-      items,
-      additionalItems,
-      orderCode: order?.order_code,
-      roomNumber: selectedRoom?.room_number,
-      createdByUserId: order?.created_by,
-    }, {
-      onSuccess: () => {
-        setShowConfirmReceiptDialog(false)
-        setSelectedRoom(null)
-      }
-    })
-  }
+  // Check if ALL rooms are still pending (can edit)
+  const allRoomsPending = order.rooms?.every(r => r.status === 'pending') ?? false
+  const canEdit = order.status === 'pending' && allRoomsPending
+  const canCancel = order.status === 'pending' || order.status === 'in_progress'
 
-  const handleConfirmWarehouseDelivery = (roomOrderId: string) => {
+  const handleConfirmDelivery = (roomOrderId: string) => {
     confirmWarehouseDelivery({ roomOrderId })
-  }
-
-  const handleRejectRoom = () => {
-    if (!selectedRoom || !user?.id || !rejectionReason.trim()) return
-    rejectDelivery({
-      distributionOrderRoomId: selectedRoom.id,
-      rejectedBy: user.id,
-      rejectionReason: rejectionReason.trim()
-    }, {
-      onSuccess: () => {
-        setShowRejectDialog(false)
-        setSelectedRoom(null)
-        setRejectionReason('')
-      }
-    })
   }
 
   const handleUndoRoom = () => {
@@ -177,29 +138,20 @@ export default function DistributionOrderDetailPage() {
   const canUndoRoom = (room: DistributionOrderRoom) => {
     if (room.status !== 'confirmed' || !room.confirmed_at) return false
     const hoursSinceConfirm = differenceInHours(new Date(), new Date(room.confirmed_at))
-    return hoursSinceConfirm < 24 && isAssignedStaff
+    return hoursSinceConfirm < 24 && isWarehouseManager
   }
 
-  const canCancel = order.status === 'pending' || order.status === 'in_progress'
-  const canEdit = order.status === 'pending'
-  // Room card component for reuse
+  // Room card component
   const RoomCard = ({ room }: { room: DistributionOrderRoom }) => {
     const roomConfig = ROOM_STATUS_CONFIG[room.status]
-    
-    // Warehouse manager can confirm warehouse delivery (pending -> delivered)
-    const canConfirmWarehouse = room.status === 'pending' && isWarehouseManager
-    
-    // Assigned staff can confirm receipt (delivered -> confirmed) or reject
-    const canConfirmReceipt = room.status === 'delivered' && isAssignedStaff
-    
+    const canConfirm = room.status === 'pending' && isWarehouseManager
     const canUndo = canUndoRoom(room)
 
     return (
       <Card className={cn(
         'transition-all',
         room.status === 'confirmed' && 'border-green-200 bg-green-50/30',
-        room.status === 'rejected' && 'border-red-200 bg-red-50/30',
-        room.status === 'delivered' && 'border-blue-200 bg-blue-50/30'
+        room.status === 'rejected' && 'border-red-200 bg-red-50/30'
       )}>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
@@ -222,9 +174,10 @@ export default function DistributionOrderDetailPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">x{item.quantity}</Badge>
-                  {item.quantity_confirmed !== null && item.quantity_confirmed !== item.quantity && (
+                  {/* Chỉ hiển thị số lượng nhận khi đã xác nhận VÀ khác với số yêu cầu */}
+                  {room.status === 'confirmed' && item.quantity_confirmed !== null && item.quantity_confirmed !== item.quantity && (
                     <Badge variant={item.quantity_confirmed < item.quantity ? 'destructive' : 'outline'}>
-                      Nhận: {item.quantity_confirmed}
+                      Thực: {item.quantity_confirmed}
                     </Badge>
                   )}
                 </div>
@@ -232,68 +185,24 @@ export default function DistributionOrderDetailPage() {
             ))}
           </div>
 
-          {/* Warehouse manager: Confirm warehouse delivery (pending -> delivered) */}
+          {/* Warehouse manager: Confirm delivery (pending -> confirmed) */}
           {room.status === 'pending' && (
             <>
-              {canConfirmWarehouse ? (
+              {canConfirm ? (
                 <div className="pt-2">
                   <Button 
                     className="w-full" 
-                    variant="outline"
-                    onClick={() => handleConfirmWarehouseDelivery(room.id)}
+                    onClick={() => handleConfirmDelivery(room.id)}
                     disabled={isConfirmingWarehouse}
                   >
-                    <Truck className="h-4 w-4 mr-2" />
-                    {isConfirmingWarehouse ? t('warehouseDelivery.confirming') : t('warehouseDelivery.confirmButton')}
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 p-2 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-xs">
-                  <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                  <span>{t('warehouseDelivery.onlyWarehouseManager')}</span>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Delivered info */}
-          {room.status === 'delivered' && room.delivered_at && room.delivered_by_name && (
-            <div className="text-xs text-muted-foreground py-1">
-              {t('warehouseDelivery.deliveredBy', { name: room.delivered_by_name })}{' '}
-              {t('warehouseDelivery.deliveredAt', { date: format(new Date(room.delivered_at), 'HH:mm dd/MM', { locale: vi }) })}
-            </div>
-          )}
-
-          {/* Assigned staff: Confirm receipt or reject (delivered -> confirmed/rejected) */}
-          {room.status === 'delivered' && (
-            <>
-              {canConfirmReceipt ? (
-                <div className="flex gap-2 pt-2">
-                  <Button 
-                    className="flex-1" 
-                    onClick={() => {
-                      setSelectedRoom(room)
-                      setShowConfirmReceiptDialog(true)
-                    }}
-                    disabled={isPending}
-                  >
                     <CheckCircle className="h-4 w-4 mr-2" />
-                    Xác nhận nhận hàng
-                  </Button>
-                  <Button 
-                    variant="destructive"
-                    onClick={() => {
-                      setSelectedRoom(room)
-                      setShowRejectDialog(true)
-                    }}
-                  >
-                    <XCircle className="h-4 w-4" />
+                    {isConfirmingWarehouse ? 'Đang xử lý...' : 'Xác nhận giao hàng'}
                   </Button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 p-2 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-xs">
                   <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                  <span>Chỉ nhân viên được phân công ({order.assigned_to_name || 'Chưa phân công'}) mới có thể xác nhận nhận hàng</span>
+                  <span>Chỉ quản lý kho mới có thể xác nhận giao hàng</span>
                 </div>
               )}
             </>
@@ -425,45 +334,13 @@ export default function DistributionOrderDetailPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Từ chối giao hàng</DialogTitle>
-            <DialogDescription>
-              Từ chối giao hàng cho phòng {selectedRoom?.room_number}. Sản phẩm sẽ được hoàn trả về kho.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="rejection-reason">Lý do từ chối *</Label>
-              <Textarea
-                id="rejection-reason"
-                placeholder="Nhập lý do từ chối..."
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>Hủy</Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleRejectRoom}
-              disabled={isRejecting || !rejectionReason.trim()}
-            >
-              {isRejecting ? 'Đang xử lý...' : 'Xác nhận từ chối'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <AlertDialog open={showUndoDialog} onOpenChange={setShowUndoDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Hoàn tác xác nhận</AlertDialogTitle>
             <AlertDialogDescription>
               Hoàn tác xác nhận giao hàng cho phòng {selectedRoom?.room_number}? 
-              Sản phẩm sẽ được chuyển về trạng thái chờ giao.
+              Phòng sẽ được chuyển về trạng thái chờ xác nhận.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -474,6 +351,12 @@ export default function DistributionOrderDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      <EditDistributionOrderDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        order={order}
+      />
       </>
     )
   }
@@ -547,7 +430,7 @@ export default function DistributionOrderDetailPage() {
             </div>
             <div>
               <div className="text-2xl font-bold">{completedRooms}</div>
-              <div className="text-sm text-muted-foreground">Đã xử lý</div>
+              <div className="text-sm text-muted-foreground">Đã giao</div>
             </div>
           </CardContent>
         </Card>
@@ -629,45 +512,13 @@ export default function DistributionOrderDetailPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Từ chối giao hàng</DialogTitle>
-            <DialogDescription>
-              Từ chối giao hàng cho phòng {selectedRoom?.room_number}. Sản phẩm sẽ được hoàn trả về kho.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="rejection-reason-desktop">Lý do từ chối *</Label>
-              <Textarea
-                id="rejection-reason-desktop"
-                placeholder="Nhập lý do từ chối..."
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>Hủy</Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleRejectRoom}
-              disabled={isRejecting || !rejectionReason.trim()}
-            >
-              {isRejecting ? 'Đang xử lý...' : 'Xác nhận từ chối'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <AlertDialog open={showUndoDialog} onOpenChange={setShowUndoDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Hoàn tác xác nhận</AlertDialogTitle>
             <AlertDialogDescription>
               Hoàn tác xác nhận giao hàng cho phòng {selectedRoom?.room_number}? 
-              Sản phẩm sẽ được chuyển về trạng thái chờ giao.
+              Phòng sẽ được chuyển về trạng thái chờ xác nhận.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
