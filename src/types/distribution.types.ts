@@ -25,8 +25,12 @@ export interface DistributionOrderRoom {
   room_number: string
   floor: number
   status: DistributionRoomStatus
+  delivered_at: string | null
+  delivered_by: string | null
+  delivered_by_name: string | null
   confirmed_at: string | null
   confirmed_by_name: string | null
+  rejection_reason: string | null
   items: DistributionOrderItem[]
 }
 

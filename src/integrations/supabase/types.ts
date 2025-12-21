@@ -5265,6 +5265,10 @@ export type Database = {
         }
         Returns: Json
       }
+      confirm_warehouse_delivery: {
+        Args: { p_delivered_by: string; p_room_order_id: string }
+        Returns: Json
+      }
       create_default_categories: {
         Args: { p_tenant_id: string }
         Returns: undefined
