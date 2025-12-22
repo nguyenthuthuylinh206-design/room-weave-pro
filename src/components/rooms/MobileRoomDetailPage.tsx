@@ -125,6 +125,15 @@ export function MobileRoomDetailPage() {
   const handleRefresh = async () => {
     await refetch()
   }
+
+  const handleBack = () => {
+    // Prefer history back to avoid pushing a new /rooms entry (prevents back-loop between list and detail)
+    if (window.history.length > 1) {
+      navigate(-1)
+      return
+    }
+    navigate('/rooms')
+  }
   
   if (isLoading) {
     return <MobileRoomDetailSkeleton />
@@ -135,7 +144,7 @@ export function MobileRoomDetailPage() {
       <div className="flex flex-col min-h-screen bg-background">
         <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/rooms')}>
+            <Button variant="ghost" size="icon" onClick={handleBack}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="text-lg font-semibold">{t('roomDetail')}</h1>
@@ -167,10 +176,10 @@ export function MobileRoomDetailPage() {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b px-4 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/rooms')}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={handleBack}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-bold">{t('detail.title', { number: room.room_number })}</h1>
