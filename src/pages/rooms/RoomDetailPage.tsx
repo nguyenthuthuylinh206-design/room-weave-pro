@@ -263,64 +263,34 @@ export function RoomDetailPage() {
         
         {/* Right Column */}
         <div className="space-y-6">
-          {/* Stats Cards */}
-          <div className="grid gap-4">
-            <RoomHealthScore 
-              checks={checks}
-              totalItems={standardItems.length}
-              missingItems={missingCount}
-            />
-            
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{t('rooms:detail.totalItems')}</p>
-                    <p className="text-2xl font-bold">{totalItemsInRoom}</p>
-                    {otherItems.length > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {t('rooms:itemsList.tabs.required')}: {standardItems.length} | {t('rooms:itemsList.tabs.other')}: {otherItems.length}
-                      </p>
-                    )}
-                  </div>
-                  <div className="rounded-full bg-blue-100 p-3">
-                    <CheckCircle2 className="h-6 w-6 text-blue-600" />
-                  </div>
+          {/* Health Score with inline stats */}
+          <RoomHealthScore 
+            checks={checks}
+            totalItems={standardItems.length}
+            missingItems={missingCount}
+          />
+          
+          {/* Inline Stats Row */}
+          <Card>
+            <CardContent className="py-4">
+              <div className="flex items-center justify-around">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-primary">{totalItemsInRoom}</p>
+                  <p className="text-xs text-muted-foreground">{t('rooms:detail.totalItems')}</p>
                 </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{t('rooms:detail.complete')}</p>
-                    <p className="text-2xl font-bold text-green-600">{completeItems}</p>
-                  </div>
-                  <div className="rounded-full bg-green-100 p-3">
-                    <CheckCircle2 className="h-6 w-6 text-green-600" />
-                  </div>
+                <div className="h-10 w-px bg-border" />
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-green-600">{completeItems}</p>
+                  <p className="text-xs text-muted-foreground">{t('rooms:detail.complete')}</p>
                 </div>
-              </CardContent>
-            </Card>
-            
-            {missingCount > 0 && (
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">{t('rooms:detail.missing')}</p>
-                      <p className="text-2xl font-bold text-red-600">{t('rooms:detail.missingTypes', { count: missingCount })}</p>
-                      <p className="text-xs text-muted-foreground">{t('rooms:detail.missingItems', { count: totalMissingQuantity })}</p>
-                    </div>
-                    <div className="rounded-full bg-red-100 p-3">
-                      <AlertCircle className="h-6 w-6 text-red-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                <div className="h-10 w-px bg-border" />
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-destructive">{missingCount}</p>
+                  <p className="text-xs text-muted-foreground">{t('rooms:detail.missing')}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Distribution History */}
           <div ref={deliveryRef}>

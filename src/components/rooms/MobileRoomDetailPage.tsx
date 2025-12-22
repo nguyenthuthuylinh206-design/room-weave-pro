@@ -21,12 +21,19 @@ import {
   PackagePlus,
   Gift,
   LogOut,
+  MoreVertical,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
 import { RoomItemsList } from '@/components/rooms/RoomItemsList'
@@ -182,7 +189,7 @@ export function MobileRoomDetailPage() {
             </div>
           </div>
         <div className="flex items-center gap-1">
-            {/* Button 1: Bổ sung thiếu - only show when missing items */}
+            {/* Primary action: Supplement missing items */}
             {missingCount > 0 && (
               <Button 
                 variant="default" 
@@ -194,56 +201,52 @@ export function MobileRoomDetailPage() {
                 }}
               >
                 <PackagePlus className="h-4 w-4" />
-                <span className="hidden sm:inline">{t('detail.supplementMissing')}</span>
                 <Badge variant="secondary" className="ml-1 h-5 px-1.5 bg-white/20 text-white">
                   {missingCount}
                 </Badge>
               </Button>
             )}
-            {/* Button 2: Cấp thêm đồ - always show for consumables */}
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="h-8 gap-1"
-              onClick={() => {
-                setSupplementMode('extra')
-                setShowSupplementSheet(true)
-              }}
-            >
-              <Gift className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('detail.extraItems')}</span>
-            </Button>
-            <Button
-              variant="ghost" 
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => handlePrintItemList(room.room_number, items, t)}
-              title={t('detail.printItemList')}
-            >
-              <Printer className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => applyStandards.mutate(id!)}
-              disabled={applyStandards.isPending}
-              title={standardItems.length === 0 ? t('detail.applyStandards') : t('detail.syncStandards')}
-            >
-              <RefreshCw className={`h-4 w-4 ${applyStandards.isPending ? 'animate-spin' : ''}`} />
-            </Button>
+            {/* Check room button */}
             <Button 
               variant="ghost" 
               size="icon"
               className="h-8 w-8"
               onClick={() => navigate(`/rooms/${id}/check`)}
-              title={t('detail.checkRoom')}
             >
               <ClipboardCheck className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/rooms/${id}/edit`)}>
-              <Edit className="h-4 w-4" />
-            </Button>
+            {/* More actions dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => {
+                  setSupplementMode('extra')
+                  setShowSupplementSheet(true)
+                }}>
+                  <Gift className="h-4 w-4 mr-2" />
+                  {t('detail.extraItems')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handlePrintItemList(room.room_number, items, t)}>
+                  <Printer className="h-4 w-4 mr-2" />
+                  {t('detail.printItemList')}
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => applyStandards.mutate(id!)}
+                  disabled={applyStandards.isPending}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${applyStandards.isPending ? 'animate-spin' : ''}`} />
+                  {standardItems.length === 0 ? t('detail.applyStandards') : t('detail.syncStandards')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate(`/rooms/${id}/edit`)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  {t('detail.editInfo')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
@@ -257,38 +260,24 @@ export function MobileRoomDetailPage() {
         initialMode={supplementMode}
       />
 
-      {/* Stats Cards */}
+      {/* Compact Stats Row + Health Score */}
       <div className="px-4 py-3">
-        <div className="grid grid-cols-3 gap-3">
-          <Card>
-            <CardContent className="p-3 text-center">
-              <p className="text-2xl font-bold text-blue-600">{totalItemsInRoom}</p>
-              <p className="text-xs text-muted-foreground">{t('detail.totalItems')}</p>
-              {otherItems.length > 0 && (
-                <p className="text-[10px] text-muted-foreground">{t('itemsList.tabs.other')}: {otherItems.length}</p>
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3 text-center">
-              <p className="text-2xl font-bold text-green-600">{completeItems}</p>
-              <p className="text-xs text-muted-foreground">{t('detail.complete')}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3 text-center">
-              <p className="text-2xl font-bold text-red-600">{missingCount}</p>
-              <p className="text-xs text-muted-foreground">{t('detail.missing')}</p>
-              {totalMissingQuantity > 0 && (
-                <p className="text-[10px] text-red-500">{t('detail.missingCount', { count: totalMissingQuantity })}</p>
-              )}
-            </CardContent>
-          </Card>
+        <div className="flex items-center justify-around p-3 bg-muted/50 rounded-lg mb-3">
+          <div className="text-center">
+            <p className="text-xl font-bold text-primary">{totalItemsInRoom}</p>
+            <p className="text-[10px] text-muted-foreground">{t('detail.totalItems')}</p>
+          </div>
+          <div className="h-8 w-px bg-border" />
+          <div className="text-center">
+            <p className="text-xl font-bold text-green-600">{completeItems}</p>
+            <p className="text-[10px] text-muted-foreground">{t('detail.complete')}</p>
+          </div>
+          <div className="h-8 w-px bg-border" />
+          <div className="text-center">
+            <p className="text-xl font-bold text-destructive">{missingCount}</p>
+            <p className="text-[10px] text-muted-foreground">{t('detail.missing')}</p>
+          </div>
         </div>
-      </div>
-
-      {/* Health Score */}
-      <div className="px-4 pb-3">
         <RoomHealthScore 
           checks={checks} 
           totalItems={standardItems.length} 
@@ -341,9 +330,9 @@ export function MobileRoomDetailPage() {
         </div>
       )}
 
-      {/* Tabs */}
+      {/* Tabs - Consolidated from 4 to 3 */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
-        <TabsList className="w-full justify-start px-4 bg-transparent border-b rounded-none h-auto gap-2 overflow-x-auto">
+        <TabsList className="w-full justify-start px-4 bg-transparent border-b rounded-none h-auto gap-4">
           <TabsTrigger 
             value="info" 
             className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-2 text-sm"
@@ -355,20 +344,9 @@ export function MobileRoomDetailPage() {
             className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-2 text-sm"
           >
             {t('tabs.items')}
-            {missingCount > 0 && (
+            {(missingCount > 0 || pendingDeliveryCount > 0) && (
               <Badge variant="destructive" className="ml-1 h-5 px-1.5">
-                {missingCount}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger 
-            value="delivery"
-            className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-2 text-sm relative"
-          >
-            {t('distribution:roomHistory.tabTitle')}
-            {pendingDeliveryCount > 0 && (
-              <Badge variant="destructive" className="ml-1 h-5 px-1.5 animate-pulse">
-                {pendingDeliveryCount}
+                {missingCount + pendingDeliveryCount}
               </Badge>
             )}
           </TabsTrigger>
@@ -506,9 +484,9 @@ export function MobileRoomDetailPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="items" className="flex-1 p-4 pb-20 m-0">
+        <TabsContent value="items" className="flex-1 p-4 pb-20 m-0 space-y-4">
           {totalItemsInRoom === 0 && (
-            <Card className="mb-4 border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+            <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
               <CardContent className="p-3 flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                 <div>
@@ -530,9 +508,7 @@ export function MobileRoomDetailPage() {
               setShowSupplementSheet(true)
             }}
           />
-        </TabsContent>
-
-        <TabsContent value="delivery" className="flex-1 p-4 pb-20 m-0">
+          {/* Distribution History integrated into Items tab */}
           <RoomDistributionHistory roomId={id!} roomNumber={room.room_number} />
         </TabsContent>
 

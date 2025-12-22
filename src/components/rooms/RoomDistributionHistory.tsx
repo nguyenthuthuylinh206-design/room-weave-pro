@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Accordion } from '@/components/ui/accordion'
+import { cn } from '@/lib/utils'
 import { 
   Dialog, 
   DialogContent, 
@@ -143,9 +144,9 @@ export function RoomDistributionHistory({ roomId, roomNumber }: RoomDistribution
     })
   }
 
-  // Default open pending items
+  // Default open only first pending item
   const defaultOpenItems = useMemo(() => 
-    pendingOrders.map(o => o.room_order_id),
+    pendingOrders.length > 0 ? [pendingOrders[0].room_order_id] : [],
     [pendingOrders]
   )
 
@@ -201,7 +202,7 @@ export function RoomDistributionHistory({ roomId, roomNumber }: RoomDistribution
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 pb-20">
+        <CardContent className={cn("space-y-4", selectedOrders.length > 0 && "pb-20")}>
           {/* Pending Section */}
           {pendingOrders.length > 0 && (
             <div className="space-y-2">
