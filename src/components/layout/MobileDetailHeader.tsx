@@ -29,10 +29,8 @@ export const MobileDetailHeader = ({
   const handleBack = () => {
     if (onBack) {
       onBack()
-    } else if (window.history.length > 1) {
-      navigate(-1)
     } else {
-      navigate('/')
+      navigate(-1)
     }
   }
 
