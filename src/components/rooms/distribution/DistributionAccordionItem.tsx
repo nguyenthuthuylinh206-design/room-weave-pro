@@ -93,8 +93,8 @@ export function DistributionAccordionItem({
         isPending && config.bgColor
       )}
     >
-      <AccordionTrigger className="px-4 py-3 hover:no-underline [&[data-state=open]>svg]:rotate-180">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
+      <AccordionTrigger className="px-3 py-2 hover:no-underline [&[data-state=open]>svg]:rotate-180">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           {/* Checkbox for pending items */}
           {isPending && (
             <Checkbox 
@@ -106,18 +106,18 @@ export function DistributionAccordionItem({
           )}
           
           {/* Status Icon */}
-          <StatusIcon className={cn("h-5 w-5 shrink-0", config.color)} />
+          <StatusIcon className={cn("h-4 w-4 shrink-0", config.color)} />
           
-          {/* Order Info */}
+          {/* Order Info - Compact */}
           <div className="flex-1 min-w-0 text-left">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5">
               <span className="font-medium text-sm">{item.order_code}</span>
-              <Badge variant={config.variant} className="text-xs">
+              <Badge variant={config.variant} className="text-[10px] px-1.5 py-0">
                 {config.label}
               </Badge>
-            </div>
-            <div className="text-xs text-muted-foreground mt-0.5">
-              {item.total_items} loại • {item.total_quantity} sản phẩm
+              <span className="text-xs text-muted-foreground">
+                • {item.total_quantity} sp
+              </span>
             </div>
           </div>
           
@@ -132,24 +132,21 @@ export function DistributionAccordionItem({
         </div>
       </AccordionTrigger>
       
-      <AccordionContent className="px-4 pb-4">
-        {/* Items List */}
-        <div className="bg-background/80 rounded-lg border p-3 mb-3">
-          <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
-            <Package className="h-3.5 w-3.5" />
-            Danh sách sản phẩm
+      <AccordionContent className="px-3 pb-3">
+        {/* Items List - Compact */}
+        <div className="bg-muted/50 rounded border p-2 mb-2">
+          <div className="text-[10px] font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
+            <Package className="h-3 w-3" />
+            Sản phẩm
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {item.items.map((i) => (
               <div 
                 key={i.item_id} 
-                className="flex items-center justify-between py-1.5 px-2 bg-accent/50 rounded text-sm"
+                className="flex items-center justify-between py-1 px-1.5 bg-background rounded text-xs"
               >
-                <div className="min-w-0 flex-1">
-                  <span className="text-foreground">{i.item_name}</span>
-                  <span className="text-muted-foreground text-xs ml-1">({i.item_code})</span>
-                </div>
-                <Badge variant="secondary" className="text-xs font-medium shrink-0 ml-2">
+                <span className="text-foreground truncate">{i.item_name}</span>
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0 ml-1">
                   x{i.quantity}
                 </Badge>
               </div>
