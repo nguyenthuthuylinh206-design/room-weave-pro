@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useItems } from '@/hooks/useItems'
 import { useRooms } from '@/hooks/useRooms'
 import { toast } from 'sonner'
-import type { RoomItemAllocation } from './DistributionPanel'
+import type { RoomItemAllocation } from './hooks/useDistributionForm'
 
 interface AllocationTableProps {
   selectedRoomIds: string[]

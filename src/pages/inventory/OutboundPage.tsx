@@ -22,7 +22,8 @@ import { ItemSelect } from '@/components/shared/ItemSelect';
 import { ImageUpload } from '@/components/shared/ImageUpload';
 import { LaundryVendorSelect } from '@/components/shared/LaundryVendorSelect';
 import { MaintenanceRequestSelect } from '@/components/shared/MaintenanceRequestSelect';
-import { DistributionPanel, RoomItemAllocation, StockValidation } from '@/components/distribution/DistributionPanel';
+import { DistributionForm } from '@/components/distribution/forms/DistributionForm';
+import { useDistributionForm, RoomItemAllocation, StockValidation } from '@/components/distribution/hooks/useDistributionForm';
 import { useCreateOutboundTransaction } from '@/hooks/useInventoryTransactions';
 import { useCreateDistributionOrder } from '@/hooks/useDistributionOrders';
 import { useCreateLaundryBatch } from '@/hooks/useLaundryBatches';
@@ -127,11 +128,10 @@ export function OutboundPage() {
   const navigate = useNavigate();
   const { isMobile } = useBreakpoint();
   
-  // Distribution states for room_assign
-  const [allocations, setAllocations] = useState<RoomItemAllocation[]>([]);
-  const [assignedTo, setAssignedTo] = useState<string>('');
-  const [distributionNotes, setDistributionNotes] = useState('');
-  const [stockValidation, setStockValidation] = useState<StockValidation>({ isValid: true, overStockItems: [] });
+  // Distribution form hook for room_assign
+  const distributionForm = useDistributionForm();
+  
+  // Laundry state
   
   // Laundry state
   const [selectedVendor, setSelectedVendor] = useState<any>(null);
@@ -217,9 +217,7 @@ export function OutboundPage() {
   }, [selectedVendor, laundryTotalWeight]);
   const laundryHasStockError = laundryItems.some(item => item.quantity > item.available_quantity);
   
-  const handleStockValidationChange = useCallback((validation: StockValidation) => {
-    setStockValidation(validation);
-  }, []);
+  // No longer needed - using distributionForm hook
 
   // Mobile view - AFTER all hooks
   if (isMobile) {
@@ -229,15 +227,15 @@ export function OutboundPage() {
   const onSubmit = (data: OutboundFormData) => {
     if (data.transaction_category === 'room_assign') {
       // Use Distribution Order for room assignments
-      const validAllocations = allocations.filter(a => a.items.length > 0);
+      const validAllocations = distributionForm.allocations.filter(a => a.items.length > 0);
       if (validAllocations.length === 0) {
         return;
       }
       
       createDistributionOrder({
-        assigned_to: assignedTo || undefined,
-        notes: distributionNotes || undefined,
-        rooms: allocations.filter(a => a.items.length > 0),
+        assigned_to: distributionForm.assignedTo || undefined,
+        notes: distributionForm.notes || undefined,
+        rooms: validAllocations,
       }, {
         onSuccess: (result) => {
           navigate(`/inventory/distributions/${result.order_id}`);
@@ -417,12 +415,7 @@ export function OutboundPage() {
           
           {/* Distribution Form for room_assign */}
           {category === 'room_assign' && (
-            <DistributionPanel
-              onAllocationsChange={setAllocations}
-              onValidationChange={handleStockValidationChange}
-              onAssignedToChange={setAssignedTo}
-              onNotesChange={setDistributionNotes}
-            />
+            <DistributionForm form={distributionForm} />
           )}
           
           {/* Laundry Batch Form */}
@@ -1003,7 +996,7 @@ export function OutboundPage() {
           )}
           
           {/* Summary for room_assign */}
-          {category === 'room_assign' && allocations.length > 0 && (
+          {category === 'room_assign' && distributionForm.allocations.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle>{t('distribution:createOrder.summary')}</CardTitle>
@@ -1012,18 +1005,18 @@ export function OutboundPage() {
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="rounded-lg border p-4 text-center">
                     <p className="text-sm text-muted-foreground">{t('distribution:createOrder.totalRooms')}</p>
-                    <p className="text-3xl font-bold">{allocations.length}</p>
+                    <p className="text-3xl font-bold">{distributionForm.summary.roomCount}</p>
                   </div>
                   <div className="rounded-lg border p-4 text-center">
                     <p className="text-sm text-muted-foreground">{t('distribution:createOrder.totalItemTypes')}</p>
                     <p className="text-3xl font-bold">
-                      {new Set(allocations.flatMap(a => a.items.map(i => i.item_id))).size}
+                      {distributionForm.summary.itemTypesCount}
                     </p>
                   </div>
                   <div className="rounded-lg border p-4 text-center">
                     <p className="text-sm text-muted-foreground">{t('distribution:createOrder.totalUnits')}</p>
                     <p className="text-3xl font-bold text-blue-600">
-                      {allocations.reduce((sum, a) => sum + a.items.reduce((s, i) => s + i.quantity, 0), 0)}
+                      {distributionForm.summary.totalItems}
                     </p>
                   </div>
                 </div>
@@ -1038,7 +1031,7 @@ export function OutboundPage() {
             {category === 'room_assign' ? (
               <Button 
                 type="submit" 
-                disabled={isDistributionLoading || !stockValidation.isValid || allocations.filter(a => a.items.length > 0).length === 0}
+                disabled={isDistributionLoading || !distributionForm.isValid}
               >
                 {isDistributionLoading ? t('distribution:createOrder.creating') : t('distribution:createOrder.create')}
               </Button>
