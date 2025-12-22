@@ -1,12 +1,9 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { format, differenceInHours } from 'date-fns'
-import { vi } from 'date-fns/locale'
-import { Truck, CheckCircle, Clock, XCircle, Package, ChevronRight, AlertCircle, Undo2 } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Truck, Package, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Accordion } from '@/components/ui/accordion'
 import { 
   Dialog, 
   DialogContent, 
@@ -17,25 +14,26 @@ import {
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { useRoomDistributionHistory, useRejectRoomDelivery, useUndoRoomDelivery } from '@/hooks/useRoomDistributionHistory'
-import { useCompleteRoomDelivery } from '@/hooks/useDistributionOrders'
+import { Button } from '@/components/ui/button'
+import { 
+  useRoomDistributionHistory, 
+  useConfirmRoomDelivery,
+  useBatchConfirmDeliveries,
+  useRejectRoomDelivery, 
+  useUndoRoomDelivery,
+  type RoomDistributionHistoryItem
+} from '@/hooks/useRoomDistributionHistory'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTenant } from '@/hooks/useTenant'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { triggerDistributionDeliveryRejected } from '@/hooks/useNotificationTriggers'
-import { cn } from '@/lib/utils'
+import { DistributionAccordionItem } from './distribution/DistributionAccordionItem'
+import { BatchConfirmBar } from './distribution/BatchConfirmBar'
 import { useTranslation } from 'react-i18next'
 
 interface RoomDistributionHistoryProps {
   roomId: string
   roomNumber?: string
-}
-
-const STATUS_CONFIG = {
-  pending: { label: 'Chờ giao', icon: Clock, variant: 'secondary' as const, color: 'text-muted-foreground' },
-  delivered: { label: 'Đang giao', icon: Truck, variant: 'default' as const, color: 'text-blue-600' },
-  confirmed: { label: 'Đã xác nhận', icon: CheckCircle, variant: 'default' as const, color: 'text-green-600' },
-  rejected: { label: 'Từ chối', icon: XCircle, variant: 'destructive' as const, color: 'text-destructive' }
 }
 
 export function RoomDistributionHistory({ roomId, roomNumber }: RoomDistributionHistoryProps) {
@@ -45,72 +43,70 @@ export function RoomDistributionHistory({ roomId, roomNumber }: RoomDistribution
   const { selectedHotel } = useHotelContext()
   const { data: history, isLoading } = useRoomDistributionHistory(roomId)
   
+  const [selectedOrders, setSelectedOrders] = useState<string[]>([])
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
-  const [selectedOrderRoomId, setSelectedOrderRoomId] = useState<string | null>(null)
-  const [selectedOrderInfo, setSelectedOrderInfo] = useState<{
-    orderId: string
-    orderCode: string
-    createdByUserId: string
-    assignedToUserId: string | null
-  } | null>(null)
+  const [selectedItem, setSelectedItem] = useState<RoomDistributionHistoryItem | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
 
-  const completeDelivery = useCompleteRoomDelivery()
+  const confirmDelivery = useConfirmRoomDelivery()
+  const batchConfirm = useBatchConfirmDeliveries()
   const rejectDelivery = useRejectRoomDelivery()
   const undoDelivery = useUndoRoomDelivery()
 
-  const handleConfirm = async (item: typeof history[0]) => {
-    if (!user?.id) return
-    
-    // Find the distribution_order_room_id from the history
-    const { data: roomOrder } = await import('@/integrations/supabase/client').then(m => 
-      m.supabase
-        .from('distribution_order_rooms')
-        .select('id, distribution_order_id, distribution_orders(created_by)')
-        .eq('distribution_order_id', item.order_id)
-        .eq('room_id', roomId)
-        .single()
+  // Separate pending vs processed
+  const { pendingOrders, processedOrders } = useMemo(() => {
+    if (!history) return { pendingOrders: [], processedOrders: [] }
+    return {
+      pendingOrders: history.filter(h => h.room_status === 'pending' || h.room_status === 'delivered'),
+      processedOrders: history.filter(h => h.room_status !== 'pending' && h.room_status !== 'delivered')
+    }
+  }, [history])
+
+  // Selection handlers
+  const handleSelect = (id: string, selected: boolean) => {
+    setSelectedOrders(prev => 
+      selected ? [...prev, id] : prev.filter(x => x !== id)
     )
+  }
 
-    if (!roomOrder) return
+  const handleSelectAll = () => {
+    setSelectedOrders(pendingOrders.map(o => o.room_order_id))
+  }
 
-    completeDelivery.mutate({
-      roomOrderId: roomOrder.id,
-      orderCode: item.order_code,
-      roomNumber: roomNumber,
-      createdByUserId: (roomOrder.distribution_orders as any)?.created_by,
+  const handleClearSelection = () => {
+    setSelectedOrders([])
+  }
+
+  // Action handlers
+  const handleConfirm = (item: RoomDistributionHistoryItem) => {
+    if (!user?.id) return
+    confirmDelivery.mutate({
+      roomOrderId: item.room_order_id,
+      confirmedBy: user.id
     })
   }
 
-  const handleOpenRejectDialog = async (item: typeof history[0]) => {
-    // Find the distribution_order_room_id
-    const { data: roomOrder } = await import('@/integrations/supabase/client').then(m => 
-      m.supabase
-        .from('distribution_order_rooms')
-        .select('id, distribution_order_id, distribution_orders(created_by, assigned_to)')
-        .eq('distribution_order_id', item.order_id)
-        .eq('room_id', roomId)
-        .single()
-    )
-
-    if (!roomOrder) return
-
-    setSelectedOrderRoomId(roomOrder.id)
-    setSelectedOrderInfo({
-      orderId: item.order_id,
-      orderCode: item.order_code,
-      createdByUserId: (roomOrder.distribution_orders as any)?.created_by,
-      assignedToUserId: (roomOrder.distribution_orders as any)?.assigned_to,
+  const handleBatchConfirm = () => {
+    if (!user?.id || selectedOrders.length === 0) return
+    batchConfirm.mutate({
+      roomOrderIds: selectedOrders,
+      confirmedBy: user.id
+    }, {
+      onSuccess: () => setSelectedOrders([])
     })
+  }
+
+  const handleOpenRejectDialog = (item: RoomDistributionHistoryItem) => {
+    setSelectedItem(item)
     setRejectionReason('')
     setRejectDialogOpen(true)
   }
 
   const handleReject = async () => {
-    if (!selectedOrderRoomId || !user?.id || !rejectionReason.trim()) return
+    if (!selectedItem || !user?.id || !rejectionReason.trim()) return
 
     rejectDelivery.mutate({
-      distributionOrderRoomId: selectedOrderRoomId,
+      distributionOrderRoomId: selectedItem.room_order_id,
       rejectedBy: user.id,
       rejectionReason: rejectionReason.trim(),
     }, {
@@ -118,16 +114,16 @@ export function RoomDistributionHistory({ roomId, roomNumber }: RoomDistribution
         setRejectDialogOpen(false)
         
         // Send notification
-        if (tenant?.id && selectedHotel?.id && selectedOrderInfo) {
+        if (tenant?.id && selectedHotel?.id) {
           try {
             await triggerDistributionDeliveryRejected({
               tenantId: tenant.id,
               hotelId: selectedHotel.id,
-              orderId: selectedOrderInfo.orderId,
-              orderCode: selectedOrderInfo.orderCode,
+              orderId: selectedItem.order_id,
+              orderCode: selectedItem.order_code,
               roomNumber: roomNumber || '',
-              createdByUserId: selectedOrderInfo.createdByUserId,
-              assignedToUserId: selectedOrderInfo.assignedToUserId,
+              createdByUserId: user.id,
+              assignedToUserId: null,
               rejectedByUserId: user.id,
               rejectionReason: rejectionReason.trim(),
             })
@@ -139,32 +135,19 @@ export function RoomDistributionHistory({ roomId, roomNumber }: RoomDistribution
     })
   }
 
-  const handleUndo = async (item: typeof history[0]) => {
+  const handleUndo = (item: RoomDistributionHistoryItem) => {
     if (!user?.id) return
-
-    // Find the distribution_order_room_id
-    const { data: roomOrder } = await import('@/integrations/supabase/client').then(m => 
-      m.supabase
-        .from('distribution_order_rooms')
-        .select('id')
-        .eq('distribution_order_id', item.order_id)
-        .eq('room_id', roomId)
-        .single()
-    )
-
-    if (!roomOrder) return
-
     undoDelivery.mutate({
-      distributionOrderRoomId: roomOrder.id,
+      distributionOrderRoomId: item.room_order_id,
       performedBy: user.id,
     })
   }
 
-  const canUndo = (item: typeof history[0]) => {
-    if (item.room_status !== 'confirmed' || !item.confirmed_at) return false
-    const hoursSinceConfirm = differenceInHours(new Date(), new Date(item.confirmed_at))
-    return hoursSinceConfirm <= 24
-  }
+  // Default open pending items
+  const defaultOpenItems = useMemo(() => 
+    pendingOrders.map(o => o.room_order_id),
+    [pendingOrders]
+  )
 
   if (isLoading) {
     return (
@@ -203,136 +186,6 @@ export function RoomDistributionHistory({ roomId, roomNumber }: RoomDistribution
     )
   }
 
-  // Separate pending vs processed orders
-  const pendingOrders = history.filter(h => h.room_status === 'pending' || h.room_status === 'delivered')
-  const processedOrders = history.filter(h => h.room_status !== 'pending' && h.room_status !== 'delivered')
-  const pendingCount = pendingOrders.length
-
-  const renderOrderItem = (item: typeof history[0]) => {
-    const config = STATUS_CONFIG[item.room_status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending
-    const StatusIcon = config.icon
-    const showActions = item.room_status === 'pending' || item.room_status === 'delivered'
-    const showUndoBtn = canUndo(item)
-
-    return (
-      <div 
-        key={item.order_id} 
-        className={cn(
-          "p-3 rounded-lg border transition-colors",
-          showActions && "border-primary/50 bg-primary/5"
-        )}
-      >
-        <div className="flex items-start gap-3">
-          <div className={cn("mt-0.5", config.color)}>
-            <StatusIcon className="h-5 w-5" />
-          </div>
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <Link 
-                to={`/inventory/distributions/${item.order_id}`}
-                className="font-medium text-sm hover:underline"
-              >
-                {item.order_code}
-              </Link>
-              <Badge variant={config.variant} className="text-xs">
-                {t(`distribution:roomHistory.status.${item.room_status}`, { defaultValue: config.label })}
-              </Badge>
-            </div>
-            
-            <div className="text-xs text-muted-foreground space-y-0.5">
-              <p className="flex items-center gap-1">
-                <Package className="h-3 w-3" />
-                {t('distribution:roomHistory.itemsSummary', { types: item.total_items, total: item.total_quantity })}
-              </p>
-              
-              {item.confirmed_at ? (
-                <p>
-                  {t('distribution:roomHistory.confirmedBy', { name: item.confirmed_by_name })} • {' '}
-                  {format(new Date(item.confirmed_at), 'dd/MM/yyyy HH:mm', { locale: vi })}
-                </p>
-              ) : (
-                <p>
-                  {t('distribution:roomHistory.createdAt', { date: format(new Date(item.created_at), 'dd/MM/yyyy HH:mm', { locale: vi }) })}
-                  {item.assigned_to_name && ` • ${t('distribution:roomHistory.assignedTo', { name: item.assigned_to_name })}`}
-                </p>
-              )}
-
-              {item.rejection_reason && (
-                <p className="flex items-center gap-1 text-destructive">
-                  <AlertCircle className="h-3 w-3" />
-                  {t('distribution:roomHistory.rejectionReason', { reason: item.rejection_reason })}
-                </p>
-              )}
-            </div>
-
-            {/* Items list for pending orders */}
-            {item.items && item.items.length > 0 && showActions && (
-              <div className="mt-3 bg-accent/50 dark:bg-accent/30 rounded-lg border border-border/50 p-3">
-                <p className="text-xs font-medium mb-2 flex items-center gap-1.5 text-foreground">
-                  <Package className="h-3.5 w-3.5" />
-                  {t('distribution:roomHistory.itemsToDeliver')}
-                </p>
-                <ul className="text-xs space-y-1.5">
-                  {item.items.map((i) => (
-                    <li key={i.item_id} className="flex justify-between items-center py-1 px-2 bg-background rounded">
-                      <span className="text-muted-foreground">{i.item_name}</span>
-                      <Badge variant="secondary" className="text-xs font-medium">
-                        x{i.quantity}
-                      </Badge>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Action buttons */}
-            {showActions && (
-              <div className="flex gap-2 mt-3">
-                <Button 
-                  size="sm" 
-                  onClick={() => handleConfirm(item)}
-                  disabled={completeDelivery.isPending}
-                >
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  {t('distribution:roomHistory.confirmButton')}
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => handleOpenRejectDialog(item)}
-                  disabled={rejectDelivery.isPending}
-                >
-                  <XCircle className="h-4 w-4 mr-1" />
-                  {t('distribution:roomHistory.rejectButton')}
-                </Button>
-              </div>
-            )}
-
-            {/* Undo button for recently confirmed */}
-            {showUndoBtn && (
-              <div className="mt-3">
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => handleUndo(item)}
-                  disabled={undoDelivery.isPending}
-                >
-                  <Undo2 className="h-4 w-4 mr-1" />
-                  {t('distribution:roomHistory.undoButton', { hours: 24 - differenceInHours(new Date(), new Date(item.confirmed_at!)) })}
-                </Button>
-              </div>
-            )}
-          </div>
-
-          <Link to={`/inventory/distributions/${item.order_id}`}>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <>
       <Card>
@@ -341,43 +194,82 @@ export function RoomDistributionHistory({ roomId, roomNumber }: RoomDistribution
             <Truck className="h-4 w-4" />
             {t('distribution:roomHistory.title')}
             <Badge variant="secondary" className="ml-auto">{history.length}</Badge>
-            {pendingCount > 0 && (
+            {pendingOrders.length > 0 && (
               <Badge variant="destructive" className="animate-pulse">
-                {t('distribution:roomHistory.pendingBadge', { count: pendingCount })}
+                {pendingOrders.length} chờ xác nhận
               </Badge>
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Pending Section - Highlighted */}
-          {pendingCount > 0 && (
+        <CardContent className="space-y-4 pb-20">
+          {/* Pending Section */}
+          {pendingOrders.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-400">
                 <AlertCircle className="h-4 w-4" />
-                {t('distribution:roomHistory.needsAction')}
+                Cần xác nhận
               </div>
-              <div className="space-y-3">
-                {pendingOrders.map(renderOrderItem)}
-              </div>
+              <Accordion 
+                type="multiple" 
+                defaultValue={defaultOpenItems}
+                className="space-y-2"
+              >
+                {pendingOrders.map(item => (
+                  <DistributionAccordionItem
+                    key={item.room_order_id}
+                    item={item}
+                    isSelected={selectedOrders.includes(item.room_order_id)}
+                    onSelect={handleSelect}
+                    onConfirm={handleConfirm}
+                    onReject={handleOpenRejectDialog}
+                    onUndo={handleUndo}
+                    isConfirming={confirmDelivery.isPending}
+                    isRejecting={rejectDelivery.isPending}
+                    isUndoing={undoDelivery.isPending}
+                  />
+                ))}
+              </Accordion>
             </div>
           )}
 
           {/* Processed Section */}
           {processedOrders.length > 0 && (
             <div className="space-y-2">
-              {pendingCount > 0 && (
+              {pendingOrders.length > 0 && (
                 <div className="text-sm font-medium text-muted-foreground pt-2 border-t">
-                  {t('distribution:roomHistory.processedHistory')}
+                  Đã xử lý
                 </div>
               )}
-              <div className="space-y-3">
-                {processedOrders.map(renderOrderItem)}
-              </div>
+              <Accordion type="multiple" className="space-y-2">
+                {processedOrders.map(item => (
+                  <DistributionAccordionItem
+                    key={item.room_order_id}
+                    item={item}
+                    isSelected={false}
+                    onSelect={() => {}}
+                    onConfirm={handleConfirm}
+                    onReject={handleOpenRejectDialog}
+                    onUndo={handleUndo}
+                    isConfirming={confirmDelivery.isPending}
+                    isRejecting={rejectDelivery.isPending}
+                    isUndoing={undoDelivery.isPending}
+                  />
+                ))}
+              </Accordion>
             </div>
           )}
-
         </CardContent>
       </Card>
+
+      {/* Batch Confirm Bar */}
+      <BatchConfirmBar
+        selectedCount={selectedOrders.length}
+        totalPending={pendingOrders.length}
+        onConfirmAll={handleBatchConfirm}
+        onClearSelection={handleClearSelection}
+        onSelectAll={handleSelectAll}
+        isConfirming={batchConfirm.isPending}
+      />
 
       {/* Reject Dialog */}
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
