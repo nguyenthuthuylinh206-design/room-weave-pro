@@ -19,6 +19,7 @@ import { RoomStatusSelector } from './RoomStatusSelector'
 import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
 import { usePendingRoomDistributions } from '@/hooks/usePendingRoomDistributions'
 import { useUser } from '@/hooks/useUser'
+import { hasPermission } from '@/lib/permissions'
 import { formatCurrency } from '@/lib/utils'
 import type { RoomWithStats, RoomStatus } from '@/types/rooms.types'
 
@@ -34,8 +35,10 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
   const navigate = useNavigate()
   const checkSessions = useAllRoomCheckSessions()
   const { data: pendingDistributions } = usePendingRoomDistributions()
-  const { user } = useUser()
-
+  const { user, role } = useUser()
+  
+  // Staff cannot view room details
+  const canViewRoomDetail = hasPermission(role, 'manage_rooms') || role !== 'staff'
   const handleSelectRoom = (roomId: string, checked: boolean) => {
     if (checked) {
       onSelectionChange([...selectedIds, roomId])
@@ -89,10 +92,10 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
         return (
           <Card
             key={room.id}
-            className={`cursor-pointer transition-all hover:shadow-lg ${
+            className={`transition-all hover:shadow-lg ${
               isSelected ? 'ring-2 ring-primary bg-primary/5' : ''
-            }`}
-            onClick={() => navigate(`/rooms/${room.id}`)}
+            } ${canViewRoomDetail ? 'cursor-pointer' : ''}`}
+            onClick={() => canViewRoomDetail && navigate(`/rooms/${room.id}`)}
           >
             <CardHeader>
               <div className="flex items-start justify-between">
@@ -183,17 +186,19 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
           </CardContent>
           
           <CardFooter className="gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="flex-1"
-              onClick={(e) => {
-                e.stopPropagation()
-                navigate(`/rooms/${room.id}`)
-              }}
-            >
-              {t('actions.viewDetail')}
-            </Button>
+            {canViewRoomDetail && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  navigate(`/rooms/${room.id}`)
+                }}
+              >
+                {t('actions.viewDetail')}
+              </Button>
+            )}
             <Button
               size="sm"
               className="flex-1"
