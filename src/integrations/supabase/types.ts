@@ -3375,6 +3375,115 @@ export type Database = {
           },
         ]
       }
+      room_bookings: {
+        Row: {
+          actual_check_in: string | null
+          actual_check_out: string | null
+          booking_reference: string | null
+          booking_source: string | null
+          check_in_date: string
+          check_out_date: string
+          created_at: string | null
+          created_by: string | null
+          guest_count: number | null
+          guest_email: string | null
+          guest_name: string
+          guest_phone: string | null
+          hotel_id: string
+          id: string
+          notes: string | null
+          room_id: string
+          status: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          actual_check_in?: string | null
+          actual_check_out?: string | null
+          booking_reference?: string | null
+          booking_source?: string | null
+          check_in_date: string
+          check_out_date: string
+          created_at?: string | null
+          created_by?: string | null
+          guest_count?: number | null
+          guest_email?: string | null
+          guest_name: string
+          guest_phone?: string | null
+          hotel_id: string
+          id?: string
+          notes?: string | null
+          room_id: string
+          status?: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          actual_check_in?: string | null
+          actual_check_out?: string | null
+          booking_reference?: string | null
+          booking_source?: string | null
+          check_in_date?: string
+          check_out_date?: string
+          created_at?: string | null
+          created_by?: string | null
+          guest_count?: number | null
+          guest_email?: string | null
+          guest_name?: string
+          guest_phone?: string | null
+          hotel_id?: string
+          id?: string
+          notes?: string | null
+          room_id?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_bookings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_bookings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_bookings_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "room_bookings_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_bookings_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_bookings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_check_sessions: {
         Row: {
           check_type: string
@@ -5505,6 +5614,21 @@ export type Database = {
           name_en: string
           sort_order: number
           total_value: number
+        }[]
+      }
+      get_current_room_booking: {
+        Args: { p_room_id: string }
+        Returns: {
+          actual_check_in: string
+          check_in_date: string
+          check_out_date: string
+          guest_count: number
+          guest_email: string
+          guest_name: string
+          guest_phone: string
+          id: string
+          notes: string
+          status: string
         }[]
       }
       get_current_user_role: { Args: never; Returns: string }

@@ -204,7 +204,21 @@
     "na": "N/A",
     "supplement": "Bổ sung",
     "supplementMissing": "Bổ sung thiếu",
-    "extraItems": "Cấp thêm"
+    "extraItems": "Cấp thêm",
+    "currentGuest": "Khách hiện tại",
+    "noCurrentGuest": "Không có khách",
+    "stayDuration": "{{nights}} đêm",
+    "bookingNotes": "Ghi chú đặt phòng",
+    "allItemsComplete": "Đầy đủ đồ dùng",
+    "itemsTotal": "đồ dùng trong phòng",
+    "itemsMissing": "sản phẩm thiếu",
+    "missingQuantity": "Tổng cộng {{count}} món cần bổ sung",
+    "missingItemsList": "Danh sách thiếu",
+    "andMore": "+{{count}} đồ khác",
+    "guestStatus": {
+      "checkedIn": "Đang ở",
+      "confirmed": "Đã đặt"
+    }
   },
   "supplement": {
     "title": "Bổ sung đồ - Phòng {{roomNumber}}",

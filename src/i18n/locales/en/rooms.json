@@ -204,7 +204,21 @@
     "na": "N/A",
     "supplement": "Supplement",
     "supplementMissing": "Fill Missing",
-    "extraItems": "Extra Items"
+    "extraItems": "Extra Items",
+    "currentGuest": "Current Guest",
+    "noCurrentGuest": "No current guest",
+    "stayDuration": "{{nights}} nights",
+    "bookingNotes": "Booking notes",
+    "allItemsComplete": "All items complete",
+    "itemsTotal": "items in room",
+    "itemsMissing": "items missing",
+    "missingQuantity": "Total {{count}} items need replenishment",
+    "missingItemsList": "Missing items",
+    "andMore": "+{{count}} more",
+    "guestStatus": {
+      "checkedIn": "Checked In",
+      "confirmed": "Confirmed"
+    }
   },
   "supplement": {
     "title": "Supplement - Room {{roomNumber}}",
