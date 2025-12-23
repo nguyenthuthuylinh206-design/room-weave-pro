@@ -105,23 +105,60 @@ export function ItemsCheckStep({
 
   // Update form whenever tracked items change
   useEffect(() => {
-    form.setValue('items_sent_to_laundry', laundryItems);
-    form.setValue('items_consumed', consumedItems);
-    form.setValue('items_lost', lostItems);
-    form.setValue('items_replaced', replacedItems);
-    form.setValue('items_damaged', damagedItems as any);
-    
-    // Calculate items_complete
-    const hasIssues = lostItems.length > 0 || damagedItems.length > 0;
-    form.setValue('items_complete', !hasIssues);
-    
-    // Build items_missing from lost items for backward compatibility
-    form.setValue('items_missing', lostItems.map(item => ({
-      item_id: item.item_id,
-      item_name: item.item_name,
-      shortage: item.quantity
-    })) as any);
-  }, [laundryItems, consumedItems, lostItems, replacedItems, damagedItems, form]);
+    form.setValue('items_sent_to_laundry', laundryItems)
+    form.setValue('items_consumed', consumedItems)
+    form.setValue('items_lost', lostItems)
+    form.setValue('items_replaced', replacedItems)
+    form.setValue('items_damaged', damagedItems as any)
+
+    // Build items_missing with real shortages (laundry not yet replaced, lost, consumables needing refill)
+    const replacedQtyMap = replacedItems.reduce<Record<string, number>>((acc, it) => {
+      acc[it.item_id] = (acc[it.item_id] || 0) + (it.quantity || 0)
+      return acc
+    }, {})
+
+    const laundryMissing = laundryItems
+      .map((it) => {
+        const replacedQty = replacedQtyMap[it.item_id] || 0
+        const shortage = Math.max(0, (it.quantity || 0) - replacedQty)
+        return shortage > 0
+          ? {
+              item_id: it.item_id,
+              item_name: it.item_name,
+              item_code: it.item_code,
+              shortage,
+              reason: 'laundry',
+            }
+          : null
+      })
+      .filter(Boolean) as any[]
+
+    const lostMissing = lostItems.map((it) => ({
+      item_id: it.item_id,
+      item_name: it.item_name,
+      item_code: it.item_code,
+      shortage: it.quantity,
+      reason: 'lost',
+    })) as any[]
+
+    const consumedMissing = consumedItems
+      .filter((it) => it.need_refill)
+      .map((it) => ({
+        item_id: it.item_id,
+        item_name: it.item_name,
+        item_code: it.item_code,
+        shortage: it.quantity,
+        reason: 'consumed',
+      })) as any[]
+
+    const itemsMissing = [...laundryMissing, ...lostMissing, ...consumedMissing]
+    form.setValue('items_missing', itemsMissing as any)
+
+    // items_complete should be false when room is missing items or has damaged items
+    const hasIssues = itemsMissing.length > 0 || damagedItems.length > 0
+    form.setValue('items_complete', !hasIssues)
+  }, [laundryItems, consumedItems, lostItems, replacedItems, damagedItems, form])
+
 
   // Handler for Linen status change (OK/Laundry/Add/Change/Lost)
   const handleLinenStatusChange = (

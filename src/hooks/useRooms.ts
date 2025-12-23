@@ -92,21 +92,28 @@ export function useRoom(roomId: string | undefined) {
       // Fetch recent checks
       const { data: recentChecks, error: checksError } = await supabase
         .from('room_checks')
-        .select(`
+        .select(
+          `
           id,
           check_type,
           cleanliness_score,
           items_complete,
           items_missing,
           items_damaged,
+          items_sent_to_laundry,
+          items_consumed,
+          items_lost,
+          items_replaced,
           notes,
           photos,
           checked_at,
           users(full_name, avatar_url)
-        `)
+        `
+        )
         .eq('room_id', roomId)
         .order('checked_at', { ascending: false })
         .limit(20)
+
       
       if (checksError) {
         console.error('Error fetching room checks:', checksError)
@@ -139,12 +146,17 @@ export function useRoom(roomId: string | undefined) {
         items_complete: check.items_complete,
         items_missing: check.items_missing,
         items_damaged: check.items_damaged,
+        items_sent_to_laundry: check.items_sent_to_laundry,
+        items_consumed: check.items_consumed,
+        items_lost: check.items_lost,
+        items_replaced: check.items_replaced,
         notes: check.notes,
         photos: check.photos,
         checked_at: check.checked_at,
         checked_by_name: check.users?.full_name || 'Unknown',
         checked_by_avatar: check.users?.avatar_url,
       }))
+
       
       return {
         room,

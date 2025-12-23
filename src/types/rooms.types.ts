@@ -117,9 +117,14 @@ export interface RoomCheckWithUser {
   items_complete: boolean
   items_missing: any[]
   items_damaged: any[]
+  items_sent_to_laundry?: LaundryItem[]
+  items_consumed?: ConsumedItem[]
+  items_lost?: LostItem[]
+  items_replaced?: ReplacedItem[]
   notes?: string
   photos?: string[]
   checked_at: string
   checked_by_name: string
   checked_by_avatar?: string
 }
+
