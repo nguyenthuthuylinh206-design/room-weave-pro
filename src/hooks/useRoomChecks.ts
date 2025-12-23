@@ -197,7 +197,7 @@ export function useCreateRoomCheck() {
         }
       }
       
-      // Update last_checked timestamp for all other items
+      // Update last_checked timestamp for all room items (including ones updated above)
       await supabase
         .from('room_items')
         .update({
@@ -205,7 +205,7 @@ export function useCreateRoomCheck() {
           last_checked_by: user?.id,
         })
         .eq('room_id', roomId)
-        .not('item_id', 'in', `(${[...Object.keys(quantityChanges), ...Object.keys(itemQuantities || {})].join(',')})`)
+
       
       // Get room info for notifications
       const { data: roomInfo } = await supabase
