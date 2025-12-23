@@ -32,6 +32,7 @@ import { RoomDetailPage } from "./pages/rooms/RoomDetailPage";
 import { RoomFormPage } from "./pages/rooms/RoomFormPage";
 import { RoomStandardsPage } from "./pages/rooms/RoomStandardsPage";
 import { RoomCheckPage } from "./pages/rooms/RoomCheckPage";
+import { BookingsPage } from "./pages/bookings/BookingsPage";
 import { LaundryDashboardPage } from "./pages/laundry/LaundryDashboardPage";
 import { LaundryBatchesPage } from "./pages/laundry/LaundryBatchesPage";
 import { CreateBatchPage } from "./pages/laundry/CreateBatchPage";
@@ -401,7 +402,16 @@ const router = createBrowserRouter([
         )
       },
 
-      // Laundry - Permission Based
+      // Bookings - Permission Based
+      { 
+        path: "bookings", 
+        element: (
+          <PermissionRoute module="rooms">
+            <BookingsPage />
+          </PermissionRoute>
+        )
+      },
+
       { 
         path: "laundry", 
         element: (
