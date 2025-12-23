@@ -40,6 +40,8 @@ import {
   TestTube2,
   Tag,
   Truck,
+  BarChart3,
+  CalendarDays,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -96,6 +98,7 @@ const navigation: NavItem[] = [
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
     children: [
       { titleKey: 'roomsList', href: '/rooms', icon: List },
+      { titleKey: 'bookings', href: '/bookings', icon: CalendarDays },
       { titleKey: 'roomStandards', href: '/rooms/standards', icon: Settings },
       { titleKey: 'addRoom', href: '/rooms/new', icon: Plus },
     ],
@@ -132,6 +135,19 @@ const navigation: NavItem[] = [
       { titleKey: 'maintenanceDashboard', href: '/maintenance', icon: LayoutDashboard },
       { titleKey: 'maintenanceRequests', href: '/maintenance/requests', icon: AlertCircle },
       { titleKey: 'recurringIssues', href: '/maintenance/recurring-issues', icon: TrendingUp },
+    ],
+  },
+  {
+    titleKey: 'reports',
+    icon: BarChart3,
+    roles: ['owner', 'hotel_manager', 'department_manager'],
+    children: [
+      { titleKey: 'reportsDashboard', href: '/reports', icon: LayoutDashboard },
+      { titleKey: 'inventoryReport', href: '/reports/inventory', icon: Warehouse },
+      { titleKey: 'roomsReport', href: '/reports/rooms', icon: Hotel },
+      { titleKey: 'laundryReport', href: '/reports/laundry', icon: Wind },
+      { titleKey: 'maintenanceReport', href: '/reports/maintenance', icon: Wrench },
+      { titleKey: 'operationsReport', href: '/reports/operations', icon: TrendingUp },
     ],
   },
   {
