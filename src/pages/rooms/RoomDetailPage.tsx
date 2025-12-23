@@ -22,6 +22,7 @@ import { RoomItemsList } from '@/components/rooms/RoomItemsList'
 import { EnhancedCheckHistory } from '@/components/rooms/EnhancedCheckHistory'
 import { RoomDistributionHistory } from '@/components/rooms/RoomDistributionHistory'
 import { RoomHealthScore } from '@/components/rooms/RoomHealthScore'
+import { GuestInfoCard } from '@/components/rooms/GuestInfoCard'
 import { MobileRoomDetailPage } from '@/components/rooms/MobileRoomDetailPage'
 import { useRoom } from '@/hooks/useRooms'
 import { useApplyStandards } from '@/hooks/useRoomStandards'
@@ -263,6 +264,9 @@ export function RoomDetailPage() {
         
         {/* Right Column */}
         <div className="space-y-6">
+          {/* Guest Info Card */}
+          <GuestInfoCard roomId={id!} />
+          
           {/* Health Score with inline stats */}
           <RoomHealthScore 
             checks={checks}

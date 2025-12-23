@@ -41,10 +41,13 @@ import { EnhancedCheckHistory } from '@/components/rooms/EnhancedCheckHistory'
 import { RoomHealthScore } from '@/components/rooms/RoomHealthScore'
 import { RoomDistributionHistory } from '@/components/rooms/RoomDistributionHistory'
 import { RoomSupplementSheet } from '@/components/rooms/RoomSupplementSheet'
+import { GuestInfoCard } from '@/components/rooms/GuestInfoCard'
+import { StaffRoomDetailPage } from '@/components/rooms/StaffRoomDetailPage'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { useRoom } from '@/hooks/useRooms'
 import { useApplyStandards } from '@/hooks/useRoomStandards'
 import { useRoomDistributionHistory } from '@/hooks/useRoomDistributionHistory'
+import { useUser } from '@/hooks/useUser'
 import { formatCurrency } from '@/lib/utils'
 import type { RoomStatus, CheckType } from '@/types/rooms.types'
 
@@ -110,8 +113,12 @@ export function MobileRoomDetailPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { data, isLoading, refetch } = useRoom(id)
+  const { hasAnyRole } = useUser()
   const applyStandards = useApplyStandards()
   const { data: deliveryHistory } = useRoomDistributionHistory(id)
+  
+  // Check if user is manager (has manager-level roles)
+  const isManager = hasAnyRole(['super_admin', 'owner', 'hotel_manager', 'department_manager'])
   
   // Count pending deliveries
   const pendingDeliveryCount = deliveryHistory?.filter(
@@ -125,12 +132,17 @@ export function MobileRoomDetailPage() {
   
   useEffect(() => {
     if (pendingDeliveryCount > 0 && !isLoading) {
-      setActiveTab('delivery')
+      setActiveTab('items')
     }
   }, [pendingDeliveryCount, isLoading])
 
   const handleRefresh = async () => {
     await refetch()
+  }
+  
+  // Staff view: simplified interface with only check room functionality
+  if (!isManager && !isLoading) {
+    return <StaffRoomDetailPage />
   }
   
   if (isLoading) {
@@ -359,6 +371,9 @@ export function MobileRoomDetailPage() {
         </TabsList>
 
         <TabsContent value="info" className="flex-1 p-4 pb-20 space-y-4 m-0">
+          {/* Guest Info Card - Show current booking */}
+          <GuestInfoCard roomId={id!} />
+
           {/* Room Info */}
           <Card>
             <CardHeader className="pb-2">
