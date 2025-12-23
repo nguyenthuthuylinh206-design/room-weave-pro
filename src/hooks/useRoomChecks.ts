@@ -49,46 +49,8 @@ export function useCreateRoomCheck() {
       data: RoomCheckFormData
       itemQuantities?: Record<string, number>
     }) => {
-      // Delete old photos from previous checks (keep only the most recent)
-      const { data: recentChecks } = await supabase
-        .from('room_checks')
-        .select('id, photos')
-        .eq('room_id', roomId)
-        .order('checked_at', { ascending: false })
-        .limit(10)
-      
-      if (recentChecks && recentChecks.length > 1) {
-        // Skip the first (most recent), delete photos from others
-        const oldChecks = recentChecks.slice(1)
-        
-        for (const oldCheck of oldChecks) {
-          if (oldCheck.photos && Array.isArray(oldCheck.photos) && oldCheck.photos.length > 0) {
-            // Delete each photo from storage
-            for (const photoUrl of oldCheck.photos) {
-              try {
-                // Extract path from URL
-                // URL format: https://xxx.supabase.co/storage/v1/object/public/item-images/tenantId/filename.jpg
-                const urlParts = photoUrl.split('/item-images/')
-                if (urlParts.length > 1) {
-                  const path = urlParts[1]
-                  await deleteImage(path)
-                }
-              } catch (error) {
-                console.error('Error deleting old photo:', error)
-                // Don't throw error, continue deleting other photos
-              }
-            }
-            
-            // Update record, clear photos array
-            await supabase
-              .from('room_checks')
-              .update({ photos: [] })
-              .eq('id', oldCheck.id)
-          }
-        }
-      }
-      
       // Create room check record
+
       const insertData = {
         room_id: roomId,
         checked_by: user?.id,
@@ -110,9 +72,67 @@ export function useCreateRoomCheck() {
         .insert(insertData as any)
         .select()
         .single()
-      
-      if (error) throw error
-      
+
+      if (error) {
+        // Handle duplicate check (double-submit or re-check too soon)
+        const maybeCode = (error as any)?.code
+        const maybeMsg = (error as any)?.message as string | undefined
+        if (maybeCode === '23505' && maybeMsg?.includes('Duplicate check detected')) {
+          const { data: existingCheck, error: fetchError } = await supabase
+            .from('room_checks')
+            .select('*')
+            .eq('room_id', roomId)
+            .eq('check_type', data.check_type)
+            .order('checked_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+          if (fetchError) throw fetchError
+          if (existingCheck) return { ...(existingCheck as any), __duplicate: true }
+        }
+
+        throw error
+      }
+
+      // Delete old photos from previous checks (keep only the most recent)
+      const { data: recentChecks } = await supabase
+        .from('room_checks')
+        .select('id, photos')
+        .eq('room_id', roomId)
+        .order('checked_at', { ascending: false })
+        .limit(10)
+
+      if (recentChecks && recentChecks.length > 1) {
+        // Skip the first (most recent), delete photos from others
+        const oldChecks = recentChecks.slice(1)
+
+        for (const oldCheck of oldChecks) {
+          if (oldCheck.photos && Array.isArray(oldCheck.photos) && oldCheck.photos.length > 0) {
+            // Delete each photo from storage
+            for (const photoUrl of oldCheck.photos) {
+              try {
+                // Extract path from URL
+                // URL format: https://xxx.supabase.co/storage/v1/object/public/item-images/tenantId/filename.jpg
+                const urlParts = photoUrl.split('/item-images/')
+                if (urlParts.length > 1) {
+                  const path = urlParts[1]
+                  await deleteImage(path)
+                }
+              } catch (error) {
+                console.error('Error deleting old photo:', error)
+                // Don't throw error, continue deleting other photos
+              }
+            }
+
+            // Update record, clear photos array
+            await supabase
+              .from('room_checks')
+              .update({ photos: [] })
+              .eq('id', oldCheck.id)
+          }
+        }
+      }
+
       // Calculate quantity changes based on items marked during check
       const quantityChanges: Record<string, number> = {}
       
@@ -274,17 +294,22 @@ export function useCreateRoomCheck() {
       
       return check
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (check: any, variables) => {
       queryClient.invalidateQueries({ queryKey: ['room-checks', variables.roomId] })
       queryClient.invalidateQueries({ queryKey: ['room', variables.roomId] })
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
-      
+
+      const isDuplicate = !!check?.__duplicate
+
       toast({
-        title: 'Thành công',
-        description: 'Đã lưu kiểm tra phòng và cập nhật số lượng thực tế',
+        title: isDuplicate ? 'Đã có kiểm tra gần đây' : 'Thành công',
+        description: isDuplicate
+          ? 'Phòng đã được kiểm tra trong 5 phút gần đây. Hệ thống dùng lại kết quả mới nhất.'
+          : 'Đã lưu kiểm tra phòng và cập nhật số lượng thực tế',
       })
     },
+
     onError: (error: Error) => {
       toast({
         title: 'Lỗi',
