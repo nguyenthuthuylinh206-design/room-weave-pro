@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { 
   User, 
@@ -8,22 +9,38 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
+  Plus,
+  Edit2,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRoomBooking, RoomBooking } from '@/hooks/useRoomBooking'
+import { RoomBookingDialog } from './RoomBookingDialog'
 import { format, differenceInDays, isToday, isTomorrow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 
 interface GuestInfoCardProps {
   roomId: string
+  hotelId?: string
+  tenantId?: string
+  roomNumber?: string
   compact?: boolean
+  canEdit?: boolean
 }
 
-export function GuestInfoCard({ roomId, compact = false }: GuestInfoCardProps) {
+export function GuestInfoCard({ 
+  roomId, 
+  hotelId = '',
+  tenantId = '',
+  roomNumber = '',
+  compact = false,
+  canEdit = true,
+}: GuestInfoCardProps) {
   const { t } = useTranslation(['rooms'])
   const { data: booking, isLoading } = useRoomBooking(roomId)
+  const [showBookingDialog, setShowBookingDialog] = useState(false)
   
   if (isLoading) {
     return (
@@ -40,14 +57,38 @@ export function GuestInfoCard({ roomId, compact = false }: GuestInfoCardProps) {
   
   if (!booking) {
     return (
-      <Card className="border-dashed">
-        <CardContent className="py-6 text-center">
-          <User className="h-8 w-8 mx-auto text-muted-foreground/50" />
-          <p className="text-sm text-muted-foreground mt-2">
-            {t('detail.noCurrentGuest')}
-          </p>
-        </CardContent>
-      </Card>
+      <>
+        <Card className="border-dashed">
+          <CardContent className="py-6 text-center">
+            <User className="h-8 w-8 mx-auto text-muted-foreground/50" />
+            <p className="text-sm text-muted-foreground mt-2">
+              {t('detail.noCurrentGuest')}
+            </p>
+            {canEdit && hotelId && tenantId && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-3"
+                onClick={() => setShowBookingDialog(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {t('booking.addGuest')}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+        
+        {canEdit && hotelId && tenantId && (
+          <RoomBookingDialog
+            open={showBookingDialog}
+            onOpenChange={setShowBookingDialog}
+            roomId={roomId}
+            roomNumber={roomNumber}
+            hotelId={hotelId}
+            tenantId={tenantId}
+          />
+        )}
+      </>
     )
   }
   
@@ -100,16 +141,29 @@ export function GuestInfoCard({ roomId, compact = false }: GuestInfoCardProps) {
   }
   
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <User className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-base">{t('detail.currentGuest')}</CardTitle>
+    <>
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <User className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-base">{t('detail.currentGuest')}</CardTitle>
+            </div>
+            <div className="flex items-center gap-2">
+              {getStatusBadge()}
+              {canEdit && hotelId && tenantId && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setShowBookingDialog(true)}
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
-          {getStatusBadge()}
-        </div>
-      </CardHeader>
+        </CardHeader>
       <CardContent className="space-y-4">
         {/* Guest Name */}
         <div>
@@ -189,6 +243,19 @@ export function GuestInfoCard({ roomId, compact = false }: GuestInfoCardProps) {
           </div>
         )}
       </CardContent>
-    </Card>
+      </Card>
+      
+      {canEdit && hotelId && tenantId && (
+        <RoomBookingDialog
+          open={showBookingDialog}
+          onOpenChange={setShowBookingDialog}
+          roomId={roomId}
+          roomNumber={roomNumber}
+          hotelId={hotelId}
+          tenantId={tenantId}
+          booking={booking}
+        />
+      )}
+    </>
   )
 }
