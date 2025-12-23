@@ -113,15 +113,59 @@ export function useCreateRoomCheck() {
       
       if (error) throw error
       
-      // Update room_items with actual quantities from inspection
-      if (itemQuantities) {
-        const updates = Object.entries(itemQuantities).map(([itemId, quantity]) => ({
-          room_id: roomId,
-          item_id: itemId,
-          quantity: quantity,
-          last_checked_at: new Date().toISOString(),
-          last_checked_by: user?.id,
-        }))
+      // Calculate quantity changes based on items marked during check
+      const quantityChanges: Record<string, number> = {}
+      
+      // 1. Đồ gửi giặt → Giảm quantity (lấy ra khỏi phòng)
+      for (const item of data.items_sent_to_laundry || []) {
+        quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) - item.quantity
+      }
+      
+      // 2. Đồ mất → Giảm quantity
+      for (const item of data.items_lost || []) {
+        quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) - item.quantity
+      }
+      
+      // 3. Đồ tiêu hao → Giảm quantity
+      for (const item of data.items_consumed || []) {
+        quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) - item.quantity
+      }
+      
+      // 4. Đồ thay thế → Tăng quantity (bù lại vào phòng)
+      for (const item of data.items_replaced || []) {
+        quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) + item.quantity
+      }
+      
+      // Update room_items with calculated quantities
+      if (Object.keys(quantityChanges).length > 0) {
+        // Get current quantities for affected items
+        const { data: currentItems } = await supabase
+          .from('room_items')
+          .select('item_id, quantity, standard_quantity')
+          .eq('room_id', roomId)
+          .in('item_id', Object.keys(quantityChanges))
+        
+        const currentQtyMap: Record<string, number> = {}
+        const standardQtyMap: Record<string, number> = {}
+        for (const item of currentItems || []) {
+          currentQtyMap[item.item_id] = item.quantity || 0
+          standardQtyMap[item.item_id] = item.standard_quantity || 0
+        }
+        
+        // Calculate and upsert new quantities
+        const updates = Object.entries(quantityChanges).map(([itemId, change]) => {
+          // Use current quantity if exists, otherwise use standard quantity
+          const currentQty = currentQtyMap[itemId] ?? standardQtyMap[itemId] ?? 0
+          const newQty = Math.max(0, currentQty + change)
+          
+          return {
+            room_id: roomId,
+            item_id: itemId,
+            quantity: newQty,
+            last_checked_at: new Date().toISOString(),
+            last_checked_by: user?.id,
+          }
+        })
         
         if (updates.length > 0) {
           const { error: updateError } = await supabase
@@ -130,16 +174,38 @@ export function useCreateRoomCheck() {
           
           if (updateError) throw updateError
         }
-      } else {
-        // Fallback: just update last_checked timestamp
-        await supabase
-          .from('room_items')
-          .update({
+      }
+      
+      // Also apply manual item quantities if provided (from quick mode or direct input)
+      if (itemQuantities) {
+        const manualUpdates = Object.entries(itemQuantities)
+          .filter(([itemId]) => !quantityChanges[itemId]) // Skip items already updated above
+          .map(([itemId, quantity]) => ({
+            room_id: roomId,
+            item_id: itemId,
+            quantity: quantity,
             last_checked_at: new Date().toISOString(),
             last_checked_by: user?.id,
-          })
-          .eq('room_id', roomId)
+          }))
+        
+        if (manualUpdates.length > 0) {
+          const { error: updateError } = await supabase
+            .from('room_items')
+            .upsert(manualUpdates, { onConflict: 'room_id,item_id' })
+          
+          if (updateError) throw updateError
+        }
       }
+      
+      // Update last_checked timestamp for all other items
+      await supabase
+        .from('room_items')
+        .update({
+          last_checked_at: new Date().toISOString(),
+          last_checked_by: user?.id,
+        })
+        .eq('room_id', roomId)
+        .not('item_id', 'in', `(${[...Object.keys(quantityChanges), ...Object.keys(itemQuantities || {})].join(',')})`)
       
       // Get room info for notifications
       const { data: roomInfo } = await supabase
