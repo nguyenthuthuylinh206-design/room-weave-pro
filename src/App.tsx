@@ -372,7 +372,7 @@ const router = createBrowserRouter([
       { 
         path: "rooms/:id", 
         element: (
-          <PermissionRoute module="rooms">
+          <PermissionRoute module="rooms" action="update">
             <RoomDetailPage />
           </PermissionRoute>
         )
