@@ -45,6 +45,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useTenant } from '@/hooks/useTenant'
 import { RoomBookingDialog } from '@/components/rooms/RoomBookingDialog'
+import { AddBookingDialog } from '@/components/bookings/AddBookingDialog'
 
 type BookingStatus = 'all' | 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show'
 
@@ -81,6 +82,7 @@ export function BookingsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<BookingStatus>('all')
   const [showAddDialog, setShowAddDialog] = useState(false)
+  const [showEditDialog, setShowEditDialog] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState<BookingWithRoom | null>(null)
   
   const { data: bookings, isLoading } = useQuery({
@@ -301,7 +303,7 @@ export function BookingsPage() {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => {
                         setSelectedBooking(booking)
-                        setShowAddDialog(true)
+                        setShowEditDialog(true)
                       }}
                     >
                       <TableCell>
@@ -369,12 +371,18 @@ export function BookingsPage() {
         </CardContent>
       </Card>
       
-      {/* Add/Edit Dialog - requires selecting a room first for new bookings */}
-      {showAddDialog && selectedBooking && (
+      {/* Add New Booking Dialog */}
+      <AddBookingDialog
+        open={showAddDialog}
+        onOpenChange={setShowAddDialog}
+      />
+      
+      {/* Edit Booking Dialog */}
+      {showEditDialog && selectedBooking && (
         <RoomBookingDialog
-          open={showAddDialog}
+          open={showEditDialog}
           onOpenChange={(open) => {
-            setShowAddDialog(open)
+            setShowEditDialog(open)
             if (!open) setSelectedBooking(null)
           }}
           roomId={selectedBooking.room_id}
