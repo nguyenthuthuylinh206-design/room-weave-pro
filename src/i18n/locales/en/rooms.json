@@ -504,5 +504,37 @@
     "validation": {
       "selectAsset": "Please select an asset and enter a valid quantity"
     }
+  },
+  "booking": {
+    "addTitle": "Add Guest",
+    "editTitle": "Edit Guest Info",
+    "addGuest": "Add Guest",
+    "guestName": "Guest Name",
+    "guestNamePlaceholder": "Enter guest name...",
+    "phone": "Phone",
+    "email": "Email",
+    "guestCount": "Number of Guests",
+    "status": "Status",
+    "statusConfirmed": "Confirmed",
+    "statusCheckedIn": "Checked In",
+    "statusCheckedOut": "Checked Out",
+    "statusCancelled": "Cancelled",
+    "statusNoShow": "No Show",
+    "notes": "Notes",
+    "notesPlaceholder": "Notes about guest...",
+    "doCheckIn": "Check In",
+    "doCheckOut": "Check Out",
+    "createSuccess": "Guest added successfully",
+    "updateSuccess": "Info updated successfully",
+    "checkInSuccess": "Check in successful",
+    "checkOutSuccess": "Check out successful",
+    "saveError": "Could not save. Please try again.",
+    "checkInError": "Could not check in",
+    "checkOutError": "Could not check out",
+    "validation": {
+      "guestNameRequired": "Please enter guest name",
+      "datesRequired": "Please select check-in and check-out dates",
+      "invalidDates": "Check-out date must be after check-in date"
+    }
   }
 }

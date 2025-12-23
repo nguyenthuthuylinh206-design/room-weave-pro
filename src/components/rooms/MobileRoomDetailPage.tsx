@@ -372,7 +372,12 @@ export function MobileRoomDetailPage() {
 
         <TabsContent value="info" className="flex-1 p-4 pb-20 space-y-4 m-0">
           {/* Guest Info Card - Show current booking */}
-          <GuestInfoCard roomId={id!} />
+          <GuestInfoCard 
+            roomId={id!} 
+            hotelId={room.hotel_id}
+            tenantId={room.tenant_id}
+            roomNumber={room.room_number}
+          />
 
           {/* Room Info */}
           <Card>

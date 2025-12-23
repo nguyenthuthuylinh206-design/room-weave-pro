@@ -265,7 +265,12 @@ export function RoomDetailPage() {
         {/* Right Column */}
         <div className="space-y-6">
           {/* Guest Info Card */}
-          <GuestInfoCard roomId={id!} />
+          <GuestInfoCard 
+            roomId={id!}
+            hotelId={room.hotel_id}
+            tenantId={room.tenant_id}
+            roomNumber={room.room_number}
+          />
           
           {/* Health Score with inline stats */}
           <RoomHealthScore 

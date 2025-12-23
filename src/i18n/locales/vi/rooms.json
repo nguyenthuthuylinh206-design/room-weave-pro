@@ -509,5 +509,37 @@
     "placeholder": "Chọn phòng...",
     "search": "Tìm phòng...",
     "empty": "Không tìm thấy phòng"
+  },
+  "booking": {
+    "addTitle": "Thêm khách",
+    "editTitle": "Sửa thông tin khách",
+    "addGuest": "Thêm khách",
+    "guestName": "Tên khách",
+    "guestNamePlaceholder": "Nhập tên khách...",
+    "phone": "Số điện thoại",
+    "email": "Email",
+    "guestCount": "Số khách",
+    "status": "Trạng thái",
+    "statusConfirmed": "Đã đặt",
+    "statusCheckedIn": "Đang ở",
+    "statusCheckedOut": "Đã trả phòng",
+    "statusCancelled": "Đã hủy",
+    "statusNoShow": "Không đến",
+    "notes": "Ghi chú",
+    "notesPlaceholder": "Ghi chú về khách...",
+    "doCheckIn": "Nhận phòng",
+    "doCheckOut": "Trả phòng",
+    "createSuccess": "Thêm khách thành công",
+    "updateSuccess": "Cập nhật thông tin thành công",
+    "checkInSuccess": "Nhận phòng thành công",
+    "checkOutSuccess": "Trả phòng thành công",
+    "saveError": "Không thể lưu. Vui lòng thử lại.",
+    "checkInError": "Không thể nhận phòng",
+    "checkOutError": "Không thể trả phòng",
+    "validation": {
+      "guestNameRequired": "Vui lòng nhập tên khách",
+      "datesRequired": "Vui lòng chọn ngày check-in và check-out",
+      "invalidDates": "Ngày check-out phải sau ngày check-in"
+    }
   }
 }
