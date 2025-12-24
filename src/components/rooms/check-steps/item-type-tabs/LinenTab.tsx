@@ -107,17 +107,17 @@ export function LinenTab({
     setActualQuantities(prev => ({ ...prev, [item.item_id]: clampedQty }))
     
     const currentStatus = getCurrentStatus(item.item_id)
+    const missingQty = item.standard_quantity - clampedQty
     
-    // If status is 'missing', update the missing quantity
-    if (currentStatus === 'missing') {
-      const missingQty = item.standard_quantity - clampedQty
+    // Auto-select 'missing' when quantity drops below standard
+    if (missingQty > 0) {
+      setStatuses(prev => ({ ...prev, [item.item_id]: 'missing' }))
       onResetStatus(item.item_id)
-      if (missingQty > 0) {
-        onLinenStatusChange(item, 'missing', missingQty)
-      } else {
-        // No longer missing, reset to ok
-        setStatuses(prev => ({ ...prev, [item.item_id]: 'ok' }))
-      }
+      onLinenStatusChange(item, 'missing', missingQty)
+    } else if (currentStatus === 'missing') {
+      // No longer missing, reset to ok
+      setStatuses(prev => ({ ...prev, [item.item_id]: 'ok' }))
+      onResetStatus(item.item_id)
     }
   }
 
@@ -231,7 +231,7 @@ export function LinenTab({
                       max={item.standard_quantity}
                       value={actualQty}
                       onChange={(e) => handleActualQuantityChange(item, parseInt(e.target.value) || 0)}
-                      className="w-14 h-7 text-center text-sm"
+                      className={`w-14 h-7 text-center text-sm ${missingQty > 0 ? 'border-yellow-500 bg-yellow-50' : ''}`}
                     />
                     <button
                       type="button"
@@ -245,8 +245,8 @@ export function LinenTab({
                   <span className="text-xs text-muted-foreground">
                     / {item.standard_quantity}
                   </span>
-                  {missingQty > 0 && (
-                    <Badge variant="outline" className="ml-auto border-yellow-500 text-yellow-600 text-xs">
+                  {status === 'missing' && missingQty > 0 && (
+                    <Badge variant="outline" className="ml-auto border-yellow-500 text-yellow-600 bg-yellow-50 text-xs">
                       Thiếu {missingQty}
                     </Badge>
                   )}
@@ -324,11 +324,11 @@ export function LinenTab({
                     </Label>
                   </div>
 
-                  <div className="flex items-center space-x-1.5 p-2 rounded-lg hover:bg-muted/50 col-span-2 border border-dashed border-yellow-400 bg-yellow-50/50">
-                    <RadioGroupItem value="missing" id={`${item.item_id}-missing`} />
+                  <div className={`flex items-center space-x-1.5 p-2 rounded-lg col-span-2 border border-dashed ${missingQty > 0 ? 'border-yellow-400 bg-yellow-50/50 hover:bg-yellow-100/50' : 'border-muted-foreground/30 bg-muted/20 opacity-50'}`}>
+                    <RadioGroupItem value="missing" id={`${item.item_id}-missing`} disabled={missingQty <= 0} />
                     <Label 
                       htmlFor={`${item.item_id}-missing`}
-                      className="flex items-center gap-1 cursor-pointer text-sm text-yellow-600"
+                      className={`flex items-center gap-1 text-sm ${missingQty > 0 ? 'cursor-pointer text-yellow-600' : 'cursor-not-allowed text-muted-foreground'}`}
                     >
                       <Minus className="h-3.5 w-3.5" />
                       Thiếu đồ {missingQty > 0 && <span className="font-medium">(thiếu {missingQty})</span>}
