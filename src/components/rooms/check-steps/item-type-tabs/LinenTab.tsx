@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Shirt, Check, RefreshCw, AlertTriangle, Waves, Plus, Wrench } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Shirt, Check, RefreshCw, AlertTriangle, Waves, Plus, Wrench, Minus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import type { RoomItemWithDetails, LaundryItem, LostItem, ReplacedItem } from '@/types/rooms.types'
 
-type LinenStatus = 'ok' | 'laundry' | 'add' | 'change' | 'lost' | 'damaged'
+type LinenStatus = 'ok' | 'laundry' | 'add' | 'change' | 'lost' | 'damaged' | 'missing'
 
 interface LinenTabProps {
   items: RoomItemWithDetails[]
@@ -27,10 +27,28 @@ export function LinenTab({
   onResetStatus,
 }: LinenTabProps) {
   const [quantities, setQuantities] = useState<Record<string, number>>({})
+  const [actualQuantities, setActualQuantities] = useState<Record<string, number>>({})
   const [statuses, setStatuses] = useState<Record<string, LinenStatus>>({})
+
+  // Initialize actual quantities with standard quantities
+  useEffect(() => {
+    const initial: Record<string, number> = {}
+    items.forEach(item => {
+      if (actualQuantities[item.item_id] === undefined) {
+        initial[item.item_id] = item.standard_quantity
+      }
+    })
+    if (Object.keys(initial).length > 0) {
+      setActualQuantities(prev => ({ ...prev, ...initial }))
+    }
+  }, [items])
 
   const getQuantity = (itemId: string, defaultQty: number) => {
     return quantities[itemId] ?? defaultQty
+  }
+
+  const getActualQuantity = (itemId: string, standardQty: number) => {
+    return actualQuantities[itemId] ?? standardQty
   }
 
   // Determine current status from props (for items already processed)
@@ -45,7 +63,6 @@ export function LinenTab({
     if (inLaundry && !inReplaced) return 'laundry'
     if (!inLaundry && inReplaced) return 'add'
     if (inLost) return 'lost'
-    // Note: 'damaged' will be tracked via statuses state
     return 'ok'
   }
 
@@ -61,7 +78,14 @@ export function LinenTab({
     
     // Apply new status
     if (newStatus !== 'ok') {
-      const qty = getQuantity(item.item_id, item.standard_quantity)
+      let qty = getQuantity(item.item_id, item.standard_quantity)
+      
+      // For 'missing' status, calculate missing quantity
+      if (newStatus === 'missing') {
+        const actual = getActualQuantity(item.item_id, item.standard_quantity)
+        qty = item.standard_quantity - actual
+      }
+      
       onLinenStatusChange(item, newStatus, qty)
     }
   }
@@ -74,6 +98,26 @@ export function LinenTab({
       // Re-apply status with new quantity
       onResetStatus(item.item_id)
       onLinenStatusChange(item, currentStatus, qty)
+    }
+  }
+
+  const handleActualQuantityChange = (item: RoomItemWithDetails, actualQty: number) => {
+    // Clamp between 0 and standard quantity
+    const clampedQty = Math.max(0, Math.min(actualQty, item.standard_quantity))
+    setActualQuantities(prev => ({ ...prev, [item.item_id]: clampedQty }))
+    
+    const currentStatus = getCurrentStatus(item.item_id)
+    
+    // If status is 'missing', update the missing quantity
+    if (currentStatus === 'missing') {
+      const missingQty = item.standard_quantity - clampedQty
+      onResetStatus(item.item_id)
+      if (missingQty > 0) {
+        onLinenStatusChange(item, 'missing', missingQty)
+      } else {
+        // No longer missing, reset to ok
+        setStatuses(prev => ({ ...prev, [item.item_id]: 'ok' }))
+      }
     }
   }
 
@@ -111,6 +155,8 @@ export function LinenTab({
       {items.map((item) => {
         const status = getCurrentStatus(item.item_id)
         const qty = getQuantity(item.item_id, item.standard_quantity)
+        const actualQty = getActualQuantity(item.item_id, item.standard_quantity)
+        const missingQty = item.standard_quantity - actualQty
         const needsQuantity = status === 'laundry' || status === 'add' || status === 'change' || status === 'lost' || status === 'damaged'
 
         return (
@@ -119,6 +165,7 @@ export function LinenTab({
             className={
               status === 'lost' ? 'border-destructive bg-destructive/5' :
               status === 'damaged' ? 'border-orange-500 bg-orange-500/5' :
+              status === 'missing' ? 'border-yellow-500 bg-yellow-500/5' :
               status === 'change' ? 'border-primary bg-primary/5' :
               status === 'laundry' ? 'border-blue-500 bg-blue-500/5' :
               status === 'add' ? 'border-green-500 bg-green-500/5' : ''
@@ -146,17 +193,61 @@ export function LinenTab({
                     <Badge variant={
                       status === 'lost' ? 'destructive' : 
                       status === 'damaged' ? 'outline' :
+                      status === 'missing' ? 'outline' :
                       status === 'laundry' ? 'outline' : 
                       status === 'add' ? 'default' : 'secondary'
                     } className={
                       status === 'add' ? 'bg-green-500 text-white' : 
-                      status === 'damaged' ? 'border-orange-500 text-orange-600' : ''
+                      status === 'damaged' ? 'border-orange-500 text-orange-600' :
+                      status === 'missing' ? 'border-yellow-500 text-yellow-600 bg-yellow-50' : ''
                     }>
                       {status === 'laundry' && 'Lấy đi giặt'}
                       {status === 'add' && 'Thay mới'}
                       {status === 'change' && 'Lấy giặt + Thay mới'}
                       {status === 'lost' && 'Mất'}
                       {status === 'damaged' && 'Hỏng'}
+                      {status === 'missing' && `Thiếu ${missingQty}`}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Actual Quantity Input */}
+                <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
+                  <Label className="text-xs font-medium whitespace-nowrap">
+                    Số lượng thực tế:
+                  </Label>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleActualQuantityChange(item, actualQty - 1)}
+                      disabled={actualQty <= 0}
+                      className="w-7 h-7 flex items-center justify-center rounded-md border bg-background hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={item.standard_quantity}
+                      value={actualQty}
+                      onChange={(e) => handleActualQuantityChange(item, parseInt(e.target.value) || 0)}
+                      className="w-14 h-7 text-center text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleActualQuantityChange(item, actualQty + 1)}
+                      disabled={actualQty >= item.standard_quantity}
+                      className="w-7 h-7 flex items-center justify-center rounded-md border bg-background hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    / {item.standard_quantity}
+                  </span>
+                  {missingQty > 0 && (
+                    <Badge variant="outline" className="ml-auto border-yellow-500 text-yellow-600 text-xs">
+                      Thiếu {missingQty}
                     </Badge>
                   )}
                 </div>
@@ -232,6 +323,17 @@ export function LinenTab({
                       Hỏng
                     </Label>
                   </div>
+
+                  <div className="flex items-center space-x-1.5 p-2 rounded-lg hover:bg-muted/50 col-span-2 border border-dashed border-yellow-400 bg-yellow-50/50">
+                    <RadioGroupItem value="missing" id={`${item.item_id}-missing`} />
+                    <Label 
+                      htmlFor={`${item.item_id}-missing`}
+                      className="flex items-center gap-1 cursor-pointer text-sm text-yellow-600"
+                    >
+                      <Minus className="h-3.5 w-3.5" />
+                      Thiếu đồ {missingQty > 0 && <span className="font-medium">(thiếu {missingQty})</span>}
+                    </Label>
+                  </div>
                 </RadioGroup>
 
                 {/* Quantity Input - only show when needed */}
@@ -256,6 +358,13 @@ export function LinenTab({
                       / {item.standard_quantity}
                     </span>
                   </div>
+                )}
+
+                {/* Missing status explanation */}
+                {status === 'missing' && (
+                  <p className="text-xs text-yellow-600 italic bg-yellow-50 p-2 rounded">
+                    → Phòng thiếu {missingQty} {item.item_name.toLowerCase()}, cần bổ sung
+                  </p>
                 )}
 
                 {/* Explanation text */}
