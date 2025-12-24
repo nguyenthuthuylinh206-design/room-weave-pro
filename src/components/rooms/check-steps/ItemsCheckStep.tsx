@@ -34,6 +34,15 @@ interface DamagedItem {
   notes?: string;
 }
 
+interface MissingItem {
+  item_id: string;
+  item_name: string;
+  item_code?: string;
+  item_type: 'linen' | 'consumable' | 'equipment' | 'furniture';
+  missing_quantity: number;
+  standard_quantity: number;
+}
+
 // Extended RoomItemWithDetails to include item_type
 interface ExtendedRoomItem extends RoomItemWithDetails {
   item_type?: ItemType;
@@ -56,6 +65,7 @@ export function ItemsCheckStep({
   const [lostItems, setLostItems] = useState<LostItem[]>([]);
   const [replacedItems, setReplacedItems] = useState<ReplacedItem[]>([]);
   const [damagedItems, setDamagedItems] = useState<DamagedItem[]>([]);
+  const [missingItems, setMissingItems] = useState<MissingItem[]>([]);
 
   // Fetch item_type for each item
   const [itemsWithType, setItemsWithType] = useState<ExtendedRoomItem[]>([]);
@@ -111,7 +121,7 @@ export function ItemsCheckStep({
     form.setValue('items_replaced', replacedItems)
     form.setValue('items_damaged', damagedItems as any)
 
-    // Build items_missing with real shortages (laundry not yet replaced, lost, consumables needing refill)
+    // Build items_missing with real shortages (laundry not yet replaced, lost, consumables needing refill, shortage items)
     const replacedQtyMap = replacedItems.reduce<Record<string, number>>((acc, it) => {
       acc[it.item_id] = (acc[it.item_id] || 0) + (it.quantity || 0)
       return acc
@@ -151,19 +161,30 @@ export function ItemsCheckStep({
         reason: 'consumed',
       })) as any[]
 
-    const itemsMissing = [...laundryMissing, ...lostMissing, ...consumedMissing]
-    form.setValue('items_missing', itemsMissing as any)
+    // Add shortage from missingItems (items marked as "Thiếu đồ")
+    const shortageMissing = missingItems
+      .filter(it => it.missing_quantity > 0)
+      .map((it) => ({
+        item_id: it.item_id,
+        item_name: it.item_name,
+        item_code: it.item_code,
+        shortage: it.missing_quantity,
+        reason: 'shortage',
+      })) as any[]
+
+    const itemsMissingCalculated = [...laundryMissing, ...lostMissing, ...consumedMissing, ...shortageMissing]
+    form.setValue('items_missing', itemsMissingCalculated as any)
 
     // items_complete should be false when room is missing items or has damaged items
-    const hasIssues = itemsMissing.length > 0 || damagedItems.length > 0
+    const hasIssues = itemsMissingCalculated.length > 0 || damagedItems.length > 0
     form.setValue('items_complete', !hasIssues)
-  }, [laundryItems, consumedItems, lostItems, replacedItems, damagedItems, form])
+  }, [laundryItems, consumedItems, lostItems, replacedItems, damagedItems, missingItems, form])
 
 
-  // Handler for Linen status change (OK/Laundry/Add/Change/Lost)
+  // Handler for Linen status change (OK/Laundry/Add/Change/Lost/Missing)
   const handleLinenStatusChange = (
     item: RoomItemWithDetails, 
-    status: 'ok' | 'laundry' | 'add' | 'change' | 'lost', 
+    status: 'ok' | 'laundry' | 'add' | 'change' | 'lost' | 'missing', 
     quantity: number
   ) => {
     if (status === 'laundry') {
@@ -210,6 +231,26 @@ export function ItemsCheckStep({
         quantity,
       }]);
       toast({ title: 'Đã đánh dấu mất', description: `${quantity}x ${item.item_name}`, variant: 'destructive' });
+    } else if (status === 'missing') {
+      // Update or add to missingItems
+      setMissingItems(prev => {
+        const existing = prev.find(i => i.item_id === item.item_id);
+        if (existing) {
+          return prev.map(i => i.item_id === item.item_id 
+            ? { ...i, missing_quantity: quantity } 
+            : i
+          );
+        }
+        return [...prev, {
+          item_id: item.item_id,
+          item_name: item.item_name,
+          item_code: item.item_code,
+          item_type: 'linen',
+          missing_quantity: quantity,
+          standard_quantity: item.standard_quantity,
+        }];
+      });
+      toast({ title: 'Thiếu đồ', description: `${item.item_name}: thiếu ${quantity}` });
     }
   };
 
@@ -218,6 +259,7 @@ export function ItemsCheckStep({
     setLaundryItems(prev => prev.filter(i => i.item_id !== itemId));
     setReplacedItems(prev => prev.filter(i => i.item_id !== itemId));
     setLostItems(prev => prev.filter(i => i.item_type === 'linen' ? i.item_id !== itemId : true));
+    setMissingItems(prev => prev.filter(i => i.item_id !== itemId));
   };
 
   // Handlers for Consumable

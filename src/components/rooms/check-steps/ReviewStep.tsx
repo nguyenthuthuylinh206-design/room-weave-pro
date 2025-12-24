@@ -1,5 +1,5 @@
 import { UseFormReturn } from 'react-hook-form'
-import { Upload, X, Star, CheckCircle2, AlertCircle, XCircle, Loader2, Shirt, Droplets, Tv, Armchair, Send, RefreshCw, Package, Wrench } from 'lucide-react'
+import { Upload, X, Star, CheckCircle2, AlertCircle, XCircle, Loader2, Shirt, Droplets, Tv, Armchair, Send, RefreshCw, Package, Wrench, Minus } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
@@ -149,7 +149,7 @@ export function ReviewStep({ form, room }: ReviewStepProps) {
               <Separator />
               
               {/* Linen Section */}
-              {(itemsSentToLaundry.length > 0 || itemsReplaced.length > 0 || itemsLost.filter(i => i.item_type === 'linen').length > 0) && (
+              {(itemsSentToLaundry.length > 0 || itemsReplaced.length > 0 || itemsLost.filter(i => i.item_type === 'linen').length > 0 || itemsMissing.filter(i => i.reason === 'shortage').length > 0) && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <Shirt className="h-4 w-4 text-blue-600" />
@@ -173,6 +173,19 @@ export function ReviewStep({ form, room }: ReviewStepProps) {
                       <div className="flex items-center gap-2 text-destructive">
                         <XCircle className="h-3 w-3" />
                         <span>Mất: {itemsLost.filter(i => i.item_type === 'linen').reduce((s, i) => s + i.quantity, 0)} items</span>
+                      </div>
+                    )}
+                    {itemsMissing.filter(i => i.reason === 'shortage').length > 0 && (
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2 text-yellow-600">
+                          <Minus className="h-3 w-3" />
+                          <span>Thiếu đồ: {itemsMissing.filter(i => i.reason === 'shortage').reduce((s, i) => s + i.shortage, 0)} items</span>
+                        </div>
+                        <div className="pl-5 text-xs text-muted-foreground">
+                          {itemsMissing.filter(i => i.reason === 'shortage').map((item, idx) => (
+                            <span key={idx}>• {item.item_name} (thiếu {item.shortage}){idx < itemsMissing.filter(i => i.reason === 'shortage').length - 1 ? ', ' : ''}</span>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
