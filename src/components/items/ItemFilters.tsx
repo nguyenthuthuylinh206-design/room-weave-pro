@@ -128,6 +128,7 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
     if (missingCategories.length > 0) {
       const categoriesToInsert = missingCategories.map((name, idx) => ({
         tenant_id: tenantId,
+        hotel_id: targetHotelId,
         name,
         code: name.toUpperCase().replace(/[^A-Z0-9]/g, '_').substring(0, 15) + '_' + (Date.now() + idx).toString().slice(-4),
         status: 'active'
