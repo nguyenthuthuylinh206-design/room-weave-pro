@@ -5602,20 +5602,35 @@ export type Database = {
           total_value: number
         }[]
       }
-      get_categories_with_stats: {
-        Args: { p_tenant_id: string }
-        Returns: {
-          color: string
-          description: string
-          icon: string
-          id: string
-          items_count: number
-          name: string
-          name_en: string
-          sort_order: number
-          total_value: number
-        }[]
-      }
+      get_categories_with_stats:
+        | {
+            Args: { p_tenant_id: string }
+            Returns: {
+              color: string
+              description: string
+              icon: string
+              id: string
+              items_count: number
+              name: string
+              name_en: string
+              sort_order: number
+              total_value: number
+            }[]
+          }
+        | {
+            Args: { p_hotel_id?: string; p_tenant_id: string }
+            Returns: {
+              color: string
+              description: string
+              icon: string
+              id: string
+              items_count: number
+              name: string
+              name_en: string
+              sort_order: number
+              total_value: number
+            }[]
+          }
       get_current_room_booking: {
         Args: { p_room_id: string }
         Returns: {

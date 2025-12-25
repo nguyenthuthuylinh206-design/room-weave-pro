@@ -1,20 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from './use-toast'
 import type { CategoryWithStats, CategoryFormData } from '@/types/items.types'
 
 export function useCategories() {
   const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   
   return useQuery({
-    queryKey: ['categories', tenantId],
+    queryKey: ['categories', tenantId, selectedHotel?.id, isAllHotelsMode],
     queryFn: async () => {
       if (!tenantId) throw new Error('No tenant')
+      
+      const hotelId = isAllHotelsMode ? null : selectedHotel?.id
       
       const { data, error } = await supabase
         .rpc('get_categories_with_stats', {
           p_tenant_id: tenantId,
+          p_hotel_id: hotelId || null,
         })
       
       if (error) throw error
