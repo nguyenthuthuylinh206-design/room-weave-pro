@@ -7,9 +7,10 @@ import { toast } from './use-toast'
 import type { CategoryWithStats, CategoryFormData } from '@/types/items.types'
 
 export function useCategories() {
-  const { tenantId } = useUser()
+  const { tenantId, hotelId: userHotelId } = useUser()
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const queryClient = useQueryClient()
+  const effectiveHotelId = isAllHotelsMode ? null : (selectedHotel?.id ?? userHotelId ?? null)
   
   // Subscribe to real-time changes on items and item_categories tables
   useEffect(() => {
@@ -39,18 +40,16 @@ export function useCategories() {
   }, [tenantId, queryClient])
   
   return useQuery({
-    queryKey: ['categories', tenantId, selectedHotel?.id, isAllHotelsMode],
+    queryKey: ['categories', tenantId, effectiveHotelId, isAllHotelsMode],
     queryFn: async () => {
       if (!tenantId) throw new Error('No tenant')
-      
-      const hotelId = isAllHotelsMode ? null : selectedHotel?.id
-      
+
       const { data, error } = await supabase
         .rpc('get_categories_with_stats', {
           p_tenant_id: tenantId,
-          p_hotel_id: hotelId || null,
+          p_hotel_id: effectiveHotelId,
         })
-      
+
       if (error) throw error
       return data as CategoryWithStats[]
     },

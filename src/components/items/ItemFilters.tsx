@@ -110,7 +110,11 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
 
     // Fetch categories and existing items in parallel
     const [categoriesResult, itemsResult] = await Promise.all([
-      supabase.from('item_categories').select('id, name').eq('tenant_id', tenantId),
+      supabase
+        .from('item_categories')
+        .select('id, name')
+        .eq('tenant_id', tenantId)
+        .eq('hotel_id', targetHotelId),
       supabase.from('items').select('id, name, code').eq('tenant_id', tenantId).eq('hotel_id', targetHotelId)
     ])
 
@@ -145,6 +149,7 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
         newCategories.forEach(c => categoryMap.set(c.name.toLowerCase().trim(), c.id))
         toast({ title: 'Đã tạo danh mục mới', description: `Tự động tạo ${newCategories.length} danh mục` })
         queryClient.invalidateQueries({ queryKey: ['item-categories'] })
+        queryClient.invalidateQueries({ queryKey: ['categories'] })
       }
     }
 

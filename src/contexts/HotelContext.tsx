@@ -63,7 +63,12 @@ export function HotelProvider({ children }: { children: ReactNode }) {
     if (assignedHotelIds && assignedHotelIds.length > 0) {
       return hotels.filter(h => assignedHotelIds.includes(h.id))
     }
-    
+
+    // Fallback: allow user's primary hotel even if user_hotels is empty
+    if (hotelId) {
+      return hotels.filter(h => h.id === hotelId)
+    }
+
     return []
   }, [hotels, canViewAllHotels, assignedHotelIds])
 
