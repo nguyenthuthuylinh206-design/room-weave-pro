@@ -1,4 +1,4 @@
-import { Search, FileDown, FileUp, QrCode } from 'lucide-react'
+import { Search, FileDown, FileUp, QrCode, RefreshCw } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -20,6 +20,7 @@ import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { useQueryClient } from '@tanstack/react-query'
+import { useSyncCategories } from '@/hooks/useSyncCategories'
 
 interface ItemFiltersProps {
   filters: IItemFilters
@@ -31,6 +32,7 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
   const { tenantId, hotelId } = useUser()
   const { selectedHotel } = useHotelContext()
   const queryClient = useQueryClient()
+  const { syncCategories, isSyncing } = useSyncCategories()
   const [isExporting, setIsExporting] = useState(false)
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   
@@ -240,6 +242,11 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
       })
     }
 
+    // Sync categories to fix mismatched hotel_id
+    if (tenantId && targetHotelId) {
+      await syncCategories(tenantId, targetHotelId)
+    }
+
     // Refresh items list
     queryClient.invalidateQueries({ queryKey: ['items'] })
     
@@ -258,6 +265,19 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
     }
     
     return { success: created + updated, failed, updated }
+  }
+
+  const handleSyncCategories = async () => {
+    const targetHotelId = selectedHotel?.id || hotelId
+    if (!tenantId || !targetHotelId) {
+      toast({
+        title: 'Lỗi',
+        description: 'Vui lòng chọn khách sạn trước khi đồng bộ',
+        variant: 'destructive',
+      })
+      return
+    }
+    await syncCategories(tenantId, targetHotelId)
   }
   
   return (
@@ -329,7 +349,7 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
         </Select>
       </div>
       
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <Button variant="outline" size="sm" onClick={() => setImportDialogOpen(true)}>
           <FileUp className="mr-2 h-4 w-4" />
           Import Excel
@@ -349,6 +369,22 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
         <Button variant="outline" size="sm" onClick={handleScanQR}>
           <QrCode className="mr-2 h-4 w-4" />
           Quét QR
+        </Button>
+
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleSyncCategories} 
+          disabled={isSyncing}
+        >
+          {isSyncing ? (
+            <div className="mr-2">
+              <LoadingSpinner size="sm" />
+            </div>
+          ) : (
+            <RefreshCw className="mr-2 h-4 w-4" />
+          )}
+          Đồng bộ danh mục
         </Button>
       </div>
 
