@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 export interface ItemCategory {
   id: string
   tenant_id: string
+  hotel_id?: string
   name: string
   name_en?: string
   code?: string
@@ -67,12 +68,21 @@ export const useItemCategories = () => {
 export const useCreateItemCategory = () => {
   const queryClient = useQueryClient()
   const { tenantId } = useUser()
+  const { selectedHotel } = useHotelContext()
 
   return useMutation({
     mutationFn: async (category: Partial<ItemCategory>) => {
+      if (!selectedHotel?.id) {
+        throw new Error('Vui lòng chọn khách sạn trước khi tạo danh mục')
+      }
+      
       const { data, error } = await supabase
         .from('item_categories')
-        .insert([{ ...category, tenant_id: tenantId } as any])
+        .insert([{ 
+          ...category, 
+          tenant_id: tenantId,
+          hotel_id: selectedHotel.id 
+        } as any])
         .select()
         .single()
 

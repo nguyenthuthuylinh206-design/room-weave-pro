@@ -18,6 +18,8 @@ import { downloadCategoriesTemplate, parseCategoriesExcel, type CategoryImportRo
 import { useUser } from '@/hooks/useUser'
 import { supabase } from '@/integrations/supabase/client'
 import { useQueryClient } from '@tanstack/react-query'
+import { useHotelContext } from '@/contexts/HotelContext'
+import { toast } from 'sonner'
 
 export function ItemCategoriesList() {
   const [search, setSearch] = useState('')
@@ -26,6 +28,7 @@ export function ItemCategoriesList() {
   const { data: categories, isLoading } = useItemCategories()
   const deleteCategory = useDeleteItemCategory()
   const { tenantId } = useUser()
+  const { selectedHotel } = useHotelContext()
   const queryClient = useQueryClient()
 
   const filteredCategories = categories?.filter(
@@ -45,6 +48,12 @@ export function ItemCategoriesList() {
     let failed = 0
 
     if (!tenantId) {
+      toast.error('Thiếu thông tin tenant')
+      return { success: 0, failed: data.length }
+    }
+
+    if (!selectedHotel?.id) {
+      toast.error('Vui lòng chọn khách sạn trước khi import danh mục')
       return { success: 0, failed: data.length }
     }
 
@@ -55,6 +64,7 @@ export function ItemCategoriesList() {
 
         const { error } = await supabase.from('item_categories').insert({
           tenant_id: tenantId,
+          hotel_id: selectedHotel.id,
           name: category.name,
           name_en: category.name_en || null,
           code,
