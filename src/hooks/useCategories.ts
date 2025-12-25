@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
@@ -8,6 +9,34 @@ import type { CategoryWithStats, CategoryFormData } from '@/types/items.types'
 export function useCategories() {
   const { tenantId } = useUser()
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
+  const queryClient = useQueryClient()
+  
+  // Subscribe to real-time changes on items and item_categories tables
+  useEffect(() => {
+    if (!tenantId) return
+
+    const channel = supabase
+      .channel('categories-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'items' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['categories'] })
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'item_categories' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['categories'] })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [tenantId, queryClient])
   
   return useQuery({
     queryKey: ['categories', tenantId, selectedHotel?.id, isAllHotelsMode],
