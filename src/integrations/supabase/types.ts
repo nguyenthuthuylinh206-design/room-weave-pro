@@ -5831,18 +5831,13 @@ export type Database = {
           category_name: string
           code: string
           created_at: string
-          current_wash_cycles: number
           description: string
-          expected_lifetime_days: number
           hotel_id: string
           id: string
-          item_type: string
-          max_wash_cycles: number
           minimum_stock: number
           model: string
           name: string
           name_en: string
-          qr_code: string
           quantity_damaged: number
           quantity_in_laundry: number
           quantity_in_stock: number
@@ -5850,10 +5845,8 @@ export type Database = {
           quantity_lost: number
           quantity_total: number
           reorder_point: number
-          specifications: Json
           status: string
           stock_status: string
-          tenant_id: string
           total_count: number
           unit: string
           unit_price: number
@@ -6332,6 +6325,10 @@ export type Database = {
             }
             Returns: Json
           }
+      sync_categories_for_hotel: {
+        Args: { p_hotel_id: string; p_tenant_id: string }
+        Returns: Json
+      }
       undo_room_delivery_confirmation:
         | { Args: { p_distribution_order_room_id: string }; Returns: Json }
         | {
