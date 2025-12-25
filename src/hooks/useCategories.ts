@@ -61,11 +61,15 @@ export function useCategories() {
 export function useCreateCategory() {
   const queryClient = useQueryClient()
   const { tenantId } = useUser()
+  const { selectedHotel } = useHotelContext()
   
   return useMutation({
     mutationFn: async (data: CategoryFormData) => {
       if (!tenantId) {
         throw new Error('Thiếu tenant_id. Vui lòng đăng nhập lại hoặc tạo tenant từ trang System Test.')
+      }
+      if (!selectedHotel?.id) {
+        throw new Error('Vui lòng chọn khách sạn trước khi tạo danh mục.')
       }
       
       const { data: category, error } = await supabase
@@ -73,6 +77,7 @@ export function useCreateCategory() {
         .insert({
           ...data,
           tenant_id: tenantId,
+          hotel_id: selectedHotel.id,
         })
         .select()
         .single()
