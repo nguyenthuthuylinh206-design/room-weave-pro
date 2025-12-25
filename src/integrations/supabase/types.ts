@@ -1323,6 +1323,7 @@ export type Database = {
           depreciable: boolean | null
           depreciation_rate: number | null
           description: string | null
+          hotel_id: string | null
           icon: string | null
           id: string
           is_launderable: boolean | null
@@ -1349,6 +1350,7 @@ export type Database = {
           depreciable?: boolean | null
           depreciation_rate?: number | null
           description?: string | null
+          hotel_id?: string | null
           icon?: string | null
           id?: string
           is_launderable?: boolean | null
@@ -1375,6 +1377,7 @@ export type Database = {
           depreciable?: boolean | null
           depreciation_rate?: number | null
           description?: string | null
+          hotel_id?: string | null
           icon?: string | null
           id?: string
           is_launderable?: boolean | null
@@ -1395,6 +1398,20 @@ export type Database = {
           useful_life_months?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "item_categories_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "item_categories_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "item_categories_parent_id_fkey"
             columns: ["parent_id"]
