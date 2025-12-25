@@ -37,6 +37,8 @@ import {
   useUpdateCategory,
   useDeleteCategory,
 } from '@/hooks/useCategories'
+import { useUser } from '@/hooks/useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
 import { useTranslation } from 'react-i18next'
 import type { CategoryFormData } from '@/types/items.types'
 
@@ -45,6 +47,10 @@ export function CategoriesPage() {
   const navigate = useNavigate()
   const { isMobile } = useBreakpoint()
   const { user: authUser } = useAuth()
+  const { tenantId, hotelId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
+  const effectiveHotelId = isAllHotelsMode ? null : (selectedHotel?.id ?? hotelId ?? null)
+
   const { data: categories, isLoading } = useCategories()
   const createCategory = useCreateCategory()
   const updateCategory = useUpdateCategory()
@@ -212,17 +218,21 @@ export function CategoriesPage() {
         </Button>
       </div>
 
-      {/* Tenant Missing Alert */}
-      {showTenantAlert && !isLoading && categories?.length === 0 && (
+      {/* Tenant/Hotel Missing Alert */}
+      {showTenantAlert && (!tenantId || (!effectiveHotelId && !isAllHotelsMode)) && (
         <Alert variant="destructive" className="border-orange-500 bg-orange-50 dark:bg-orange-950">
           <AlertTriangle className="h-4 w-4 text-orange-600" />
           <AlertTitle className="text-orange-900 dark:text-orange-100">
-            Thiếu dữ liệu tenant và hotel
+            {!tenantId ? 'Thiếu cấu hình tenant' : 'Chưa chọn khách sạn'}
           </AlertTitle>
           <AlertDescription className="text-orange-800 dark:text-orange-200 space-y-3">
             <p>
-              Hệ thống phát hiện tài khoản của bạn chưa có tenant_id và hotel_id.
-              Điều này có thể xảy ra nếu quá trình đăng ký chưa hoàn tất.
+              {!tenantId
+                ? 'Hệ thống chưa xác định tenant cho tài khoản của bạn (tenant_id).'
+                : 'Bạn cần chọn khách sạn để hiển thị danh mục (hotel).'}
+            </p>
+            <p className="text-sm">
+              Bạn có thể dùng “Tự động khắc phục” để tạo dữ liệu mẫu, hoặc vào System Test để kiểm tra.
             </p>
             <div className="flex gap-2">
               <Button 
