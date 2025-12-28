@@ -151,6 +151,75 @@ export function useDeleteStandard() {
   })
 }
 
+export function useCloneStandards() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const { tenantId, hotelId } = useUser()
+  
+  return useMutation({
+    mutationFn: async ({
+      sourceRoomType,
+      targetRoomType,
+    }: {
+      sourceRoomType: RoomType
+      targetRoomType: RoomType
+    }) => {
+      // 1. Delete all existing standards for target room type
+      const { error: deleteError } = await supabase
+        .from('room_type_standards')
+        .delete()
+        .eq('hotel_id', hotelId)
+        .eq('room_type', targetRoomType)
+      
+      if (deleteError) throw deleteError
+      
+      // 2. Get all standards from source room type
+      const { data: sourceStandards, error: fetchError } = await supabase
+        .rpc('get_room_standards', {
+          p_hotel_id: hotelId,
+          p_room_type: sourceRoomType,
+        })
+      
+      if (fetchError) throw fetchError
+      
+      if (!sourceStandards || sourceStandards.length === 0) {
+        return { count: 0 }
+      }
+      
+      // 3. Insert cloned standards for target room type
+      const newStandards = sourceStandards.map((s: any) => ({
+        tenant_id: tenantId,
+        hotel_id: hotelId,
+        room_type: targetRoomType,
+        item_id: s.item_id,
+        quantity: s.quantity,
+      }))
+      
+      const { error: insertError } = await supabase
+        .from('room_type_standards')
+        .insert(newStandards)
+      
+      if (insertError) throw insertError
+      
+      return { count: sourceStandards.length }
+    },
+    onSuccess: (result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['room-standards', hotelId, variables.targetRoomType] })
+      toast({
+        title: 'Thành công',
+        description: `Đã sao chép ${result.count} tài sản`,
+      })
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+}
+
 export function useApplyStandards() {
   const queryClient = useQueryClient()
   const { toast } = useToast()

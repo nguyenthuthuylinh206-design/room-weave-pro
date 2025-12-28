@@ -509,6 +509,24 @@
     "note": "When creating a new \"{{type}}\" room, the system will automatically assign assets based on the configured standards.",
     "validation": {
       "selectAsset": "Please select an asset and enter a valid quantity"
+    },
+    "clone": {
+      "button": "Copy from...",
+      "title": "Clone Standards List",
+      "selectDescription": "Select source room type to copy asset list",
+      "previewDescription": "Preview items to be copied",
+      "doneDescription": "Successfully copied!",
+      "from": "From",
+      "to": "To",
+      "selectSource": "Select room type...",
+      "warning": "Current list has {{count}} assets that will be completely replaced.",
+      "items": "items",
+      "noItems": "No items",
+      "preview": "Preview",
+      "confirm": "Confirm Copy",
+      "cloning": "Copying...",
+      "success": "Copy successful!",
+      "successDetail": "Copied {{count}} assets"
     }
   },
   "booking": {
