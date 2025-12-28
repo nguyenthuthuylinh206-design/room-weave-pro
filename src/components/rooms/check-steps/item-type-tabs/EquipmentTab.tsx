@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Tv, Check, AlertTriangle, Wrench, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
 import type { RoomItemWithDetails, LostItem } from '@/types/rooms.types'
+import { CategoryGroup, groupItemsByCategory } from './CategoryGroup'
 
 interface DamagedItem {
   item_id: string
@@ -14,8 +15,12 @@ interface DamagedItem {
   notes?: string
 }
 
+interface ExtendedRoomItem extends RoomItemWithDetails {
+  category_name?: string | null
+}
+
 interface EquipmentTabProps {
-  items: RoomItemWithDetails[]
+  items: ExtendedRoomItem[]
   lostItems: LostItem[]
   damagedItems: DamagedItem[]
   onMarkLost: (item: RoomItemWithDetails, quantity: number) => void
@@ -53,11 +58,21 @@ export function EquipmentTab({
     return 'pending'
   }
 
+  // Group items by category
+  const groupedItems = useMemo(() => groupItemsByCategory(items), [items])
+
   // Calculate progress
   const checkedCount = items.filter(item => 
     isLost(item.item_id) || isDamaged(item.item_id) || isCheckedOk(item.item_id)
   ).length
   const progressPercent = items.length > 0 ? (checkedCount / items.length) * 100 : 0
+
+  // Get checked count for a category
+  const getCategoryCheckedCount = (categoryItems: ExtendedRoomItem[]) => {
+    return categoryItems.filter(item => 
+      isLost(item.item_id) || isDamaged(item.item_id) || isCheckedOk(item.item_id)
+    ).length
+  }
 
   const handleMarkOk = (itemId: string) => {
     setCheckedOk(prev => new Set(prev).add(itemId))
@@ -113,8 +128,159 @@ export function EquipmentTab({
     )
   }
 
+  const renderItemCard = (item: ExtendedRoomItem) => {
+    const status = getStatus(item.item_id)
+    const isPending = pendingAction?.itemId === item.item_id
+    const damagedInfo = damagedItems.find(i => i.item_id === item.item_id)
+
+    return (
+      <Card 
+        key={item.item_id} 
+        className={
+          status === 'lost' ? 'border-destructive bg-destructive/5' : 
+          status === 'damaged' ? 'border-warning bg-warning/5' : 
+          status === 'ok' ? 'border-success/50 bg-success/5' : ''
+        }
+      >
+        <CardContent className="p-3">
+          {/* Item Header */}
+          <div className="flex items-center gap-3">
+            {item.item_thumbnail ? (
+              <img
+                src={item.item_thumbnail}
+                alt={item.item_name}
+                className="w-10 h-10 object-cover rounded-lg flex-shrink-0"
+              />
+            ) : (
+              <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+                <Tv className="h-5 w-5 text-muted-foreground" />
+              </div>
+            )}
+            
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium text-sm truncate">{item.item_name}</h4>
+              <p className="text-xs text-muted-foreground truncate">{item.item_code}</p>
+            </div>
+
+            {/* Status Badge */}
+            {status === 'ok' && (
+              <Badge variant="outline" className="bg-success/10 text-success border-success flex-shrink-0">
+                <Check className="mr-1 h-3 w-3" />
+                OK
+              </Badge>
+            )}
+            {status === 'lost' && (
+              <Badge variant="destructive" className="flex-shrink-0">
+                <AlertTriangle className="mr-1 h-3 w-3" />
+                Mất
+              </Badge>
+            )}
+            {status === 'damaged' && (
+              <Badge variant="secondary" className="bg-warning/10 text-warning border-warning flex-shrink-0">
+                <Wrench className="mr-1 h-3 w-3" />
+                Hỏng
+              </Badge>
+            )}
+          </div>
+
+          {/* Action Buttons - Improved touch targets */}
+          {status === 'pending' && !isPending && (
+            <div className="flex gap-2 mt-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="default"
+                className="flex-1 h-11 border-success text-success hover:bg-success hover:text-success-foreground active:scale-95 transition-transform"
+                onClick={() => handleMarkOk(item.item_id)}
+              >
+                <Check className="mr-1.5 h-4 w-4" />
+                OK
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="default"
+                className="flex-1 h-11 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground active:scale-95 transition-transform"
+                onClick={() => handleStartAction(item.item_id, 'lost')}
+              >
+                <AlertTriangle className="mr-1.5 h-4 w-4" />
+                Mất
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="default"
+                className="flex-1 h-11 border-warning text-warning hover:bg-warning hover:text-warning-foreground active:scale-95 transition-transform"
+                onClick={() => handleStartAction(item.item_id, 'damaged')}
+              >
+                <Wrench className="mr-1.5 h-4 w-4" />
+                Hỏng
+              </Button>
+            </div>
+          )}
+
+          {/* Pending Action - Notes Input */}
+          {isPending && (
+            <div className="mt-3 space-y-2">
+              <Textarea
+                value={actionNotes}
+                onChange={(e) => setActionNotes(e.target.value)}
+                placeholder={pendingAction.type === 'lost' ? 'Lý do mất (không bắt buộc)...' : 'Mô tả tình trạng hỏng...'}
+                className="h-16 text-sm"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={pendingAction.type === 'lost' ? 'destructive' : 'secondary'}
+                  size="default"
+                  className={`h-10 ${pendingAction.type === 'damaged' ? 'bg-warning text-warning-foreground hover:bg-warning/90' : ''}`}
+                  onClick={() => handleConfirmAction(item)}
+                >
+                  {pendingAction.type === 'lost' ? 'Xác nhận mất' : 'Xác nhận hỏng'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="default"
+                  className="h-10"
+                  onClick={handleCancelAction}
+                >
+                  Hủy
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Show notes for damaged items */}
+          {status === 'damaged' && damagedInfo?.notes && (
+            <div className="mt-2 text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+              {damagedInfo.notes}
+            </div>
+          )}
+
+          {/* Reset Button for checked items */}
+          {status !== 'pending' && !isPending && (
+            <div className="flex justify-end mt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => handleResetItem(item)}
+              >
+                <X className="mr-1 h-3 w-3" />
+                Đặt lại
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Progress Tracker */}
       <div className="bg-muted/50 p-3 rounded-lg space-y-2">
         <div className="flex items-center justify-between text-sm">
@@ -132,157 +298,18 @@ export function EquipmentTab({
         <Progress value={progressPercent} className="h-2" />
       </div>
 
-      {/* Item List */}
-      {items.map((item) => {
-        const status = getStatus(item.item_id)
-        const isPending = pendingAction?.itemId === item.item_id
-        const lostInfo = lostItems.find(i => i.item_id === item.item_id)
-        const damagedInfo = damagedItems.find(i => i.item_id === item.item_id)
-
-        return (
-          <Card 
-            key={item.item_id} 
-            className={
-              status === 'lost' ? 'border-destructive bg-destructive/5' : 
-              status === 'damaged' ? 'border-warning bg-warning/5' : 
-              status === 'ok' ? 'border-success/50 bg-success/5' : ''
-            }
-          >
-            <CardContent className="p-3">
-              {/* Item Header */}
-              <div className="flex items-center gap-3">
-                {item.item_thumbnail ? (
-                  <img
-                    src={item.item_thumbnail}
-                    alt={item.item_name}
-                    className="w-10 h-10 object-cover rounded-lg flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Tv className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                )}
-                
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-sm truncate">{item.item_name}</h4>
-                  <p className="text-xs text-muted-foreground truncate">{item.item_code}</p>
-                </div>
-
-                {/* Status Badge */}
-                {status === 'ok' && (
-                  <Badge variant="outline" className="bg-success/10 text-success border-success flex-shrink-0">
-                    <Check className="mr-1 h-3 w-3" />
-                    OK
-                  </Badge>
-                )}
-                {status === 'lost' && (
-                  <Badge variant="destructive" className="flex-shrink-0">
-                    <AlertTriangle className="mr-1 h-3 w-3" />
-                    Mất
-                  </Badge>
-                )}
-                {status === 'damaged' && (
-                  <Badge variant="secondary" className="bg-warning/10 text-warning border-warning flex-shrink-0">
-                    <Wrench className="mr-1 h-3 w-3" />
-                    Hỏng
-                  </Badge>
-                )}
-              </div>
-
-              {/* Action Buttons - Only show when not checked */}
-              {status === 'pending' && !isPending && (
-                <div className="flex gap-2 mt-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 border-success text-success hover:bg-success hover:text-success-foreground"
-                    onClick={() => handleMarkOk(item.item_id)}
-                  >
-                    <Check className="mr-1 h-3 w-3" />
-                    OK
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    onClick={() => handleStartAction(item.item_id, 'lost')}
-                  >
-                    <AlertTriangle className="mr-1 h-3 w-3" />
-                    Mất
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 border-warning text-warning hover:bg-warning hover:text-warning-foreground"
-                    onClick={() => handleStartAction(item.item_id, 'damaged')}
-                  >
-                    <Wrench className="mr-1 h-3 w-3" />
-                    Hỏng
-                  </Button>
-                </div>
-              )}
-
-              {/* Pending Action - Notes Input */}
-              {isPending && (
-                <div className="mt-3 space-y-2">
-                  <Textarea
-                    value={actionNotes}
-                    onChange={(e) => setActionNotes(e.target.value)}
-                    placeholder={pendingAction.type === 'lost' ? 'Lý do mất (không bắt buộc)...' : 'Mô tả tình trạng hỏng...'}
-                    className="h-16 text-sm"
-                    autoFocus
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant={pendingAction.type === 'lost' ? 'destructive' : 'secondary'}
-                      size="sm"
-                      className={pendingAction.type === 'damaged' ? 'bg-warning text-warning-foreground hover:bg-warning/90' : ''}
-                      onClick={() => handleConfirmAction(item)}
-                    >
-                      {pendingAction.type === 'lost' ? 'Xác nhận mất' : 'Xác nhận hỏng'}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCancelAction}
-                    >
-                      Hủy
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Show notes for damaged items */}
-              {status === 'damaged' && damagedInfo?.notes && (
-                <div className="mt-2 text-sm text-muted-foreground bg-muted/50 p-2 rounded">
-                  {damagedInfo.notes}
-                </div>
-              )}
-
-              {/* Reset Button for checked items */}
-              {status !== 'pending' && !isPending && (
-                <div className="flex justify-end mt-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs text-muted-foreground"
-                    onClick={() => handleResetItem(item)}
-                  >
-                    <X className="mr-1 h-3 w-3" />
-                    Đặt lại
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )
-      })}
+      {/* Grouped Items by Category */}
+      {Array.from(groupedItems.entries()).map(([categoryName, categoryItems]) => (
+        <CategoryGroup
+          key={categoryName}
+          categoryName={categoryName}
+          itemCount={categoryItems.length}
+          checkedCount={getCategoryCheckedCount(categoryItems)}
+          defaultOpen={true}
+        >
+          {categoryItems.map(renderItemCard)}
+        </CategoryGroup>
+      ))}
     </div>
   )
 }
