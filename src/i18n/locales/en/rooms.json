@@ -95,6 +95,12 @@
     "noItems": "No items in this room",
     "unverifiedAlert": "{{count}} item types have not been checked.",
     "missingSummary": "Missing {{count}} types ({{total}} items).",
+    "searchPlaceholder": "Search by name, code, category...",
+    "noSearchResults": "No items found",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
+    "uncategorized": "Uncategorized",
+    "categoryMissing": "Missing {{count}}",
     "tabs": {
       "required": "Standard",
       "current": "All Items",

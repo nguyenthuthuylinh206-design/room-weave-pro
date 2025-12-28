@@ -95,6 +95,12 @@
     "noItems": "Chưa có đồ dùng nào trong phòng",
     "unverifiedAlert": "Còn {{count}} loại đồ chưa được kiểm tra.",
     "missingSummary": "Thiếu {{count}} loại đồ ({{total}} món).",
+    "searchPlaceholder": "Tìm theo tên, mã, danh mục...",
+    "noSearchResults": "Không tìm thấy đồ dùng nào",
+    "expandAll": "Mở rộng tất cả",
+    "collapseAll": "Thu gọn tất cả",
+    "uncategorized": "Chưa phân loại",
+    "categoryMissing": "Thiếu {{count}}",
     "tabs": {
       "required": "Tiêu chuẩn",
       "current": "Tất cả",

@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Package, CheckCircle2, AlertCircle, Loader2, BoxesIcon, Coffee, PackagePlus } from 'lucide-react'
+import { Package, CheckCircle2, AlertCircle, Loader2, BoxesIcon, Coffee, PackagePlus, Search, ChevronDown, ChevronRight, FolderOpen } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useUpdateRoomItemQuantity } from '@/hooks/useRoomItems'
 import { CustomerUsedDialog } from './CustomerUsedDialog'
 
@@ -38,6 +39,8 @@ export function RoomItemsList({ items, roomId, onRequestSupplement }: RoomItemsL
   const { t } = useTranslation('rooms')
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [savingItemId, setSavingItemId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
   const updateQuantity = useUpdateRoomItemQuantity()
 
   // Dialog state for customer used
@@ -62,6 +65,56 @@ export function RoomItemsList({ items, roomId, onRequestSupplement }: RoomItemsL
     const missing = Math.max(0, item.standard_quantity - currentQty)
     return sum + missing
   }, 0)
+
+  // Filter items by search query
+  const filterBySearch = (itemList: RoomItem[]) => {
+    if (!searchQuery.trim()) return itemList
+    const query = searchQuery.toLowerCase()
+    return itemList.filter(item => 
+      item.item_name.toLowerCase().includes(query) ||
+      item.item_code.toLowerCase().includes(query) ||
+      item.category_name?.toLowerCase().includes(query)
+    )
+  }
+
+  // Group items by category
+  const groupByCategory = (itemList: RoomItem[]) => {
+    const groups: Record<string, RoomItem[]> = {}
+    itemList.forEach(item => {
+      const category = item.category_name || t('itemsList.uncategorized')
+      if (!groups[category]) groups[category] = []
+      groups[category].push(item)
+    })
+    return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]))
+  }
+
+  // Auto-expand categories with missing items
+  useMemo(() => {
+    const categoriesWithMissing = new Set<string>()
+    missingItems.forEach(item => {
+      categoriesWithMissing.add(item.category_name || t('itemsList.uncategorized'))
+    })
+    if (categoriesWithMissing.size > 0 && expandedCategories.size === 0) {
+      setExpandedCategories(categoriesWithMissing)
+    }
+  }, [missingItems.length])
+
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev => {
+      const next = new Set(prev)
+      if (next.has(category)) {
+        next.delete(category)
+      } else {
+        next.add(category)
+      }
+      return next
+    })
+  }
+
+  const expandAllCategories = (itemList: RoomItem[]) => {
+    const categories = new Set(itemList.map(item => item.category_name || t('itemsList.uncategorized')))
+    setExpandedCategories(categories)
+  }
 
   const handleQuantityChange = (itemId: string, value: string) => {
     const qty = value === '' ? 0 : parseInt(value) || 0
@@ -177,6 +230,17 @@ export function RoomItemsList({ items, roomId, onRequestSupplement }: RoomItemsL
         roomId={roomId}
       />
 
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder={t('itemsList.searchPlaceholder')}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9 h-9"
+        />
+      </div>
+
       {unverifiedCount > 0 && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -191,7 +255,7 @@ export function RoomItemsList({ items, roomId, onRequestSupplement }: RoomItemsL
         </Alert>
       )}
 
-      <Tabs defaultValue={standardItems.length > 0 ? "required" : "other"} className="w-full">
+      <Tabs defaultValue={missingItems.length > 0 ? "missing" : (standardItems.length > 0 ? "required" : "other")} className="w-full">
         <TabsList className="w-full flex overflow-x-auto no-scrollbar">
           <TabsTrigger value="required" className="flex-shrink-0 text-xs sm:text-sm">
             <Package className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
@@ -221,7 +285,7 @@ export function RoomItemsList({ items, roomId, onRequestSupplement }: RoomItemsL
           </TabsTrigger>
         </TabsList>
 
-        {/* Tab 1: Required items (standards) */}
+        {/* Tab 1: Required items (standards) - Grouped by category */}
         <TabsContent value="required" className="space-y-2 mt-4">
           {standardItems.length === 0 ? (
             <Alert>
@@ -231,57 +295,122 @@ export function RoomItemsList({ items, roomId, onRequestSupplement }: RoomItemsL
               </AlertDescription>
             </Alert>
           ) : (
-            standardItems.map((item) => {
-              const currentQty = quantities[item.item_id] ?? item.current_quantity
-              const diff = currentQty - item.standard_quantity
-              
-              return (
-                <div key={item.item_id} className="p-4 rounded-lg border bg-card hover:shadow-sm transition-shadow">
-                  <div className="flex items-center gap-3">
-                    {item.item_thumbnail ? (
-                      <img
-                        src={item.item_thumbnail}
-                        alt={item.item_name}
-                        className="h-14 w-14 rounded object-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="flex h-14 w-14 items-center justify-center rounded bg-muted flex-shrink-0">
-                        <Package className="h-7 w-7 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <Link
-                        to={`/items/${item.item_id}`}
-                        className="font-medium hover:underline block truncate"
+            <>
+              {/* Expand/Collapse All Button */}
+              <div className="flex justify-end mb-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs h-7"
+                  onClick={() => {
+                    const filtered = filterBySearch(standardItems)
+                    if (expandedCategories.size === groupByCategory(filtered).length) {
+                      setExpandedCategories(new Set())
+                    } else {
+                      expandAllCategories(filtered)
+                    }
+                  }}
+                >
+                  <FolderOpen className="h-3 w-3 mr-1" />
+                  {expandedCategories.size === groupByCategory(filterBySearch(standardItems)).length 
+                    ? t('itemsList.collapseAll') 
+                    : t('itemsList.expandAll')}
+                </Button>
+              </div>
+              {groupByCategory(filterBySearch(standardItems)).map(([category, categoryItems]) => {
+                const categoryMissingCount = categoryItems.filter(item => {
+                  const currentQty = quantities[item.item_id] ?? item.current_quantity
+                  return item.standard_quantity - currentQty > 0
+                }).length
+                const isExpanded = expandedCategories.has(category)
+
+                return (
+                  <Collapsible
+                    key={category}
+                    open={isExpanded}
+                    onOpenChange={() => toggleCategory(category)}
+                  >
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-between h-10 px-3 hover:bg-muted/80"
                       >
-                        {item.item_name}
-                      </Link>
-                      <p className="text-sm text-muted-foreground">{item.item_code}</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-center">
-                        <div className="text-xl font-bold text-primary">{item.standard_quantity}</div>
-                        <p className="text-xs text-muted-foreground">{t('itemsList.labels.required')}</p>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-xl font-bold">{currentQty}</div>
-                        <p className="text-xs text-muted-foreground">{t('itemsList.labels.current')}</p>
-                      </div>
-                      <div className="w-20">
-                        {diff === 0 ? (
-                          <Badge className="w-full justify-center bg-success">{t('itemsList.status.enough')}</Badge>
-                        ) : diff > 0 ? (
-                          <Badge className="w-full justify-center bg-blue-500">{t('itemsList.status.excessAmount', { count: diff })}</Badge>
-                        ) : (
-                          <Badge variant="destructive" className="w-full justify-center">{t('itemsList.status.missingAmount', { count: Math.abs(diff) })}</Badge>
+                        <div className="flex items-center gap-2">
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                          <span className="font-medium">{category}</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {categoryItems.length}
+                          </Badge>
+                        </div>
+                        {categoryMissingCount > 0 && (
+                          <Badge variant="destructive" className="text-xs">
+                            {t('itemsList.categoryMissing', { count: categoryMissingCount })}
+                          </Badge>
                         )}
-                      </div>
-                    </div>
-                  </div>
-                  {renderQuickActions(item)}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-2 pl-4 mt-2">
+                      {categoryItems.map((item) => {
+                        const currentQty = quantities[item.item_id] ?? item.current_quantity
+                        const diff = currentQty - item.standard_quantity
+                        
+                        return (
+                          <div key={item.item_id} className="p-3 rounded-lg border bg-card hover:shadow-sm transition-shadow">
+                            <div className="flex items-center gap-3">
+                              {item.item_thumbnail ? (
+                                <img
+                                  src={item.item_thumbnail}
+                                  alt={item.item_name}
+                                  className="h-10 w-10 rounded object-cover flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="flex h-10 w-10 items-center justify-center rounded bg-muted flex-shrink-0">
+                                  <Package className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <Link
+                                  to={`/items/${item.item_id}`}
+                                  className="font-medium text-sm hover:underline block truncate"
+                                >
+                                  {item.item_name}
+                                </Link>
+                                <p className="text-xs text-muted-foreground">{item.item_code}</p>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="font-bold">{currentQty}</span>
+                                <span className="text-muted-foreground">/</span>
+                                <span className="text-primary font-medium">{item.standard_quantity}</span>
+                              </div>
+                              <div className="w-16">
+                                {diff === 0 ? (
+                                  <Badge className="w-full justify-center text-xs bg-success">✓</Badge>
+                                ) : diff > 0 ? (
+                                  <Badge className="w-full justify-center text-xs bg-blue-500">+{diff}</Badge>
+                                ) : (
+                                  <Badge variant="destructive" className="w-full justify-center text-xs">{diff}</Badge>
+                                )}
+                              </div>
+                            </div>
+                            {renderQuickActions(item)}
+                          </div>
+                        )
+                      })}
+                    </CollapsibleContent>
+                  </Collapsible>
+                )
+              })}
+              {filterBySearch(standardItems).length === 0 && searchQuery && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>{t('itemsList.noSearchResults')}</p>
                 </div>
-              )
-            })
+              )}
+            </>
           )}
         </TabsContent>
 

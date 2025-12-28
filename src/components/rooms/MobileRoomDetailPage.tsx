@@ -294,6 +294,7 @@ export function MobileRoomDetailPage() {
           checks={checks} 
           totalItems={standardItems.length} 
           missingItems={missingCount}
+          compact
         />
       </div>
 
