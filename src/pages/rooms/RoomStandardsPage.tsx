@@ -21,12 +21,13 @@ import {
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { useRoomStandards, useUpdateStandard, useDeleteStandard, useAddStandard } from '@/hooks/useRoomStandards'
+import { useRoomStandards, useUpdateStandard, useDeleteStandard, useAddStandard, useCloneStandards } from '@/hooks/useRoomStandards'
 import type { RoomType } from '@/types/rooms.types'
 import { useCategories } from '@/hooks/useCategories'
 import { useItems } from '@/hooks/useItems'
 import { toast } from 'sonner'
 import { RoomStandardItemPicker } from '@/components/rooms/RoomStandardItemPicker'
+import { CloneStandardsDialog } from '@/components/rooms/CloneStandardsDialog'
 
 const ROOM_TYPE_KEYS: RoomType[] = ['standard', 'deluxe', 'suite', 'vip']
 
@@ -42,6 +43,7 @@ export function RoomStandardsPage() {
   const addStandard = useAddStandard()
   const updateStandard = useUpdateStandard()
   const deleteStandard = useDeleteStandard()
+  const cloneStandards = useCloneStandards()
 
   // Get list of item IDs already in standards
   const excludeItemIds = useMemo(() => {
@@ -89,6 +91,12 @@ export function RoomStandardsPage() {
       // Error handled by mutation
     }
   }
+  const handleCloneStandards = async (sourceRoomType: RoomType) => {
+    await cloneStandards.mutateAsync({
+      sourceRoomType,
+      targetRoomType: selectedRoomType,
+    })
+  }
 
   return (
     <div className="space-y-6">
@@ -109,21 +117,28 @@ export function RoomStandardsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Current Standards */}
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
               <CardTitle>{t('standards.currentStandards', 'Danh sách chuẩn')}</CardTitle>
-              <Select value={selectedRoomType} onValueChange={(value) => setSelectedRoomType(value as RoomType)}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROOM_TYPE_KEYS.map((typeKey) => (
-                    <SelectItem key={typeKey} value={typeKey}>
-                      {t(`roomTypes.${typeKey}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2">
+                <CloneStandardsDialog
+                  currentRoomType={selectedRoomType}
+                  currentStandardsCount={standards?.length || 0}
+                  onClone={handleCloneStandards}
+                />
+                <Select value={selectedRoomType} onValueChange={(value) => setSelectedRoomType(value as RoomType)}>
+                  <SelectTrigger className="w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROOM_TYPE_KEYS.map((typeKey) => (
+                      <SelectItem key={typeKey} value={typeKey}>
+                        {t(`roomTypes.${typeKey}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardHeader>
           <CardContent>

@@ -509,6 +509,24 @@
     "note": "Khi tạo phòng mới với loại \"{{type}}\", hệ thống sẽ tự động gán các tài sản theo chuẩn đã thiết lập.",
     "validation": {
       "selectAsset": "Vui lòng chọn tài sản và nhập số lượng hợp lệ"
+    },
+    "clone": {
+      "button": "Sao chép từ...",
+      "title": "Nhân bản danh sách chuẩn",
+      "selectDescription": "Chọn hạng phòng nguồn để sao chép danh sách tài sản",
+      "previewDescription": "Xem trước danh sách sẽ được sao chép",
+      "doneDescription": "Đã sao chép thành công!",
+      "from": "Từ",
+      "to": "Đến",
+      "selectSource": "Chọn hạng phòng...",
+      "warning": "Danh sách hiện tại có {{count}} tài sản sẽ bị thay thế hoàn toàn.",
+      "items": "tài sản",
+      "noItems": "Không có tài sản nào",
+      "preview": "Xem trước",
+      "confirm": "Xác nhận sao chép",
+      "cloning": "Đang sao chép...",
+      "success": "Sao chép thành công!",
+      "successDetail": "Đã sao chép {{count}} tài sản"
     }
   },
   "select": {
