@@ -11,14 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useRoomStandards, useUpdateStandard, useDeleteStandard, useAddStandard, useCloneStandards } from '@/hooks/useRoomStandards'
@@ -49,6 +41,30 @@ export function RoomStandardsPage() {
   const excludeItemIds = useMemo(() => {
     return standards?.map((s: any) => s.item_id) || []
   }, [standards])
+
+  // Group standards by category for better display
+  const groupedStandards = useMemo(() => {
+    if (!standards || standards.length === 0) return []
+    
+    const groups: Record<string, { categoryName: string; categoryColor: string | null; items: any[] }> = {}
+    
+    standards.forEach((standard: any) => {
+      const catName = standard.category_name || 'Khác'
+      if (!groups[catName]) {
+        // Find category color from categories list
+        const category = categories?.find((c: any) => c.name === catName)
+        groups[catName] = {
+          categoryName: catName,
+          categoryColor: category?.color || null,
+          items: []
+        }
+      }
+      groups[catName].items.push(standard)
+    })
+    
+    // Sort groups by category name
+    return Object.values(groups).sort((a, b) => a.categoryName.localeCompare(b.categoryName))
+  }, [standards, categories])
 
   const handleAddItem = async (itemId: string, quantity: number) => {
     if (!itemId || quantity < 1) {
@@ -141,80 +157,82 @@ export function RoomStandardsPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">{t('standards.loading')}</div>
-            ) : (
-              <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('standards.table.asset')}</TableHead>
-                      <TableHead className="text-right w-24">{t('standards.table.quantity')}</TableHead>
-                      <TableHead className="w-12"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {standards && standards.length > 0 ? (
-                      standards.map((standard: any) => (
-                        <TableRow key={standard.id}>
-                          <TableCell>
-                            <div>
-                              <span className="font-medium">{standard.item_name}</span>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-xs text-muted-foreground font-mono">
-                                  {standard.item_code}
-                                </span>
-                                <Badge variant="outline" className="text-xs h-5">
-                                  {standard.category_name}
-                                </Badge>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Input
-                              type="number"
-                              min="1"
-                              value={standard.quantity}
-                              onChange={(e) =>
-                                handleUpdateQuantity(
-                                  standard.id,
-                                  parseInt(e.target.value) || 1
-                                )
-                              }
-                              className="w-16 h-8 text-center ml-auto"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleRemoveItem(standard.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-center py-8">
-                          <div className="text-muted-foreground">
-                            {t('standards.empty')}
+            ) : groupedStandards.length > 0 ? (
+              <div className="divide-y">
+                {groupedStandards.map((group) => (
+                  <div key={group.categoryName}>
+                    {/* Category Header */}
+                    <div 
+                      className="sticky top-0 px-4 py-2 bg-muted/50 border-b flex items-center gap-2"
+                      style={{
+                        borderLeftWidth: '4px',
+                        borderLeftColor: group.categoryColor || 'hsl(var(--muted-foreground))',
+                      }}
+                    >
+                      <span 
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: group.categoryColor || 'hsl(var(--muted-foreground))' }}
+                      />
+                      <span className="font-medium text-sm">{group.categoryName}</span>
+                      <Badge variant="secondary" className="ml-auto text-xs">
+                        {group.items.length}
+                      </Badge>
+                    </div>
+                    
+                    {/* Items in this category */}
+                    <div className="divide-y">
+                      {group.items.map((standard: any) => (
+                        <div 
+                          key={standard.id} 
+                          className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{standard.item_name}</p>
+                            <p className="text-xs text-muted-foreground font-mono truncate">
+                              {standard.item_code}
+                            </p>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={standard.quantity}
+                            onChange={(e) =>
+                              handleUpdateQuantity(
+                                standard.id,
+                                parseInt(e.target.value) || 1
+                              )
+                            }
+                            className="w-16 h-8 text-center shrink-0"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0"
+                            onClick={() => handleRemoveItem(standard.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                {t('standards.empty')}
+              </div>
+            )}
 
-                <div className="mt-4 p-3 bg-muted rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    <strong>{t('standards.noteLabel')}:</strong> {t('standards.note', { type: t(`roomTypes.${selectedRoomType}`) })}
-                  </p>
-                </div>
-              </>
+            {groupedStandards.length > 0 && (
+              <div className="p-4 border-t bg-muted/30">
+                <p className="text-sm text-muted-foreground">
+                  <strong>{t('standards.noteLabel')}:</strong> {t('standards.note', { type: t(`roomTypes.${selectedRoomType}`) })}
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
