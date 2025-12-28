@@ -152,7 +152,7 @@ export function RoomMultiSelect({
                   </Badge>
                 </div>
 
-                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2 pl-4">
+                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1 pl-4">
                   {floorRooms.map(room => {
                     const isSelected = selectedRoomIds.includes(room.id)
                     return (
@@ -161,16 +161,16 @@ export function RoomMultiSelect({
                         type="button"
                         onClick={() => toggleRoom(room.id)}
                         className={cn(
-                          "relative px-3 py-2.5 text-sm font-medium rounded-lg border-2 transition-all shadow-sm",
-                          "hover:shadow-md hover:scale-105",
+                          "relative p-2 text-sm rounded border transition-all",
+                          "hover:border-primary/50 hover:bg-primary/5",
                           isSelected 
-                            ? "border-primary bg-primary text-primary-foreground shadow-primary/25" 
-                            : "border-border bg-card text-card-foreground hover:border-primary/50 hover:bg-accent"
+                            ? "border-primary bg-primary/10 text-primary font-medium" 
+                            : "border-border bg-background"
                         )}
                       >
                         {room.room_number}
                         {isSelected && (
-                          <Check className="absolute -top-1 -right-1 h-4 w-4 text-primary-foreground bg-primary rounded-full p-0.5" />
+                          <Check className="absolute top-0.5 right-0.5 h-3 w-3 text-primary" />
                         )}
                       </button>
                     )
