@@ -8,9 +8,10 @@ interface RoomHealthScoreProps {
   checks: RoomCheckWithUser[]
   totalItems: number
   missingItems: number
+  compact?: boolean
 }
 
-export function RoomHealthScore({ checks, totalItems, missingItems }: RoomHealthScoreProps) {
+export function RoomHealthScore({ checks, totalItems, missingItems, compact = false }: RoomHealthScoreProps) {
   // Calculate health score based on various factors
   const calculateHealthScore = () => {
     let score = 100
@@ -64,10 +65,16 @@ export function RoomHealthScore({ checks, totalItems, missingItems }: RoomHealth
     return 'Kém'
   }
   
-  const getScoreBadgeVariant = () => {
+  const getScoreBadgeVariant = (): 'default' | 'secondary' | 'destructive' => {
     if (healthScore >= 80) return 'default'
     if (healthScore >= 60) return 'secondary'
     return 'destructive'
+  }
+
+  const getProgressColor = () => {
+    if (healthScore >= 80) return 'bg-green-500'
+    if (healthScore >= 60) return 'bg-yellow-500'
+    return 'bg-red-500'
   }
   
   // Calculate trend (comparing last 5 checks to previous 5)
@@ -88,6 +95,33 @@ export function RoomHealthScore({ checks, totalItems, missingItems }: RoomHealth
   }
   
   const trend = calculateTrend()
+
+  // Compact variant for mobile
+  if (compact) {
+    return (
+      <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+        <div className="flex items-center gap-2">
+          <span className={`text-2xl font-bold ${getScoreColor()}`}>
+            {Math.round(healthScore)}
+          </span>
+          <span className="text-xs text-muted-foreground">/100</span>
+        </div>
+        <Badge variant={getScoreBadgeVariant()} className="text-xs">
+          {getScoreLabel()}
+        </Badge>
+        {trend === 'up' && (
+          <TrendingUp className="h-4 w-4 text-green-600" />
+        )}
+        {trend === 'down' && (
+          <TrendingDown className="h-4 w-4 text-red-600" />
+        )}
+        {trend === 'stable' && (
+          <Minus className="h-4 w-4 text-muted-foreground" />
+        )}
+        <Progress value={healthScore} className="flex-1 h-2" />
+      </div>
+    )
+  }
   
   return (
     <Card>
