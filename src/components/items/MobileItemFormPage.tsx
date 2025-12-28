@@ -23,14 +23,11 @@ import { ChevronLeft, ChevronRight, Check, Camera } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { compressImage } from '@/lib/imageCompression'
 
-import { ITEM_TYPE_OPTIONS, type ItemType } from '@/types/items.types'
-
 type ItemFormData = {
   code: string
   name: string
   name_en?: string
   category_id: string
-  item_type: ItemType
   unit: string
   unit_price: number
   minimum_stock: number
@@ -55,7 +52,6 @@ export const MobileItemFormPage = () => {
     name: z.string().min(1, t('items:validation.nameRequired')),
     name_en: z.string().optional(),
     category_id: z.string().min(1, t('items:validation.categoryRequired')),
-    item_type: z.enum(['linen', 'consumable', 'equipment', 'furniture']),
     unit: z.string().min(1, t('items:validation.unitRequired')),
     unit_price: z.number().min(0, t('items:validation.priceMin')),
     minimum_stock: z.number().min(0, t('items:validation.stockMin')),
@@ -76,7 +72,6 @@ export const MobileItemFormPage = () => {
       name: '',
       name_en: '',
       category_id: '',
-      item_type: 'equipment',
       unit: 'cái',
       unit_price: 0,
       minimum_stock: 0,
@@ -93,7 +88,6 @@ export const MobileItemFormPage = () => {
         name: item.name,
         name_en: item.name_en || '',
         category_id: item.category_id || '',
-        item_type: item.item_type || 'equipment',
         unit: item.unit,
         unit_price: item.unit_price || 0,
         minimum_stock: item.minimum_stock || 0,
@@ -267,28 +261,6 @@ export const MobileItemFormPage = () => {
                       {form.formState.errors.category_id.message}
                     </p>
                   )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label>{t('items:fields.itemType')} *</Label>
-                  <Select
-                    value={form.watch('item_type')}
-                    onValueChange={(value: ItemType) => form.setValue('item_type', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('items:form.selectItemType')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ITEM_TYPE_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{option.label}</span>
-                            <span className="text-xs text-muted-foreground">{option.description}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
               </CardContent>
             </Card>

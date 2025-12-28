@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Trash2, Droplets, Wrench, ShoppingBag, Armchair } from 'lucide-react'
+import { ArrowLeft, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -15,7 +15,6 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useRoomStandards, useUpdateStandard, useDeleteStandard, useAddStandard, useCloneStandards } from '@/hooks/useRoomStandards'
 import type { RoomType } from '@/types/rooms.types'
-import type { ItemType } from '@/types/items.types'
 import { useCategories } from '@/hooks/useCategories'
 import { useItems } from '@/hooks/useItems'
 import { toast } from 'sonner'
@@ -23,14 +22,6 @@ import { RoomStandardItemPicker } from '@/components/rooms/RoomStandardItemPicke
 import { CloneStandardsDialog } from '@/components/rooms/CloneStandardsDialog'
 
 const ROOM_TYPE_KEYS: RoomType[] = ['standard', 'deluxe', 'suite', 'vip']
-
-// Item type configuration with icons, colors, and labels
-const ITEM_TYPE_CONFIG: Record<ItemType, { icon: typeof Droplets; color: string; bgColor: string; label: string }> = {
-  linen: { icon: Droplets, color: 'text-emerald-600', bgColor: 'bg-emerald-100', label: 'Đồ vải' },
-  consumable: { icon: ShoppingBag, color: 'text-violet-600', bgColor: 'bg-violet-100', label: 'Tiêu hao' },
-  equipment: { icon: Wrench, color: 'text-blue-600', bgColor: 'bg-blue-100', label: 'Thiết bị' },
-  furniture: { icon: Armchair, color: 'text-amber-600', bgColor: 'bg-amber-100', label: 'Nội thất' },
-}
 
 export function RoomStandardsPage() {
   const { t } = useTranslation('rooms')
@@ -193,55 +184,39 @@ export function RoomStandardsPage() {
                     
                     {/* Items in this category */}
                     <div className="divide-y">
-                      {group.items.map((standard: any) => {
-                        const itemType = (standard.item_type || 'equipment') as ItemType
-                        const typeConfig = ITEM_TYPE_CONFIG[itemType]
-                        const TypeIcon = typeConfig.icon
-                        
-                        return (
-                          <div 
-                            key={standard.id} 
-                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors"
-                          >
-                            {/* Item Type Icon */}
-                            <div className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${typeConfig.bgColor}`}>
-                              <TypeIcon className={`h-3.5 w-3.5 ${typeConfig.color}`} />
-                            </div>
-                            
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className="font-medium text-sm truncate">{standard.item_name}</p>
-                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 shrink-0 ${typeConfig.color} border-current`}>
-                                  {typeConfig.label}
-                                </Badge>
-                              </div>
-                              <p className="text-xs text-muted-foreground font-mono truncate">
-                                {standard.item_code}
-                              </p>
-                            </div>
-                            <Input
-                              type="number"
-                              min="1"
-                              value={standard.quantity}
-                              onChange={(e) =>
-                                handleUpdateQuantity(
-                                  standard.id,
-                                  parseInt(e.target.value) || 1
-                                )
-                              }
-                              className="w-16 h-8 text-center shrink-0"
-                            />
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 shrink-0"
-                              onClick={() => handleRemoveItem(standard.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                      {group.items.map((standard: any) => (
+                        <div 
+                          key={standard.id} 
+                          className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{standard.item_name}</p>
+                            <p className="text-xs text-muted-foreground font-mono truncate">
+                              {standard.item_code}
+                            </p>
                           </div>
-                        )
-                      })}
+                          <Input
+                            type="number"
+                            min="1"
+                            value={standard.quantity}
+                            onChange={(e) =>
+                              handleUpdateQuantity(
+                                standard.id,
+                                parseInt(e.target.value) || 1
+                              )
+                            }
+                            className="w-16 h-8 text-center shrink-0"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0"
+                            onClick={() => handleRemoveItem(standard.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
