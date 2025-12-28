@@ -275,7 +275,7 @@ export function ItemsCheckStep({
   };
 
   // Handlers for Equipment/Furniture
-  const handleEquipmentLost = (item: RoomItemWithDetails, quantity: number, estimatedValue?: number) => {
+  const handleEquipmentLost = (item: RoomItemWithDetails, quantity: number) => {
     const extendedItem = itemsWithType.find(i => i.item_id === item.item_id);
     setLostItems(prev => [...prev, {
       item_id: item.item_id,
@@ -283,7 +283,6 @@ export function ItemsCheckStep({
       item_code: item.item_code,
       item_type: extendedItem?.item_type || 'equipment',
       quantity,
-      estimated_value: estimatedValue,
     }]);
     toast({ title: 'Đã đánh dấu mất', description: item.item_name, variant: 'destructive' });
   };
