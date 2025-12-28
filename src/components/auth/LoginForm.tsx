@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from 'react-router-dom';
@@ -11,6 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAuth } from '@/contexts/AuthContext';
 import { loginSchema, LoginFormData } from '@/lib/validations/auth.schemas';
+
+// Storage keys for remember me functionality
+const REMEMBERED_EMAIL_KEY = 'remembered_email';
 
 export const LoginForm = () => {
   const { t } = useTranslation('auth');
@@ -27,7 +30,23 @@ export const LoginForm = () => {
     }
   });
 
+  // Load remembered email on mount
+  useEffect(() => {
+    const savedEmail = localStorage.getItem(REMEMBERED_EMAIL_KEY);
+    if (savedEmail) {
+      form.setValue('email', savedEmail);
+      form.setValue('rememberMe', true);
+    }
+  }, [form]);
+
   const onSubmit = async (data: LoginFormData) => {
+    // Save or remove email based on rememberMe checkbox
+    if (data.rememberMe) {
+      localStorage.setItem(REMEMBERED_EMAIL_KEY, data.email);
+    } else {
+      localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+    }
+
     const { error } = await signIn(data.email, data.password);
     if (!error) {
       navigate('/auth/callback');
