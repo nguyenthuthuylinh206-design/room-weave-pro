@@ -43,9 +43,10 @@ interface MissingItem {
   standard_quantity: number;
 }
 
-// Extended RoomItemWithDetails to include item_type
+// Extended RoomItemWithDetails to include item_type and category_name
 interface ExtendedRoomItem extends RoomItemWithDetails {
   item_type?: ItemType;
+  category_name?: string | null;
 }
 
 export function ItemsCheckStep({
@@ -67,31 +68,42 @@ export function ItemsCheckStep({
   const [damagedItems, setDamagedItems] = useState<DamagedItem[]>([]);
   const [missingItems, setMissingItems] = useState<MissingItem[]>([]);
 
-  // Fetch item_type for each item
+  // Fetch item_type and category_name for each item
   const [itemsWithType, setItemsWithType] = useState<ExtendedRoomItem[]>([]);
 
   useEffect(() => {
-    const fetchItemTypes = async () => {
+    const fetchItemTypesAndCategories = async () => {
       if (items.length === 0) return;
       
       const itemIds = items.map(i => i.item_id);
       const { data } = await supabase
         .from('items')
-        .select('id, item_type')
+        .select('id, item_type, category_id, item_categories(name)')
         .in('id', itemIds);
       
       if (data) {
-        const typeMap = new Map(data.map(d => [d.id, d.item_type]));
-        setItemsWithType(items.map(item => ({
-          ...item,
-          item_type: (typeMap.get(item.item_id) as ItemType) || 'equipment'
-        })));
+        const itemMap = new Map(data.map(d => [d.id, {
+          item_type: d.item_type,
+          category_name: (d.item_categories as any)?.name || null
+        }]));
+        setItemsWithType(items.map(item => {
+          const itemData = itemMap.get(item.item_id);
+          return {
+            ...item,
+            item_type: (itemData?.item_type as ItemType) || 'equipment',
+            category_name: itemData?.category_name || null
+          };
+        }));
       } else {
-        setItemsWithType(items.map(item => ({ ...item, item_type: 'equipment' as ItemType })));
+        setItemsWithType(items.map(item => ({ 
+          ...item, 
+          item_type: 'equipment' as ItemType,
+          category_name: null 
+        })));
       }
     };
 
-    fetchItemTypes();
+    fetchItemTypesAndCategories();
   }, [items]);
 
   // Filter items by type
