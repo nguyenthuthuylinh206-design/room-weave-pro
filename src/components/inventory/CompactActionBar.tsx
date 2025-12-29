@@ -64,7 +64,7 @@ export function CompactActionBar({ onInbound, onOutbound }: CompactActionBarProp
   ]
 
   return (
-    <Card className="p-4 h-full flex flex-col justify-center">
+    <Card className="p-5 h-full flex flex-col justify-center">
       <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
         {t('quickActions.title')}
       </p>
