@@ -14,6 +14,7 @@ interface DashboardStatCardProps {
   description?: string
   onClick?: () => void
   isLoading?: boolean
+  size?: 'default' | 'compact'
 }
 
 export function DashboardStatCard({ 
@@ -23,18 +24,24 @@ export function DashboardStatCard({
   change, 
   description, 
   onClick,
-  isLoading 
+  isLoading,
+  size = 'default'
 }: DashboardStatCardProps) {
+  const isCompact = size === 'compact'
+  
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-4 w-4 rounded" />
+      <Card className={cn(isCompact && "py-1")}>
+        <CardHeader className={cn(
+          "flex flex-row items-center justify-between space-y-0",
+          isCompact ? "pb-1 pt-3 px-4" : "pb-2"
+        )}>
+          <Skeleton className={cn("w-32", isCompact ? "h-3" : "h-4")} />
+          <Skeleton className={cn("rounded", isCompact ? "h-3 w-3" : "h-4 w-4")} />
         </CardHeader>
-        <CardContent>
-          <Skeleton className="h-8 w-40 mb-2" />
-          <Skeleton className="h-3 w-24" />
+        <CardContent className={cn(isCompact && "px-4 pb-3")}>
+          <Skeleton className={cn("mb-1.5", isCompact ? "h-6 w-28" : "h-8 w-40")} />
+          <Skeleton className={cn(isCompact ? "h-2.5 w-20" : "h-3 w-24")} />
         </CardContent>
       </Card>
     )
@@ -59,21 +66,42 @@ export function DashboardStatCard({
   return (
     <Card 
       className={cn(
-        "transition-all hover:shadow-md",
-        onClick && "cursor-pointer hover:border-primary"
+        "transition-all",
+        isCompact && "py-1",
+        onClick && "cursor-pointer hover:shadow-md hover:border-primary"
       )}
       onClick={onClick}
     >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+      <CardHeader className={cn(
+        "flex flex-row items-center justify-between space-y-0",
+        isCompact ? "pb-1 pt-3 px-4" : "pb-2"
+      )}>
+        <CardTitle className={cn(
+          "font-medium text-muted-foreground",
+          isCompact ? "text-xs" : "text-sm"
+        )}>
+          {title}
+        </CardTitle>
+        <Icon className={cn(
+          "text-muted-foreground",
+          isCompact ? "h-3.5 w-3.5" : "h-4 w-4"
+        )} />
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+      <CardContent className={cn(isCompact && "px-4 pb-3")}>
+        <div className={cn(
+          "font-bold",
+          isCompact ? "text-xl" : "text-2xl"
+        )}>
+          {value}
+        </div>
         
         {change && change.value !== null && (
-          <div className={cn("flex items-center gap-1 text-xs mt-1", changeColor)}>
-            {ChangeIcon && <ChangeIcon className="h-3 w-3" />}
+          <div className={cn(
+            "flex items-center gap-1 mt-1",
+            changeColor,
+            isCompact ? "text-[10px]" : "text-xs"
+          )}>
+            {ChangeIcon && <ChangeIcon className={cn(isCompact ? "h-2.5 w-2.5" : "h-3 w-3")} />}
             <span className="font-medium">
               {change.value > 0 && '+'}
               {change.value.toFixed(1)}%
@@ -83,7 +111,10 @@ export function DashboardStatCard({
         )}
         
         {description && (
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className={cn(
+            "text-muted-foreground mt-0.5",
+            isCompact ? "text-[10px]" : "text-xs"
+          )}>
             {description}
           </p>
         )}
