@@ -1,22 +1,15 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { 
-  DollarSign, 
   Package, 
   AlertTriangle, 
   ShoppingCart,
   ArrowRightLeft,
-  TrendingUp,
-  Download,
-  Upload,
-  ClipboardCheck,
-  FileText,
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { HeroStatCard } from '@/components/dashboard/HeroStatCard'
+import { CompactActionBar } from '@/components/inventory/CompactActionBar'
 import { LowStockAlert } from '@/components/inventory/LowStockAlert'
 import { RecentTransactions } from '@/components/inventory/RecentTransactions'
 import { InventoryValueChart } from '@/components/inventory/InventoryValueChart'
@@ -35,7 +28,6 @@ function formatCurrency(amount: number) {
 
 export function InventoryDashboardPage() {
   const { t } = useTranslation('inventory')
-  const navigate = useNavigate()
   const { isMobile } = useBreakpoint()
   const [showInboundDialog, setShowInboundDialog] = useState(false)
   const [showOutboundDialog, setShowOutboundDialog] = useState(false)
@@ -54,23 +46,33 @@ export function InventoryDashboardPage() {
         description={t('dashboard')}
       />
       
-      {/* Stats Cards - Row 1 */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <DashboardStatCard
-          title={t('stats.totalStockValue')}
-          value={stats ? formatCurrency(stats.total_stock_value) : '0 ₫'}
-          icon={DollarSign}
-          change={
-            stats?.stock_value_change_percent
-              ? {
-                  value: stats.stock_value_change_percent,
-                  label: t('stats.vsLastMonth'),
-                }
-              : undefined
-          }
-          isLoading={isLoading}
-        />
-        
+      {/* Hero Section: 8 cols Hero + 4 cols Quick Actions */}
+      <div className="grid gap-4 lg:grid-cols-12">
+        <div className="lg:col-span-8">
+          <HeroStatCard
+            title={t('stats.totalStockValue')}
+            value={stats ? formatCurrency(stats.total_stock_value) : '0 ₫'}
+            change={
+              stats?.stock_value_change_percent
+                ? {
+                    value: stats.stock_value_change_percent,
+                    label: t('stats.vsLastMonth'),
+                  }
+                : undefined
+            }
+            isLoading={isLoading}
+          />
+        </div>
+        <div className="lg:col-span-4">
+          <CompactActionBar
+            onInbound={() => setShowInboundDialog(true)}
+            onOutbound={() => setShowOutboundDialog(true)}
+          />
+        </div>
+      </div>
+      
+      {/* Stats Cards - 4 secondary metrics */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <DashboardStatCard
           title={t('stats.totalItems')}
           value={stats ? stats.total_items_count.toString() : '0'}
@@ -96,10 +98,7 @@ export function InventoryDashboardPage() {
             element?.scrollIntoView({ behavior: 'smooth' })
           }}
         />
-      </div>
-      
-      {/* Stats Cards - Row 2 */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        
         <DashboardStatCard
           title={t('stats.reorderNeeded')}
           value={stats ? stats.reorder_needed_count.toString() : '0'}
@@ -119,72 +118,7 @@ export function InventoryDashboardPage() {
           }
           isLoading={isLoading}
         />
-        
-        <DashboardStatCard
-          title={t('stats.inboundValueThisMonth')}
-          value={stats ? formatCurrency(stats.value_in_this_month) : '0 ₫'}
-          icon={TrendingUp}
-          change={
-            stats?.inbound_change_percent
-              ? {
-                  value: stats.inbound_change_percent,
-                  label: t('stats.vsLastMonth'),
-                }
-              : undefined
-          }
-          isLoading={isLoading}
-        />
       </div>
-      
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('quickActions.title')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <Button
-              className="w-full"
-              onClick={() => setShowInboundDialog(true)}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              {t('inbound.title')}
-            </Button>
-            <Button
-              className="w-full"
-              variant="outline"
-              onClick={() => setShowOutboundDialog(true)}
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              {t('outbound.title')}
-            </Button>
-            <Button
-              className="w-full"
-              variant="outline"
-              onClick={() => navigate('/inventory/adjustments')}
-            >
-              <ClipboardCheck className="mr-2 h-4 w-4" />
-              {t('adjustment.title')}
-            </Button>
-            <Button
-              className="w-full"
-              variant="outline"
-              onClick={() => navigate('/inventory/transactions')}
-            >
-              <FileText className="mr-2 h-4 w-4" />
-              {t('quickActions.viewTransactions')}
-            </Button>
-            <Button
-              className="w-full"
-              variant="outline"
-              onClick={() => navigate('/items')}
-            >
-              <Package className="mr-2 h-4 w-4" />
-              {t('quickActions.manageItems')}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
       
       {/* Low Stock Alert */}
       <div id="low-stock-section">
