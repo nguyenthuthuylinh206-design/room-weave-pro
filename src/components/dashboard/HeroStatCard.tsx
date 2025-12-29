@@ -35,7 +35,7 @@ export function HeroStatCard({
   const isPositive = (change?.value || 0) > 0
 
   return (
-    <Card className="relative overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-primary/80 p-6 text-primary-foreground border-0 shadow-lg">
+    <Card className="relative overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-primary/80 p-5 text-primary-foreground border-0 shadow-lg">
       {/* Background decorations */}
       <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-2xl" />
       <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4 blur-xl" />

@@ -46,7 +46,7 @@ export function InventoryDashboardPage() {
         description={t('dashboard')}
       />
       
-      {/* Hero Section: 8 cols Hero + 4 cols Quick Actions */}
+      {/* Hero Section: 8 cols Hero + 4 cols Quick Actions - gap-4 = 16px */}
       <div className="grid gap-4 lg:grid-cols-12">
         <div className="lg:col-span-8">
           <HeroStatCard
@@ -71,8 +71,8 @@ export function InventoryDashboardPage() {
         </div>
       </div>
       
-      {/* Stats Cards - 4 secondary metrics (compact) */}
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+      {/* Stats Cards - gap-4 = 16px between cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <DashboardStatCard
           title={t('stats.totalItems')}
           value={stats ? stats.total_items_count.toString() : '0'}
@@ -124,7 +124,7 @@ export function InventoryDashboardPage() {
         />
       </div>
       
-      {/* Main Content: Low Stock (4 cols) | Chart (5 cols) | Transactions (3 cols) */}
+      {/* Main Content: Low Stock (4 cols) | Chart (5 cols) | Transactions (3 cols) - gap-4 = 16px */}
       <div className="grid gap-4 lg:grid-cols-12">
         <div id="low-stock-section" className="lg:col-span-4">
           <LowStockAlert />
