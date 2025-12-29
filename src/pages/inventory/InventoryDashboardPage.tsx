@@ -71,8 +71,8 @@ export function InventoryDashboardPage() {
         </div>
       </div>
       
-      {/* Stats Cards - 4 secondary metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Stats Cards - 4 secondary metrics (compact) */}
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         <DashboardStatCard
           title={t('stats.totalItems')}
           value={stats ? stats.total_items_count.toString() : '0'}
@@ -81,6 +81,7 @@ export function InventoryDashboardPage() {
             stats ? `${stats.total_product_types} ${t('stats.productTypes')}` : undefined
           }
           isLoading={isLoading}
+          size="compact"
         />
         
         <DashboardStatCard
@@ -93,6 +94,7 @@ export function InventoryDashboardPage() {
               : t('stats.stockStable')
           }
           isLoading={isLoading}
+          size="compact"
           onClick={() => {
             const element = document.getElementById('low-stock-section')
             element?.scrollIntoView({ behavior: 'smooth' })
@@ -105,6 +107,7 @@ export function InventoryDashboardPage() {
           icon={ShoppingCart}
           description={t('stats.itemsBelowReorder')}
           isLoading={isLoading}
+          size="compact"
         />
         
         <DashboardStatCard
@@ -117,18 +120,21 @@ export function InventoryDashboardPage() {
               : undefined
           }
           isLoading={isLoading}
+          size="compact"
         />
       </div>
       
-      {/* Low Stock Alert */}
-      <div id="low-stock-section">
-        <LowStockAlert />
-      </div>
-      
-      {/* Charts & Recent Transactions */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <InventoryValueChart />
-        <RecentTransactions />
+      {/* Main Content: Low Stock (4 cols) | Chart (5 cols) | Transactions (3 cols) */}
+      <div className="grid gap-4 lg:grid-cols-12">
+        <div id="low-stock-section" className="lg:col-span-4">
+          <LowStockAlert />
+        </div>
+        <div className="lg:col-span-5">
+          <InventoryValueChart />
+        </div>
+        <div className="lg:col-span-3">
+          <RecentTransactions />
+        </div>
       </div>
       
       {/* Dialogs */}
