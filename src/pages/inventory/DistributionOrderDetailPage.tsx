@@ -13,8 +13,7 @@ import { RouteDetailView } from '@/components/distribution/components/RouteDetai
 import { CancelOrderDialog } from '@/components/distribution/dialogs/CancelOrderDialog'
 import { UndoDeliveryDialog } from '@/components/distribution/dialogs/UndoDeliveryDialog'
 import { EditDistributionDialog } from '@/components/distribution/dialogs/EditDistributionDialog'
-import { useDistributionOrderDetail, useCancelDistributionOrder } from '@/hooks/useDistributionOrders'
-import { useDeliverStop } from '@/hooks/useRouteBatch'
+import { useDistributionOrderDetail, useCancelDistributionOrder, useConfirmWarehouseDelivery } from '@/hooks/useDistributionOrders'
 import { useUndoRoomDelivery } from '@/hooks/useRoomDistributionHistory'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useUser } from '@/hooks/useUser'
@@ -38,7 +37,7 @@ export default function DistributionOrderDetailPage() {
   const { data: order, isLoading } = useDistributionOrderDetail(id)
   const { mutate: cancelOrder, isPending: isCancelling } = useCancelDistributionOrder()
   const { mutate: undoDelivery, isPending: isUndoing } = useUndoRoomDelivery()
-  const { mutate: deliverStop, isPending: isDelivering } = useDeliverStop()
+  const { mutate: confirmWarehouseDelivery, isPending: isConfirmingWarehouse } = useConfirmWarehouseDelivery()
 
   const isWarehouseManager = WAREHOUSE_MANAGER_ROLES.includes(user?.user_level_code || '')
 
@@ -70,7 +69,7 @@ export default function DistributionOrderDetailPage() {
   const canCancel = order.status === 'pending' || order.status === 'in_progress'
 
   const handleConfirmDelivery = (roomOrderId: string) => {
-    deliverStop({ roomOrderId })
+    confirmWarehouseDelivery({ roomOrderId })
   }
 
   const handleUndoRoom = () => {
@@ -159,7 +158,7 @@ export default function DistributionOrderDetailPage() {
                 isWarehouseManager={isWarehouseManager}
                 onConfirmDelivery={handleConfirmDelivery}
                 onUndoDelivery={handleOpenUndo}
-                isConfirming={isDelivering}
+                isConfirming={isConfirmingWarehouse}
               />
             ))}
           </div>
@@ -279,7 +278,7 @@ export default function DistributionOrderDetailPage() {
                 isWarehouseManager={isWarehouseManager}
                 onConfirmDelivery={handleConfirmDelivery}
                 onUndoDelivery={handleOpenUndo}
-                isConfirming={isDelivering}
+                isConfirming={isConfirmingWarehouse}
               />
             ))}
           </div>

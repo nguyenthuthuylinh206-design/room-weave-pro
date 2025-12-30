@@ -261,8 +261,32 @@ export function useCancelDistributionOrder() {
   })
 }
 
-// useConfirmWarehouseDelivery has been replaced by useDeliverStop from useRouteBatch.ts
-// The deliver_stop RPC now handles both warehouse manager direct delivery and regular staff delivery
+export function useConfirmWarehouseDelivery() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async ({ roomOrderId }: { roomOrderId: string }) => {
+      if (!user?.id) throw new Error('User not authenticated')
+
+      const { data, error } = await supabase.rpc('confirm_warehouse_delivery', {
+        p_room_order_id: roomOrderId,
+        p_delivered_by: user.id,
+      })
+
+      if (error) throw error
+      return data as { success: boolean; room_order_id: string; new_status: string }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+      toast.success('Đã xác nhận xuất kho thành công')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Không thể xác nhận xuất kho')
+    },
+  })
+}
 
 interface UpdateDistributionData {
   orderId: string
