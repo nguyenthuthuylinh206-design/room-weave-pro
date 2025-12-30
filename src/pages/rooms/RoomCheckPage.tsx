@@ -27,6 +27,7 @@ import { toast } from '@/hooks/use-toast'
 import { CheckTypeStep } from '@/components/rooms/check-steps/CheckTypeStep'
 import { ItemsCheckStep } from '@/components/rooms/check-steps/ItemsCheckStep'
 import { ReviewStep } from '@/components/rooms/check-steps/ReviewStep'
+import { PendingDeliveriesSection } from '@/components/rooms/check-steps/PendingDeliveriesSection'
 import type { RoomCheckFormData } from '@/types/rooms.types'
 
 export function RoomCheckPage() {
@@ -464,6 +465,9 @@ export function RoomCheckPage() {
           title={`Kiểm tra phòng ${room.room_number}`}
           description={`${room.room_type} - Tầng ${room.floor}`}
         />
+        
+        {/* Pending Deliveries Section */}
+        <PendingDeliveriesSection roomId={id!} />
       
       <Card>
         <CardHeader>

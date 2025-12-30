@@ -5569,6 +5569,10 @@ export type Database = {
             }
             Returns: Json
           }
+      confirm_delivery_from_room_check: {
+        Args: { p_confirmed_by: string; p_room_order_id: string }
+        Returns: Json
+      }
       confirm_room_delivery: {
         Args: { p_confirmed_by: string; p_room_order_id: string }
         Returns: Json
