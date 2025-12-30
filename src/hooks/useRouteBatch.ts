@@ -56,19 +56,86 @@ export function useRouteDetail(orderId: string | undefined) {
         { p_order_id: orderId }
       )
       if (orderError) throw orderError
+      if (!orderData) throw new Error('Order not found')
 
-      // Fetch batches
+      // Fetch batches with user names
       const { data: batchData, error: batchError } = await supabase
         .from('distribution_order_batches')
-        .select('*')
+        .select(`
+          *,
+          handed_over_by_user:users!distribution_order_batches_handed_over_by_fkey(full_name),
+          received_by_user:users!distribution_order_batches_received_by_fkey(full_name)
+        `)
         .eq('distribution_order_id', orderId)
         .order('batch_number', { ascending: true })
       if (batchError) throw batchError
 
+      // Parse and transform the data
+      const parsedOrder = orderData as Record<string, unknown>
+      const rooms = (parsedOrder.rooms || []) as Array<Record<string, unknown>>
+
+      // Map rooms to stops with proper typing
+      const stops = rooms.map((room) => ({
+        id: room.id as string,
+        distribution_order_id: room.distribution_order_id as string,
+        room_id: room.room_id as string,
+        room_number: room.room_number as string,
+        floor: room.floor as number,
+        batch_number: (room.batch_number as number) || 1,
+        status: room.status as string,
+        stop_status: (room.stop_status as string) || 'pending',
+        exception_type: room.exception_type as string | null,
+        exception_reason: room.exception_reason as string | null,
+        delivered_at: room.delivered_at as string | null,
+        delivered_by: room.delivered_by as string | null,
+        delivered_by_name: room.delivered_by_name as string | null,
+        confirmed_at: room.confirmed_at as string | null,
+        confirmed_by_name: room.confirmed_by_name as string | null,
+        returned_at: room.returned_at as string | null,
+        handover_to_order_id: room.handover_to_order_id as string | null,
+        handover_at: room.handover_at as string | null,
+        items: (room.items || []) as Array<{
+          id: string
+          item_id: string
+          item_name: string
+          item_code: string
+          quantity: number
+          quantity_confirmed: number
+          status: string
+        }>,
+      }))
+
+      // Map batches with user names
+      const batches = (batchData || []).map((batch) => ({
+        ...batch,
+        handed_over_by_name: batch.handed_over_by_user?.full_name || null,
+        received_by_name: batch.received_by_user?.full_name || null,
+      })) as DistributionBatch[]
+
       return {
-        ...(orderData as unknown as RouteDetail),
-        batches: batchData as DistributionBatch[],
-      }
+        id: parsedOrder.id as string,
+        order_code: parsedOrder.order_code as string,
+        status: parsedOrder.status as string,
+        floor: parsedOrder.floor as number | null,
+        shift_date: parsedOrder.shift_date as string,
+        shift_code: parsedOrder.shift_code as string,
+        batch_size: (parsedOrder.batch_size as number) || 10,
+        total_rooms: parsedOrder.total_rooms as number,
+        total_items: parsedOrder.total_items as number,
+        rooms_completed: parsedOrder.rooms_completed as number,
+        assigned_to: parsedOrder.assigned_to as string | null,
+        assigned_to_name: parsedOrder.assigned_to_name as string | null,
+        created_by: parsedOrder.created_by as string,
+        created_by_name: parsedOrder.created_by_name as string,
+        released_at: parsedOrder.released_at as string | null,
+        released_by: parsedOrder.released_by as string | null,
+        started_at: parsedOrder.started_at as string | null,
+        completed_at: parsedOrder.completed_at as string | null,
+        created_at: parsedOrder.created_at as string,
+        notes: parsedOrder.notes as string | null,
+        batches,
+        stops,
+      } as RouteDetail
     },
     enabled: !!orderId,
   })
