@@ -23,6 +23,8 @@ interface DistributionOrderWithFilters {
   started_at: string | null
   completed_at: string | null
   created_at: string
+  hotel_id?: string
+  hotel_name?: string
 }
 
 export function useRoutesWithFilters(
@@ -46,61 +48,35 @@ export function useRoutesWithFilters(
       if (!tenant?.id) throw new Error('No tenant')
       if (!isAllHotelsMode && !selectedHotel?.id) throw new Error('No hotel selected')
 
-      let query = supabase
-        .from('distribution_orders')
-        .select(`
-          id,
-          order_code,
-          status,
-          floor,
-          shift_date,
-          shift_code,
-          total_rooms,
-          total_items,
-          rooms_completed,
-          assigned_to,
-          notes,
-          released_at,
-          started_at,
-          completed_at,
-          created_at,
-          created_by,
-          creator:users!distribution_orders_created_by_fkey(full_name),
-          assignee:users!distribution_orders_assigned_to_fkey(full_name)
-        `, { count: 'exact' })
-        .eq('tenant_id', tenant.id)
-
-      if (!isAllHotelsMode && selectedHotel?.id) {
-        query = query.eq('hotel_id', selectedHotel.id)
-      }
-
-      // Apply filters
-      if (filters.status) {
-        query = query.eq('status', filters.status)
-      }
-      if (filters.floor !== undefined) {
-        query = query.eq('floor', filters.floor)
-      }
-      if (filters.shift_date) {
-        query = query.eq('shift_date', filters.shift_date)
-      }
-      if (filters.shift_code) {
-        query = query.eq('shift_code', filters.shift_code)
-      }
-      if (filters.assigned_to) {
-        query = query.eq('assigned_to', filters.assigned_to)
-      }
-
-      // Pagination
-      const start = (page - 1) * pageSize
-      const end = start + pageSize - 1
-      query = query.order('created_at', { ascending: false }).range(start, end)
-
-      const { data, error, count } = await query
+      // Use RPC to enforce role-based visibility
+      const { data, error } = await supabase.rpc('get_distribution_orders_filtered', {
+        p_tenant_id: tenant.id,
+        p_hotel_id: isAllHotelsMode ? null : selectedHotel?.id,
+        p_status: filters.status || null,
+        p_assigned_to: filters.assigned_to || null,
+        p_floor: filters.floor ?? null,
+        p_shift_date: filters.shift_date || null,
+        p_shift_code: filters.shift_code || null,
+        p_limit: pageSize,
+        p_offset: (page - 1) * pageSize,
+      })
 
       if (error) throw error
 
-      // Transform data to include names
+      // Get total count for pagination
+      const { data: countResult, error: countError } = await supabase.rpc('get_distribution_orders_count', {
+        p_tenant_id: tenant.id,
+        p_hotel_id: isAllHotelsMode ? null : selectedHotel?.id,
+        p_status: filters.status || null,
+        p_assigned_to: filters.assigned_to || null,
+        p_floor: filters.floor ?? null,
+        p_shift_date: filters.shift_date || null,
+        p_shift_code: filters.shift_code || null,
+      })
+
+      if (countError) throw countError
+
+      // Transform data to match expected interface
       const orders: DistributionOrderWithFilters[] = (data || []).map((row: any) => ({
         id: row.id,
         order_code: row.order_code,
@@ -112,19 +88,21 @@ export function useRoutesWithFilters(
         total_items: row.total_items,
         rooms_completed: row.rooms_completed,
         assigned_to: row.assigned_to,
-        assigned_to_name: row.assignee?.full_name || null,
+        assigned_to_name: row.assigned_to_name,
         created_by: row.created_by,
-        created_by_name: row.creator?.full_name || 'Unknown',
+        created_by_name: row.created_by_name,
         notes: row.notes,
         released_at: row.released_at,
         started_at: row.started_at,
         completed_at: row.completed_at,
         created_at: row.created_at,
+        hotel_id: row.hotel_id,
+        hotel_name: row.hotel_name,
       }))
 
       return {
         data: orders,
-        totalCount: count || 0,
+        totalCount: countResult || 0,
       }
     },
     enabled: !!tenant?.id && (isAllHotelsMode || !!selectedHotel?.id),

@@ -5858,33 +5858,81 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: Json
       }
-      get_distribution_orders_filtered: {
+      get_distribution_orders_count: {
         Args: {
           p_assigned_to?: string
+          p_floor?: number
           p_hotel_id?: string
-          p_limit?: number
-          p_offset?: number
+          p_shift_code?: string
+          p_shift_date?: string
           p_status?: string
           p_tenant_id: string
         }
-        Returns: {
-          assigned_to: string
-          assigned_to_name: string
-          completed_at: string
-          created_at: string
-          created_by: string
-          created_by_name: string
-          id: string
-          notes: string
-          order_code: string
-          rooms_completed: number
-          started_at: string
-          status: string
-          total_count: number
-          total_items: number
-          total_rooms: number
-        }[]
+        Returns: number
       }
+      get_distribution_orders_filtered:
+        | {
+            Args: {
+              p_assigned_to?: string
+              p_floor?: number
+              p_hotel_id?: string
+              p_limit?: number
+              p_offset?: number
+              p_shift_code?: string
+              p_shift_date?: string
+              p_status?: string
+              p_tenant_id: string
+            }
+            Returns: {
+              assigned_to: string
+              assigned_to_name: string
+              completed_at: string
+              created_at: string
+              created_by: string
+              created_by_name: string
+              floor: number
+              hotel_id: string
+              hotel_name: string
+              id: string
+              notes: string
+              order_code: string
+              released_at: string
+              rooms_completed: number
+              shift_code: string
+              shift_date: string
+              started_at: string
+              status: string
+              total_items: number
+              total_rooms: number
+            }[]
+          }
+        | {
+            Args: {
+              p_assigned_to?: string
+              p_hotel_id?: string
+              p_limit?: number
+              p_offset?: number
+              p_status?: string
+              p_tenant_id: string
+            }
+            Returns: {
+              assigned_to: string
+              assigned_to_name: string
+              completed_at: string
+              created_at: string
+              created_by: string
+              created_by_name: string
+              id: string
+              notes: string
+              order_code: string
+              rooms_completed: number
+              started_at: string
+              status: string
+              total_count: number
+              total_items: number
+              total_rooms: number
+            }[]
+          }
       get_financial_report: {
         Args: {
           p_end_date: string
