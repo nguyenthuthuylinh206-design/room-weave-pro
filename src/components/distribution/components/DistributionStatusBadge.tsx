@@ -1,4 +1,4 @@
-import { Clock, Truck, CheckCircle, XCircle } from 'lucide-react'
+import { Clock, Truck, CheckCircle, XCircle, PackageCheck } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import type { DistributionOrderStatus, DistributionRoomStatus } from '@/types/distribution.types'
 
@@ -8,6 +8,7 @@ const ORDER_STATUS_CONFIG: Record<DistributionOrderStatus, {
   icon: typeof Clock 
 }> = {
   pending: { label: 'Chờ giao', variant: 'outline', icon: Clock },
+  released: { label: 'Đã giao cho NV', variant: 'secondary', icon: PackageCheck },
   in_progress: { label: 'Đang giao', variant: 'default', icon: Truck },
   completed: { label: 'Hoàn thành', variant: 'secondary', icon: CheckCircle },
   cancelled: { label: 'Đã hủy', variant: 'destructive', icon: XCircle },
