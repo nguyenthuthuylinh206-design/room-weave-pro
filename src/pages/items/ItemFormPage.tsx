@@ -8,7 +8,6 @@ import { ArrowLeft, Save } from 'lucide-react';
 import { useQuotaCheck } from '@/hooks/useQuotaCheck';
 import { QuotaExceededDialog } from '@/components/settings/usage/QuotaExceededDialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -232,57 +231,54 @@ export function ItemFormPage() {
   }
   return <>
       <QuotaExceededDialog open={quotaCheck.showDialog} onOpenChange={quotaCheck.setShowDialog} resourceType="item" currentUsage={quotaCheck.currentUsage} limit={quotaCheck.limit} />
-      <div className="space-y-6 pb-24">
-        {/* Header - Sticky on mobile */}
-        <div className={`flex items-center gap-4 ${isMobile ? 'sticky top-0 z-10 bg-background py-4 -mx-4 px-4 border-b' : ''}`}>
-          <Button variant="ghost" size="icon" onClick={() => navigate('/items')}>
+      <div className="space-y-4 pb-20">
+        {/* Header */}
+        <div className={`flex items-center gap-3 ${isMobile ? 'sticky top-0 z-10 bg-background py-3 -mx-4 px-4 border-b' : ''}`}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/items')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex-1 min-w-0">
-            <h1 className={`font-bold truncate ${isMobile ? 'text-xl' : 'text-3xl'}`}>
+            <h1 className={`font-semibold truncate ${isMobile ? 'text-lg' : 'text-xl'}`}>
               {isEdit ? t('items:editItem') : t('items:addNew')}
             </h1>
-            {!isMobile && <p className="text-muted-foreground">
-                {isEdit ? t('items:form.subtitle.edit') : t('items:form.subtitle.create')}
-              </p>}
           </div>
           {!isMobile && <HotelBadge />}
         </div>
 
         {/* Alert for All Hotels Mode */}
-        {isAllHotelsMode && <Alert variant="destructive">
+        {isAllHotelsMode && <Alert variant="destructive" className="py-2">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
+            <AlertDescription className="text-sm">
               {t('items:alerts.allHotelsMode')}
             </AlertDescription>
           </Alert>}
 
-        {!isAllHotelsMode && !selectedHotel && <Alert variant="destructive">
+        {!isAllHotelsMode && !selectedHotel && <Alert variant="destructive" className="py-2">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
+            <AlertDescription className="text-sm">
               {t('items:alerts.noHotelSelected')}
             </AlertDescription>
           </Alert>}
 
-      <form key={item?.id || 'new'} onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form key={item?.id || 'new'} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {isMobile ?
         // Mobile: Accordion layout
-        <Accordion type="multiple" defaultValue={['basic', 'product']} className="space-y-4">
-            <AccordionItem value="basic" className="border rounded-lg px-4">
-              <AccordionTrigger className="text-base font-semibold">
+        <Accordion type="multiple" defaultValue={['basic', 'product']} className="space-y-3">
+            <AccordionItem value="basic" className="border rounded-lg px-3">
+              <AccordionTrigger className="text-sm font-medium py-3">
                 {t('items:form.sections.basicInfo')}
               </AccordionTrigger>
-              <AccordionContent className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="code" className="text-base">{t('items:fields.code')} *</Label>
-                  <Input id="code" {...register('code')} className="h-12 text-base" />
-                  {errors.code && <p className="text-sm text-destructive">{errors.code.message}</p>}
+              <AccordionContent className="space-y-3 pb-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="code" className="text-xs">{t('items:fields.code')} *</Label>
+                  <Input id="code" {...register('code')} className="h-10" />
+                  {errors.code && <p className="text-xs text-destructive">{errors.code.message}</p>}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="category_id" className="text-base">{t('items:fields.category')} *</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="category_id" className="text-xs">{t('items:fields.category')} *</Label>
                   <Select value={watch('category_id')} onValueChange={value => setValue('category_id', value)}>
-                    <SelectTrigger className="h-12">
+                    <SelectTrigger className="h-10">
                       <SelectValue placeholder={t('items:form.selectCategory')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -291,224 +287,196 @@ export function ItemFormPage() {
                         </SelectItem>)}
                     </SelectContent>
                   </Select>
-                  {errors.category_id && <p className="text-sm text-destructive">{errors.category_id.message}</p>}
+                  {errors.category_id && <p className="text-xs text-destructive">{errors.category_id.message}</p>}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="item_type" className="text-base">{t('items:fields.itemType')} *</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="item_type" className="text-xs">{t('items:fields.itemType')} *</Label>
                   <Select value={watch('item_type')} onValueChange={(value: any) => setValue('item_type', value)}>
-                    <SelectTrigger className="h-12">
+                    <SelectTrigger className="h-10">
                       <SelectValue placeholder={t('items:form.selectItemType')} />
                     </SelectTrigger>
                     <SelectContent>
                       {ITEM_TYPES.map(type => <SelectItem key={type} value={type}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{t(`items:itemType.${type}`)}</span>
-                            <span className="text-xs text-muted-foreground">{t(`items:itemTypeDescription.${type}`)}</span>
-                          </div>
+                          {t(`items:itemType.${type}`)}
                         </SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-base">{t('items:fields.name')} *</Label>
-                  <Input id="name" {...register('name')} className="h-12 text-base" />
-                  {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+                <div className="space-y-1.5">
+                  <Label htmlFor="name" className="text-xs">{t('items:fields.name')} *</Label>
+                  <Input id="name" {...register('name')} className="h-10" />
+                  {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="name_en" className="text-base">{t('items:fields.nameEn')}</Label>
-                  <Input id="name_en" {...register('name_en')} className="h-12 text-base" />
+                <div className="space-y-1.5">
+                  <Label htmlFor="name_en" className="text-xs">{t('items:fields.nameEn')}</Label>
+                  <Input id="name_en" {...register('name_en')} className="h-10" />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="description" className="text-base">{t('items:fields.description')}</Label>
-                  <Textarea id="description" {...register('description')} rows={3} className="text-base" />
+                <div className="space-y-1.5">
+                  <Label htmlFor="description" className="text-xs">{t('items:fields.description')}</Label>
+                  <Textarea id="description" {...register('description')} rows={2} />
                 </div>
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="product" className="border rounded-lg px-4">
-              <AccordionTrigger className="text-base font-semibold">
+            <AccordionItem value="product" className="border rounded-lg px-3">
+              <AccordionTrigger className="text-sm font-medium py-3">
                 {t('items:form.sections.productInfo')}
               </AccordionTrigger>
-              <AccordionContent className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="brand" className="text-base">{t('items:fields.brand')}</Label>
-                  <Input id="brand" {...register('brand')} className="h-12 text-base" />
+              <AccordionContent className="space-y-3 pb-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="brand" className="text-xs">{t('items:fields.brand')}</Label>
+                    <Input id="brand" {...register('brand')} className="h-10" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="model" className="text-xs">{t('items:fields.model')}</Label>
+                    <Input id="model" {...register('model')} className="h-10" />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="model" className="text-base">{t('items:fields.model')}</Label>
-                  <Input id="model" {...register('model')} className="h-12 text-base" />
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="unit" className="text-xs">{t('items:fields.unit')} *</Label>
+                    <Input id="unit" {...register('unit')} className="h-10" />
+                    {errors.unit && <p className="text-xs text-destructive">{errors.unit.message}</p>}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="unit_price" className="text-xs">{t('items:fields.unitPrice')} *</Label>
+                    <Input id="unit_price" type="number" step="0.01" {...register('unit_price', { valueAsNumber: true })} className="h-10" />
+                    {errors.unit_price && <p className="text-xs text-destructive">{errors.unit_price.message}</p>}
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="unit" className="text-base">{t('items:fields.unit')} *</Label>
-                  <Input id="unit" {...register('unit')} className="h-12 text-base" />
-                  {errors.unit && <p className="text-sm text-destructive">{errors.unit.message}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="unit_price" className="text-base">{t('items:fields.unitPrice')} *</Label>
-                  <Input id="unit_price" type="number" step="0.01" {...register('unit_price', {
-                  valueAsNumber: true
-                })} className="h-12 text-base" />
-                  {errors.unit_price && <p className="text-sm text-destructive">{errors.unit_price.message}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="minimum_stock" className="text-base">{t('items:fields.minimumStock')} *</Label>
-                  <Input id="minimum_stock" type="number" {...register('minimum_stock', {
-                  valueAsNumber: true
-                })} className="h-12 text-base" />
-                  {errors.minimum_stock && <p className="text-sm text-destructive">{errors.minimum_stock.message}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="reorder_point" className="text-base">{t('items:fields.reorderPoint')} *</Label>
-                  <Input id="reorder_point" type="number" {...register('reorder_point', {
-                  valueAsNumber: true
-                })} className="h-12 text-base" />
-                  {errors.reorder_point && <p className="text-sm text-destructive">{errors.reorder_point.message}</p>}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="minimum_stock" className="text-xs">{t('items:fields.minimumStock')} *</Label>
+                    <Input id="minimum_stock" type="number" {...register('minimum_stock', { valueAsNumber: true })} className="h-10" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="reorder_point" className="text-xs">{t('items:fields.reorderPoint')} *</Label>
+                    <Input id="reorder_point" type="number" {...register('reorder_point', { valueAsNumber: true })} className="h-10" />
+                  </div>
                 </div>
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="images" className="border rounded-lg px-4">
-              <AccordionTrigger className="text-base font-semibold">
+            <AccordionItem value="images" className="border rounded-lg px-3">
+              <AccordionTrigger className="text-sm font-medium py-3">
                 {t('items:form.sections.images')}
               </AccordionTrigger>
-              <AccordionContent className="pt-4">
-                <ImageUpload images={images} onChange={setImages} maxImages={5} className="grid-cols-2" />
+              <AccordionContent className="pb-3">
+                <ImageUpload images={images} onChange={setImages} maxImages={5} className="grid-cols-3" />
               </AccordionContent>
             </AccordionItem>
           </Accordion> :
-        // Desktop: Card layout
+        // Desktop: Simple sections
         <>
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('items:form.sections.basicInfo')}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="code">{t('items:fields.code')} *</Label>
-                <Input id="code" {...register('code')} />
-                {errors.code && <p className="text-sm text-destructive">{errors.code.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category_id">{t('items:fields.category')} *</Label>
-                <Select value={watch('category_id')} onValueChange={value => setValue('category_id', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('items:form.selectCategory')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories?.map(cat => <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>)}
-                  </SelectContent>
-                </Select>
-                {errors.category_id && <p className="text-sm text-destructive">{errors.category_id.message}</p>}
-              </div>
-              
-              
+        <div className="border rounded-lg p-4 space-y-4">
+          <p className="text-sm font-medium">{t('items:form.sections.basicInfo')}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="code" className="text-xs">{t('items:fields.code')} *</Label>
+              <Input id="code" {...register('code')} className="h-9" />
+              {errors.code && <p className="text-xs text-destructive">{errors.code.message}</p>}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">{t('items:fields.name')} *</Label>
-                <Input id="name" {...register('name')} />
-                {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="category_id" className="text-xs">{t('items:fields.category')} *</Label>
+              <Select value={watch('category_id')} onValueChange={value => setValue('category_id', value)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder={t('items:form.selectCategory')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories?.map(cat => <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>)}
+                </SelectContent>
+              </Select>
+              {errors.category_id && <p className="text-xs text-destructive">{errors.category_id.message}</p>}
+            </div>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="name_en">{t('items:fields.nameEn')}</Label>
-                <Input id="name_en" {...register('name_en')} />
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="name" className="text-xs">{t('items:fields.name')} *</Label>
+              <Input id="name" {...register('name')} className="h-9" />
+              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">{t('items:fields.description')}</Label>
-              <Textarea id="description" {...register('description')} rows={3} />
+            <div className="space-y-1.5">
+              <Label htmlFor="name_en" className="text-xs">{t('items:fields.nameEn')}</Label>
+              <Input id="name_en" {...register('name_en')} className="h-9" />
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('items:form.sections.productInfo')}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="brand">{t('items:fields.brand')}</Label>
-                <Input id="brand" {...register('brand')} />
-              </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="description" className="text-xs">{t('items:fields.description')}</Label>
+            <Textarea id="description" {...register('description')} rows={2} />
+          </div>
+        </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="model">{t('items:fields.model')}</Label>
-                <Input id="model" {...register('model')} />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="unit">{t('items:fields.unit')} *</Label>
-                <Input id="unit" {...register('unit')} />
-                {errors.unit && <p className="text-sm text-destructive">{errors.unit.message}</p>}
-              </div>
+        <div className="border rounded-lg p-4 space-y-4">
+          <p className="text-sm font-medium">{t('items:form.sections.productInfo')}</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="brand" className="text-xs">{t('items:fields.brand')}</Label>
+              <Input id="brand" {...register('brand')} className="h-9" />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="unit_price">{t('items:fields.unitPrice')} *</Label>
-                <Input id="unit_price" type="number" step="0.01" {...register('unit_price', {
-                    valueAsNumber: true
-                  })} />
-                {errors.unit_price && <p className="text-sm text-destructive">{errors.unit_price.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="minimum_stock">{t('items:fields.minimumStock')} *</Label>
-                <Input id="minimum_stock" type="number" {...register('minimum_stock', {
-                    valueAsNumber: true
-                  })} />
-                {errors.minimum_stock && <p className="text-sm text-destructive">{errors.minimum_stock.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="reorder_point">{t('items:fields.reorderPoint')} *</Label>
-                <Input id="reorder_point" type="number" {...register('reorder_point', {
-                    valueAsNumber: true
-                  })} />
-                {errors.reorder_point && <p className="text-sm text-destructive">{errors.reorder_point.message}</p>}
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="model" className="text-xs">{t('items:fields.model')}</Label>
+              <Input id="model" {...register('model')} className="h-9" />
             </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('items:form.sections.images')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ImageUpload images={images} onChange={setImages} maxImages={10} />
-            <p className="mt-2 text-xs text-muted-foreground">
-              {t('items:form.imageHint')}
-            </p>
-          </CardContent>
-        </Card>
+            <div className="space-y-1.5">
+              <Label htmlFor="unit" className="text-xs">{t('items:fields.unit')} *</Label>
+              <Input id="unit" {...register('unit')} className="h-9" />
+              {errors.unit && <p className="text-xs text-destructive">{errors.unit.message}</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="unit_price" className="text-xs">{t('items:fields.unitPrice')} *</Label>
+              <Input id="unit_price" type="number" step="0.01" {...register('unit_price', { valueAsNumber: true })} className="h-9" />
+              {errors.unit_price && <p className="text-xs text-destructive">{errors.unit_price.message}</p>}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="minimum_stock" className="text-xs">{t('items:fields.minimumStock')} *</Label>
+              <Input id="minimum_stock" type="number" {...register('minimum_stock', { valueAsNumber: true })} className="h-9" />
+              {errors.minimum_stock && <p className="text-xs text-destructive">{errors.minimum_stock.message}</p>}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="reorder_point" className="text-xs">{t('items:fields.reorderPoint')} *</Label>
+              <Input id="reorder_point" type="number" {...register('reorder_point', { valueAsNumber: true })} className="h-9" />
+              {errors.reorder_point && <p className="text-xs text-destructive">{errors.reorder_point.message}</p>}
+            </div>
+          </div>
+        </div>
+
+        <div className="border rounded-lg p-4 space-y-3">
+          <p className="text-sm font-medium">{t('items:form.sections.images')}</p>
+          <ImageUpload images={images} onChange={setImages} maxImages={10} />
+          <p className="text-xs text-muted-foreground">
+            {t('items:form.imageHint')}
+          </p>
+        </div>
 
           </>}
 
-        {/* Submit buttons - Fixed at bottom on mobile */}
-        <div className={`flex gap-3 ${isMobile ? 'fixed bottom-16 left-0 right-0 p-4 bg-background border-t z-30 safe-area-inset-bottom' : 'justify-end'}`}>
-          <Button type="button" variant="outline" onClick={() => navigate('/items')} className={isMobile ? 'flex-1 h-12' : ''}>
+        {/* Submit buttons */}
+        <div className={`flex gap-2 ${isMobile ? 'fixed bottom-16 left-0 right-0 p-3 bg-background border-t z-30' : 'justify-end'}`}>
+          <Button type="button" variant="outline" size="sm" onClick={() => navigate('/items')} className={isMobile ? 'flex-1' : ''}>
             {t('items:form.buttons.cancel')}
           </Button>
-          <Button type="submit" disabled={isSubmitting || isAllHotelsMode || !selectedHotel} className={isMobile ? 'flex-1 h-12' : ''}>
-            <Save className="w-4 h-4 mr-2" />
+          <Button type="submit" size="sm" disabled={isSubmitting || isAllHotelsMode || !selectedHotel} className={isMobile ? 'flex-1' : ''}>
+            <Save className="w-4 h-4 mr-1.5" />
             {isSubmitting ? t('items:form.buttons.saving') : isEdit ? t('items:form.buttons.update') : t('items:form.buttons.create')}
           </Button>
         </div>

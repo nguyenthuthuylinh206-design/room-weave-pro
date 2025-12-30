@@ -21,7 +21,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Card, CardContent } from '@/components/ui/card'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import { TransactionTypeBadge } from '@/components/inventory/TransactionTypeBadge'
 import { TransactionDetailDialog } from '@/components/inventory/TransactionDetailDialog'
@@ -33,9 +32,7 @@ import { useBreakpoint } from '@/lib/breakpoints'
 import { useQueryClient } from '@tanstack/react-query'
 import type { TransactionType, InventoryFilters } from '@/types/inventory.types'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
-import { StatScrollContainer, MobileStatCard } from '@/components/mobile/MobileDashboardStats'
 import { MobileFilterSheet } from '@/components/inventory/MobileFilterSheet'
-import { SwipeableCard } from '@/components/mobile/SwipeableCard'
 import { MobileTransactionCard } from '@/components/inventory/MobileTransactionCard'
 import { TransactionListSkeleton } from '@/components/inventory/TransactionCardSkeleton'
 import { EmptyTransactions } from '@/components/inventory/EmptyTransactions'
@@ -103,55 +100,50 @@ export function TransactionListPage() {
     return (
       <div className="min-h-screen bg-background pb-20">
         <PullToRefresh onRefresh={handleRefresh}>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Header */}
-            <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
-              <div className="flex items-center gap-2 mb-3">
+            <div className="sticky top-0 z-10 bg-background border-b px-3 py-2">
+              <div className="flex items-center gap-2">
                 <Button 
                   variant="ghost" 
                   size="icon"
                   onClick={() => navigate('/inventory')}
-                  className="h-10 w-10"
+                  className="h-8 w-8"
                 >
-                  <ArrowLeft className="h-5 w-5" />
+                  <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div>
-                  <h1 className="text-lg font-semibold">{t('transactionHistory')}</h1>
+                  <h1 className="text-base font-semibold">{t('transactionHistory')}</h1>
                   <p className="text-xs text-muted-foreground">
-                    {t('transactionCount', { count: data?.total || 0 })}
+                    {data?.total || 0} giao dịch
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Stats Scroll */}
-            <StatScrollContainer>
-              <MobileStatCard
-                icon={Package}
-                title={t('stats.totalTransactions')}
-                value={data?.total || 0}
-              />
-              <MobileStatCard
-                icon={TrendingDown}
-                title={t('stats.totalIn')}
-                value={`+${summary.totalIn}`}
-                variant="success"
-              />
-              <MobileStatCard
-                icon={TrendingUp}
-                title={t('stats.totalOut')}
-                value={`-${summary.totalOut}`}
-                variant="default"
-              />
-            </StatScrollContainer>
+            {/* Stats Row */}
+            <div className="flex gap-4 px-3 text-xs">
+              <div className="flex items-center gap-1">
+                <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="font-medium">{data?.total || 0}</span>
+              </div>
+              <div className="flex items-center gap-1 text-green-600">
+                <TrendingDown className="h-3.5 w-3.5" />
+                <span className="font-medium">+{summary.totalIn}</span>
+              </div>
+              <div className="flex items-center gap-1 text-amber-600">
+                <TrendingUp className="h-3.5 w-3.5" />
+                <span className="font-medium">-{summary.totalOut}</span>
+              </div>
+            </div>
 
             {/* Mobile Filter */}
-            <div className="px-4">
+            <div className="px-3">
               <MobileFilterSheet filters={filters} onFiltersChange={setFilters} />
             </div>
 
             {/* Transaction Cards */}
-            <div className="px-4 space-y-2">
+            <div className="px-3 space-y-2">
               {isLoading ? (
                 <TransactionListSkeleton count={5} />
               ) : transactions.length === 0 ? (
@@ -159,33 +151,28 @@ export function TransactionListPage() {
               ) : (
                 <>
                   {transactions.map((transaction) => (
-                    <SwipeableCard
+                    <MobileTransactionCard
                       key={transaction.id}
-                      onSwipeLeft={() => setSelectedTransaction(transaction.id)}
-                      onSwipeRight={() => transaction.transaction_category && handleFilterByCategory(transaction.transaction_category)}
-                    >
-                      <MobileTransactionCard
-                        transaction={{
-                          id: transaction.id,
-                          transaction_code: transaction.transaction_code,
-                          transaction_type: transaction.transaction_type as 'in' | 'out' | 'adjustment',
-                          transaction_category: transaction.transaction_category,
-                          item_name: transaction.item_name,
-                          item_code: transaction.item_code,
-                          quantity: transaction.quantity,
-                          created_at: transaction.created_at,
-                          created_by_name: transaction.created_by_name,
-                          from_location: transaction.from_location,
-                          to_location: transaction.to_location,
-                        }}
-                        onClick={() => setSelectedTransaction(transaction.id)}
-                      />
-                    </SwipeableCard>
+                      transaction={{
+                        id: transaction.id,
+                        transaction_code: transaction.transaction_code,
+                        transaction_type: transaction.transaction_type as 'in' | 'out' | 'adjustment',
+                        transaction_category: transaction.transaction_category,
+                        item_name: transaction.item_name,
+                        item_code: transaction.item_code,
+                        quantity: transaction.quantity,
+                        created_at: transaction.created_at,
+                        created_by_name: transaction.created_by_name,
+                        from_location: transaction.from_location,
+                        to_location: transaction.to_location,
+                      }}
+                      onClick={() => setSelectedTransaction(transaction.id)}
+                    />
                   ))}
                   
                   {/* Infinite scroll trigger */}
                   {hasNextPage && (
-                    <div ref={loadMoreRef} className="py-4">
+                    <div ref={loadMoreRef} className="py-3">
                       {isFetching && <TransactionListSkeleton count={2} />}
                     </div>
                   )}

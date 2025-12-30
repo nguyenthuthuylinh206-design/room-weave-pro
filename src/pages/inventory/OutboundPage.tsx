@@ -286,132 +286,118 @@ export function OutboundPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader title={t('inventory:outbound.title')} description={t('inventory:outbound.description')}>
-        <Button variant="outline" onClick={() => navigate('/inventory')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+        <Button variant="outline" size="sm" onClick={() => navigate('/inventory')}>
+          <ArrowLeft className="mr-1.5 h-4 w-4" />
           {t('common:back')}
         </Button>
       </PageHeader>
       
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('inventory:outbound.generalInfo')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <div className="border rounded-lg p-4 space-y-4">
+            <p className="text-sm font-medium">{t('inventory:outbound.generalInfo')}</p>
+            <FormField 
+              control={form.control} 
+              name="transaction_category" 
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs">{t('inventory:outbound.type')} *</FormLabel>
+                  <FormControl>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder={t('inventory:outbound.type')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="room_assign">🏠 {t('inventory:outbound.toRoom')}</SelectItem>
+                        <SelectItem value="laundry">🧺 {t('inventory:outbound.toLaundry')}</SelectItem>
+                        <SelectItem value="maintenance">🔧 {t('inventory:outbound.toMaintenance')}</SelectItem>
+                        <SelectItem value="disposal">🗑️ {t('inventory:outbound.toDisposal')}</SelectItem>
+                        <SelectItem value="other">➖ {t('inventory:outbound.toOther')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} 
+            />
+            
+            <div className="grid gap-3 md:grid-cols-2">
               <FormField 
                 control={form.control} 
-                name="transaction_category" 
+                name="from_location" 
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('inventory:outbound.type')} *</FormLabel>
+                    <FormLabel className="text-xs">{t('inventory:outbound.fromLocation')} *</FormLabel>
                     <FormControl>
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('inventory:outbound.type')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="room_assign">🏠 {t('inventory:outbound.toRoom')}</SelectItem>
-                          <SelectItem value="laundry">🧺 {t('inventory:outbound.toLaundry')}</SelectItem>
-                          <SelectItem value="maintenance">🔧 {t('inventory:outbound.toMaintenance')}</SelectItem>
-                          <SelectItem value="disposal">🗑️ {t('inventory:outbound.toDisposal')}</SelectItem>
-                          <SelectItem value="other">➖ {t('inventory:outbound.toOther')}</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Input {...field} placeholder={t('inventory:outbound.placeholders.fromLocation')} className="h-9" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} 
               />
               
-              <div className="grid gap-4 md:grid-cols-2">
+              {category === 'laundry' && (
                 <FormField 
                   control={form.control} 
-                  name="from_location" 
+                  name="vendor_id" 
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('inventory:outbound.fromLocation')} *</FormLabel>
+                      <FormLabel className="text-xs">{t('inventory:outbound.selectVendor')} *</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder={t('inventory:outbound.placeholders.fromLocation')} />
+                        <LaundryVendorSelect
+                          value={field.value || ''}
+                          onChange={(value, vendor) => {
+                            field.onChange(value);
+                            setSelectedVendor(vendor);
+                          }}
+                          placeholder={t('inventory:outbound.placeholders.selectVendor')}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )} 
                 />
-                
-                {/* Dynamic destination field based on category - NOT for room_assign */}
+              )}
 
-                {category === 'laundry' && (
-                  <FormField 
-                    control={form.control} 
-                    name="vendor_id" 
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('inventory:outbound.selectVendor')} *</FormLabel>
-                        <FormControl>
-                          <LaundryVendorSelect
-                            value={field.value || ''}
-                            onChange={(value, vendor) => {
-                              field.onChange(value);
-                              setSelectedVendor(vendor);
-                            }}
-                            placeholder={t('inventory:outbound.placeholders.selectVendor')}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          <Info className="h-3 w-3 inline mr-1" />
-                          {t('inventory:outbound.laundryDescription')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )} 
-                  />
-                )}
+              {category === 'maintenance' && (
+                <FormField 
+                  control={form.control} 
+                  name="maintenance_request_id" 
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">{t('inventory:outbound.selectMaintenanceRequest')}</FormLabel>
+                      <FormControl>
+                        <MaintenanceRequestSelect
+                          value={field.value || ''}
+                          onChange={(value) => field.onChange(value)}
+                          placeholder={t('inventory:outbound.placeholders.selectMaintenanceRequest')}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} 
+                />
+              )}
 
-                {category === 'maintenance' && (
-                  <FormField 
-                    control={form.control} 
-                    name="maintenance_request_id" 
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('inventory:outbound.selectMaintenanceRequest')}</FormLabel>
-                        <FormControl>
-                          <MaintenanceRequestSelect
-                            value={field.value || ''}
-                            onChange={(value) => field.onChange(value)}
-                            placeholder={t('inventory:outbound.placeholders.selectMaintenanceRequest')}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          <Info className="h-3 w-3 inline mr-1" />
-                          {t('inventory:outbound.maintenanceDescription')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )} 
-                  />
-                )}
-
-                {(category === 'disposal' || category === 'other') && (
-                  <FormField 
-                    control={form.control} 
-                    name="to_location" 
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('inventory:outbound.toLocation')} *</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder={t('inventory:outbound.placeholders.toLocation')} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-              </div>
-            </CardContent>
-          </Card>
+              {(category === 'disposal' || category === 'other') && (
+                <FormField 
+                  control={form.control} 
+                  name="to_location" 
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">{t('inventory:outbound.toLocation')} *</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder={t('inventory:outbound.placeholders.toLocation')} className="h-9" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+          </div>
           
           {/* Distribution Form for room_assign */}
           {category === 'room_assign' && (
