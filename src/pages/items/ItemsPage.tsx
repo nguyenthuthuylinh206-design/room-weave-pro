@@ -62,7 +62,7 @@ export function ItemsPage() {
   }
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title={t('title')}
         description={t('description', 'Quản lý tất cả tài sản và đồ dùng trong khách sạn')}

@@ -13,9 +13,9 @@ export function ItemTabs({ activeTab, onTabChange }: ItemTabsProps) {
   
   if (isLoading) {
     return (
-      <div className="flex gap-2">
-        {[...Array(6)].map((_, i) => (
-          <Skeleton key={i} className="h-10 w-24" />
+      <div className="flex gap-1.5">
+        {[...Array(5)].map((_, i) => (
+          <Skeleton key={i} className="h-8 w-20" />
         ))}
       </div>
     )
@@ -31,12 +31,15 @@ export function ItemTabs({ activeTab, onTabChange }: ItemTabsProps) {
   
   return (
     <Tabs value={activeTab} onValueChange={onTabChange}>
-      <TabsList className="w-full justify-start overflow-x-auto">
-        <TabsTrigger value="all" className="gap-2">
-          <Package className="h-4 w-4" />
-          <span>Tất cả</span>
-          <span className="ml-1 text-xs text-muted-foreground">
-            ({categories?.reduce((sum, cat) => sum + cat.items_count, 0) || 0})
+      <TabsList className="h-8 w-full justify-start gap-0.5 overflow-x-auto bg-transparent p-0">
+        <TabsTrigger 
+          value="all" 
+          className="h-8 gap-1.5 px-3 text-xs data-[state=active]:bg-muted"
+        >
+          <Package className="h-3.5 w-3.5" />
+          Tất cả
+          <span className="text-muted-foreground">
+            {categories?.reduce((sum, cat) => sum + cat.items_count, 0) || 0}
           </span>
         </TabsTrigger>
         
@@ -44,11 +47,15 @@ export function ItemTabs({ activeTab, onTabChange }: ItemTabsProps) {
           const Icon = iconMap[category.icon] || Package
           
           return (
-            <TabsTrigger key={category.id} value={category.id} className="gap-2">
-              <Icon className="h-4 w-4" style={{ color: category.color }} />
-              <span>{category.name}</span>
-              <span className="ml-1 text-xs text-muted-foreground">
-                ({category.items_count})
+            <TabsTrigger 
+              key={category.id} 
+              value={category.id} 
+              className="h-8 gap-1.5 px-3 text-xs data-[state=active]:bg-muted"
+            >
+              <Icon className="h-3.5 w-3.5" style={{ color: category.color }} />
+              {category.name}
+              <span className="text-muted-foreground">
+                {category.items_count}
               </span>
             </TabsTrigger>
           )

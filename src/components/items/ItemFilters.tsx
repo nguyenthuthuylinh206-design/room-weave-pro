@@ -1,4 +1,4 @@
-import { Search, FileDown, FileUp, QrCode, RefreshCw } from 'lucide-react'
+import { Search, FileDown, FileUp, QrCode, RefreshCw, Loader2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -281,16 +281,16 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
   }
   
   return (
-    <div className="sticky top-0 z-10 flex flex-col gap-4 bg-background pb-4 pt-2">
-      <div className="flex flex-col gap-3 sm:flex-row">
+    <div className="sticky top-0 z-10 flex flex-col gap-3 bg-background pb-3 pt-1">
+      <div className="flex flex-col gap-2 sm:flex-row">
         {/* Search */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Tìm theo tên, mã..."
             value={filters.search || ''}
             onChange={(e) => onFilterChange({ search: e.target.value })}
-            className="pl-10"
+            className="h-9 pl-8 text-sm"
           />
         </div>
         
@@ -301,7 +301,7 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
             onFilterChange({ categoryId: value === 'all' ? undefined : value })
           }
         >
-          <SelectTrigger className="w-full sm:w-48">
+          <SelectTrigger className="h-9 w-full text-sm sm:w-40">
             <SelectValue placeholder="Danh mục" />
           </SelectTrigger>
           <SelectContent>
@@ -321,8 +321,8 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
             onFilterChange({ stockStatus: value === 'all' ? undefined : value as any })
           }
         >
-          <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder="Trạng thái kho" />
+          <SelectTrigger className="h-9 w-full text-sm sm:w-36">
+            <SelectValue placeholder="Tồn kho" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tất cả</SelectItem>
@@ -339,7 +339,7 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
             onFilterChange({ status: value as any })
           }
         >
-          <SelectTrigger className="w-full sm:w-40">
+          <SelectTrigger className="h-9 w-full text-sm sm:w-32">
             <SelectValue placeholder="Trạng thái" />
           </SelectTrigger>
           <SelectContent>
@@ -349,42 +349,39 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
         </Select>
       </div>
       
-      <div className="flex gap-2 flex-wrap">
-        <Button variant="outline" size="sm" onClick={() => setImportDialogOpen(true)}>
-          <FileUp className="mr-2 h-4 w-4" />
-          Import Excel
+      <div className="flex gap-1.5 flex-wrap">
+        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setImportDialogOpen(true)}>
+          <FileUp className="mr-1.5 h-3.5 w-3.5" />
+          Import
         </Button>
         
-        <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
+        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={handleExport} disabled={isExporting}>
           {isExporting ? (
-            <div className="mr-2">
-              <LoadingSpinner size="sm" />
-            </div>
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
           ) : (
-            <FileDown className="mr-2 h-4 w-4" />
+            <FileDown className="mr-1.5 h-3.5 w-3.5" />
           )}
           Xuất Excel
         </Button>
         
-        <Button variant="outline" size="sm" onClick={handleScanQR}>
-          <QrCode className="mr-2 h-4 w-4" />
+        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={handleScanQR}>
+          <QrCode className="mr-1.5 h-3.5 w-3.5" />
           Quét QR
         </Button>
 
         <Button 
-          variant="outline" 
-          size="sm" 
+          variant="ghost" 
+          size="sm"
+          className="h-8 text-xs"
           onClick={handleSyncCategories} 
           disabled={isSyncing}
         >
           {isSyncing ? (
-            <div className="mr-2">
-              <LoadingSpinner size="sm" />
-            </div>
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
           ) : (
-            <RefreshCw className="mr-2 h-4 w-4" />
+            <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
           )}
-          Đồng bộ danh mục
+          Đồng bộ
         </Button>
       </div>
 
