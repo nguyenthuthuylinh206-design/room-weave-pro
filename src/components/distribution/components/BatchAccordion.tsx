@@ -135,11 +135,12 @@ export function BatchAccordion({
         const isVirtual = batch.id.startsWith('virtual-')
         
         // Permission logic for actions
-        const canHandover = isStorekeeper && batch.status === 'open' && !isVirtual
-        // Skip receive step - allow delivery right after handover
+        // Storekeeper can handover when batch is open and order is pending
+        const canHandover = isStorekeeper && batch.status === 'open' && !isVirtual && orderStatus === 'pending'
+        // Assignee can deliver after confirming receipt (order in_progress) and batch handed_over/received
         const canDeliverStops = isAssignee && 
-          (batch.status === 'handed_over' || batch.status === 'received' || isVirtual) && 
-          orderStatus === 'in_progress'
+          orderStatus === 'in_progress' &&
+          (batch.status === 'handed_over' || batch.status === 'received' || batch.status === 'done')
 
         return (
           <AccordionItem

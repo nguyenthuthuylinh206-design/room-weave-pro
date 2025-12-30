@@ -5775,14 +5775,16 @@ export type Database = {
         Args: { p_email: string; p_full_name?: string }
         Returns: Json
       }
-      deliver_stop: {
-        Args: {
-          p_actor_id?: string
-          p_items_confirmed?: Json
-          p_room_order_id: string
-        }
-        Returns: Json
-      }
+      deliver_stop:
+        | {
+            Args: {
+              p_actor_id?: string
+              p_items_confirmed?: Json
+              p_room_order_id: string
+            }
+            Returns: Json
+          }
+        | { Args: { p_actor_id?: string; p_stop_id: string }; Returns: Json }
       generate_invoice_number: { Args: never; Returns: string }
       generate_unique_code: {
         Args: { column_name: string; prefix: string; table_name: string }
