@@ -6416,11 +6416,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      is_distribution_leader: { Args: { _user_id: string }; Returns: boolean }
       is_level_higher_or_equal: {
         Args: { _min_level_code: string; _user_id: string }
         Returns: boolean
       }
       is_manager: { Args: never; Returns: boolean }
+      is_route_assignee: {
+        Args: { _order_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_storekeeper: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       is_tenant_owner: { Args: never; Returns: boolean }
       log_activity: {
