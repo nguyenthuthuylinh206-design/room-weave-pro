@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Droplets, Check, Minus, Plus, Package, Loader2, Undo2 } from 'lucide-react'
+import { Droplets, Check, Minus, Plus, Package, Loader2, Undo2, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import type { RoomItemWithDetails, ConsumedItem } from '@/types/rooms.types'
 import { CategoryGroup, groupItemsByCategory } from './CategoryGroup'
@@ -218,6 +218,38 @@ export function ConsumableTabBooking({
 
   // Get total checked count
   const totalCheckedCount = Object.values(itemStates).filter(s => s.status !== 'unchecked').length
+  const allItemsChecked = totalCheckedCount === items.length
+
+  // Calculate summary data for checkout report
+  const getSummaryData = () => {
+    return items.map(item => {
+      const bc = consumablesMap.get(item.item_id)
+      const state = itemStates[item.item_id]
+      const initialQty = bc?.initial_quantity ?? item.standard_quantity
+      const supplementedQty = bc?.supplemented_quantity ?? 0
+      const totalAvailable = getTotalAvailable(item)
+      const remaining = state?.remaining ?? totalAvailable
+      const consumed = Math.max(0, totalAvailable - remaining)
+      const unitPrice = bc?.unit_price ?? 0
+      const value = consumed * unitPrice
+
+      return {
+        id: item.item_id,
+        name: item.item_name,
+        initialQty,
+        supplemented: supplementedQty,
+        total: totalAvailable,
+        remaining,
+        consumed,
+        unitPrice,
+        value,
+        status: state?.status ?? 'unchecked',
+      }
+    }).filter(item => item.status !== 'unchecked')
+  }
+
+  const summaryData = getSummaryData()
+  const totalValue = summaryData.reduce((sum, item) => sum + item.value, 0)
 
   const renderItemCard = (item: ExtendedRoomItem) => {
     const bc = consumablesMap.get(item.item_id)
@@ -258,20 +290,6 @@ export function ConsumableTabBooking({
             )}
             <div className="flex-1 min-w-0">
               <h4 className="font-medium text-sm truncate">{item.item_name}</h4>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                {hasBookingData ? (
-                  <>
-                    <span>Check-in: {initialQty}</span>
-                    {supplementedQty > 0 && (
-                      <Badge variant="secondary" className="text-xs h-5">
-                        +{supplementedQty} bổ sung
-                      </Badge>
-                    )}
-                  </>
-                ) : (
-                  <span>Tiêu chuẩn: {item.standard_quantity}</span>
-                )}
-              </div>
             </div>
             
             {/* Status badge */}
@@ -289,7 +307,84 @@ export function ConsumableTabBooking({
             )}
           </div>
 
-          {/* Status-based UI */}
+          {/* Row 2: 4-column data grid (when has booking data) */}
+          {hasBookingData && (
+            <div className="grid grid-cols-4 gap-1 text-center bg-muted/50 rounded-lg p-2">
+              <div>
+                <div className="text-[10px] text-muted-foreground uppercase">Check-in</div>
+                <div className="font-semibold text-sm">{initialQty}</div>
+              </div>
+              <div>
+                <div className="text-[10px] text-muted-foreground uppercase">Bổ sung</div>
+                <div className={cn("font-semibold text-sm", supplementedQty > 0 && "text-blue-600")}>
+                  {supplementedQty > 0 ? `+${supplementedQty}` : '0'}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] text-muted-foreground uppercase">Tổng</div>
+                <div className="font-semibold text-sm">{totalAvailable}</div>
+              </div>
+              <div>
+                <div className="text-[10px] text-muted-foreground uppercase">Còn lại</div>
+                {status === 'unchecked' ? (
+                  <div className="text-muted-foreground text-sm">—</div>
+                ) : status === 'insufficient' ? (
+                  <div className="flex items-center justify-center gap-0.5">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => handleRemainingChange(item, remaining - 1)}
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={remaining}
+                      onChange={(e) => handleRemainingChange(item, parseInt(e.target.value) || 0)}
+                      className="w-10 h-6 text-center font-semibold text-sm p-0"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => handleRemainingChange(item, remaining + 1)}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="font-semibold text-sm text-green-600">{remaining}</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Non-booking: simple standard display */}
+          {!hasBookingData && (
+            <div className="text-xs text-muted-foreground">
+              Tiêu chuẩn: {item.standard_quantity}
+            </div>
+          )}
+
+          {/* Calculated consumed info (for insufficient) */}
+          {status === 'insufficient' && (
+            <div className="flex items-center justify-between text-sm bg-primary/5 rounded-lg p-2">
+              <span className="text-muted-foreground">
+                📊 Khách đã dùng: <span className="font-semibold text-foreground">{consumed}</span>
+              </span>
+              {consumed > 0 && unitPrice > 0 && (
+                <span className="text-primary font-medium">
+                  💰 {consumedValue.toLocaleString()}đ
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Status-based action buttons */}
           {status === 'unchecked' && (
             <div className="flex gap-2">
               <Button
@@ -314,10 +409,7 @@ export function ConsumableTabBooking({
           )}
 
           {status === 'sufficient' && (
-            <div className="flex items-center justify-between bg-muted/50 rounded-lg p-2">
-              <span className="text-sm text-muted-foreground">
-                Còn: <span className="font-medium text-foreground">{remaining}</span> (đủ tiêu chuẩn)
-              </span>
+            <div className="flex items-center justify-end">
               <Button
                 type="button"
                 variant="ghost"
@@ -332,72 +424,25 @@ export function ConsumableTabBooking({
           )}
 
           {status === 'insufficient' && (
-            <div className="space-y-3">
-              {/* Quantity input row */}
-              <div className="flex items-center justify-between bg-muted/50 rounded-lg p-2">
-                <span className="text-sm text-muted-foreground">Còn lại:</span>
-                <div className="flex items-center gap-1">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9"
-                    onClick={() => handleRemainingChange(item, remaining - 1)}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={remaining}
-                    onChange={(e) => handleRemainingChange(item, parseInt(e.target.value) || 0)}
-                    className="w-16 h-9 text-center font-medium"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9"
-                    onClick={() => handleRemainingChange(item, remaining + 1)}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Consumed info */}
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">
-                  Khách đã dùng: <span className="font-semibold text-foreground">{consumed}</span>
-                </span>
-                {consumed > 0 && unitPrice > 0 && (
-                  <span className="text-primary font-medium">
-                    {consumedValue.toLocaleString()}đ
-                  </span>
-                )}
-              </div>
-
-              {/* Action buttons */}
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground"
-                  onClick={() => handleReset(item)}
-                >
-                  <Undo2 className="h-3 w-3 mr-1" />
-                  Hủy
-                </Button>
-                <Button
-                  type="button"
-                  className="flex-1 h-9"
-                  onClick={() => handleConfirmInsufficient(item)}
-                >
-                  <Check className="h-4 w-4 mr-1" />
-                  Xác nhận
-                </Button>
-              </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground"
+                onClick={() => handleReset(item)}
+              >
+                <Undo2 className="h-3 w-3 mr-1" />
+                Hủy
+              </Button>
+              <Button
+                type="button"
+                className="flex-1 h-9"
+                onClick={() => handleConfirmInsufficient(item)}
+              >
+                <Check className="h-4 w-4 mr-1" />
+                Xác nhận
+              </Button>
             </div>
           )}
         </CardContent>
@@ -461,6 +506,62 @@ export function ConsumableTabBooking({
           {categoryItems.map(renderItemCard)}
         </CategoryGroup>
       ))}
+
+      {/* Checkout Summary Report */}
+      {allItemsChecked && summaryData.length > 0 && hasBookingData && (
+        <Card className="mt-6 border-primary/50 bg-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              📋 Báo cáo tiêu thụ
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto -mx-4 px-4">
+              <table className="w-full text-xs min-w-[500px]">
+                <thead>
+                  <tr className="border-b text-muted-foreground">
+                    <th className="text-left py-2 font-medium">Mặt hàng</th>
+                    <th className="text-center py-2 font-medium w-12">C.in</th>
+                    <th className="text-center py-2 font-medium w-12">+BS</th>
+                    <th className="text-center py-2 font-medium w-12">Tổng</th>
+                    <th className="text-center py-2 font-medium w-12">Còn</th>
+                    <th className="text-center py-2 font-medium w-12">Dùng</th>
+                    <th className="text-right py-2 font-medium w-16">Tiền</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summaryData.map(item => (
+                    <tr key={item.id} className="border-b border-border/50">
+                      <td className="py-2 truncate max-w-[120px]">{item.name}</td>
+                      <td className="text-center py-2">{item.initialQty}</td>
+                      <td className={cn("text-center py-2", item.supplemented > 0 && "text-blue-600")}>
+                        {item.supplemented > 0 ? `+${item.supplemented}` : '0'}
+                      </td>
+                      <td className="text-center py-2">{item.total}</td>
+                      <td className="text-center py-2">{item.remaining}</td>
+                      <td className={cn("text-center py-2 font-medium", item.consumed > 0 && "text-primary")}>
+                        {item.consumed}
+                      </td>
+                      <td className="text-right py-2">
+                        {item.value > 0 ? `${(item.value / 1000).toFixed(0)}k` : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="font-bold bg-primary/10">
+                    <td colSpan={6} className="py-2 text-right">TỔNG:</td>
+                    <td className="py-2 text-right text-primary">
+                      {totalValue > 0 ? `${(totalValue / 1000).toFixed(0)}k` : '0đ'}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
