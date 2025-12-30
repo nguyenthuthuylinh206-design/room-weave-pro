@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Accordion,
@@ -63,18 +63,28 @@ export function BatchAccordion({
     return { total, delivered, cannotAccess, resolved, pending }
   }
 
-  // Find first batch that needs action
-  const findDefaultOpen = () => {
-    if (!batches) return []
-    for (const batch of batches) {
+  const [openItems, setOpenItems] = useState<string[]>([])
+  
+  // Set default open items when effectiveBatches change
+  useEffect(() => {
+    if (isLoading) return
+    const batchList = (batches && batches.length > 0)
+      ? batches
+      : Object.keys(stopsByBatch).map(batchNum => ({
+          batch_number: parseInt(batchNum),
+          status: 'open' as const,
+        }))
+    
+    for (const batch of batchList) {
       if (batch.status !== 'done') {
-        return [`batch-${batch.batch_number}`]
+        setOpenItems([`batch-${batch.batch_number}`])
+        return
       }
     }
-    return batches.length > 0 ? [`batch-${batches[0].batch_number}`] : []
-  }
-
-  const [openItems, setOpenItems] = useState<string[]>(findDefaultOpen())
+    if (batchList.length > 0) {
+      setOpenItems([`batch-${batchList[0].batch_number}`])
+    }
+  }, [batches, isLoading, stops])
 
   if (isLoading) {
     return (
@@ -86,26 +96,27 @@ export function BatchAccordion({
     )
   }
 
-  if (!batches || batches.length === 0) {
-    // No batches yet - show stops grouped by default batch
+  // If no batches in DB yet, create a virtual batch from stops
+  const effectiveBatches: DistributionBatch[] = (batches && batches.length > 0)
+    ? batches
+    : Object.keys(stopsByBatch).map(batchNum => ({
+        id: `virtual-${batchNum}`,
+        distribution_order_id: orderId,
+        batch_number: parseInt(batchNum),
+        status: 'open' as const,
+        created_at: null,
+        updated_at: null,
+        handed_over_at: null,
+        handed_over_by: null,
+        received_at: null,
+        received_by: null,
+      }))
+
+  if (effectiveBatches.length === 0) {
     return (
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Package className="h-4 w-4" />
-            Danh sách phòng
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {stops.map(stop => (
-            <StopCard
-              key={stop.id}
-              stop={stop}
-              canDeliver={isAssignee && orderStatus === 'in_progress'}
-              canMarkCannotAccess={isAssignee && orderStatus === 'in_progress'}
-              onAction={onStopAction}
-            />
-          ))}
+        <CardContent className="p-6 text-center text-muted-foreground">
+          Không có phòng nào trong route này
         </CardContent>
       </Card>
     )
@@ -118,12 +129,15 @@ export function BatchAccordion({
       onValueChange={setOpenItems}
       className="space-y-3"
     >
-      {batches.map(batch => {
+      {effectiveBatches.map(batch => {
         const batchStops = stopsByBatch[batch.batch_number] || []
         const stats = getBatchStats(batchStops)
-        const canHandover = isStorekeeper && batch.status === 'open'
-        const canReceive = isAssignee && batch.status === 'handed_over'
-        const canDeliverStops = isAssignee && batch.status === 'received'
+        const isVirtual = batch.id.startsWith('virtual-')
+        
+        // Permission logic for actions
+        const canHandover = isStorekeeper && batch.status === 'open' && !isVirtual
+        const canReceive = isAssignee && batch.status === 'handed_over' && !isVirtual
+        const canDeliverStops = isAssignee && (batch.status === 'received' || isVirtual) && orderStatus === 'in_progress'
 
         return (
           <AccordionItem
