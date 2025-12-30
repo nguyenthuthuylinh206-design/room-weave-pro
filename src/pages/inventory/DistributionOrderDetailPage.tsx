@@ -114,7 +114,7 @@ export default function DistributionOrderDetailPage() {
     confirmReceiveOrder({ orderId: id })
   }
 
-  // Mobile view - Use RouteDetailView directly
+  // Mobile view - Use RouteDetailView for unified experience
   if (isMobile) {
     return (
       <>
@@ -150,6 +150,24 @@ export default function DistributionOrderDetailPage() {
             </div>
           </div>
 
+          {/* Guidance for Manager when order is pending */}
+          {order.status === 'pending' && isWarehouseManager && (
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border-b border-blue-200 dark:border-blue-800">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                <strong>Bước tiếp theo:</strong> Ấn "Giao batch này" bên dưới để chuyển hàng cho nhân viên
+              </p>
+            </div>
+          )}
+
+          {/* Guidance for Staff waiting for handover */}
+          {order.status === 'pending' && isAssignee && !isWarehouseManager && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                Vui lòng chờ quản lý kho giao hàng cho bạn trước khi đi giao
+              </p>
+            </div>
+          )}
+
           {/* Confirm Receive Button for Assignee */}
           {canConfirmReceive && (
             <div className="p-4 bg-primary/5 border-b">
@@ -168,27 +186,9 @@ export default function DistributionOrderDetailPage() {
             </div>
           )}
 
-          {/* Progress */}
-          <div className="p-4 bg-muted/30 border-b">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted-foreground">Tiến độ giao hàng</span>
-              <span className="text-sm font-medium">{completedRooms}/{totalRooms} phòng</span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </div>
-
-          {/* Rooms List */}
-          <div className="flex-1 overflow-auto p-4 space-y-3">
-            {order.rooms?.map(room => (
-              <RoomDeliveryCard
-                key={room.id}
-                room={room}
-                isWarehouseManager={isWarehouseManager}
-                onConfirmDelivery={handleConfirmDelivery}
-                onUndoDelivery={handleOpenUndo}
-                isConfirming={isConfirmingWarehouse}
-              />
-            ))}
+          {/* Use RouteDetailView for consistent batch/stop display */}
+          <div className="flex-1 overflow-auto">
+            {id && <RouteDetailView orderId={id} embedded />}
           </div>
         </div>
 
@@ -261,16 +261,40 @@ export default function DistributionOrderDetailPage() {
         </div>
       </div>
 
-      {/* Tabs: Route View vs Legacy View */}
+      {/* Guidance for Manager when order is pending */}
+      {order.status === 'pending' && isWarehouseManager && (
+        <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30">
+          <CardContent className="p-4">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              <strong>Bước tiếp theo:</strong> Ấn "Giao batch này" bên dưới để chuyển hàng cho nhân viên được gán
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Guidance for Staff waiting for handover */}
+      {order.status === 'pending' && isAssignee && !isWarehouseManager && (
+        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
+          <CardContent className="p-4">
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              Vui lòng chờ quản lý kho giao hàng cho bạn trước khi đi giao
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tabs: Route View vs Legacy View - Legacy only for managers */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'route' | 'legacy')}>
         <TabsList>
           <TabsTrigger value="route" className="gap-2">
             <Route className="h-4 w-4" />
-            Route / Batch / Stop
+            Lộ trình giao hàng
           </TabsTrigger>
-          <TabsTrigger value="legacy">
-            Xem theo phòng
-          </TabsTrigger>
+          {isWarehouseManager && (
+            <TabsTrigger value="legacy">
+              Xem chi tiết (Quản lý)
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Route View */}
