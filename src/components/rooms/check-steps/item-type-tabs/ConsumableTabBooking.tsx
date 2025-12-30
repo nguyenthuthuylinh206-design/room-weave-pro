@@ -1,10 +1,9 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Droplets, Check, Minus, Plus, Package, AlertCircle, Loader2 } from 'lucide-react'
+import { Droplets, Check, Minus, Plus, Package, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { useTranslation } from 'react-i18next'
 import type { RoomItemWithDetails, ConsumedItem } from '@/types/rooms.types'
 import { CategoryGroup, groupItemsByCategory } from './CategoryGroup'
 import { useBookingConsumables, BookingConsumableWithItem } from '@/hooks/useBookingConsumables'
@@ -34,7 +33,6 @@ export function ConsumableTabBooking({
   onMarkConsumed,
   onRemoveConsumed,
 }: ConsumableTabBookingProps) {
-  const { t } = useTranslation(['rooms'])
   
   // Fetch booking consumables data
   const { data: bookingConsumables, isLoading } = useBookingConsumables(bookingId || undefined)
@@ -156,7 +154,8 @@ export function ConsumableTabBooking({
     }
   }
 
-  if (isLoading) {
+  // Only show loading when there's a bookingId and data is being fetched
+  if (bookingId && isLoading) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
@@ -178,17 +177,8 @@ export function ConsumableTabBooking({
     )
   }
 
-  // No booking - show warning
-  if (!bookingId) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-3" />
-          <p className="text-muted-foreground">Không có booking hiện tại. Sử dụng chế độ kiểm tra thông thường.</p>
-        </CardContent>
-      </Card>
-    )
-  }
+  // Check if loading booking data (only when bookingId exists)
+  const hasBookingData = bookingId && bookingConsumables && bookingConsumables.length > 0
 
   const renderItemCard = (item: ExtendedRoomItem) => {
     const bc = consumablesMap.get(item.item_id)
@@ -233,11 +223,17 @@ export function ConsumableTabBooking({
             <div className="flex-1 min-w-0">
               <h4 className="font-medium text-sm truncate">{item.item_name}</h4>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>Check-in: {initialQty}</span>
-                {supplementedQty > 0 && (
-                  <Badge variant="secondary" className="text-xs h-5">
-                    +{supplementedQty} bổ sung
-                  </Badge>
+                {hasBookingData ? (
+                  <>
+                    <span>Check-in: {initialQty}</span>
+                    {supplementedQty > 0 && (
+                      <Badge variant="secondary" className="text-xs h-5">
+                        +{supplementedQty} bổ sung
+                      </Badge>
+                    )}
+                  </>
+                ) : (
+                  <span>Tiêu chuẩn: {item.standard_quantity}</span>
                 )}
               </div>
             </div>
@@ -339,22 +335,29 @@ export function ConsumableTabBooking({
         Kiểm đếm số lượng thực tế còn lại trong phòng. Hệ thống sẽ tự tính số khách đã dùng.
       </div>
 
-      {/* Summary if has booking data */}
-      {bookingConsumables && bookingConsumables.length > 0 && (
-        <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div className="text-sm">
-                <span className="text-muted-foreground">Booking hiện tại:</span>
-                <span className="ml-2 font-medium">{bookingConsumables.length} mặt hàng tiêu hao</span>
-              </div>
-              <Badge variant="secondary">
-                {Object.values(itemStates).filter(s => s.isChecked).length}/{bookingConsumables.length} đã kiểm
-              </Badge>
+      {/* Summary - show different info based on booking */}
+      <Card className="bg-muted/30 border-border/50">
+        <CardContent className="p-3">
+          <div className="flex items-center justify-between">
+            <div className="text-sm">
+              {hasBookingData ? (
+                <>
+                  <span className="text-muted-foreground">Booking hiện tại:</span>
+                  <span className="ml-2 font-medium">{bookingConsumables!.length} mặt hàng</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-muted-foreground">Tiêu hao:</span>
+                  <span className="ml-2 font-medium">{items.length} mặt hàng</span>
+                </>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      )}
+            <Badge variant="secondary">
+              {Object.values(itemStates).filter(s => s.isChecked).length}/{items.length} đã kiểm
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Grouped Items by Category */}
       {Array.from(groupedItems.entries()).map(([categoryName, categoryItems]) => (

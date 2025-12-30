@@ -18,7 +18,7 @@ import type {
   ReplacedItem 
 } from '@/types/rooms.types';
 import type { ItemType } from '@/types/items.types';
-import { LinenTab, ConsumableTab, ConsumableTabBooking, EquipmentTab, FurnitureTab } from './item-type-tabs';
+import { LinenTab, ConsumableTabBooking, EquipmentTab, FurnitureTab } from './item-type-tabs';
 
 interface ItemsCheckStepProps {
   form: UseFormReturn<RoomCheckFormData>;
@@ -475,22 +475,13 @@ export function ItemsCheckStep({
         </TabsContent>
 
         <TabsContent value="consumable" className="mt-4">
-          {bookingId ? (
-            <ConsumableTabBooking
-              items={filterBySearch(consumableItemsList)}
-              bookingId={bookingId}
-              consumedItems={consumedItems}
-              onMarkConsumed={handleMarkConsumed}
-              onRemoveConsumed={removeFromConsumed}
-            />
-          ) : (
-            <ConsumableTab
-              items={filterBySearch(consumableItemsList)}
-              consumedItems={consumedItems}
-              onMarkConsumed={handleMarkConsumed}
-              onRemoveConsumed={removeFromConsumed}
-            />
-          )}
+          <ConsumableTabBooking
+            items={filterBySearch(consumableItemsList)}
+            bookingId={bookingId || null}
+            consumedItems={consumedItems}
+            onMarkConsumed={handleMarkConsumed}
+            onRemoveConsumed={removeFromConsumed}
+          />
         </TabsContent>
 
         <TabsContent value="equipment" className="mt-4">
