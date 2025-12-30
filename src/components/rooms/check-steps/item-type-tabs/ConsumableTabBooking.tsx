@@ -1,13 +1,14 @@
-import { useState, useMemo, useEffect } from 'react'
-import { Droplets, Check, Minus, Plus, Package, Loader2, Undo2, FileText } from 'lucide-react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
+import { Droplets, Check, Minus, Plus, Package, Loader2, Undo2, FileText, Filter, AlertTriangle, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import type { RoomItemWithDetails, ConsumedItem } from '@/types/rooms.types'
 import { CategoryGroup, groupItemsByCategory } from './CategoryGroup'
-import { useBookingConsumables, useInitializeBookingConsumables, BookingConsumableWithItem } from '@/hooks/useBookingConsumables'
+import { useBookingConsumables, useInitializeBookingConsumables, useUpdateConsumableRemaining, BookingConsumableWithItem } from '@/hooks/useBookingConsumables'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 interface ExtendedRoomItem extends RoomItemWithDetails {
   category_name?: string | null
@@ -24,10 +25,19 @@ interface ConsumableTabBookingProps {
 }
 
 type ItemStatus = 'unchecked' | 'sufficient' | 'insufficient'
+type FilterType = 'all' | 'unchecked' | 'lacking' | 'excess' | 'sufficient'
 
 interface ItemState {
   remaining: number
   status: ItemStatus
+}
+
+// Calculate diff based on actual vs baseline
+interface ItemDiff {
+  baseline: number    // What should be there
+  actual: number      // What is currently there  
+  diff: number        // actual - baseline (negative = lacking, positive = excess)
+  diffType: 'lacking' | 'excess' | 'ok'
 }
 
 export function ConsumableTabBooking({
@@ -43,9 +53,13 @@ export function ConsumableTabBooking({
   // Fetch booking consumables data
   const { data: bookingConsumables, isLoading, refetch } = useBookingConsumables(bookingId || undefined)
   const initializeConsumables = useInitializeBookingConsumables()
+  const updateRemaining = useUpdateConsumableRemaining()
   
   // Track state for each item
   const [itemStates, setItemStates] = useState<Record<string, ItemState>>({})
+  
+  // Filter state
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all')
 
   // Map booking consumables by item_id for easy lookup
   const consumablesMap = useMemo(() => {
@@ -56,13 +70,47 @@ export function ConsumableTabBooking({
     return map
   }, [bookingConsumables])
 
-  // Get total available for an item
-  const getTotalAvailable = (item: ExtendedRoomItem) => {
+  // Get total available for an item (baseline)
+  const getTotalAvailable = useCallback((item: ExtendedRoomItem) => {
     const bc = consumablesMap.get(item.item_id)
     if (bc) return bc.total_available
     // Fallback: use current_quantity (actual in room) or standard_quantity
     return item.current_quantity ?? item.standard_quantity ?? 0
-  }
+  }, [consumablesMap])
+
+  // Calculate diff for an item (show lacking/excess immediately)
+  const getItemDiff = useCallback((item: ExtendedRoomItem): ItemDiff => {
+    const bc = consumablesMap.get(item.item_id)
+    const state = itemStates[item.item_id]
+    
+    // Determine baseline (what should be there)
+    let baseline: number
+    if (bc) {
+      baseline = bc.total_available // initial + supplemented
+    } else {
+      baseline = item.standard_quantity ?? 0
+    }
+    
+    // Determine actual (what is currently there)
+    let actual: number
+    if (state?.status !== 'unchecked' && state?.remaining !== undefined) {
+      // User has checked this item
+      actual = state.remaining
+    } else if (bc?.remaining_quantity !== null && bc?.remaining_quantity !== undefined) {
+      // Has saved remaining from previous check
+      actual = bc.remaining_quantity
+    } else {
+      // Use current_quantity from room_items as best guess
+      actual = item.current_quantity ?? baseline
+    }
+    
+    const diff = actual - baseline
+    let diffType: 'lacking' | 'excess' | 'ok' = 'ok'
+    if (diff < 0) diffType = 'lacking'
+    else if (diff > 0) diffType = 'excess'
+    
+    return { baseline, actual, diff, diffType }
+  }, [consumablesMap, itemStates])
 
   // Auto-initialize booking_consumables when bookingId exists but data is empty
   useEffect(() => {
@@ -121,8 +169,50 @@ export function ConsumableTabBooking({
     }
   }, [consumedItems, consumablesMap])
 
-  // Group items by category
-  const groupedItems = useMemo(() => groupItemsByCategory(items), [items])
+  // Filter items based on activeFilter
+  const filteredItems = useMemo(() => {
+    if (activeFilter === 'all') return items
+    
+    return items.filter(item => {
+      const state = itemStates[item.item_id]
+      const diff = getItemDiff(item)
+      const isChecked = state?.status && state.status !== 'unchecked'
+      
+      switch (activeFilter) {
+        case 'unchecked':
+          return !isChecked
+        case 'lacking':
+          return diff.diffType === 'lacking'
+        case 'excess':
+          return diff.diffType === 'excess'
+        case 'sufficient':
+          return isChecked && state?.status === 'sufficient'
+        default:
+          return true
+      }
+    })
+  }, [items, itemStates, activeFilter, getItemDiff])
+
+  // Group filtered items by category
+  const groupedItems = useMemo(() => groupItemsByCategory(filteredItems), [filteredItems])
+
+  // Get counts for filter badges
+  const filterCounts = useMemo(() => {
+    let unchecked = 0, lacking = 0, excess = 0, sufficient = 0
+    
+    items.forEach(item => {
+      const state = itemStates[item.item_id]
+      const diff = getItemDiff(item)
+      const isChecked = state?.status && state.status !== 'unchecked'
+      
+      if (!isChecked) unchecked++
+      if (diff.diffType === 'lacking') lacking++
+      if (diff.diffType === 'excess') excess++
+      if (isChecked && state?.status === 'sufficient') sufficient++
+    })
+    
+    return { unchecked, lacking, excess, sufficient }
+  }, [items, itemStates, getItemDiff])
 
   // Get checked count for a category
   const getCategoryCheckedCount = (categoryItems: ExtendedRoomItem[]) => {
@@ -131,22 +221,50 @@ export function ConsumableTabBooking({
     ).length
   }
 
+  // Persist remaining to booking_consumables
+  const persistRemaining = useCallback(async (item: ExtendedRoomItem, remaining: number) => {
+    const bc = consumablesMap.get(item.item_id)
+    if (!bc) return // Only persist if booking data exists
+    
+    try {
+      await updateRemaining.mutateAsync({
+        bookingConsumableId: bc.id,
+        remainingQuantity: remaining,
+      })
+      toast.success(`Đã lưu: ${item.item_name}`)
+    } catch (error) {
+      toast.error('Không thể lưu thay đổi')
+    }
+  }, [consumablesMap, updateRemaining])
+
   // Handle marking all items in category as sufficient
-  const handleMarkAllSufficient = (categoryItems: ExtendedRoomItem[]) => {
+  const handleMarkAllSufficient = async (categoryItems: ExtendedRoomItem[]) => {
     const newStates: Record<string, ItemState> = {}
-    categoryItems.forEach(item => {
+    
+    for (const item of categoryItems) {
       const totalAvailable = getTotalAvailable(item)
       newStates[item.item_id] = {
         remaining: totalAvailable,
         status: 'sufficient',
       }
       onRemoveConsumed(item.item_id)
-    })
+      
+      // Persist to DB if booking exists
+      const bc = consumablesMap.get(item.item_id)
+      if (bc) {
+        updateRemaining.mutate({
+          bookingConsumableId: bc.id,
+          remainingQuantity: totalAvailable,
+        })
+      }
+    }
+    
     setItemStates(prev => ({ ...prev, ...newStates }))
+    toast.success(`Đã đánh dấu ${categoryItems.length} mục là Đủ`)
   }
 
   // Handle marking single item as sufficient
-  const handleMarkSufficient = (item: ExtendedRoomItem) => {
+  const handleMarkSufficient = async (item: ExtendedRoomItem) => {
     const totalAvailable = getTotalAvailable(item)
     setItemStates(prev => ({
       ...prev,
@@ -156,6 +274,9 @@ export function ConsumableTabBooking({
       },
     }))
     onRemoveConsumed(item.item_id)
+    
+    // Persist to DB
+    await persistRemaining(item, totalAvailable)
   }
 
   // Start insufficient mode (expand input)
@@ -171,7 +292,7 @@ export function ConsumableTabBooking({
   }
 
   // Reset to unchecked
-  const handleReset = (item: ExtendedRoomItem) => {
+  const handleReset = async (item: ExtendedRoomItem) => {
     const totalAvailable = getTotalAvailable(item)
     setItemStates(prev => ({
       ...prev,
@@ -181,6 +302,15 @@ export function ConsumableTabBooking({
       },
     }))
     onRemoveConsumed(item.item_id)
+    
+    // Reset remaining to null in DB
+    const bc = consumablesMap.get(item.item_id)
+    if (bc) {
+      updateRemaining.mutate({
+        bookingConsumableId: bc.id,
+        remainingQuantity: bc.total_available, // Reset to total
+      })
+    }
   }
 
   // Handle remaining quantity change
@@ -198,7 +328,7 @@ export function ConsumableTabBooking({
   }
 
   // Confirm insufficient (save consumed)
-  const handleConfirmInsufficient = (item: ExtendedRoomItem) => {
+  const handleConfirmInsufficient = async (item: ExtendedRoomItem) => {
     const state = itemStates[item.item_id]
     if (!state) return
     
@@ -218,6 +348,9 @@ export function ConsumableTabBooking({
       }))
       onRemoveConsumed(item.item_id)
     }
+    
+    // Persist to DB
+    await persistRemaining(item, state.remaining)
   }
 
   // Loading state - include initialization loading
@@ -286,11 +419,12 @@ export function ConsumableTabBooking({
     const bc = consumablesMap.get(item.item_id)
     const state = itemStates[item.item_id]
     const status: ItemStatus = state?.status ?? 'unchecked'
+    const diff = getItemDiff(item)
     
     const initialQty = bc?.initial_quantity ?? item.standard_quantity
     const supplementedQty = bc?.supplemented_quantity ?? 0
     const totalAvailable = getTotalAvailable(item)
-    const remaining = state?.remaining ?? totalAvailable
+    const remaining = state?.remaining ?? diff.actual
     const consumed = Math.max(0, totalAvailable - remaining)
     const unitPrice = bc?.unit_price ?? 0
     const consumedValue = consumed * unitPrice
@@ -300,13 +434,15 @@ export function ConsumableTabBooking({
         key={item.item_id} 
         className={cn(
           "transition-all",
-          status === 'unchecked' && "border-border",
+          status === 'unchecked' && diff.diffType === 'lacking' && "border-destructive/50 bg-destructive/5",
+          status === 'unchecked' && diff.diffType === 'excess' && "border-warning/50 bg-warning/5",
+          status === 'unchecked' && diff.diffType === 'ok' && "border-border",
           status === 'sufficient' && "border-green-500/50 bg-green-500/5",
           status === 'insufficient' && "border-primary bg-primary/5"
         )}
       >
         <CardContent className="p-3 space-y-3">
-          {/* Row 1: Item info */}
+          {/* Row 1: Item info + auto-detected diff badge */}
           <div className="flex items-center gap-3">
             {item.item_thumbnail ? (
               <img
@@ -321,9 +457,33 @@ export function ConsumableTabBooking({
             )}
             <div className="flex-1 min-w-0">
               <h4 className="font-medium text-sm truncate">{item.item_name}</h4>
+              {/* Show auto-detected status when unchecked */}
+              {status === 'unchecked' && (
+                <div className="text-xs text-muted-foreground">
+                  {hasBookingData ? (
+                    `Tổng: ${totalAvailable} • Thực tế: ${diff.actual}`
+                  ) : (
+                    `Tiêu chuẩn: ${diff.baseline} • Thực tế: ${diff.actual}`
+                  )}
+                </div>
+              )}
             </div>
             
-            {/* Status badge */}
+            {/* Auto-detected diff badges (always visible) */}
+            {status === 'unchecked' && diff.diffType === 'lacking' && (
+              <Badge variant="destructive" className="text-xs animate-pulse">
+                <AlertTriangle className="mr-1 h-3 w-3" />
+                Thiếu {Math.abs(diff.diff)}
+              </Badge>
+            )}
+            {status === 'unchecked' && diff.diffType === 'excess' && (
+              <Badge className="bg-warning/10 text-warning border-warning text-xs">
+                <TrendingUp className="mr-1 h-3 w-3" />
+                Thừa {diff.diff}
+              </Badge>
+            )}
+            
+            {/* Checked status badge */}
             {status === 'sufficient' && (
               <Badge className="bg-green-500/10 text-green-600 text-xs">
                 <Check className="mr-1 h-3 w-3" />
@@ -358,7 +518,14 @@ export function ConsumableTabBooking({
               <div>
                 <div className="text-[10px] text-muted-foreground uppercase">Còn lại</div>
                 {status === 'unchecked' ? (
-                  <div className="text-muted-foreground text-sm">—</div>
+                  <div className={cn(
+                    "text-sm font-medium",
+                    diff.diffType === 'lacking' && "text-destructive",
+                    diff.diffType === 'excess' && "text-warning",
+                    diff.diffType === 'ok' && "text-muted-foreground"
+                  )}>
+                    {diff.actual}
+                  </div>
                 ) : status === 'insufficient' ? (
                   <div className="flex items-center justify-center gap-0.5">
                     <Button
@@ -394,10 +561,20 @@ export function ConsumableTabBooking({
             </div>
           )}
 
-          {/* Non-booking: show actual quantity in room */}
+          {/* Non-booking: show baseline vs actual */}
           {!hasBookingData && (
-            <div className="text-xs text-muted-foreground">
-              Số lượng: {item.current_quantity ?? item.standard_quantity ?? 0}
+            <div className={cn(
+              "text-xs p-2 rounded-lg",
+              diff.diffType === 'lacking' && "bg-destructive/10 text-destructive",
+              diff.diffType === 'excess' && "bg-warning/10 text-warning",
+              diff.diffType === 'ok' && "bg-muted text-muted-foreground"
+            )}>
+              Tiêu chuẩn: {diff.baseline} • Thực tế: {diff.actual}
+              {diff.diffType !== 'ok' && (
+                <span className="font-medium ml-2">
+                  ({diff.diff > 0 ? '+' : ''}{diff.diff})
+                </span>
+              )}
             </div>
           )}
 
@@ -429,12 +606,15 @@ export function ConsumableTabBooking({
               </Button>
               <Button
                 type="button"
-                variant="outline"
-                className="flex-1 h-11"
+                variant={diff.diffType === 'lacking' ? 'default' : 'outline'}
+                className={cn(
+                  "flex-1 h-11",
+                  diff.diffType === 'lacking' && "animate-pulse"
+                )}
                 onClick={() => handleStartInsufficient(item)}
               >
                 <Package className="h-4 w-4 mr-2" />
-                Thiếu
+                {diff.diffType === 'lacking' ? `Thiếu ${Math.abs(diff.diff)}` : 'Thiếu'}
               </Button>
             </div>
           )}
@@ -470,8 +650,13 @@ export function ConsumableTabBooking({
                 type="button"
                 className="flex-1 h-9"
                 onClick={() => handleConfirmInsufficient(item)}
+                disabled={updateRemaining.isPending}
               >
-                <Check className="h-4 w-4 mr-1" />
+                {updateRemaining.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4 mr-1" />
+                )}
                 Xác nhận
               </Button>
             </div>
@@ -486,7 +671,67 @@ export function ConsumableTabBooking({
       {/* Instructions */}
       <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
         <Droplets className="inline-block h-4 w-4 mr-2" />
-        Bấm <strong>Đủ hàng</strong> nếu còn đủ, hoặc <strong>Thiếu</strong> để nhập số lượng còn lại.
+        <strong>Hướng dẫn:</strong> Mục <span className="text-destructive">đỏ</span> là thiếu, <span className="text-warning">vàng</span> là thừa.
+        Bấm <strong>Đủ hàng</strong> hoặc <strong>Thiếu</strong> để xác nhận.
+      </div>
+
+      {/* Filter Chips */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant={activeFilter === 'all' ? 'default' : 'outline'}
+          className="h-8"
+          onClick={() => setActiveFilter('all')}
+        >
+          <Filter className="h-3 w-3 mr-1" />
+          Tất cả ({items.length})
+        </Button>
+        {filterCounts.lacking > 0 && (
+          <Button
+            type="button"
+            size="sm"
+            variant={activeFilter === 'lacking' ? 'destructive' : 'outline'}
+            className={cn("h-8", activeFilter !== 'lacking' && "border-destructive text-destructive hover:bg-destructive/10")}
+            onClick={() => setActiveFilter('lacking')}
+          >
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            Thiếu ({filterCounts.lacking})
+          </Button>
+        )}
+        {filterCounts.excess > 0 && (
+          <Button
+            type="button"
+            size="sm"
+            variant={activeFilter === 'excess' ? 'secondary' : 'outline'}
+            className={cn("h-8", activeFilter !== 'excess' && "border-warning text-warning hover:bg-warning/10")}
+            onClick={() => setActiveFilter('excess')}
+          >
+            <TrendingUp className="h-3 w-3 mr-1" />
+            Thừa ({filterCounts.excess})
+          </Button>
+        )}
+        <Button
+          type="button"
+          size="sm"
+          variant={activeFilter === 'unchecked' ? 'secondary' : 'outline'}
+          className="h-8"
+          onClick={() => setActiveFilter('unchecked')}
+        >
+          Chưa kiểm ({filterCounts.unchecked})
+        </Button>
+        {filterCounts.sufficient > 0 && (
+          <Button
+            type="button"
+            size="sm"
+            variant={activeFilter === 'sufficient' ? 'default' : 'outline'}
+            className={cn("h-8", activeFilter !== 'sufficient' && "border-green-500 text-green-600 hover:bg-green-500/10")}
+            onClick={() => setActiveFilter('sufficient')}
+          >
+            <Check className="h-3 w-3 mr-1" />
+            Đủ ({filterCounts.sufficient})
+          </Button>
+        )}
       </div>
 
       {/* Summary */}
@@ -512,6 +757,24 @@ export function ConsumableTabBooking({
           </div>
         </CardContent>
       </Card>
+
+      {/* No items match filter */}
+      {filteredItems.length === 0 && (
+        <Card>
+          <CardContent className="py-8 text-center">
+            <Filter className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-muted-foreground">Không có mục nào phù hợp bộ lọc</p>
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              onClick={() => setActiveFilter('all')}
+            >
+              Xem tất cả
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Grouped Items by Category */}
       {Array.from(groupedItems.entries()).map(([categoryName, categoryItems]) => (
