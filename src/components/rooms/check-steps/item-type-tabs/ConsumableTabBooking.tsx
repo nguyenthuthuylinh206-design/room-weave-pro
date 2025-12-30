@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Droplets, Check, Minus, Plus, Package, Loader2 } from 'lucide-react'
+import { Droplets, Check, Minus, Plus, Package, Loader2, Undo2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import type { RoomItemWithDetails, ConsumedItem } from '@/types/rooms.types'
 import { CategoryGroup, groupItemsByCategory } from './CategoryGroup'
 import { useBookingConsumables, BookingConsumableWithItem } from '@/hooks/useBookingConsumables'
+import { cn } from '@/lib/utils'
 
 interface ExtendedRoomItem extends RoomItemWithDetails {
   category_name?: string | null
@@ -20,10 +21,11 @@ interface ConsumableTabBookingProps {
   onRemoveConsumed: (itemId: string) => void
 }
 
+type ItemStatus = 'unchecked' | 'sufficient' | 'insufficient'
+
 interface ItemState {
   remaining: number
-  isChecked: boolean
-  isSufficient: boolean
+  status: ItemStatus
 }
 
 export function ConsumableTabBooking({
@@ -37,7 +39,7 @@ export function ConsumableTabBooking({
   // Fetch booking consumables data
   const { data: bookingConsumables, isLoading } = useBookingConsumables(bookingId || undefined)
   
-  // Track state for each item: remaining quantity and whether it's been checked
+  // Track state for each item
   const [itemStates, setItemStates] = useState<Record<string, ItemState>>({})
 
   // Map booking consumables by item_id for easy lookup
@@ -49,17 +51,22 @@ export function ConsumableTabBooking({
     return map
   }, [bookingConsumables])
 
+  // Get total available for an item
+  const getTotalAvailable = (item: ExtendedRoomItem) => {
+    const bc = consumablesMap.get(item.item_id)
+    return bc?.total_available ?? item.standard_quantity
+  }
+
   // Initialize item states from booking consumables
   useEffect(() => {
     if (bookingConsumables && bookingConsumables.length > 0) {
       const states: Record<string, ItemState> = {}
       bookingConsumables.forEach(bc => {
-        // If already has remaining_quantity set, use it
         if (bc.remaining_quantity !== null) {
+          const isSufficient = bc.remaining_quantity >= bc.total_available
           states[bc.item_id] = {
             remaining: bc.remaining_quantity,
-            isChecked: true,
-            isSufficient: bc.remaining_quantity >= bc.total_available,
+            status: isSufficient ? 'sufficient' : 'insufficient',
           }
         }
       })
@@ -67,7 +74,7 @@ export function ConsumableTabBooking({
     }
   }, [bookingConsumables])
 
-  // Sync with consumedItems prop (for form integration)
+  // Sync with consumedItems prop
   useEffect(() => {
     const newStates: Record<string, ItemState> = {}
     consumedItems.forEach(ci => {
@@ -76,8 +83,7 @@ export function ConsumableTabBooking({
         const remaining = bc.total_available - ci.quantity
         newStates[ci.item_id] = {
           remaining: Math.max(0, remaining),
-          isChecked: true,
-          isSufficient: false,
+          status: 'insufficient',
         }
       }
     })
@@ -91,38 +97,58 @@ export function ConsumableTabBooking({
 
   // Get checked count for a category
   const getCategoryCheckedCount = (categoryItems: ExtendedRoomItem[]) => {
-    return categoryItems.filter(item => itemStates[item.item_id]?.isChecked).length
+    return categoryItems.filter(item => 
+      itemStates[item.item_id]?.status && itemStates[item.item_id].status !== 'unchecked'
+    ).length
   }
 
   // Handle marking all items in category as sufficient
   const handleMarkAllSufficient = (categoryItems: ExtendedRoomItem[]) => {
     const newStates: Record<string, ItemState> = {}
     categoryItems.forEach(item => {
-      const bc = consumablesMap.get(item.item_id)
-      if (bc) {
-        newStates[item.item_id] = {
-          remaining: bc.total_available,
-          isChecked: true,
-          isSufficient: true,
-        }
-        // Remove from consumed
-        onRemoveConsumed(item.item_id)
+      const totalAvailable = getTotalAvailable(item)
+      newStates[item.item_id] = {
+        remaining: totalAvailable,
+        status: 'sufficient',
       }
+      onRemoveConsumed(item.item_id)
     })
     setItemStates(prev => ({ ...prev, ...newStates }))
   }
 
   // Handle marking single item as sufficient
   const handleMarkSufficient = (item: ExtendedRoomItem) => {
-    const bc = consumablesMap.get(item.item_id)
-    if (!bc) return
-
+    const totalAvailable = getTotalAvailable(item)
     setItemStates(prev => ({
       ...prev,
       [item.item_id]: {
-        remaining: bc.total_available,
-        isChecked: true,
-        isSufficient: true,
+        remaining: totalAvailable,
+        status: 'sufficient',
+      },
+    }))
+    onRemoveConsumed(item.item_id)
+  }
+
+  // Start insufficient mode (expand input)
+  const handleStartInsufficient = (item: ExtendedRoomItem) => {
+    const totalAvailable = getTotalAvailable(item)
+    setItemStates(prev => ({
+      ...prev,
+      [item.item_id]: {
+        remaining: Math.max(0, totalAvailable - 1), // Default: thiếu 1
+        status: 'insufficient',
+      },
+    }))
+  }
+
+  // Reset to unchecked
+  const handleReset = (item: ExtendedRoomItem) => {
+    const totalAvailable = getTotalAvailable(item)
+    setItemStates(prev => ({
+      ...prev,
+      [item.item_id]: {
+        remaining: totalAvailable,
+        status: 'unchecked',
       },
     }))
     onRemoveConsumed(item.item_id)
@@ -130,31 +156,42 @@ export function ConsumableTabBooking({
 
   // Handle remaining quantity change
   const handleRemainingChange = (item: ExtendedRoomItem, newRemaining: number) => {
-    const bc = consumablesMap.get(item.item_id)
-    if (!bc) return
-
-    const totalAvailable = bc.total_available
-    const clampedRemaining = Math.max(0, Math.min(newRemaining, totalAvailable + 10)) // Allow some extra
-    const consumed = Math.max(0, totalAvailable - clampedRemaining)
-
+    const totalAvailable = getTotalAvailable(item)
+    const clampedRemaining = Math.max(0, Math.min(newRemaining, totalAvailable + 10))
+    
     setItemStates(prev => ({
       ...prev,
       [item.item_id]: {
         remaining: clampedRemaining,
-        isChecked: true,
-        isSufficient: clampedRemaining >= totalAvailable,
+        status: 'insufficient',
       },
     }))
+  }
 
-    // Update consumed items
+  // Confirm insufficient (save consumed)
+  const handleConfirmInsufficient = (item: ExtendedRoomItem) => {
+    const state = itemStates[item.item_id]
+    if (!state) return
+    
+    const totalAvailable = getTotalAvailable(item)
+    const consumed = Math.max(0, totalAvailable - state.remaining)
+    
     if (consumed > 0) {
       onMarkConsumed(item, consumed, true)
     } else {
+      // If remaining >= total, mark as sufficient
+      setItemStates(prev => ({
+        ...prev,
+        [item.item_id]: {
+          remaining: totalAvailable,
+          status: 'sufficient',
+        },
+      }))
       onRemoveConsumed(item.item_id)
     }
   }
 
-  // Only show loading when there's a bookingId and data is being fetched
+  // Loading state
   if (bookingId && isLoading) {
     return (
       <Card>
@@ -177,34 +214,33 @@ export function ConsumableTabBooking({
     )
   }
 
-  // Check if loading booking data (only when bookingId exists)
   const hasBookingData = bookingId && bookingConsumables && bookingConsumables.length > 0
+
+  // Get total checked count
+  const totalCheckedCount = Object.values(itemStates).filter(s => s.status !== 'unchecked').length
 
   const renderItemCard = (item: ExtendedRoomItem) => {
     const bc = consumablesMap.get(item.item_id)
     const state = itemStates[item.item_id]
+    const status: ItemStatus = state?.status ?? 'unchecked'
     
-    // Fallback values if no booking consumable found
     const initialQty = bc?.initial_quantity ?? item.standard_quantity
     const supplementedQty = bc?.supplemented_quantity ?? 0
-    const totalAvailable = bc?.total_available ?? item.standard_quantity
+    const totalAvailable = getTotalAvailable(item)
     const remaining = state?.remaining ?? totalAvailable
     const consumed = Math.max(0, totalAvailable - remaining)
-    const isSufficient = state?.isSufficient ?? false
-    const isChecked = state?.isChecked ?? false
     const unitPrice = bc?.unit_price ?? 0
     const consumedValue = consumed * unitPrice
 
     return (
       <Card 
         key={item.item_id} 
-        className={`transition-all ${
-          isChecked 
-            ? isSufficient 
-              ? 'border-green-500/50 bg-green-500/5' 
-              : 'border-primary bg-primary/5'
-            : ''
-        }`}
+        className={cn(
+          "transition-all",
+          status === 'unchecked' && "border-border",
+          status === 'sufficient' && "border-green-500/50 bg-green-500/5",
+          status === 'insufficient' && "border-primary bg-primary/5"
+        )}
       >
         <CardContent className="p-3 space-y-3">
           {/* Row 1: Item info */}
@@ -237,89 +273,131 @@ export function ConsumableTabBooking({
                 )}
               </div>
             </div>
-            {isChecked && (
-              isSufficient ? (
-                <Badge className="bg-green-500/10 text-green-600 text-xs">
-                  <Check className="mr-1 h-3 w-3" />
-                  Đủ
-                </Badge>
-              ) : (
-                <Badge variant="secondary" className="text-xs">
-                  <Package className="mr-1 h-3 w-3" />
-                  Dùng {consumed}
-                </Badge>
-              )
+            
+            {/* Status badge */}
+            {status === 'sufficient' && (
+              <Badge className="bg-green-500/10 text-green-600 text-xs">
+                <Check className="mr-1 h-3 w-3" />
+                Đủ
+              </Badge>
+            )}
+            {status === 'insufficient' && consumed > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                <Package className="mr-1 h-3 w-3" />
+                Dùng {consumed}
+              </Badge>
             )}
           </div>
 
-          {/* Row 2: Quantity info bar */}
-          <div className="flex items-center justify-between bg-muted/50 rounded-lg p-2">
-            <div className="text-xs space-y-0.5">
-              <div className="text-muted-foreground">
-                Tổng có: <span className="font-medium text-foreground">{totalAvailable}</span>
-              </div>
-              {consumed > 0 && unitPrice > 0 && (
-                <div className="text-primary">
-                  Giá trị: {consumedValue.toLocaleString()}đ
-                </div>
-              )}
+          {/* Status-based UI */}
+          {status === 'unchecked' && (
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 h-11 border-green-500 text-green-600 hover:bg-green-500/10"
+                onClick={() => handleMarkSufficient(item)}
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Đủ hàng
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 h-11"
+                onClick={() => handleStartInsufficient(item)}
+              >
+                <Package className="h-4 w-4 mr-2" />
+                Thiếu
+              </Button>
             </div>
-            
-            {/* Remaining quantity input */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Còn:</span>
-              <div className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => handleRemainingChange(item, remaining - 1)}
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <Input
-                  type="number"
-                  min={0}
-                  value={remaining}
-                  onChange={(e) => handleRemainingChange(item, parseInt(e.target.value) || 0)}
-                  className="w-14 h-8 text-center text-sm"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => handleRemainingChange(item, remaining + 1)}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Row 3: Quick action */}
-          {!isChecked && (
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-9 border-green-500 text-green-600 hover:bg-green-500/10"
-              onClick={() => handleMarkSufficient(item)}
-            >
-              <Check className="h-4 w-4 mr-1" />
-              Đủ (còn {totalAvailable})
-            </Button>
           )}
 
-          {/* Show consumed info if checked and not sufficient */}
-          {isChecked && !isSufficient && consumed > 0 && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">
-                Khách đã dùng: <span className="font-medium text-foreground">{consumed}</span>
+          {status === 'sufficient' && (
+            <div className="flex items-center justify-between bg-muted/50 rounded-lg p-2">
+              <span className="text-sm text-muted-foreground">
+                Còn: <span className="font-medium text-foreground">{remaining}</span> (đủ tiêu chuẩn)
               </span>
-              <span className="text-primary">
-                Bổ sung: {item.standard_quantity} (về chuẩn)
-              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 text-muted-foreground hover:text-foreground"
+                onClick={() => handleReset(item)}
+              >
+                <Undo2 className="h-3 w-3 mr-1" />
+                Hoàn tác
+              </Button>
+            </div>
+          )}
+
+          {status === 'insufficient' && (
+            <div className="space-y-3">
+              {/* Quantity input row */}
+              <div className="flex items-center justify-between bg-muted/50 rounded-lg p-2">
+                <span className="text-sm text-muted-foreground">Còn lại:</span>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => handleRemainingChange(item, remaining - 1)}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={remaining}
+                    onChange={(e) => handleRemainingChange(item, parseInt(e.target.value) || 0)}
+                    className="w-16 h-9 text-center font-medium"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => handleRemainingChange(item, remaining + 1)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Consumed info */}
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  Khách đã dùng: <span className="font-semibold text-foreground">{consumed}</span>
+                </span>
+                {consumed > 0 && unitPrice > 0 && (
+                  <span className="text-primary font-medium">
+                    {consumedValue.toLocaleString()}đ
+                  </span>
+                )}
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground"
+                  onClick={() => handleReset(item)}
+                >
+                  <Undo2 className="h-3 w-3 mr-1" />
+                  Hủy
+                </Button>
+                <Button
+                  type="button"
+                  className="flex-1 h-9"
+                  onClick={() => handleConfirmInsufficient(item)}
+                >
+                  <Check className="h-4 w-4 mr-1" />
+                  Xác nhận
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
@@ -332,10 +410,10 @@ export function ConsumableTabBooking({
       {/* Instructions */}
       <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
         <Droplets className="inline-block h-4 w-4 mr-2" />
-        Kiểm đếm số lượng thực tế còn lại trong phòng. Hệ thống sẽ tự tính số khách đã dùng.
+        Bấm <strong>Đủ hàng</strong> nếu còn đủ, hoặc <strong>Thiếu</strong> để nhập số lượng còn lại.
       </div>
 
-      {/* Summary - show different info based on booking */}
+      {/* Summary */}
       <Card className="bg-muted/30 border-border/50">
         <CardContent className="p-3">
           <div className="flex items-center justify-between">
@@ -353,7 +431,7 @@ export function ConsumableTabBooking({
               )}
             </div>
             <Badge variant="secondary">
-              {Object.values(itemStates).filter(s => s.isChecked).length}/{items.length} đã kiểm
+              {totalCheckedCount}/{items.length} đã kiểm
             </Badge>
           </div>
         </CardContent>
