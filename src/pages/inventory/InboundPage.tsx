@@ -106,287 +106,231 @@ export function InboundPage() {
       </PageHeader>
       
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('inventory:inbound.generalInfo')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {/* General Info */}
+          <div className="border rounded-lg p-4 space-y-4">
+            <p className="text-sm font-medium">{t('inventory:inbound.generalInfo')}</p>
+            
+            <FormField
+              control={form.control}
+              name="transaction_category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs">{t('inventory:inbound.type')} *</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex flex-wrap gap-3"
+                    >
+                      <div className="flex items-center space-x-1.5">
+                        <RadioGroupItem value="purchase" id="purchase" />
+                        <label htmlFor="purchase" className="cursor-pointer text-sm">
+                          {t('inventory:inbound.fromPurchase')}
+                        </label>
+                      </div>
+                      <div className="flex items-center space-x-1.5">
+                        <RadioGroupItem value="return" id="return" />
+                        <label htmlFor="return" className="cursor-pointer text-sm">
+                          {t('inventory:inbound.fromReturn')}
+                        </label>
+                      </div>
+                      <div className="flex items-center space-x-1.5">
+                        <RadioGroupItem value="laundry" id="laundry" />
+                        <label htmlFor="laundry" className="cursor-pointer text-sm">
+                          {t('inventory:inbound.fromLaundry')}
+                        </label>
+                      </div>
+                      <div className="flex items-center space-x-1.5">
+                        <RadioGroupItem value="other" id="other" />
+                        <label htmlFor="other" className="cursor-pointer text-sm">
+                          {t('inventory:inbound.fromOther')}
+                        </label>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="grid gap-3 md:grid-cols-2">
               <FormField
                 control={form.control}
-                name="transaction_category"
+                name="from_location"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('inventory:inbound.type')} *</FormLabel>
+                    <FormLabel className="text-xs">{t('inventory:inbound.fromLocation')} *</FormLabel>
                     <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex gap-4"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="purchase" id="purchase" />
-                          <label htmlFor="purchase" className="cursor-pointer">
-                            📦 {t('inventory:inbound.fromPurchase')}
-                          </label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="return" id="return" />
-                          <label htmlFor="return" className="cursor-pointer">
-                            🔙 {t('inventory:inbound.fromReturn')}
-                          </label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="laundry" id="laundry" />
-                          <label htmlFor="laundry" className="cursor-pointer">
-                            🧺 {t('inventory:inbound.fromLaundry')}
-                          </label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="other" id="other" />
-                          <label htmlFor="other" className="cursor-pointer">
-                            ➕ {t('inventory:inbound.fromOther')}
-                          </label>
-                        </div>
-                      </RadioGroup>
+                      <Input {...field} placeholder="VD: Nhà cung cấp ABC" className="h-9" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="from_location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('inventory:inbound.fromLocation')} *</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="VD: Nhà cung cấp ABC, Phòng 301" />
-                      </FormControl>
-                      <FormDescription>
-                        {t('inventory:inbound.locationSource')}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="to_location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('inventory:inbound.toLocation')} *</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="VD: Kho tầng 1" />
-                      </FormControl>
-                      <FormDescription>
-                        {t('inventory:inbound.locationStorage')}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </CardContent>
-          </Card>
+              <FormField
+                control={form.control}
+                name="to_location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">{t('inventory:inbound.toLocation')} *</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="VD: Kho tầng 1" className="h-9" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
           
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>{t('inventory:inbound.itemsToInbound')}</CardTitle>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => append({ item_id: '', quantity: 1, notes: '' })}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  {t('inventory:inbound.addItem')}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {fields.map((field, index) => (
-                  <Card key={field.id} className="relative">
-                    <CardContent className="pt-6">
-                      {fields.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-2 top-2"
-                          onClick={() => remove(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+          {/* Items */}
+          <div className="border rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">{t('inventory:inbound.itemsToInbound')}</p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => append({ item_id: '', quantity: 1, notes: '' })}
+              >
+                <Plus className="mr-1 h-3 w-3" />
+                {t('inventory:inbound.addItem')}
+              </Button>
+            </div>
+            
+            <div className="space-y-2">
+              {fields.map((field, index) => (
+                <div key={field.id} className="relative p-3 border rounded-lg bg-muted/20">
+                  {fields.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1 h-6 w-6"
+                      onClick={() => remove(index)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                  
+                  <div className="grid gap-2 md:grid-cols-3">
+                    <FormField
+                      control={form.control}
+                      name={`items.${index}.item_id`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">{t('inventory:fields.item')} *</FormLabel>
+                          <FormControl>
+                            <ItemSelect
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder={t('inventory:inbound.selectItem')}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
                       )}
-                      
-                      <div className="space-y-4">
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <FormField
-                              control={form.control}
-                              name={`items.${index}.item_id`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>{t('inventory:fields.item')} *</FormLabel>
-                                  <FormControl>
-                                    <ItemSelect
-                                      value={field.value}
-                                      onChange={field.onChange}
-                                      placeholder={t('inventory:inbound.selectItem')}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name={`items.${index}.quantity`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>{t('inventory:fields.quantity')} *</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    placeholder="0"
-                                    {...field}
-                                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                        
-                        <FormField
-                          control={form.control}
-                          name={`items.${index}.notes`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>{t('inventory:inbound.itemNote')}</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="VD: Hàng mới, nguyên seal..." />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name={`items.${index}.quantity`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">{t('inventory:fields.quantity')} *</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              className="h-9"
+                              {...field}
+                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name={`items.${index}.notes`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">{t('inventory:inbound.itemNote')}</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Ghi chú..." className="h-9" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
           
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('inventory:inbound.documentsPhotos')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          {/* Documents & Photos */}
+          <div className="border rounded-lg p-4 space-y-3">
+            <p className="text-sm font-medium">{t('inventory:inbound.documentsPhotos')}</p>
+            <div className="grid gap-3 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="documents"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('inventory:inbound.attachedDocs')}</FormLabel>
+                    <FormLabel className="text-xs">{t('inventory:inbound.attachedDocs')}</FormLabel>
                     <FormControl>
-                      <FileUpload
-                        files={field.value || []}
-                        onChange={field.onChange}
-                      />
+                      <FileUpload files={field.value || []} onChange={field.onChange} />
                     </FormControl>
-                    <FormDescription>
-                      {t('inventory:inbound.docsDescription')}
-                    </FormDescription>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
-              
               <FormField
                 control={form.control}
                 name="photos"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('inventory:inbound.itemPhotos')}</FormLabel>
+                    <FormLabel className="text-xs">{t('inventory:inbound.itemPhotos')}</FormLabel>
                     <FormControl>
-                      <ImageUpload
-                        images={field.value || []}
-                        onChange={field.onChange}
-                        maxImages={10}
-                      />
+                      <ImageUpload images={field.value || []} onChange={field.onChange} maxImages={10} />
                     </FormControl>
-                    <FormDescription>
-                      {t('inventory:inbound.photosDescription')}
-                    </FormDescription>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
-            </CardContent>
-          </Card>
+            </div>
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs">{t('inventory:inbound.generalNotes')}</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} placeholder={t('inventory:inbound.notesPlaceholder')} rows={2} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
           
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('inventory:inbound.generalNotes')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Textarea
-                        {...field}
-                        placeholder={t('inventory:inbound.notesPlaceholder')}
-                        rows={4}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('inventory:inbound.summary')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-lg border p-4 text-center">
-                  <p className="text-sm text-muted-foreground">{t('inventory:inbound.totalTypes')}</p>
-                  <p className="text-3xl font-bold">{items.length}</p>
-                </div>
-                <div className="rounded-lg border p-4 text-center">
-                  <p className="text-sm text-muted-foreground">{t('inventory:inbound.totalQuantity')}</p>
-                  <p className="text-3xl font-bold text-green-600">+{totalQuantity}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate('/inventory')}
-            >
-              {t('common:cancel')}
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? t('inventory:inbound.processing') : t('inventory:inbound.confirm')}
-            </Button>
+          {/* Summary & Actions */}
+          <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+            <div className="flex gap-4 text-sm">
+              <span>{items.length} loại</span>
+              <span className="text-green-600 font-medium">+{totalQuantity} đơn vị</span>
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" size="sm" onClick={() => navigate('/inventory')}>
+                {t('common:cancel')}
+              </Button>
+              <Button type="submit" size="sm" disabled={isLoading}>
+                {isLoading ? t('inventory:inbound.processing') : t('inventory:inbound.confirm')}
+              </Button>
+            </div>
           </div>
         </form>
       </Form>
