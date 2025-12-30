@@ -8,7 +8,6 @@ import {
   Package 
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import {
   Tooltip,
   TooltipContent,
@@ -30,53 +29,46 @@ export function CompactActionBar({ onInbound, onOutbound }: CompactActionBarProp
       icon: Download,
       label: t('inbound.title'),
       onClick: onInbound,
-      variant: 'default' as const,
-      className: 'bg-green-600 hover:bg-green-700 text-white border-0',
+      className: 'text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20',
     },
     {
       icon: Upload,
       label: t('outbound.title'),
       onClick: onOutbound,
-      variant: 'default' as const,
-      className: 'bg-orange-500 hover:bg-orange-600 text-white border-0',
+      className: 'text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20',
     },
     {
       icon: ClipboardCheck,
       label: t('adjustment.title'),
       onClick: () => navigate('/inventory/adjustments'),
-      variant: 'outline' as const,
       className: '',
     },
     {
       icon: FileText,
       label: t('quickActions.viewTransactions'),
       onClick: () => navigate('/inventory/transactions'),
-      variant: 'outline' as const,
       className: '',
     },
     {
       icon: Package,
       label: t('quickActions.manageItems'),
       onClick: () => navigate('/items'),
-      variant: 'outline' as const,
       className: '',
     },
   ]
 
   return (
-    <Card className="p-5 h-full flex flex-col justify-center">
-      <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
-        {t('quickActions.title')}
-      </p>
+    <div className="border rounded-lg p-3 h-full flex flex-col justify-center">
+      <p className="text-xs text-muted-foreground mb-2">{t('quickActions.title')}</p>
       <TooltipProvider delayDuration={100}>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {actions.map((action, index) => (
             <Tooltip key={index}>
               <TooltipTrigger asChild>
                 <Button
-                  variant={action.variant}
+                  variant="ghost"
                   size="icon"
-                  className={`h-10 w-10 ${action.className}`}
+                  className={`h-8 w-8 ${action.className}`}
                   onClick={action.onClick}
                 >
                   <action.icon className="h-4 w-4" />
@@ -89,6 +81,6 @@ export function CompactActionBar({ onInbound, onOutbound }: CompactActionBarProp
           ))}
         </div>
       </TooltipProvider>
-    </Card>
+    </div>
   )
 }

@@ -226,196 +226,183 @@ export function TransactionListPage() {
         </div>
       </PageHeader>
       
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">{t('stats.totalTransactions')}</p>
-              <p className="text-3xl font-bold">{data?.total || 0}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">{t('stats.totalIn')}</p>
-              <p className="text-3xl font-bold text-green-600">
-                +{summary.totalIn}
-              </p>
-              <p className="text-xs text-muted-foreground">{t('stats.items')}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">{t('stats.totalOut')}</p>
-              <p className="text-3xl font-bold text-blue-600">
-                -{summary.totalOut}
-              </p>
-              <p className="text-xs text-muted-foreground">{t('stats.items')}</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="flex items-center gap-3 p-3 border rounded-lg">
+          <Package className="h-5 w-5 text-muted-foreground" />
+          <div>
+            <p className="text-xs text-muted-foreground">{t('stats.totalTransactions')}</p>
+            <p className="text-xl font-bold">{data?.total || 0}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 border rounded-lg">
+          <TrendingDown className="h-5 w-5 text-green-600" />
+          <div>
+            <p className="text-xs text-muted-foreground">{t('stats.totalIn')}</p>
+            <p className="text-xl font-bold text-green-600">+{summary.totalIn}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 border rounded-lg">
+          <TrendingUp className="h-5 w-5 text-amber-600" />
+          <div>
+            <p className="text-xs text-muted-foreground">{t('stats.totalOut')}</p>
+            <p className="text-xl font-bold text-amber-600">-{summary.totalOut}</p>
+          </div>
+        </div>
       </div>
       
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid gap-4 md:grid-cols-5">
-            <div className="relative md:col-span-2">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder={t('filters.searchPlaceholder')}
-                value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                className="pl-10"
-              />
-            </div>
-            
-            <DateRangePicker
-              value={{
-                from: filters.date_from,
-                to: filters.date_to,
-              }}
-              onChange={(range) => 
-                setFilters({
-                  ...filters,
-                  date_from: range.from || undefined,
-                  date_to: range.to || undefined,
-                })
-              }
+      <div className="border rounded-lg p-3">
+        <div className="grid gap-3 md:grid-cols-5">
+          <div className="relative md:col-span-2">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder={t('filters.searchPlaceholder')}
+              value={filters.search}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              className="pl-10 h-9"
             />
-            
-            <Select
-              value={filters.transaction_type || "all"}
-              onValueChange={(value) => 
-                setFilters({ ...filters, transaction_type: value === "all" ? undefined : value as any })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={t('fields.transactionType')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('transactionType.all')}</SelectItem>
-                <SelectItem value="in">{t('transactionLabel.in')}</SelectItem>
-                <SelectItem value="out">{t('transactionLabel.out')}</SelectItem>
-                <SelectItem value="adjustment">{t('transactionType.adjustment')}</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Select
-              value={filters.category_id || "all"}
-              onValueChange={(value) => 
-                setFilters({ ...filters, category_id: value === "all" ? "" : value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={t('filters.category')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('filters.all')}</SelectItem>
-                <SelectItem value="purchase">{t('category.purchase')}</SelectItem>
-                <SelectItem value="return">{t('category.return')}</SelectItem>
-                <SelectItem value="room_assign">{t('category.room_assign')}</SelectItem>
-                <SelectItem value="staff_assign">{t('category.staff_assign')}</SelectItem>
-                <SelectItem value="laundry">{t('category.laundry')}</SelectItem>
-                <SelectItem value="maintenance">{t('category.maintenance')}</SelectItem>
-                <SelectItem value="disposal">{t('category.disposal')}</SelectItem>
-                <SelectItem value="other">{t('category.other')}</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
-        </CardContent>
-      </Card>
+          
+          <DateRangePicker
+            value={{
+              from: filters.date_from,
+              to: filters.date_to,
+            }}
+            onChange={(range) => 
+              setFilters({
+                ...filters,
+                date_from: range.from || undefined,
+                date_to: range.to || undefined,
+              })
+            }
+          />
+          
+          <Select
+            value={filters.transaction_type || "all"}
+            onValueChange={(value) => 
+              setFilters({ ...filters, transaction_type: value === "all" ? undefined : value as any })
+            }
+          >
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder={t('fields.transactionType')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('transactionType.all')}</SelectItem>
+              <SelectItem value="in">{t('transactionLabel.in')}</SelectItem>
+              <SelectItem value="out">{t('transactionLabel.out')}</SelectItem>
+              <SelectItem value="adjustment">{t('transactionType.adjustment')}</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Select
+            value={filters.category_id || "all"}
+            onValueChange={(value) => 
+              setFilters({ ...filters, category_id: value === "all" ? "" : value })
+            }
+          >
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder={t('filters.category')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('filters.all')}</SelectItem>
+              <SelectItem value="purchase">{t('category.purchase')}</SelectItem>
+              <SelectItem value="return">{t('category.return')}</SelectItem>
+              <SelectItem value="room_assign">{t('category.room_assign')}</SelectItem>
+              <SelectItem value="staff_assign">{t('category.staff_assign')}</SelectItem>
+              <SelectItem value="laundry">{t('category.laundry')}</SelectItem>
+              <SelectItem value="maintenance">{t('category.maintenance')}</SelectItem>
+              <SelectItem value="disposal">{t('category.disposal')}</SelectItem>
+              <SelectItem value="other">{t('category.other')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
       
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <p>{t('loading')}</p>
-            </div>
-          ) : transactions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Package className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">{t('noTransactions')}</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('table.code')}</TableHead>
-                  <TableHead>{t('table.type')}</TableHead>
-                  <TableHead>{t('table.item')}</TableHead>
-                  <TableHead>{t('table.quantity')}</TableHead>
-                  <TableHead>{t('table.location')}</TableHead>
-                  <TableHead>{t('table.creator')}</TableHead>
-                  <TableHead>{t('table.date')}</TableHead>
-                  <TableHead className="text-right">{t('table.actions')}</TableHead>
+      <div className="border rounded-lg">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <p>{t('loading')}</p>
+          </div>
+        ) : transactions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Package className="h-8 w-8 text-muted-foreground mb-2" />
+            <p className="text-sm text-muted-foreground">{t('noTransactions')}</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs">{t('table.code')}</TableHead>
+                <TableHead className="text-xs">{t('table.type')}</TableHead>
+                <TableHead className="text-xs">{t('table.item')}</TableHead>
+                <TableHead className="text-xs">{t('table.quantity')}</TableHead>
+                <TableHead className="text-xs">{t('table.location')}</TableHead>
+                <TableHead className="text-xs">{t('table.creator')}</TableHead>
+                <TableHead className="text-xs">{t('table.date')}</TableHead>
+                <TableHead className="text-xs text-right">{t('table.actions')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {transactions.map((transaction) => (
+                <TableRow key={transaction.id} className="hover:bg-muted/30">
+                  <TableCell className="font-mono text-xs py-2">
+                    {transaction.transaction_code}
+                  </TableCell>
+                  <TableCell className="py-2">
+                    <TransactionTypeBadge type={transaction.transaction_type === 'adjustment' ? 'adjust' : transaction.transaction_type as TransactionType} />
+                  </TableCell>
+                  <TableCell className="py-2">
+                    <div className="flex items-center gap-2">
+                      {transaction.item_images?.[0] && (
+                        <img 
+                          src={transaction.item_images[0]} 
+                          alt={transaction.item_name}
+                          className="h-6 w-6 rounded object-cover"
+                        />
+                      )}
+                      <div>
+                        <p className="text-sm">{transaction.item_name}</p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-2">
+                    <span className={transaction.transaction_type === 'in' ? 'text-green-600 font-medium text-sm' : 'text-amber-600 font-medium text-sm'}>
+                      {transaction.transaction_type === 'in' ? '+' : '-'}{Math.abs(transaction.quantity)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-xs py-2">
+                    {transaction.from_location && <div>{transaction.from_location}</div>}
+                    {transaction.to_location && <div>→ {transaction.to_location}</div>}
+                  </TableCell>
+                  <TableCell className="py-2">
+                    <div className="flex items-center gap-1.5">
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage src={transaction.created_by_avatar} />
+                        <AvatarFallback className="text-[10px]">
+                          {transaction.created_by_name?.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs">{transaction.created_by_name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-xs py-2">
+                    {transaction.created_at ? format(new Date(transaction.created_at), 'dd/MM HH:mm', { locale: dateLocale }) : 'N/A'}
+                  </TableCell>
+                  <TableCell className="text-right py-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setSelectedTransaction(transaction.id)}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions.map((transaction) => (
-                  <TableRow key={transaction.id}>
-                    <TableCell className="font-mono text-xs">
-                      {transaction.transaction_code}
-                    </TableCell>
-                    <TableCell>
-                      <TransactionTypeBadge type={transaction.transaction_type === 'adjustment' ? 'adjust' : transaction.transaction_type as TransactionType} />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {transaction.item_images?.[0] && (
-                          <img 
-                            src={transaction.item_images[0]} 
-                            alt={transaction.item_name}
-                            className="h-8 w-8 rounded object-cover"
-                          />
-                        )}
-                        <div>
-                          <p className="font-medium">{transaction.item_name}</p>
-                          <p className="text-xs text-muted-foreground">{transaction.item_code}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className={transaction.transaction_type === 'in' ? 'text-green-600 font-medium' : 'text-blue-600 font-medium'}>
-                        {transaction.transaction_type === 'in' ? '+' : '-'}{Math.abs(transaction.quantity)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {transaction.from_location && <div>{t('table.from')}: {transaction.from_location}</div>}
-                      {transaction.to_location && <div>{t('table.to')}: {transaction.to_location}</div>}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={transaction.created_by_avatar} />
-                          <AvatarFallback className="text-xs">
-                            {transaction.created_by_name?.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm">{transaction.created_by_name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {transaction.created_at ? format(new Date(transaction.created_at), 'dd/MM/yyyy HH:mm', { locale: dateLocale }) : 'N/A'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedTransaction(transaction.id)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
       
       {/* Pagination */}
       {transactions.length > 0 && (
