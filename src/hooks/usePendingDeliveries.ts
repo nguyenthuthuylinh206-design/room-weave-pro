@@ -28,6 +28,7 @@ export function usePendingDeliveriesForRoom(roomId: string | undefined) {
       if (!roomId) return []
 
       // Get pending distribution_order_rooms for this room
+      // Use explicit FK reference because there are 2 FKs to distribution_orders
       const { data: roomOrders, error: roomOrdersError } = await supabase
         .from('distribution_order_rooms')
         .select(`
@@ -36,7 +37,7 @@ export function usePendingDeliveriesForRoom(roomId: string | undefined) {
           batch_number,
           stop_status,
           created_at,
-          distribution_orders!inner (
+          distribution_orders!distribution_order_rooms_distribution_order_id_fkey (
             id,
             order_code,
             status
@@ -44,7 +45,6 @@ export function usePendingDeliveriesForRoom(roomId: string | undefined) {
         `)
         .eq('room_id', roomId)
         .in('stop_status', ['pending', 'received'])
-        .in('distribution_orders.status', ['in_progress', 'released'])
         .order('created_at', { ascending: true })
 
       if (roomOrdersError) {
@@ -93,16 +93,22 @@ export function usePendingDeliveriesForRoom(roomId: string | undefined) {
         return acc
       }, {} as Record<string, PendingDeliveryItem[]>)
 
-      // Build final result
-      return roomOrders.map(ro => ({
-        room_order_id: ro.id,
-        distribution_order_id: ro.distribution_order_id,
-        order_code: (ro.distribution_orders as any).order_code,
-        batch_number: ro.batch_number || 1,
-        stop_status: ro.stop_status || 'pending',
-        created_at: ro.created_at || '',
-        items: itemsByRoomOrder[ro.id] || [],
-      })).filter(d => d.items.length > 0)
+      // Build final result - filter by order status in memory since we can't use !inner with explicit FK
+      return roomOrders
+        .filter(ro => {
+          const order = ro.distribution_orders as any
+          return order && ['in_progress', 'released'].includes(order.status)
+        })
+        .map(ro => ({
+          room_order_id: ro.id,
+          distribution_order_id: ro.distribution_order_id,
+          order_code: (ro.distribution_orders as any).order_code,
+          batch_number: ro.batch_number || 1,
+          stop_status: ro.stop_status || 'pending',
+          created_at: ro.created_at || '',
+          items: itemsByRoomOrder[ro.id] || [],
+        }))
+        .filter(d => d.items.length > 0)
     },
     enabled: !!roomId,
     staleTime: 30000, // 30 seconds
