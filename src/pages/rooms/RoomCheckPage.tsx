@@ -469,7 +469,7 @@ export function RoomCheckPage() {
         />
         
         {/* Pending Deliveries Section */}
-        <PendingDeliveriesSection roomId={id!} />
+        <PendingDeliveriesSection roomId={id!} bookingId={currentBooking?.id} />
       
       <Card>
         <CardHeader>
@@ -516,6 +516,7 @@ export function RoomCheckPage() {
                   items={items} 
                   roomId={id!}
                   hotelId={room.hotel_id}
+                  tenantId={room.tenant_id}
                   bookingId={currentBooking?.id || null}
                   onQuantitiesChange={setItemQuantities}
                 />

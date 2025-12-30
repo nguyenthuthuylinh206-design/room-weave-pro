@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import type { RoomItemWithDetails, ConsumedItem } from '@/types/rooms.types'
 import { CategoryGroup, groupItemsByCategory } from './CategoryGroup'
-import { useBookingConsumables, BookingConsumableWithItem } from '@/hooks/useBookingConsumables'
+import { useBookingConsumables, useInitializeBookingConsumables, BookingConsumableWithItem } from '@/hooks/useBookingConsumables'
 import { cn } from '@/lib/utils'
 
 interface ExtendedRoomItem extends RoomItemWithDetails {
@@ -16,6 +16,8 @@ interface ExtendedRoomItem extends RoomItemWithDetails {
 interface ConsumableTabBookingProps {
   items: ExtendedRoomItem[]
   bookingId: string | null
+  roomId: string
+  tenantId: string
   consumedItems: ConsumedItem[]
   onMarkConsumed: (item: RoomItemWithDetails, quantity: number, needRefill: boolean) => void
   onRemoveConsumed: (itemId: string) => void
@@ -31,13 +33,16 @@ interface ItemState {
 export function ConsumableTabBooking({
   items,
   bookingId,
+  roomId,
+  tenantId,
   consumedItems,
   onMarkConsumed,
   onRemoveConsumed,
 }: ConsumableTabBookingProps) {
   
   // Fetch booking consumables data
-  const { data: bookingConsumables, isLoading } = useBookingConsumables(bookingId || undefined)
+  const { data: bookingConsumables, isLoading, refetch } = useBookingConsumables(bookingId || undefined)
+  const initializeConsumables = useInitializeBookingConsumables()
   
   // Track state for each item
   const [itemStates, setItemStates] = useState<Record<string, ItemState>>({})
@@ -56,6 +61,28 @@ export function ConsumableTabBooking({
     const bc = consumablesMap.get(item.item_id)
     return bc?.total_available ?? item.standard_quantity
   }
+
+  // Auto-initialize booking_consumables when bookingId exists but data is empty
+  useEffect(() => {
+    const shouldInit = bookingId && 
+      roomId && 
+      tenantId && 
+      !isLoading && 
+      (!bookingConsumables || bookingConsumables.length === 0) && 
+      items.length > 0 &&
+      !initializeConsumables.isPending
+
+    if (shouldInit) {
+      initializeConsumables.mutate(
+        { bookingId, roomId, tenantId },
+        {
+          onSuccess: () => {
+            refetch()
+          },
+        }
+      )
+    }
+  }, [bookingId, roomId, tenantId, isLoading, bookingConsumables, items, initializeConsumables.isPending])
 
   // Initialize item states from booking consumables
   useEffect(() => {
@@ -191,13 +218,15 @@ export function ConsumableTabBooking({
     }
   }
 
-  // Loading state
-  if (bookingId && isLoading) {
+  // Loading state - include initialization loading
+  if (bookingId && (isLoading || initializeConsumables.isPending)) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-          <p className="text-muted-foreground mt-2">Đang tải dữ liệu...</p>
+          <p className="text-muted-foreground mt-2">
+            {initializeConsumables.isPending ? 'Đang khởi tạo dữ liệu tiêu hao...' : 'Đang tải dữ liệu...'}
+          </p>
         </CardContent>
       </Card>
     )

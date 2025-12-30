@@ -13,21 +13,25 @@ import {
   usePendingDeliveriesForRoom, 
   useConfirmDeliveryFromRoomCheck 
 } from '@/hooks/usePendingDeliveries'
+import { useUpdateConsumableSupplemented } from '@/hooks/useBookingConsumables'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { useState } from 'react'
 
 interface PendingDeliveriesSectionProps {
   roomId: string
+  bookingId?: string | null
   onDeliveryConfirmed?: () => void
 }
 
 export function PendingDeliveriesSection({ 
   roomId, 
+  bookingId,
   onDeliveryConfirmed 
 }: PendingDeliveriesSectionProps) {
   const { data: pendingDeliveries, isLoading } = usePendingDeliveriesForRoom(roomId)
   const confirmDelivery = useConfirmDeliveryFromRoomCheck()
+  const updateSupplemented = useUpdateConsumableSupplemented()
   const [confirmingAll, setConfirmingAll] = useState(false)
 
   if (isLoading) {
@@ -38,8 +42,28 @@ export function PendingDeliveriesSection({
     return null
   }
 
-  const handleConfirmDelivery = async (roomOrderId: string) => {
-    await confirmDelivery.mutateAsync({ roomOrderId })
+  // Update booking_consumables supplemented_quantity for consumable items in delivery
+  const updateBookingConsumables = async (delivery: PendingDelivery) => {
+    if (!bookingId) return
+
+    // Update supplemented_quantity for each consumable item
+    for (const item of delivery.items) {
+      try {
+        await updateSupplemented.mutateAsync({
+          bookingId,
+          itemId: item.item_id,
+          additionalQuantity: item.quantity,
+        })
+      } catch (error) {
+        // If item doesn't exist in booking_consumables, ignore (could be non-consumable)
+        console.log(`Could not update supplemented for item ${item.item_id}:`, error)
+      }
+    }
+  }
+
+  const handleConfirmDelivery = async (delivery: PendingDelivery) => {
+    await confirmDelivery.mutateAsync({ roomOrderId: delivery.room_order_id })
+    await updateBookingConsumables(delivery)
     onDeliveryConfirmed?.()
   }
 
@@ -48,6 +72,7 @@ export function PendingDeliveriesSection({
     try {
       for (const delivery of pendingDeliveries) {
         await confirmDelivery.mutateAsync({ roomOrderId: delivery.room_order_id })
+        await updateBookingConsumables(delivery)
       }
       onDeliveryConfirmed?.()
     } finally {
@@ -100,7 +125,7 @@ export function PendingDeliveriesSection({
             <DeliveryAccordionItem 
               key={delivery.room_order_id}
               delivery={delivery}
-              onConfirm={handleConfirmDelivery}
+              onConfirm={() => handleConfirmDelivery(delivery)}
               isConfirming={confirmDelivery.isPending || confirmingAll}
             />
           ))}
@@ -112,7 +137,7 @@ export function PendingDeliveriesSection({
 
 interface DeliveryAccordionItemProps {
   delivery: PendingDelivery
-  onConfirm: (roomOrderId: string) => void
+  onConfirm: () => void
   isConfirming: boolean
 }
 
@@ -184,7 +209,7 @@ function DeliveryAccordionItem({
 
           {/* Confirm button */}
           <Button
-            onClick={() => onConfirm(delivery.room_order_id)}
+            onClick={onConfirm}
             disabled={isConfirming}
             className="w-full"
             size="sm"
