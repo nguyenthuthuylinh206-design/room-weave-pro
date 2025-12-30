@@ -1,0 +1,365 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/integrations/supabase/client'
+import { useAuth } from '@/contexts/AuthContext'
+import { toast } from 'sonner'
+import type {
+  DistributionBatch,
+  RouteDetail,
+  HandoverBatchResponse,
+  ReceiveBatchResponse,
+  DeliverStopResponse,
+  MarkCannotAccessResponse,
+  RetryStopResponse,
+  ReturnToStockResponse,
+  HandoverStopResponse,
+  CloseRouteResponse,
+  ShiftCode,
+  ExceptionType,
+} from '@/types/route-batch.types'
+
+// ===== QUERIES =====
+
+/**
+ * Fetch batches for a specific route/order
+ */
+export function useRouteBatches(orderId: string | undefined) {
+  return useQuery({
+    queryKey: ['route-batches', orderId],
+    queryFn: async () => {
+      if (!orderId) throw new Error('No order ID')
+
+      const { data, error } = await supabase
+        .from('distribution_order_batches')
+        .select('*')
+        .eq('distribution_order_id', orderId)
+        .order('batch_number', { ascending: true })
+
+      if (error) throw error
+      return data as DistributionBatch[]
+    },
+    enabled: !!orderId,
+  })
+}
+
+/**
+ * Get route detail with batches computed
+ */
+export function useRouteDetail(orderId: string | undefined) {
+  return useQuery({
+    queryKey: ['route-detail', orderId],
+    queryFn: async () => {
+      if (!orderId) throw new Error('No order ID')
+
+      // Fetch order detail using existing RPC
+      const { data: orderData, error: orderError } = await supabase.rpc(
+        'get_distribution_order_detail',
+        { p_order_id: orderId }
+      )
+      if (orderError) throw orderError
+
+      // Fetch batches
+      const { data: batchData, error: batchError } = await supabase
+        .from('distribution_order_batches')
+        .select('*')
+        .eq('distribution_order_id', orderId)
+        .order('batch_number', { ascending: true })
+      if (batchError) throw batchError
+
+      return {
+        ...(orderData as unknown as RouteDetail),
+        batches: batchData as DistributionBatch[],
+      }
+    },
+    enabled: !!orderId,
+  })
+}
+
+// ===== MUTATIONS =====
+
+/**
+ * Storekeeper hands over a batch
+ */
+export function useHandoverBatch() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async ({ batchId }: { batchId: string }) => {
+      if (!user?.id) throw new Error('User not authenticated')
+
+      const { data, error } = await supabase.rpc('handover_batch', {
+        p_batch_id: batchId,
+        p_actor_id: user.id,
+      })
+
+      if (error) throw error
+      return data as unknown as HandoverBatchResponse
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['route-batches'] })
+      queryClient.invalidateQueries({ queryKey: ['route-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+      toast.success('Đã giao batch thành công')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Không thể giao batch')
+    },
+  })
+}
+
+/**
+ * Assignee receives a batch
+ */
+export function useReceiveBatch() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async ({ batchId }: { batchId: string }) => {
+      if (!user?.id) throw new Error('User not authenticated')
+
+      const { data, error } = await supabase.rpc('receive_batch', {
+        p_batch_id: batchId,
+        p_actor_id: user.id,
+      })
+
+      if (error) throw error
+      return data as unknown as ReceiveBatchResponse
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['route-batches'] })
+      queryClient.invalidateQueries({ queryKey: ['route-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+      toast.success('Đã nhận batch thành công')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Không thể nhận batch')
+    },
+  })
+}
+
+/**
+ * Assignee delivers items to a room (stop)
+ */
+export function useDeliverStop() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async ({
+      roomOrderId,
+      itemsConfirmed,
+    }: {
+      roomOrderId: string
+      itemsConfirmed?: { item_id: string; quantity_confirmed: number }[]
+    }) => {
+      if (!user?.id) throw new Error('User not authenticated')
+
+      const { data, error } = await supabase.rpc('deliver_stop', {
+        p_room_order_id: roomOrderId,
+        p_items_confirmed: itemsConfirmed || null,
+        p_actor_id: user.id,
+      })
+
+      if (error) throw error
+      return data as unknown as DeliverStopResponse
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['route-batches'] })
+      queryClient.invalidateQueries({ queryKey: ['route-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['room-items'] })
+      queryClient.invalidateQueries({ queryKey: ['room-distribution-history'] })
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+      toast.success('Đã giao hàng đến phòng')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Không thể giao hàng')
+    },
+  })
+}
+
+/**
+ * Mark a stop as cannot access
+ */
+export function useMarkCannotAccess() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async ({
+      roomOrderId,
+      exceptionType,
+      exceptionReason,
+    }: {
+      roomOrderId: string
+      exceptionType: ExceptionType
+      exceptionReason?: string
+    }) => {
+      if (!user?.id) throw new Error('User not authenticated')
+
+      const { data, error } = await supabase.rpc('mark_cannot_access', {
+        p_room_order_id: roomOrderId,
+        p_exception_type: exceptionType,
+        p_exception_reason: exceptionReason || null,
+        p_actor_id: user.id,
+      })
+
+      if (error) throw error
+      return data as unknown as MarkCannotAccessResponse
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['route-batches'] })
+      queryClient.invalidateQueries({ queryKey: ['route-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+      toast.success('Đã đánh dấu phòng không vào được')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Không thể đánh dấu phòng')
+    },
+  })
+}
+
+/**
+ * Retry a cannot_access stop
+ */
+export function useRetryStop() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async ({ roomOrderId }: { roomOrderId: string }) => {
+      if (!user?.id) throw new Error('User not authenticated')
+
+      const { data, error } = await supabase.rpc('retry_stop', {
+        p_room_order_id: roomOrderId,
+        p_actor_id: user.id,
+      })
+
+      if (error) throw error
+      return data as unknown as RetryStopResponse
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['route-batches'] })
+      queryClient.invalidateQueries({ queryKey: ['route-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+      toast.success('Đã đưa phòng về trạng thái chờ giao')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Không thể retry')
+    },
+  })
+}
+
+/**
+ * Return items to stock (required before handover)
+ */
+export function useReturnToStock() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async ({ roomOrderId }: { roomOrderId: string }) => {
+      if (!user?.id) throw new Error('User not authenticated')
+
+      const { data, error } = await supabase.rpc('return_to_stock_for_stop', {
+        p_room_order_id: roomOrderId,
+        p_actor_id: user.id,
+      })
+
+      if (error) throw error
+      return data as unknown as ReturnToStockResponse
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['route-batches'] })
+      queryClient.invalidateQueries({ queryKey: ['route-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+      toast.success('Đã trả hàng về kho')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Không thể trả hàng về kho')
+    },
+  })
+}
+
+/**
+ * Handover stop and create next route
+ */
+export function useHandoverStop() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async ({
+      roomOrderId,
+      nextShiftCode,
+      nextAssigneeId,
+    }: {
+      roomOrderId: string
+      nextShiftCode: ShiftCode
+      nextAssigneeId?: string
+    }) => {
+      if (!user?.id) throw new Error('User not authenticated')
+
+      const { data, error } = await supabase.rpc('handover_stop_create_next_route', {
+        p_room_order_id: roomOrderId,
+        p_next_shift_code: nextShiftCode,
+        p_next_assignee_id: nextAssigneeId || null,
+        p_actor_id: user.id,
+      })
+
+      if (error) throw error
+      return data as unknown as HandoverStopResponse
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['route-batches'] })
+      queryClient.invalidateQueries({ queryKey: ['route-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+      toast.success(`Đã bàn giao và tạo route ${result.next_order_code}`)
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Không thể bàn giao')
+    },
+  })
+}
+
+/**
+ * Close route when 100% complete
+ */
+export function useCloseRoute() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async ({ orderId }: { orderId: string }) => {
+      if (!user?.id) throw new Error('User not authenticated')
+
+      const { data, error } = await supabase.rpc('close_route_if_complete', {
+        p_order_id: orderId,
+        p_actor_id: user.id,
+      })
+
+      if (error) throw error
+      return data as unknown as CloseRouteResponse
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['route-batches'] })
+      queryClient.invalidateQueries({ queryKey: ['route-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+      toast.success('Đã đóng route thành công')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Không thể đóng route')
+    },
+  })
+}
