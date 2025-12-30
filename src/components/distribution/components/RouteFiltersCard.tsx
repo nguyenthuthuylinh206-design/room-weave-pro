@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { Calendar as CalendarIcon, Search, X, Filter } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -63,8 +62,6 @@ export function RouteFiltersCard({
   searchQuery,
   onSearchChange,
   floors = [],
-  onRefresh,
-  isRefreshing,
   isMobile = false,
 }: RouteFiltersCardProps) {
   const { t } = useTranslation('distribution')
@@ -123,24 +120,23 @@ export function RouteFiltersCard({
   if (isMobile) {
     return (
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-        <div className="space-y-3">
-          {/* Search + Filter toggle */}
+        <div className="space-y-2">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Tìm theo mã phiếu..."
-                className="pl-9"
+                placeholder="Tìm mã phiếu..."
+                className="pl-8 h-8 text-sm"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
               />
             </div>
             <CollapsibleTrigger asChild>
-              <Button variant="outline" size="icon" className="relative">
+              <Button variant="outline" size="icon" className="h-8 w-8 relative">
                 <Filter className="h-4 w-4" />
                 {activeFiltersCount > 0 && (
                   <Badge 
-                    className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                    className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]"
                     variant="destructive"
                   >
                     {activeFiltersCount}
@@ -150,63 +146,50 @@ export function RouteFiltersCard({
             </CollapsibleTrigger>
           </div>
 
-          {/* Collapsible filter section */}
-          <CollapsibleContent className="space-y-3">
-            {/* Status */}
-            <Select 
-              value={filters.status || 'all'} 
-              onValueChange={handleStatusChange}
-            >
-              <SelectTrigger className="w-full">
+          <CollapsibleContent className="space-y-2">
+            <Select value={filters.status || 'all'} onValueChange={handleStatusChange}>
+              <SelectTrigger className="h-8 text-xs">
                 <SelectValue placeholder="Trạng thái" />
               </SelectTrigger>
               <SelectContent>
                 {STATUS_OPTIONS.map(opt => (
-                  <SelectItem key={opt.value} value={opt.value}>
+                  <SelectItem key={opt.value} value={opt.value} className="text-xs">
                     {opt.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            {/* Shift */}
-            <Select 
-              value={filters.shift_code || 'all'} 
-              onValueChange={handleShiftChange}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Ca làm việc" />
+            <Select value={filters.shift_code || 'all'} onValueChange={handleShiftChange}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Ca" />
               </SelectTrigger>
               <SelectContent>
                 {SHIFT_OPTIONS.map(opt => (
-                  <SelectItem key={opt.value} value={opt.value}>
+                  <SelectItem key={opt.value} value={opt.value} className="text-xs">
                     {opt.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            {/* Date */}
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
-                    'w-full justify-start text-left font-normal',
+                    'w-full h-8 justify-start text-left text-xs',
                     !filters.shift_date && 'text-muted-foreground'
                   )}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  <CalendarIcon className="mr-2 h-3.5 w-3.5" />
                   {filters.shift_date 
                     ? format(new Date(filters.shift_date), 'dd/MM/yyyy', { locale: vi })
                     : 'Chọn ngày'}
                   {filters.shift_date && (
                     <X 
-                      className="ml-auto h-4 w-4 hover:text-destructive" 
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleClearDate()
-                      }}
+                      className="ml-auto h-3.5 w-3.5 hover:text-destructive" 
+                      onClick={(e) => { e.stopPropagation(); handleClearDate() }}
                     />
                   )}
                 </Button>
@@ -222,19 +205,15 @@ export function RouteFiltersCard({
               </PopoverContent>
             </Popover>
 
-            {/* Floor */}
             {floors.length > 0 && (
-              <Select 
-                value={filters.floor?.toString() || 'all'} 
-                onValueChange={handleFloorChange}
-              >
-                <SelectTrigger className="w-full">
+              <Select value={filters.floor?.toString() || 'all'} onValueChange={handleFloorChange}>
+                <SelectTrigger className="h-8 text-xs">
                   <SelectValue placeholder="Tầng" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tất cả tầng</SelectItem>
+                  <SelectItem value="all" className="text-xs">Tất cả tầng</SelectItem>
                   {floors.map(floor => (
-                    <SelectItem key={floor} value={floor.toString()}>
+                    <SelectItem key={floor} value={floor.toString()} className="text-xs">
                       Tầng {floor}
                     </SelectItem>
                   ))}
@@ -242,15 +221,9 @@ export function RouteFiltersCard({
               </Select>
             )}
 
-            {/* Clear all */}
             {(activeFiltersCount > 0 || searchQuery) && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="w-full" 
-                onClick={handleClearAll}
-              >
-                <X className="h-4 w-4 mr-1" />
+              <Button variant="ghost" size="sm" className="w-full h-7 text-xs" onClick={handleClearAll}>
+                <X className="h-3.5 w-3.5 mr-1" />
                 Xóa bộ lọc
               </Button>
             )}
@@ -262,123 +235,97 @@ export function RouteFiltersCard({
 
   // Desktop view
   return (
-    <Card>
-      <CardContent className="py-4">
-        <div className="flex flex-wrap items-center gap-4">
-          {/* Search */}
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Tìm theo mã phiếu..."
-              className="pl-9"
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-            />
-          </div>
+    <div className="flex flex-wrap items-center gap-3 border rounded-lg p-3">
+      <div className="relative flex-1 min-w-[160px] max-w-xs">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Tìm mã phiếu..."
+          className="pl-8 h-8 text-sm"
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+        />
+      </div>
 
-          {/* Status */}
-          <Select 
-            value={filters.status || 'all'} 
-            onValueChange={handleStatusChange}
+      <Select value={filters.status || 'all'} onValueChange={handleStatusChange}>
+        <SelectTrigger className="w-[140px] h-8 text-xs">
+          <SelectValue placeholder="Trạng thái" />
+        </SelectTrigger>
+        <SelectContent>
+          {STATUS_OPTIONS.map(opt => (
+            <SelectItem key={opt.value} value={opt.value} className="text-xs">
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select value={filters.shift_code || 'all'} onValueChange={handleShiftChange}>
+        <SelectTrigger className="w-[110px] h-8 text-xs">
+          <SelectValue placeholder="Ca" />
+        </SelectTrigger>
+        <SelectContent>
+          {SHIFT_OPTIONS.map(opt => (
+            <SelectItem key={opt.value} value={opt.value} className="text-xs">
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              'w-[120px] h-8 justify-start text-left text-xs',
+              !filters.shift_date && 'text-muted-foreground'
+            )}
           >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Trạng thái" />
-            </SelectTrigger>
-            <SelectContent>
-              {STATUS_OPTIONS.map(opt => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Shift */}
-          <Select 
-            value={filters.shift_code || 'all'} 
-            onValueChange={handleShiftChange}
-          >
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Ca" />
-            </SelectTrigger>
-            <SelectContent>
-              {SHIFT_OPTIONS.map(opt => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Date */}
-          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  'w-[160px] justify-start text-left font-normal',
-                  !filters.shift_date && 'text-muted-foreground'
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {filters.shift_date 
-                  ? format(new Date(filters.shift_date), 'dd/MM', { locale: vi })
-                  : 'Ngày'}
-                {filters.shift_date && (
-                  <X 
-                    className="ml-auto h-4 w-4 hover:text-destructive" 
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleClearDate()
-                    }}
-                  />
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={filters.shift_date ? new Date(filters.shift_date) : undefined}
-                onSelect={handleDateSelect}
-                initialFocus
-                locale={vi}
+            <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
+            {filters.shift_date 
+              ? format(new Date(filters.shift_date), 'dd/MM', { locale: vi })
+              : 'Ngày'}
+            {filters.shift_date && (
+              <X 
+                className="ml-auto h-3.5 w-3.5 hover:text-destructive" 
+                onClick={(e) => { e.stopPropagation(); handleClearDate() }}
               />
-            </PopoverContent>
-          </Popover>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={filters.shift_date ? new Date(filters.shift_date) : undefined}
+            onSelect={handleDateSelect}
+            initialFocus
+            locale={vi}
+          />
+        </PopoverContent>
+      </Popover>
 
-          {/* Floor */}
-          {floors.length > 0 && (
-            <Select 
-              value={filters.floor?.toString() || 'all'} 
-              onValueChange={handleFloorChange}
-            >
-              <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="Tầng" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả</SelectItem>
-                {floors.map(floor => (
-                  <SelectItem key={floor} value={floor.toString()}>
-                    Tầng {floor}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+      {floors.length > 0 && (
+        <Select value={filters.floor?.toString() || 'all'} onValueChange={handleFloorChange}>
+          <SelectTrigger className="w-[100px] h-8 text-xs">
+            <SelectValue placeholder="Tầng" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all" className="text-xs">Tất cả</SelectItem>
+            {floors.map(floor => (
+              <SelectItem key={floor} value={floor.toString()} className="text-xs">
+                Tầng {floor}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
 
-          {/* Clear all */}
-          {(activeFiltersCount > 0 || searchQuery) && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleClearAll}
-            >
-              <X className="h-4 w-4 mr-1" />
-              Xóa bộ lọc
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+      {(activeFiltersCount > 0 || searchQuery) && (
+        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleClearAll}>
+          <X className="h-3.5 w-3.5 mr-1" />
+          Xóa
+        </Button>
+      )}
+    </div>
   )
 }
