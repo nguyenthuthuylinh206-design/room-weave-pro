@@ -23,6 +23,7 @@ import { useRoom } from '@/hooks/useRooms'
 import { useCreateRoomCheck } from '@/hooks/useRoomChecks'
 import { useUser } from '@/hooks/useUser'
 import { useRoomCheckSession } from '@/hooks/useRoomCheckSession'
+import { useRoomBooking } from '@/hooks/useRoomBooking'
 import { toast } from '@/hooks/use-toast'
 import { CheckTypeStep } from '@/components/rooms/check-steps/CheckTypeStep'
 import { ItemsCheckStep } from '@/components/rooms/check-steps/ItemsCheckStep'
@@ -39,6 +40,7 @@ export function RoomCheckPage() {
   
   const { user } = useUser()
   const { data: roomData, isLoading } = useRoom(id)
+  const { data: currentBooking } = useRoomBooking(id)
   const createCheck = useCreateRoomCheck()
   const { 
     session: existingSession, 
@@ -514,6 +516,7 @@ export function RoomCheckPage() {
                   items={items} 
                   roomId={id!}
                   hotelId={room.hotel_id}
+                  bookingId={currentBooking?.id || null}
                   onQuantitiesChange={setItemQuantities}
                 />
               )}

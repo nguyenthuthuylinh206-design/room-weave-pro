@@ -18,13 +18,14 @@ import type {
   ReplacedItem 
 } from '@/types/rooms.types';
 import type { ItemType } from '@/types/items.types';
-import { LinenTab, ConsumableTab, EquipmentTab, FurnitureTab } from './item-type-tabs';
+import { LinenTab, ConsumableTab, ConsumableTabBooking, EquipmentTab, FurnitureTab } from './item-type-tabs';
 
 interface ItemsCheckStepProps {
   form: UseFormReturn<RoomCheckFormData>;
   items: RoomItemWithDetails[];
   roomId: string;
   hotelId: string;
+  bookingId?: string | null;
   onQuantitiesChange?: (quantities: Record<string, number>) => void;
 }
 
@@ -55,6 +56,7 @@ export function ItemsCheckStep({
   items,
   roomId,
   hotelId,
+  bookingId,
   onQuantitiesChange
 }: ItemsCheckStepProps) {
   const [search, setSearch] = useState('');
@@ -473,12 +475,22 @@ export function ItemsCheckStep({
         </TabsContent>
 
         <TabsContent value="consumable" className="mt-4">
-          <ConsumableTab
-            items={filterBySearch(consumableItemsList)}
-            consumedItems={consumedItems}
-            onMarkConsumed={handleMarkConsumed}
-            onRemoveConsumed={removeFromConsumed}
-          />
+          {bookingId ? (
+            <ConsumableTabBooking
+              items={filterBySearch(consumableItemsList)}
+              bookingId={bookingId}
+              consumedItems={consumedItems}
+              onMarkConsumed={handleMarkConsumed}
+              onRemoveConsumed={removeFromConsumed}
+            />
+          ) : (
+            <ConsumableTab
+              items={filterBySearch(consumableItemsList)}
+              consumedItems={consumedItems}
+              onMarkConsumed={handleMarkConsumed}
+              onRemoveConsumed={removeFromConsumed}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="equipment" className="mt-4">

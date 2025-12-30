@@ -157,6 +157,83 @@ export type Database = {
           },
         ]
       }
+      booking_consumables: {
+        Row: {
+          booking_id: string
+          consumed_quantity: number | null
+          created_at: string
+          id: string
+          initial_quantity: number
+          item_id: string
+          notes: string | null
+          remaining_quantity: number | null
+          room_id: string
+          supplemented_quantity: number
+          tenant_id: string
+          unit_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          booking_id: string
+          consumed_quantity?: number | null
+          created_at?: string
+          id?: string
+          initial_quantity?: number
+          item_id: string
+          notes?: string | null
+          remaining_quantity?: number | null
+          room_id: string
+          supplemented_quantity?: number
+          tenant_id: string
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string
+          consumed_quantity?: number | null
+          created_at?: string
+          id?: string
+          initial_quantity?: number
+          item_id?: string
+          notes?: string | null
+          remaining_quantity?: number | null
+          room_id?: string
+          supplemented_quantity?: number
+          tenant_id?: string
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_consumables_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "room_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_consumables_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_consumables_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_consumables_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_engagement: {
         Row: {
           campaign_id: string
@@ -446,6 +523,7 @@ export type Database = {
       distribution_order_rooms: {
         Row: {
           batch_number: number | null
+          booking_id: string | null
           confirmed_at: string | null
           confirmed_by: string | null
           created_at: string | null
@@ -467,6 +545,7 @@ export type Database = {
         }
         Insert: {
           batch_number?: number | null
+          booking_id?: string | null
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string | null
@@ -488,6 +567,7 @@ export type Database = {
         }
         Update: {
           batch_number?: number | null
+          booking_id?: string | null
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string | null
@@ -508,6 +588,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "distribution_order_rooms_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "room_bookings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "distribution_order_rooms_confirmed_by_fkey"
             columns: ["confirmed_by"]
