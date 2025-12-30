@@ -1,10 +1,11 @@
 import { UseFormReturn } from 'react-hook-form';
-import { Shirt, Droplets, Tv, Armchair, AlertCircle, Search } from 'lucide-react';
+import { Shirt, Droplets, Tv, Armchair, AlertCircle, Search, CheckCircle2 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -60,6 +61,8 @@ export function ItemsCheckStep({
   const [activeTab, setActiveTab] = useState('linen');
   const { toast } = useToast();
 
+  // Track checked items
+  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   // State for tracking items by action
   const [laundryItems, setLaundryItems] = useState<LaundryItem[]>([]);
   const [consumedItems, setConsumedItems] = useState<ConsumedItem[]>([]);
@@ -349,8 +352,45 @@ export function ItemsCheckStep({
     return laundryItems.length + consumedItems.length + replacedItems.length;
   };
 
+  // Calculate total checked items (items with any status set)
+  const getCheckedCount = () => {
+    const allTrackedIds = new Set([
+      ...laundryItems.map(i => i.item_id),
+      ...consumedItems.map(i => i.item_id),
+      ...lostItems.map(i => i.item_id),
+      ...replacedItems.map(i => i.item_id),
+      ...damagedItems.map(i => i.item_id),
+      ...missingItems.map(i => i.item_id),
+      ...checkedItems
+    ]);
+    return allTrackedIds.size;
+  };
+
+  const totalItems = itemsWithType.length;
+  const checkedCount = getCheckedCount();
+  const progressPercent = totalItems > 0 ? Math.round((checkedCount / totalItems) * 100) : 0;
+
   return (
     <div className="space-y-4">
+      {/* Sticky Progress Header */}
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur -mx-4 px-4 py-2 border-b">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm">
+            <CheckCircle2 className={`h-4 w-4 ${progressPercent === 100 ? 'text-success' : 'text-muted-foreground'}`} />
+            <span className="font-medium">
+              {checkedCount}/{totalItems}
+            </span>
+            <span className="text-muted-foreground text-xs">items đã kiểm tra</span>
+          </div>
+          <Progress value={progressPercent} className="w-24 h-2" />
+          {progressPercent === 100 && (
+            <Badge variant="outline" className="border-success text-success bg-success/10 text-xs">
+              Hoàn thành
+            </Badge>
+          )}
+        </div>
+      </div>
+
       {/* Summary Alert */}
       {(getIssueCount() > 0 || getActionCount() > 0) && (
         <Alert variant={getIssueCount() > 0 ? 'destructive' : 'default'}>

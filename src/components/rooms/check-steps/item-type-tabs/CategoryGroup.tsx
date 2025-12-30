@@ -11,6 +11,7 @@ interface CategoryGroupProps {
   checkedCount?: number
   defaultOpen?: boolean
   children: React.ReactNode
+  actions?: React.ReactNode
 }
 
 // Color mapping for categories
@@ -41,6 +42,7 @@ export function CategoryGroup({
   checkedCount,
   defaultOpen = true,
   children,
+  actions,
 }: CategoryGroupProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
   const colors = getCategoryColor(categoryName)
@@ -54,16 +56,15 @@ export function CategoryGroup({
       isComplete && "ring-1 ring-success/50"
     )}>
       {/* Sticky Header */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "sticky top-0 z-10 w-full flex items-center justify-between px-4 py-3 transition-colors",
-          colors.bg,
-          "hover:opacity-90 cursor-pointer"
-        )}
-      >
-        <div className="flex items-center gap-3">
+      <div className={cn(
+        "sticky top-0 z-10 w-full flex items-center justify-between px-4 py-2 transition-colors",
+        colors.bg
+      )}>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-3 hover:opacity-90 cursor-pointer flex-1"
+        >
           {isOpen ? (
             <ChevronDown className={cn("h-4 w-4", colors.text)} />
           ) : (
@@ -84,20 +85,25 @@ export function CategoryGroup({
           >
             {itemCount}
           </Badge>
-        </div>
+          {checkedCount !== undefined && (
+            <Badge 
+              variant={isComplete ? "default" : "outline"}
+              className={cn(
+                "text-xs",
+                isComplete && "bg-success text-success-foreground"
+              )}
+            >
+              {checkedCount}/{itemCount}
+            </Badge>
+          )}
+        </button>
         
-        {checkedCount !== undefined && (
-          <Badge 
-            variant={isComplete ? "default" : "outline"}
-            className={cn(
-              "text-xs",
-              isComplete && "bg-success text-success-foreground"
-            )}
-          >
-            {checkedCount}/{itemCount}
-          </Badge>
+        {actions && (
+          <div className="ml-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+            {actions}
+          </div>
         )}
-      </button>
+      </div>
 
       {/* Content */}
       {isOpen && (
