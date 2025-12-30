@@ -261,6 +261,7 @@ export function ConsumableTabBooking({
             checkedCount={getCategoryCheckedCount(categoryItems)}
             actions={
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
                 className="h-6 text-xs px-2"
@@ -288,6 +289,7 @@ export function ConsumableTabBooking({
                     {/* Counter */}
                     <div className="flex items-center gap-0.5">
                       <Button
+                        type="button"
                         variant="outline"
                         size="icon"
                         className="h-7 w-7"
@@ -302,6 +304,7 @@ export function ConsumableTabBooking({
                         className="w-10 h-7 text-center text-sm px-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                       <Button
+                        type="button"
                         variant="outline"
                         size="icon"
                         className="h-7 w-7"
@@ -318,6 +321,7 @@ export function ConsumableTabBooking({
                       {status === 'excess' && <span className="text-amber-600">+{diff}</span>}
                       {status === 'unchecked' && (
                         <Button
+                          type="button"
                           variant="ghost"
                           size="sm"
                           className="h-6 text-xs px-1.5"
@@ -333,6 +337,7 @@ export function ConsumableTabBooking({
                     <div className="w-7">
                       {isDirty && status !== 'unchecked' && (
                         <Button
+                          type="button"
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
