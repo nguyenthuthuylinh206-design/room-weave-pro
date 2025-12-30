@@ -59,7 +59,9 @@ export function ConsumableTabBooking({
   // Get total available for an item
   const getTotalAvailable = (item: ExtendedRoomItem) => {
     const bc = consumablesMap.get(item.item_id)
-    return bc?.total_available ?? item.standard_quantity
+    if (bc) return bc.total_available
+    // Fallback: use current_quantity (actual in room) or standard_quantity
+    return item.current_quantity ?? item.standard_quantity ?? 0
   }
 
   // Auto-initialize booking_consumables when bookingId exists but data is empty
@@ -392,10 +394,10 @@ export function ConsumableTabBooking({
             </div>
           )}
 
-          {/* Non-booking: simple standard display */}
+          {/* Non-booking: show actual quantity in room */}
           {!hasBookingData && (
             <div className="text-xs text-muted-foreground">
-              Tiêu chuẩn: {item.standard_quantity}
+              Số lượng: {item.current_quantity ?? item.standard_quantity ?? 0}
             </div>
           )}
 
