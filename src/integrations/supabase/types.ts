@@ -317,6 +317,81 @@ export type Database = {
           },
         ]
       }
+      distribution_order_batches: {
+        Row: {
+          batch_number: number
+          created_at: string | null
+          distribution_order_id: string
+          handed_over_at: string | null
+          handed_over_by: string | null
+          id: string
+          received_at: string | null
+          received_by: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          batch_number: number
+          created_at?: string | null
+          distribution_order_id: string
+          handed_over_at?: string | null
+          handed_over_by?: string | null
+          id?: string
+          received_at?: string | null
+          received_by?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          batch_number?: number
+          created_at?: string | null
+          distribution_order_id?: string
+          handed_over_at?: string | null
+          handed_over_by?: string | null
+          id?: string
+          received_at?: string | null
+          received_by?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distribution_order_batches_distribution_order_id_fkey"
+            columns: ["distribution_order_id"]
+            isOneToOne: false
+            referencedRelation: "distribution_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_order_batches_handed_over_by_fkey"
+            columns: ["handed_over_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_order_batches_handed_over_by_fkey"
+            columns: ["handed_over_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_order_batches_received_by_fkey"
+            columns: ["received_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_order_batches_received_by_fkey"
+            columns: ["received_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       distribution_order_items: {
         Row: {
           created_at: string | null
@@ -370,45 +445,66 @@ export type Database = {
       }
       distribution_order_rooms: {
         Row: {
+          batch_number: number | null
           confirmed_at: string | null
           confirmed_by: string | null
           created_at: string | null
           delivered_at: string | null
           delivered_by: string | null
           distribution_order_id: string
+          exception_reason: string | null
+          exception_type: string | null
+          handover_at: string | null
+          handover_to_order_id: string | null
           id: string
           notes: string | null
           rejection_reason: string | null
+          returned_at: string | null
           room_id: string
           status: string
+          stop_status: string | null
           updated_at: string | null
         }
         Insert: {
+          batch_number?: number | null
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string | null
           delivered_at?: string | null
           delivered_by?: string | null
           distribution_order_id: string
+          exception_reason?: string | null
+          exception_type?: string | null
+          handover_at?: string | null
+          handover_to_order_id?: string | null
           id?: string
           notes?: string | null
           rejection_reason?: string | null
+          returned_at?: string | null
           room_id: string
           status?: string
+          stop_status?: string | null
           updated_at?: string | null
         }
         Update: {
+          batch_number?: number | null
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string | null
           delivered_at?: string | null
           delivered_by?: string | null
           distribution_order_id?: string
+          exception_reason?: string | null
+          exception_type?: string | null
+          handover_at?: string | null
+          handover_to_order_id?: string | null
           id?: string
           notes?: string | null
           rejection_reason?: string | null
+          returned_at?: string | null
           room_id?: string
           status?: string
+          stop_status?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -448,6 +544,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "distribution_order_rooms_handover_to_order_id_fkey"
+            columns: ["handover_to_order_id"]
+            isOneToOne: false
+            referencedRelation: "distribution_orders"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "distribution_order_rooms_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
@@ -459,14 +562,20 @@ export type Database = {
       distribution_orders: {
         Row: {
           assigned_to: string | null
+          batch_size: number | null
           completed_at: string | null
           created_at: string | null
           created_by: string
+          floor: number | null
           hotel_id: string
           id: string
           notes: string | null
           order_code: string
+          released_at: string | null
+          released_by: string | null
           rooms_completed: number | null
+          shift_code: string | null
+          shift_date: string | null
           started_at: string | null
           status: string
           tenant_id: string
@@ -477,14 +586,20 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          batch_size?: number | null
           completed_at?: string | null
           created_at?: string | null
           created_by: string
+          floor?: number | null
           hotel_id: string
           id?: string
           notes?: string | null
           order_code: string
+          released_at?: string | null
+          released_by?: string | null
           rooms_completed?: number | null
+          shift_code?: string | null
+          shift_date?: string | null
           started_at?: string | null
           status?: string
           tenant_id: string
@@ -495,14 +610,20 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          batch_size?: number | null
           completed_at?: string | null
           created_at?: string | null
           created_by?: string
+          floor?: number | null
           hotel_id?: string
           id?: string
           notes?: string | null
           order_code?: string
+          released_at?: string | null
+          released_by?: string | null
           rooms_completed?: number | null
+          shift_code?: string | null
+          shift_date?: string | null
           started_at?: string | null
           status?: string
           tenant_id?: string
@@ -552,6 +673,20 @@ export type Database = {
             columns: ["hotel_id"]
             isOneToOne: false
             referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_orders_released_by_fkey"
+            columns: ["released_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_orders_released_by_fkey"
+            columns: ["released_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
