@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Package, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
+import { Plus, Package, ChevronLeft, ChevronRight, RefreshCw, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { DistributionOrderCard } from '@/components/distribution/components/DistributionOrderCard'
 import { DistributionOrderTable } from '@/components/distribution/components/DistributionOrderTable'
 import { RouteFiltersCard } from '@/components/distribution/components/RouteFiltersCard'
@@ -10,6 +9,7 @@ import { useRoutesWithFilters, useAvailableFloors } from '@/hooks/useRouteFilter
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useQueryClient } from '@tanstack/react-query'
 import type { RouteFilters } from '@/types/route-batch.types'
+import { cn } from '@/lib/utils'
 
 const PAGE_SIZE = 25
 
@@ -52,14 +52,10 @@ export default function DistributionOrdersPage() {
 
   const EmptyState = () => (
     <div className="flex flex-col items-center justify-center py-12 text-center">
-      <Package className="h-12 w-12 text-muted-foreground/50 mb-3" />
-      <p className="text-muted-foreground">Không có phiếu giao hàng nào</p>
-      <Button 
-        variant="outline" 
-        className="mt-4"
-        onClick={() => navigate('/inventory/distributions/new')}
-      >
-        <Plus className="h-4 w-4 mr-2" />
+      <Package className="h-10 w-10 text-muted-foreground/50 mb-2" />
+      <p className="text-sm text-muted-foreground">Không có phiếu giao hàng nào</p>
+      <Button size="sm" className="mt-3" onClick={() => navigate('/inventory/distributions/new')}>
+        <Plus className="h-4 w-4 mr-1" />
         Tạo phiếu mới
       </Button>
     </div>
@@ -69,26 +65,24 @@ export default function DistributionOrdersPage() {
     if (totalPages <= 1) return null
     
     return (
-      <div className="flex items-center justify-between pt-4">
+      <div className="flex items-center gap-2">
         <Button
           variant="outline"
-          size="sm"
+          size="icon"
+          className="h-7 w-7"
           onClick={() => setPage(p => Math.max(1, p - 1))}
           disabled={page === 1}
         >
           <ChevronLeft className="h-4 w-4" />
-          {!isMobile && <span className="ml-1">Trước</span>}
         </Button>
-        <span className="text-sm text-muted-foreground">
-          {page} / {totalPages}
-        </span>
+        <span className="text-xs text-muted-foreground">{page}/{totalPages}</span>
         <Button
           variant="outline"
-          size="sm"
+          size="icon"
+          className="h-7 w-7"
           onClick={() => setPage(p => Math.min(totalPages, p + 1))}
           disabled={page === totalPages}
         >
-          {!isMobile && <span className="mr-1">Sau</span>}
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
@@ -100,19 +94,20 @@ export default function DistributionOrdersPage() {
     return (
       <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-background border-b p-4 space-y-3">
+        <div className="sticky top-0 z-10 bg-background border-b px-3 py-2 space-y-2">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold">Phiếu giao hàng</h1>
-            <div className="flex items-center gap-2">
+            <h1 className="text-base font-semibold">Phiếu giao hàng</h1>
+            <div className="flex items-center gap-1">
               <Button 
                 variant="ghost" 
-                size="icon" 
+                size="icon"
+                className="h-8 w-8"
                 onClick={handleRefresh}
                 disabled={isRefreshing}
               >
-                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
               </Button>
-              <Button size="sm" onClick={() => navigate('/inventory/distributions/new')}>
+              <Button size="sm" className="h-8" onClick={() => navigate('/inventory/distributions/new')}>
                 <Plus className="h-4 w-4 mr-1" />
                 Tạo mới
               </Button>
@@ -131,9 +126,11 @@ export default function DistributionOrdersPage() {
         </div>
 
         {/* List */}
-        <div className="flex-1 overflow-auto p-4 space-y-3">
+        <div className="flex-1 overflow-auto px-3 py-2 space-y-2">
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Đang tải...</div>
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
           ) : filteredOrders.length === 0 ? (
             <EmptyState />
           ) : (
@@ -145,7 +142,11 @@ export default function DistributionOrdersPage() {
                   onClick={() => handleOrderClick(order.id)}
                 />
               ))}
-              <Pagination />
+              {totalPages > 1 && (
+                <div className="flex justify-center pt-2">
+                  <Pagination />
+                </div>
+              )}
             </>
           )}
         </div>
@@ -155,23 +156,24 @@ export default function DistributionOrdersPage() {
 
   // Desktop view
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Phiếu giao hàng</h1>
-          <p className="text-muted-foreground">Quản lý các phiếu giao đồ đến phòng</p>
+          <h1 className="text-lg font-semibold">Phiếu giao hàng</h1>
+          <p className="text-sm text-muted-foreground">Quản lý các phiếu giao đồ đến phòng</p>
         </div>
         <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
             size="icon"
+            className="h-8 w-8"
             onClick={handleRefresh}
             disabled={isRefreshing}
           >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
           </Button>
-          <Button onClick={() => navigate('/inventory/distributions/new')}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button size="sm" onClick={() => navigate('/inventory/distributions/new')}>
+            <Plus className="h-4 w-4 mr-1" />
             Tạo phiếu mới
           </Button>
         </div>
@@ -187,7 +189,7 @@ export default function DistributionOrdersPage() {
       />
 
       {/* Table */}
-      <Card>
+      <div className="border rounded-lg">
         <DistributionOrderTable
           orders={filteredOrders as any}
           onRowClick={(order) => handleOrderClick(order.id)}
@@ -197,14 +199,14 @@ export default function DistributionOrdersPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t">
-            <span className="text-sm text-muted-foreground">
-              Hiển thị {filteredOrders.length} / {totalCount} phiếu
+          <div className="flex items-center justify-between px-4 py-2 border-t">
+            <span className="text-xs text-muted-foreground">
+              {filteredOrders.length}/{totalCount} phiếu
             </span>
             <Pagination />
           </div>
         )}
-      </Card>
+      </div>
     </div>
   )
 }
