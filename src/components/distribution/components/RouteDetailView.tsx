@@ -34,10 +34,11 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
   const { data: route, isLoading, error } = useRouteDetail(orderId)
   const closeRoute = useCloseRoute()
 
-  // Check user roles
+  // Check user roles based on user_level_code
   const isAssignee = user?.id === route?.assigned_to
-  const isLeader = true // TODO: Check actual role via usePermission or similar
-  const isStorekeeper = true // TODO: Check actual role
+  const userLevel = (user as any)?.user_level_code || ''
+  const isLeader = ['tenant_owner', 'manager', 'supervisor'].includes(userLevel)
+  const isStorekeeper = ['tenant_owner', 'manager', 'warehouse_manager', 'storekeeper'].includes(userLevel)
 
   // Calculate progress
   const totalStops = route?.stops?.length || 0
