@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, Bed, AlertCircle } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRooms, useRoomStats } from '@/hooks/useRooms'
@@ -107,15 +106,13 @@ export default function RoomsPage() {
             {isLoading ? (
               // Loading skeletons
               Array.from({ length: 8 }).map((_, i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardHeader className="space-y-2">
-                    <div className="h-4 bg-muted rounded w-20" />
-                    <div className="h-3 bg-muted rounded w-16" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-20 bg-muted rounded" />
-                  </CardContent>
-                </Card>
+                <div key={i} className="animate-pulse border rounded-lg p-3">
+                  <div className="flex justify-between mb-2">
+                    <div className="h-4 bg-muted rounded w-16" />
+                    <div className="h-4 bg-muted rounded w-12" />
+                  </div>
+                  <div className="h-3 bg-muted rounded w-20" />
+                </div>
               ))
             ) : (
               rooms?.map((room) => (
@@ -145,34 +142,27 @@ interface StatusCardProps {
   onClick: () => void
 }
 
-function StatusCard({ label, count, status, active, onClick }: StatusCardProps) {
-  const getStatusColor = () => {
-    const colors = {
-      vacant: 'text-green-600 bg-green-50 dark:bg-green-950',
-      occupied: 'text-blue-600 bg-blue-50 dark:bg-blue-950',
-      check_in: 'text-purple-600 bg-purple-50 dark:bg-purple-950',
-      check_out: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950',
-      cleaning: 'text-yellow-600 bg-yellow-50 dark:bg-yellow-950',
-      maintenance: 'text-orange-600 bg-orange-50 dark:bg-orange-950',
-      out_of_order: 'text-red-600 bg-red-50 dark:bg-red-950',
-    }
-    return colors[status]
-  }
+const statusTextColors = {
+  vacant: 'text-green-600 dark:text-green-400',
+  occupied: 'text-blue-600 dark:text-blue-400',
+  check_in: 'text-purple-600 dark:text-purple-400',
+  check_out: 'text-indigo-600 dark:text-indigo-400',
+  cleaning: 'text-amber-600 dark:text-amber-400',
+  maintenance: 'text-orange-600 dark:text-orange-400',
+  out_of_order: 'text-destructive',
+}
 
+function StatusCard({ label, count, status, active, onClick }: StatusCardProps) {
   return (
-    <Card 
-      className={`cursor-pointer transition-all hover:shadow-md ${
-        active ? 'ring-2 ring-primary' : ''
-      }`}
+    <button
       onClick={onClick}
+      className={`flex flex-col items-center p-3 rounded-lg border transition-colors hover:bg-muted/50 ${
+        active ? 'ring-2 ring-primary bg-muted/30' : ''
+      }`}
     >
-      <CardHeader className="pb-3">
-        <CardDescription>{label}</CardDescription>
-        <CardTitle className={`text-3xl ${getStatusColor()}`}>
-          {count}
-        </CardTitle>
-      </CardHeader>
-    </Card>
+      <span className={`text-2xl font-bold ${statusTextColors[status]}`}>{count}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
+    </button>
   )
 }
 
@@ -183,37 +173,36 @@ interface RoomCardProps {
 
 function RoomCard({ room, onClick }: RoomCardProps) {
   return (
-    <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={onClick}>
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-xl">P{room.room_number}</CardTitle>
-            <CardDescription>Tầng {room.floor}</CardDescription>
-          </div>
-          <RoomStatusSelector 
-            roomId={room.id} 
-            currentStatus={room.status}
-          />
+    <div 
+      className="p-3 border rounded-lg cursor-pointer hover:border-primary hover:bg-muted/30 transition-colors"
+      onClick={onClick}
+    >
+      <div className="flex items-start justify-between mb-2">
+        <div>
+          <p className="font-semibold">P{room.room_number}</p>
+          <p className="text-xs text-muted-foreground">Tầng {room.floor}</p>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center gap-2">
-            <Bed className="h-4 w-4 text-muted-foreground" />
-            <span className="capitalize">{room.room_type}</span>
-          </div>
-          {(room.missing_items > 0 || room.items_in_laundry > 0) && (
-            <div className="flex items-center gap-2 text-orange-600">
-              <AlertCircle className="h-4 w-4" />
-              <span>
-                {room.missing_items > 0 && `${room.missing_items} thiếu`}
-                {room.missing_items > 0 && room.items_in_laundry > 0 && ', '}
-                {room.items_in_laundry > 0 && `${room.items_in_laundry} giặt`}
-              </span>
-            </div>
-          )}
+        <RoomStatusSelector 
+          roomId={room.id} 
+          currentStatus={room.status}
+        />
+      </div>
+      <div className="flex items-center justify-between text-sm">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Bed className="h-3.5 w-3.5" />
+          <span className="capitalize text-xs">{room.room_type}</span>
         </div>
-      </CardContent>
-    </Card>
+        {(room.missing_items > 0 || room.items_in_laundry > 0) && (
+          <div className="flex items-center gap-1 text-amber-600 text-xs">
+            <AlertCircle className="h-3.5 w-3.5" />
+            <span>
+              {room.missing_items > 0 && `${room.missing_items} thiếu`}
+              {room.missing_items > 0 && room.items_in_laundry > 0 && ', '}
+              {room.items_in_laundry > 0 && `${room.items_in_laundry} giặt`}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
