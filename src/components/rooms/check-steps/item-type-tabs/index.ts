@@ -1,4 +1,5 @@
 export { LinenTab } from './LinenTab'
 export { ConsumableTab } from './ConsumableTab'
+export { ConsumableTabBooking } from './ConsumableTabBooking'
 export { EquipmentTab } from './EquipmentTab'
 export { FurnitureTab } from './FurnitureTab'
