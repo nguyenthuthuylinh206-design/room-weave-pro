@@ -1,20 +1,17 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Filter, Search, Package, DollarSign, AlertTriangle, XCircle, FolderOpen, SlidersHorizontal, X } from 'lucide-react'
+import { Plus, Search, Package, DollarSign, AlertTriangle, XCircle, SlidersHorizontal, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { MobileItemCard, PullToRefresh, StatScrollContainer, MobileStatCard } from '@/components/mobile'
+import { MobileItemCard, PullToRefresh } from '@/components/mobile'
 import { useItems } from '@/hooks/useItems'
 import { useCategories } from '@/hooks/useCategories'
 import type { ItemFilters, StockStatus } from '@/types/items.types'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { formatCurrency } from '@/lib/utils'
-import { motion, AnimatePresence } from 'framer-motion'
-import { cn } from '@/lib/utils'
 
 export function MobileItemsPage() {
   const navigate = useNavigate()
@@ -64,185 +61,159 @@ export function MobileItemsPage() {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b">
-        <div className="p-4 space-y-3">
+      <div className="sticky top-0 z-20 bg-background border-b">
+        <div className="p-3 space-y-2">
           {/* Title & Add Button */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold">Tài sản</h1>
+              <h1 className="text-lg font-semibold">Tài sản</h1>
               <p className="text-xs text-muted-foreground">{totalItems} sản phẩm</p>
             </div>
             <Button
-              size="icon"
+              size="sm"
               onClick={() => navigate('/items/new')}
-              className="rounded-full h-11 w-11 shadow-lg"
+              className="h-8 px-3"
             >
-              <Plus className="h-5 w-5" />
+              <Plus className="h-4 w-4 mr-1" />
+              Thêm
             </Button>
           </div>
           
-          {/* Search */}
-          <div className="relative">
-            <Search className={cn(
-              "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transition-colors",
-              searchFocused ? "text-primary" : "text-muted-foreground"
-            )} />
-            <Input
-              placeholder="Tìm theo tên, mã sản phẩm..."
-              value={filters.search || ''}
-              onChange={(e) => handleFilterChange({ search: e.target.value })}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-              className="pl-10 pr-10 h-11 text-base rounded-xl bg-muted/50 border-0 focus-visible:ring-2"
-            />
-            <AnimatePresence>
+          {/* Search & Filter */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Tìm theo tên, mã..."
+                value={filters.search || ''}
+                onChange={(e) => handleFilterChange({ search: e.target.value })}
+                className="h-9 pl-8 pr-8 text-sm"
+              />
               {filters.search && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
+                <button
                   onClick={clearSearch}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2"
                 >
                   <X className="h-4 w-4 text-muted-foreground" />
-                </motion.button>
+                </button>
               )}
-            </AnimatePresence>
+            </div>
+            
+            <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 px-2.5">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  {activeFiltersCount > 0 && (
+                    <span className="ml-1 text-xs">{activeFiltersCount}</span>
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-auto rounded-t-2xl">
+                <SheetHeader className="pb-3">
+                  <SheetTitle className="text-left text-base">Bộ lọc</SheetTitle>
+                </SheetHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-medium mb-1.5 block">Danh mục</label>
+                    <Select
+                      value={filters.categoryId || 'all'}
+                      onValueChange={(value) => 
+                        handleFilterChange({ categoryId: value === 'all' ? undefined : value })
+                      }
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Chọn danh mục" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tất cả</SelectItem>
+                        {categories?.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs font-medium mb-1.5 block">Trạng thái</label>
+                    <Select
+                      value={filters.status || 'active'}
+                      onValueChange={(value) => 
+                        handleFilterChange({ status: value as any })
+                      }
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Đang dùng</SelectItem>
+                        <SelectItem value="discontinued">Ngừng dùng</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        setFilters({ status: 'active' })
+                        setIsFilterOpen(false)
+                      }}
+                    >
+                      Xóa lọc
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => setIsFilterOpen(false)}
+                    >
+                      Áp dụng
+                    </Button>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
-          
-          {/* Filters Button */}
-          <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" className="w-full h-11 gap-2 rounded-xl">
-                <SlidersHorizontal className="h-4 w-4" />
-                Bộ lọc
-                {activeFiltersCount > 0 && (
-                  <Badge className="ml-auto rounded-full h-5 w-5 p-0 flex items-center justify-center">
-                    {activeFiltersCount}
-                  </Badge>
-                )}
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="h-[70vh] rounded-t-3xl">
-              <SheetHeader className="pb-4">
-                <SheetTitle className="text-left">Bộ lọc nâng cao</SheetTitle>
-              </SheetHeader>
-              <div className="space-y-5">
-                {/* Category Filter */}
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Danh mục</label>
-                  <Select
-                    value={filters.categoryId || 'all'}
-                    onValueChange={(value) => 
-                      handleFilterChange({ categoryId: value === 'all' ? undefined : value })
-                    }
-                  >
-                    <SelectTrigger className="h-12 rounded-xl">
-                      <SelectValue placeholder="Chọn danh mục" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tất cả danh mục</SelectItem>
-                      {categories?.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                {/* Status Filter */}
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Trạng thái hoạt động</label>
-                  <Select
-                    value={filters.status || 'active'}
-                    onValueChange={(value) => 
-                      handleFilterChange({ status: value as any })
-                    }
-                  >
-                    <SelectTrigger className="h-12 rounded-xl">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Đang hoạt động</SelectItem>
-                      <SelectItem value="discontinued">Ngừng sử dụng</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    variant="outline"
-                    className="flex-1 h-12 rounded-xl"
-                    onClick={() => {
-                      setFilters({ status: 'active' })
-                      setIsFilterOpen(false)
-                    }}
-                  >
-                    Xóa bộ lọc
-                  </Button>
-                  <Button
-                    className="flex-1 h-12 rounded-xl"
-                    onClick={() => setIsFilterOpen(false)}
-                  >
-                    Áp dụng
-                  </Button>
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
         </div>
         
-        {/* Stats */}
-        <StatScrollContainer className="px-4 pb-3">
-          <MobileStatCard
-            icon={Package}
-            title="Tổng số"
-            value={totalItems.toString()}
-            variant="default"
-          />
-          <MobileStatCard
-            icon={DollarSign}
-            title="Tổng giá trị"
-            value={formatCurrency(totalValue)}
-            variant="success"
-          />
-          <MobileStatCard
-            icon={AlertTriangle}
-            title="Sắp hết"
-            value={lowStockCount.toString()}
-            variant={lowStockCount > 0 ? "warning" : "default"}
-          />
-          <MobileStatCard
-            icon={XCircle}
-            title="Hết hàng"
-            value={outOfStockCount.toString()}
-            variant={outOfStockCount > 0 ? "destructive" : "default"}
-          />
-          <MobileStatCard
-            icon={FolderOpen}
-            title="Danh mục"
-            value={categoriesCount.toString()}
-            variant="default"
-          />
-        </StatScrollContainer>
+        {/* Stats Row */}
+        <div className="flex gap-4 px-3 pb-2 text-xs overflow-x-auto">
+          <div className="flex items-center gap-1 whitespace-nowrap">
+            <Package className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="font-medium">{totalItems}</span>
+            <span className="text-muted-foreground">sản phẩm</span>
+          </div>
+          <div className="flex items-center gap-1 whitespace-nowrap">
+            <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="font-medium">{formatCurrency(totalValue)}</span>
+          </div>
+          {lowStockCount > 0 && (
+            <div className="flex items-center gap-1 whitespace-nowrap text-yellow-600">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              <span className="font-medium">{lowStockCount}</span>
+              <span>thấp</span>
+            </div>
+          )}
+          {outOfStockCount > 0 && (
+            <div className="flex items-center gap-1 whitespace-nowrap text-red-600">
+              <XCircle className="h-3.5 w-3.5" />
+              <span className="font-medium">{outOfStockCount}</span>
+              <span>hết</span>
+            </div>
+          )}
+        </div>
         
         {/* Stock Status Tabs */}
-        <div className="px-4 pb-3">
+        <div className="px-3 pb-2">
           <Tabs value={activeStockStatus} onValueChange={handleTabChange}>
-            <TabsList className="w-full grid grid-cols-4 h-10 rounded-xl bg-muted/50 p-1">
-              <TabsTrigger value="all" className="text-xs rounded-lg data-[state=active]:shadow-sm">
-                Tất cả
-              </TabsTrigger>
-              <TabsTrigger value="in_stock" className="text-xs rounded-lg data-[state=active]:shadow-sm">
-                Còn hàng
-              </TabsTrigger>
-              <TabsTrigger value="low_stock" className="text-xs rounded-lg data-[state=active]:shadow-sm">
-                Sắp hết
-              </TabsTrigger>
-              <TabsTrigger value="out_of_stock" className="text-xs rounded-lg data-[state=active]:shadow-sm">
-                Hết
-              </TabsTrigger>
+            <TabsList className="w-full grid grid-cols-4 h-8 p-0.5">
+              <TabsTrigger value="all" className="text-xs h-7">Tất cả</TabsTrigger>
+              <TabsTrigger value="in_stock" className="text-xs h-7">Đủ</TabsTrigger>
+              <TabsTrigger value="low_stock" className="text-xs h-7">Thấp</TabsTrigger>
+              <TabsTrigger value="out_of_stock" className="text-xs h-7">Hết</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -251,57 +222,39 @@ export function MobileItemsPage() {
       {/* Items List */}
       <div className="flex-1 overflow-auto">
         <PullToRefresh onRefresh={handleRefresh}>
-          <div className="p-4 space-y-3 pb-24">
+          <div className="p-3 space-y-2 pb-20">
             {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <div className="flex flex-col items-center justify-center py-10">
                 <LoadingSpinner />
-                <p className="text-sm text-muted-foreground">Đang tải...</p>
+                <p className="text-xs text-muted-foreground mt-2">Đang tải...</p>
               </div>
             ) : data?.items.length === 0 ? (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-center py-12"
-              >
-                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                  <Package className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <p className="font-medium">Không có tài sản nào</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {filters.search ? 'Thử tìm kiếm với từ khóa khác' : 'Bắt đầu thêm tài sản mới'}
-                </p>
+              <div className="text-center py-10">
+                <Package className="h-8 w-8 text-muted-foreground/50 mx-auto" />
+                <p className="text-sm text-muted-foreground mt-2">Không có tài sản nào</p>
                 {!filters.search && (
-                  <Button onClick={() => navigate('/items/new')} className="mt-4 rounded-xl">
-                    <Plus className="h-4 w-4 mr-2" />
+                  <Button size="sm" onClick={() => navigate('/items/new')} className="mt-3">
+                    <Plus className="h-4 w-4 mr-1" />
                     Thêm tài sản
                   </Button>
                 )}
-              </motion.div>
+              </div>
             ) : (
               <>
-                <AnimatePresence mode="popLayout">
-                  {data?.items.map((item, index) => (
-                    <motion.div
-                      key={item.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ delay: index * 0.03 }}
-                    >
-                      <MobileItemCard
-                        item={item}
-                        onView={() => navigate(`/items/${item.id}`)}
-                        onEdit={() => navigate(`/items/${item.id}/edit`)}
-                      />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                {data?.items.map((item) => (
+                  <MobileItemCard
+                    key={item.id}
+                    item={item}
+                    onView={() => navigate(`/items/${item.id}`)}
+                    onEdit={() => navigate(`/items/${item.id}/edit`)}
+                  />
+                ))}
                 
-                {/* Load More */}
                 {data && data.page < data.totalPages && (
                   <Button
-                    variant="outline"
-                    className="w-full h-12 rounded-xl mt-4"
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs"
                     onClick={() => setPage(p => p + 1)}
                   >
                     Xem thêm ({data.total - data.items.length} còn lại)
