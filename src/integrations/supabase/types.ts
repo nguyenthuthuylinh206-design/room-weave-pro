@@ -5517,6 +5517,14 @@ export type Database = {
         Args: { p_cancelled_by: string; p_order_id: string }
         Returns: Json
       }
+      check_and_update_batch_status: {
+        Args: { p_batch_id: string }
+        Returns: undefined
+      }
+      check_and_update_order_status: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
       check_expiring_subscriptions: { Args: never; Returns: undefined }
       check_tenant_can_add: {
         Args: { p_resource_type: string; p_tenant_id: string }
@@ -5524,6 +5532,10 @@ export type Database = {
       }
       cleanup_old_check_sessions: { Args: never; Returns: undefined }
       cleanup_orphaned_auth_users: { Args: never; Returns: number }
+      close_route_if_complete: {
+        Args: { p_actor_id?: string; p_order_id: string }
+        Returns: Json
+      }
       complete_registration: {
         Args: {
           p_email: string
@@ -5733,6 +5745,14 @@ export type Database = {
       }
       create_super_admin: {
         Args: { p_email: string; p_full_name?: string }
+        Returns: Json
+      }
+      deliver_stop: {
+        Args: {
+          p_actor_id?: string
+          p_items_confirmed?: Json
+          p_room_order_id: string
+        }
         Returns: Json
       }
       generate_invoice_number: { Args: never; Returns: string }
@@ -6355,6 +6375,19 @@ export type Database = {
         Args: { p_transaction_id: string }
         Returns: undefined
       }
+      handover_batch: {
+        Args: { p_actor_id?: string; p_batch_id: string }
+        Returns: Json
+      }
+      handover_stop_create_next_route: {
+        Args: {
+          p_actor_id?: string
+          p_next_assignee_id?: string
+          p_next_shift_code: string
+          p_room_order_id: string
+        }
+        Returns: Json
+      }
       has_permission: {
         Args: { _permission_code: string; _user_id: string }
         Returns: boolean
@@ -6404,6 +6437,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      mark_cannot_access: {
+        Args: {
+          p_actor_id?: string
+          p_exception_reason?: string
+          p_exception_type: string
+          p_room_order_id: string
+        }
+        Returns: Json
+      }
       process_expired_subscriptions: { Args: never; Returns: undefined }
       queue_email_notification: {
         Args: {
@@ -6421,6 +6463,10 @@ export type Database = {
         Args: { p_new_manager_id: string; p_old_manager_id: string }
         Returns: number
       }
+      receive_batch: {
+        Args: { p_actor_id?: string; p_batch_id: string }
+        Returns: Json
+      }
       refresh_monthly_expenses: { Args: never; Returns: undefined }
       reject_room_delivery: {
         Args: {
@@ -6432,6 +6478,14 @@ export type Database = {
       }
       reject_tenant: {
         Args: { p_admin_id: string; p_reason: string; p_tenant_id: string }
+        Returns: Json
+      }
+      retry_stop: {
+        Args: { p_actor_id?: string; p_room_order_id: string }
+        Returns: Json
+      }
+      return_to_stock_for_stop: {
+        Args: { p_actor_id?: string; p_room_order_id: string }
         Returns: Json
       }
       schedule_renewal_reminders: { Args: never; Returns: undefined }
