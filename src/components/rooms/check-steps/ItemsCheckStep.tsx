@@ -25,6 +25,7 @@ interface ItemsCheckStepProps {
   items: RoomItemWithDetails[];
   roomId: string;
   hotelId: string;
+  tenantId: string;
   bookingId?: string | null;
   onQuantitiesChange?: (quantities: Record<string, number>) => void;
 }
@@ -56,6 +57,7 @@ export function ItemsCheckStep({
   items,
   roomId,
   hotelId,
+  tenantId,
   bookingId,
   onQuantitiesChange
 }: ItemsCheckStepProps) {
@@ -478,6 +480,8 @@ export function ItemsCheckStep({
           <ConsumableTabBooking
             items={filterBySearch(consumableItemsList)}
             bookingId={bookingId || null}
+            roomId={roomId}
+            tenantId={tenantId}
             consumedItems={consumedItems}
             onMarkConsumed={handleMarkConsumed}
             onRemoveConsumed={removeFromConsumed}
