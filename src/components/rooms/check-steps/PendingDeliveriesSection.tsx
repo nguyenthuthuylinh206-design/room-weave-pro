@@ -1,9 +1,7 @@
-import { Package, Check, Loader2, Truck, Clock } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Package, Check, Loader2, Truck, Clock, CheckCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Separator } from '@/components/ui/separator'
 import {
   Accordion,
   AccordionContent,
@@ -17,6 +15,7 @@ import {
 } from '@/hooks/usePendingDeliveries'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
+import { useState } from 'react'
 
 interface PendingDeliveriesSectionProps {
   roomId: string
@@ -29,6 +28,7 @@ export function PendingDeliveriesSection({
 }: PendingDeliveriesSectionProps) {
   const { data: pendingDeliveries, isLoading } = usePendingDeliveriesForRoom(roomId)
   const confirmDelivery = useConfirmDeliveryFromRoomCheck()
+  const [confirmingAll, setConfirmingAll] = useState(false)
 
   if (isLoading) {
     return null
@@ -41,6 +41,18 @@ export function PendingDeliveriesSection({
   const handleConfirmDelivery = async (roomOrderId: string) => {
     await confirmDelivery.mutateAsync({ roomOrderId })
     onDeliveryConfirmed?.()
+  }
+
+  const handleConfirmAll = async () => {
+    setConfirmingAll(true)
+    try {
+      for (const delivery of pendingDeliveries) {
+        await confirmDelivery.mutateAsync({ roomOrderId: delivery.room_order_id })
+      }
+      onDeliveryConfirmed?.()
+    } finally {
+      setConfirmingAll(false)
+    }
   }
 
   const totalItems = pendingDeliveries.reduce(
@@ -61,13 +73,35 @@ export function PendingDeliveriesSection({
         </Badge>
       </AlertTitle>
       <AlertDescription className="mt-3">
+        {/* Confirm All Button */}
+        {pendingDeliveries.length > 1 && (
+          <Button 
+            onClick={handleConfirmAll}
+            disabled={confirmingAll || confirmDelivery.isPending}
+            className="w-full mb-3"
+            variant="default"
+          >
+            {confirmingAll ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Đang xác nhận...
+              </>
+            ) : (
+              <>
+                <CheckCheck className="mr-2 h-4 w-4" />
+                Xác nhận tất cả {pendingDeliveries.length} phiếu
+              </>
+            )}
+          </Button>
+        )}
+
         <Accordion type="multiple" className="w-full">
           {pendingDeliveries.map((delivery) => (
             <DeliveryAccordionItem 
               key={delivery.room_order_id}
               delivery={delivery}
               onConfirm={handleConfirmDelivery}
-              isConfirming={confirmDelivery.isPending}
+              isConfirming={confirmDelivery.isPending || confirmingAll}
             />
           ))}
         </Accordion>
@@ -110,14 +144,15 @@ function DeliveryAccordionItem({
               {itemCount} items
             </Badge>
             {delivery.stop_status === 'pending' && (
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                 <Clock className="h-3 w-3 mr-1" />
                 Chờ giao
               </Badge>
             )}
             {delivery.stop_status === 'received' && (
-              <Badge className="text-xs bg-blue-500">
-                Đã nhận batch
+              <Badge className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                <Package className="h-3 w-3 mr-1" />
+                Đang giao
               </Badge>
             )}
           </div>
@@ -125,31 +160,19 @@ function DeliveryAccordionItem({
       </AccordionTrigger>
       <AccordionContent className="px-4 pb-4">
         <div className="space-y-3">
-          {/* Items list */}
-          <div className="rounded-md border">
-            <div className="p-2 bg-muted/30 border-b">
-              <span className="text-xs font-medium text-muted-foreground">
-                Danh sách đồ cần nhận
-              </span>
-            </div>
-            <div className="divide-y">
-              {delivery.items.map((item) => (
-                <div 
-                  key={item.id} 
-                  className="flex items-center justify-between px-3 py-2"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">{item.item_name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      ({item.item_code})
-                    </span>
-                  </div>
-                  <Badge variant="secondary">
-                    x{item.quantity}
-                  </Badge>
-                </div>
-              ))}
-            </div>
+          {/* Items list - compact layout without item codes */}
+          <div className="grid grid-cols-1 gap-1">
+            {delivery.items.map((item) => (
+              <div 
+                key={item.id} 
+                className="flex items-center justify-between py-1.5 px-3 bg-muted/30 rounded"
+              >
+                <span className="text-sm font-medium">{item.item_name}</span>
+                <Badge variant="outline" className="text-xs">
+                  x{item.quantity}
+                </Badge>
+              </div>
+            ))}
           </div>
 
           {/* Time info */}
