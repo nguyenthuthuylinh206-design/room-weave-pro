@@ -1,22 +1,15 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Package, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
+import { Plus, Package, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Card } from '@/components/ui/card'
 import { DistributionOrderCard } from '@/components/distribution/components/DistributionOrderCard'
 import { DistributionOrderTable } from '@/components/distribution/components/DistributionOrderTable'
-import { useDistributionOrders } from '@/hooks/useDistributionOrders'
+import { RouteFiltersCard } from '@/components/distribution/components/RouteFiltersCard'
+import { useRoutesWithFilters, useAvailableFloors } from '@/hooks/useRouteFilters'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useQueryClient } from '@tanstack/react-query'
-import type { DistributionOrderStatus } from '@/types/distribution.types'
+import type { RouteFilters } from '@/types/route-batch.types'
 
 const PAGE_SIZE = 25
 
@@ -25,16 +18,13 @@ export default function DistributionOrdersPage() {
   const isMobile = useIsMobile()
   const queryClient = useQueryClient()
   
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [filters, setFilters] = useState<RouteFilters>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(1)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  const { data, isLoading } = useDistributionOrders(
-    { status: statusFilter === 'all' ? undefined : statusFilter as DistributionOrderStatus },
-    page,
-    PAGE_SIZE
-  )
+  const { data, isLoading } = useRoutesWithFilters(filters, page, PAGE_SIZE)
+  const { data: availableFloors = [] } = useAvailableFloors()
 
   const orders = data?.data || []
   const totalCount = data?.totalCount || 0
@@ -47,12 +37,12 @@ export default function DistributionOrdersPage() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
-    await queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
+    await queryClient.invalidateQueries({ queryKey: ['distribution-routes'] })
     setIsRefreshing(false)
   }
 
-  const handleStatusChange = (value: string) => {
-    setStatusFilter(value)
+  const handleFiltersChange = (newFilters: RouteFilters) => {
+    setFilters(newFilters)
     setPage(1)
   }
 
@@ -128,18 +118,16 @@ export default function DistributionOrdersPage() {
               </Button>
             </div>
           </div>
-          <Select value={statusFilter} onValueChange={handleStatusChange}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Tất cả trạng thái" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả trạng thái</SelectItem>
-              <SelectItem value="pending">Chờ giao</SelectItem>
-              <SelectItem value="in_progress">Đang giao</SelectItem>
-              <SelectItem value="completed">Hoàn thành</SelectItem>
-              <SelectItem value="cancelled">Đã hủy</SelectItem>
-            </SelectContent>
-          </Select>
+          <RouteFiltersCard
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            floors={availableFloors}
+            onRefresh={handleRefresh}
+            isRefreshing={isRefreshing}
+            isMobile
+          />
         </div>
 
         {/* List */}
@@ -153,7 +141,7 @@ export default function DistributionOrdersPage() {
               {filteredOrders.map(order => (
                 <DistributionOrderCard
                   key={order.id}
-                  order={order}
+                  order={order as any}
                   onClick={() => handleOrderClick(order.id)}
                 />
               ))}
@@ -173,53 +161,35 @@ export default function DistributionOrdersPage() {
           <h1 className="text-2xl font-bold">Phiếu giao hàng</h1>
           <p className="text-muted-foreground">Quản lý các phiếu giao đồ đến phòng</p>
         </div>
-        <Button onClick={() => navigate('/inventory/distributions/new')}>
-          <Plus className="h-4 w-4 mr-2" />
-          Tạo phiếu mới
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button onClick={() => navigate('/inventory/distributions/new')}>
+            <Plus className="h-4 w-4 mr-2" />
+            Tạo phiếu mới
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="py-4">
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Tìm theo mã phiếu..."
-                className="pl-9" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={handleStatusChange}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Trạng thái" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả</SelectItem>
-                <SelectItem value="pending">Chờ giao</SelectItem>
-                <SelectItem value="in_progress">Đang giao</SelectItem>
-                <SelectItem value="completed">Hoàn thành</SelectItem>
-                <SelectItem value="cancelled">Đã hủy</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button 
-              variant="outline" 
-              size="icon"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-            >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <RouteFiltersCard
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        floors={availableFloors}
+      />
 
       {/* Table */}
       <Card>
         <DistributionOrderTable
-          orders={filteredOrders}
+          orders={filteredOrders as any}
           onRowClick={(order) => handleOrderClick(order.id)}
           isLoading={isLoading}
           emptyMessage={<EmptyState />}

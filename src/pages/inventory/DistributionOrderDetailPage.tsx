@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { ArrowLeft, Ban, Printer, Pencil } from 'lucide-react'
+import { ArrowLeft, Ban, Printer, Pencil, Route } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { OrderStatusBadge } from '@/components/distribution/components/DistributionStatusBadge'
 import { RoomDeliveryCard } from '@/components/distribution/components/RoomDeliveryCard'
 import { DistributionSummaryCards } from '@/components/distribution/components/DistributionSummaryCards'
+import { RouteDetailView } from '@/components/distribution/components/RouteDetailView'
 import { CancelOrderDialog } from '@/components/distribution/dialogs/CancelOrderDialog'
 import { UndoDeliveryDialog } from '@/components/distribution/dialogs/UndoDeliveryDialog'
 import { EditDistributionDialog } from '@/components/distribution/dialogs/EditDistributionDialog'
@@ -30,6 +32,7 @@ export default function DistributionOrderDetailPage() {
   const [showUndoDialog, setShowUndoDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [selectedRoom, setSelectedRoom] = useState<DistributionOrderRoom | null>(null)
+  const [activeTab, setActiveTab] = useState<'route' | 'legacy'>('route')
   
   const { data: order, isLoading } = useDistributionOrderDetail(id)
   const { mutate: cancelOrder, isPending: isCancelling } = useCancelDistributionOrder()
@@ -101,7 +104,7 @@ export default function DistributionOrderDetailPage() {
     setShowUndoDialog(true)
   }
 
-  // Mobile view
+  // Mobile view - Use RouteDetailView directly
   if (isMobile) {
     return (
       <>
@@ -187,7 +190,7 @@ export default function DistributionOrderDetailPage() {
     )
   }
 
-  // Desktop view
+  // Desktop view with Tabs for Route vs Legacy view
   return (
     <div className="container mx-auto py-6 space-y-6">
       {/* Header */}
@@ -230,36 +233,57 @@ export default function DistributionOrderDetailPage() {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <DistributionSummaryCards
-        totalRooms={totalRooms}
-        completedRooms={completedRooms}
-        totalItems={order.total_items}
-        assignedTo={order.assigned_to_name}
-      />
+      {/* Tabs: Route View vs Legacy View */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'route' | 'legacy')}>
+        <TabsList>
+          <TabsTrigger value="route" className="gap-2">
+            <Route className="h-4 w-4" />
+            Route / Batch / Stop
+          </TabsTrigger>
+          <TabsTrigger value="legacy">
+            Xem theo phòng
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Progress */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Tiến độ giao hàng</span>
-          <span className="font-medium">{progress}% ({completedRooms}/{totalRooms} phòng)</span>
-        </div>
-        <Progress value={progress} className="h-3" />
-      </div>
+        {/* Route View */}
+        <TabsContent value="route" className="mt-6">
+          {id && <RouteDetailView orderId={id} embedded />}
+        </TabsContent>
 
-      {/* Rooms Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {order.rooms?.map(room => (
-          <RoomDeliveryCard
-            key={room.id}
-            room={room}
-            isWarehouseManager={isWarehouseManager}
-            onConfirmDelivery={handleConfirmDelivery}
-            onUndoDelivery={handleOpenUndo}
-            isConfirming={isConfirmingWarehouse}
+        {/* Legacy View */}
+        <TabsContent value="legacy" className="mt-6 space-y-6">
+          {/* Summary Cards */}
+          <DistributionSummaryCards
+            totalRooms={totalRooms}
+            completedRooms={completedRooms}
+            totalItems={order.total_items}
+            assignedTo={order.assigned_to_name}
           />
-        ))}
-      </div>
+
+          {/* Progress */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Tiến độ giao hàng</span>
+              <span className="font-medium">{progress}% ({completedRooms}/{totalRooms} phòng)</span>
+            </div>
+            <Progress value={progress} className="h-3" />
+          </div>
+
+          {/* Rooms Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {order.rooms?.map(room => (
+              <RoomDeliveryCard
+                key={room.id}
+                room={room}
+                isWarehouseManager={isWarehouseManager}
+                onConfirmDelivery={handleConfirmDelivery}
+                onUndoDelivery={handleOpenUndo}
+                isConfirming={isConfirmingWarehouse}
+              />
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Dialogs */}
       <CancelOrderDialog

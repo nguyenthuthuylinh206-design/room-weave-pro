@@ -24,9 +24,10 @@ import { vi } from 'date-fns/locale'
 
 interface RouteDetailViewProps {
   orderId: string
+  embedded?: boolean // When true, hides header (used in detail page)
 }
 
-export function RouteDetailView({ orderId }: RouteDetailViewProps) {
+export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewProps) {
   const { t } = useTranslation('distribution')
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -76,32 +77,52 @@ export function RouteDetailView({ orderId }: RouteDetailViewProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">{route.order_code}</h1>
-            <div className="flex items-center gap-2 mt-1">
-              <OrderStatusBadge status={route.status as any} />
-              {route.shift_code && <ShiftBadge shift={route.shift_code as ShiftCode} />}
+      {/* Header - only show when not embedded */}
+      {!embedded && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">{route.order_code}</h1>
+              <div className="flex items-center gap-2 mt-1">
+                <OrderStatusBadge status={route.status as any} />
+                {route.shift_code && <ShiftBadge shift={route.shift_code as ShiftCode} />}
+              </div>
             </div>
           </div>
-        </div>
 
-        {canClose && (
-          <Button
-            onClick={() => closeRoute.mutate({ orderId: route.id })}
-            disabled={closeRoute.isPending}
-            className="gap-2"
-          >
-            <Lock className="h-4 w-4" />
-            {closeRoute.isPending ? 'Đang đóng...' : 'Đóng Route'}
-          </Button>
-        )}
-      </div>
+          {canClose && (
+            <Button
+              onClick={() => closeRoute.mutate({ orderId: route.id })}
+              disabled={closeRoute.isPending}
+              className="gap-2"
+            >
+              <Lock className="h-4 w-4" />
+              {closeRoute.isPending ? 'Đang đóng...' : 'Đóng Route'}
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Shift badge when embedded - show separately */}
+      {embedded && route.shift_code && (
+        <div className="flex items-center gap-2">
+          <ShiftBadge shift={route.shift_code as ShiftCode} />
+          {canClose && (
+            <Button
+              size="sm"
+              onClick={() => closeRoute.mutate({ orderId: route.id })}
+              disabled={closeRoute.isPending}
+              className="ml-auto gap-2"
+            >
+              <Lock className="h-4 w-4" />
+              {closeRoute.isPending ? 'Đang đóng...' : 'Đóng Route'}
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Info Cards */}
       <div className="grid gap-4 md:grid-cols-4">
