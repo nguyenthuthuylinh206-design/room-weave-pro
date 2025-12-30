@@ -136,8 +136,10 @@ export function BatchAccordion({
         
         // Permission logic for actions
         const canHandover = isStorekeeper && batch.status === 'open' && !isVirtual
-        const canReceive = isAssignee && batch.status === 'handed_over' && !isVirtual
-        const canDeliverStops = isAssignee && (batch.status === 'received' || isVirtual) && orderStatus === 'in_progress'
+        // Skip receive step - allow delivery right after handover
+        const canDeliverStops = isAssignee && 
+          (batch.status === 'handed_over' || batch.status === 'received' || isVirtual) && 
+          orderStatus === 'in_progress'
 
         return (
           <AccordionItem
@@ -178,36 +180,20 @@ export function BatchAccordion({
             </AccordionTrigger>
 
             <AccordionContent className="px-4 pb-4">
-              {/* Action buttons */}
-              {(canHandover || canReceive) && (
-                <div className="mb-4 flex gap-2">
-                  {canHandover && (
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handoverBatch.mutate({ batchId: batch.id })
-                      }}
-                      disabled={handoverBatch.isPending}
-                      className="gap-2"
-                    >
-                      <Truck className="h-4 w-4" />
-                      {handoverBatch.isPending ? 'Đang xử lý...' : 'Giao batch này'}
-                    </Button>
-                  )}
-                  {canReceive && (
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        receiveBatch.mutate({ batchId: batch.id })
-                      }}
-                      disabled={receiveBatch.isPending}
-                      variant="secondary"
-                      className="gap-2"
-                    >
-                      <Package className="h-4 w-4" />
-                      {receiveBatch.isPending ? 'Đang xử lý...' : 'Nhận batch này'}
-                    </Button>
-                  )}
+              {/* Action buttons - Storekeeper handover only */}
+              {canHandover && (
+                <div className="mb-4">
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handoverBatch.mutate({ batchId: batch.id })
+                    }}
+                    disabled={handoverBatch.isPending}
+                    className="gap-2"
+                  >
+                    <Truck className="h-4 w-4" />
+                    {handoverBatch.isPending ? 'Đang xử lý...' : 'Giao batch này'}
+                  </Button>
                 </div>
               )}
 
