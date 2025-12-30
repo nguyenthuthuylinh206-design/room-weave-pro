@@ -1,4 +1,4 @@
-export type DistributionOrderStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled'
+export type DistributionOrderStatus = 'pending' | 'released' | 'in_progress' | 'completed' | 'cancelled'
 export type DistributionRoomStatus = 'pending' | 'delivered' | 'confirmed' | 'rejected'
 
 export interface DistributionOrder {

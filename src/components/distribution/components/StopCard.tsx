@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -62,6 +63,7 @@ export function StopCard({
   onAction,
 }: StopCardProps) {
   const { t } = useTranslation('distribution')
+  const navigate = useNavigate()
   const [showCannotAccessDialog, setShowCannotAccessDialog] = useState(false)
   const [showHandoverDialog, setShowHandoverDialog] = useState(false)
   const [exceptionType, setExceptionType] = useState<ExceptionType>('guest_inside')
@@ -73,6 +75,11 @@ export function StopCard({
   const retryStop = useRetryStop()
   const returnToStock = useReturnToStock()
   const handoverStop = useHandoverStop()
+
+  // Navigate to room check page when clicking on room
+  const handleRoomClick = () => {
+    navigate(`/rooms/${stop.room_id}/check?distribution_order_id=${stop.distribution_order_id}&room_order_id=${stop.id}`)
+  }
 
   const handleDeliver = () => {
     deliverStop.mutate(
@@ -141,15 +148,19 @@ export function StopCard({
       >
         <CardContent className="p-3">
           <div className="flex items-start justify-between gap-3">
-            {/* Room info */}
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary shrink-0">
+            {/* Room info - clickable to navigate to room check */}
+            <div 
+              className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer hover:bg-muted/50 rounded-lg p-2 -m-2 transition-colors group"
+              onClick={handleRoomClick}
+            >
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary shrink-0 group-hover:bg-primary/20 transition-colors">
                 <DoorOpen className="h-5 w-5" />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold">{stop.room_number}</span>
                   <StopStatusBadge status={stop.stop_status} />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1">

@@ -571,6 +571,8 @@ export type Database = {
           id: string
           notes: string | null
           order_code: string
+          received_at: string | null
+          received_by: string | null
           released_at: string | null
           released_by: string | null
           rooms_completed: number | null
@@ -595,6 +597,8 @@ export type Database = {
           id?: string
           notes?: string | null
           order_code: string
+          received_at?: string | null
+          received_by?: string | null
           released_at?: string | null
           released_by?: string | null
           rooms_completed?: number | null
@@ -619,6 +623,8 @@ export type Database = {
           id?: string
           notes?: string | null
           order_code?: string
+          received_at?: string | null
+          received_by?: string | null
           released_at?: string | null
           released_by?: string | null
           rooms_completed?: number | null
@@ -673,6 +679,20 @@ export type Database = {
             columns: ["hotel_id"]
             isOneToOne: false
             referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_orders_received_by_fkey"
+            columns: ["received_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_orders_received_by_fkey"
+            columns: ["received_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -5571,6 +5591,10 @@ export type Database = {
           }
       confirm_delivery_from_room_check: {
         Args: { p_confirmed_by: string; p_room_order_id: string }
+        Returns: Json
+      }
+      confirm_receive_order: {
+        Args: { p_actor_id?: string; p_order_id: string }
         Returns: Json
       }
       confirm_room_delivery: {

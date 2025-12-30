@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { ArrowLeft, Ban, Printer, Pencil, Route } from 'lucide-react'
+import { ArrowLeft, Ban, Printer, Pencil, Route, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Card, CardContent } from '@/components/ui/card'
 import { OrderStatusBadge } from '@/components/distribution/components/DistributionStatusBadge'
 import { RoomDeliveryCard } from '@/components/distribution/components/RoomDeliveryCard'
 import { DistributionSummaryCards } from '@/components/distribution/components/DistributionSummaryCards'
@@ -15,6 +16,7 @@ import { UndoDeliveryDialog } from '@/components/distribution/dialogs/UndoDelive
 import { EditDistributionDialog } from '@/components/distribution/dialogs/EditDistributionDialog'
 import { useDistributionOrderDetail, useCancelDistributionOrder, useConfirmWarehouseDelivery } from '@/hooks/useDistributionOrders'
 import { useUndoRoomDelivery } from '@/hooks/useRoomDistributionHistory'
+import { useConfirmReceiveOrder } from '@/hooks/useRouteBatch'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useUser } from '@/hooks/useUser'
 import { printDistributionOrder } from '@/utils/printDistributionOrder'
@@ -38,8 +40,11 @@ export default function DistributionOrderDetailPage() {
   const { mutate: cancelOrder, isPending: isCancelling } = useCancelDistributionOrder()
   const { mutate: undoDelivery, isPending: isUndoing } = useUndoRoomDelivery()
   const { mutate: confirmWarehouseDelivery, isPending: isConfirmingWarehouse } = useConfirmWarehouseDelivery()
+  const { mutate: confirmReceiveOrder, isPending: isConfirmingReceive } = useConfirmReceiveOrder()
 
   const isWarehouseManager = WAREHOUSE_MANAGER_ROLES.includes(user?.user_level_code || '')
+  const isAssignee = user?.id && order?.assigned_to === user.id
+  const canConfirmReceive = order?.status === 'released' && isAssignee
 
   if (isLoading) {
     return (
@@ -104,6 +109,11 @@ export default function DistributionOrderDetailPage() {
     setShowUndoDialog(true)
   }
 
+  const handleConfirmReceive = () => {
+    if (!id) return
+    confirmReceiveOrder({ orderId: id })
+  }
+
   // Mobile view - Use RouteDetailView directly
   if (isMobile) {
     return (
@@ -139,6 +149,24 @@ export default function DistributionOrderDetailPage() {
               </Button>
             </div>
           </div>
+
+          {/* Confirm Receive Button for Assignee */}
+          {canConfirmReceive && (
+            <div className="p-4 bg-primary/5 border-b">
+              <Button
+                onClick={handleConfirmReceive}
+                disabled={isConfirmingReceive}
+                className="w-full h-14 text-lg gap-2"
+                size="lg"
+              >
+                <CheckCircle className="h-6 w-6" />
+                {isConfirmingReceive ? 'Đang xử lý...' : 'Xác nhận đã nhận đủ hàng'}
+              </Button>
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                Ấn để xác nhận bạn đã nhận đủ hàng từ kho
+              </p>
+            </div>
+          )}
 
           {/* Progress */}
           <div className="p-4 bg-muted/30 border-b">
@@ -246,7 +274,32 @@ export default function DistributionOrderDetailPage() {
         </TabsList>
 
         {/* Route View */}
-        <TabsContent value="route" className="mt-6">
+        <TabsContent value="route" className="mt-6 space-y-4">
+          {/* Confirm Receive Button for Assignee (Desktop) */}
+          {canConfirmReceive && (
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-lg">Xác nhận nhận hàng</h3>
+                    <p className="text-muted-foreground">
+                      Vui lòng xác nhận bạn đã nhận đủ hàng từ kho trước khi đi giao
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleConfirmReceive}
+                    disabled={isConfirmingReceive}
+                    size="lg"
+                    className="gap-2 h-12 px-6"
+                  >
+                    <CheckCircle className="h-5 w-5" />
+                    {isConfirmingReceive ? 'Đang xử lý...' : 'Xác nhận đã nhận đủ hàng'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
           {id && <RouteDetailView orderId={id} embedded />}
         </TabsContent>
 

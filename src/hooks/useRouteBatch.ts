@@ -430,3 +430,36 @@ export function useCloseRoute() {
     },
   })
 }
+
+/**
+ * Employee confirms receipt of all items for the order (deducts inventory)
+ */
+export function useConfirmReceiveOrder() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async ({ orderId }: { orderId: string }) => {
+      if (!user?.id) throw new Error('User not authenticated')
+
+      const { data, error } = await supabase.rpc('confirm_receive_order', {
+        p_order_id: orderId,
+        p_actor_id: user.id,
+      })
+
+      if (error) throw error
+      return data as { success: boolean; order_id: string; message: string }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['route-batches'] })
+      queryClient.invalidateQueries({ queryKey: ['route-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+      toast.success('Đã xác nhận nhận hàng thành công')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Không thể xác nhận nhận hàng')
+    },
+  })
+}
