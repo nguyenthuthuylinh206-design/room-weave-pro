@@ -96,20 +96,19 @@ export function ItemTable({
   
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-16">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="mt-4 text-sm text-muted-foreground">Đang tải danh sách tài sản...</p>
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <p className="mt-2 text-xs text-muted-foreground">Đang tải...</p>
       </div>
     )
   }
   
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <Package className="h-12 w-12 text-muted-foreground/50" />
-        <h3 className="mt-4 text-lg font-semibold">Không tìm thấy tài sản</h3>
+      <div className="flex flex-col items-center justify-center py-10 text-center">
+        <Package className="h-8 w-8 text-muted-foreground/50" />
         <p className="mt-2 text-sm text-muted-foreground">
-          Thử thay đổi bộ lọc hoặc thêm tài sản mới
+          Không tìm thấy tài sản
         </p>
       </div>
     )
@@ -119,129 +118,114 @@ export function ItemTable({
   const startIndex = (page - 1) * pageSize + 1
   const endIndex = Math.min(page * pageSize, total)
   
+  const getStockColor = (status: string) => {
+    switch (status) {
+      case 'in_stock': return 'text-green-600'
+      case 'low_stock': return 'text-yellow-600'
+      case 'out_of_stock': return 'text-red-600'
+      default: return 'text-muted-foreground'
+    }
+  }
+  
+  const getStockLabel = (status: string) => {
+    switch (status) {
+      case 'in_stock': return 'Đủ'
+      case 'low_stock': return 'Thấp'
+      case 'out_of_stock': return 'Hết'
+      default: return status
+    }
+  }
+  
   return (
-    <div className="space-y-4">
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">
+    <div className="space-y-3">
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="w-10 py-2">
+              <Checkbox
+                checked={selectedItems.length === items.length && items.length > 0}
+                onCheckedChange={handleSelectAll}
+              />
+            </TableHead>
+            <TableHead className="w-12 py-2 text-xs">Ảnh</TableHead>
+            <TableHead className="py-2 text-xs">Tên / Mã</TableHead>
+            <TableHead className="py-2 text-xs">Danh mục</TableHead>
+            <TableHead className="py-2 text-xs text-right">Giá</TableHead>
+            <TableHead className="py-2 text-xs text-center">Kho</TableHead>
+            <TableHead className="py-2 text-xs text-center">Dùng</TableHead>
+            <TableHead className="py-2 text-xs">Trạng thái</TableHead>
+            <TableHead className="w-10 py-2"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map((item) => (
+            <TableRow
+              key={item.id}
+              className="cursor-pointer hover:bg-muted/30"
+              onClick={() => navigate(`/items/${item.id}`)}
+            >
+              <TableCell className="py-2" onClick={(e) => e.stopPropagation()}>
                 <Checkbox
-                  checked={selectedItems.length === items.length && items.length > 0}
-                  onCheckedChange={handleSelectAll}
+                  checked={selectedItems.includes(item.id)}
+                  onCheckedChange={(checked) => 
+                    handleSelectItem(item.id, checked as boolean)
+                  }
                 />
-              </TableHead>
-              <TableHead className="w-16">Ảnh</TableHead>
-              <TableHead>Mã & Tên</TableHead>
-              <TableHead>Danh mục</TableHead>
-              <TableHead>Đơn vị</TableHead>
-              <TableHead className="text-right">Giá</TableHead>
-              <TableHead>Tồn kho</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead className="w-12"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => (
-              <TableRow
-                key={item.id}
-                className="cursor-pointer hover:bg-muted/50"
-                onClick={() => navigate(`/items/${item.id}`)}
-              >
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <Checkbox
-                    checked={selectedItems.includes(item.id)}
-                    onCheckedChange={(checked) => 
-                      handleSelectItem(item.id, checked as boolean)
-                    }
+              </TableCell>
+              <TableCell className="py-2">
+                {item.item_images?.[0]?.url ? (
+                  <img
+                    src={item.item_images[0].url}
+                    alt={item.name}
+                    className="h-9 w-9 rounded object-cover"
                   />
-                </TableCell>
-                <TableCell>
-                  {item.item_images?.[0]?.url ? (
-                    <img
-                      src={item.item_images[0].url}
-                      alt={item.name}
-                      className="h-12 w-12 rounded object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded bg-muted">
-                      <Package className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    <p className="font-medium leading-none">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">{item.code}</p>
+                ) : (
+                  <div className="flex h-9 w-9 items-center justify-center rounded bg-muted">
+                    <Package className="h-4 w-4 text-muted-foreground" />
                   </div>
-                </TableCell>
-                <TableCell>
-                  {item.category_name && (
-                    <Badge
-                      variant="outline"
-                      style={{
-                        borderColor: item.category_color || undefined,
-                        color: item.category_color || undefined,
-                      }}
-                    >
-                      {item.category_name}
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell>{item.unit}</TableCell>
-                <TableCell className="text-right font-medium">
-                  {formatCurrency(item.unit_price)}
-                </TableCell>
-                <TableCell>
-                  <div className="space-y-1 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="text-green-600">Kho:</span>
-                      <span className="font-medium">{item.quantity_in_stock}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-yellow-600">Dùng:</span>
-                      <span className="font-medium">{item.quantity_in_use}</span>
-                    </div>
-                    {item.quantity_in_laundry > 0 && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-cyan-600">Giặt:</span>
-                        <span className="font-medium">{item.quantity_in_laundry}</span>
-                      </div>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      item.stock_status === 'in_stock'
-                        ? 'default'
-                        : item.stock_status === 'low_stock'
-                        ? 'secondary'
-                        : 'destructive'
-                    }
-                    className={cn(
-                      item.stock_status === 'low_stock' && 
-                      'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                    )}
+                )}
+              </TableCell>
+              <TableCell className="py-2">
+                <div>
+                  <p className="text-sm font-medium leading-tight">{item.name}</p>
+                  <p className="text-xs text-muted-foreground">{item.code}</p>
+                </div>
+              </TableCell>
+              <TableCell className="py-2">
+                {item.category_name && (
+                  <span 
+                    className="text-xs font-medium"
+                    style={{ color: item.category_color || undefined }}
                   >
-                    {item.stock_status === 'in_stock' && 'Đủ hàng'}
-                    {item.stock_status === 'low_stock' && 'Thấp'}
-                    {item.stock_status === 'out_of_stock' && 'Hết'}
-                  </Badge>
-                </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <ItemActions item={item} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                    {item.category_name}
+                  </span>
+                )}
+              </TableCell>
+              <TableCell className="py-2 text-right text-sm">
+                {formatCurrency(item.unit_price)}
+              </TableCell>
+              <TableCell className="py-2 text-center text-sm font-medium">
+                {item.quantity_in_stock}
+              </TableCell>
+              <TableCell className="py-2 text-center text-sm text-muted-foreground">
+                {item.quantity_in_use}
+              </TableCell>
+              <TableCell className="py-2">
+                <span className={cn('text-xs font-medium', getStockColor(item.stock_status))}>
+                  {getStockLabel(item.stock_status)}
+                </span>
+              </TableCell>
+              <TableCell className="py-2" onClick={(e) => e.stopPropagation()}>
+                <ItemActions item={item} />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
       
       {/* Pagination */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>Hiển thị</span>
+      <div className="flex items-center justify-between border-t pt-3">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Select
             value={pageSize.toString()}
             onValueChange={(value) => {
@@ -249,7 +233,7 @@ export function ItemTable({
               onPageChange(1)
             }}
           >
-            <SelectTrigger className="h-8 w-16">
+            <SelectTrigger className="h-7 w-14 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -259,57 +243,31 @@ export function ItemTable({
               <SelectItem value="100">100</SelectItem>
             </SelectContent>
           </Select>
-          <span>
-            {startIndex}-{endIndex} trong {total} tài sản
-          </span>
+          <span>/ {total}</span>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
+            className="h-7 w-7 p-0"
             onClick={() => onPageChange(page - 1)}
             disabled={page === 1}
           >
             <ChevronLeft className="h-4 w-4" />
-            Trước
           </Button>
           
-          <div className="flex items-center gap-1">
-            {[...Array(Math.min(5, totalPages))].map((_, i) => {
-              let pageNum: number
-              
-              if (totalPages <= 5) {
-                pageNum = i + 1
-              } else if (page <= 3) {
-                pageNum = i + 1
-              } else if (page >= totalPages - 2) {
-                pageNum = totalPages - 4 + i
-              } else {
-                pageNum = page - 2 + i
-              }
-              
-              return (
-                <Button
-                  key={pageNum}
-                  variant={page === pageNum ? 'default' : 'outline'}
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => onPageChange(pageNum)}
-                >
-                  {pageNum}
-                </Button>
-              )
-            })}
-          </div>
+          <span className="px-2 text-xs text-muted-foreground">
+            {page}/{totalPages}
+          </span>
           
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
+            className="h-7 w-7 p-0"
             onClick={() => onPageChange(page + 1)}
             disabled={page === totalPages}
           >
-            Sau
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

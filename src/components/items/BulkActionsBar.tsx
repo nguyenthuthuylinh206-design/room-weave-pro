@@ -149,86 +149,81 @@ export function BulkActionsBar({
   }
   
   return (
-    <Card className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 shadow-lg">
-      <div className="flex items-center gap-4 p-4">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClearSelection}
-            className="h-8 w-8 p-0"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium">
-            Đã chọn {selectedCount} items
-          </span>
-        </div>
-        
-        <div className="h-4 w-px bg-border" />
-        
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
-            {isExporting ? (
-              <div className="mr-2">
-                <LoadingSpinner size="sm" />
-              </div>
-            ) : (
-              <FileDown className="mr-2 h-4 w-4" />
-            )}
-            Xuất Excel
-          </Button>
-          
-          <Button variant="outline" size="sm" onClick={handlePrintQR}>
-            <QrCode className="mr-2 h-4 w-4" />
-            In QR
-          </Button>
-          
-          <Button variant="outline" size="sm" onClick={handleDiscontinue} disabled={isDiscontinuing}>
-            {isDiscontinuing ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Ban className="mr-2 h-4 w-4" />
-            )}
-            Ngừng KD
-          </Button>
-          
-          <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Xóa
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Bạn có chắc muốn xóa {selectedCount} items đã chọn?
-                  Hành động này không thể hoàn tác.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={deleteItems.isPending}>Hủy</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDelete}
-                  disabled={deleteItems.isPending}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  {deleteItems.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Đang xóa...
-                    </>
-                  ) : (
-                    'Xóa'
-                  )}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+    <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-lg border bg-background px-3 py-2 shadow-md">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClearSelection}
+          className="h-7 w-7 p-0"
+        >
+          <X className="h-3.5 w-3.5" />
+        </Button>
+        <span className="text-xs font-medium">
+          {selectedCount} đã chọn
+        </span>
       </div>
-    </Card>
+      
+      <div className="h-4 w-px bg-border" />
+      
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleExport} disabled={isExporting}>
+          {isExporting ? (
+            <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <FileDown className="mr-1 h-3.5 w-3.5" />
+          )}
+          Excel
+        </Button>
+        
+        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handlePrintQR}>
+          <QrCode className="mr-1 h-3.5 w-3.5" />
+          QR
+        </Button>
+        
+        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleDiscontinue} disabled={isDiscontinuing}>
+          {isDiscontinuing ? (
+            <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Ban className="mr-1 h-3.5 w-3.5" />
+          )}
+          Ngừng
+        </Button>
+        
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive hover:text-destructive">
+              <Trash2 className="mr-1 h-3.5 w-3.5" />
+              Xóa
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
+              <AlertDialogDescription>
+                Bạn có chắc muốn xóa {selectedCount} items đã chọn?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleteItems.isPending}>Hủy</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                disabled={deleteItems.isPending}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteItems.isPending ? (
+                  <>
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    Đang xóa...
+                  </>
+                ) : (
+                  'Xóa'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </div>
   )
 }
