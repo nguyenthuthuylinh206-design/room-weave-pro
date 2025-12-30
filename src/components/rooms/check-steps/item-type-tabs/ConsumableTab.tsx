@@ -28,6 +28,8 @@ export function ConsumableTab({
 }: ConsumableTabProps) {
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [needRefill, setNeedRefill] = useState<Record<string, boolean>>({})
+  const [okItems, setOkItems] = useState<Set<string>>(new Set())
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
 
   const getConsumedInfo = (itemId: string) => {
     return consumedItems.find(i => i.item_id === itemId)
@@ -38,7 +40,67 @@ export function ConsumableTab({
 
   // Get checked count for a category
   const getCategoryCheckedCount = (categoryItems: ExtendedRoomItem[]) => {
-    return categoryItems.filter(item => getConsumedInfo(item.item_id)).length
+    return categoryItems.filter(item => 
+      okItems.has(item.item_id) || getConsumedInfo(item.item_id)
+    ).length
+  }
+
+  const handleMarkOk = (itemId: string) => {
+    setOkItems(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId)
+      } else {
+        newSet.add(itemId)
+        onRemoveConsumed(itemId)
+      }
+      return newSet
+    })
+    setExpandedItems(prev => {
+      const newSet = new Set(prev)
+      newSet.delete(itemId)
+      return newSet
+    })
+  }
+
+  const handleMarkAllOk = (categoryItems: ExtendedRoomItem[]) => {
+    setOkItems(prev => {
+      const newSet = new Set(prev)
+      categoryItems.forEach(item => {
+        newSet.add(item.item_id)
+        onRemoveConsumed(item.item_id)
+      })
+      return newSet
+    })
+    setExpandedItems(new Set())
+  }
+
+  const toggleExpand = (itemId: string) => {
+    setExpandedItems(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId)
+      } else {
+        newSet.add(itemId)
+        setOkItems(p => {
+          const ns = new Set(p)
+          ns.delete(itemId)
+          return ns
+        })
+      }
+      return newSet
+    })
+  }
+
+  const handleConfirmConsumed = (item: ExtendedRoomItem) => {
+    const qty = quantities[item.item_id] ?? 1
+    const refill = needRefill[item.item_id] ?? true
+    onMarkConsumed(item, qty, refill)
+    setExpandedItems(prev => {
+      const newSet = new Set(prev)
+      newSet.delete(item.item_id)
+      return newSet
+    })
   }
 
   if (items.length === 0) {
@@ -54,107 +116,138 @@ export function ConsumableTab({
 
   const renderItemCard = (item: ExtendedRoomItem) => {
     const consumed = getConsumedInfo(item.item_id)
+    const isOk = okItems.has(item.item_id)
+    const isExpanded = expandedItems.has(item.item_id)
     const qty = quantities[item.item_id] ?? 1
     const refill = needRefill[item.item_id] ?? true
 
+    // Status badge
+    const getStatusBadge = () => {
+      if (consumed) {
+        return (
+          <Badge variant="secondary" className="flex-shrink-0 text-xs">
+            <Package className="mr-1 h-3 w-3" />
+            Đã dùng {consumed.quantity}
+          </Badge>
+        )
+      }
+      if (isOk) {
+        return (
+          <Badge className="flex-shrink-0 bg-green-500/10 text-green-600 text-xs">
+            <Check className="mr-1 h-3 w-3" />
+            Đủ
+          </Badge>
+        )
+      }
+      return null
+    }
+
     return (
-      <Card key={item.item_id} className={consumed ? 'border-primary bg-primary/5' : ''}>
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-3">
-            {/* Item Info */}
-            <div className="flex items-start gap-3">
-              {item.item_thumbnail ? (
-                <img
-                  src={item.item_thumbnail}
-                  alt={item.item_name}
-                  className="w-12 h-12 object-cover rounded-lg flex-shrink-0"
-                />
-              ) : (
-                <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Droplets className="h-6 w-6 text-muted-foreground" />
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-sm">{item.item_name}</h4>
-                <p className="text-xs text-muted-foreground">{item.item_code}</p>
-                <p className="text-xs text-muted-foreground">Số lượng chuẩn: {item.standard_quantity}</p>
-              </div>
-              {consumed ? (
-                <Badge variant="secondary" className="flex-shrink-0">
-                  <Package className="mr-1 h-3 w-3" />
-                  Đã dùng {consumed.quantity}
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="flex-shrink-0">
-                  <Check className="mr-1 h-3 w-3" />
-                  Chưa dùng
-                </Badge>
-              )}
-            </div>
-
-            {consumed ? (
-              <div className="flex items-center justify-between">
-                <div className="text-sm">
-                  {consumed.need_refill ? (
-                    <span className="text-primary">Cần bổ sung {consumed.quantity}</span>
-                  ) : (
-                    <span className="text-muted-foreground">Không bổ sung</span>
-                  )}
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-9"
-                  onClick={() => onRemoveConsumed(item.item_id)}
-                >
-                  Hủy
-                </Button>
-              </div>
+      <Card key={item.item_id} className={`${consumed ? 'border-primary bg-primary/5' : isOk ? 'border-green-500/50 bg-green-500/5' : ''}`}>
+        <CardContent className="p-3">
+          {/* Row 1: Info + Status Badge */}
+          <div className="flex items-center gap-3">
+            {item.item_thumbnail ? (
+              <img
+                src={item.item_thumbnail}
+                alt={item.item_name}
+                className="w-10 h-10 object-cover rounded-lg flex-shrink-0"
+              />
             ) : (
-              <>
-                {/* Quantity & Refill */}
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs whitespace-nowrap">Số lượng:</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={item.standard_quantity}
-                      value={qty}
-                      onChange={(e) => setQuantities(prev => ({
-                        ...prev,
-                        [item.item_id]: parseInt(e.target.value) || 1
-                      }))}
-                      className="w-16 h-9"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={refill}
-                      onCheckedChange={(checked) => setNeedRefill(prev => ({
-                        ...prev,
-                        [item.item_id]: checked
-                      }))}
-                    />
-                    <Label className="text-xs">Bổ sung ngay</Label>
-                  </div>
-                </div>
+              <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+                <Droplets className="h-5 w-5 text-muted-foreground" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium text-sm truncate">{item.item_name}</h4>
+              <span className="text-xs text-muted-foreground">SL: {item.standard_quantity}</span>
+            </div>
+            {getStatusBadge()}
+          </div>
 
-                {/* Action Button - Improved touch target */}
+          {/* Row 2: Action Buttons - only show if not consumed */}
+          {consumed ? (
+            <div className="flex items-center justify-between mt-2">
+              <div className="text-sm">
+                {consumed.need_refill ? (
+                  <span className="text-primary">Cần bổ sung {consumed.quantity}</span>
+                ) : (
+                  <span className="text-muted-foreground">Không bổ sung</span>
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-9"
+                onClick={() => onRemoveConsumed(item.item_id)}
+              >
+                Hủy
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-2 mt-2">
                 <Button
                   type="button"
-                  variant="outline"
-                  size="default"
-                  className="w-full h-11 active:scale-[0.98] transition-transform"
-                  onClick={() => onMarkConsumed(item, qty, refill)}
+                  variant={isOk ? "default" : "outline"}
+                  className={`flex-1 h-10 ${isOk ? 'bg-green-500 hover:bg-green-600' : ''}`}
+                  onClick={() => handleMarkOk(item.item_id)}
                 >
-                  <Package className="mr-2 h-4 w-4" />
+                  <Check className="h-4 w-4 mr-1" />
+                  Đủ
+                </Button>
+                <Button
+                  type="button"
+                  variant={isExpanded ? "default" : "outline"}
+                  className="flex-1 h-10"
+                  onClick={() => toggleExpand(item.item_id)}
+                >
+                  <Package className="h-4 w-4 mr-1" />
                   Khách đã dùng
                 </Button>
-              </>
-            )}
-          </div>
+              </div>
+
+              {/* Row 3: Expandable Details */}
+              {isExpanded && (
+                <div className="mt-3 p-3 bg-muted/50 rounded-lg animate-in slide-in-from-top-2">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs">SL:</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={item.standard_quantity}
+                        value={qty}
+                        onChange={(e) => setQuantities(prev => ({
+                          ...prev,
+                          [item.item_id]: parseInt(e.target.value) || 1
+                        }))}
+                        className="w-16 h-9"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={refill}
+                        onCheckedChange={(checked) => setNeedRefill(prev => ({
+                          ...prev,
+                          [item.item_id]: checked
+                        }))}
+                      />
+                      <Label className="text-xs">Bổ sung</Label>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    className="w-full mt-2 h-10"
+                    onClick={() => handleConfirmConsumed(item)}
+                  >
+                    Xác nhận
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
     )
@@ -165,7 +258,7 @@ export function ConsumableTab({
       {/* Instructions */}
       <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
         <Droplets className="inline-block h-4 w-4 mr-2" />
-        Ghi nhận đồ tiêu hao khách đã sử dụng (bàn chải, kem đánh răng, nước uống...)
+        Ghi nhận đồ tiêu hao khách đã sử dụng
       </div>
 
       {/* Grouped Items by Category */}
@@ -176,6 +269,18 @@ export function ConsumableTab({
           itemCount={categoryItems.length}
           checkedCount={getCategoryCheckedCount(categoryItems)}
           defaultOpen={true}
+          actions={
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 border-green-500 text-green-600 hover:bg-green-500/10"
+              onClick={() => handleMarkAllOk(categoryItems)}
+            >
+              <Check className="h-3 w-3 mr-1" />
+              Tất cả Đủ
+            </Button>
+          }
         >
           {categoryItems.map(renderItemCard)}
         </CategoryGroup>
