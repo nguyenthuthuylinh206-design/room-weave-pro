@@ -6244,6 +6244,7 @@ export type Database = {
           current_qty: number
           item_id: string
           item_name: string
+          item_stock: number
           missing_qty: number
           room_id: string
           room_number: string
