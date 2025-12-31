@@ -1,8 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Badge } from '@/components/ui/badge'
 import { useFloorPlan } from '@/hooks/useFloorPlan'
 import { cn } from '@/lib/utils'
 import { 
@@ -26,49 +24,14 @@ const statusIcons = {
   check_out: LogOut
 }
 
-const statusColors = {
-  vacant: {
-    color: 'bg-emerald-500',
-    bgColor: 'bg-emerald-50 dark:bg-emerald-950/30',
-    borderColor: 'border-emerald-500',
-    textColor: 'text-emerald-700 dark:text-emerald-400'
-  },
-  occupied: {
-    color: 'bg-blue-500',
-    bgColor: 'bg-blue-50 dark:bg-blue-950/30',
-    borderColor: 'border-blue-500',
-    textColor: 'text-blue-700 dark:text-blue-400'
-  },
-  cleaning: {
-    color: 'bg-amber-500',
-    bgColor: 'bg-amber-50 dark:bg-amber-950/30',
-    borderColor: 'border-amber-500',
-    textColor: 'text-amber-700 dark:text-amber-400'
-  },
-  maintenance: {
-    color: 'bg-orange-500',
-    bgColor: 'bg-orange-50 dark:bg-orange-950/30',
-    borderColor: 'border-orange-500',
-    textColor: 'text-orange-700 dark:text-orange-400'
-  },
-  out_of_order: {
-    color: 'bg-red-500',
-    bgColor: 'bg-red-50 dark:bg-red-950/30',
-    borderColor: 'border-red-500',
-    textColor: 'text-red-700 dark:text-red-400'
-  },
-  check_in: {
-    color: 'bg-indigo-500',
-    bgColor: 'bg-indigo-50 dark:bg-indigo-950/30',
-    borderColor: 'border-indigo-500',
-    textColor: 'text-indigo-700 dark:text-indigo-400'
-  },
-  check_out: {
-    color: 'bg-purple-500',
-    bgColor: 'bg-purple-50 dark:bg-purple-950/30',
-    borderColor: 'border-purple-500',
-    textColor: 'text-purple-700 dark:text-purple-400'
-  }
+const statusConfig = {
+  vacant: { color: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500' },
+  occupied: { color: 'text-blue-600 dark:text-blue-400', dot: 'bg-blue-500' },
+  cleaning: { color: 'text-amber-600 dark:text-amber-400', dot: 'bg-amber-500' },
+  maintenance: { color: 'text-orange-600 dark:text-orange-400', dot: 'bg-orange-500' },
+  out_of_order: { color: 'text-red-600 dark:text-red-400', dot: 'bg-red-500' },
+  check_in: { color: 'text-indigo-600 dark:text-indigo-400', dot: 'bg-indigo-500' },
+  check_out: { color: 'text-purple-600 dark:text-purple-400', dot: 'bg-purple-500' }
 }
 
 export function RoomFloorPlan() {
@@ -76,28 +39,24 @@ export function RoomFloorPlan() {
   const navigate = useNavigate()
   const { data: floorPlan, isLoading } = useFloorPlan()
 
-  const getStatusConfig = (status: string) => {
-    const colors = statusColors[status as keyof typeof statusColors] || statusColors.vacant
+  const getConfig = (status: string) => {
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.vacant
     const Icon = statusIcons[status as keyof typeof statusIcons] || DoorOpen
-    return { ...colors, icon: Icon, label: t(`status.${status}`) }
+    return { ...config, icon: Icon, label: t(`status.${status}`) }
   }
   
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         {[...Array(3)].map((_, i) => (
-          <Card key={i}>
-            <CardHeader>
-              <Skeleton className="h-6 w-32" />
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-3 flex-wrap">
-                {[...Array(8)].map((_, j) => (
-                  <Skeleton key={j} className="h-24 w-28" />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <div key={i} className="border rounded-lg p-3">
+            <Skeleton className="h-5 w-24 mb-3" />
+            <div className="flex gap-2 flex-wrap">
+              {[...Array(8)].map((_, j) => (
+                <Skeleton key={j} className="h-16 w-20" />
+              ))}
+            </div>
+          </div>
         ))}
       </div>
     )
@@ -105,9 +64,9 @@ export function RoomFloorPlan() {
   
   if (!floorPlan || Object.keys(floorPlan).length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-        <p className="text-muted-foreground">{t('floorPlan.noData')}</p>
+      <div className="flex flex-col items-center justify-center py-8 text-center">
+        <Building2 className="h-10 w-10 text-muted-foreground mb-3" />
+        <p className="text-sm text-muted-foreground">{t('floorPlan.noData')}</p>
       </div>
     )
   }
@@ -125,48 +84,31 @@ export function RoomFloorPlan() {
   }, {} as Record<string, number>)
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Legend & Summary */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-lg">{t('floorPlan.statusLegend')}</h3>
-              <Badge variant="outline" className="text-sm">
-                {t('floorPlan.totalRooms', { count: totalRooms })}
-              </Badge>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {Object.keys(statusColors).map((key) => {
-                const count = statusCounts[key] || 0
-                const config = getStatusConfig(key)
-                const Icon = config.icon
-                return (
-                  <div 
-                    key={key}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-lg border",
-                      config.bgColor,
-                      config.borderColor
-                    )}
-                  >
-                    <Icon className={cn("h-4 w-4", config.textColor)} />
-                    <span className={cn("text-sm font-medium", config.textColor)}>
-                      {config.label}
-                    </span>
-                    <Badge 
-                      variant="secondary" 
-                      className={cn("ml-1 text-xs", config.textColor)}
-                    >
-                      {count}
-                    </Badge>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="border rounded-lg p-3">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium">{t('floorPlan.statusLegend')}</span>
+          <span className="text-xs text-muted-foreground">
+            {t('floorPlan.totalRooms', { count: totalRooms })}
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          {Object.keys(statusConfig).map((key) => {
+            const count = statusCounts[key] || 0
+            const config = getConfig(key)
+            const Icon = config.icon
+            return (
+              <div key={key} className="flex items-center gap-1.5 text-xs">
+                <span className={cn("w-2 h-2 rounded-full", config.dot)} />
+                <Icon className={cn("h-3 w-3", config.color)} />
+                <span className={config.color}>{config.label}</span>
+                <span className="text-muted-foreground">({count})</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
 
       {/* Floor Plans */}
       {floors.map((floor) => {
@@ -177,40 +119,35 @@ export function RoomFloorPlan() {
         }, {} as Record<string, number>)
         
         return (
-          <Card key={floor}>
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
-                    <Building2 className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">{t('floorPlan.floor', { number: floor })}</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      {t('floorPlan.roomCount', { count: rooms.length })}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  {Object.entries(floorStats).map(([status, count]) => {
-                    const config = getStatusConfig(status)
-                    return (
-                      <Badge 
-                        key={status}
-                        variant="outline"
-                        className={cn("text-xs", config.textColor, config.borderColor)}
-                      >
-                        {config.label}: {count}
-                      </Badge>
-                    )
-                  })}
-                </div>
+          <div key={floor} className="border rounded-lg">
+            {/* Floor Header */}
+            <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">
+                  {t('floorPlan.floor', { number: floor })}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  ({rooms.length} {t('floorPlan.rooms')})
+                </span>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+              <div className="flex gap-2">
+                {Object.entries(floorStats).map(([status, count]) => {
+                  const config = getConfig(status)
+                  return (
+                    <span key={status} className={cn("text-xs", config.color)}>
+                      {config.label}: {count}
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
+            
+            {/* Rooms Grid */}
+            <div className="p-3">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
                 {rooms.map((room) => {
-                  const config = getStatusConfig(room.status)
+                  const config = getConfig(room.status)
                   const Icon = config.icon
                   
                   return (
@@ -218,49 +155,32 @@ export function RoomFloorPlan() {
                       key={room.id}
                       onClick={() => navigate(`/rooms/${room.id}`)}
                       className={cn(
-                        "relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200",
-                        "hover:shadow-lg hover:scale-105 active:scale-100",
-                        config.bgColor,
-                        config.borderColor
+                        "relative flex flex-col items-center p-2 rounded-lg border transition-all",
+                        "hover:bg-muted/50 hover:shadow-sm active:scale-95"
                       )}
                     >
-                      {/* Status Icon */}
-                      <div className={cn(
-                        "absolute -top-2 -right-2 p-1.5 rounded-full",
-                        config.color
-                      )}>
-                        <Icon className="h-3 w-3 text-white" />
-                      </div>
+                      {/* Status dot */}
+                      <span className={cn("absolute top-1 right-1 w-2 h-2 rounded-full", config.dot)} />
                       
                       {/* Room Number */}
-                      <div className={cn(
-                        "text-xl font-bold",
-                        config.textColor
-                      )}>
-                        {room.room_number}
-                      </div>
+                      <span className="text-sm font-semibold">{room.room_number}</span>
                       
                       {/* Room Type */}
-                      <Badge 
-                        variant="secondary" 
-                        className="mt-1 text-[10px] px-2 py-0"
-                      >
+                      <span className="text-[10px] text-muted-foreground truncate max-w-full">
                         {t(`roomTypes.${room.room_type}`, { defaultValue: room.room_type })}
-                      </Badge>
-                      
-                      {/* Status Label */}
-                      <span className={cn(
-                        "mt-2 text-[10px] font-medium",
-                        config.textColor
-                      )}>
-                        {config.label}
                       </span>
+                      
+                      {/* Status */}
+                      <div className={cn("flex items-center gap-0.5 mt-0.5", config.color)}>
+                        <Icon className="h-2.5 w-2.5" />
+                        <span className="text-[9px]">{config.label}</span>
+                      </div>
                     </button>
                   )
                 })}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )
       })}
     </div>
