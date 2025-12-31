@@ -21,6 +21,7 @@ export function ItemAllocator({ form, compact = false }: ItemAllocatorProps) {
   const [expandedRooms, setExpandedRooms] = useState<Set<string>>(new Set())
   const [itemSearchTerms, setItemSearchTerms] = useState<Record<string, string>>({})
   const [isAutoFilling, setIsAutoFilling] = useState(false)
+  const [autoFillingRooms, setAutoFillingRooms] = useState<Set<string>>(new Set())
   const { toast } = useToast()
   
   const {
@@ -35,6 +36,7 @@ export function ItemAllocator({ form, compact = false }: ItemAllocatorProps) {
     includeDiscontinued,
     setIncludeDiscontinued,
     autoFillMissingItems,
+    autoFillMissingItemsForRoom,
   } = form
 
   const toggleRoom = (roomId: string) => {
@@ -78,6 +80,31 @@ export function ItemAllocator({ form, compact = false }: ItemAllocatorProps) {
       })
     } finally {
       setIsAutoFilling(false)
+    }
+  }
+
+  const handleAutoFillRoom = async (roomId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setAutoFillingRooms(prev => new Set(prev).add(roomId))
+    
+    try {
+      const result = await autoFillMissingItemsForRoom(roomId)
+      toast({
+        title: result.success ? 'OK' : 'Lỗi',
+        description: result.message,
+        variant: result.success ? 'default' : 'destructive',
+      })
+      
+      // Auto expand room to show results
+      if (result.count && result.count > 0) {
+        setExpandedRooms(prev => new Set(prev).add(roomId))
+      }
+    } finally {
+      setAutoFillingRooms(prev => {
+        const next = new Set(prev)
+        next.delete(roomId)
+        return next
+      })
     }
   }
 
@@ -150,8 +177,19 @@ export function ItemAllocator({ form, compact = false }: ItemAllocatorProps) {
                         </span>
                       </CardTitle>
                       <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs gap-1"
+                          onClick={(e) => handleAutoFillRoom(room.id, e)}
+                          disabled={autoFillingRooms.has(room.id)}
+                        >
+                          <Wand2 className="h-3 w-3" />
+                          {autoFillingRooms.has(room.id) ? '...' : 'Tự động'}
+                        </Button>
                         {totalItems > 0 && (
-                          <Badge variant="secondary">{totalItems} sản phẩm</Badge>
+                          <Badge variant="secondary">{totalItems} SP</Badge>
                         )}
                         <Badge variant="outline" className="text-xs">
                           {isExpanded ? '−' : '+'}
