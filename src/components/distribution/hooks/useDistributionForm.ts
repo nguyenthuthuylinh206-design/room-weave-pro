@@ -60,11 +60,9 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
       }) as typeof rooms
   }, [selectedRoomIds, roomsMap])
   
-  // Available items (has stock)
+  // Available items (has stock - regardless of status)
   const availableItems = useMemo(() => {
-    return items.filter(item => 
-      item.status === 'active' && (item.quantity_in_stock || 0) > 0
-    )
+    return items.filter(item => (item.quantity_in_stock || 0) > 0)
   }, [items])
   
   // Initialize form from order
