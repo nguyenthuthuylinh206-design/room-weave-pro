@@ -333,6 +333,93 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
     setNotes('')
   }, [])
   
+  // Auto-fill missing items based on room standards
+  const autoFillMissingItems = useCallback(async () => {
+    if (selectedRoomIds.length === 0) return { success: false, message: 'Chưa chọn phòng' }
+    
+    try {
+      // Get missing items for all selected rooms using raw query via RPC
+      const { data: missingData, error } = await supabase
+        .rpc('get_missing_items_for_rooms' as any, {
+          p_room_ids: selectedRoomIds,
+        })
+      
+      if (error) throw error
+      
+      const missingItems = missingData as { 
+        room_id: string
+        room_number: string
+        item_id: string
+        item_name: string
+        current_qty: number
+        standard_qty: number
+        missing_qty: number
+      }[] | null
+      
+      if (!missingItems || missingItems.length === 0) {
+        return { success: true, message: 'Không có sản phẩm nào thiếu', count: 0 }
+      }
+      
+      // Filter only items that have stock and are available
+      const itemsWithStock = missingItems.filter((m) => {
+        const item = itemsMap.get(m.item_id)
+        return item && (item.quantity_in_stock || 0) > 0
+      })
+      
+      if (itemsWithStock.length === 0) {
+        return { success: true, message: 'Sản phẩm thiếu không còn tồn kho', count: 0 }
+      }
+      
+      // Group by room_id
+      const byRoom: Record<string, { item_id: string; quantity: number }[]> = {}
+      itemsWithStock.forEach((m) => {
+        if (!byRoom[m.room_id]) byRoom[m.room_id] = []
+        byRoom[m.room_id].push({ item_id: m.item_id, quantity: m.missing_qty })
+      })
+      
+      // Merge with existing allocations
+      setAllocations(prev => {
+        const newAllocs = [...prev]
+        
+        Object.entries(byRoom).forEach(([roomId, items]) => {
+          const existingIdx = newAllocs.findIndex(a => a.room_id === roomId)
+          
+          if (existingIdx >= 0) {
+            // Merge items
+            const existingItems = [...newAllocs[existingIdx].items]
+            items.forEach(({ item_id, quantity }) => {
+              const itemIdx = existingItems.findIndex(i => i.item_id === item_id)
+              if (itemIdx >= 0) {
+                // Add to existing quantity
+                existingItems[itemIdx] = {
+                  ...existingItems[itemIdx],
+                  quantity: existingItems[itemIdx].quantity + quantity,
+                }
+              } else {
+                existingItems.push({ item_id, quantity })
+              }
+            })
+            newAllocs[existingIdx] = { ...newAllocs[existingIdx], items: existingItems }
+          } else {
+            newAllocs.push({ room_id: roomId, items })
+          }
+        })
+        
+        return newAllocs
+      })
+      
+      const totalItems = itemsWithStock.reduce((sum, m) => sum + m.missing_qty, 0)
+      return { 
+        success: true, 
+        message: `Đã thêm ${totalItems} sản phẩm thiếu cho ${Object.keys(byRoom).length} phòng`,
+        count: totalItems,
+      }
+    } catch (err: any) {
+      console.error('Auto-fill error:', err)
+      return { success: false, message: err.message || 'Lỗi khi tự động lấy sản phẩm thiếu' }
+    }
+  }, [selectedRoomIds, itemsMap])
+  
   // Check form validity
   const isValid = useMemo(() => {
     return (
@@ -385,6 +472,7 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
     // Actions
     initFromOrder,
     reset,
+    autoFillMissingItems,
   }
 }
 
