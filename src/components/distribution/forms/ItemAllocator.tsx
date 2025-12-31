@@ -1,15 +1,15 @@
-import { useState, useMemo } from 'react'
-import { Search, Plus, Minus, X, Package, AlertTriangle } from 'lucide-react'
+import { useState } from 'react'
+import { Search, Plus, Minus, X, Package, AlertTriangle, Wand2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/hooks/use-toast'
 import type { DistributionFormReturn } from '../hooks/useDistributionForm'
 
 interface ItemAllocatorProps {
@@ -20,20 +20,21 @@ interface ItemAllocatorProps {
 export function ItemAllocator({ form, compact = false }: ItemAllocatorProps) {
   const [expandedRooms, setExpandedRooms] = useState<Set<string>>(new Set())
   const [itemSearchTerms, setItemSearchTerms] = useState<Record<string, string>>({})
+  const [isAutoFilling, setIsAutoFilling] = useState(false)
+  const { toast } = useToast()
   
   const {
     selectedRooms,
-    allocations,
     getRoomAllocation,
     getItemInfo,
     updateItemQuantity,
     getAvailableItemsForRoom,
     getTotalForItem,
     stockValidation,
-    allocatedItemIds,
     summary,
     includeDiscontinued,
     setIncludeDiscontinued,
+    autoFillMissingItems,
   } = form
 
   const toggleRoom = (roomId: string) => {
@@ -66,6 +67,20 @@ export function ItemAllocator({ form, compact = false }: ItemAllocatorProps) {
     return getTotalForItem(itemId) > (item.quantity_in_stock || 0)
   }
 
+  const handleAutoFill = async () => {
+    setIsAutoFilling(true)
+    try {
+      const result = await autoFillMissingItems()
+      toast({
+        title: result.success ? 'Hoàn tất' : 'Lỗi',
+        description: result.message,
+        variant: result.success ? 'default' : 'destructive',
+      })
+    } finally {
+      setIsAutoFilling(false)
+    }
+  }
+
   if (selectedRooms.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground border rounded-lg border-dashed">
@@ -77,6 +92,24 @@ export function ItemAllocator({ form, compact = false }: ItemAllocatorProps) {
 
   return (
     <div className="space-y-3">
+      {/* Auto-fill button */}
+      <div className="flex items-center justify-between gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleAutoFill}
+          disabled={isAutoFilling}
+          className="gap-1.5"
+        >
+          <Wand2 className="h-3.5 w-3.5" />
+          {isAutoFilling ? 'Đang xử lý...' : 'Tự động lấy SP thiếu'}
+        </Button>
+        <span className="text-xs text-muted-foreground">
+          Theo tiêu chuẩn phòng
+        </span>
+      </div>
+
       {/* Stock validation warning */}
       {!stockValidation.isValid && (
         <Alert variant="destructive">
