@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useRolesManagement } from '@/hooks/useRolesManagement'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Info, Shield } from 'lucide-react'
 
 const MODULE_NAMES: Record<string, string> = {
@@ -48,7 +45,7 @@ export function RolesOverviewTab() {
 
   if (isLoading || loading) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="flex items-center justify-center h-48">
         <LoadingSpinner />
       </div>
     )
@@ -61,53 +58,60 @@ export function RolesOverviewTab() {
   }
 
   return (
-    <div className="space-y-6">
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertDescription>
-          Các vai trò được định nghĩa sẵn trong hệ thống. Để tùy chỉnh quyền cho từng người dùng, sử dụng tab <strong>Cấu hình Quyền</strong>.
-        </AlertDescription>
-      </Alert>
+    <div className="space-y-4">
+      {/* Info Alert */}
+      <div className="flex items-start gap-2 p-3 border rounded-lg bg-muted/30">
+        <Info className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+        <p className="text-xs text-muted-foreground">
+          Các vai trò được định nghĩa sẵn trong hệ thống. Để tùy chỉnh quyền cho từng người dùng, sử dụng tab <span className="font-medium text-foreground">Cấu hình Quyền</span>.
+        </p>
+      </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {/* Roles Grid */}
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {rolesWithPermissions.map((role) => {
           const modules = getModulesForRole(role.permissions)
           
           return (
-            <Card key={role.id}>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-primary" />
-                  <CardTitle>{role.name}</CardTitle>
-                </div>
-                {role.description && (
-                  <CardDescription>{role.description}</CardDescription>
-                )}
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Cấp độ:</span>
-                  <Badge variant="outline">{role.hierarchy_level}</Badge>
-                </div>
-                
-                <div className="space-y-2">
-                  <span className="text-sm font-medium">Modules ({modules.length}):</span>
-                  <div className="flex flex-wrap gap-2">
-                    {modules.map((module) => (
-                      <Badge key={module} variant="secondary">
-                        {MODULE_NAMES[module] || module}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
+            <div key={role.id} className="border rounded-lg p-3 space-y-3">
+              {/* Header */}
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">{role.name}</span>
                 {role.is_system && (
-                  <Badge variant="outline" className="w-fit">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                     Hệ thống
-                  </Badge>
+                  </span>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+              
+              {role.description && (
+                <p className="text-xs text-muted-foreground">{role.description}</p>
+              )}
+
+              {/* Level */}
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground">Cấp độ:</span>
+                <span className="font-medium">{role.hierarchy_level}</span>
+              </div>
+              
+              {/* Modules */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                  Modules ({modules.length})
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {modules.map((module) => (
+                    <span 
+                      key={module} 
+                      className="text-[10px] px-1.5 py-0.5 rounded bg-muted/50 text-foreground"
+                    >
+                      {MODULE_NAMES[module] || module}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
           )
         })}
       </div>

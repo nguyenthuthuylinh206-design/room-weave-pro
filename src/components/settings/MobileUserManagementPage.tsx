@@ -2,18 +2,17 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useUsers } from '@/hooks/useUsers'
 import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { PullToRefresh } from '@/components/mobile/TouchOptimized'
-import { Plus, Search, Users as UsersIcon, Mail, Building2 } from 'lucide-react'
+import { Plus, Search, Users as UsersIcon, Mail, Building2, ChevronRight } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 const USER_LEVEL_CONFIG = {
-  owner: { label: 'Chủ sở hữu', color: 'bg-purple-100 text-purple-800' },
-  manager: { label: 'Quản lý', color: 'bg-blue-100 text-blue-800' },
-  staff: { label: 'Nhân viên', color: 'bg-gray-100 text-gray-800' },
+  tenant_owner: { label: 'Chủ', color: 'text-amber-600' },
+  owner: { label: 'Chủ', color: 'text-amber-600' },
+  manager: { label: 'Quản lý', color: 'text-blue-600' },
+  staff: { label: 'Nhân viên', color: 'text-muted-foreground' },
 }
 
 export const MobileUserManagementPage = () => {
@@ -33,6 +32,9 @@ export const MobileUserManagementPage = () => {
     user.email?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const ownerCount = users.filter(u => u.user_level_code === 'tenant_owner' || u.user_level_code === 'owner').length
+  const staffCount = users.filter(u => u.user_level_code === 'staff').length
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <MobileDetailHeader
@@ -46,102 +48,90 @@ export const MobileUserManagementPage = () => {
       />
 
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="p-4 space-y-4">
+        <div className="p-3 space-y-3">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Tìm kiếm người dùng..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="h-8 pl-8 text-sm"
             />
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-3 gap-3">
-            <Card>
-              <CardContent className="p-3 text-center">
-                <p className="text-2xl font-bold">{users.length}</p>
-                <p className="text-xs text-muted-foreground">Tổng số</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <p className="text-2xl font-bold">
-                  {users.filter(u => u.user_level_code === 'owner').length}
-                </p>
-                <p className="text-xs text-muted-foreground">Chủ</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <p className="text-2xl font-bold">
-                  {users.filter(u => u.user_level_code === 'staff').length}
-                </p>
-                <p className="text-xs text-muted-foreground">Nhân viên</p>
-              </CardContent>
-            </Card>
+          {/* Stats Row */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="border rounded-lg p-2.5 text-center">
+              <p className="text-lg font-bold">{users.length}</p>
+              <p className="text-[10px] text-muted-foreground">Tổng số</p>
+            </div>
+            <div className="border rounded-lg p-2.5 text-center">
+              <p className="text-lg font-bold text-amber-600">{ownerCount}</p>
+              <p className="text-[10px] text-muted-foreground">Chủ/Quản lý</p>
+            </div>
+            <div className="border rounded-lg p-2.5 text-center">
+              <p className="text-lg font-bold">{staffCount}</p>
+              <p className="text-[10px] text-muted-foreground">Nhân viên</p>
+            </div>
           </div>
 
           {/* Users List */}
           {isLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {[1, 2, 3].map(i => (
-                <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />
+                <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
               ))}
             </div>
           ) : filteredUsers.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <UsersIcon className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                <p className="text-muted-foreground">
-                  {searchQuery ? 'Không tìm thấy người dùng' : 'Chưa có người dùng'}
-                </p>
-              </CardContent>
-            </Card>
+            <div className="border rounded-lg p-8 text-center">
+              <UsersIcon className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">
+                {searchQuery ? 'Không tìm thấy người dùng' : 'Chưa có người dùng'}
+              </p>
+            </div>
           ) : (
-            <div className="space-y-3">
+            <div className="border rounded-lg divide-y">
               {filteredUsers.map((user) => {
                 const levelConfig = USER_LEVEL_CONFIG[user.user_level_code as keyof typeof USER_LEVEL_CONFIG] || USER_LEVEL_CONFIG.staff
 
                 return (
-                  <Card 
+                  <div 
                     key={user.id}
-                    className="active:scale-[0.98] transition-transform cursor-pointer"
+                    className="flex items-center gap-3 p-3 active:bg-muted/50 transition-colors cursor-pointer"
                     onClick={() => navigate(`/settings/users/${user.id}`)}
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <UsersIcon className="h-6 w-6 text-primary" />
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-sm truncate">{user.full_name}</span>
-                            <Badge className={levelConfig.color} variant="secondary">
-                              {levelConfig.label}
-                            </Badge>
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Mail className="h-3 w-3 flex-shrink-0" />
-                              <span className="truncate">{user.email}</span>
-                            </div>
-                            
-                            {user.hotel_id && (
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <Building2 className="h-3 w-3 flex-shrink-0" />
-                                <span className="truncate text-xs">Hotel ID: {user.hotel_id.substring(0, 8)}...</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                    {/* Avatar */}
+                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <UsersIcon className="h-4 w-4 text-primary" />
+                    </div>
+                    
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="text-sm font-medium truncate">{user.full_name}</span>
+                        <span className={`text-[10px] ${levelConfig.color}`}>
+                          • {levelConfig.label}
+                        </span>
                       </div>
-                    </CardContent>
-                  </Card>
+                      
+                      <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                        <span className="flex items-center gap-1 truncate">
+                          <Mail className="h-2.5 w-2.5 flex-shrink-0" />
+                          {user.email}
+                        </span>
+                        
+                        {user.hotel_id && (
+                          <span className="flex items-center gap-1">
+                            <Building2 className="h-2.5 w-2.5 flex-shrink-0" />
+                            <span className="truncate max-w-[80px]">{user.hotel_id.substring(0, 8)}...</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  </div>
                 )
               })}
             </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from '@/hooks/useUsers'
+import { useUsers, useCreateUser, useUpdateUser } from '@/hooks/useUsers'
 import { useUser } from '@/hooks/useUser'
 import { UserHierarchyView } from './UserHierarchyView'
 import { UserTable } from './UserTable'
@@ -11,7 +11,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { UserWithRelations } from '@/types/database.types'
 import { UserFormData } from '@/lib/validations/user.schemas'
-import { Users, Plus } from 'lucide-react'
+import { Users, Plus, LayoutList, Network } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface UserManagementTabProps {
@@ -23,7 +23,6 @@ export function UserManagementTab({ onManagePermissions }: UserManagementTabProp
   const { user: currentUser } = useUser()
   const createUser = useCreateUser()
   const updateUser = useUpdateUser()
-  const deleteUser = useDeleteUser()
 
   const [filters, setFilters] = useState({
     search: '',
@@ -77,17 +76,18 @@ export function UserManagementTab({ onManagePermissions }: UserManagementTabProp
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="flex items-center justify-center h-48">
         <LoadingSpinner />
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <UserStatsCards users={users || []} />
       
-      <div className="flex items-center justify-between gap-4">
+      {/* Filters and Actions */}
+      <div className="flex flex-col lg:flex-row lg:items-start gap-3">
         <div className="flex-1">
           <UserFilters 
             filters={filters} 
@@ -96,20 +96,27 @@ export function UserManagementTab({ onManagePermissions }: UserManagementTabProp
         </div>
         
         {canAddUser && (
-          <Button onClick={() => handleOpenDialog()}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button onClick={() => handleOpenDialog()} size="sm" className="h-8 text-xs shrink-0">
+            <Plus className="h-3 w-3 mr-1.5" />
             Thêm người dùng
           </Button>
         )}
       </div>
 
+      {/* View Mode Tabs */}
       <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'hierarchy' | 'table')}>
-        <TabsList>
-          <TabsTrigger value="hierarchy">Phân cấp</TabsTrigger>
-          <TabsTrigger value="table">Bảng</TabsTrigger>
+        <TabsList className="h-8">
+          <TabsTrigger value="hierarchy" className="h-7 text-xs gap-1.5 px-3">
+            <Network className="h-3 w-3" />
+            Phân cấp
+          </TabsTrigger>
+          <TabsTrigger value="table" className="h-7 text-xs gap-1.5 px-3">
+            <LayoutList className="h-3 w-3" />
+            Bảng
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="hierarchy" className="mt-6">
+        <TabsContent value="hierarchy" className="mt-3">
           <UserHierarchyView
             users={filteredUsers}
             onEdit={handleOpenDialog}
@@ -117,7 +124,7 @@ export function UserManagementTab({ onManagePermissions }: UserManagementTabProp
           />
         </TabsContent>
 
-        <TabsContent value="table" className="mt-6">
+        <TabsContent value="table" className="mt-3">
           <UserTable
             users={filteredUsers}
             onEdit={handleOpenDialog}
