@@ -6,17 +6,16 @@ import {
   ClipboardCheck, 
   Printer,
   AlertCircle,
-  CheckCircle2,
   RefreshCw,
   Truck,
+  ArrowLeft,
+  CheckCircle2,
+  XCircle,
+  Package,
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
 import { RoomItemsList } from '@/components/rooms/RoomItemsList'
 import { EnhancedCheckHistory } from '@/components/rooms/EnhancedCheckHistory'
@@ -86,184 +85,201 @@ export function RoomDetailPage() {
   }, 0)
   
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={t('rooms:detail.title', { number: room.room_number })}
-        description={t('rooms:detail.description', { type: room.room_type, floor: room.floor })}
-        action={{
-          label: t('rooms:detail.checkRoom'),
-          icon: ClipboardCheck,
-          onClick: () => navigate(`/rooms/${id}/check`),
-        }}
-      >
-        <Button
-          variant="outline"
-          onClick={() => navigate(`/rooms/${id}/edit`)}
-        >
-          <Edit className="mr-2 h-4 w-4" />
-          {t('rooms:detail.editInfo')}
-        </Button>
-      </PageHeader>
+    <div className="space-y-4">
+      {/* Compact Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/rooms')}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold">Phòng {room.room_number}</h1>
+              <RoomStatusBadge status={room.status as import('@/types/rooms.types').RoomStatus} />
+            </div>
+            <p className="text-xs text-muted-foreground capitalize">
+              {room.room_type} • Tầng {room.floor} {room.area_sqm && `• ${room.area_sqm}m²`}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate(`/rooms/${id}/edit`)}>
+            <Edit className="mr-1.5 h-3.5 w-3.5" />
+            Sửa
+          </Button>
+          <Button size="sm" onClick={() => navigate(`/rooms/${id}/check`)}>
+            <ClipboardCheck className="mr-1.5 h-3.5 w-3.5" />
+            Kiểm tra
+          </Button>
+        </div>
+      </div>
       
       {/* Alert Banner for Pending Deliveries */}
       {pendingDeliveryCount > 0 && (
-        <Alert 
-          className="border-amber-500 bg-amber-50 dark:bg-amber-950/30 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors"
+        <div 
+          className="flex items-center gap-3 p-3 border border-amber-300 dark:border-amber-700 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 cursor-pointer hover:bg-amber-100/50 dark:hover:bg-amber-950/30 transition-colors"
           onClick={scrollToDelivery}
         >
           <Truck className="h-4 w-4 text-amber-600" />
-          <AlertTitle className="text-amber-800 dark:text-amber-200">
-            {t('distribution:roomHistory.pendingAlertTitle', { count: pendingDeliveryCount })}
-          </AlertTitle>
-          <AlertDescription className="text-amber-700 dark:text-amber-300">
-            {t('distribution:roomHistory.pendingAlertDescription')}
-          </AlertDescription>
-        </Alert>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+              {pendingDeliveryCount} đơn giao đang chờ xác nhận
+            </p>
+          </div>
+          <span className="text-xs text-amber-600">Xem →</span>
+        </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3">
         {/* Left Column */}
-        <div className="space-y-6 lg:col-span-2">
-          {/* Room Info Card */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>{t('rooms:detail.roomInfo')}</CardTitle>
-                <RoomStatusBadge status={room.status as import('@/types/rooms.types').RoomStatus} />
+        <div className="space-y-4 lg:col-span-2">
+          {/* Room Info - Simplified */}
+          <div className="border rounded-lg p-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Số phòng</p>
+                <p className="text-lg font-bold">{room.room_number}</p>
               </div>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Loại phòng</p>
+                <p className="text-sm font-medium capitalize">{room.room_type}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Tầng</p>
+                <p className="text-sm font-medium">{room.floor}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Sức chứa</p>
+                <p className="text-sm font-medium">{room.max_guests} khách</p>
+              </div>
+              {room.bed_type && (
                 <div>
-                  <dt className="text-sm font-medium text-muted-foreground">{t('rooms:detail.roomNumber')}</dt>
-                  <dd className="text-2xl font-bold">{room.room_number}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-muted-foreground">{t('rooms:detail.roomType')}</dt>
-                  <dd className="text-lg font-medium capitalize">{room.room_type}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-muted-foreground">{t('rooms:detail.floor')}</dt>
-                  <dd className="text-lg">{t('rooms:detail.floorNumber', { number: room.floor })}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-muted-foreground">{t('rooms:detail.area')}</dt>
-                  <dd className="text-lg">{room.area_sqm ? `${room.area_sqm} m²` : t('rooms:detail.na')}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-muted-foreground">{t('rooms:detail.bedType')}</dt>
-                  <dd className="text-lg capitalize">{room.bed_type || t('rooms:detail.na')}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-muted-foreground">{t('rooms:detail.maxGuests')}</dt>
-                  <dd className="text-lg">{t('rooms:detail.guestCount', { count: room.max_guests })}</dd>
-                </div>
-                {room.view_type && (
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">{t('rooms:detail.view')}</dt>
-                    <dd className="text-lg capitalize">{room.view_type}</dd>
-                  </div>
-                )}
-                {room.base_price && (
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">{t('rooms:detail.basePrice')}</dt>
-                    <dd className="text-lg font-semibold">{t('rooms:detail.pricePerNight', { price: formatCurrency(room.base_price) })}</dd>
-                  </div>
-                )}
-              </dl>
-              
-              {room.amenities && room.amenities.length > 0 && (
-                <div className="mt-4 pt-4 border-t">
-                  <dt className="text-sm font-medium text-muted-foreground mb-2">{t('rooms:detail.amenities')}</dt>
-                  <div className="flex flex-wrap gap-2">
-                    {room.amenities.map((amenity: string, index: number) => (
-                      <Badge key={index} variant="secondary">
-                        {amenity}
-                      </Badge>
-                    ))}
-                  </div>
+                  <p className="text-xs text-muted-foreground">Giường</p>
+                  <p className="text-sm capitalize">{room.bed_type}</p>
                 </div>
               )}
-              
-              {room.notes && (
-                <div className="mt-4 pt-4 border-t">
-                  <dt className="text-sm font-medium text-muted-foreground mb-1">{t('rooms:detail.notes')}</dt>
-                  <dd className="text-sm">{room.notes}</dd>
+              {room.view_type && (
+                <div>
+                  <p className="text-xs text-muted-foreground">View</p>
+                  <p className="text-sm capitalize">{room.view_type}</p>
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Recent Check Photos Card */}
-          {checks && checks.length > 0 && checks[0].photos && Array.isArray(checks[0].photos) && checks[0].photos.length > 0 && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>{t('rooms:detail.recentPhotos')}</CardTitle>
-                  <Badge variant="outline" className="text-xs">
-                    {new Date(checks[0].checked_at).toLocaleDateString('vi-VN')}
-                  </Badge>
+              {room.base_price && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Giá/đêm</p>
+                  <p className="text-sm font-semibold text-primary">{formatCurrency(room.base_price)}</p>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {t('rooms:detail.checkedBy', { name: checks[0].checked_by_name })} - {t(`rooms:detail.checkType.${checks[0].check_type}`)}
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {(checks[0].photos as string[]).map((photo, idx) => (
-                    <a
-                      key={idx}
-                      href={photo}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="relative aspect-square rounded-lg overflow-hidden border hover:border-primary transition-colors group"
-                    >
-                      <img 
-                        src={photo} 
-                        alt={`${t('rooms:detail.recentPhotos')} ${idx + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                          <span className="text-white text-sm bg-black/50 px-2 py-1 rounded">{t('rooms:detail.viewFull')}</span>
-                        </div>
-                      </div>
-                    </a>
+              )}
+              {room.area_sqm && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Diện tích</p>
+                  <p className="text-sm">{room.area_sqm} m²</p>
+                </div>
+              )}
+            </div>
+            
+            {room.amenities && room.amenities.length > 0 && (
+              <div className="mt-3 pt-3 border-t">
+                <p className="text-xs text-muted-foreground mb-1.5">Tiện nghi</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {room.amenities.map((amenity: string, index: number) => (
+                    <span key={index} className="text-xs px-2 py-0.5 bg-muted rounded">
+                      {amenity}
+                    </span>
                   ))}
                 </div>
-                {(checks[0].photos as string[]).length > 4 && (
-                  <p className="text-xs text-muted-foreground mt-2 text-center">
-                    {t('rooms:detail.andMorePhotos', { count: (checks[0].photos as string[]).length - 4 })}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+              </div>
+            )}
+            
+            {room.notes && (
+              <div className="mt-3 pt-3 border-t">
+                <p className="text-xs text-muted-foreground mb-1">Ghi chú</p>
+                <p className="text-sm">{room.notes}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Recent Check Photos */}
+          {checks && checks.length > 0 && checks[0].photos && Array.isArray(checks[0].photos) && checks[0].photos.length > 0 && (
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-medium">Ảnh kiểm tra gần nhất</p>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(checks[0].checked_at).toLocaleDateString('vi-VN')} • {checks[0].checked_by_name}
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {(checks[0].photos as string[]).slice(0, 4).map((photo, idx) => (
+                  <a
+                    key={idx}
+                    href={photo}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative aspect-square rounded-lg overflow-hidden border hover:border-primary transition-colors"
+                  >
+                    <img 
+                      src={photo} 
+                      alt={`Ảnh ${idx + 1}`}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform"
+                    />
+                  </a>
+                ))}
+              </div>
+              {(checks[0].photos as string[]).length > 4 && (
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  +{(checks[0].photos as string[]).length - 4} ảnh khác
+                </p>
+              )}
+            </div>
           )}
           
           {/* Room Items */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('rooms:detail.itemsInRoom')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Alert when no items */}
-              {totalItemsInRoom === 0 && (
-                <Alert className="mb-4">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>{t('rooms:detail.noItems')}</AlertTitle>
-                  <AlertDescription>
-                    {t('rooms:detail.noItemsDescription', { type: room.room_type })}
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              <RoomItemsList items={items} roomId={id!} />
-            </CardContent>
-          </Card>
+          <div className="border rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-medium">Đồ dùng trong phòng</p>
+              <div className="flex items-center gap-3 text-xs">
+                <span className="flex items-center gap-1 text-green-600">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  {completeItems} đủ
+                </span>
+                {missingCount > 0 && (
+                  <span className="flex items-center gap-1 text-red-600">
+                    <XCircle className="h-3.5 w-3.5" />
+                    {missingCount} thiếu
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            {/* Alert when no items */}
+            {totalItemsInRoom === 0 && (
+              <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30">
+                <Package className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">Chưa có đồ dùng</p>
+                  <p className="text-xs text-muted-foreground">
+                    Áp dụng tiêu chuẩn phòng {room.room_type} để thêm đồ dùng
+                  </p>
+                </div>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => applyStandards.mutate(id!)}
+                  disabled={applyStandards.isPending}
+                  className="ml-auto"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${applyStandards.isPending ? 'animate-spin' : ''}`} />
+                  Áp dụng
+                </Button>
+              </div>
+            )}
+            
+            {totalItemsInRoom > 0 && <RoomItemsList items={items} roomId={id!} />}
+          </div>
         </div>
         
         {/* Right Column */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Guest Info Card */}
           <GuestInfoCard 
             roomId={id!}
@@ -272,34 +288,32 @@ export function RoomDetailPage() {
             roomNumber={room.room_number}
           />
           
-          {/* Health Score with inline stats */}
+          {/* Health Score - Compact */}
           <RoomHealthScore 
             checks={checks}
             totalItems={standardItems.length}
             missingItems={missingCount}
           />
           
-          {/* Inline Stats Row */}
-          <Card>
-            <CardContent className="py-4">
-              <div className="flex items-center justify-around">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-primary">{totalItemsInRoom}</p>
-                  <p className="text-xs text-muted-foreground">{t('rooms:detail.totalItems')}</p>
-                </div>
-                <div className="h-10 w-px bg-border" />
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-green-600">{completeItems}</p>
-                  <p className="text-xs text-muted-foreground">{t('rooms:detail.complete')}</p>
-                </div>
-                <div className="h-10 w-px bg-border" />
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-destructive">{missingCount}</p>
-                  <p className="text-xs text-muted-foreground">{t('rooms:detail.missing')}</p>
-                </div>
+          {/* Item Stats Row */}
+          <div className="border rounded-lg p-3">
+            <div className="flex items-center justify-around text-center">
+              <div>
+                <p className="text-xl font-bold text-primary">{totalItemsInRoom}</p>
+                <p className="text-[10px] text-muted-foreground">Tổng</p>
               </div>
-            </CardContent>
-          </Card>
+              <div className="h-8 w-px bg-border" />
+              <div>
+                <p className="text-xl font-bold text-green-600">{completeItems}</p>
+                <p className="text-[10px] text-muted-foreground">Đủ</p>
+              </div>
+              <div className="h-8 w-px bg-border" />
+              <div>
+                <p className="text-xl font-bold text-red-600">{missingCount}</p>
+                <p className="text-[10px] text-muted-foreground">Thiếu</p>
+              </div>
+            </div>
+          </div>
 
           {/* Distribution History */}
           <div ref={deliveryRef}>
@@ -307,48 +321,43 @@ export function RoomDetailPage() {
           </div>
           
           {/* Check History */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('rooms:detail.checkHistory')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <EnhancedCheckHistory checks={checks} />
-            </CardContent>
-          </Card>
+          <div className="border rounded-lg p-4">
+            <p className="text-sm font-medium mb-3">Lịch sử kiểm tra</p>
+            <EnhancedCheckHistory checks={checks} />
+          </div>
           
           {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('rooms:detail.quickActions')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => navigate(`/rooms/${id}/check`)}
-              >
-                <ClipboardCheck className="mr-2 h-4 w-4" />
-                {t('rooms:detail.checkRoom')}
-              </Button>
-              <Button 
-                variant={standardItems.length === 0 ? "default" : "outline"}
-                className="w-full justify-start"
-                onClick={() => applyStandards.mutate(id!)}
-                disabled={applyStandards.isPending}
-              >
-                <RefreshCw className={`mr-2 h-4 w-4 ${applyStandards.isPending ? 'animate-spin' : ''}`} />
-                {standardItems.length === 0 ? t('rooms:detail.applyStandards') : t('rooms:detail.syncStandards')}
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => window.print()}
-              >
-                <Printer className="mr-2 h-4 w-4" />
-                {t('rooms:detail.printItemList')}
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="border rounded-lg p-3 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Thao tác nhanh</p>
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="w-full justify-start h-8 text-xs"
+              onClick={() => navigate(`/rooms/${id}/check`)}
+            >
+              <ClipboardCheck className="mr-2 h-3.5 w-3.5" />
+              Kiểm tra phòng
+            </Button>
+            <Button 
+              variant={standardItems.length === 0 ? "default" : "outline"}
+              size="sm"
+              className="w-full justify-start h-8 text-xs"
+              onClick={() => applyStandards.mutate(id!)}
+              disabled={applyStandards.isPending}
+            >
+              <RefreshCw className={`mr-2 h-3.5 w-3.5 ${applyStandards.isPending ? 'animate-spin' : ''}`} />
+              {standardItems.length === 0 ? 'Áp dụng tiêu chuẩn' : 'Đồng bộ tiêu chuẩn'}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="w-full justify-start h-8 text-xs"
+              onClick={() => window.print()}
+            >
+              <Printer className="mr-2 h-3.5 w-3.5" />
+              In danh sách đồ dùng
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -357,24 +366,30 @@ export function RoomDetailPage() {
 
 function RoomDetailSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-4 w-32 mt-2" />
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-8 w-8 rounded" />
+          <div>
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-3 w-24 mt-1" />
+          </div>
         </div>
-        <Skeleton className="h-10 w-32" />
+        <div className="flex gap-2">
+          <Skeleton className="h-8 w-16" />
+          <Skeleton className="h-8 w-20" />
+        </div>
       </div>
       
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-96 w-full" />
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="space-y-4 lg:col-span-2">
+          <Skeleton className="h-40 w-full rounded-lg" />
+          <Skeleton className="h-64 w-full rounded-lg" />
         </div>
-        <div className="space-y-6">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-96 w-full" />
+        <div className="space-y-4">
+          <Skeleton className="h-32 w-full rounded-lg" />
+          <Skeleton className="h-24 w-full rounded-lg" />
+          <Skeleton className="h-48 w-full rounded-lg" />
         </div>
       </div>
     </div>

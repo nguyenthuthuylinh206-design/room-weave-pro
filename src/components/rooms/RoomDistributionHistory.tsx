@@ -1,7 +1,5 @@
 import { useState, useMemo } from 'react'
 import { Truck, Package, AlertCircle } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Accordion } from '@/components/ui/accordion'
 import { cn } from '@/lib/utils'
@@ -152,62 +150,55 @@ export function RoomDistributionHistory({ roomId, roomNumber }: RoomDistribution
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Truck className="h-4 w-4" />
-            Lịch sử giao hàng
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <div className="border rounded-lg p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Truck className="h-4 w-4 text-muted-foreground" />
+          <p className="text-sm font-medium">Lịch sử giao hàng</p>
+        </div>
+        <div className="space-y-2">
           {[1, 2].map(i => (
-            <Skeleton key={i} className="h-20 w-full" />
+            <Skeleton key={i} className="h-16 w-full" />
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     )
   }
 
   if (!history || history.length === 0) {
     return (
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Truck className="h-4 w-4" />
-            {t('distribution:roomHistory.title')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-6 text-muted-foreground">
-            <Package className="h-10 w-10 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">{t('distribution:roomHistory.empty')}</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="border rounded-lg p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Truck className="h-4 w-4 text-muted-foreground" />
+          <p className="text-sm font-medium">{t('distribution:roomHistory.title')}</p>
+        </div>
+        <div className="text-center py-4 text-muted-foreground">
+          <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
+          <p className="text-xs">{t('distribution:roomHistory.empty')}</p>
+        </div>
+      </div>
     )
   }
 
   return (
     <>
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Truck className="h-4 w-4" />
-            {t('distribution:roomHistory.title')}
-            <Badge variant="secondary" className="ml-auto">{history.length}</Badge>
-            {pendingOrders.length > 0 && (
-              <Badge variant="destructive" className="animate-pulse">
-                {pendingOrders.length} chờ xác nhận
-              </Badge>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className={cn("space-y-4", selectedOrders.length > 0 && "pb-20")}>
+      <div className="border rounded-lg p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Truck className="h-4 w-4 text-muted-foreground" />
+          <p className="text-sm font-medium">{t('distribution:roomHistory.title')}</p>
+          <span className="text-xs text-muted-foreground ml-auto">{history.length}</span>
+          {pendingOrders.length > 0 && (
+            <span className="text-xs font-medium text-amber-600 animate-pulse">
+              {pendingOrders.length} chờ
+            </span>
+          )}
+        </div>
+        
+        <div className={cn("space-y-3", selectedOrders.length > 0 && "pb-16")}>
           {/* Pending Section */}
           {pendingOrders.length > 0 && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-400">
-                <AlertCircle className="h-4 w-4" />
+              <div className="flex items-center gap-2 text-xs font-medium text-amber-600">
+                <AlertCircle className="h-3.5 w-3.5" />
                 Cần xác nhận
               </div>
               <Accordion 
@@ -237,7 +228,7 @@ export function RoomDistributionHistory({ roomId, roomNumber }: RoomDistribution
           {processedOrders.length > 0 && (
             <div className="space-y-2">
               {pendingOrders.length > 0 && (
-                <div className="text-sm font-medium text-muted-foreground pt-2 border-t">
+                <div className="text-xs font-medium text-muted-foreground pt-2 border-t">
                   Đã xử lý
                 </div>
               )}
@@ -259,8 +250,8 @@ export function RoomDistributionHistory({ roomId, roomNumber }: RoomDistribution
               </Accordion>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Batch Confirm Bar */}
       <BatchConfirmBar

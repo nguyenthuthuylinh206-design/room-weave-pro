@@ -1,7 +1,5 @@
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { TrendingUp, TrendingDown, Minus, Activity } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
 import type { RoomCheckWithUser } from '@/types/rooms.types'
 
 interface RoomHealthScoreProps {
@@ -54,7 +52,7 @@ export function RoomHealthScore({ checks, totalItems, missingItems, compact = fa
   
   const getScoreColor = () => {
     if (healthScore >= 80) return 'text-green-600'
-    if (healthScore >= 60) return 'text-yellow-600'
+    if (healthScore >= 60) return 'text-amber-600'
     return 'text-red-600'
   }
   
@@ -64,16 +62,10 @@ export function RoomHealthScore({ checks, totalItems, missingItems, compact = fa
     if (healthScore >= 40) return 'Cần cải thiện'
     return 'Kém'
   }
-  
-  const getScoreBadgeVariant = (): 'default' | 'secondary' | 'destructive' => {
-    if (healthScore >= 80) return 'default'
-    if (healthScore >= 60) return 'secondary'
-    return 'destructive'
-  }
 
   const getProgressColor = () => {
     if (healthScore >= 80) return 'bg-green-500'
-    if (healthScore >= 60) return 'bg-yellow-500'
+    if (healthScore >= 60) return 'bg-amber-500'
     return 'bg-red-500'
   }
   
@@ -96,6 +88,14 @@ export function RoomHealthScore({ checks, totalItems, missingItems, compact = fa
   
   const trend = calculateTrend()
 
+  // Calculate stats
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  const monthlyChecks = checks.filter(c => new Date(c.checked_at) > thirtyDaysAgo).length
+  const avgCleanliness = checks.length > 0 
+    ? (checks.reduce((sum, c) => sum + (c.cleanliness_score || 0), 0) / checks.length).toFixed(1)
+    : 'N/A'
+
   // Compact variant for mobile
   if (compact) {
     return (
@@ -106,9 +106,9 @@ export function RoomHealthScore({ checks, totalItems, missingItems, compact = fa
           </span>
           <span className="text-xs text-muted-foreground">/100</span>
         </div>
-        <Badge variant={getScoreBadgeVariant()} className="text-xs">
+        <span className={`text-xs font-medium ${getScoreColor()}`}>
           {getScoreLabel()}
-        </Badge>
+        </span>
         {trend === 'up' && (
           <TrendingUp className="h-4 w-4 text-green-600" />
         )}
@@ -124,69 +124,59 @@ export function RoomHealthScore({ checks, totalItems, missingItems, compact = fa
   }
   
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Chỉ số sức khỏe phòng</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className={`text-4xl font-bold ${getScoreColor()}`}>
-                {Math.round(healthScore)}
-              </span>
-              <span className="text-muted-foreground">/100</span>
-            </div>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant={getScoreBadgeVariant()}>
-                {getScoreLabel()}
-              </Badge>
-              {trend === 'up' && (
-                <div className="flex items-center gap-1 text-green-600 text-xs">
-                  <TrendingUp className="h-3 w-3" />
-                  <span>Cải thiện</span>
-                </div>
-              )}
-              {trend === 'down' && (
-                <div className="flex items-center gap-1 text-red-600 text-xs">
-                  <TrendingDown className="h-3 w-3" />
-                  <span>Giảm</span>
-                </div>
-              )}
-              {trend === 'stable' && (
-                <div className="flex items-center gap-1 text-muted-foreground text-xs">
-                  <Minus className="h-3 w-3" />
-                  <span>Ổn định</span>
-                </div>
-              )}
-            </div>
-          </div>
+    <div className="border rounded-lg p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Activity className="h-4 w-4 text-muted-foreground" />
+        <p className="text-sm font-medium">Sức khỏe phòng</p>
+      </div>
+      
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-baseline gap-1">
+          <span className={`text-3xl font-bold ${getScoreColor()}`}>
+            {Math.round(healthScore)}
+          </span>
+          <span className="text-sm text-muted-foreground">/100</span>
         </div>
-        
-        <Progress value={healthScore} className="h-2" />
-        
-        <div className="space-y-2 text-xs text-muted-foreground">
-          <p>
-            <strong>Tần suất kiểm tra:</strong> {checks.filter(c => {
-              const thirtyDaysAgo = new Date()
-              thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-              return new Date(c.checked_at) > thirtyDaysAgo
-            }).length} lần/tháng
-          </p>
-          <p>
-            <strong>Điểm sạch TB:</strong> {checks.length > 0 
-              ? (checks.reduce((sum, c) => sum + (c.cleanliness_score || 0), 0) / checks.length).toFixed(1)
-              : 'N/A'
-            }/5
-          </p>
-          <p>
-            <strong>Đồ dùng thiếu:</strong> {missingItems}/{totalItems} ({totalItems > 0 
-              ? Math.round((missingItems / totalItems) * 100)
-              : 0
-            }%)
-          </p>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-medium ${getScoreColor()}`}>
+            {getScoreLabel()}
+          </span>
+          {trend === 'up' && (
+            <div className="flex items-center gap-0.5 text-green-600">
+              <TrendingUp className="h-3.5 w-3.5" />
+              <span className="text-[10px]">↑</span>
+            </div>
+          )}
+          {trend === 'down' && (
+            <div className="flex items-center gap-0.5 text-red-600">
+              <TrendingDown className="h-3.5 w-3.5" />
+              <span className="text-[10px]">↓</span>
+            </div>
+          )}
+          {trend === 'stable' && (
+            <Minus className="h-3.5 w-3.5 text-muted-foreground" />
+          )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+      
+      <Progress value={healthScore} className="h-1.5 mb-3" />
+      
+      <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+        <div className="p-1.5 bg-muted/50 rounded">
+          <p className="font-semibold text-foreground">{monthlyChecks}</p>
+          <p className="text-muted-foreground">kiểm/tháng</p>
+        </div>
+        <div className="p-1.5 bg-muted/50 rounded">
+          <p className="font-semibold text-foreground">{avgCleanliness}/5</p>
+          <p className="text-muted-foreground">sạch TB</p>
+        </div>
+        <div className="p-1.5 bg-muted/50 rounded">
+          <p className={`font-semibold ${missingItems > 0 ? 'text-red-600' : 'text-green-600'}`}>
+            {missingItems}/{totalItems}
+          </p>
+          <p className="text-muted-foreground">thiếu</p>
+        </div>
+      </div>
+    </div>
   )
 }
