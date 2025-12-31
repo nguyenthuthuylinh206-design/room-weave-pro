@@ -333,12 +333,72 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
     setNotes('')
   }, [])
   
-  // Auto-fill missing items based on room standards
+  // Auto-fill missing items for a single room
+  const autoFillMissingItemsForRoom = useCallback(async (roomId: string) => {
+    try {
+      const { data: missingData, error } = await supabase
+        .rpc('get_missing_items_for_rooms' as any, { p_room_ids: [roomId] })
+      
+      if (error) throw error
+      
+      const missingItems = missingData as { 
+        room_id: string
+        item_id: string
+        missing_qty: number
+      }[] | null
+      
+      if (!missingItems || missingItems.length === 0) {
+        return { success: true, message: 'Phòng đã đủ tiêu chuẩn', count: 0 }
+      }
+      
+      // Filter items with stock
+      const itemsWithStock = missingItems.filter((m) => {
+        const item = itemsMap.get(m.item_id)
+        return item && (item.quantity_in_stock || 0) > 0
+      })
+      
+      if (itemsWithStock.length === 0) {
+        return { success: true, message: 'SP thiếu không còn tồn kho', count: 0 }
+      }
+      
+      // Update allocations for this room
+      setAllocations(prev => {
+        const existingIdx = prev.findIndex(a => a.room_id === roomId)
+        const existingItems = existingIdx >= 0 ? [...prev[existingIdx].items] : []
+        
+        itemsWithStock.forEach(({ item_id, missing_qty }) => {
+          const itemIdx = existingItems.findIndex(i => i.item_id === item_id)
+          if (itemIdx >= 0) {
+            existingItems[itemIdx] = {
+              ...existingItems[itemIdx],
+              quantity: existingItems[itemIdx].quantity + missing_qty,
+            }
+          } else {
+            existingItems.push({ item_id, quantity: missing_qty })
+          }
+        })
+        
+        if (existingIdx >= 0) {
+          const newAllocs = [...prev]
+          newAllocs[existingIdx] = { room_id: roomId, items: existingItems }
+          return newAllocs
+        } else {
+          return [...prev, { room_id: roomId, items: existingItems }]
+        }
+      })
+      
+      const totalItems = itemsWithStock.reduce((sum, m) => sum + m.missing_qty, 0)
+      return { success: true, message: `+${totalItems} SP`, count: totalItems }
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Lỗi' }
+    }
+  }, [itemsMap])
+
+  // Auto-fill missing items based on room standards (all selected rooms)
   const autoFillMissingItems = useCallback(async () => {
     if (selectedRoomIds.length === 0) return { success: false, message: 'Chưa chọn phòng' }
     
     try {
-      // Get missing items for all selected rooms using raw query via RPC
       const { data: missingData, error } = await supabase
         .rpc('get_missing_items_for_rooms' as any, {
           p_room_ids: selectedRoomIds,
@@ -473,6 +533,7 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
     initFromOrder,
     reset,
     autoFillMissingItems,
+    autoFillMissingItemsForRoom,
   }
 }
 
