@@ -49,6 +49,7 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
   const [allocations, setAllocations] = useState<RoomItemAllocation[]>([])
   const [assignedTo, setAssignedTo] = useState<string>('')
   const [notes, setNotes] = useState('')
+  const [includeDiscontinued, setIncludeDiscontinued] = useState(false)
   
   // Memoized maps for quick lookup
   const itemsMap = useMemo(() => {
@@ -74,10 +75,14 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
       }) as typeof rooms
   }, [selectedRoomIds, roomsMap])
   
-  // Available items (has stock - regardless of status)
+  // Available items (has stock, optionally filter by status)
   const availableItems = useMemo(() => {
-    return items.filter(item => (item.quantity_in_stock || 0) > 0)
-  }, [items])
+    return items.filter(item => {
+      const hasStock = (item.quantity_in_stock || 0) > 0
+      const isActive = item.status === 'active'
+      return hasStock && (includeDiscontinued || isActive)
+    })
+  }, [items, includeDiscontinued])
   
   // Initialize form from order
   const initFromOrder = useCallback((order: DistributionOrderDetail) => {
@@ -347,6 +352,8 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
     setAssignedTo,
     notes,
     setNotes,
+    includeDiscontinued,
+    setIncludeDiscontinued,
     
     // Data
     items,
