@@ -7,6 +7,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import type { DistributionFormReturn } from '../hooks/useDistributionForm'
 
@@ -30,6 +32,8 @@ export function ItemAllocator({ form, compact = false }: ItemAllocatorProps) {
     stockValidation,
     allocatedItemIds,
     summary,
+    includeDiscontinued,
+    setIncludeDiscontinued,
   } = form
 
   const toggleRoom = (roomId: string) => {
@@ -208,25 +212,41 @@ export function ItemAllocator({ form, compact = false }: ItemAllocatorProps) {
 
                     {/* Add item inline search */}
                     <div className="space-y-1.5">
-                      <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                        <Input
-                          placeholder="Nhập tên hoặc mã sản phẩm..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(room.id, e.target.value)}
-                          className="pl-8 h-8 text-sm"
-                        />
-                        {searchTerm && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
-                            onClick={() => setSearchTerm(room.id, '')}
+                      <div className="flex items-center gap-3">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                          <Input
+                            placeholder="Nhập tên hoặc mã sản phẩm..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(room.id, e.target.value)}
+                            className="pl-8 h-8 text-sm"
+                          />
+                          {searchTerm && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
+                              onClick={() => setSearchTerm(room.id, '')}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Checkbox
+                            id={`discontinued-${room.id}`}
+                            checked={includeDiscontinued}
+                            onCheckedChange={(checked) => setIncludeDiscontinued(!!checked)}
+                            className="h-3.5 w-3.5"
+                          />
+                          <Label
+                            htmlFor={`discontinued-${room.id}`}
+                            className="text-xs text-muted-foreground cursor-pointer whitespace-nowrap"
                           >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        )}
+                            SP ngừng
+                          </Label>
+                        </div>
                       </div>
                       
                       {searchTerm && availableItems.length > 0 && (
@@ -239,7 +259,14 @@ export function ItemAllocator({ form, compact = false }: ItemAllocatorProps) {
                               onClick={() => addItemToRoom(room.id, item.id)}
                             >
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium truncate">{item.name}</p>
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-sm font-medium truncate">{item.name}</p>
+                                  {item.status === 'discontinued' && (
+                                    <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 text-amber-600 border-amber-300">
+                                      Ngừng
+                                    </Badge>
+                                  )}
+                                </div>
                                 <p className="text-[11px] text-muted-foreground truncate">
                                   {item.code} • Tồn: {item.quantity_in_stock || 0}
                                 </p>
