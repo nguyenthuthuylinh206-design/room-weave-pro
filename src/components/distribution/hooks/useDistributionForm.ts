@@ -1,7 +1,9 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { useItems } from '@/hooks/useItems'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/integrations/supabase/client'
 import { useRooms } from '@/hooks/useRooms'
 import { useHotelContext } from '@/contexts/HotelContext'
+import { useTenant } from '@/hooks/useTenant'
 import type { DistributionOrderDetail } from '@/types/distribution.types'
 
 export interface RoomItemAllocation {
@@ -21,12 +23,24 @@ interface UseDistributionFormOptions {
 export function useDistributionForm(options: UseDistributionFormOptions = {}) {
   const { initialOrder } = options
   const { selectedHotel } = useHotelContext()
+  const { tenant } = useTenant()
   
-  // Data hooks
-  const { data: itemsData } = useItems({ hotelId: selectedHotel?.id })
-  const items = useMemo(() => {
-    return Array.isArray(itemsData) ? itemsData : itemsData?.items || []
-  }, [itemsData])
+  // Fetch ALL items with stock directly (no pagination limit)
+  const { data: items = [] } = useQuery({
+    queryKey: ['distribution-available-items', selectedHotel?.id, tenant?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('items')
+        .select('id, name, code, quantity_in_stock, status, category_id, unit')
+        .eq('tenant_id', tenant!.id)
+        .eq('hotel_id', selectedHotel!.id)
+        .gt('quantity_in_stock', 0)
+        .order('name')
+      if (error) throw error
+      return data || []
+    },
+    enabled: !!tenant?.id && !!selectedHotel?.id,
+  })
   
   const { data: rooms = [] } = useRooms()
   
