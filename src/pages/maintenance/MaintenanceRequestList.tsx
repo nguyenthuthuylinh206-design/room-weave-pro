@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/shared/PageHeader'
-import { Plus } from 'lucide-react'
+import { Plus, Wrench, Clock, PlayCircle, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useMaintenanceRequests } from '@/hooks/useMaintenanceRequests'
@@ -48,21 +48,77 @@ export default function MaintenanceRequestList() {
         }}
       />
 
+      {/* Stats Row */}
+      <div className="grid gap-3 md:grid-cols-5">
+        <div className="flex items-center gap-3 p-3 border rounded-lg">
+          <Wrench className="h-5 w-5 text-muted-foreground" />
+          <div>
+            <p className="text-xs text-muted-foreground">Tổng yêu cầu</p>
+            <p className="text-xl font-bold">{counts.all}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 border rounded-lg">
+          <AlertCircle className="h-5 w-5 text-amber-600" />
+          <div>
+            <p className="text-xs text-muted-foreground">Chờ tiếp nhận</p>
+            <p className="text-xl font-bold text-amber-600">{counts.waiting}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 border rounded-lg">
+          <Clock className="h-5 w-5 text-blue-600" />
+          <div>
+            <p className="text-xs text-muted-foreground">Đã tiếp nhận</p>
+            <p className="text-xl font-bold text-blue-600">{counts.pending}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 border rounded-lg">
+          <PlayCircle className="h-5 w-5 text-purple-600" />
+          <div>
+            <p className="text-xs text-muted-foreground">Đang xử lý</p>
+            <p className="text-xl font-bold text-purple-600">{counts.in_progress}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 border rounded-lg">
+          <CheckCircle2 className="h-5 w-5 text-green-600" />
+          <div>
+            <p className="text-xs text-muted-foreground">Hoàn thành</p>
+            <p className="text-xl font-bold text-green-600">{counts.completed}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <MaintenanceFilters filters={filters} onFiltersChange={setFilters} />
+
+      {/* Tabs + Table */}
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="h-8">
-          <TabsTrigger value="all" className="text-xs h-7">{t('list.tabs.all')} ({counts.all})</TabsTrigger>
-          <TabsTrigger value="waiting" className="text-xs h-7">{t('list.tabs.waiting')} ({counts.waiting})</TabsTrigger>
-          <TabsTrigger value="pending" className="text-xs h-7">{t('list.tabs.pending')} ({counts.pending})</TabsTrigger>
-          <TabsTrigger value="in_progress" className="text-xs h-7">{t('list.tabs.inProgress')} ({counts.in_progress})</TabsTrigger>
-          <TabsTrigger value="completed" className="text-xs h-7">{t('list.tabs.completed')} ({counts.completed})</TabsTrigger>
-          <TabsTrigger value="cancelled" className="text-xs h-7">{t('list.tabs.cancelled')} ({counts.cancelled})</TabsTrigger>
+        <TabsList className="h-9 bg-muted/50">
+          <TabsTrigger value="all" className="text-xs h-7 data-[state=active]:bg-background">
+            Tất cả ({counts.all})
+          </TabsTrigger>
+          <TabsTrigger value="waiting" className="text-xs h-7 data-[state=active]:bg-background">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5" />
+            Chờ tiếp nhận ({counts.waiting})
+          </TabsTrigger>
+          <TabsTrigger value="pending" className="text-xs h-7 data-[state=active]:bg-background">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5" />
+            Đã tiếp nhận ({counts.pending})
+          </TabsTrigger>
+          <TabsTrigger value="in_progress" className="text-xs h-7 data-[state=active]:bg-background">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mr-1.5" />
+            Đang xử lý ({counts.in_progress})
+          </TabsTrigger>
+          <TabsTrigger value="completed" className="text-xs h-7 data-[state=active]:bg-background">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5" />
+            Hoàn thành ({counts.completed})
+          </TabsTrigger>
+          <TabsTrigger value="cancelled" className="text-xs h-7 data-[state=active]:bg-background">
+            <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mr-1.5" />
+            Đã hủy ({counts.cancelled})
+          </TabsTrigger>
         </TabsList>
 
-        <div className="mt-3">
-          <MaintenanceFilters filters={filters} onFiltersChange={setFilters} />
-        </div>
-
-        <TabsContent value={tab} className="mt-4">
+        <TabsContent value={tab} className="mt-3">
           <MaintenanceRequestTable
             requests={filteredRequests || []}
             isLoading={!allRequests}
