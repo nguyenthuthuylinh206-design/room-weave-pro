@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -16,12 +16,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, Save } from 'lucide-react'
+import { Loader2, Save, Building2, Globe, Database } from 'lucide-react'
 import { UnsavedChangesPrompt } from '@/components/settings/UnsavedChangesPrompt'
 import { useAutoSave } from '@/hooks/useAutoSave'
 import { logUpdate } from '@/lib/activityLogger'
 import { SeedDataButton } from '@/components/settings/SeedDataButton'
+import { Switch } from '@/components/ui/switch'
 
 const createGeneralSettingsSchema = (t: (key: string) => string) => z.object({
   name: z.string().min(2, t('settings:general.validation.companyNameMin')),
@@ -143,178 +143,190 @@ export function GeneralSettingsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">{t('settings:general.pageTitle')}</h1>
-        <p className="text-muted-foreground mt-2">
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="pb-2 border-b">
+        <h1 className="text-lg font-semibold">{t('settings:general.pageTitle')}</h1>
+        <p className="text-xs text-muted-foreground mt-0.5">
           {t('settings:general.pageDescription')}
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Company Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('settings:general.companyInfo.title')}</CardTitle>
-            <CardDescription>{t('settings:general.companyInfo.description')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">{t('settings:general.companyName')} *</Label>
+        <div className="border rounded-lg p-4 space-y-3">
+          <div className="flex items-center gap-2 pb-2 border-b">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <h2 className="text-sm font-medium">{t('settings:general.companyInfo.title')}</h2>
+              <p className="text-[10px] text-muted-foreground">{t('settings:general.companyInfo.description')}</p>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="name" className="text-xs">{t('settings:general.companyName')} *</Label>
               <Input
                 id="name"
                 {...register('name')}
                 placeholder={t('settings:general.companyNamePlaceholder')}
+                className="h-8 text-sm"
               />
               {errors.name && (
-                <p className="text-sm text-destructive">{errors.name.message}</p>
+                <p className="text-[10px] text-destructive">{errors.name.message}</p>
               )}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="email">{t('settings:general.email')} *</Label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label htmlFor="email" className="text-xs">{t('settings:general.email')} *</Label>
                 <Input
                   id="email"
                   type="email"
                   {...register('email')}
                   placeholder={t('settings:general.emailPlaceholder')}
+                  className="h-8 text-sm"
                 />
                 {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email.message}</p>
+                  <p className="text-[10px] text-destructive">{errors.email.message}</p>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="phone">{t('settings:general.phone')}</Label>
+              <div className="space-y-1">
+                <Label htmlFor="phone" className="text-xs">{t('settings:general.phone')}</Label>
                 <Input
                   id="phone"
                   {...register('phone')}
                   placeholder={t('settings:general.phonePlaceholder')}
+                  className="h-8 text-sm"
                 />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Regional Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('settings:general.regionalSettings.title')}</CardTitle>
-            <CardDescription>{t('settings:general.regionalSettings.description')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>{t('settings:general.timezone')}</Label>
-                <Select
-                  value={watch('settings.timezone')}
-                  onValueChange={(value) => setValue('settings.timezone', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Asia/Ho_Chi_Minh">{t('settings:general.timezones.hoChiMinh')}</SelectItem>
-                    <SelectItem value="Asia/Bangkok">{t('settings:general.timezones.bangkok')}</SelectItem>
-                    <SelectItem value="Asia/Singapore">{t('settings:general.timezones.singapore')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t('settings:general.language')}</Label>
-                <Select
-                  value={watch('settings.language')}
-                  onValueChange={(value: 'vi' | 'en') => setValue('settings.language', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="vi">{t('settings:general.languages.vi')}</SelectItem>
-                    <SelectItem value="en">{t('settings:general.languages.en')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t('settings:general.currency')}</Label>
-                <Select
-                  value={watch('settings.currency')}
-                  onValueChange={(value) => setValue('settings.currency', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="VND">{t('settings:general.currencies.VND')}</SelectItem>
-                    <SelectItem value="USD">{t('settings:general.currencies.USD')}</SelectItem>
-                    <SelectItem value="EUR">{t('settings:general.currencies.EUR')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t('settings:general.dateFormat')}</Label>
-                <Select
-                  value={watch('settings.date_format')}
-                  onValueChange={(value) => setValue('settings.date_format', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
-                    <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
-                    <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+        <div className="border rounded-lg p-4 space-y-3">
+          <div className="flex items-center gap-2 pb-2 border-b">
+            <Globe className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <h2 className="text-sm font-medium">{t('settings:general.regionalSettings.title')}</h2>
+              <p className="text-[10px] text-muted-foreground">{t('settings:general.regionalSettings.description')}</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+          
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label className="text-xs">{t('settings:general.timezone')}</Label>
+              <Select
+                value={watch('settings.timezone')}
+                onValueChange={(value) => setValue('settings.timezone', value)}
+              >
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Asia/Ho_Chi_Minh">{t('settings:general.timezones.hoChiMinh')}</SelectItem>
+                  <SelectItem value="Asia/Bangkok">{t('settings:general.timezones.bangkok')}</SelectItem>
+                  <SelectItem value="Asia/Singapore">{t('settings:general.timezones.singapore')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">{t('settings:general.language')}</Label>
+              <Select
+                value={watch('settings.language')}
+                onValueChange={(value: 'vi' | 'en') => setValue('settings.language', value)}
+              >
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vi">{t('settings:general.languages.vi')}</SelectItem>
+                  <SelectItem value="en">{t('settings:general.languages.en')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">{t('settings:general.currency')}</Label>
+              <Select
+                value={watch('settings.currency')}
+                onValueChange={(value) => setValue('settings.currency', value)}
+              >
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="VND">{t('settings:general.currencies.VND')}</SelectItem>
+                  <SelectItem value="USD">{t('settings:general.currencies.USD')}</SelectItem>
+                  <SelectItem value="EUR">{t('settings:general.currencies.EUR')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">{t('settings:general.dateFormat')}</Label>
+              <Select
+                value={watch('settings.date_format')}
+                onValueChange={(value) => setValue('settings.date_format', value)}
+              >
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
+                  <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
+                  <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
 
         {/* Demo Data Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('settings:demoData.title')}</CardTitle>
-            <CardDescription>
-              {t('settings:demoData.description')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <SeedDataButton />
-          </CardContent>
-        </Card>
+        <div className="border rounded-lg p-4 space-y-3">
+          <div className="flex items-center gap-2 pb-2 border-b">
+            <Database className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <h2 className="text-sm font-medium">{t('settings:demoData.title')}</h2>
+              <p className="text-[10px] text-muted-foreground">{t('settings:demoData.description')}</p>
+            </div>
+          </div>
+          <SeedDataButton />
+        </div>
 
-        <div className="flex items-center justify-between gap-3">
+        {/* Actions */}
+        <div className="flex items-center justify-between gap-3 pt-2 border-t">
           <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
+            <Switch
               id="auto-save"
               checked={enableAutoSave}
-              onChange={(e) => setEnableAutoSave(e.target.checked)}
-              className="h-4 w-4 rounded border-input"
+              onCheckedChange={setEnableAutoSave}
+              className="scale-90"
             />
-            <Label htmlFor="auto-save" className="text-sm font-normal cursor-pointer">
+            <Label htmlFor="auto-save" className="text-xs font-normal cursor-pointer">
               {t('settings:general.autoSave')}
             </Label>
           </div>
           
-          <div className="flex gap-3">
-            <Button type="button" variant="outline">
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" size="sm" className="h-8 text-xs">
               {t('settings:general.cancel')}
             </Button>
-            <Button type="submit" disabled={isSaving || !isDirty}>
-              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {!isSaving && <Save className="mr-2 h-4 w-4" />}
+            <Button type="submit" size="sm" className="h-8 text-xs" disabled={isSaving || !isDirty}>
+              {isSaving ? (
+                <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+              ) : (
+                <Save className="mr-1.5 h-3 w-3" />
+              )}
               {t('settings:general.saveChanges')}
             </Button>
           </div>
