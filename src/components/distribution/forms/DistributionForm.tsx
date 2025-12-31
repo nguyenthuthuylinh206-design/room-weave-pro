@@ -40,46 +40,46 @@ export function DistributionForm({ form, showHeader = true }: DistributionFormPr
   )
 
   return (
-    <div className={isMobile ? 'space-y-4' : 'grid grid-cols-1 lg:grid-cols-3 gap-6'}>
-      {/* Room Selection */}
-      <Card className={isMobile ? '' : 'lg:col-span-1'}>
+    <div className={isMobile ? 'space-y-4' : 'grid grid-cols-1 lg:grid-cols-5 gap-4'}>
+      {/* Room Selection - 3/5 = 60% */}
+      <Card className={isMobile ? '' : 'lg:col-span-3'}>
         {showHeader && (
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Users className="h-4 w-4" />
               Chọn phòng
             </CardTitle>
-            <CardDescription>Chọn các phòng cần giao đồ</CardDescription>
+            <CardDescription className="text-xs">Chọn các phòng cần giao đồ</CardDescription>
           </CardHeader>
         )}
-        <CardContent className={!showHeader ? 'pt-6' : ''}>
+        <CardContent className={!showHeader ? 'pt-4' : 'pt-0'}>
           <RoomMultiSelect
             selectedRoomIds={selectedRoomIds}
             onSelectionChange={setSelectedRoomIds}
-            maxHeight={isMobile ? '200px' : '400px'}
+            maxHeight={isMobile ? '200px' : '450px'}
           />
         </CardContent>
       </Card>
 
-      {/* Item Allocation */}
+      {/* Item Allocation - 2/5 = 40% */}
       <Card className={isMobile ? '' : 'lg:col-span-2'}>
         {showHeader && (
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Truck className="h-5 w-5" />
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Truck className="h-4 w-4" />
               Phân bổ sản phẩm
             </CardTitle>
-            <CardDescription>Chọn số lượng sản phẩm cho mỗi phòng</CardDescription>
+            <CardDescription className="text-xs">Chọn số lượng sản phẩm cho mỗi phòng</CardDescription>
           </CardHeader>
         )}
-        <CardContent className={!showHeader ? 'pt-6' : ''}>
+        <CardContent className={!showHeader ? 'pt-4' : 'pt-0'}>
           <ItemAllocator form={form} />
           
           {/* Stock validation warning for desktop */}
           {!isMobile && !stockValidation.isValid && (
-            <Alert variant="destructive" className="mt-4">
+            <Alert variant="destructive" className="mt-3">
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
+              <AlertDescription className="text-xs">
                 <span className="font-medium">Vượt quá tồn kho:</span>
                 <ul className="mt-1 list-disc list-inside">
                   {stockValidation.overStockItems.map(item => (
@@ -95,13 +95,13 @@ export function DistributionForm({ form, showHeader = true }: DistributionFormPr
       </Card>
 
       {/* Options */}
-      <Card className={isMobile ? '' : 'lg:col-span-3'}>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Người giao hàng</Label>
+      <Card className={isMobile ? '' : 'lg:col-span-5'}>
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Người giao hàng</Label>
               <Select value={assignedTo || 'unassigned'} onValueChange={(val) => setAssignedTo(val === 'unassigned' ? '' : val)}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder="Chọn nhân viên..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -114,13 +114,14 @@ export function DistributionForm({ form, showHeader = true }: DistributionFormPr
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Ghi chú</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Ghi chú</Label>
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Ghi chú thêm..."
                 rows={2}
+                className="text-sm"
               />
             </div>
           </div>
