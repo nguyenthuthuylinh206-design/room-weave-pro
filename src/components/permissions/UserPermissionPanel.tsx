@@ -1,36 +1,37 @@
 import { useState, useEffect } from 'react'
 import { UserWithRelations } from '@/types/database.types'
 import { UserAvatar } from '@/components/users/UserAvatar'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { ModuleToggle } from './ModuleToggle'
 import { HotelAssignmentSection } from './HotelAssignmentSection'
 import { useUserPermissionConfiguration } from '@/hooks/useUserPermissionConfiguration'
 import { MODULES } from '@/hooks/useUserPermissions'
-import { Info } from 'lucide-react'
+import { Info, Save, Shield, Building2, AlertTriangle, Key } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { cn } from '@/lib/utils'
 
 interface UserPermissionPanelProps {
   user: UserWithRelations | null
 }
 
-const USER_LEVEL_LABELS: Record<string, string> = {
-  tenant_owner: 'Chủ sở hữu',
-  manager: 'Quản lý',
-  staff: 'Nhân viên',
-  viewer: 'Người xem',
+const USER_LEVEL_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
+  tenant_owner: { label: 'Chủ sở hữu', color: 'text-purple-600', bgColor: 'bg-purple-50' },
+  super_admin: { label: 'Super Admin', color: 'text-red-600', bgColor: 'bg-red-50' },
+  manager: { label: 'Quản lý', color: 'text-blue-600', bgColor: 'bg-blue-50' },
+  staff: { label: 'Nhân viên', color: 'text-green-600', bgColor: 'bg-green-50' },
+  viewer: { label: 'Người xem', color: 'text-muted-foreground', bgColor: 'bg-muted' },
 }
 
 export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
-  const { permissionsData, isLoading, toggleAction, saveConfiguration, isSaving } =
+  const { permissionsData, isLoading, saveConfiguration, isSaving } =
     useUserPermissionConfiguration(user?.id)
 
   const [localPermissions, setLocalPermissions] = useState<Record<string, boolean>>({})
   const [localActions, setLocalActions] = useState<Record<string, Record<string, boolean>>>({})
   const [hasActionChanges, setHasActionChanges] = useState(false)
+
   // Initialize local state from fetched data
   useEffect(() => {
     if (permissionsData) {
@@ -51,11 +52,15 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center text-muted-foreground">
-          <Info className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p className="text-lg font-medium">Chọn người dùng để cấu hình quyền</p>
-          <p className="text-sm mt-2">Chọn một người dùng từ danh sách bên trái</p>
+      <div className="flex items-center justify-center h-full bg-muted/20">
+        <div className="text-center p-8">
+          <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+            <Key className="h-8 w-8 text-muted-foreground/50" />
+          </div>
+          <p className="text-sm font-medium text-muted-foreground">Chọn người dùng</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">
+            Chọn một người dùng từ danh sách bên trái để cấu hình quyền
+          </p>
         </div>
       </div>
     )
@@ -94,6 +99,7 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
         },
       }))
     }
+    setHasActionChanges(true)
   }
 
   const handleActionToggle = (module: string, action: string, enabled: boolean) => {
@@ -106,15 +112,12 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
         [action]: enabled,
       },
     }))
-
-    // Track that we have action changes
     setHasActionChanges(true)
   }
 
   const handleSave = () => {
     if (!user) return
     
-    // Save all module and action permissions in one call
     saveConfiguration({ 
       userId: user.id, 
       modules: localPermissions,
@@ -134,65 +137,88 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
 
   // Check if user is owner/super admin (cannot be edited)
   const isProtectedUser = user.user_level_code === 'tenant_owner' || user.user_level_code === 'super_admin'
+  const levelConfig = USER_LEVEL_CONFIG[user.user_level_code] || USER_LEVEL_CONFIG.viewer
+
+  // Count enabled modules
+  const enabledModulesCount = Object.values(localPermissions).filter(Boolean).length
 
   return (
     <div className="flex flex-col h-full">
-      {/* User Header */}
-      <div className="p-6 border-b bg-background">
-        <div className="flex items-center gap-4">
-          <UserAvatar user={user} size="lg" />
-          <div className="flex-1">
-            <h2 className="text-xl font-semibold">{user.full_name}</h2>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
-            <div className="flex items-center gap-2 mt-2">
-              <Badge variant="secondary">
-                {USER_LEVEL_LABELS[user.user_level_code] || user.user_level_code}
-              </Badge>
-              {user.hotel_id && (
-                <Badge variant="outline" className="text-xs">
-                  Khách sạn: {user.hotel_id}
-                </Badge>
-              )}
+      {/* Compact User Header */}
+      <div className="p-4 border-b bg-background">
+        <div className="flex items-center gap-3">
+          <UserAvatar user={user} size="md" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold truncate">{user.full_name}</h2>
+              <span className={cn(
+                'text-[10px] font-medium px-1.5 py-0.5 rounded',
+                levelConfig.color, levelConfig.bgColor
+              )}>
+                {levelConfig.label}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+          </div>
+          
+          {/* Quick Stats */}
+          <div className="flex items-center gap-3 text-center">
+            <div className="px-3 py-1.5 rounded-md bg-muted/50">
+              <p className="text-lg font-bold text-primary">{enabledModulesCount}</p>
+              <p className="text-[10px] text-muted-foreground">Modules</p>
             </div>
           </div>
         </div>
 
         {isProtectedUser && (
-          <Alert className="mt-4">
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              Không thể chỉnh sửa quyền cho Chủ sở hữu hoặc Super Admin. Họ có toàn quyền truy cập.
-            </AlertDescription>
-          </Alert>
+          <div className="mt-3 flex items-center gap-2 p-2 rounded-md bg-amber-50 border border-amber-200">
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" />
+            <p className="text-[11px] text-amber-700">
+              Không thể chỉnh sửa quyền cho {levelConfig.label}. Họ có toàn quyền truy cập.
+            </p>
+          </div>
         )}
       </div>
 
-      {/* Tabbed Content - Module Permissions & Hotel Assignment */}
-      <Tabs defaultValue="modules" className="flex-1 flex flex-col">
-        <div className="border-b px-6">
-          <TabsList className="h-10">
-            <TabsTrigger value="modules">Quyền Module</TabsTrigger>
-            <TabsTrigger value="hotels">Khách sạn</TabsTrigger>
+      {/* Tabbed Content */}
+      <Tabs defaultValue="modules" className="flex-1 flex flex-col overflow-hidden">
+        <div className="px-4 py-2 border-b bg-muted/30">
+          <TabsList className="h-8 bg-transparent p-0 gap-1">
+            <TabsTrigger 
+              value="modules" 
+              className="h-7 text-xs gap-1.5 px-3 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md"
+            >
+              <Shield className="h-3.5 w-3.5" />
+              Quyền Module
+            </TabsTrigger>
+            <TabsTrigger 
+              value="hotels" 
+              className="h-7 text-xs gap-1.5 px-3 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md"
+            >
+              <Building2 className="h-3.5 w-3.5" />
+              Khách sạn
+            </TabsTrigger>
           </TabsList>
         </div>
         
         <ScrollArea className="flex-1">
-          <TabsContent value="modules" className="p-6 mt-0">
+          <TabsContent value="modules" className="p-4 mt-0">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <LoadingSpinner />
               </div>
             ) : (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Cấu hình Quyền theo Module</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Bật module để cho phép truy cập. Mặc định khi bật sẽ có toàn quyền.
-                    Click mũi tên để tùy chỉnh chi tiết từng quyền.
+              <div className="space-y-4">
+                {/* Info */}
+                <div className="flex items-start gap-2 p-2.5 rounded-md bg-blue-50 border border-blue-100">
+                  <Info className="h-3.5 w-3.5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-[11px] text-blue-700">
+                    Bật module để cho phép truy cập. Click mũi tên để tùy chỉnh chi tiết từng quyền.
                   </p>
                 </div>
 
-                <div className="grid gap-2">
+                {/* Module List */}
+                <div className="space-y-1.5">
                   {MODULES.map((module) => (
                     <ModuleToggle
                       key={module.code}
@@ -207,22 +233,23 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
                   ))}
                 </div>
 
-                {/* Save Button for Module Permissions */}
-                <div className="pt-4 border-t">
+                {/* Save Button */}
+                <div className="pt-3 border-t">
                   <Button
                     onClick={handleSave}
                     disabled={!hasChanges || isSaving || isProtectedUser}
-                    className="w-full"
-                    size="lg"
+                    className="w-full h-9 text-xs"
+                    size="sm"
                   >
-                    {isSaving ? 'Đang lưu...' : 'Lưu thay đổi quyền module'}
+                    <Save className="h-3.5 w-3.5 mr-1.5" />
+                    {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
                   </Button>
                 </div>
               </div>
             )}
           </TabsContent>
           
-          <TabsContent value="hotels" className="p-6 mt-0">
+          <TabsContent value="hotels" className="p-4 mt-0">
             <HotelAssignmentSection user={user} disabled={isProtectedUser} />
           </TabsContent>
         </ScrollArea>

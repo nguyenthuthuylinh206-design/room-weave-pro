@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { UserManagementTab } from '@/components/users/UserManagementTab'
 import { RolesOverviewTab } from '@/components/users/RolesOverviewTab'
 import { PermissionConfigurationTab } from '@/components/users/PermissionConfigurationTab'
-import { Users, Shield, Settings } from 'lucide-react'
+import { Users, Shield, Key } from 'lucide-react'
 import { MobileUserManagementPage } from '@/components/settings/MobileUserManagementPage'
 import { useBreakpoint } from '@/lib/breakpoints'
 
@@ -24,42 +24,58 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="space-y-4 p-4">
-      {/* Header */}
-      <div className="pb-2 border-b">
-        <h1 className="text-lg font-semibold">{t('title')}</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          {t('description', 'Quản lý người dùng, vai trò và quyền truy cập')}
-        </p>
+    <div className="h-full flex flex-col">
+      {/* Compact Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
+        <div>
+          <h1 className="text-base font-semibold">{t('title')}</h1>
+          <p className="text-[11px] text-muted-foreground">
+            {t('description', 'Quản lý người dùng, vai trò và quyền truy cập')}
+          </p>
+        </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="h-8">
-          <TabsTrigger value="users" className="h-7 text-xs gap-1.5 px-3">
-            <Users className="h-3 w-3" />
-            {t('tabs.users', 'Người dùng')}
-          </TabsTrigger>
-          <TabsTrigger value="roles" className="h-7 text-xs gap-1.5 px-3">
-            <Shield className="h-3 w-3" />
-            {t('tabs.roles', 'Vai trò')}
-          </TabsTrigger>
-          <TabsTrigger value="permissions" className="h-7 text-xs gap-1.5 px-3">
-            <Settings className="h-3 w-3" />
-            {t('tabs.permissions', 'Cấu hình Quyền')}
-          </TabsTrigger>
-        </TabsList>
+      {/* Main Content with Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+        <div className="px-4 py-2 border-b bg-muted/30">
+          <TabsList className="h-8 bg-transparent p-0 gap-1">
+            <TabsTrigger 
+              value="users" 
+              className="h-7 text-xs gap-1.5 px-3 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md"
+            >
+              <Users className="h-3.5 w-3.5" />
+              {t('tabs.users', 'Người dùng')}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="roles" 
+              className="h-7 text-xs gap-1.5 px-3 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md"
+            >
+              <Shield className="h-3.5 w-3.5" />
+              {t('tabs.roles', 'Vai trò')}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="permissions" 
+              className="h-7 text-xs gap-1.5 px-3 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md"
+            >
+              <Key className="h-3.5 w-3.5" />
+              {t('tabs.permissions', 'Cấu hình Quyền')}
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        <TabsContent value="users" className="mt-4">
-          <UserManagementTab onManagePermissions={handleManagePermissions} />
-        </TabsContent>
+        <div className="flex-1 overflow-auto">
+          <TabsContent value="users" className="m-0 p-4 h-full">
+            <UserManagementTab onManagePermissions={handleManagePermissions} />
+          </TabsContent>
 
-        <TabsContent value="roles" className="mt-4">
-          <RolesOverviewTab />
-        </TabsContent>
+          <TabsContent value="roles" className="m-0 p-4 h-full">
+            <RolesOverviewTab />
+          </TabsContent>
 
-        <TabsContent value="permissions" className="mt-4">
-          <PermissionConfigurationTab preSelectedUserId={preSelectedUserId} />
-        </TabsContent>
+          <TabsContent value="permissions" className="m-0 h-full">
+            <PermissionConfigurationTab preSelectedUserId={preSelectedUserId} />
+          </TabsContent>
+        </div>
       </Tabs>
     </div>
   )
