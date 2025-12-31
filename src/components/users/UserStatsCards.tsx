@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, Crown, UserCog, UserCheck } from 'lucide-react'
 import { UserWithRelations } from '@/types/database.types'
 
@@ -15,54 +14,48 @@ export function UserStatsCards({ users }: UserStatsCardsProps) {
 
   const stats = [
     {
-      title: 'Tổng số người dùng',
+      title: 'Tổng số',
       value: totalUsers,
       icon: Users,
-      description: `${activeCount} đang hoạt động`,
-      color: 'text-blue-600 dark:text-blue-400'
+      description: `${activeCount} hoạt động`,
+      color: 'text-blue-600'
     },
     {
       title: 'Chủ sở hữu',
       value: ownerCount,
       icon: Crown,
       description: 'Quyền cao nhất',
-      color: 'text-yellow-600 dark:text-yellow-400'
+      color: 'text-amber-600'
     },
     {
       title: 'Quản lý',
       value: managerCount,
       icon: UserCog,
       description: 'Quản lý khách sạn',
-      color: 'text-green-600 dark:text-green-400'
+      color: 'text-green-600'
     },
     {
       title: 'Nhân viên',
       value: staffCount,
       icon: UserCheck,
       description: 'Nhân viên thực hiện',
-      color: 'text-gray-600 dark:text-gray-400'
+      color: 'text-muted-foreground'
     }
   ]
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
       {stats.map((stat) => {
         const Icon = stat.icon
         return (
-          <Card key={stat.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {stat.title}
-              </CardTitle>
-              <Icon className={`h-4 w-4 ${stat.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">
-                {stat.description}
-              </p>
-            </CardContent>
-          </Card>
+          <div key={stat.title} className="border rounded-lg p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-muted-foreground">{stat.title}</span>
+              <Icon className={`h-3.5 w-3.5 ${stat.color}`} />
+            </div>
+            <div className="text-xl font-bold">{stat.value}</div>
+            <p className="text-[10px] text-muted-foreground">{stat.description}</p>
+          </div>
         )
       })}
     </div>

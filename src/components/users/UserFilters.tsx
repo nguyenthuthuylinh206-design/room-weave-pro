@@ -6,11 +6,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Search, Filter } from 'lucide-react'
+import { Search, Filter, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useHotels } from '@/hooks/useHotels'
 import { usePositions } from '@/hooks/usePositions'
-import { Badge } from '@/components/ui/badge'
 
 interface UserFiltersProps {
   filters: {
@@ -51,18 +50,19 @@ export function UserFilters({ filters, onFiltersChange }: UserFiltersProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+    <div className="space-y-3">
+      {/* Primary Filters Row */}
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
         {/* Search */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Tìm kiếm theo tên, email, số điện thoại..."
+            placeholder="Tìm kiếm theo tên, email..."
             value={filters.search}
             onChange={(e) =>
               onFiltersChange({ ...filters, search: e.target.value })
             }
-            className="pl-10"
+            className="h-8 pl-8 text-sm"
           />
         </div>
 
@@ -73,7 +73,7 @@ export function UserFilters({ filters, onFiltersChange }: UserFiltersProps) {
             onFiltersChange({ ...filters, userLevel: value })
           }
         >
-          <SelectTrigger className="w-full lg:w-[180px]">
+          <SelectTrigger className="h-8 text-xs w-full lg:w-[140px]">
             <SelectValue placeholder="Cấp bậc" />
           </SelectTrigger>
           <SelectContent>
@@ -91,7 +91,7 @@ export function UserFilters({ filters, onFiltersChange }: UserFiltersProps) {
             onFiltersChange({ ...filters, status: value })
           }
         >
-          <SelectTrigger className="w-full lg:w-[160px]">
+          <SelectTrigger className="h-8 text-xs w-full lg:w-[130px]">
             <SelectValue placeholder="Trạng thái" />
           </SelectTrigger>
           <SelectContent>
@@ -102,8 +102,8 @@ export function UserFilters({ filters, onFiltersChange }: UserFiltersProps) {
         </Select>
       </div>
 
-      {/* Advanced Filters Row */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+      {/* Secondary Filters Row */}
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
         {/* Hotel Filter */}
         <Select
           value={filters.hotelId}
@@ -111,7 +111,7 @@ export function UserFilters({ filters, onFiltersChange }: UserFiltersProps) {
             onFiltersChange({ ...filters, hotelId: value })
           }
         >
-          <SelectTrigger className="w-full lg:w-[200px]">
+          <SelectTrigger className="h-8 text-xs w-full lg:w-[160px]">
             <SelectValue placeholder="Khách sạn" />
           </SelectTrigger>
           <SelectContent>
@@ -131,7 +131,7 @@ export function UserFilters({ filters, onFiltersChange }: UserFiltersProps) {
             onFiltersChange({ ...filters, positionId: value })
           }
         >
-          <SelectTrigger className="w-full lg:w-[200px]">
+          <SelectTrigger className="h-8 text-xs w-full lg:w-[160px]">
             <SelectValue placeholder="Chức vụ" />
           </SelectTrigger>
           <SelectContent>
@@ -151,7 +151,7 @@ export function UserFilters({ filters, onFiltersChange }: UserFiltersProps) {
             onFiltersChange({ ...filters, department: value })
           }
         >
-          <SelectTrigger className="w-full lg:w-[200px]">
+          <SelectTrigger className="h-8 text-xs w-full lg:w-[160px]">
             <SelectValue placeholder="Phòng ban" />
           </SelectTrigger>
           <SelectContent>
@@ -167,23 +167,29 @@ export function UserFilters({ filters, onFiltersChange }: UserFiltersProps) {
 
         {/* Created By Me Toggle */}
         <Button
+          type="button"
           variant={filters.createdByMe ? 'default' : 'outline'}
+          size="sm"
           onClick={() =>
             onFiltersChange({ ...filters, createdByMe: !filters.createdByMe })
           }
-          className="w-full lg:w-auto"
+          className="h-8 text-xs w-full lg:w-auto"
         >
-          <Filter className="h-4 w-4 mr-2" />
+          <Filter className="h-3 w-3 mr-1.5" />
           Người tôi tạo
         </Button>
 
         {/* Reset Button */}
         {activeFilterCount > 0 && (
-          <Button variant="ghost" onClick={handleReset} className="w-full lg:w-auto">
-            Xóa bộ lọc
-            <Badge variant="secondary" className="ml-2">
-              {activeFilterCount}
-            </Badge>
+          <Button 
+            type="button"
+            variant="ghost" 
+            size="sm"
+            onClick={handleReset} 
+            className="h-8 text-xs w-full lg:w-auto"
+          >
+            <X className="h-3 w-3 mr-1" />
+            Xóa ({activeFilterCount})
           </Button>
         )}
       </div>
