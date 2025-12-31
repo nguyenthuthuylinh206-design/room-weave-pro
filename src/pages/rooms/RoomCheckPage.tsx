@@ -38,7 +38,8 @@ export function RoomCheckPage() {
   const prefilledType = searchParams.get('type') as 'daily' | 'checkin' | 'checkout' | 'maintenance' | null
   const shouldAutoResume = searchParams.get('resume') === 'true'
   
-  const { user } = useUser()
+  const { user, hasAnyRole } = useUser()
+  const isManager = hasAnyRole(['super_admin', 'owner', 'hotel_manager', 'department_manager'])
   const { data: roomData, isLoading } = useRoom(id)
   const { data: currentBooking } = useRoomBooking(id)
   const createCheck = useCreateRoomCheck()
@@ -296,7 +297,7 @@ export function RoomCheckPage() {
   
   const handleCancel = () => {
     if (currentStep === 1) {
-      navigate(`/rooms/${id}`)
+      navigate(isManager ? `/rooms/${id}` : '/rooms')
     } else {
       setShowCancelDialog(true)
     }
@@ -307,7 +308,7 @@ export function RoomCheckPage() {
       await deleteSession(id)
       setSessionCompleted(true)
     }
-    navigate(`/rooms/${id}`)
+    navigate(isManager ? `/rooms/${id}` : '/rooms')
   }
   
   const getCheckTypeLabel = (type: string) => {
@@ -339,7 +340,11 @@ export function RoomCheckPage() {
       }
       
       clearSavedProgress()
-      navigate(`/rooms/${id}`)
+      toast({
+        title: 'Thành công',
+        description: `Đã hoàn thành kiểm tra phòng ${room?.room_number}`,
+      })
+      navigate(isManager ? `/rooms/${id}` : '/rooms')
     } catch (error) {
       // Đóng dialog khi lỗi
       setShowSubmitDialog(false)
