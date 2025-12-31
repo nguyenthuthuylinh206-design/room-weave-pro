@@ -334,6 +334,7 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
   }, [])
   
   // Auto-fill missing items for a single room
+  // RPC already filters for items with stock > 0 and active status
   const autoFillMissingItemsForRoom = useCallback(async (roomId: string) => {
     try {
       const { data: missingData, error } = await supabase
@@ -345,20 +346,12 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
         room_id: string
         item_id: string
         missing_qty: number
+        item_stock: number
       }[] | null
       
+      // RPC already returns only items with stock > 0 and active status
       if (!missingItems || missingItems.length === 0) {
-        return { success: true, message: 'Phòng đã đủ tiêu chuẩn', count: 0 }
-      }
-      
-      // Filter items with stock
-      const itemsWithStock = missingItems.filter((m) => {
-        const item = itemsMap.get(m.item_id)
-        return item && (item.quantity_in_stock || 0) > 0
-      })
-      
-      if (itemsWithStock.length === 0) {
-        return { success: true, message: 'SP thiếu không còn tồn kho', count: 0 }
+        return { success: true, message: 'Phòng đã đủ tiêu chuẩn hoặc SP hết hàng', count: 0 }
       }
       
       // Update allocations for this room
@@ -366,7 +359,7 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
         const existingIdx = prev.findIndex(a => a.room_id === roomId)
         const existingItems = existingIdx >= 0 ? [...prev[existingIdx].items] : []
         
-        itemsWithStock.forEach(({ item_id, missing_qty }) => {
+        missingItems.forEach(({ item_id, missing_qty }) => {
           const itemIdx = existingItems.findIndex(i => i.item_id === item_id)
           if (itemIdx >= 0) {
             existingItems[itemIdx] = {
@@ -387,14 +380,15 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
         }
       })
       
-      const totalItems = itemsWithStock.reduce((sum, m) => sum + m.missing_qty, 0)
+      const totalItems = missingItems.reduce((sum, m) => sum + m.missing_qty, 0)
       return { success: true, message: `+${totalItems} SP`, count: totalItems }
     } catch (err: any) {
       return { success: false, message: err.message || 'Lỗi' }
     }
-  }, [itemsMap])
+  }, [])
 
   // Auto-fill missing items based on room standards (all selected rooms)
+  // RPC already filters for items with stock > 0 and active status
   const autoFillMissingItems = useCallback(async () => {
     if (selectedRoomIds.length === 0) return { success: false, message: 'Chưa chọn phòng' }
     
@@ -414,25 +408,17 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
         current_qty: number
         standard_qty: number
         missing_qty: number
+        item_stock: number
       }[] | null
       
+      // RPC already returns only items with stock > 0 and active status
       if (!missingItems || missingItems.length === 0) {
-        return { success: true, message: 'Không có sản phẩm nào thiếu', count: 0 }
-      }
-      
-      // Filter only items that have stock and are available
-      const itemsWithStock = missingItems.filter((m) => {
-        const item = itemsMap.get(m.item_id)
-        return item && (item.quantity_in_stock || 0) > 0
-      })
-      
-      if (itemsWithStock.length === 0) {
-        return { success: true, message: 'Sản phẩm thiếu không còn tồn kho', count: 0 }
+        return { success: true, message: 'Không có SP thiếu hoặc đã hết hàng', count: 0 }
       }
       
       // Group by room_id
       const byRoom: Record<string, { item_id: string; quantity: number }[]> = {}
-      itemsWithStock.forEach((m) => {
+      missingItems.forEach((m) => {
         if (!byRoom[m.room_id]) byRoom[m.room_id] = []
         byRoom[m.room_id].push({ item_id: m.item_id, quantity: m.missing_qty })
       })
@@ -468,17 +454,17 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
         return newAllocs
       })
       
-      const totalItems = itemsWithStock.reduce((sum, m) => sum + m.missing_qty, 0)
+      const totalItems = missingItems.reduce((sum, m) => sum + m.missing_qty, 0)
       return { 
         success: true, 
-        message: `Đã thêm ${totalItems} sản phẩm thiếu cho ${Object.keys(byRoom).length} phòng`,
+        message: `Đã thêm ${totalItems} SP thiếu cho ${Object.keys(byRoom).length} phòng`,
         count: totalItems,
       }
     } catch (err: any) {
       console.error('Auto-fill error:', err)
-      return { success: false, message: err.message || 'Lỗi khi tự động lấy sản phẩm thiếu' }
+      return { success: false, message: err.message || 'Lỗi khi tự động lấy SP thiếu' }
     }
-  }, [selectedRoomIds, itemsMap])
+  }, [selectedRoomIds])
   
   // Check form validity
   const isValid = useMemo(() => {
