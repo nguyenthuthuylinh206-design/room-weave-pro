@@ -207,43 +207,53 @@ export function ItemAllocator({ form, compact = false }: ItemAllocatorProps) {
                     )}
 
                     {/* Add item inline search */}
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <div className="relative">
-                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                         <Input
-                          placeholder="Tìm và thêm sản phẩm..."
+                          placeholder="Nhập tên hoặc mã sản phẩm..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(room.id, e.target.value)}
-                          className="pl-8 h-9"
+                          className="pl-8 h-8 text-sm"
                         />
+                        {searchTerm && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
+                            onClick={() => setSearchTerm(room.id, '')}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                       
-                      {searchTerm && (
-                        <ScrollArea className="max-h-[150px] border rounded">
-                          {availableItems.length > 0 ? (
-                            availableItems.slice(0, 10).map(item => (
-                              <Button
-                                key={item.id}
-                                variant="ghost"
-                                size="sm"
-                                className="w-full justify-start h-auto py-2 px-3"
-                                onClick={() => addItemToRoom(room.id, item.id)}
-                              >
-                                <div className="text-left flex-1">
-                                  <p className="font-medium text-sm">{item.name}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {item.code} • Tồn: {item.quantity_in_stock || 0}
-                                  </p>
-                                </div>
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                            ))
-                          ) : (
-                            <p className="text-sm text-muted-foreground text-center py-4">
-                              Không tìm thấy sản phẩm
-                            </p>
-                          )}
-                        </ScrollArea>
+                      {searchTerm && availableItems.length > 0 && (
+                        <div className="border rounded-md divide-y max-h-[140px] overflow-y-auto">
+                          {availableItems.slice(0, 8).map(item => (
+                            <button
+                              key={item.id}
+                              type="button"
+                              className="w-full flex items-center justify-between gap-2 p-2 text-left hover:bg-muted/50 transition-colors"
+                              onClick={() => addItemToRoom(room.id, item.id)}
+                            >
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium truncate">{item.name}</p>
+                                <p className="text-[11px] text-muted-foreground truncate">
+                                  {item.code} • Tồn: {item.quantity_in_stock || 0}
+                                </p>
+                              </div>
+                              <Plus className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {searchTerm && availableItems.length === 0 && (
+                        <p className="text-xs text-muted-foreground text-center py-2">
+                          Không tìm thấy "{searchTerm}"
+                        </p>
                       )}
                     </div>
                   </CardContent>
