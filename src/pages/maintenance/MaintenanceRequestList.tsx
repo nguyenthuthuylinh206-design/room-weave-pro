@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/shared/PageHeader'
-import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -38,7 +37,7 @@ export default function MaintenanceRequestList() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title={t('list.title')}
         description={t('list.description')}
@@ -50,20 +49,20 @@ export default function MaintenanceRequestList() {
       />
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="all">{t('list.tabs.all')} ({counts.all})</TabsTrigger>
-          <TabsTrigger value="waiting">{t('list.tabs.waiting')} ({counts.waiting})</TabsTrigger>
-          <TabsTrigger value="pending">{t('list.tabs.pending')} ({counts.pending})</TabsTrigger>
-          <TabsTrigger value="in_progress">{t('list.tabs.inProgress')} ({counts.in_progress})</TabsTrigger>
-          <TabsTrigger value="completed">{t('list.tabs.completed')} ({counts.completed})</TabsTrigger>
-          <TabsTrigger value="cancelled">{t('list.tabs.cancelled')} ({counts.cancelled})</TabsTrigger>
+        <TabsList className="h-8">
+          <TabsTrigger value="all" className="text-xs h-7">{t('list.tabs.all')} ({counts.all})</TabsTrigger>
+          <TabsTrigger value="waiting" className="text-xs h-7">{t('list.tabs.waiting')} ({counts.waiting})</TabsTrigger>
+          <TabsTrigger value="pending" className="text-xs h-7">{t('list.tabs.pending')} ({counts.pending})</TabsTrigger>
+          <TabsTrigger value="in_progress" className="text-xs h-7">{t('list.tabs.inProgress')} ({counts.in_progress})</TabsTrigger>
+          <TabsTrigger value="completed" className="text-xs h-7">{t('list.tabs.completed')} ({counts.completed})</TabsTrigger>
+          <TabsTrigger value="cancelled" className="text-xs h-7">{t('list.tabs.cancelled')} ({counts.cancelled})</TabsTrigger>
         </TabsList>
 
-        <div className="mt-4">
+        <div className="mt-3">
           <MaintenanceFilters filters={filters} onFiltersChange={setFilters} />
         </div>
 
-        <TabsContent value={tab} className="mt-6">
+        <TabsContent value={tab} className="mt-4">
           <MaintenanceRequestTable
             requests={filteredRequests || []}
             isLoading={!allRequests}

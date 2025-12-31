@@ -1,14 +1,14 @@
 import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
-import { Plus, Calendar, FileText, Users } from 'lucide-react'
+import { Plus, Calendar, FileText, Users, Wrench, Clock, CheckCircle, DollarSign, AlertTriangle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useMaintenanceDashboard } from '@/hooks/useMaintenanceDashboard'
-import { MaintenanceStats } from '@/components/maintenance/MaintenanceStats'
 import { ActiveRequestsSection } from '@/components/maintenance/ActiveRequestsSection'
 import { MobileMaintenanceDashboard } from '@/components/maintenance/MobileMaintenanceDashboard'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useBreakpoint } from '@/lib/breakpoints'
+import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 
 export default function MaintenanceDashboard() {
   const { t } = useTranslation('maintenance')
@@ -20,90 +20,162 @@ export default function MaintenanceDashboard() {
     return <MobileMaintenanceDashboard />
   }
 
-  const defaultStats = {
+  const stats = data?.stats || {
     total: 0, totalLast30Days: 0, inProgress: 0, completed: 0,
     completedLast30Days: 0, completionRate: 0, avgTime: 0,
     costLast30Days: 0, mttr: 0, mtbf: 0, firstTimeFixRate: 0,
   }
 
+  const formatCurrency = (value: number) => 
+    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', notation: 'compact' }).format(value)
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader title={t('dashboard.title')} description={t('dashboard.description')}>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate('/maintenance/schedules')}>
-            <Calendar className="h-4 w-4" />
+          <Button variant="outline" size="sm" onClick={() => navigate('/maintenance/schedules')}>
+            <Calendar className="h-4 w-4 mr-1" />
             {t('dashboard.schedule')}
           </Button>
-          <Button variant="outline" onClick={() => navigate('/maintenance/reports')}>
-            <FileText className="h-4 w-4" />
+          <Button variant="outline" size="sm" onClick={() => navigate('/maintenance/reports')}>
+            <FileText className="h-4 w-4 mr-1" />
             {t('dashboard.reports')}
           </Button>
-          <Button onClick={() => navigate('/maintenance/requests/new')}>
-            <Plus className="h-4 w-4" />
+          <Button size="sm" onClick={() => navigate('/maintenance/requests/new')}>
+            <Plus className="h-4 w-4 mr-1" />
             {t('dashboard.createRequest')}
           </Button>
         </div>
       </PageHeader>
 
-      <MaintenanceStats stats={data?.stats || defaultStats} isLoading={isLoading} />
-
-      <Card>
-        <CardHeader><CardTitle>{t('dashboard.quickActions')}</CardTitle></CardHeader>
-        <CardContent>
-          <div className="grid gap-3 md:grid-cols-4">
-            <Button variant="outline" className="h-auto flex-col items-start p-4" onClick={() => navigate('/maintenance/requests/new')}>
-              <Plus className="h-5 w-5 mb-2" />
-              <span className="font-medium">{t('dashboard.actions.createNew')}</span>
-              <span className="text-xs text-muted-foreground">{t('dashboard.actions.createNewDesc')}</span>
-            </Button>
-            <Button variant="outline" className="h-auto flex-col items-start p-4" onClick={() => navigate('/maintenance/schedules')}>
-              <Calendar className="h-5 w-5 mb-2" />
-              <span className="font-medium">{t('dashboard.actions.schedule')}</span>
-              <span className="text-xs text-muted-foreground">{t('dashboard.actions.scheduleDesc')}</span>
-            </Button>
-            <Button variant="outline" className="h-auto flex-col items-start p-4" onClick={() => navigate('/maintenance/reports')}>
-              <FileText className="h-5 w-5 mb-2" />
-              <span className="font-medium">{t('dashboard.actions.viewReports')}</span>
-              <span className="text-xs text-muted-foreground">{t('dashboard.actions.viewReportsDesc')}</span>
-            </Button>
-            <Button variant="outline" className="h-auto flex-col items-start p-4" onClick={() => navigate('/maintenance/technicians')}>
-              <Users className="h-5 w-5 mb-2" />
-              <span className="font-medium">{t('dashboard.actions.manageTech')}</span>
-              <span className="text-xs text-muted-foreground">{t('dashboard.actions.manageTechDesc')}</span>
-            </Button>
+      {/* Stats Row */}
+      {isLoading ? (
+        <div className="grid gap-3 md:grid-cols-5">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="border rounded-lg p-3">
+              <Skeleton className="h-4 w-20 mb-2" />
+              <Skeleton className="h-6 w-12" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-5">
+          <div className="border rounded-lg p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-muted-foreground">Tổng yêu cầu</span>
+              <Wrench className="h-3.5 w-3.5 text-muted-foreground" />
+            </div>
+            <div className="text-xl font-semibold">{stats.total}</div>
+            <span className="text-xs text-muted-foreground">+{stats.totalLast30Days} (30d)</span>
           </div>
-        </CardContent>
-      </Card>
+          <div className="border rounded-lg p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-muted-foreground">Đang xử lý</span>
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+            </div>
+            <div className="text-xl font-semibold text-amber-600">{stats.inProgress}</div>
+            <span className="text-xs text-muted-foreground">Cần xử lý</span>
+          </div>
+          <div className="border rounded-lg p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-muted-foreground">Hoàn thành</span>
+              <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+            </div>
+            <div className="text-xl font-semibold text-green-600">{stats.completed}</div>
+            <span className="text-xs text-muted-foreground">{stats.completionRate}%</span>
+          </div>
+          <div className="border rounded-lg p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-muted-foreground">Thời gian TB</span>
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+            </div>
+            <div className="text-xl font-semibold">{stats.avgTime}h</div>
+            <span className="text-xs text-muted-foreground">MTTR: {stats.mttr}h</span>
+          </div>
+          <div className="border rounded-lg p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-muted-foreground">Chi phí (30d)</span>
+              <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+            </div>
+            <div className="text-xl font-semibold">{formatCurrency(stats.costLast30Days)}</div>
+            <span className="text-xs text-muted-foreground">FTF: {stats.firstTimeFixRate}%</span>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Actions */}
+      <div className="border rounded-lg p-3">
+        <div className="text-sm font-medium mb-2">{t('dashboard.quickActions')}</div>
+        <div className="grid gap-2 md:grid-cols-4">
+          <button 
+            onClick={() => navigate('/maintenance/requests/new')}
+            className="flex items-center gap-2 p-2 rounded-lg border hover:bg-muted/50 text-left"
+          >
+            <Plus className="h-4 w-4 text-primary" />
+            <div>
+              <div className="text-sm font-medium">{t('dashboard.actions.createNew')}</div>
+              <div className="text-xs text-muted-foreground">{t('dashboard.actions.createNewDesc')}</div>
+            </div>
+          </button>
+          <button 
+            onClick={() => navigate('/maintenance/schedules')}
+            className="flex items-center gap-2 p-2 rounded-lg border hover:bg-muted/50 text-left"
+          >
+            <Calendar className="h-4 w-4 text-primary" />
+            <div>
+              <div className="text-sm font-medium">{t('dashboard.actions.schedule')}</div>
+              <div className="text-xs text-muted-foreground">{t('dashboard.actions.scheduleDesc')}</div>
+            </div>
+          </button>
+          <button 
+            onClick={() => navigate('/maintenance/reports')}
+            className="flex items-center gap-2 p-2 rounded-lg border hover:bg-muted/50 text-left"
+          >
+            <FileText className="h-4 w-4 text-primary" />
+            <div>
+              <div className="text-sm font-medium">{t('dashboard.actions.viewReports')}</div>
+              <div className="text-xs text-muted-foreground">{t('dashboard.actions.viewReportsDesc')}</div>
+            </div>
+          </button>
+          <button 
+            onClick={() => navigate('/maintenance/technicians')}
+            className="flex items-center gap-2 p-2 rounded-lg border hover:bg-muted/50 text-left"
+          >
+            <Users className="h-4 w-4 text-primary" />
+            <div>
+              <div className="text-sm font-medium">{t('dashboard.actions.manageTech')}</div>
+              <div className="text-xs text-muted-foreground">{t('dashboard.actions.manageTechDesc')}</div>
+            </div>
+          </button>
+        </div>
+      </div>
 
       {data?.activeRequests && <ActiveRequestsSection requests={data.activeRequests} />}
 
+      {/* Recent Completions */}
       {data?.recentCompletions && data.recentCompletions.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle>{t('dashboard.recentCompletions')}</CardTitle></CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {data.recentCompletions.slice(0, 10).map((request: any) => (
-                <div key={request.id} className="flex items-start gap-3 p-3 rounded-lg border">
-                  <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                    <span className="text-green-600">✓</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{request.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{request.request_code} • {request.location}</p>
-                    {request.actual_cost && (
-                      <p className="text-xs text-muted-foreground">
-                        {t('dashboard.cost')}: {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(request.actual_cost)}
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(request.completed_at).toLocaleDateString('vi-VN')}
-                  </div>
+        <div className="border rounded-lg">
+          <div className="px-3 py-2 border-b bg-muted/30">
+            <span className="text-sm font-medium">{t('dashboard.recentCompletions')}</span>
+          </div>
+          <div className="divide-y">
+            {data.recentCompletions.slice(0, 10).map((request: any) => (
+              <div key={request.id} className="flex items-center gap-3 px-3 py-2">
+                <span className="text-green-600">✓</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{request.title}</p>
+                  <p className="text-xs text-muted-foreground">{request.request_code} • {request.location}</p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                {request.actual_cost && (
+                  <span className="text-xs text-muted-foreground">{formatCurrency(request.actual_cost)}</span>
+                )}
+                <span className="text-xs text-muted-foreground">
+                  {new Date(request.completed_at).toLocaleDateString('vi-VN')}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   )
