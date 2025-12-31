@@ -6251,6 +6251,20 @@ export type Database = {
           standard_qty: number
         }[]
       }
+      get_missing_items_from_room_detail: {
+        Args: { p_room_ids: string[] }
+        Returns: {
+          current_qty: number
+          item_code: string
+          item_id: string
+          item_name: string
+          item_stock: number
+          missing_qty: number
+          room_id: string
+          room_number: string
+          standard_qty: number
+        }[]
+      }
       get_monthly_expenses:
         | {
             Args: { p_months?: number; p_tenant_id: string }
