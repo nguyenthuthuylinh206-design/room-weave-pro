@@ -1,9 +1,16 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle, TrendingUp, Wrench } from 'lucide-react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { AlertTriangle, TrendingUp, Wrench, Eye, MoreHorizontal, MapPin } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { RecurringIssueAnalysisDialog } from './RecurringIssueAnalysisDialog'
 import { cn } from '@/lib/utils'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 interface RecurringIssue {
   id: string
@@ -32,122 +39,127 @@ const issueTypeLabels: Record<string, string> = {
   other: 'Khác',
 }
 
+const severityConfig = {
+  critical: { color: 'text-red-600', dot: 'bg-red-500', label: 'Nghiêm trọng' },
+  warning: { color: 'text-amber-600', dot: 'bg-amber-500', label: 'Cảnh báo' },
+}
+
 export const RecurringIssuesTable = ({ issues }: RecurringIssuesTableProps) => {
   const [selectedIssue, setSelectedIssue] = useState<RecurringIssue | null>(null)
 
   if (!issues || issues.length === 0) {
     return (
-      <div className="border rounded-lg p-8 text-center">
-        <div className="flex flex-col items-center gap-3">
-          <AlertTriangle className="h-8 w-8 text-muted-foreground" />
-          <div>
-            <p className="font-medium mb-1">Không có vấn đề lặp lại</p>
-            <p className="text-sm text-muted-foreground">
-              Chưa phát hiện thiết bị hoặc phòng nào có sự cố lặp lại
-            </p>
-          </div>
+      <div className="border rounded-lg">
+        <div className="flex flex-col items-center justify-center py-12">
+          <Wrench className="h-8 w-8 text-muted-foreground mb-2" />
+          <p className="text-sm text-muted-foreground">Không có vấn đề lặp lại</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 text-amber-600">
-        <AlertTriangle className="h-4 w-4" />
-        <span className="text-sm">
-          Phát hiện {issues.length} thiết bị/phòng có vấn đề lặp lại
-        </span>
-      </div>
-
-      <div className="border rounded-lg divide-y">
-        {issues.map((issue) => (
-          <div key={issue.id} className={cn(
-            "p-3",
-            issue.count30d >= 3 && "border-l-2 border-l-red-500"
-          )}>
-            {/* Header */}
-            <div className="flex items-start justify-between gap-3 mb-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <Wrench className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div className="min-w-0">
-                  <div className="text-sm font-medium truncate">
-                    {issue.type === 'item' ? issue.item?.name : `Phòng ${issue.room?.room_number}`}
-                  </div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    {issue.type === 'item' ? `${issue.item?.code} - ${issue.location}` : issue.location}
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className={cn(
-                  "text-xs font-medium px-2 py-0.5 rounded",
-                  issue.count30d >= 3 ? "text-red-600 bg-red-50 dark:bg-red-950" : "text-amber-600 bg-amber-50 dark:bg-amber-950"
-                )}>
-                  <TrendingUp className="h-3 w-3 inline mr-1" />
-                  {issue.count30d} lần (30d)
-                </span>
-              </div>
-            </div>
-
-            {/* Stats Row */}
-            <div className="grid grid-cols-4 gap-4 text-xs mb-2">
-              <div>
-                <div className="text-muted-foreground">Vấn đề chính</div>
-                <div className="font-medium">{issueTypeLabels[issue.primaryIssue] || issue.primaryIssue}</div>
-                <div className="text-muted-foreground">({issue.issueCount} lần)</div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Tần suất</div>
-                <div className="font-medium">{issue.frequency} lần/tháng</div>
-                <div className="text-muted-foreground">{issue.count90d} lần (90d)</div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Chi phí</div>
-                <div className="font-medium">{formatCurrency(issue.totalCost)}</div>
-                <div className="text-muted-foreground">TB: {formatCurrency(issue.avgCost)}</div>
-              </div>
-              <div className="flex items-center justify-end">
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  className="h-7 text-xs"
-                  onClick={() => setSelectedIssue(issue)}
-                >
-                  <Wrench className="h-3 w-3 mr-1" />
-                  Phân tích
-                </Button>
-              </div>
-            </div>
-
-            {/* Warning */}
-            {issue.count30d >= 2 && (
-              <div className={cn(
-                "flex items-start gap-2 p-2 rounded text-xs",
-                issue.count30d >= 3 ? "bg-red-50 dark:bg-red-950/50" : "bg-amber-50 dark:bg-amber-950/50"
-              )}>
-                <AlertTriangle className={cn(
-                  "h-4 w-4 shrink-0",
-                  issue.count30d >= 3 ? "text-red-500" : "text-amber-500"
-                )} />
-                <div>
-                  <span className={cn(
-                    "font-medium",
-                    issue.count30d >= 3 ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"
-                  )}>
-                    {issue.count30d >= 3 ? 'Tần suất cao bất thường' : 'Vấn đề lặp lại'}
-                  </span>
-                  <span className="text-muted-foreground ml-1">
-                    {issue.count30d >= 3 
-                      ? '- Đề xuất thay thế hoặc điều tra nguyên nhân'
-                      : '- Theo dõi thêm để xác định xu hướng'
-                    }
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
+    <>
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-xs">Thiết bị / Phòng</TableHead>
+              <TableHead className="text-xs">Vị trí</TableHead>
+              <TableHead className="text-xs">Mức độ</TableHead>
+              <TableHead className="text-xs">Vấn đề chính</TableHead>
+              <TableHead className="text-xs text-center">30 ngày</TableHead>
+              <TableHead className="text-xs text-center">90 ngày</TableHead>
+              <TableHead className="text-xs text-right">Chi phí</TableHead>
+              <TableHead className="text-xs text-right">Thao tác</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {issues.map((issue) => {
+              const severity = issue.count30d >= 3 ? severityConfig.critical : severityConfig.warning
+              
+              return (
+                <TableRow key={issue.id} className="hover:bg-muted/30">
+                  <TableCell className="py-2">
+                    <div className="flex items-center gap-2">
+                      <Wrench className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">
+                          {issue.type === 'item' ? issue.item?.name : `Phòng ${issue.room?.room_number}`}
+                        </p>
+                        <p className="text-xs text-muted-foreground font-mono">
+                          {issue.type === 'item' ? issue.item?.code : issue.room?.room_type}
+                        </p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-2">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <MapPin className="h-3 w-3" />
+                      {issue.location}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-2">
+                    <span className={cn("flex items-center gap-1.5 text-xs", severity.color)}>
+                      <span className={cn("w-1.5 h-1.5 rounded-full", severity.dot)} />
+                      {severity.label}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-2">
+                    <div>
+                      <p className="text-xs font-medium">{issueTypeLabels[issue.primaryIssue] || issue.primaryIssue}</p>
+                      <p className="text-xs text-muted-foreground">{issue.issueCount} lần</p>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-2 text-center">
+                    <span className={cn(
+                      "inline-flex items-center gap-1 text-xs font-medium",
+                      issue.count30d >= 3 ? "text-red-600" : "text-amber-600"
+                    )}>
+                      <TrendingUp className="h-3 w-3" />
+                      {issue.count30d}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-2 text-center">
+                    <span className="text-xs text-muted-foreground">{issue.count90d}</span>
+                  </TableCell>
+                  <TableCell className="py-2 text-right">
+                    <div>
+                      <p className="text-xs font-medium">{formatCurrency(issue.totalCost)}</p>
+                      <p className="text-xs text-muted-foreground">TB: {formatCurrency(issue.avgCost)}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-2 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-7 w-7"
+                        onClick={() => setSelectedIssue(issue)}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setSelectedIssue(issue)}>
+                            Phân tích chi tiết
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>Tạo yêu cầu bảo trì</DropdownMenuItem>
+                          <DropdownMenuItem>Đánh dấu đã xử lý</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
       </div>
 
       <RecurringIssueAnalysisDialog
@@ -155,6 +167,6 @@ export const RecurringIssuesTable = ({ issues }: RecurringIssuesTableProps) => {
         open={!!selectedIssue}
         onOpenChange={(open) => !open && setSelectedIssue(null)}
       />
-    </div>
+    </>
   )
 }
