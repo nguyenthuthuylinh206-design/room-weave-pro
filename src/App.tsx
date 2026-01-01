@@ -66,6 +66,8 @@ import { OperationsReportPage } from "./pages/reports/OperationsReportPage";
 import { RoomsReportPage } from "./pages/reports/RoomsReportPage";
 import { MaintenanceReportPage } from "./pages/reports/MaintenanceReportPage";
 import { OutboundReportPage } from "./pages/reports/OutboundReportPage";
+import { RevenueReportPage } from "./pages/reports/RevenueReportPage";
+import { DamagesReportPage } from "./pages/reports/DamagesReportPage";
 import { HotelsPage } from "./pages/hotels/HotelsPage";
 import HotelPerformancePage from "./pages/hotels/HotelPerformancePage";
 import { VendorListPage as VendorManagementListPage } from "./pages/vendors/VendorListPage";
@@ -649,8 +651,23 @@ const router = createBrowserRouter([
           </PermissionRoute>
         ),
       },
+      {
+        path: "reports/revenue",
+        element: (
+          <PermissionRoute module="reports">
+            <RevenueReportPage />
+          </PermissionRoute>
+        ),
+      },
+      {
+        path: "reports/damages",
+        element: (
+          <PermissionRoute module="reports">
+            <DamagesReportPage />
+          </PermissionRoute>
+        ),
+      },
 
-      // Vendor Management - Permission Based
       {
         path: "vendors",
         element: (

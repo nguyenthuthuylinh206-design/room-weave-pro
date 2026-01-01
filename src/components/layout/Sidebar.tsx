@@ -73,11 +73,12 @@ const ownerNavigation: NavItem[] = [
     icon: BarChart3,
     children: [
       { titleKey: 'reportsDashboard', href: '/reports', icon: LayoutDashboard },
+      { titleKey: 'revenueReport', href: '/reports/revenue', icon: DollarSign },
       { titleKey: 'inventoryReport', href: '/reports/inventory', icon: Warehouse },
       { titleKey: 'roomsReport', href: '/reports/rooms', icon: Hotel },
       { titleKey: 'laundryReport', href: '/reports/laundry', icon: Wind },
+      { titleKey: 'damagesReport', href: '/reports/damages', icon: AlertCircle },
       { titleKey: 'maintenanceReport', href: '/reports/maintenance', icon: Wrench },
-      { titleKey: 'operationsReport', href: '/reports/operations', icon: TrendingUp },
     ],
   },
   { titleKey: 'hotels', href: '/settings/hotels', icon: Building2 },
