@@ -6358,21 +6358,19 @@ export type Database = {
       get_room_items_with_standards: {
         Args: { p_room_id: string }
         Returns: {
+          actual_quantity: number
+          category_color: string
           category_name: string
-          condition: string
           current_quantity: number
           has_standard: boolean
-          is_verified: boolean
           item_code: string
           item_id: string
           item_name: string
+          item_status: string
           item_thumbnail: string
-          item_type: string
           missing_quantity: number
-          room_item_id: string
           standard_quantity: number
-          verified_at: string
-          verified_by: string
+          status: string
         }[]
       }
       get_room_standards: {
