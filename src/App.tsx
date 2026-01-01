@@ -101,6 +101,9 @@ import { PromoCodesPage } from "./pages/admin/PromoCodesPage";
 import { MarketingCampaignsPage } from "./pages/admin/MarketingCampaignsPage";
 import { RenewalRemindersPage } from "./pages/admin/RenewalRemindersPage";
 import { PricingPlansPage } from "./pages/admin/PricingPlansPage";
+import TenantApprovalPage from "./pages/admin/TenantApprovalPage";
+import SuperAdminAnalyticsPage from "./pages/super-admin/AnalyticsPage";
+import SuperAdminSettingsPage from "./pages/super-admin/SettingsPage";
 import NotificationHistoryPage from "./pages/NotificationHistoryPage";
 
 const queryClient = new QueryClient({
@@ -132,21 +135,26 @@ const router = createBrowserRouter([
     ),
   },
 
-  // Super Admin Routes
+  // Super Admin Routes - Protected with AuthGuard
   {
     path: "/super-admin",
     element: (
-      <SuperAdminErrorBoundary>
-        <SuperAdminLayout />
-      </SuperAdminErrorBoundary>
+      <AuthGuard>
+        <SuperAdminErrorBoundary>
+          <SuperAdminLayout />
+        </SuperAdminErrorBoundary>
+      </AuthGuard>
     ),
     children: [
       { index: true, element: <SuperAdminDashboard /> },
       { path: "tenants", element: <TenantsPage /> },
+      { path: "approvals", element: <TenantApprovalPage /> },
       { path: "promo-codes", element: <PromoCodesPage /> },
       { path: "campaigns", element: <MarketingCampaignsPage /> },
       { path: "reminders", element: <RenewalRemindersPage /> },
       { path: "pricing", element: <PricingPlansPage /> },
+      { path: "analytics", element: <SuperAdminAnalyticsPage /> },
+      { path: "settings", element: <SuperAdminSettingsPage /> },
     ],
   },
 
@@ -170,56 +178,6 @@ const router = createBrowserRouter([
         )
       },
       { path: "more", element: <MorePage /> },
-      
-      // Super Admin Dashboard
-      {
-        path: "admin/dashboard",
-        element: (
-          <RoleGuard allowedRoles={['super_admin']}>
-            <SuperAdminDashboard />
-          </RoleGuard>
-        ),
-      },
-      {
-        path: "admin/tenants",
-        element: (
-          <RoleGuard allowedRoles={['super_admin']}>
-            <TenantsPage />
-          </RoleGuard>
-        ),
-      },
-      {
-        path: "admin/promo-codes",
-        element: (
-          <RoleGuard allowedRoles={['super_admin']}>
-            <PromoCodesPage />
-          </RoleGuard>
-        ),
-      },
-      {
-        path: "admin/campaigns",
-        element: (
-          <RoleGuard allowedRoles={['super_admin']}>
-            <MarketingCampaignsPage />
-          </RoleGuard>
-        ),
-      },
-      {
-        path: "admin/reminders",
-        element: (
-          <RoleGuard allowedRoles={['super_admin']}>
-            <RenewalRemindersPage />
-          </RoleGuard>
-        ),
-      },
-      {
-        path: "admin/pricing",
-        element: (
-          <RoleGuard allowedRoles={['super_admin']}>
-            <PricingPlansPage />
-          </RoleGuard>
-        ),
-      },
       
       // Inventory - Permission Based
       { 
