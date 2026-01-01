@@ -56,6 +56,31 @@ interface NavItem {
   children?: Omit<NavItem, 'children'>[]
 }
 
+// Owner-specific navigation (strategic focus)
+const ownerNavigation: NavItem[] = [
+  {
+    titleKey: 'dashboard',
+    href: '/',
+    icon: LayoutDashboard,
+  },
+  {
+    titleKey: 'reports',
+    icon: BarChart3,
+    children: [
+      { titleKey: 'reportsDashboard', href: '/reports', icon: LayoutDashboard },
+      { titleKey: 'inventoryReport', href: '/reports/inventory', icon: Warehouse },
+      { titleKey: 'roomsReport', href: '/reports/rooms', icon: Hotel },
+      { titleKey: 'laundryReport', href: '/reports/laundry', icon: Wind },
+      { titleKey: 'maintenanceReport', href: '/reports/maintenance', icon: Wrench },
+      { titleKey: 'operationsReport', href: '/reports/operations', icon: TrendingUp },
+    ],
+  },
+  { titleKey: 'hotels', href: '/settings/hotels', icon: Building2 },
+  { titleKey: 'users', href: '/settings/users', icon: Users },
+  { titleKey: 'settings', href: '/settings/general', icon: Settings },
+]
+
+// Manager/Staff navigation (operational details)
 const navigation: NavItem[] = [
   {
     titleKey: 'dashboard',
@@ -239,8 +264,11 @@ export const Sidebar = () => {
     })
   }
 
+  // Select navigation based on role
+  const effectiveNavigation = role === 'owner' ? ownerNavigation : navigation
+
   // Filter navigation based on permissions
-  const filteredNavigation = navigation.filter((item) => {
+  const filteredNavigation = effectiveNavigation.filter((item) => {
     if (item.roles && !item.roles.includes(role || 'staff')) return false
     return hasModuleAccess(item.titleKey)
   }).map((item) => {
