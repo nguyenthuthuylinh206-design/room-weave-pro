@@ -8,6 +8,8 @@ import { HotelPerformanceTable } from './HotelPerformanceTable'
 import { CriticalAlerts } from './CriticalAlerts'
 import { ExpenseChart } from '../ExpenseChart'
 import { OwnerQuickLinks } from './OwnerQuickLinks'
+import { OwnerRoomOverview } from './OwnerRoomOverview'
+import { OwnerRevenueOverview } from './OwnerRevenueOverview'
 import { MobileOwnerDashboard } from './MobileOwnerDashboard'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { subMonths, startOfMonth, endOfMonth } from 'date-fns'
@@ -54,6 +56,12 @@ export function OwnerDashboard() {
 
       {/* Critical Alerts - Show first for immediate attention */}
       <CriticalAlerts />
+
+      {/* Room & Revenue Overview - Real-time operational view */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        <OwnerRoomOverview />
+        <OwnerRevenueOverview />
+      </div>
 
       {/* Financial Overview */}
       <FinancialOverview dateRange={dateRange} />

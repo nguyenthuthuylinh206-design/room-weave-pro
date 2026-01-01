@@ -3644,6 +3644,7 @@ export type Database = {
           check_out_date: string
           created_at: string | null
           created_by: string | null
+          extra_charges: number | null
           guest_count: number | null
           guest_email: string | null
           guest_name: string
@@ -3651,9 +3652,13 @@ export type Database = {
           hotel_id: string
           id: string
           notes: string | null
+          paid_at: string | null
+          payment_status: string | null
           room_id: string
+          room_price: number | null
           status: string
           tenant_id: string
+          total_amount: number | null
           updated_at: string | null
         }
         Insert: {
@@ -3665,6 +3670,7 @@ export type Database = {
           check_out_date: string
           created_at?: string | null
           created_by?: string | null
+          extra_charges?: number | null
           guest_count?: number | null
           guest_email?: string | null
           guest_name: string
@@ -3672,9 +3678,13 @@ export type Database = {
           hotel_id: string
           id?: string
           notes?: string | null
+          paid_at?: string | null
+          payment_status?: string | null
           room_id: string
+          room_price?: number | null
           status?: string
           tenant_id: string
+          total_amount?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -3686,6 +3696,7 @@ export type Database = {
           check_out_date?: string
           created_at?: string | null
           created_by?: string | null
+          extra_charges?: number | null
           guest_count?: number | null
           guest_email?: string | null
           guest_name?: string
@@ -3693,9 +3704,13 @@ export type Database = {
           hotel_id?: string
           id?: string
           notes?: string | null
+          paid_at?: string | null
+          payment_status?: string | null
           room_id?: string
+          room_price?: number | null
           status?: string
           tenant_id?: string
+          total_amount?: number | null
           updated_at?: string | null
         }
         Relationships: [

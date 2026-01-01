@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { format, addDays } from 'date-fns'
+import { format, addDays, differenceInDays } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { Calendar as CalendarIcon, User, Phone, Mail, Users, Save, X, Loader2 } from 'lucide-react'
+import { Calendar as CalendarIcon, User, Phone, Mail, Users, Save, X, Loader2, DollarSign, CreditCard } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 import type { RoomBooking } from '@/hooks/useRoomBooking'
 
 interface RoomBookingDialogProps {
@@ -40,6 +40,7 @@ interface RoomBookingDialogProps {
   hotelId: string
   tenantId: string
   booking?: RoomBooking | null
+  defaultRoomPrice?: number
 }
 
 export function RoomBookingDialog({
@@ -50,6 +51,7 @@ export function RoomBookingDialog({
   hotelId,
   tenantId,
   booking,
+  defaultRoomPrice = 0,
 }: RoomBookingDialogProps) {
   const { t } = useTranslation(['rooms', 'common'])
   const { toast } = useToast()
@@ -70,6 +72,32 @@ export function RoomBookingDialog({
   )
   const [status, setStatus] = useState(booking?.status || 'confirmed')
   const [notes, setNotes] = useState(booking?.notes || '')
+  
+  // Financial fields
+  const [roomPrice, setRoomPrice] = useState<number>((booking as any)?.room_price || defaultRoomPrice)
+  const [extraCharges, setExtraCharges] = useState<number>((booking as any)?.extra_charges || 0)
+  const [paymentStatus, setPaymentStatus] = useState<string>((booking as any)?.payment_status || 'pending')
+  
+  // Calculate total
+  const nights = checkInDate && checkOutDate ? differenceInDays(checkOutDate, checkInDate) : 0
+  const totalAmount = (roomPrice * nights) + extraCharges
+
+  // Reset form when booking changes
+  useEffect(() => {
+    if (booking) {
+      setGuestName(booking.guest_name || '')
+      setGuestPhone(booking.guest_phone || '')
+      setGuestEmail(booking.guest_email || '')
+      setGuestCount(booking.guest_count || 1)
+      setCheckInDate(booking.check_in_date ? new Date(booking.check_in_date) : new Date())
+      setCheckOutDate(booking.check_out_date ? new Date(booking.check_out_date) : addDays(new Date(), 1))
+      setStatus(booking.status || 'confirmed')
+      setNotes(booking.notes || '')
+      setRoomPrice((booking as any)?.room_price || defaultRoomPrice)
+      setExtraCharges((booking as any)?.extra_charges || 0)
+      setPaymentStatus((booking as any)?.payment_status || 'pending')
+    }
+  }, [booking, defaultRoomPrice])
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -114,6 +142,12 @@ export function RoomBookingDialog({
         status,
         notes: notes.trim() || null,
         actual_check_in: status === 'checked_in' ? new Date().toISOString() : null,
+        // Financial fields
+        room_price: roomPrice,
+        extra_charges: extraCharges,
+        total_amount: totalAmount,
+        payment_status: paymentStatus,
+        paid_at: paymentStatus === 'paid' ? new Date().toISOString() : null,
       }
       
       if (isEdit && booking) {
@@ -141,6 +175,10 @@ export function RoomBookingDialog({
       
       queryClient.invalidateQueries({ queryKey: ['room-booking', roomId] })
       queryClient.invalidateQueries({ queryKey: ['room-bookings', roomId] })
+      queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
+      queryClient.invalidateQueries({ queryKey: ['booking-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['today-checkouts'] })
+      queryClient.invalidateQueries({ queryKey: ['today-checkins'] })
       onOpenChange(false)
     } catch (error: any) {
       console.error('Error saving booking:', error)
@@ -174,6 +212,7 @@ export function RoomBookingDialog({
       })
       
       queryClient.invalidateQueries({ queryKey: ['room-booking', roomId] })
+      queryClient.invalidateQueries({ queryKey: ['booking-stats'] })
       onOpenChange(false)
     } catch (error: any) {
       toast({
@@ -206,11 +245,47 @@ export function RoomBookingDialog({
       })
       
       queryClient.invalidateQueries({ queryKey: ['room-booking', roomId] })
+      queryClient.invalidateQueries({ queryKey: ['booking-stats'] })
       onOpenChange(false)
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: t('booking.checkOutError'),
+        description: error.message,
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleMarkAsPaid = async () => {
+    if (!booking) return
+    
+    setIsSubmitting(true)
+    try {
+      const { error } = await supabase
+        .from('room_bookings')
+        .update({
+          payment_status: 'paid',
+          paid_at: new Date().toISOString(),
+          total_amount: totalAmount,
+        })
+        .eq('id', booking.id)
+        
+      if (error) throw error
+      
+      setPaymentStatus('paid')
+      toast({
+        title: 'Đã đánh dấu thanh toán',
+      })
+      
+      queryClient.invalidateQueries({ queryKey: ['room-booking', roomId] })
+      queryClient.invalidateQueries({ queryKey: ['booking-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['today-checkouts'] })
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi cập nhật thanh toán',
         description: error.message,
       })
     } finally {
@@ -345,6 +420,79 @@ export function RoomBookingDialog({
                 </PopoverContent>
               </Popover>
             </div>
+          </div>
+
+          {/* Financial Section */}
+          <div className="border-t pt-4 space-y-3">
+            <h4 className="text-sm font-medium flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Thông tin thanh toán
+            </h4>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="roomPrice">Giá phòng/đêm</Label>
+                <Input
+                  id="roomPrice"
+                  type="number"
+                  min={0}
+                  value={roomPrice}
+                  onChange={(e) => setRoomPrice(parseInt(e.target.value) || 0)}
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="extraCharges">Phí phát sinh</Label>
+                <Input
+                  id="extraCharges"
+                  type="number"
+                  min={0}
+                  value={extraCharges}
+                  onChange={(e) => setExtraCharges(parseInt(e.target.value) || 0)}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            
+            {/* Total Display */}
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
+              <span className="text-sm text-muted-foreground">
+                Tổng ({nights} đêm)
+              </span>
+              <span className="text-lg font-bold text-primary">
+                {formatCurrency(totalAmount)}
+              </span>
+            </div>
+
+            {/* Payment Status */}
+            <div className="space-y-2">
+              <Label>Trạng thái thanh toán</Label>
+              <Select value={paymentStatus} onValueChange={setPaymentStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Chưa thanh toán</SelectItem>
+                  <SelectItem value="partial">Thanh toán một phần</SelectItem>
+                  <SelectItem value="paid">Đã thanh toán</SelectItem>
+                  <SelectItem value="refunded">Đã hoàn tiền</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Mark as Paid Button */}
+            {isEdit && paymentStatus !== 'paid' && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-green-500 text-green-600 hover:bg-green-50"
+                onClick={handleMarkAsPaid}
+                disabled={isSubmitting}
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Đánh dấu đã thanh toán
+              </Button>
+            )}
           </div>
           
           {/* Status */}
