@@ -6,6 +6,7 @@ import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { QuickActions } from '@/components/dashboard/QuickActions'
 import { MobileDashboard } from '@/components/dashboard/MobileDashboard'
 import { HotelBreakdownCards } from '@/components/dashboard/HotelBreakdownCards'
+import { OwnerDashboard } from '@/components/dashboard/owner'
 import { Package, Wind, AlertTriangle, BarChart3 } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
@@ -15,12 +16,20 @@ import { useTranslation } from 'react-i18next'
 
 export default function Dashboard() {
   const { t } = useTranslation('dashboard')
-  const { user } = useUser()
+  const { user, hasRole } = useUser()
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const { data: stats, isLoading } = useDashboardStats()
   const { isMobile } = useBreakpoint()
 
-  // Mobile view
+  // Check if user is owner (tenant_owner) - show executive dashboard
+  const isOwner = hasRole('owner')
+
+  // Owner view - Financial focus
+  if (isOwner) {
+    return <OwnerDashboard />
+  }
+
+  // Mobile view for managers/staff
   if (isMobile) {
     return <MobileDashboard />
   }
