@@ -206,7 +206,38 @@ export function ItemAllocator({ form, compact = false }: ItemAllocatorProps) {
                       <div className="space-y-2">
                         {allocatedItems.map(({ item_id, quantity }) => {
                           const item = getItemInfo(item_id)
-                          if (!item) return null
+                          
+                          // Fallback render khi item không tìm thấy trong kho hotel hiện tại
+                          if (!item) {
+                            return (
+                              <div 
+                                key={item_id} 
+                                className="flex items-center justify-between gap-2 p-2 border rounded border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                                    SP không thuộc kho khách sạn hiện tại
+                                  </p>
+                                  <p className="text-xs text-muted-foreground font-mono">
+                                    ID: {item_id.slice(0, 8)}...
+                                  </p>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    updateItemQuantity(room.id, item_id, 0)
+                                  }}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )
+                          }
+                          
                           const overStock = isOverStock(item_id)
                           
                           return (

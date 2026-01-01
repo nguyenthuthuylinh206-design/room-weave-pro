@@ -359,7 +359,7 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
       }[] | null
       
       if (!missingItems || missingItems.length === 0) {
-        return { success: true, message: 'Phòng đã đủ tiêu chuẩn hoặc SP hết hàng', count: 0, unfilled: 0 }
+        return { success: true, message: 'Phòng đã đủ tiêu chuẩn hoặc chưa thiết lập tiêu chuẩn', count: 0, unfilled: 0, noStandards: true }
       }
       
       // Calculate allocation with stock constraints
@@ -447,7 +447,7 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
       }[] | null
       
       if (!missingItems || missingItems.length === 0) {
-        return { success: true, message: 'Không có SP thiếu hoặc đã hết hàng', count: 0, unfilled: 0 }
+        return { success: true, message: 'Tất cả phòng đã đủ tiêu chuẩn hoặc chưa thiết lập tiêu chuẩn', count: 0, unfilled: 0, noStandards: true }
       }
       
       // Track remaining stock and allocations
