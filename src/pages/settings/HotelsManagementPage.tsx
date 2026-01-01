@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Building2, Plus, Search } from 'lucide-react'
 import { useHotels, useDeleteHotel, Hotel } from '@/hooks/useHotels'
 import { HotelCard } from '@/components/settings/hotels/HotelCard'
 import { HotelFormDialog } from '@/components/settings/hotels/HotelFormDialog'
@@ -18,7 +18,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { MobileHotelManagementPage } from '@/components/settings/MobileHotelManagementPage'
 import { useBreakpoint } from '@/lib/breakpoints'
 
@@ -85,29 +84,54 @@ export default function HotelsManagementPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <LoadingSpinner />
+      <div className="space-y-4">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <div className="h-6 w-40 bg-muted animate-pulse rounded" />
+            <div className="h-4 w-60 bg-muted animate-pulse rounded" />
+          </div>
+          <div className="h-8 w-32 bg-muted animate-pulse rounded" />
+        </div>
+        {/* Stats skeleton */}
+        <div className="grid gap-3 grid-cols-3 lg:grid-cols-6">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="h-16 bg-muted animate-pulse rounded border" />
+          ))}
+        </div>
+        {/* List skeleton */}
+        <div className="space-y-2">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-20 bg-muted animate-pulse rounded border" />
+          ))}
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Compact Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Hotels / Properties</h2>
-          <p className="text-muted-foreground">
-            Manage your hotels and properties
+          <div className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Quản lý khách sạn</h2>
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {hotels?.length || 0} khách sạn trong hệ thống
           </p>
         </div>
-        <Button onClick={handleAddNew}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Hotel
+        <Button size="sm" onClick={handleAddNew} className="h-8">
+          <Plus className="h-4 w-4 mr-1" />
+          Thêm mới
         </Button>
       </div>
 
+      {/* Stats Row */}
       {hotels && hotels.length > 0 && <HotelStatsCards hotels={hotels} />}
 
+      {/* Filters */}
       <HotelFilters 
         filters={filters}
         onFiltersChange={(f) => setFilters(prev => ({ ...prev, ...f }))}
@@ -115,16 +139,18 @@ export default function HotelsManagementPage() {
         managers={managers}
       />
 
+      {/* Hotel List */}
       {hotels && hotels.length === 0 ? (
-        <div className="text-center py-12 border border-dashed rounded-lg">
-          <p className="text-muted-foreground mb-4">No hotels found</p>
-          <Button onClick={handleAddNew}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Your First Hotel
+        <div className="flex flex-col items-center justify-center py-12 border border-dashed rounded-lg">
+          <Building2 className="h-10 w-10 text-muted-foreground mb-3" />
+          <p className="text-sm text-muted-foreground mb-3">Chưa có khách sạn nào</p>
+          <Button size="sm" onClick={handleAddNew}>
+            <Plus className="h-4 w-4 mr-1" />
+            Thêm khách sạn đầu tiên
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="space-y-2">
           {hotels?.map((hotel) => (
             <HotelCard
               key={hotel.id}
@@ -160,19 +186,18 @@ export default function HotelsManagementPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Hotel</AlertDialogTitle>
+            <AlertDialogTitle>Xóa khách sạn</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{hotelToDelete?.name}"? This action cannot
-              be undone.
+              Bạn có chắc muốn xóa "{hotelToDelete?.name}"? Hành động này không thể hoàn tác.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              Xóa
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

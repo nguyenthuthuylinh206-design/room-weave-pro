@@ -1,6 +1,6 @@
-import { Card } from '@/components/ui/card'
 import { Building2, CheckCircle2, XCircle, Bed, Users, Package } from 'lucide-react'
 import { Hotel } from '@/hooks/useHotels'
+import { cn } from '@/lib/utils'
 
 interface HotelStatsCardsProps {
   hotels: Hotel[]
@@ -17,97 +17,59 @@ export function HotelStatsCards({ hotels, viewMode = 'all' }: HotelStatsCardsPro
     totalItems: hotels.reduce((sum, h) => sum + (h._count?.items || 0), 0),
   }
 
-  const modeLabel = viewMode === 'focus' ? 'Khách sạn này' : 'Tổng cộng'
+  const statItems = [
+    {
+      label: 'Tổng KS',
+      value: stats.total,
+      icon: Building2,
+      color: 'text-primary',
+    },
+    {
+      label: 'Hoạt động',
+      value: stats.active,
+      icon: CheckCircle2,
+      color: 'text-green-600',
+    },
+    {
+      label: 'Tạm ngưng',
+      value: stats.inactive,
+      icon: XCircle,
+      color: 'text-red-600',
+    },
+    {
+      label: 'Phòng',
+      value: stats.totalRooms,
+      icon: Bed,
+      color: 'text-blue-600',
+    },
+    {
+      label: 'Nhân viên',
+      value: stats.totalStaff,
+      icon: Users,
+      color: 'text-purple-600',
+    },
+    {
+      label: 'Tài sản',
+      value: stats.totalItems,
+      icon: Package,
+      color: 'text-orange-600',
+    },
+  ]
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
-      <Card className="p-4">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Building2 className="h-4 w-4 text-primary" />
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">
-              {viewMode === 'focus' ? 'Khách sạn' : 'Tổng khách sạn'}
-            </p>
-            <p className="text-2xl font-bold">{stats.total}</p>
-          </div>
-        </div>
-      </Card>
-
-      <Card className="p-4">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-green-500/10">
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">
-              {viewMode === 'focus' ? 'Trạng thái' : 'Đang hoạt động'}
-            </p>
-            <p className="text-2xl font-bold">
-              {viewMode === 'focus' ? (stats.active > 0 ? 'Hoạt động' : 'Ngừng') : stats.active}
-            </p>
+    <div className="grid gap-2 grid-cols-3 lg:grid-cols-6">
+      {statItems.map((item) => (
+        <div 
+          key={item.label}
+          className="flex items-center gap-2 p-3 border rounded-lg"
+        >
+          <item.icon className={cn("h-4 w-4", item.color)} />
+          <div className="min-w-0">
+            <p className="text-lg font-bold leading-none">{item.value}</p>
+            <p className="text-[10px] text-muted-foreground truncate">{item.label}</p>
           </div>
         </div>
-      </Card>
-
-      <Card className="p-4">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-red-500/10">
-            <XCircle className="h-4 w-4 text-red-600" />
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">
-              {viewMode === 'focus' ? 'Loại hình' : 'Ngừng hoạt động'}
-            </p>
-            <p className="text-2xl font-bold">
-              {viewMode === 'focus' ? (hotels[0]?.type || 'Hotel') : stats.inactive}
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      <Card className="p-4">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-blue-500/10">
-            <Bed className="h-4 w-4 text-blue-600" />
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">
-              {modeLabel} - Phòng
-            </p>
-            <p className="text-2xl font-bold">{stats.totalRooms}</p>
-          </div>
-        </div>
-      </Card>
-
-      <Card className="p-4">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-purple-500/10">
-            <Users className="h-4 w-4 text-purple-600" />
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">
-              {modeLabel} - Nhân viên
-            </p>
-            <p className="text-2xl font-bold">{stats.totalStaff}</p>
-          </div>
-        </div>
-      </Card>
-
-      <Card className="p-4">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-orange-500/10">
-            <Package className="h-4 w-4 text-orange-600" />
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">
-              {modeLabel} - Tài sản
-            </p>
-            <p className="text-2xl font-bold">{stats.totalItems}</p>
-          </div>
-        </div>
-      </Card>
+      ))}
     </div>
   )
 }
