@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Building2, Plus, MapPin, Users, RefreshCw, ChevronRight, Layers } from 'lucide-react'
+import { Building2, Plus, MapPin, Users, RefreshCw, ChevronRight, Layers, Bed, Package, Phone } from 'lucide-react'
 import { useHotels } from '@/hooks/useHotels'
 import { HotelFormDialog } from '@/components/settings/hotels/HotelFormDialog'
 import { HotelDetailDialog } from '@/components/settings/hotels/HotelDetailDialog'
@@ -7,10 +7,7 @@ import { useHotelContext } from '@/contexts/HotelContext'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { Hotel } from '@/hooks/useHotels'
-
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { PullToRefresh } from '@/components/mobile/TouchOptimized'
 import { cn } from '@/lib/utils'
 
@@ -46,53 +43,53 @@ export function MobileHotelsPage() {
     setIsFormOpen(true)
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusConfig = (status: string) => {
     switch (status) {
       case 'active':
-        return <Badge className="bg-green-500/10 text-green-600 border-green-200">Hoạt động</Badge>
+        return { label: 'Hoạt động', color: 'text-green-600', dot: 'bg-green-500' }
       case 'inactive':
-        return <Badge variant="secondary">Tạm ngưng</Badge>
+        return { label: 'Tạm ngưng', color: 'text-red-600', dot: 'bg-red-500' }
       case 'maintenance':
-        return <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-200">Bảo trì</Badge>
+        return { label: 'Bảo trì', color: 'text-amber-600', dot: 'bg-amber-500' }
       default:
-        return null
+        return { label: status, color: 'text-muted-foreground', dot: 'bg-muted' }
     }
   }
 
+  // Stats
+  const stats = hotels ? {
+    total: hotels.length,
+    active: hotels.filter(h => h.status === 'active').length,
+    rooms: hotels.reduce((sum, h) => sum + (h._count?.rooms || 0), 0),
+  } : { total: 0, active: 0, rooms: 0 }
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b px-4 py-3">
+      {/* Compact Header */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b px-4 py-2.5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold">Khách sạn</h1>
-            <div className="flex items-center gap-2 mt-1">
-              {isAllHotelsMode ? (
-                <Badge variant="secondary" className="gap-1 text-xs">
-                  <Layers className="h-3 w-3" />
-                  Tất cả
-                </Badge>
-              ) : currentHotel ? (
-                <Badge variant="outline" className="gap-1 text-xs">
-                  <Building2 className="h-3 w-3" />
-                  {currentHotel.name}
-                </Badge>
-              ) : null}
-              <span className="text-xs text-muted-foreground">
-                {hotels?.length || 0} khách sạn
-              </span>
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-primary" />
+              <h1 className="text-base font-semibold">Khách sạn</h1>
+            </div>
+            <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+              <span>{stats.total} KS</span>
+              <span className="text-green-600">{stats.active} hoạt động</span>
+              <span>{stats.rooms} phòng</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="icon"
+              className="h-8 w-8"
               onClick={handleRefresh}
               disabled={isRefreshing}
             >
-              <RefreshCw className={cn("h-5 w-5", isRefreshing && "animate-spin")} />
+              <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
             </Button>
-            <Button size="sm" onClick={handleAddNew}>
+            <Button size="sm" className="h-8" onClick={handleAddNew}>
               <Plus className="h-4 w-4" />
             </Button>
           </div>
@@ -101,103 +98,117 @@ export function MobileHotelsPage() {
 
       {/* Content */}
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="flex-1 p-4 space-y-3">
+        <div className="flex-1 p-3 space-y-2">
           {isLoading ? (
             // Skeleton loading
-            <div className="space-y-3">
+            <div className="space-y-2">
               {[1, 2, 3].map(i => (
-                <Card key={i} className="animate-pulse">
-                  <CardContent className="p-4">
-                    <div className="flex gap-3">
-                      <div className="w-12 h-12 bg-muted rounded-lg" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-muted rounded w-2/3" />
-                        <div className="h-3 bg-muted rounded w-1/2" />
-                      </div>
+                <div key={i} className="border rounded-lg p-3 animate-pulse">
+                  <div className="flex gap-3">
+                    <div className="w-10 h-10 bg-muted rounded-lg" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-muted rounded w-2/3" />
+                      <div className="h-3 bg-muted rounded w-1/2" />
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               ))}
             </div>
           ) : hotels && hotels.length > 0 ? (
-            <div className="space-y-3">
-              {hotels.map((hotel) => (
-                <Card 
-                  key={hotel.id}
-                  className={cn(
-                    "transition-all active:scale-[0.98]",
-                    hotel.id === currentHotel?.id && "ring-2 ring-primary"
-                  )}
-                  onClick={() => handleView(hotel)}
-                >
-                  <CardContent className="p-4">
+            <div className="space-y-2">
+              {hotels.map((hotel) => {
+                const statusConfig = getStatusConfig(hotel.status || 'active')
+                const isSelected = hotel.id === currentHotel?.id
+                
+                return (
+                  <div 
+                    key={hotel.id}
+                    className={cn(
+                      "border rounded-lg p-3 transition-all active:scale-[0.98]",
+                      isSelected && "ring-2 ring-primary"
+                    )}
+                    onClick={() => handleView(hotel)}
+                  >
                     <div className="flex items-start gap-3">
                       {/* Logo/Icon */}
                       {hotel.logo_url ? (
                         <img
                           src={hotel.logo_url}
                           alt={hotel.name}
-                          className="h-12 w-12 rounded-lg object-cover"
+                          className="h-10 w-10 rounded-lg object-cover"
                         />
                       ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                          <Building2 className="h-6 w-6" />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                          <Building2 className="h-5 w-5 text-primary" />
                         </div>
                       )}
 
                       {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold truncate">{hotel.name}</h3>
-                            <p className="text-xs text-muted-foreground">{hotel.code}</p>
+                          <div className="min-w-0">
+                            <h3 className="font-medium text-sm truncate">{hotel.name}</h3>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-xs text-muted-foreground font-mono">{hotel.code}</span>
+                              <div className="flex items-center gap-1">
+                                <div className={cn("w-1.5 h-1.5 rounded-full", statusConfig.dot)} />
+                                <span className={cn("text-xs", statusConfig.color)}>
+                                  {statusConfig.label}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                          {hotel.id === currentHotel?.id && (
-                            <Badge className="bg-primary text-xs shrink-0">
+                          {isSelected && (
+                            <span className="text-[10px] text-primary font-medium shrink-0">
                               Đang chọn
-                            </Badge>
+                            </span>
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                          <MapPin className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{hotel.city || hotel.address || 'Chưa có địa chỉ'}</span>
-                        </div>
+                        {/* Location */}
+                        {(hotel.city || hotel.address) && (
+                          <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{hotel.city || hotel.address}</span>
+                          </div>
+                        )}
 
-                        <div className="flex items-center gap-4 mt-2">
-                          <div className="flex items-center gap-1 text-xs">
-                            <Building2 className="h-3 w-3 text-muted-foreground" />
-                            <span>{hotel._count?.rooms || 0} phòng</span>
+                        {/* Stats Row */}
+                        <div className="flex items-center gap-3 mt-2 text-xs">
+                          <div className="flex items-center gap-1">
+                            <Bed className="h-3 w-3 text-blue-600" />
+                            <span className="font-medium">{hotel._count?.rooms || 0}</span>
                           </div>
-                          <div className="flex items-center gap-1 text-xs">
-                            <Users className="h-3 w-3 text-muted-foreground" />
-                            <span>{hotel._count?.users || 0} NV</span>
+                          <div className="flex items-center gap-1">
+                            <Users className="h-3 w-3 text-purple-600" />
+                            <span className="font-medium">{hotel._count?.users || 0}</span>
                           </div>
-                          {getStatusBadge(hotel.status || 'active')}
+                          <div className="flex items-center gap-1">
+                            <Package className="h-3 w-3 text-orange-600" />
+                            <span className="font-medium">{hotel._count?.items || 0}</span>
+                          </div>
                         </div>
                       </div>
 
-                      <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 mt-4" />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-3" />
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                )
+              })}
             </div>
           ) : (
             // Empty state
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Building2 className="h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">Chưa có khách sạn</h3>
-                <p className="mt-2 text-sm text-muted-foreground text-center">
-                  Thêm khách sạn đầu tiên để bắt đầu
-                </p>
-                <Button className="mt-4" onClick={handleAddNew}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Thêm khách sạn
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="flex flex-col items-center justify-center py-12 border border-dashed rounded-lg">
+              <Building2 className="h-10 w-10 text-muted-foreground" />
+              <h3 className="mt-3 text-sm font-medium">Chưa có khách sạn</h3>
+              <p className="mt-1 text-xs text-muted-foreground text-center">
+                Thêm khách sạn đầu tiên để bắt đầu
+              </p>
+              <Button className="mt-3" size="sm" onClick={handleAddNew}>
+                <Plus className="mr-1 h-4 w-4" />
+                Thêm khách sạn
+              </Button>
+            </div>
           )}
         </div>
       </PullToRefresh>
