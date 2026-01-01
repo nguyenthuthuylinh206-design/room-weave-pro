@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Home, Package, DoorOpen, Shirt, Wrench, BarChart3, Building2, Users, Settings } from 'lucide-react'
+import { Home, Package, DoorOpen, Shirt, Wrench, BarChart3, Building2, Settings, CalendarDays } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { useUser } from '@/hooks/useUser'
@@ -50,9 +50,9 @@ export const MobileBottomNav = () => {
   // Owner-specific navigation (strategic focus)
   const OWNER_NAV_ITEMS: NavItem[] = [
     { id: 'home', label: 'Home', icon: Home, path: '/' },
+    { id: 'bookings', label: 'Đặt phòng', icon: CalendarDays, path: '/bookings' },
     { id: 'reports', label: 'Báo cáo', icon: BarChart3, path: '/reports' },
     { id: 'hotels', label: 'KS', icon: Building2, path: '/settings/hotels' },
-    { id: 'users', label: 'Nhân sự', icon: Users, path: '/settings/users' },
     { id: 'settings', label: 'Cài đặt', icon: Settings, path: '/settings' },
   ]
 

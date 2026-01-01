@@ -1,0 +1,129 @@
+import { DollarSign, TrendingUp, Receipt, ChevronRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
+import { useBookingStats, useTodayCheckouts } from '@/hooks/useBookingStats'
+import { formatCurrency, cn } from '@/lib/utils'
+
+export function OwnerRevenueOverview() {
+  const { data: stats, isLoading: statsLoading } = useBookingStats()
+  const { data: checkouts, isLoading: checkoutsLoading } = useTodayCheckouts()
+
+  const isLoading = statsLoading || checkoutsLoading
+
+  // Calculate pending payment amount
+  const pendingPayment = checkouts?.filter(c => c.payment_status !== 'paid')
+    .reduce((sum, c) => sum + c.total_amount, 0) || 0
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <Skeleton className="h-5 w-40" />
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-20" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-semibold flex items-center gap-2">
+          <DollarSign className="h-4 w-4 text-primary" />
+          Doanh thu hôm nay
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Revenue Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="p-4 rounded-lg bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800">
+            <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
+              <Receipt className="h-4 w-4" />
+              <span className="text-xs font-medium">Đã thu</span>
+            </div>
+            <p className="text-xl font-bold text-green-700 dark:text-green-400 mt-1">
+              {formatCurrency(stats?.todayRevenue || 0)}
+            </p>
+          </div>
+          
+          <div className="p-4 rounded-lg bg-orange-100 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800">
+            <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
+              <TrendingUp className="h-4 w-4" />
+              <span className="text-xs font-medium">Chờ thanh toán</span>
+            </div>
+            <p className="text-xl font-bold text-orange-700 dark:text-orange-400 mt-1">
+              {formatCurrency(pendingPayment)}
+            </p>
+          </div>
+          
+          <div className="p-4 rounded-lg bg-primary/10 border border-primary/20 col-span-2 md:col-span-1">
+            <div className="flex items-center gap-2 text-primary">
+              <DollarSign className="h-4 w-4" />
+              <span className="text-xs font-medium">Doanh thu dự kiến</span>
+            </div>
+            <p className="text-xl font-bold text-primary mt-1">
+              {formatCurrency(stats?.projectedRevenue || 0)}
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Từ {stats?.occupiedRooms || 0} phòng đang có khách
+            </p>
+          </div>
+        </div>
+
+        {/* Checkout Payment Status List */}
+        {checkouts && checkouts.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium">Trạng thái thanh toán checkout</h4>
+            <div className="space-y-1.5 max-h-40 overflow-y-auto">
+              {checkouts.map((checkout) => (
+                <Link
+                  key={checkout.id}
+                  to={`/rooms/${checkout.room_id}`}
+                  className="flex items-center justify-between p-2 rounded bg-muted/50 hover:bg-muted transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium bg-muted px-1.5 py-0.5 rounded">
+                      P.{checkout.room_number}
+                    </span>
+                    <span className="text-sm truncate max-w-[100px]">{checkout.guest_name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">{formatCurrency(checkout.total_amount)}</span>
+                    <Badge 
+                      variant={checkout.payment_status === 'paid' ? 'default' : 'secondary'}
+                      className={cn(
+                        'text-[10px]',
+                        checkout.payment_status === 'paid' 
+                          ? 'bg-green-500 hover:bg-green-600' 
+                          : 'bg-orange-500 text-white hover:bg-orange-600'
+                      )}
+                    >
+                      {checkout.payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                    </Badge>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Link to Reports */}
+        <Link
+          to="/reports/financial"
+          className="flex items-center justify-between p-3 rounded-lg border border-border bg-primary/5 hover:bg-primary/10 transition-colors"
+        >
+          <span className="text-sm font-medium">Xem báo cáo tài chính chi tiết</span>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </Link>
+      </CardContent>
+    </Card>
+  )
+}

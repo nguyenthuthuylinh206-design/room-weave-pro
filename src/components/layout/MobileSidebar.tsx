@@ -18,7 +18,8 @@ import {
   Boxes,
   List,
   Download,
-  CheckCircle
+  CheckCircle,
+  CalendarDays
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -119,6 +120,7 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
     {
       items: [
         { title: 'Dashboard', icon: Home, path: '/' },
+        { title: 'Đặt phòng', icon: CalendarDays, path: '/bookings' },
       ]
     },
     {
