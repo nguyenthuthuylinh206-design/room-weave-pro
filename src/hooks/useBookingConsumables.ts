@@ -256,3 +256,35 @@ export function useBulkUpdateConsumableRemaining() {
     },
   })
 }
+
+// Fetch issues during a booking period
+export function useBookingIssues(roomId: string | undefined, checkInDate: string | undefined, checkOutDate: string | undefined) {
+  return useQuery({
+    queryKey: ['booking-issues', roomId, checkInDate, checkOutDate],
+    queryFn: async () => {
+      if (!roomId || !checkInDate) return []
+
+      let query = supabase
+        .from('room_checks')
+        .select('*')
+        .eq('room_id', roomId)
+        .gte('checked_at', checkInDate)
+        .or('items_damaged.gt.0,items_lost.gt.0')
+        .order('checked_at', { ascending: false })
+
+      if (checkOutDate) {
+        query = query.lte('checked_at', checkOutDate)
+      }
+
+      const { data, error } = await query
+
+      if (error) {
+        console.error('Error fetching booking issues:', error)
+        return []
+      }
+
+      return data
+    },
+    enabled: !!roomId && !!checkInDate,
+  })
+}

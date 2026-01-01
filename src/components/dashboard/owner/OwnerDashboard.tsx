@@ -5,7 +5,8 @@ import { useHotelContext } from '@/contexts/HotelContext'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { FinancialOverview } from './FinancialOverview'
 import { HotelPerformanceTable } from './HotelPerformanceTable'
-import { CriticalAlerts } from './CriticalAlerts'
+import { OwnerSmartAlerts } from './OwnerSmartAlerts'
+import { OwnerProfitOverview } from './OwnerProfitOverview'
 import { ExpenseChart } from '../ExpenseChart'
 import { OwnerQuickLinks } from './OwnerQuickLinks'
 import { OwnerRoomOverview } from './OwnerRoomOverview'
@@ -54,8 +55,11 @@ export function OwnerDashboard() {
         </Select>
       </PageHeader>
 
-      {/* Critical Alerts - Show first for immediate attention */}
-      <CriticalAlerts />
+      {/* Smart Alerts - Show first for immediate attention */}
+      <OwnerSmartAlerts />
+
+      {/* Profit Overview - Key financial metrics */}
+      <OwnerProfitOverview />
 
       {/* Room & Revenue Overview - Real-time operational view */}
       <div className="grid lg:grid-cols-2 gap-6">
