@@ -8,7 +8,6 @@
   "navigation": {
     "overview": "Overview",
     "tenants": "Customers",
-    "approvals": "Approvals",
     "promoCodes": "Promo Codes",
     "campaigns": "Campaigns",
     "reminders": "Reminders",
@@ -19,7 +18,6 @@
   "titles": {
     "overview": "Overview",
     "tenantManagement": "Customer Management",
-    "approvals": "Tenant Approvals",
     "promoCodes": "Promo Codes",
     "campaigns": "Marketing Campaigns",
     "reminders": "Renewal Reminders",

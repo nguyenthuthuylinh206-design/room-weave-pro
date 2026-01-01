@@ -14,7 +14,6 @@ import {
   Menu,
   X,
   Shield,
-  CheckCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -30,7 +29,6 @@ export function SuperAdminLayout() {
   const navigation = [
     { name: t('navigation.overview'), href: '/super-admin', icon: LayoutDashboard },
     { name: t('navigation.tenants'), href: '/super-admin/tenants', icon: Users },
-    { name: t('navigation.approvals', 'Phê duyệt'), href: '/super-admin/approvals', icon: CheckCircle },
     { name: t('navigation.promoCodes'), href: '/super-admin/promo-codes', icon: Tag },
     { name: t('navigation.campaigns'), href: '/super-admin/campaigns', icon: Mail },
     { name: t('navigation.reminders'), href: '/super-admin/reminders', icon: Bell },
@@ -42,7 +40,6 @@ export function SuperAdminLayout() {
   const navigationTitles: Record<string, string> = {
     '/super-admin': t('titles.overview'),
     '/super-admin/tenants': t('titles.tenantManagement'),
-    '/super-admin/approvals': t('titles.approvals', 'Phê duyệt Tenant'),
     '/super-admin/promo-codes': t('titles.promoCodes'),
     '/super-admin/campaigns': t('titles.campaigns'),
     '/super-admin/reminders': t('titles.reminders'),
