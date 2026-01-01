@@ -114,7 +114,40 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
     refetchInterval: 30000
   })
 
-  const menuSections: MenuSection[] = [
+  // Owner-specific menu (strategic focus)
+  const ownerMenuSections: MenuSection[] = [
+    {
+      items: [
+        { title: 'Dashboard', icon: Home, path: '/' },
+      ]
+    },
+    {
+      title: 'Báo cáo & Thống kê',
+      items: [
+        { title: 'Tổng hợp', icon: TrendingUp, path: '/reports' },
+        { title: 'Báo cáo kho', icon: Package, path: '/reports/inventory' },
+        { title: 'Báo cáo phòng', icon: DoorOpen, path: '/reports/rooms' },
+        { title: 'Báo cáo vận hành', icon: LayoutDashboard, path: '/reports/operations' },
+      ]
+    },
+    {
+      title: 'Quản lý',
+      items: [
+        { title: 'Khách sạn', icon: Building2, path: '/settings/hotels' },
+        { title: 'Nhân sự', icon: Users, path: '/settings/users' },
+      ]
+    },
+    {
+      title: 'Cài đặt',
+      items: [
+        { title: 'Cài đặt chung', icon: Settings, path: '/settings' },
+        { title: 'Hỗ trợ', icon: HelpCircle, path: '/help' },
+      ]
+    }
+  ]
+
+  // Manager/Staff menu (operational details)
+  const managerMenuSections: MenuSection[] = [
     {
       items: [
         { title: 'Dashboard', icon: Home, path: '/' },
@@ -146,6 +179,9 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
       ]
     }
   ]
+
+  // Select menu based on role
+  const menuSections = role === 'owner' ? ownerMenuSections : managerMenuSections
 
   const handleNavigation = (path: string) => {
     navigate(path)

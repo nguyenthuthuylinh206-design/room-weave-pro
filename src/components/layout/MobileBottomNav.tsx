@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Home, Package, DoorOpen, Shirt, Wrench } from 'lucide-react'
+import { Home, Package, DoorOpen, Shirt, Wrench, BarChart3, Building2, Users, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { useUser } from '@/hooks/useUser'
@@ -47,7 +47,16 @@ export const MobileBottomNav = () => {
     refetchInterval: 30000
   })
 
-  // Only operations modules
+  // Owner-specific navigation (strategic focus)
+  const OWNER_NAV_ITEMS: NavItem[] = [
+    { id: 'home', label: 'Home', icon: Home, path: '/' },
+    { id: 'reports', label: 'Báo cáo', icon: BarChart3, path: '/reports' },
+    { id: 'hotels', label: 'KS', icon: Building2, path: '/settings/hotels' },
+    { id: 'users', label: 'Nhân sự', icon: Users, path: '/settings/users' },
+    { id: 'settings', label: 'Cài đặt', icon: Settings, path: '/settings' },
+  ]
+
+  // Manager/Staff navigation (operations)
   const NAV_ITEMS: NavItem[] = [
     { id: 'home', label: 'Home', icon: Home, path: '/' },
     { id: 'inventory', label: 'Kho', icon: Package, path: '/inventory', module: 'inventory,items' },
@@ -55,6 +64,9 @@ export const MobileBottomNav = () => {
     { id: 'laundry', label: 'Giặt là', icon: Shirt, path: '/laundry', module: 'laundry', badge: true },
     { id: 'maintenance', label: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badge: true },
   ]
+
+  // Select nav items based on role
+  const effectiveNavItems = role === 'owner' ? OWNER_NAV_ITEMS : NAV_ITEMS
 
   // Check if user has module access
   const hasModuleAccess = (moduleCode?: string): boolean => {
@@ -86,7 +98,7 @@ export const MobileBottomNav = () => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t safe-area-bottom md:hidden">
       <div className="flex items-center justify-around h-16">
-        {NAV_ITEMS.filter(item => hasModuleAccess(item.module)).map((item) => {
+        {effectiveNavItems.filter(item => hasModuleAccess(item.module)).map((item) => {
           const Icon = item.icon
           const active = isActive(item.path)
           const badgeCount = item.badge ? getBadgeCount(item.id) : 0
