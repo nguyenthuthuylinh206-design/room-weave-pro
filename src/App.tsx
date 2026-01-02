@@ -101,6 +101,7 @@ import { PromoCodesPage } from "./pages/admin/PromoCodesPage";
 import { MarketingCampaignsPage } from "./pages/admin/MarketingCampaignsPage";
 import { RenewalRemindersPage } from "./pages/admin/RenewalRemindersPage";
 import { PricingPlansPage } from "./pages/admin/PricingPlansPage";
+import { PaymentSettingsPage } from "./pages/admin/PaymentSettingsPage";
 import NotificationHistoryPage from "./pages/NotificationHistoryPage";
 
 const queryClient = new QueryClient({
@@ -209,6 +210,14 @@ const router = createBrowserRouter([
         element: (
           <RoleGuard allowedRoles={['super_admin']}>
             <RenewalRemindersPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "admin/payments",
+        element: (
+          <RoleGuard allowedRoles={['super_admin']}>
+            <PaymentSettingsPage />
           </RoleGuard>
         ),
       },
