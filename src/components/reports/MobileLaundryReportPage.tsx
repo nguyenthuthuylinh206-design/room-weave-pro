@@ -26,63 +26,45 @@ export const MobileLaundryReportPage = () => {
     if (!reportData) return
     
     const { summary, by_vendor, monthly_trend, items_analysis } = reportData
+    const dateRangeStr = `${format(dateRange.start, 'dd/MM/yyyy')} - ${format(dateRange.end, 'dd/MM/yyyy')}`
     
     const exportData = {
       title: t('reports.laundry.pageTitle', 'Báo cáo Giặt là'),
-      dateRange,
-      sheets: [
+      dateRange: dateRangeStr,
+      summary: {
+        total_batches: summary.total_batches,
+        total_items: summary.total_items,
+        total_weight: summary.total_weight,
+        total_cost: summary.total_cost,
+        avg_quality: summary.avg_quality,
+        on_time_rate: summary.on_time_rate,
+      },
+      tables: [
         {
-          name: 'Tổng quan',
-          data: [
-            { 'Chỉ số': 'Tổng lô', 'Giá trị': summary.total_batches },
-            { 'Chỉ số': 'Tổng items', 'Giá trị': summary.total_items },
-            { 'Chỉ số': 'Tổng cân nặng (kg)', 'Giá trị': summary.total_weight },
-            { 'Chỉ số': 'Tổng chi phí', 'Giá trị': summary.total_cost },
-            { 'Chỉ số': 'Chi phí TB/lô', 'Giá trị': summary.avg_cost_per_batch },
-            { 'Chỉ số': 'Chi phí TB/kg', 'Giá trị': summary.avg_cost_per_kg },
-            { 'Chỉ số': 'Chất lượng TB', 'Giá trị': summary.avg_quality },
-            { 'Chỉ số': 'Tỷ lệ đúng hạn (%)', 'Giá trị': summary.on_time_rate },
-          ],
+          title: 'Theo nhà cung cấp',
+          headers: ['Nhà cung cấp', 'Số lô', 'Items', 'Chi phí', 'Chất lượng'],
+          rows: by_vendor.map(v => [
+            v.vendor_name,
+            v.batches,
+            v.items,
+            v.cost,
+            v.quality,
+          ]),
         },
         {
-          name: 'Theo nhà cung cấp',
-          data: by_vendor.map(v => ({
-            'Nhà cung cấp': v.vendor_name,
-            'Số lô': v.batches,
-            'Items': v.items,
-            'Cân nặng (kg)': v.weight,
-            'Chi phí': v.cost,
-            'Giá/kg': v.cost_per_kg,
-            'Chất lượng': v.quality,
-            'Đúng hạn (%)': v.on_time_rate,
-            'Vấn đề': v.issues,
-          })),
-        },
-        {
-          name: 'Xu hướng theo tháng',
-          data: monthly_trend.map(m => ({
-            'Tháng': m.month,
-            'Số lô': m.batches,
-            'Items': m.items,
-            'Chi phí': m.cost,
-          })),
-        },
-        {
-          name: 'Phân tích mặt hàng',
-          data: (items_analysis || []).map(item => ({
-            'Mã': item.item_code,
-            'Tên': item.item_name,
-            'Danh mục': item.category_name,
-            'Số lần giặt': item.total_washed,
-            'Cân nặng (kg)': item.total_weight_kg,
-            'Hỏng': item.total_damaged,
-            'Mất': item.total_lost,
-            'Chi phí ước tính': item.estimated_cost,
-          })),
+          title: 'Xu hướng theo tháng',
+          headers: ['Tháng', 'Số lô', 'Items', 'Chi phí'],
+          rows: monthly_trend.map(m => [
+            m.month,
+            m.batches,
+            m.items,
+            m.cost,
+          ]),
         },
       ],
+      chartData: monthly_trend,
     }
-    await exportToExcel(exportData)
+    await exportToExcel(exportData, 'laundry_report')
   }
 
   if (isLoading) {
