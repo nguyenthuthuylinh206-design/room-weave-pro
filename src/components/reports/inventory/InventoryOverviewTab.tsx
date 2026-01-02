@@ -125,38 +125,46 @@ export function InventoryOverviewTab({ data, isLoading, chartRefs }: InventoryOv
       
       {/* Inventory Composition */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Pie Chart */}
+        {/* Horizontal Bar Chart */}
         <Card ref={(el) => el && (chartRefs.current[0] = el)}>
           <CardHeader>
             <CardTitle>Phân bổ theo danh mục (Giá trị)</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={categoryChartData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percentage }) => `${name}: ${percentage}%`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {categoryChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
+            <ResponsiveContainer width="100%" height={Math.max(300, categoryChartData.length * 40)}>
+              <BarChart data={categoryChartData} layout="vertical" margin={{ left: 20, right: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" horizontal={false} />
+                <XAxis 
+                  type="number" 
+                  className="text-xs"
+                  tickFormatter={(value) => formatCurrency(value)}
+                />
+                <YAxis 
+                  dataKey="name" 
+                  type="category" 
+                  width={100}
+                  className="text-xs"
+                  tick={{ fontSize: 11 }}
+                />
                 <Tooltip
                   formatter={(value: number) => formatCurrency(value)}
+                  labelFormatter={(label) => label}
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px',
                   }}
                 />
-                <Legend />
-              </PieChart>
+                <Bar 
+                  dataKey="value" 
+                  name="Giá trị"
+                  radius={[0, 4, 4, 0]}
+                >
+                  {categoryChartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
