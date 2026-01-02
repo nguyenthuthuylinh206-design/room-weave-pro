@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,7 @@ interface AddRoomsDialogProps {
 }
 
 export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
+  const navigate = useNavigate();
   const [additionalRooms, setAdditionalRooms] = useState(10);
   const [showBankPayment, setShowBankPayment] = useState(false);
   const {
@@ -56,9 +58,10 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
   const handleConfirm = async () => {
     if (!pricing) return;
     
-    // If bank payment is available, show payment dialog and auto-create invoice
+    // If bank payment is available, close this dialog and open bank payment
     if (bankSettings) {
-      setShowBankPayment(true);
+      onOpenChange(false); // Close this dialog first
+      setTimeout(() => setShowBankPayment(true), 100); // Then open bank payment
     } else {
       // Direct confirm without bank payment
       const newTotalRooms = registeredRooms + additionalRooms;
@@ -73,11 +76,13 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
     }
   };
 
+  const handlePaymentCreated = (invoiceId: string) => {
+    setShowBankPayment(false);
+    navigate(`/settings/subscription/pay/${invoiceId}`);
+  };
+
   const handlePaymentDialogClose = (isOpen: boolean) => {
     setShowBankPayment(isOpen);
-    if (!isOpen) {
-      onOpenChange(false);
-    }
   };
 
   if (remainingDays <= 0) {
@@ -230,14 +235,15 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Bank Transfer Payment Dialog */}
-      {pricing && (
+      {/* Bank Transfer Payment Dialog - rendered outside main dialog */}
+      {pricing && showBankPayment && (
         <BankTransferPaymentDialog
           open={showBankPayment}
           onOpenChange={handlePaymentDialogClose}
           amount={pricing.finalPrice}
           description={`Mua thêm ${additionalRooms} phòng (${remainingDays} ngày còn lại)`}
           autoCreateInvoice={true}
+          onPaymentCreated={handlePaymentCreated}
           metadata={{
             type: 'add_rooms',
             additional_rooms: additionalRooms,

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,7 @@ export function PlanChangeDialog({
   initialRooms = 50,
   initialDuration = 365,
 }: PlanChangeDialogProps) {
+  const navigate = useNavigate();
   const { data: subscription } = useTenantSubscription();
   const { data: bankSettings } = useBankPaymentSettings();
   const updateSubscription = useUpdateTenantSubscription();
@@ -64,9 +66,10 @@ export function PlanChangeDialog({
   const newEndDate = calculateEndDate(currentEndDate, selectedDuration);
 
   const handleConfirm = async () => {
-    // If bank payment is available, show payment dialog and auto-create invoice
+    // If bank payment is available, close this dialog and open bank payment
     if (bankSettings) {
-      setShowBankPayment(true);
+      onOpenChange(false); // Close this dialog first
+      setTimeout(() => setShowBankPayment(true), 100); // Then open bank payment
     } else {
       // Direct confirm without bank payment
       await updateSubscription.mutateAsync({
@@ -77,11 +80,13 @@ export function PlanChangeDialog({
     }
   };
 
+  const handlePaymentCreated = (invoiceId: string) => {
+    setShowBankPayment(false);
+    navigate(`/settings/subscription/pay/${invoiceId}`);
+  };
+
   const handlePaymentDialogClose = (isOpen: boolean) => {
     setShowBankPayment(isOpen);
-    if (!isOpen) {
-      onOpenChange(false);
-    }
   };
 
   return (
@@ -208,19 +213,22 @@ export function PlanChangeDialog({
         </DialogContent>
       </Dialog>
 
-      {/* Bank Transfer Payment Dialog */}
-      <BankTransferPaymentDialog
-        open={showBankPayment}
-        onOpenChange={handlePaymentDialogClose}
-        amount={pricing.finalPrice}
-        description={`Gia hạn gói dịch vụ ${registeredRooms} phòng - ${selectedDuration} ngày`}
-        autoCreateInvoice={true}
-        metadata={{
-          type: 'renewal',
-          rooms: registeredRooms,
-          duration_days: selectedDuration,
-        }}
-      />
+      {/* Bank Transfer Payment Dialog - rendered outside main dialog */}
+      {showBankPayment && (
+        <BankTransferPaymentDialog
+          open={showBankPayment}
+          onOpenChange={handlePaymentDialogClose}
+          amount={pricing.finalPrice}
+          description={`Gia hạn gói dịch vụ ${registeredRooms} phòng - ${selectedDuration} ngày`}
+          autoCreateInvoice={true}
+          onPaymentCreated={handlePaymentCreated}
+          metadata={{
+            type: 'renewal',
+            rooms: registeredRooms,
+            duration_days: selectedDuration,
+          }}
+        />
+      )}
     </>
   );
 }
