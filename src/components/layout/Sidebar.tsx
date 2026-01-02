@@ -69,6 +69,11 @@ const ownerNavigation: NavItem[] = [
     icon: CalendarDays,
   },
   {
+    titleKey: 'rooms',
+    href: '/rooms',
+    icon: Hotel,
+  },
+  {
     titleKey: 'reports',
     icon: BarChart3,
     children: [
