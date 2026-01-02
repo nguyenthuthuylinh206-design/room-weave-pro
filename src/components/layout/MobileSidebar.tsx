@@ -121,6 +121,7 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
       items: [
         { title: 'Dashboard', icon: Home, path: '/' },
         { title: 'Đặt phòng', icon: CalendarDays, path: '/bookings' },
+        { title: 'Danh sách phòng', icon: DoorOpen, path: '/rooms' },
       ]
     },
     {
