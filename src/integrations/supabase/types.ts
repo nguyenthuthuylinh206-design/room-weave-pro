@@ -6351,6 +6351,15 @@ export type Database = {
               user_name: string
             }[]
           }
+      get_room_checks_report: {
+        Args: {
+          p_end_date?: string
+          p_hotel_id?: string
+          p_start_date?: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       get_room_detail: { Args: { p_room_id: string }; Returns: Json }
       get_room_distribution_history: {
         Args: { p_room_id: string }
@@ -6439,6 +6448,15 @@ export type Database = {
           updated_at: string
           view_type: string
         }[]
+      }
+      get_rooms_report_stats: {
+        Args: {
+          p_end_date?: string
+          p_hotel_id?: string
+          p_start_date?: string
+          p_tenant_id: string
+        }
+        Returns: Json
       }
       get_stock_adjustments_filtered: {
         Args: {
