@@ -207,9 +207,10 @@ export function BankTransferPaymentDialog({
           <div className="space-y-4">
             <div className="flex items-center gap-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
               <CheckCircle className="h-5 w-5 text-green-500" />
-              <span className="text-sm text-green-700 dark:text-green-300">
-                Đơn hàng đã được tạo. Vui lòng chuyển khoản theo thông tin bên dưới.
-              </span>
+              <div className="text-sm text-green-700 dark:text-green-300">
+                <p className="font-medium">Đơn hàng đã được tạo thành công!</p>
+                <p>Vui lòng chuyển khoản theo thông tin bên dưới.</p>
+              </div>
             </div>
 
             <BankQRCode
@@ -222,12 +223,17 @@ export function BankTransferPaymentDialog({
               qrTemplate={bankSettings.qr_template}
             />
 
-            <Button
-              className="w-full"
-              onClick={() => onOpenChange(false)}
-            >
-              Đã hoàn tất chuyển khoản
-            </Button>
+            <div className="space-y-2">
+              <Button
+                className="w-full"
+                onClick={() => onOpenChange(false)}
+              >
+                Đã hoàn tất chuyển khoản
+              </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                Bạn có thể theo dõi trạng thái thanh toán trong tab "Đang chờ"
+              </p>
+            </div>
           </div>
         )}
       </DialogContent>
