@@ -64,7 +64,7 @@ export function PlanChangeDialog({
   const newEndDate = calculateEndDate(currentEndDate, selectedDuration);
 
   const handleConfirm = async () => {
-    // If bank payment is available, show payment dialog
+    // If bank payment is available, show payment dialog and auto-create invoice
     if (bankSettings) {
       setShowBankPayment(true);
     } else {
@@ -77,10 +77,11 @@ export function PlanChangeDialog({
     }
   };
 
-  const handlePaymentCreated = () => {
-    // Payment invoice created, close dialog
-    setShowBankPayment(false);
-    onOpenChange(false);
+  const handlePaymentDialogClose = (isOpen: boolean) => {
+    setShowBankPayment(isOpen);
+    if (!isOpen) {
+      onOpenChange(false);
+    }
   };
 
   return (
@@ -210,10 +211,10 @@ export function PlanChangeDialog({
       {/* Bank Transfer Payment Dialog */}
       <BankTransferPaymentDialog
         open={showBankPayment}
-        onOpenChange={setShowBankPayment}
+        onOpenChange={handlePaymentDialogClose}
         amount={pricing.finalPrice}
         description={`Gia hạn gói dịch vụ ${registeredRooms} phòng - ${selectedDuration} ngày`}
-        onPaymentCreated={handlePaymentCreated}
+        autoCreateInvoice={true}
         metadata={{
           type: 'renewal',
           rooms: registeredRooms,

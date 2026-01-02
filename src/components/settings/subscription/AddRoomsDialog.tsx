@@ -56,7 +56,7 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
   const handleConfirm = async () => {
     if (!pricing) return;
     
-    // If bank payment is available, show payment dialog
+    // If bank payment is available, show payment dialog and auto-create invoice
     if (bankSettings) {
       setShowBankPayment(true);
     } else {
@@ -73,9 +73,11 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
     }
   };
 
-  const handlePaymentCreated = () => {
-    setShowBankPayment(false);
-    onOpenChange(false);
+  const handlePaymentDialogClose = (isOpen: boolean) => {
+    setShowBankPayment(isOpen);
+    if (!isOpen) {
+      onOpenChange(false);
+    }
   };
 
   if (remainingDays <= 0) {
@@ -232,10 +234,10 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
       {pricing && (
         <BankTransferPaymentDialog
           open={showBankPayment}
-          onOpenChange={setShowBankPayment}
+          onOpenChange={handlePaymentDialogClose}
           amount={pricing.finalPrice}
           description={`Mua thêm ${additionalRooms} phòng (${remainingDays} ngày còn lại)`}
-          onPaymentCreated={handlePaymentCreated}
+          autoCreateInvoice={true}
           metadata={{
             type: 'add_rooms',
             additional_rooms: additionalRooms,
