@@ -42,6 +42,7 @@ import {
   Truck,
   BarChart3,
   CalendarDays,
+  CreditCard,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -106,6 +107,7 @@ const navigation: NavItem[] = [
     children: [
       { titleKey: 'adminDashboard', href: '/admin/dashboard', icon: LayoutDashboard },
       { titleKey: 'tenants', href: '/admin/tenants', icon: Users },
+      { titleKey: 'payments', href: '/admin/payments', icon: CreditCard },
       { titleKey: 'promoCodes', href: '/admin/promo-codes', icon: Tag },
       { titleKey: 'campaigns', href: '/admin/campaigns', icon: TrendingUp },
       { titleKey: 'reminders', href: '/admin/reminders', icon: Bell },
