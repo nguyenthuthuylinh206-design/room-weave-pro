@@ -24,10 +24,15 @@ interface PaymentTransaction {
   notes: string | null;
   created_at: string;
   payment_date: string | null;
-  metadata: Record<string, unknown>;
+  metadata: {
+    rooms?: number;
+    duration_days?: number;
+    type?: 'extend' | 'add_rooms';
+    [key: string]: unknown;
+  };
   tenant?: {
     name: string;
-    contact_email: string;
+    email: string;
   };
   invoice?: {
     invoice_number: string;
@@ -48,7 +53,7 @@ export function PaymentSettingsPage() {
         .from('payment_transactions')
         .select(`
           *,
-          tenant:tenants(name, contact_email),
+          tenant:tenants(name, email),
           invoice:invoices(invoice_number, status)
         `)
         .eq('payment_method', 'bank_transfer')
@@ -69,7 +74,11 @@ export function PaymentSettingsPage() {
   // Confirm payment mutation
   const confirmPaymentMutation = useMutation({
     mutationFn: async (paymentId: string) => {
-      const { error } = await supabase
+      const payment = payments?.find(p => p.id === paymentId);
+      if (!payment) throw new Error('Payment not found');
+
+      // Update payment status
+      const { error: paymentError } = await supabase
         .from('payment_transactions')
         .update({
           payment_status: 'completed',
@@ -77,11 +86,10 @@ export function PaymentSettingsPage() {
         })
         .eq('id', paymentId);
 
-      if (error) throw error;
+      if (paymentError) throw paymentError;
 
-      // Also update the invoice status
-      const payment = payments?.find(p => p.id === paymentId);
-      if (payment?.invoice_id) {
+      // Update invoice status
+      if (payment.invoice_id) {
         await supabase
           .from('invoices')
           .update({
@@ -90,10 +98,79 @@ export function PaymentSettingsPage() {
           })
           .eq('id', payment.invoice_id);
       }
+
+      // Update tenant subscription based on payment metadata
+      const { rooms, duration_days, type } = payment.metadata || {};
+      
+      if (payment.tenant_id && (duration_days || rooms)) {
+        // Get current tenant subscription info
+        const { data: tenant } = await supabase
+          .from('tenants')
+          .select('subscription_end_date, registered_rooms, subscription_status')
+          .eq('id', payment.tenant_id)
+          .single();
+
+        if (tenant) {
+          const updateData: Record<string, unknown> = {
+            subscription_status: 'active',
+          };
+
+          // Extend subscription if duration_days provided
+          if (duration_days) {
+            const currentEndDate = tenant.subscription_end_date 
+              ? new Date(tenant.subscription_end_date)
+              : new Date();
+            
+            // If subscription expired, extend from today
+            const baseDate = currentEndDate > new Date() ? currentEndDate : new Date();
+            const newEndDate = new Date(baseDate);
+            newEndDate.setDate(newEndDate.getDate() + duration_days);
+            
+            updateData.subscription_end_date = newEndDate.toISOString();
+          }
+
+          // Add rooms if type is add_rooms
+          if (type === 'add_rooms' && rooms) {
+            updateData.registered_rooms = (tenant.registered_rooms || 0) + rooms;
+          }
+          
+          // Set rooms for new subscription or extend with rooms
+          if (type === 'extend' && rooms) {
+            updateData.registered_rooms = rooms;
+          }
+
+          await supabase
+            .from('tenants')
+            .update(updateData)
+            .eq('id', payment.tenant_id);
+        }
+      }
+
+      // Create in-app notification for user
+      if (payment.tenant_id) {
+        // Get any user from the tenant to send notification
+        const { data: users } = await supabase
+          .from('users')
+          .select('id')
+          .eq('tenant_id', payment.tenant_id)
+          .limit(1);
+
+        if (users && users.length > 0) {
+          await supabase.from('in_app_notifications').insert({
+            tenant_id: payment.tenant_id,
+            user_id: users[0].id,
+            title: 'Thanh toán đã được xác nhận',
+            body: `Thanh toán ${payment.amount.toLocaleString('vi-VN')}đ đã được xác nhận. Gói dịch vụ đã được cập nhật.`,
+            type: 'payment',
+            icon: 'check-circle',
+            action_url: '/settings/subscription',
+          });
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-payments'] });
-      toast.success('Đã xác nhận thanh toán');
+      toast.success('Đã xác nhận thanh toán và cập nhật gói dịch vụ');
     },
     onError: (error) => {
       console.error('Error confirming payment:', error);
@@ -140,7 +217,7 @@ export function PaymentSettingsPage() {
     return (
       payment.transaction_reference?.toLowerCase().includes(search) ||
       payment.tenant?.name?.toLowerCase().includes(search) ||
-      payment.tenant?.contact_email?.toLowerCase().includes(search) ||
+      payment.tenant?.email?.toLowerCase().includes(search) ||
       payment.invoice?.invoice_number?.toLowerCase().includes(search)
     );
   });
@@ -239,7 +316,7 @@ export function PaymentSettingsPage() {
                         <TableCell>
                           <div>
                             <div className="font-medium">{payment.tenant?.name}</div>
-                            <div className="text-sm text-muted-foreground">{payment.tenant?.contact_email}</div>
+                            <div className="text-sm text-muted-foreground">{payment.tenant?.email}</div>
                           </div>
                         </TableCell>
                         <TableCell className="font-semibold text-primary">
@@ -367,7 +444,7 @@ export function PaymentSettingsPage() {
                         <TableCell>
                           <div>
                             <div className="font-medium">{payment.tenant?.name}</div>
-                            <div className="text-sm text-muted-foreground">{payment.tenant?.contact_email}</div>
+                            <div className="text-sm text-muted-foreground">{payment.tenant?.email}</div>
                           </div>
                         </TableCell>
                         <TableCell className="font-semibold text-primary">

@@ -1,13 +1,17 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SubscriptionOverview } from "@/components/settings/subscription/SubscriptionOverview";
 import { PlanComparison } from "@/components/settings/subscription/PlanComparison";
 import { BillingHistory } from "@/components/settings/subscription/BillingHistory";
 import { PaymentMethodsManager } from "@/components/settings/subscription/PaymentMethodsManager";
+import { PendingPayments } from "@/components/settings/subscription/PendingPayments";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { CreditCard, History, Package, Wallet } from "lucide-react";
+import { CreditCard, History, Package, Wallet, Clock } from "lucide-react";
+import { usePendingPaymentsCount } from "@/hooks/usePendingPayments";
+import { Badge } from "@/components/ui/badge";
 
 export default function SubscriptionPage() {
+  const { data: pendingCount = 0 } = usePendingPaymentsCount();
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <PageHeader
@@ -16,7 +20,7 @@ export default function SubscriptionPage() {
       />
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
             Tổng quan
@@ -25,9 +29,18 @@ export default function SubscriptionPage() {
             <CreditCard className="h-4 w-4" />
             Gói dịch vụ
           </TabsTrigger>
+          <TabsTrigger value="pending" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Đang chờ
+            {pendingCount > 0 && (
+              <Badge variant="destructive" className="ml-1 h-5 min-w-5 px-1">
+                {pendingCount}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="payment" className="flex items-center gap-2">
             <Wallet className="h-4 w-4" />
-            Phương thức thanh toán
+            Thanh toán
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-2">
             <History className="h-4 w-4" />
@@ -41,6 +54,10 @@ export default function SubscriptionPage() {
 
         <TabsContent value="plans" className="space-y-6" id="plan-comparison">
           <PlanComparison />
+        </TabsContent>
+
+        <TabsContent value="pending" className="space-y-6">
+          <PendingPayments />
         </TabsContent>
 
         <TabsContent value="payment" className="space-y-6">
