@@ -14,6 +14,7 @@ interface BankTransferPaymentDialogProps {
   amount: number;
   description: string;
   onPaymentCreated?: (invoiceId: string) => void;
+  autoCreateInvoice?: boolean;
   metadata?: Record<string, unknown>;
 }
 
@@ -23,6 +24,7 @@ export function BankTransferPaymentDialog({
   amount,
   description,
   onPaymentCreated,
+  autoCreateInvoice = false,
   metadata = {},
 }: BankTransferPaymentDialogProps) {
   const { data: bankSettings, isLoading: isLoadingSettings } = useBankPaymentSettings();
@@ -32,18 +34,24 @@ export function BankTransferPaymentDialog({
   const [invoiceCreated, setInvoiceCreated] = useState(false);
   const [invoiceId, setInvoiceId] = useState<string | null>(null);
 
-  // Generate payment content when dialog opens
+  // Generate payment content and auto-create invoice when dialog opens
   useEffect(() => {
-    if (open && bankSettings) {
+    if (open && bankSettings && tenantId) {
       const timestamp = Date.now().toString(36).toUpperCase();
       const prefix = bankSettings.payment_prefix || 'HD-';
-      setPaymentContent(`${prefix}${timestamp}`);
+      const newPaymentContent = `${prefix}${timestamp}`;
+      setPaymentContent(newPaymentContent);
       setInvoiceCreated(false);
       setInvoiceId(null);
-    }
-  }, [open, bankSettings]);
 
-  const handleConfirmPayment = async () => {
+      // Auto create invoice if flag is set
+      if (autoCreateInvoice) {
+        createInvoiceWithContent(newPaymentContent);
+      }
+    }
+  }, [open, bankSettings, tenantId, autoCreateInvoice]);
+
+  const createInvoiceWithContent = async (content: string) => {
     if (!tenantId || !bankSettings) return;
 
     setIsCreatingInvoice(true);
@@ -89,8 +97,8 @@ export function BankTransferPaymentDialog({
           amount: amount,
           payment_method: 'bank_transfer',
           payment_status: 'pending',
-          transaction_reference: paymentContent,
-          notes: `Thanh toán qua ${bankSettings.bank_name} - ${paymentContent}`,
+          transaction_reference: content,
+          notes: `Thanh toán qua ${bankSettings.bank_name} - ${content}`,
           metadata: {
             ...metadata,
             bank_code: bankSettings.bank_code,
@@ -114,6 +122,10 @@ export function BankTransferPaymentDialog({
     } finally {
       setIsCreatingInvoice(false);
     }
+  };
+
+  const handleConfirmPayment = async () => {
+    await createInvoiceWithContent(paymentContent);
   };
 
   if (isLoadingSettings) {
@@ -164,7 +176,12 @@ export function BankTransferPaymentDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {!invoiceCreated ? (
+        {isCreatingInvoice ? (
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-muted-foreground">Đang tạo đơn hàng...</p>
+          </div>
+        ) : !invoiceCreated && !autoCreateInvoice ? (
           <div className="space-y-4">
             <div className="bg-muted/50 rounded-lg p-4">
               <div className="flex justify-between items-center">
@@ -228,10 +245,10 @@ export function BankTransferPaymentDialog({
                 className="w-full"
                 onClick={() => onOpenChange(false)}
               >
-                Đã hoàn tất chuyển khoản
+                Đóng
               </Button>
               <p className="text-xs text-muted-foreground text-center">
-                Bạn có thể theo dõi trạng thái thanh toán trong tab "Đang chờ"
+                Sau khi chuyển khoản, vui lòng chờ xác nhận. Theo dõi tại tab "Đang chờ"
               </p>
             </div>
           </div>
