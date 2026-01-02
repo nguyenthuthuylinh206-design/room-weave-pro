@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Download, FileText, Home, CheckCircle, AlertTriangle, Wrench } from 'lucide-react'
+import { ArrowLeft, Download, FileText, Home, CheckCircle, AlertTriangle, Wrench, TrendingUp, Users, DollarSign, BarChart3 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import { HotelFilterCard } from '@/components/reports/HotelFilterCard'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -28,15 +29,25 @@ import {
   PieChart,
   Pie,
   Cell,
+  LineChart,
+  Line,
 } from 'recharts'
 import { Progress } from '@/components/ui/progress'
 import { useReportExport } from '@/hooks/useReportExport'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileRoomsReportPage } from '@/components/reports/MobileRoomsReportPage'
-import { useDashboardStats } from '@/hooks/useDashboardStats'
-import { subDays } from 'date-fns'
+import { useRoomsReportData } from '@/hooks/useRoomsReportData'
+import { subDays, format } from 'date-fns'
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6']
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  }).format(value)
+}
 
 export function RoomsReportPage() {
   const { isMobile } = useBreakpoint()
@@ -48,63 +59,57 @@ export function RoomsReportPage() {
     end: new Date(),
   })
   
-  const { data: dashboardStats, isLoading } = useDashboardStats()
+  const { data, isLoading, error } = useRoomsReportData(dateRange)
   const { exportToPDF, exportToExcel, isExporting } = useReportExport()
 
   if (isMobile) {
-    return <MobileRoomsReportPage />
+    return <MobileRoomsReportPage dateRange={dateRange} />
   }
 
-  // Room status data from dashboard - use any to bypass type checking
-  const data = dashboardStats as any
-  const roomStatus = {
-    total: data?.total_rooms || 0,
-    vacant: data?.vacant_rooms || 0,
-    occupied: data?.occupied_rooms || 0,
-    cleaning: data?.cleaning_rooms || 0,
-    maintenance: data?.maintenance_rooms || 0,
+  const roomStats = data?.roomStats || {
+    total: 0,
+    vacant: 0,
+    occupied: 0,
+    cleaning: 0,
+    maintenance: 0,
   }
 
-  const utilizationByType = [
-    { type: 'Standard', total: 20, occupied: 16, rate: 80 },
-    { type: 'Deluxe', total: 15, occupied: 13, rate: 87 },
-    { type: 'Suite', total: 10, occupied: 9, rate: 90 },
-    { type: 'VIP', total: 5, occupied: 5, rate: 100 },
-  ]
-
-  const deficiencyByRoom = [
-    { room: '101', type: 'Standard', missing: 3, items: 'Khăn tắm, Dép, Xà phòng' },
-    { room: '205', type: 'Deluxe', missing: 2, items: 'Áo choàng, Dầu gội' },
-    { room: '302', type: 'Suite', missing: 1, items: 'Khăn mặt' },
-  ]
-
-  const checkHistory = {
-    total_checks: 45,
-    avg_score: 92,
-    issues_found: 23,
-    issues_resolved: 20,
+  const occupancyStats = data?.occupancyStats || {
+    total_room_nights: 0,
+    total_revenue: 0,
+    total_bookings: 0,
+    occupancy_rate: 0,
+    avg_revenue_per_room: 0,
+    avg_revenue_per_booking: 0,
   }
-
-  const topIssues = [
-    { issue: 'Thiếu khăn tắm', count: 8, percentage: 35 },
-    { issue: 'Đồ dùng hư hỏng', count: 5, percentage: 22 },
-    { issue: 'Thiếu đồ amenity', count: 4, percentage: 17 },
-    { issue: 'Cần bảo trì', count: 3, percentage: 13 },
-    { issue: 'Khác', count: 3, percentage: 13 },
-  ]
 
   const roomStatusData = [
-    { name: 'Trống', value: roomStatus.vacant, color: '#10b981' },
-    { name: 'Đang sử dụng', value: roomStatus.occupied, color: '#3b82f6' },
-    { name: 'Đang dọn', value: roomStatus.cleaning, color: '#f59e0b' },
-    { name: 'Bảo trì', value: roomStatus.maintenance, color: '#ef4444' },
+    { name: 'Trống', value: roomStats.vacant, color: '#10b981' },
+    { name: 'Đang sử dụng', value: roomStats.occupied, color: '#3b82f6' },
+    { name: 'Đang dọn', value: roomStats.cleaning, color: '#f59e0b' },
+    { name: 'Bảo trì', value: roomStats.maintenance, color: '#ef4444' },
   ].filter(item => item.value > 0)
+
+  const utilizationChartData = data?.utilizationByType?.map(item => ({
+    type: item.room_type,
+    rate: item.rate || 0,
+    revenue: item.revenue || 0,
+  })) || []
+
+  const checkStats = data?.checkStats || {
+    total_checks: 0,
+    avg_score: 0,
+    issues_found: 0,
+    daily_checks: 0,
+    checkout_checks: 0,
+    checkin_checks: 0,
+  }
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Báo cáo Phòng"
-        description="Phân tích sử dụng và thiếu hụt đồ dùng phòng"
+        description="Phân tích sử dụng, doanh thu và thiếu hụt đồ dùng phòng"
       >
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate('/reports')}>
@@ -147,6 +152,7 @@ export function RoomsReportPage() {
         <TabsList>
           <TabsTrigger value="overview">Tổng quan</TabsTrigger>
           <TabsTrigger value="utilization">Sử dụng</TabsTrigger>
+          <TabsTrigger value="revenue">Doanh thu</TabsTrigger>
           <TabsTrigger value="deficiency">Thiếu hụt</TabsTrigger>
           <TabsTrigger value="checks">Kiểm tra</TabsTrigger>
         </TabsList>
@@ -154,7 +160,7 @@ export function RoomsReportPage() {
         {/* TAB 1: Overview */}
         <TabsContent value="overview" className="space-y-6">
           {/* Summary Cards */}
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
@@ -163,7 +169,9 @@ export function RoomsReportPage() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Tổng phòng</p>
-                    <p className="text-3xl font-bold">{roomStatus.total}</p>
+                    {isLoading ? <Skeleton className="h-8 w-16" /> : (
+                      <p className="text-3xl font-bold">{roomStats.total}</p>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -177,7 +185,9 @@ export function RoomsReportPage() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Phòng trống</p>
-                    <p className="text-3xl font-bold text-green-600">{roomStatus.vacant}</p>
+                    {isLoading ? <Skeleton className="h-8 w-16" /> : (
+                      <p className="text-3xl font-bold text-green-600">{roomStats.vacant}</p>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -191,7 +201,9 @@ export function RoomsReportPage() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Đang dọn</p>
-                    <p className="text-3xl font-bold text-orange-600">{roomStatus.cleaning}</p>
+                    {isLoading ? <Skeleton className="h-8 w-16" /> : (
+                      <p className="text-3xl font-bold text-orange-600">{roomStats.cleaning}</p>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -205,7 +217,25 @@ export function RoomsReportPage() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Bảo trì</p>
-                    <p className="text-3xl font-bold text-red-600">{roomStatus.maintenance}</p>
+                    {isLoading ? <Skeleton className="h-8 w-16" /> : (
+                      <p className="text-3xl font-bold text-red-600">{roomStats.maintenance}</p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full p-2 bg-purple-50">
+                    <TrendingUp className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Tỷ lệ lấp đầy</p>
+                    {isLoading ? <Skeleton className="h-8 w-16" /> : (
+                      <p className="text-3xl font-bold text-purple-600">{occupancyStats.occupancy_rate}%</p>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -220,26 +250,34 @@ export function RoomsReportPage() {
                 <CardTitle>Trạng thái phòng</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={roomStatusData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}`}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {roomStatusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                {isLoading ? (
+                  <Skeleton className="h-[300px] w-full" />
+                ) : roomStatusData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={roomStatusData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, value }) => `${name}: ${value}`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {roomStatusData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                    Không có dữ liệu phòng
+                  </div>
+                )}
               </CardContent>
             </Card>
             
@@ -249,17 +287,39 @@ export function RoomsReportPage() {
                 <CardTitle>Vấn đề thường gặp</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {topIssues.map((issue, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">{issue.issue}</span>
-                        <span className="text-sm text-muted-foreground">{issue.count} lần ({issue.percentage}%)</span>
-                      </div>
-                      <Progress value={issue.percentage} className="h-2" />
-                    </div>
-                  ))}
-                </div>
+                {isLoading ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <Skeleton key={i} className="h-8 w-full" />
+                    ))}
+                  </div>
+                ) : data?.topIssues && data.topIssues.length > 0 ? (
+                  <div className="space-y-4">
+                    {data.topIssues.slice(0, 5).map((issue, index) => {
+                      const totalIssues = data.topIssues.reduce((sum, i) => sum + i.count, 0)
+                      const percentage = totalIssues > 0 ? Math.round((issue.count / totalIssues) * 100) : 0
+                      return (
+                        <div key={index} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">
+                              {issue.item_name || 'Không xác định'}
+                              <Badge variant="outline" className="ml-2 text-xs">
+                                {issue.issue_type === 'missing' ? 'Thiếu' : 
+                                 issue.issue_type === 'damaged' ? 'Hỏng' : 'Mất'}
+                              </Badge>
+                            </span>
+                            <span className="text-sm text-muted-foreground">{issue.count} lần ({percentage}%)</span>
+                          </div>
+                          <Progress value={percentage} className="h-2" />
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                    Không có vấn đề nào được ghi nhận
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -272,22 +332,30 @@ export function RoomsReportPage() {
               <CardTitle>Tỷ lệ sử dụng theo loại phòng</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={utilizationByType} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis type="number" domain={[0, 100]} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                  <YAxis dataKey="type" type="category" width={80} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                  <Tooltip
-                    formatter={(value: number) => `${value}%`}
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <Bar dataKey="rate" name="Tỷ lệ sử dụng" fill="#3b82f6" radius={4} />
-                </BarChart>
-              </ResponsiveContainer>
+              {isLoading ? (
+                <Skeleton className="h-[350px] w-full" />
+              ) : utilizationChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={utilizationChartData} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis type="number" domain={[0, 100]} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                    <YAxis dataKey="type" type="category" width={100} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                    <Tooltip
+                      formatter={(value: number) => `${value}%`}
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
+                    />
+                    <Bar dataKey="rate" name="Tỷ lệ sử dụng" fill="#3b82f6" radius={4} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[350px] text-muted-foreground">
+                  Không có dữ liệu loại phòng
+                </div>
+              )}
             </CardContent>
           </Card>
           
@@ -296,110 +364,501 @@ export function RoomsReportPage() {
               <CardTitle>Chi tiết theo loại phòng</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Loại phòng</TableHead>
-                      <TableHead className="text-center">Tổng</TableHead>
-                      <TableHead className="text-center">Đang dùng</TableHead>
-                      <TableHead className="text-center">Trống</TableHead>
-                      <TableHead className="text-center">Tỷ lệ</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {utilizationByType.map((room) => (
-                      <TableRow key={room.type}>
-                        <TableCell className="font-medium">{room.type}</TableCell>
-                        <TableCell className="text-center">{room.total}</TableCell>
-                        <TableCell className="text-center text-blue-600">{room.occupied}</TableCell>
-                        <TableCell className="text-center text-green-600">{room.total - room.occupied}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant={room.rate >= 80 ? 'default' : 'secondary'}>
-                            {room.rate}%
-                          </Badge>
-                        </TableCell>
+              {isLoading ? (
+                <Skeleton className="h-[200px] w-full" />
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Loại phòng</TableHead>
+                        <TableHead className="text-center">Tổng</TableHead>
+                        <TableHead className="text-center">Đang dùng</TableHead>
+                        <TableHead className="text-center">Trống</TableHead>
+                        <TableHead className="text-center">Tỷ lệ</TableHead>
+                        <TableHead className="text-right">Doanh thu</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {data?.utilizationByType && data.utilizationByType.length > 0 ? (
+                        data.utilizationByType.map((room) => (
+                          <TableRow key={room.room_type_id}>
+                            <TableCell className="font-medium">{room.room_type}</TableCell>
+                            <TableCell className="text-center">{room.total}</TableCell>
+                            <TableCell className="text-center text-blue-600">{room.occupied}</TableCell>
+                            <TableCell className="text-center text-green-600">{room.vacant}</TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant={room.rate >= 80 ? 'default' : 'secondary'}>
+                                {room.rate}%
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {formatCurrency(room.revenue)}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                            Không có dữ liệu
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
-        
-        {/* TAB 3: Deficiency */}
-        <TabsContent value="deficiency" className="space-y-6">
+
+        {/* TAB 3: Revenue - NEW */}
+        <TabsContent value="revenue" className="space-y-6">
+          {/* Revenue Summary Cards */}
+          <div className="grid gap-4 md:grid-cols-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full p-2 bg-green-50">
+                    <DollarSign className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Tổng doanh thu</p>
+                    {isLoading ? <Skeleton className="h-8 w-24" /> : (
+                      <p className="text-2xl font-bold text-green-600">
+                        {formatCurrency(occupancyStats.total_revenue)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full p-2 bg-blue-50">
+                    <BarChart3 className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Số đêm bán</p>
+                    {isLoading ? <Skeleton className="h-8 w-16" /> : (
+                      <p className="text-2xl font-bold">{occupancyStats.total_room_nights}</p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full p-2 bg-purple-50">
+                    <TrendingUp className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">TB/phòng</p>
+                    {isLoading ? <Skeleton className="h-8 w-20" /> : (
+                      <p className="text-2xl font-bold">
+                        {formatCurrency(occupancyStats.avg_revenue_per_room)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full p-2 bg-orange-50">
+                    <Users className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Số booking</p>
+                    {isLoading ? <Skeleton className="h-8 w-16" /> : (
+                      <p className="text-2xl font-bold">{occupancyStats.total_bookings}</p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Revenue by Room Type Chart */}
           <Card>
             <CardHeader>
-              <CardTitle>Phòng thiếu đồ dùng</CardTitle>
+              <CardTitle>Doanh thu theo loại phòng</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Phòng</TableHead>
-                      <TableHead>Loại</TableHead>
-                      <TableHead className="text-center">Số lượng thiếu</TableHead>
-                      <TableHead>Đồ dùng thiếu</TableHead>
-                      <TableHead>Hành động</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {deficiencyByRoom.map((room) => (
-                      <TableRow key={room.room}>
-                        <TableCell className="font-bold">{room.room}</TableCell>
-                        <TableCell>{room.type}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="destructive">{room.missing}</Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{room.items}</TableCell>
-                        <TableCell>
-                          <Button size="sm" variant="outline">
-                            Cấp đồ
-                          </Button>
-                        </TableCell>
+              {isLoading ? (
+                <Skeleton className="h-[350px] w-full" />
+              ) : utilizationChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={utilizationChartData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="type" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                    <YAxis 
+                      tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`} 
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }} 
+                    />
+                    <Tooltip
+                      formatter={(value: number) => formatCurrency(value)}
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
+                    />
+                    <Bar dataKey="revenue" name="Doanh thu" fill="#10b981" radius={4} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[350px] text-muted-foreground">
+                  Không có dữ liệu doanh thu
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Top Profitable Rooms Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Top phòng sinh lợi</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-[250px] w-full" />
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Phòng</TableHead>
+                        <TableHead>Loại</TableHead>
+                        <TableHead className="text-center">Số booking</TableHead>
+                        <TableHead className="text-center">Ngày sử dụng</TableHead>
+                        <TableHead className="text-right">Doanh thu</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {data?.revenueByRoom && data.revenueByRoom.length > 0 ? (
+                        data.revenueByRoom.map((room, index) => (
+                          <TableRow key={room.room_id}>
+                            <TableCell className="font-bold">
+                              <div className="flex items-center gap-2">
+                                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
+                                  {index + 1}
+                                </span>
+                                {room.room_number}
+                              </div>
+                            </TableCell>
+                            <TableCell>{room.room_type || '-'}</TableCell>
+                            <TableCell className="text-center">{room.total_bookings}</TableCell>
+                            <TableCell className="text-center">{room.occupancy_days}</TableCell>
+                            <TableCell className="text-right font-bold text-green-600">
+                              {formatCurrency(room.total_revenue)}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                            Không có dữ liệu doanh thu
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
         
-        {/* TAB 4: Checks */}
+        {/* TAB 4: Deficiency */}
+        <TabsContent value="deficiency" className="space-y-6">
+          {/* Damage Statistics */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground">Tổng giá trị thiệt hại</p>
+                {isLoading ? <Skeleton className="h-8 w-24" /> : (
+                  <p className="text-2xl font-bold text-red-600">
+                    {formatCurrency(
+                      data?.topIssues?.reduce((sum, i) => sum + (i.total_value || 0), 0) || 0
+                    )}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground">Số phòng có vấn đề</p>
+                {isLoading ? <Skeleton className="h-8 w-16" /> : (
+                  <p className="text-2xl font-bold text-orange-600">
+                    {data?.deficiencies?.length || 0}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground">Tổng số vấn đề</p>
+                {isLoading ? <Skeleton className="h-8 w-16" /> : (
+                  <p className="text-2xl font-bold">
+                    {data?.deficiencies?.reduce((sum, d) => sum + d.total_issues, 0) || 0}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Phòng thiếu/hỏng đồ dùng</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-[200px] w-full" />
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Phòng</TableHead>
+                        <TableHead>Loại</TableHead>
+                        <TableHead className="text-center">Thiếu</TableHead>
+                        <TableHead className="text-center">Hỏng</TableHead>
+                        <TableHead className="text-center">Mất</TableHead>
+                        <TableHead className="text-center">Tổng</TableHead>
+                        <TableHead>Kiểm tra gần nhất</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data?.deficiencies && data.deficiencies.length > 0 ? (
+                        data.deficiencies.map((room) => (
+                          <TableRow key={room.room_id}>
+                            <TableCell className="font-bold">{room.room_number}</TableCell>
+                            <TableCell>{room.room_type || '-'}</TableCell>
+                            <TableCell className="text-center">
+                              {room.missing_count > 0 && (
+                                <Badge variant="secondary">{room.missing_count}</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {room.damaged_count > 0 && (
+                                <Badge variant="outline" className="border-orange-500 text-orange-600">
+                                  {room.damaged_count}
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {room.lost_count > 0 && (
+                                <Badge variant="destructive">{room.lost_count}</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center font-bold">
+                              {room.total_issues}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {room.last_check_date ? format(new Date(room.last_check_date), 'dd/MM/yyyy') : '-'}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                            Không có phòng nào thiếu/hỏng đồ dùng
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Top Affected Items */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Items bị ảnh hưởng nhiều nhất</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-[200px] w-full" />
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tên item</TableHead>
+                        <TableHead>Loại vấn đề</TableHead>
+                        <TableHead className="text-center">Số lần</TableHead>
+                        <TableHead className="text-right">Đơn giá</TableHead>
+                        <TableHead className="text-right">Tổng thiệt hại</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data?.topIssues && data.topIssues.length > 0 ? (
+                        data.topIssues.map((issue, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{issue.item_name || 'Không xác định'}</TableCell>
+                            <TableCell>
+                              <Badge variant={
+                                issue.issue_type === 'lost' ? 'destructive' :
+                                issue.issue_type === 'damaged' ? 'outline' : 'secondary'
+                              }>
+                                {issue.issue_type === 'missing' ? 'Thiếu' :
+                                 issue.issue_type === 'damaged' ? 'Hỏng' : 'Mất'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-center font-bold">{issue.count}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(issue.unit_price)}</TableCell>
+                            <TableCell className="text-right font-bold text-red-600">
+                              {formatCurrency(issue.total_value)}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                            Không có dữ liệu
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* TAB 5: Checks */}
         <TabsContent value="checks" className="space-y-6">
           <div className="grid gap-4 md:grid-cols-4">
             <Card>
               <CardContent className="pt-6">
                 <p className="text-sm text-muted-foreground">Tổng kiểm tra</p>
-                <p className="text-3xl font-bold">{checkHistory.total_checks}</p>
+                {isLoading ? <Skeleton className="h-8 w-16" /> : (
+                  <p className="text-3xl font-bold">{checkStats.total_checks}</p>
+                )}
               </CardContent>
             </Card>
             
             <Card>
               <CardContent className="pt-6">
                 <p className="text-sm text-muted-foreground">Điểm TB</p>
-                <p className="text-3xl font-bold text-green-600">{checkHistory.avg_score}</p>
+                {isLoading ? <Skeleton className="h-8 w-16" /> : (
+                  <p className="text-3xl font-bold text-green-600">{checkStats.avg_score}</p>
+                )}
               </CardContent>
             </Card>
             
             <Card>
               <CardContent className="pt-6">
                 <p className="text-sm text-muted-foreground">Vấn đề phát hiện</p>
-                <p className="text-3xl font-bold text-orange-600">{checkHistory.issues_found}</p>
+                {isLoading ? <Skeleton className="h-8 w-16" /> : (
+                  <p className="text-3xl font-bold text-orange-600">{checkStats.issues_found}</p>
+                )}
               </CardContent>
             </Card>
             
             <Card>
               <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Đã xử lý</p>
-                <p className="text-3xl font-bold text-blue-600">{checkHistory.issues_resolved}</p>
+                <p className="text-sm text-muted-foreground">Check theo loại</p>
+                {isLoading ? <Skeleton className="h-8 w-full" /> : (
+                  <div className="flex gap-2 mt-1">
+                    <Badge variant="outline">Daily: {checkStats.daily_checks}</Badge>
+                    <Badge variant="outline">C/O: {checkStats.checkout_checks}</Badge>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
+
+          {/* Checks by Type Chart */}
+          {data?.checksByType && data.checksByType.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Số lần kiểm tra theo tuần</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={data.checksByType}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="week_start" 
+                      tickFormatter={(value) => format(new Date(value), 'dd/MM')}
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                    <Tooltip
+                      labelFormatter={(value) => `Tuần ${format(new Date(value), 'dd/MM/yyyy')}`}
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
+                    />
+                    <Legend />
+                    <Line type="monotone" dataKey="daily" name="Daily" stroke="#3b82f6" strokeWidth={2} />
+                    <Line type="monotone" dataKey="checkout" name="Checkout" stroke="#f59e0b" strokeWidth={2} />
+                    <Line type="monotone" dataKey="checkin" name="Checkin" stroke="#10b981" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Staff Performance Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Hiệu suất nhân viên kiểm tra</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-[200px] w-full" />
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nhân viên</TableHead>
+                        <TableHead className="text-center">Số lần kiểm tra</TableHead>
+                        <TableHead className="text-center">Điểm TB</TableHead>
+                        <TableHead className="text-center">Vấn đề phát hiện</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data?.staffPerformance && data.staffPerformance.length > 0 ? (
+                        data.staffPerformance.map((staff) => (
+                          <TableRow key={staff.user_id}>
+                            <TableCell className="font-medium">{staff.user_name || 'Không xác định'}</TableCell>
+                            <TableCell className="text-center">{staff.checks_count}</TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant={staff.avg_score >= 80 ? 'default' : 'secondary'}>
+                                {staff.avg_score}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-center">{staff.issues_found}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                            Không có dữ liệu hiệu suất
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
