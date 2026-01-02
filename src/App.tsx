@@ -49,6 +49,7 @@ import HotelsManagementPage from "./pages/settings/HotelsManagementPage";
 import { SuperAdminLayout } from './components/super-admin/SuperAdminLayout';
 import { SuperAdminErrorBoundary } from './components/super-admin/ErrorBoundary';
 import SubscriptionPage from "./pages/settings/SubscriptionPage";
+import SubscriptionPaymentPage from "./pages/settings/SubscriptionPaymentPage";
 import UsageDashboardPage from "./pages/settings/UsageDashboardPage";
 import SystemSecurityPage from "./pages/settings/SystemSecurityPage";
 import { NotificationSettingsPage } from "./pages/settings/NotificationSettingsPage";
@@ -545,6 +546,7 @@ const router = createBrowserRouter([
           },
           { path: "change-password", element: <ChangePasswordPage /> },
           { path: "subscription", element: <SubscriptionPage /> },
+          { path: "subscription/pay/:invoiceId", element: <SubscriptionPaymentPage /> },
           { path: "usage", element: <UsageDashboardPage /> },
           { 
             path: "notifications", 
