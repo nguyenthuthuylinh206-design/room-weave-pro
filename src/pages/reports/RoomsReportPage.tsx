@@ -62,6 +62,161 @@ export function RoomsReportPage() {
   const { data, isLoading, error } = useRoomsReportData(dateRange)
   const { exportToPDF, exportToExcel, isExporting } = useReportExport()
 
+  const dateRangeStr = `${format(dateRange.start, 'dd/MM/yyyy')} - ${format(dateRange.end, 'dd/MM/yyyy')}`
+
+  const handleExportPDF = () => {
+    if (!data) return
+    
+    const rs = data.roomStats
+    const os = data.occupancyStats
+    const cs = data.checkStats
+    
+    exportToPDF(
+      {
+        title: 'Báo cáo Phòng',
+        dateRange: dateRangeStr,
+        summary: {
+          total_rooms: rs.total,
+          vacant_rooms: rs.vacant,
+          cleaning_rooms: rs.cleaning,
+          maintenance_rooms: rs.maintenance,
+          occupancy_rate: `${os.occupancy_rate}%`,
+          total_revenue: os.total_revenue,
+          total_bookings: os.total_bookings,
+          total_checks: cs.total_checks,
+          avg_score: cs.avg_score,
+          issues_found: cs.issues_found,
+        },
+        tables: [
+          {
+            title: 'Sử dụng theo loại phòng',
+            headers: ['Loại phòng', 'Tổng', 'Đang dùng', 'Trống', 'Tỷ lệ', 'Doanh thu'],
+            rows: data.utilizationByType?.map(room => [
+              room.room_type,
+              room.total,
+              room.occupied,
+              room.vacant,
+              `${room.rate}%`,
+              formatCurrency(room.revenue),
+            ]) || [],
+          },
+          {
+            title: 'Top phòng theo doanh thu',
+            headers: ['Phòng', 'Loại', 'Bookings', 'Đêm', 'Doanh thu'],
+            rows: data.revenueByRoom?.slice(0, 10).map(room => [
+              room.room_number,
+              room.room_type,
+              room.total_bookings,
+              room.occupancy_days,
+              formatCurrency(room.total_revenue),
+            ]) || [],
+          },
+          {
+            title: 'Vấn đề thường gặp',
+            headers: ['Đồ dùng', 'Loại', 'Số lượng', 'Giá trị'],
+            rows: data.topIssues?.map(issue => [
+              issue.item_name,
+              issue.issue_type === 'missing' ? 'Thiếu' : issue.issue_type === 'damaged' ? 'Hỏng' : 'Mất',
+              issue.count,
+              formatCurrency(issue.total_value),
+            ]) || [],
+          },
+          {
+            title: 'Hiệu suất nhân viên kiểm tra',
+            headers: ['Nhân viên', 'Số kiểm tra', 'Điểm TB', 'Vấn đề phát hiện'],
+            rows: data.staffPerformance?.map(staff => [
+              staff.user_name,
+              staff.checks_count,
+              staff.avg_score.toFixed(1),
+              staff.issues_found,
+            ]) || [],
+          },
+        ],
+        notes: data.periodComparison ? [
+          `So với kỳ trước: Tỷ lệ lấp đầy ${data.periodComparison.changes.occupancy_rate_change >= 0 ? '+' : ''}${data.periodComparison.changes.occupancy_rate_change}%`,
+          `Doanh thu ${data.periodComparison.changes.revenue_change >= 0 ? '+' : ''}${data.periodComparison.changes.revenue_change}%`,
+          `Số booking ${data.periodComparison.changes.bookings_change >= 0 ? '+' : ''}${data.periodComparison.changes.bookings_change}%`,
+        ] : [],
+      },
+      'rooms_report',
+      chartRefs.current.filter(Boolean)
+    )
+  }
+
+  const handleExportExcel = () => {
+    if (!data) return
+    
+    const rs = data.roomStats
+    const os = data.occupancyStats
+    const cs = data.checkStats
+    
+    exportToExcel(
+      {
+        title: 'Báo cáo Phòng',
+        dateRange: dateRangeStr,
+        summary: {
+          total_rooms: rs.total,
+          vacant_rooms: rs.vacant,
+          cleaning_rooms: rs.cleaning,
+          maintenance_rooms: rs.maintenance,
+          occupancy_rate: `${os.occupancy_rate}%`,
+          total_revenue: os.total_revenue,
+          total_bookings: os.total_bookings,
+          total_checks: cs.total_checks,
+          avg_score: cs.avg_score,
+          issues_found: cs.issues_found,
+        },
+        tables: [
+          {
+            title: 'Sử dụng theo loại phòng',
+            headers: ['Loại phòng', 'Tổng', 'Đang dùng', 'Trống', 'Tỷ lệ', 'Doanh thu'],
+            rows: data.utilizationByType?.map(room => [
+              room.room_type,
+              room.total,
+              room.occupied,
+              room.vacant,
+              `${room.rate}%`,
+              formatCurrency(room.revenue),
+            ]) || [],
+          },
+          {
+            title: 'Doanh thu theo phòng',
+            headers: ['Phòng', 'Loại', 'Bookings', 'Đêm', 'Doanh thu'],
+            rows: data.revenueByRoom?.map(room => [
+              room.room_number,
+              room.room_type,
+              room.total_bookings,
+              room.occupancy_days,
+              formatCurrency(room.total_revenue),
+            ]) || [],
+          },
+          {
+            title: 'Vấn đề thường gặp',
+            headers: ['Đồ dùng', 'Loại', 'Số lượng', 'Giá trị'],
+            rows: data.topIssues?.map(issue => [
+              issue.item_name,
+              issue.issue_type === 'missing' ? 'Thiếu' : issue.issue_type === 'damaged' ? 'Hỏng' : 'Mất',
+              issue.count,
+              formatCurrency(issue.total_value),
+            ]) || [],
+          },
+          {
+            title: 'Hiệu suất nhân viên',
+            headers: ['Nhân viên', 'Số kiểm tra', 'Điểm TB', 'Vấn đề phát hiện'],
+            rows: data.staffPerformance?.map(staff => [
+              staff.user_name,
+              staff.checks_count,
+              staff.avg_score.toFixed(1),
+              staff.issues_found,
+            ]) || [],
+          },
+        ],
+        chartData: data.occupancyTrend,
+      },
+      'rooms_report'
+    )
+  }
+
   if (isMobile) {
     return <MobileRoomsReportPage dateRange={dateRange} />
   }
@@ -116,11 +271,11 @@ export function RoomsReportPage() {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Quay lại
           </Button>
-          <Button variant="outline" disabled={isExporting}>
+          <Button variant="outline" disabled={isExporting} onClick={handleExportPDF}>
             <FileText className="mr-2 h-4 w-4" />
             Xuất PDF
           </Button>
-          <Button variant="outline" disabled={isExporting}>
+          <Button variant="outline" disabled={isExporting} onClick={handleExportExcel}>
             <Download className="mr-2 h-4 w-4" />
             Xuất Excel
           </Button>
