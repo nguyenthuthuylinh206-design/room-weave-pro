@@ -176,12 +176,14 @@ export function BankTransferPaymentDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {isCreatingInvoice ? (
+        {/* Loading state - khi đang tạo invoice hoặc autoCreateInvoice chưa xong */}
+        {(isCreatingInvoice || (autoCreateInvoice && !invoiceCreated)) ? (
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
             <p className="text-muted-foreground">Đang tạo đơn hàng...</p>
           </div>
-        ) : !invoiceCreated && !autoCreateInvoice ? (
+        ) : !invoiceCreated ? (
+          /* Manual confirmation - chỉ hiện khi autoCreateInvoice = false */
           <div className="space-y-4">
             <div className="bg-muted/50 rounded-lg p-4">
               <div className="flex justify-between items-center">
@@ -207,16 +209,8 @@ export function BankTransferPaymentDialog({
               <Button
                 className="flex-1"
                 onClick={handleConfirmPayment}
-                disabled={isCreatingInvoice}
               >
-                {isCreatingInvoice ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Đang tạo...
-                  </>
-                ) : (
-                  'Xác nhận thanh toán'
-                )}
+                Xác nhận thanh toán
               </Button>
             </div>
           </div>
