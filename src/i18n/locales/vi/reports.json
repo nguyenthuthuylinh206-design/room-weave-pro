@@ -54,7 +54,72 @@
     "rooms": {
       "title": "Báo cáo Phòng",
       "description": "Tình trạng sử dụng, thiếu hụt đồ dùng, lịch sử kiểm tra",
-      "stats": ["Tổng phòng", "Đang dùng", "Bảo trì"]
+      "stats": ["Tổng phòng", "Đang dùng", "Bảo trì"],
+      "pageTitle": "Báo cáo Phòng",
+      "pageDescription": "Phân tích sử dụng, doanh thu và thiếu hụt đồ dùng phòng",
+      "back": "Quay lại",
+      "exportPdf": "Xuất PDF",
+      "exportExcel": "Xuất Excel",
+      "reportPeriod": "Kỳ báo cáo:",
+      "tabs": {
+        "overview": "Tổng quan",
+        "utilization": "Sử dụng",
+        "revenue": "Doanh thu",
+        "deficiency": "Thiếu hụt",
+        "checks": "Kiểm tra"
+      },
+      "stats": {
+        "totalRooms": "Tổng phòng",
+        "vacant": "Phòng trống",
+        "cleaning": "Đang dọn",
+        "maintenance": "Bảo trì",
+        "occupancyRate": "Tỷ lệ lấp đầy",
+        "totalRevenue": "Tổng doanh thu",
+        "roomNights": "Đêm phòng",
+        "avgRevenue": "Doanh thu TB/phòng",
+        "totalBookings": "Tổng booking",
+        "totalChecks": "Tổng kiểm tra",
+        "avgScore": "Điểm TB",
+        "issuesFound": "Vấn đề phát hiện"
+      },
+      "comparison": {
+        "previousPeriod": "Kỳ trước",
+        "occupancyRate": "Tỷ lệ lấp đầy",
+        "revenue": "Doanh thu",
+        "bookings": "Số booking",
+        "avgScore": "Điểm kiểm tra TB"
+      },
+      "charts": {
+        "roomStatus": "Trạng thái phòng",
+        "occupancyTrend": "Xu hướng lấp đầy",
+        "topIssues": "Vấn đề thường gặp",
+        "utilizationByType": "Tỷ lệ sử dụng theo loại phòng",
+        "revenueByType": "Doanh thu theo loại phòng",
+        "checksByType": "Kiểm tra theo loại",
+        "staffPerformance": "Hiệu suất nhân viên"
+      },
+      "tables": {
+        "roomType": "Loại phòng",
+        "total": "Tổng",
+        "occupied": "Đang dùng",
+        "vacantCol": "Trống",
+        "rate": "Tỷ lệ",
+        "revenueCol": "Doanh thu",
+        "room": "Phòng",
+        "bookings": "Bookings",
+        "nights": "Đêm",
+        "issueType": "Loại",
+        "missing": "Thiếu",
+        "damaged": "Hỏng",
+        "lost": "Mất",
+        "count": "Số lượng",
+        "value": "Giá trị",
+        "staff": "Nhân viên",
+        "checksCount": "Số kiểm tra",
+        "avgScoreCol": "Điểm TB",
+        "issues": "Vấn đề"
+      },
+      "noData": "Không có dữ liệu"
     },
     "maintenance": {
       "title": "Báo cáo Bảo trì",

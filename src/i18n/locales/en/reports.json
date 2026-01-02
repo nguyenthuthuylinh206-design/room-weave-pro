@@ -54,7 +54,72 @@
     "rooms": {
       "title": "Room Report",
       "description": "Usage status, missing items, inspection history",
-      "stats": ["Total rooms", "In use", "Maintenance"]
+      "stats": ["Total rooms", "In use", "Maintenance"],
+      "pageTitle": "Room Report",
+      "pageDescription": "Analyze usage, revenue and item deficiencies",
+      "back": "Back",
+      "exportPdf": "Export PDF",
+      "exportExcel": "Export Excel",
+      "reportPeriod": "Report Period:",
+      "tabs": {
+        "overview": "Overview",
+        "utilization": "Utilization",
+        "revenue": "Revenue",
+        "deficiency": "Deficiency",
+        "checks": "Checks"
+      },
+      "stats": {
+        "totalRooms": "Total Rooms",
+        "vacant": "Vacant",
+        "cleaning": "Cleaning",
+        "maintenance": "Maintenance",
+        "occupancyRate": "Occupancy Rate",
+        "totalRevenue": "Total Revenue",
+        "roomNights": "Room Nights",
+        "avgRevenue": "Avg Revenue/Room",
+        "totalBookings": "Total Bookings",
+        "totalChecks": "Total Checks",
+        "avgScore": "Avg Score",
+        "issuesFound": "Issues Found"
+      },
+      "comparison": {
+        "previousPeriod": "Previous Period",
+        "occupancyRate": "Occupancy Rate",
+        "revenue": "Revenue",
+        "bookings": "Bookings",
+        "avgScore": "Avg Check Score"
+      },
+      "charts": {
+        "roomStatus": "Room Status",
+        "occupancyTrend": "Occupancy Trend",
+        "topIssues": "Common Issues",
+        "utilizationByType": "Utilization by Room Type",
+        "revenueByType": "Revenue by Room Type",
+        "checksByType": "Checks by Type",
+        "staffPerformance": "Staff Performance"
+      },
+      "tables": {
+        "roomType": "Room Type",
+        "total": "Total",
+        "occupied": "Occupied",
+        "vacantCol": "Vacant",
+        "rate": "Rate",
+        "revenueCol": "Revenue",
+        "room": "Room",
+        "bookings": "Bookings",
+        "nights": "Nights",
+        "issueType": "Type",
+        "missing": "Missing",
+        "damaged": "Damaged",
+        "lost": "Lost",
+        "count": "Count",
+        "value": "Value",
+        "staff": "Staff",
+        "checksCount": "Checks",
+        "avgScoreCol": "Avg Score",
+        "issues": "Issues"
+      },
+      "noData": "No data"
     },
     "maintenance": {
       "title": "Maintenance Report",
