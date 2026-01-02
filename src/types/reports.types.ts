@@ -130,7 +130,62 @@ export interface LaundryReportData {
     batches: number
     items: number
     cost: number
+    quality?: number
+    timeliness?: number
   }>
+  period_comparison: {
+    current: {
+      batches: number
+      items: number
+      cost: number
+      avg_quality: number
+    }
+    previous: {
+      batches: number
+      items: number
+      cost: number
+      avg_quality: number
+    }
+  }
+  processing_stats: {
+    avg_days: number
+    min_days: number
+    max_days: number
+    on_time_count: number
+    late_count: number
+  }
+  items_analysis: Array<{
+    item_id: string
+    item_code: string
+    item_name: string
+    category_name: string
+    total_washed: number
+    total_weight_kg: number
+    total_damaged: number
+    total_lost: number
+    estimated_cost: number
+  }>
+  damage_breakdown: {
+    total_damage_value: number
+    damage_rate: number
+    by_item: Array<{
+      item_name: string
+      damaged: number
+      lost: number
+      value: number
+    }>
+  }
+  cost_optimization: {
+    cheapest_vendor: {
+      name: string
+      cost_per_kg: number
+    } | null
+    most_expensive_vendor: {
+      name: string
+      cost_per_kg: number
+    } | null
+    potential_monthly_savings: number
+  }
 }
 
 export interface ReportSchedule {
