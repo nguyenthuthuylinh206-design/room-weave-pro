@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Download, Package, DollarSign, Star, Clock, TrendingUp, TrendingDown, Users } from 'lucide-react'
+import { ArrowLeft, Package, DollarSign, Star, Users } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
@@ -31,7 +30,6 @@ import { subDays } from 'date-fns'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export function LaundryReportPage() {
-  const { t } = useTranslation()
   const { isMobile } = useBreakpoint()
   const navigate = useNavigate()
   
@@ -80,7 +78,6 @@ export function LaundryReportPage() {
         </PageHeader>
         <div className="border rounded-lg p-8 text-center text-muted-foreground">
           <p>Không thể tải dữ liệu báo cáo. Vui lòng thử lại sau.</p>
-          <p className="text-xs mt-2">{String(error)}</p>
         </div>
       </div>
     )
@@ -105,18 +102,22 @@ export function LaundryReportPage() {
 
   const { summary, by_vendor = [], monthly_trend = [] } = reportData
 
+  // Map monthly_trend data for chart
+  const chartData = monthly_trend.map((item: any) => ({
+    month: item.month,
+    cost: item.total_cost || 0,
+  }))
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Báo cáo Giặt là"
         description="Phân tích chi phí và hiệu suất dịch vụ giặt là"
       >
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate('/reports')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Quay lại
-          </Button>
-        </div>
+        <Button variant="outline" onClick={() => navigate('/reports')}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Quay lại
+        </Button>
       </PageHeader>
       
       {/* Date Range */}
@@ -161,11 +162,11 @@ export function LaundryReportPage() {
       </div>
 
       {/* Monthly Trend Chart */}
-      {monthly_trend.length > 0 && (
+      {chartData.length > 0 && (
         <div className="border rounded-lg p-4">
           <h3 className="text-sm font-medium mb-4">Xu hướng chi phí theo tháng</h3>
           <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={monthly_trend}>
+            <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="month" className="text-xs" />
               <YAxis 
@@ -201,22 +202,22 @@ export function LaundryReportPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {by_vendor.map((vendor) => (
+              {by_vendor.map((vendor: any) => (
                 <TableRow key={vendor.vendor_id}>
                   <TableCell className="font-medium">{vendor.vendor_name}</TableCell>
-                  <TableCell className="text-right">{vendor.batches}</TableCell>
-                  <TableCell className="text-right">{vendor.items.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(vendor.cost)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(vendor.cost_per_kg)}</TableCell>
+                  <TableCell className="text-right">{vendor.total_batches}</TableCell>
+                  <TableCell className="text-right">{(vendor.total_items || 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(vendor.total_cost || 0)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(vendor.avg_cost_per_kg || 0)}</TableCell>
                   <TableCell className="text-right">
                     <span className="flex items-center justify-end gap-1">
                       <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                      {vendor.quality.toFixed(1)}
+                      {(vendor.avg_quality_rating || 0).toFixed(1)}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <span className={vendor.on_time_rate >= 90 ? 'text-green-600' : vendor.on_time_rate >= 70 ? 'text-amber-600' : 'text-red-600'}>
-                      {vendor.on_time_rate.toFixed(0)}%
+                    <span className={(vendor.on_time_rate || 0) >= 90 ? 'text-green-600' : (vendor.on_time_rate || 0) >= 70 ? 'text-amber-600' : 'text-red-600'}>
+                      {(vendor.on_time_rate || 0).toFixed(0)}%
                     </span>
                   </TableCell>
                 </TableRow>
