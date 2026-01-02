@@ -1,226 +1,234 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Check } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { useToast } from '@/hooks/use-toast'
+import { Eye, EyeOff, UserPlus, Loader2, Mail, User, Lock } from 'lucide-react'
+import { toast } from 'sonner'
+
 import { supabase } from '@/integrations/supabase/client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  RegisterStep1Data,
-  RegisterStep2Data,
-  RegisterStep3Data,
-} from '@/lib/validations/auth.schemas'
-import { RegisterStep1 } from './register/RegisterStep1'
-import { RegisterStep2 } from './register/RegisterStep2'
-import { RegisterStep3 } from './register/RegisterStep3'
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter'
+import { registerSchema, RegisterFormData } from '@/lib/validations/auth.schemas'
 
-type Step = 1 | 2 | 3
-
-export const RegisterForm = () => {
+export function RegisterForm() {
   const { t } = useTranslation(['auth', 'common'])
-  const [currentStep, setCurrentStep] = useState<Step>(1)
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const navigate = useNavigate()
-  const { toast } = useToast()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const [step1Data, setStep1Data] = useState<RegisterStep1Data | null>(null)
-  const [step2Data, setStep2Data] = useState<RegisterStep2Data | null>(null)
+  const form = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      fullName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
+  })
 
-  const steps = [
-    { number: 1, title: t('register.step1Title'), description: t('register.step1Desc') },
-    { number: 2, title: t('register.step2Title'), description: t('register.step2Desc') },
-    { number: 3, title: t('register.step3Title'), description: t('register.step3Desc') },
-  ]
+  const password = form.watch('password')
 
-  const progress = (currentStep / steps.length) * 100
-
-  const handleStep1Submit = (data: RegisterStep1Data) => {
-    setStep1Data(data)
-    setCurrentStep(2)
-  }
-
-  const handleStep2Submit = (data: RegisterStep2Data) => {
-    setStep2Data(data)
-    setCurrentStep(3)
-  }
-
-  const handleFinalSubmit = async (data: RegisterStep3Data) => {
-    if (!step1Data || !step2Data) return
-
+  const onSubmit = async (data: RegisterFormData) => {
     setIsSubmitting(true)
 
     try {
+      // Sign up with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: step1Data.email,
-        password: step1Data.password,
+        email: data.email,
+        password: data.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
           data: {
-            full_name: step1Data.fullName,
-            phone: step1Data.phone,
+            full_name: data.fullName,
           },
         },
       })
 
-      if (authError) throw authError
-      if (!authData.user) throw new Error(t('register.errorCreateAccount'))
-
-      const { data: setupData, error: setupError } = await supabase.rpc(
-        'complete_registration',
-        {
-          p_user_id: authData.user.id,
-          p_full_name: step1Data.fullName,
-          p_email: step1Data.email,
-          p_phone: step1Data.phone || '',
-          p_tenant_name: step2Data.tenantName,
-          p_hotel_name: step2Data.hotelName,
-          p_hotel_address: step2Data.hotelAddress,
-          p_hotel_phone: step2Data.hotelPhone || '',
-          p_hotel_email: step2Data.hotelEmail || '',
-          p_total_rooms: step2Data.totalRooms,
+      if (authError) {
+        if (authError.message.includes('already registered')) {
+          toast.error('Email đã được đăng ký. Vui lòng đăng nhập hoặc sử dụng email khác.')
+        } else {
+          toast.error(authError.message)
         }
-      )
-
-      if (setupError) throw setupError
-
-      const result = setupData as { success: boolean; error?: string }
-
-      if (!result.success) {
-        throw new Error(result.error || t('register.errorSetupHotel'))
+        return
       }
 
-      toast({
-        title: t('register.successTitle'),
-        description: t('register.successDescription'),
-      })
-
-      setTimeout(() => {
-        navigate('/')
-      }, 1000)
+      if (authData.user) {
+        toast.success('Đăng ký thành công! Vui lòng đăng nhập.')
+        navigate('/auth/login')
+      }
     } catch (error: any) {
       console.error('Registration error:', error)
-      
-      if (error.code === 'user_already_exists' || error.message?.includes('already registered')) {
-        toast({
-          title: t('errors.emailExists'),
-          description: t('register.emailExistsDescription'),
-          variant: 'destructive',
-        })
-        setCurrentStep(1)
-      } else {
-        toast({
-          title: t('register.errorTitle'),
-          description: error.message || t('common:messages.errorOccurred'),
-          variant: 'destructive',
-        })
-      }
+      toast.error('Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại.')
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <div className="w-full max-w-2xl">
-      {/* Header */}
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold">{t('register.title')}</h1>
-        <p className="mt-2 text-muted-foreground">
-          {t('register.subtitle')}
-        </p>
-      </div>
+    <Card className="w-full max-w-md">
+      <CardHeader className="text-center">
+        <CardTitle className="text-2xl font-bold">{t('register.title')}</CardTitle>
+        <CardDescription>{t('register.subtitle')}</CardDescription>
+      </CardHeader>
 
-      {/* Progress Steps */}
-      <div className="mb-8">
-        <div className="mb-4 flex justify-between">
-          {steps.map((step) => (
-            <div
-              key={step.number}
-              className={`flex flex-1 flex-col items-center ${
-                step.number < steps.length ? 'relative' : ''
-              }`}
-            >
-              <div
-                className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
-                  currentStep >= step.number
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-muted bg-background text-muted-foreground'
-                }`}
-              >
-                {currentStep > step.number ? (
-                  <Check className="h-5 w-5" />
-                ) : (
-                  step.number
-                )}
-              </div>
-
-              <div className="mt-2 text-center">
-                <p className="text-sm font-medium">{step.title}</p>
-                <p className="text-xs text-muted-foreground hidden sm:block">
-                  {step.description}
-                </p>
-              </div>
-
-              {step.number < steps.length && (
-                <div
-                  className={`absolute top-5 left-1/2 h-0.5 w-full ${
-                    currentStep > step.number ? 'bg-primary' : 'bg-muted'
-                  }`}
-                  style={{ transform: 'translateY(-50%)' }}
-                />
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Full Name */}
+            <FormField
+              control={form.control}
+              name="fullName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('register.fullName')}</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder={t('register.fullNamePlaceholder')}
+                        className="pl-10"
+                        {...field}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-            </div>
-          ))}
-        </div>
-
-        <Progress value={progress} className="h-2" />
-      </div>
-
-      {/* Step Content */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {steps[currentStep - 1].title}
-          </CardTitle>
-          <CardDescription>
-            {steps[currentStep - 1].description}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {currentStep === 1 && (
-            <RegisterStep1
-              onSubmit={handleStep1Submit}
-              initialData={step1Data}
             />
-          )}
 
-          {currentStep === 2 && (
-            <RegisterStep2
-              onSubmit={handleStep2Submit}
-              onBack={() => setCurrentStep(1)}
-              initialData={step2Data}
+            {/* Email */}
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('register.email')}</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="email"
+                        placeholder={t('register.emailPlaceholder')}
+                        className="pl-10"
+                        {...field}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          )}
 
-          {currentStep === 3 && (
-            <RegisterStep3
-              onSubmit={handleFinalSubmit}
-              onBack={() => setCurrentStep(2)}
-              step1Data={step1Data!}
-              step2Data={step2Data!}
-              isSubmitting={isSubmitting}
+            {/* Password */}
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('register.password')}</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder={t('register.passwordPlaceholder')}
+                        className="pl-10 pr-10"
+                        {...field}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  </FormControl>
+                  <PasswordStrengthMeter password={password} />
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Login Link */}
-      <p className="mt-6 text-center text-sm text-muted-foreground">
-        {t('register.hasAccount')}{' '}
-        <Link to="/auth/login" className="text-primary hover:underline font-medium">
-          {t('register.login')}
-        </Link>
-      </p>
-    </div>
+            {/* Confirm Password */}
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('register.confirmPassword')}</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder={t('register.confirmPasswordPlaceholder')}
+                        className="pl-10 pr-10"
+                        {...field}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Submit Button */}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t('common:messages.loading')}
+                </>
+              ) : (
+                <>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  {t('register.submit')}
+                </>
+              )}
+            </Button>
+
+            {/* Login Link */}
+            <p className="text-center text-sm text-muted-foreground">
+              {t('register.hasAccount')}{' '}
+              <Link to="/auth/login" className="text-primary hover:underline font-medium">
+                {t('register.loginLink')}
+              </Link>
+            </p>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   )
 }
