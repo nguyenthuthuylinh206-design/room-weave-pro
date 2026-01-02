@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Download, FileText, Home, CheckCircle, AlertTriangle, Wrench, TrendingUp, Users, DollarSign, BarChart3 } from 'lucide-react'
+import { ArrowLeft, Download, FileText, Home, CheckCircle, AlertTriangle, Wrench, TrendingUp, TrendingDown, Users, DollarSign, BarChart3, Calendar } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -241,9 +241,135 @@ export function RoomsReportPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Period Comparison Cards */}
+          {data?.periodComparison && (
+            <div className="grid gap-4 md:grid-cols-4">
+              <Card className="border-l-4 border-l-purple-500">
+                <CardContent className="pt-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Tỷ lệ lấp đầy</p>
+                      <p className="text-xl font-bold">{data.periodComparison.current_period.occupancy_rate}%</p>
+                      <p className="text-xs text-muted-foreground">Kỳ trước: {data.periodComparison.previous_period.occupancy_rate}%</p>
+                    </div>
+                    <div className={`flex items-center gap-1 text-sm font-medium ${data.periodComparison.changes.occupancy_rate_change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {data.periodComparison.changes.occupancy_rate_change >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                      {data.periodComparison.changes.occupancy_rate_change >= 0 ? '+' : ''}{data.periodComparison.changes.occupancy_rate_change}%
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-l-4 border-l-green-500">
+                <CardContent className="pt-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Doanh thu</p>
+                      <p className="text-xl font-bold">{formatCurrency(data.periodComparison.current_period.total_revenue)}</p>
+                      <p className="text-xs text-muted-foreground">Kỳ trước: {formatCurrency(data.periodComparison.previous_period.total_revenue)}</p>
+                    </div>
+                    <div className={`flex items-center gap-1 text-sm font-medium ${data.periodComparison.changes.revenue_change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {data.periodComparison.changes.revenue_change >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                      {data.periodComparison.changes.revenue_change >= 0 ? '+' : ''}{data.periodComparison.changes.revenue_change}%
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-l-4 border-l-blue-500">
+                <CardContent className="pt-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Số booking</p>
+                      <p className="text-xl font-bold">{data.periodComparison.current_period.total_bookings}</p>
+                      <p className="text-xs text-muted-foreground">Kỳ trước: {data.periodComparison.previous_period.total_bookings}</p>
+                    </div>
+                    <div className={`flex items-center gap-1 text-sm font-medium ${data.periodComparison.changes.bookings_change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {data.periodComparison.changes.bookings_change >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                      {data.periodComparison.changes.bookings_change >= 0 ? '+' : ''}{data.periodComparison.changes.bookings_change}%
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-l-4 border-l-orange-500">
+                <CardContent className="pt-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Điểm kiểm tra TB</p>
+                      <p className="text-xl font-bold">{data.periodComparison.current_period.avg_score.toFixed(1)}</p>
+                      <p className="text-xs text-muted-foreground">Kỳ trước: {data.periodComparison.previous_period.avg_score.toFixed(1)}</p>
+                    </div>
+                    <div className={`flex items-center gap-1 text-sm font-medium ${data.periodComparison.changes.score_change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {data.periodComparison.changes.score_change >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                      {data.periodComparison.changes.score_change >= 0 ? '+' : ''}{data.periodComparison.changes.score_change}%
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
           
           {/* Charts Row */}
           <div className="grid gap-6 lg:grid-cols-2">
+            {/* Occupancy Trend Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Xu hướng lấp đầy
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <Skeleton className="h-[300px] w-full" />
+                ) : data?.occupancyTrend && data.occupancyTrend.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={data.occupancyTrend.slice(-14)}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis 
+                        dataKey="date" 
+                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                        tickFormatter={(value) => format(new Date(value), 'dd/MM')}
+                      />
+                      <YAxis 
+                        domain={[0, 100]}
+                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                        tickFormatter={(value) => `${value}%`}
+                      />
+                      <Tooltip
+                        formatter={(value: number, name: string) => [
+                          name === 'occupancy_rate' ? `${value}%` : formatCurrency(value),
+                          name === 'occupancy_rate' ? 'Tỷ lệ lấp đầy' : 'Doanh thu'
+                        ]}
+                        labelFormatter={(label) => format(new Date(label), 'dd/MM/yyyy')}
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                        }}
+                      />
+                      <Legend />
+                      <Line 
+                        type="monotone" 
+                        dataKey="occupancy_rate" 
+                        name="Tỷ lệ lấp đầy"
+                        stroke="#8b5cf6" 
+                        strokeWidth={2}
+                        dot={{ fill: '#8b5cf6', r: 3 }}
+                        activeDot={{ r: 5 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                    Không có dữ liệu xu hướng
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Room Status Pie Chart */}
             <Card ref={(el) => el && (chartRefs.current[0] = el)}>
               <CardHeader>
@@ -280,49 +406,52 @@ export function RoomsReportPage() {
                 )}
               </CardContent>
             </Card>
-            
-            {/* Top Issues */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Vấn đề thường gặp</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3, 4, 5].map(i => (
-                      <Skeleton key={i} className="h-8 w-full" />
-                    ))}
-                  </div>
-                ) : data?.topIssues && data.topIssues.length > 0 ? (
-                  <div className="space-y-4">
-                    {data.topIssues.slice(0, 5).map((issue, index) => {
-                      const totalIssues = data.topIssues.reduce((sum, i) => sum + i.count, 0)
-                      const percentage = totalIssues > 0 ? Math.round((issue.count / totalIssues) * 100) : 0
-                      return (
-                        <div key={index} className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium">
-                              {issue.item_name || 'Không xác định'}
-                              <Badge variant="outline" className="ml-2 text-xs">
-                                {issue.issue_type === 'missing' ? 'Thiếu' : 
-                                 issue.issue_type === 'damaged' ? 'Hỏng' : 'Mất'}
-                              </Badge>
-                            </span>
-                            <span className="text-sm text-muted-foreground">{issue.count} lần ({percentage}%)</span>
-                          </div>
-                          <Progress value={percentage} className="h-2" />
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-[200px] text-muted-foreground">
-                    Không có vấn đề nào được ghi nhận
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
+
+          {/* Top Issues */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Vấn đề thường gặp</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <Skeleton key={i} className="h-16 w-full" />
+                  ))}
+                </div>
+              ) : data?.topIssues && data.topIssues.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                  {data.topIssues.slice(0, 5).map((issue, index) => {
+                    const totalIssues = data.topIssues.reduce((sum, i) => sum + i.count, 0)
+                    const percentage = totalIssues > 0 ? Math.round((issue.count / totalIssues) * 100) : 0
+                    return (
+                      <div key={index} className="space-y-2 p-3 rounded-lg border">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium truncate max-w-[120px]">
+                            {issue.item_name || 'Không xác định'}
+                          </span>
+                          <Badge variant="outline" className="text-xs">
+                            {issue.issue_type === 'missing' ? 'Thiếu' : 
+                             issue.issue_type === 'damaged' ? 'Hỏng' : 'Mất'}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{issue.count} lần</span>
+                          <span>{percentage}%</span>
+                        </div>
+                        <Progress value={percentage} className="h-1.5" />
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-[100px] text-muted-foreground">
+                  Không có vấn đề nào được ghi nhận
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
         
         {/* TAB 2: Utilization */}
