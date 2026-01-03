@@ -7,6 +7,7 @@ import { Loader2, Clock, CheckCircle, XCircle, QrCode, RefreshCw } from 'lucide-
 import { formatVNCurrency } from '@/lib/pricing';
 import { usePendingPayments, type PendingPayment } from '@/hooks/usePendingPayments';
 import { ViewPaymentQRDialog } from '@/components/payment/ViewPaymentQRDialog';
+import { PaymentSuccessDialog } from './PaymentSuccessDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -14,7 +15,8 @@ export function PendingPayments() {
   const { data: payments, isLoading, refetch, isRefetching } = usePendingPayments();
   const [selectedPayment, setSelectedPayment] = useState<PendingPayment | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-
+  const [successPayment, setSuccessPayment] = useState<PendingPayment | null>(null);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const pendingPayments = payments?.filter(p => p.payment_status === 'pending') || [];
   const recentPayments = payments?.filter(p => p.payment_status !== 'pending').slice(0, 5) || [];
 
@@ -35,8 +37,15 @@ export function PendingPayments() {
           const oldStatus = payload.old?.payment_status;
           
           if (oldStatus === 'pending' && newStatus === 'completed') {
+            // Set the completed payment for success dialog
+            const completedPayment = payload.new as unknown as PendingPayment;
+            setSuccessPayment({
+              ...completedPayment,
+              invoice: null, // Will be refetched
+            });
+            setShowSuccessDialog(true);
             toast.success('🎉 Thanh toán đã được xác nhận!', {
-              description: 'Danh sách đang được cập nhật...',
+              description: 'Gói dịch vụ đã được kích hoạt.',
             });
           } else if (oldStatus === 'pending' && newStatus === 'failed') {
             toast.error('Một giao dịch đã bị từ chối');
@@ -248,6 +257,13 @@ export function PendingPayments() {
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         payment={selectedPayment}
+      />
+
+      <PaymentSuccessDialog
+        open={showSuccessDialog}
+        onOpenChange={setShowSuccessDialog}
+        payment={successPayment}
+        showConfetti={true}
       />
     </>
   );

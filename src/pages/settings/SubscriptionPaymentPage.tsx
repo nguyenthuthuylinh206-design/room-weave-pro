@@ -58,8 +58,10 @@ export default function SubscriptionPaymentPage() {
         (payload) => {
           console.log('Payment update received:', payload);
           const newStatus = payload.new?.payment_status;
+          const oldStatus = payload.old?.payment_status;
           
-          if (newStatus === 'completed' && payment.payment_status !== 'completed') {
+          // Check using payload.old instead of React state to ensure accurate comparison
+          if (newStatus === 'completed' && oldStatus !== 'completed') {
             setJustCompleted(true);
             setShowConfetti(true);
             toast.success('🎉 Thanh toán thành công!', {
@@ -68,12 +70,13 @@ export default function SubscriptionPaymentPage() {
             });
             // Hide confetti after 5 seconds
             setTimeout(() => setShowConfetti(false), 5000);
-          } else if (newStatus === 'failed' && payment.payment_status !== 'failed') {
+          } else if (newStatus === 'failed' && oldStatus !== 'failed') {
             toast.error('Thanh toán bị từ chối', {
               description: 'Vui lòng liên hệ hỗ trợ để được giúp đỡ.',
             });
           }
           
+          // Always refetch to update UI
           refetch();
         }
       )
@@ -82,7 +85,7 @@ export default function SubscriptionPaymentPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [payment?.id, payment?.payment_status, refetch]);
+  }, [payment?.id, refetch]);
 
   const handleBack = () => {
     navigate('/settings/subscription');
