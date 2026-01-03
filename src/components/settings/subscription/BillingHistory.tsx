@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { usePaymentTransactions, useInvoices } from "@/hooks/useSubscription";
 import { formatDate } from "date-fns";
 import { vi } from "date-fns/locale";
-import { FileText, Loader2, Eye } from "lucide-react";
+import { FileText, History, CheckCircle, XCircle, Clock, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from '@/integrations/supabase/client';
 import { formatVNCurrency } from '@/lib/pricing';
@@ -46,14 +46,45 @@ export function BillingHistory() {
     };
   }, [refetchTransactions, refetchInvoices]);
 
-  const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-    completed: { label: "Hoàn thành", variant: "default" },
-    pending: { label: "Đang xử lý", variant: "secondary" },
-    failed: { label: "Thất bại", variant: "destructive" },
-    refunded: { label: "Đã hoàn tiền", variant: "outline" },
+  // Filter to show only completed or failed transactions (not pending - those are in "Đang chờ" tab)
+  const completedTransactions = transactions?.filter(t => 
+    t.payment_status === 'completed' || t.payment_status === 'failed'
+  ) || [];
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return (
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Thành công
+          </Badge>
+        );
+      case 'failed':
+        return (
+          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800">
+            <XCircle className="h-3 w-3 mr-1" />
+            Thất bại
+          </Badge>
+        );
+      case 'pending':
+        return (
+          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800">
+            <Clock className="h-3 w-3 mr-1" />
+            Đang chờ
+          </Badge>
+        );
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
   };
 
-  if (loadingTransactions) {
+  const getInvoiceForTransaction = (invoiceId: string | null) => {
+    if (!invoiceId || !invoices) return null;
+    return invoices.find(inv => inv.id === invoiceId);
+  };
+
+  if (loadingTransactions || loadingInvoices) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-full" />
@@ -65,144 +96,95 @@ export function BillingHistory() {
 
   return (
     <div className="space-y-6">
-      {/* Payment Transactions */}
       <Card>
         <CardHeader>
-          <CardTitle>Lịch sử thanh toán</CardTitle>
-          <CardDescription>
-            Danh sách tất cả các giao dịch thanh toán của bạn
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <History className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle>Lịch sử giao dịch</CardTitle>
+                <CardDescription>
+                  Tất cả giao dịch đã hoàn thành hoặc thất bại
+                </CardDescription>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                refetchTransactions();
+                refetchInvoices();
+              }}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Làm mới
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          {!transactions || transactions.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Chưa có giao dịch nào
+          {completedTransactions.length === 0 ? (
+            <div className="text-center py-12">
+              <History className="h-12 w-12 mx-auto text-muted-foreground mb-4 opacity-50" />
+              <p className="text-muted-foreground">Chưa có giao dịch nào</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Các giao dịch đã hoàn thành sẽ hiển thị tại đây
+              </p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Ngày</TableHead>
-                  <TableHead>Mô tả</TableHead>
-                  <TableHead>Phương thức</TableHead>
+                  <TableHead>Ngày giao dịch</TableHead>
+                  <TableHead>Mã hóa đơn</TableHead>
+                  <TableHead>Nội dung</TableHead>
                   <TableHead>Trạng thái</TableHead>
                   <TableHead className="text-right">Số tiền</TableHead>
-                  <TableHead className="text-right">Thao tác</TableHead>
+                  <TableHead className="text-right">Chi tiết</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactions.map((transaction) => {
-                  const status = statusConfig[transaction.payment_status] || statusConfig.pending;
+                {completedTransactions.map((transaction) => {
+                  const invoice = getInvoiceForTransaction(transaction.invoice_id);
+                  const description = typeof transaction.metadata === 'object' && transaction.metadata !== null 
+                    ? (transaction.metadata as any).description || 'Thanh toán đăng ký'
+                    : 'Thanh toán đăng ký';
                   
                   return (
                     <TableRow key={transaction.id}>
                       <TableCell>
                         {transaction.payment_date
                           ? formatDate(new Date(transaction.payment_date), 'dd/MM/yyyy HH:mm', { locale: vi })
-                          : 'N/A'
+                          : formatDate(new Date(transaction.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })
                         }
                       </TableCell>
-                      <TableCell>
-                        {typeof transaction.metadata === 'object' && transaction.metadata !== null 
-                          ? (transaction.metadata as any).description || 'Thanh toán đăng ký'
-                          : 'Thanh toán đăng ký'}
+                      <TableCell className="font-mono text-sm">
+                        {invoice?.invoice_number || '-'}
                       </TableCell>
-                      <TableCell className="capitalize">
-                        {transaction.payment_method || 'N/A'}
+                      <TableCell className="max-w-[200px] truncate">
+                        {description}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={status.variant}>
-                          {status.label}
-                        </Badge>
+                        {getStatusBadge(transaction.payment_status)}
                       </TableCell>
                       <TableCell className="text-right font-semibold">
                         {formatVNCurrency(transaction.amount)}
                       </TableCell>
                       <TableCell className="text-right">
-                        {transaction.invoice_id && (
+                        {invoice && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => {
-                              const inv = invoices?.find(i => i.id === transaction.invoice_id);
-                              if (inv) setSelectedInvoice(inv);
-                            }}
+                            onClick={() => setSelectedInvoice(invoice)}
                           >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Chi tiết
+                            <FileText className="h-4 w-4" />
                           </Button>
                         )}
                       </TableCell>
                     </TableRow>
                   );
                 })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Invoices */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Hóa đơn</CardTitle>
-          <CardDescription>
-            Danh sách tất cả các hóa đơn đã phát hành
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loadingInvoices ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : !invoices || invoices.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Chưa có hóa đơn nào
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Số hóa đơn</TableHead>
-                  <TableHead>Ngày phát hành</TableHead>
-                  <TableHead>Ngày đáo hạn</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead className="text-right">Tổng tiền</TableHead>
-                  <TableHead className="text-right">Thao tác</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {invoices.map((invoice) => (
-                  <TableRow key={invoice.id}>
-                    <TableCell className="font-mono text-sm">
-                      {invoice.invoice_number}
-                    </TableCell>
-                    <TableCell>
-                      {formatDate(new Date(invoice.invoice_date), 'dd/MM/yyyy', { locale: vi })}
-                    </TableCell>
-                    <TableCell>
-                      {formatDate(new Date(invoice.due_date), 'dd/MM/yyyy', { locale: vi })}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={invoice.status === 'paid' ? 'default' : 'secondary'}>
-                        {invoice.status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {formatVNCurrency(invoice.total_amount)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => setSelectedInvoice(invoice)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        Chi tiết
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
               </TableBody>
             </Table>
           )}
@@ -232,24 +214,18 @@ export function BillingHistory() {
                   </p>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Ngày đáo hạn:</span>
-                  <p className="font-medium">
-                    {formatDate(new Date(selectedInvoice.due_date), 'dd/MM/yyyy', { locale: vi })}
-                  </p>
-                </div>
-                <div>
                   <span className="text-muted-foreground">Trạng thái:</span>
                   <div className="mt-1">
-                    <Badge variant={selectedInvoice.status === 'paid' ? 'default' : 'secondary'}>
+                    <Badge variant={selectedInvoice.status === 'paid' ? 'default' : selectedInvoice.status === 'cancelled' ? 'destructive' : 'secondary'}>
                       {selectedInvoice.status === 'paid' ? 'Đã thanh toán' : 
                        selectedInvoice.status === 'cancelled' ? 'Đã hủy' : 'Chưa thanh toán'}
                     </Badge>
                   </div>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Thời hạn:</span>
+                <div className="col-span-2">
+                  <span className="text-muted-foreground">Thời hạn sử dụng:</span>
                   <p className="font-medium">
-                    {formatDate(new Date(selectedInvoice.period_start), 'dd/MM/yyyy', { locale: vi })} - {formatDate(new Date(selectedInvoice.period_end), 'dd/MM/yyyy', { locale: vi })}
+                    {formatDate(new Date(selectedInvoice.period_start), 'dd/MM/yyyy', { locale: vi })} → {formatDate(new Date(selectedInvoice.period_end), 'dd/MM/yyyy', { locale: vi })}
                   </p>
                 </div>
               </div>
