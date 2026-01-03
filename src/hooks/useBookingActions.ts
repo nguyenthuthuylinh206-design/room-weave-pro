@@ -10,6 +10,7 @@ import {
   DEFAULT_PRICING_RULES 
 } from '@/lib/bookingCalculations'
 import { formatCurrency } from '@/lib/utils'
+import { calculateServiceChargesFromConsumables } from '@/hooks/usePricingRules'
 
 interface UseBookingActionsOptions {
   onSuccess?: () => void
@@ -122,13 +123,17 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
       const checkOut = new Date(booking.check_out_date)
       const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
 
+      // Auto-calculate service charges from consumables
+      const consumablesTotal = await calculateServiceChargesFromConsumables(bookingId)
+      const serviceCharges = consumablesTotal > 0 ? consumablesTotal : (booking.service_charges || 0)
+
       // Calculate final cost breakdown
       const costBreakdown = calculateBookingCost({
         roomPrice: booking.room_price || 0,
         nights,
         earlyCheckinCharge: booking.early_checkin_charge || 0,
         lateCheckoutCharge,
-        serviceCharges: booking.service_charges || 0,
+        serviceCharges,
         extraCharges: booking.extra_charges || 0,
         vatRate: booking.vat_rate || DEFAULT_PRICING_RULES.vatRate,
         serviceFeeRate: booking.service_fee_rate || DEFAULT_PRICING_RULES.serviceFeeRate,
@@ -143,6 +148,7 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
           status: 'checked_out',
           actual_check_out: now.toISOString(),
           late_checkout_charge: lateCheckoutCharge,
+          service_charges: serviceCharges,
           subtotal: costBreakdown.subtotal,
           vat_amount: costBreakdown.vatAmount,
           service_fee_amount: costBreakdown.serviceFeeAmount,
