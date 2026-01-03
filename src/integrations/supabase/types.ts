@@ -3685,6 +3685,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           deposit_amount: number | null
+          early_checkin_charge: number | null
           expected_check_in_time: string | null
           expected_check_out_time: string | null
           extra_charges: number | null
@@ -3694,15 +3695,22 @@ export type Database = {
           guest_phone: string | null
           hotel_id: string
           id: string
+          late_checkout_charge: number | null
           notes: string | null
           paid_at: string | null
           payment_status: string | null
           room_id: string
           room_price: number | null
+          service_charges: number | null
+          service_fee_amount: number | null
+          service_fee_rate: number | null
           status: string
+          subtotal: number | null
           tenant_id: string
           total_amount: number | null
           updated_at: string | null
+          vat_amount: number | null
+          vat_rate: number | null
         }
         Insert: {
           actual_check_in?: string | null
@@ -3715,6 +3723,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           deposit_amount?: number | null
+          early_checkin_charge?: number | null
           expected_check_in_time?: string | null
           expected_check_out_time?: string | null
           extra_charges?: number | null
@@ -3724,15 +3733,22 @@ export type Database = {
           guest_phone?: string | null
           hotel_id: string
           id?: string
+          late_checkout_charge?: number | null
           notes?: string | null
           paid_at?: string | null
           payment_status?: string | null
           room_id: string
           room_price?: number | null
+          service_charges?: number | null
+          service_fee_amount?: number | null
+          service_fee_rate?: number | null
           status?: string
+          subtotal?: number | null
           tenant_id: string
           total_amount?: number | null
           updated_at?: string | null
+          vat_amount?: number | null
+          vat_rate?: number | null
         }
         Update: {
           actual_check_in?: string | null
@@ -3745,6 +3761,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           deposit_amount?: number | null
+          early_checkin_charge?: number | null
           expected_check_in_time?: string | null
           expected_check_out_time?: string | null
           extra_charges?: number | null
@@ -3754,15 +3771,22 @@ export type Database = {
           guest_phone?: string | null
           hotel_id?: string
           id?: string
+          late_checkout_charge?: number | null
           notes?: string | null
           paid_at?: string | null
           payment_status?: string | null
           room_id?: string
           room_price?: number | null
+          service_charges?: number | null
+          service_fee_amount?: number | null
+          service_fee_rate?: number | null
           status?: string
+          subtotal?: number | null
           tenant_id?: string
           total_amount?: number | null
           updated_at?: string | null
+          vat_amount?: number | null
+          vat_rate?: number | null
         }
         Relationships: [
           {
@@ -4003,6 +4027,85 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_pricing_rules: {
+        Row: {
+          created_at: string | null
+          default_service_fee_rate: number | null
+          default_vat_rate: number | null
+          early_checkin_5_9: number | null
+          early_checkin_9_14: number | null
+          high_season_surcharge: number | null
+          hotel_id: string | null
+          id: string
+          late_checkout_12_15: number | null
+          late_checkout_15_18: number | null
+          late_checkout_after_18: number | null
+          standard_checkin_time: string | null
+          standard_checkout_time: string | null
+          tenant_id: string
+          updated_at: string | null
+          weekend_surcharge: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_service_fee_rate?: number | null
+          default_vat_rate?: number | null
+          early_checkin_5_9?: number | null
+          early_checkin_9_14?: number | null
+          high_season_surcharge?: number | null
+          hotel_id?: string | null
+          id?: string
+          late_checkout_12_15?: number | null
+          late_checkout_15_18?: number | null
+          late_checkout_after_18?: number | null
+          standard_checkin_time?: string | null
+          standard_checkout_time?: string | null
+          tenant_id: string
+          updated_at?: string | null
+          weekend_surcharge?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          default_service_fee_rate?: number | null
+          default_vat_rate?: number | null
+          early_checkin_5_9?: number | null
+          early_checkin_9_14?: number | null
+          high_season_surcharge?: number | null
+          hotel_id?: string | null
+          id?: string
+          late_checkout_12_15?: number | null
+          late_checkout_15_18?: number | null
+          late_checkout_after_18?: number | null
+          standard_checkin_time?: string | null
+          standard_checkout_time?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+          weekend_surcharge?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_pricing_rules_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "room_pricing_rules_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_pricing_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]

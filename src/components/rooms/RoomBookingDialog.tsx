@@ -1,25 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { format, addDays, differenceInDays } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { Calendar as CalendarIcon, User, Phone, Mail, Users, Save, X, Loader2, DollarSign, CreditCard, Clock, AlertTriangle } from 'lucide-react'
+import { Calendar as CalendarIcon, User, Phone, Mail, Users, Save, X, Loader2, DollarSign, CreditCard, Clock, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -37,14 +27,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
 import { cn, formatCurrency } from '@/lib/utils'
+import { CheckoutSummaryDialog } from '@/components/bookings/CheckoutSummaryDialog'
+import { 
+  calculateBookingCost, 
+  calculateEarlyCheckinCharge, 
+  calculateLateCheckoutCharge,
+  getEarlyCheckinDescription,
+  getLateCheckoutDescription,
+  DEFAULT_PRICING_RULES,
+  BookingCostBreakdown
+} from '@/lib/bookingCalculations'
 import type { RoomBooking } from '@/hooks/useRoomBooking'
 
 // Time options for check-in/check-out
 const TIME_OPTIONS = [
-  '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', 
+  '05:00', '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', 
   '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', 
   '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'
 ]
@@ -77,7 +83,8 @@ export function RoomBookingDialog({
   const isEdit = !!booking
   
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showCheckoutWarning, setShowCheckoutWarning] = useState(false)
+  const [showCheckoutSummary, setShowCheckoutSummary] = useState(false)
+  const [showPaymentDetails, setShowPaymentDetails] = useState(false)
   
   // Guest info
   const [guestName, setGuestName] = useState(booking?.guest_name || '')
@@ -104,17 +111,43 @@ export function RoomBookingDialog({
   const [depositAmount, setDepositAmount] = useState<number>((booking as any)?.deposit_amount || 0)
   const [amountPaid, setAmountPaid] = useState<number>((booking as any)?.amount_paid || 0)
   
-  // Calculate total and remaining
-  const nights = checkInDate && checkOutDate ? differenceInDays(checkOutDate, checkInDate) : 0
-  const totalAmount = (roomPrice * nights) + extraCharges
-  const remainingAmount = totalAmount - amountPaid
+  // Surcharges (auto-calculated)
+  const [earlyCheckinCharge, setEarlyCheckinCharge] = useState<number>((booking as any)?.early_checkin_charge || 0)
+  const [lateCheckoutCharge, setLateCheckoutCharge] = useState<number>((booking as any)?.late_checkout_charge || 0)
   
-  // Auto-calculate payment status
-  const calculatedPaymentStatus = amountPaid === 0 
-    ? 'pending' 
-    : amountPaid >= totalAmount 
-      ? 'paid' 
-      : 'partial'
+  // Service charges from consumables
+  const [serviceCharges, setServiceCharges] = useState<number>((booking as any)?.service_charges || 0)
+  
+  // Tax rates
+  const [vatRate, setVatRate] = useState<number>((booking as any)?.vat_rate || DEFAULT_PRICING_RULES.vatRate)
+  const [serviceFeeRate, setServiceFeeRate] = useState<number>((booking as any)?.service_fee_rate || DEFAULT_PRICING_RULES.serviceFeeRate)
+  
+  // Calculate nights
+  const nights = checkInDate && checkOutDate ? Math.max(1, differenceInDays(checkOutDate, checkInDate)) : 1
+  
+  // Calculate cost breakdown
+  const costBreakdown = useMemo<BookingCostBreakdown>(() => {
+    return calculateBookingCost({
+      roomPrice,
+      nights,
+      earlyCheckinCharge,
+      lateCheckoutCharge,
+      serviceCharges,
+      extraCharges,
+      vatRate,
+      serviceFeeRate,
+      depositAmount,
+      amountPaid,
+    })
+  }, [roomPrice, nights, earlyCheckinCharge, lateCheckoutCharge, serviceCharges, extraCharges, vatRate, serviceFeeRate, depositAmount, amountPaid])
+
+  // Auto-calculate early check-in surcharge when time changes
+  useEffect(() => {
+    if (checkInTime && roomPrice) {
+      const charge = calculateEarlyCheckinCharge(checkInTime, roomPrice)
+      setEarlyCheckinCharge(charge)
+    }
+  }, [checkInTime, roomPrice])
 
   // Reset form when booking changes
   useEffect(() => {
@@ -133,6 +166,11 @@ export function RoomBookingDialog({
       setExtraCharges((booking as any)?.extra_charges || 0)
       setDepositAmount((booking as any)?.deposit_amount || 0)
       setAmountPaid((booking as any)?.amount_paid || 0)
+      setEarlyCheckinCharge((booking as any)?.early_checkin_charge || 0)
+      setLateCheckoutCharge((booking as any)?.late_checkout_charge || 0)
+      setServiceCharges((booking as any)?.service_charges || 0)
+      setVatRate((booking as any)?.vat_rate || DEFAULT_PRICING_RULES.vatRate)
+      setServiceFeeRate((booking as any)?.service_fee_rate || DEFAULT_PRICING_RULES.serviceFeeRate)
     }
   }, [booking, defaultRoomPrice])
   
@@ -194,10 +232,17 @@ export function RoomBookingDialog({
         // Financial fields
         room_price: roomPrice,
         extra_charges: extraCharges,
-        total_amount: totalAmount,
+        early_checkin_charge: earlyCheckinCharge,
+        late_checkout_charge: lateCheckoutCharge,
+        service_charges: serviceCharges,
+        subtotal: costBreakdown.subtotal,
+        vat_rate: vatRate,
+        vat_amount: costBreakdown.vatAmount,
+        service_fee_rate: serviceFeeRate,
+        service_fee_amount: costBreakdown.serviceFeeAmount,
+        total_amount: costBreakdown.totalAmount,
         deposit_amount: depositAmount,
         amount_paid: amountPaid,
-        // payment_status is auto-calculated by trigger
       }
       
       if (isEdit && booking) {
@@ -242,12 +287,18 @@ export function RoomBookingDialog({
     
     setIsSubmitting(true)
     try {
+      // Calculate early check-in surcharge based on actual time
+      const now = new Date()
+      const actualTime = format(now, 'HH:mm')
+      const calculatedEarlyCharge = calculateEarlyCheckinCharge(actualTime, roomPrice)
+      
       // Update booking status
       const { error: bookingError } = await supabase
         .from('room_bookings')
         .update({
           status: 'checked_in',
-          actual_check_in: new Date().toISOString(),
+          actual_check_in: now.toISOString(),
+          early_checkin_charge: calculatedEarlyCharge,
         })
         .eq('id', booking.id)
         
@@ -263,6 +314,9 @@ export function RoomBookingDialog({
       
       toast({
         title: t('booking.checkInSuccess'),
+        description: calculatedEarlyCharge > 0 
+          ? `Phụ thu check-in sớm: ${formatCurrency(calculatedEarlyCharge)}`
+          : undefined,
       })
       
       invalidateQueries()
@@ -279,27 +333,36 @@ export function RoomBookingDialog({
   }
   
   const handleCheckOutClick = () => {
-    // Check if payment is complete
-    if (calculatedPaymentStatus !== 'paid') {
-      setShowCheckoutWarning(true)
-    } else {
-      performCheckOut()
-    }
+    // Calculate late checkout charge based on current time
+    const now = new Date()
+    const actualTime = format(now, 'HH:mm')
+    const calculatedLateCharge = calculateLateCheckoutCharge(actualTime, roomPrice)
+    setLateCheckoutCharge(calculatedLateCharge)
+    
+    // Show checkout summary dialog
+    setShowCheckoutSummary(true)
   }
   
   const performCheckOut = async () => {
     if (!booking) return
     
     setIsSubmitting(true)
-    setShowCheckoutWarning(false)
+    setShowCheckoutSummary(false)
     
     try {
-      // Update booking status
+      const now = new Date()
+      
+      // Update booking with final calculations
       const { error: bookingError } = await supabase
         .from('room_bookings')
         .update({
           status: 'checked_out',
-          actual_check_out: new Date().toISOString(),
+          actual_check_out: now.toISOString(),
+          late_checkout_charge: lateCheckoutCharge,
+          subtotal: costBreakdown.subtotal,
+          vat_amount: costBreakdown.vatAmount,
+          service_fee_amount: costBreakdown.serviceFeeAmount,
+          total_amount: costBreakdown.totalAmount,
         })
         .eq('id', booking.id)
         
@@ -333,8 +396,8 @@ export function RoomBookingDialog({
   const handleReceivePayment = async () => {
     if (!booking) return
     
-    // Set amount paid to total
-    const newAmountPaid = totalAmount
+    // Set amount paid to cover remaining
+    const newAmountPaid = costBreakdown.totalAmount - depositAmount
     setAmountPaid(newAmountPaid)
     
     setIsSubmitting(true)
@@ -343,7 +406,10 @@ export function RoomBookingDialog({
         .from('room_bookings')
         .update({
           amount_paid: newAmountPaid,
-          total_amount: totalAmount,
+          subtotal: costBreakdown.subtotal,
+          vat_amount: costBreakdown.vatAmount,
+          service_fee_amount: costBreakdown.serviceFeeAmount,
+          total_amount: costBreakdown.totalAmount,
         })
         .eq('id', booking.id)
         
@@ -369,26 +435,24 @@ export function RoomBookingDialog({
     if (!booking) return
     
     setIsSubmitting(true)
-    setShowCheckoutWarning(false)
+    setShowCheckoutSummary(false)
     
     try {
-      // First, mark as paid
-      const { error: paymentError } = await supabase
-        .from('room_bookings')
-        .update({
-          amount_paid: totalAmount,
-          total_amount: totalAmount,
-        })
-        .eq('id', booking.id)
-        
-      if (paymentError) throw paymentError
+      const now = new Date()
+      const newAmountPaid = costBreakdown.totalAmount - depositAmount
       
-      // Then perform checkout
+      // Update booking with payment and checkout
       const { error: bookingError } = await supabase
         .from('room_bookings')
         .update({
           status: 'checked_out',
-          actual_check_out: new Date().toISOString(),
+          actual_check_out: now.toISOString(),
+          amount_paid: newAmountPaid,
+          late_checkout_charge: lateCheckoutCharge,
+          subtotal: costBreakdown.subtotal,
+          vat_amount: costBreakdown.vatAmount,
+          service_fee_amount: costBreakdown.serviceFeeAmount,
+          total_amount: costBreakdown.totalAmount,
         })
         .eq('id', booking.id)
         
@@ -418,6 +482,10 @@ export function RoomBookingDialog({
       setIsSubmitting(false)
     }
   }
+
+  // Get surcharge descriptions
+  const earlyCheckinDesc = getEarlyCheckinDescription(checkInTime)
+  const lateCheckoutDesc = getLateCheckoutDescription(checkOutTime)
   
   return (
     <>
@@ -490,7 +558,7 @@ export function RoomBookingDialog({
               />
             </div>
             
-            {/* Check-in Date + Time */}
+            {/* Check-in/Check-out Section */}
             <div className="border rounded-lg p-3 space-y-3">
               <h4 className="text-sm font-medium flex items-center gap-2">
                 <Clock className="h-4 w-4" />
@@ -537,6 +605,9 @@ export function RoomBookingDialog({
                       </SelectContent>
                     </Select>
                   </div>
+                  {earlyCheckinDesc && (
+                    <p className="text-xs text-amber-600">{earlyCheckinDesc}</p>
+                  )}
                 </div>
                 
                 {/* Check-out */}
@@ -579,6 +650,9 @@ export function RoomBookingDialog({
                       </SelectContent>
                     </Select>
                   </div>
+                  {lateCheckoutDesc && (
+                    <p className="text-xs text-amber-600">{lateCheckoutDesc}</p>
+                  )}
                 </div>
               </div>
               
@@ -614,6 +688,7 @@ export function RoomBookingDialog({
                 Thông tin thanh toán
               </h4>
               
+              {/* Room Price & Deposit */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label htmlFor="roomPrice" className="text-xs text-muted-foreground">Giá phòng/đêm</Label>
@@ -628,22 +703,6 @@ export function RoomBookingDialog({
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="extraCharges" className="text-xs text-muted-foreground">Phí phát sinh</Label>
-                  <Input
-                    id="extraCharges"
-                    type="number"
-                    min={0}
-                    className="h-8"
-                    value={extraCharges}
-                    onChange={(e) => setExtraCharges(parseInt(e.target.value) || 0)}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-              
-              {/* Deposit and Amount Paid */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
                   <Label htmlFor="depositAmount" className="text-xs text-muted-foreground">Tiền đặt cọc</Label>
                   <Input
                     id="depositAmount"
@@ -655,56 +714,137 @@ export function RoomBookingDialog({
                     placeholder="0"
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="amountPaid" className="text-xs text-muted-foreground">Đã thanh toán</Label>
+              </div>
+              
+              {/* Cost Summary - Always visible */}
+              <div className="space-y-2 pt-2 border-t text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tiền phòng ({nights} đêm)</span>
+                  <span>{formatCurrency(costBreakdown.roomTotal)}</span>
+                </div>
+                
+                {/* Collapsible Details */}
+                <Collapsible open={showPaymentDetails} onOpenChange={setShowPaymentDetails}>
+                  <CollapsibleContent className="space-y-2">
+                    {/* Surcharges */}
+                    {costBreakdown.earlyCheckinCharge > 0 && (
+                      <div className="flex justify-between text-amber-600">
+                        <span>+ Phụ thu check-in sớm</span>
+                        <span>{formatCurrency(costBreakdown.earlyCheckinCharge)}</span>
+                      </div>
+                    )}
+                    {costBreakdown.lateCheckoutCharge > 0 && (
+                      <div className="flex justify-between text-amber-600">
+                        <span>+ Phụ thu check-out trễ</span>
+                        <span>{formatCurrency(costBreakdown.lateCheckoutCharge)}</span>
+                      </div>
+                    )}
+                    
+                    {/* Service charges */}
+                    {costBreakdown.serviceCharges > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">+ Dịch vụ sử dụng</span>
+                        <span>{formatCurrency(costBreakdown.serviceCharges)}</span>
+                      </div>
+                    )}
+                    
+                    {/* Extra charges */}
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">+ Chi phí khác</span>
+                      <Input
+                        type="number"
+                        min={0}
+                        className="h-7 w-28 text-right"
+                        value={extraCharges}
+                        onChange={(e) => setExtraCharges(parseInt(e.target.value) || 0)}
+                        placeholder="0"
+                      />
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Subtotal</span>
+                      <span>{formatCurrency(costBreakdown.subtotal)}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">VAT ({vatRate}%)</span>
+                      <span>{formatCurrency(costBreakdown.vatAmount)}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Phí dịch vụ ({serviceFeeRate}%)</span>
+                      <span>{formatCurrency(costBreakdown.serviceFeeAmount)}</span>
+                    </div>
+                  </CollapsibleContent>
+                  
+                  <CollapsibleTrigger asChild>
+                    <Button type="button" variant="ghost" size="sm" className="w-full h-6 text-xs text-muted-foreground">
+                      {showPaymentDetails ? (
+                        <>Thu gọn <ChevronUp className="h-3 w-3 ml-1" /></>
+                      ) : (
+                        <>Xem chi tiết <ChevronDown className="h-3 w-3 ml-1" /></>
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
+                </Collapsible>
+                
+                <Separator />
+                
+                <div className="flex justify-between font-bold">
+                  <span>TỔNG CỘNG</span>
+                  <span>{formatCurrency(costBreakdown.totalAmount)}</span>
+                </div>
+                
+                {depositAmount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Đã đặt cọc</span>
+                    <span>-{formatCurrency(depositAmount)}</span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Đã thanh toán</span>
                   <Input
-                    id="amountPaid"
                     type="number"
                     min={0}
-                    className="h-8"
+                    className="h-7 w-28 text-right"
                     value={amountPaid}
                     onChange={(e) => setAmountPaid(parseInt(e.target.value) || 0)}
                     placeholder="0"
                   />
                 </div>
-              </div>
-              
-              {/* Summary */}
-              <div className="space-y-2 pt-2 border-t text-sm">
+                
+                <Separator />
+                
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tổng ({nights} đêm)</span>
-                  <span className="font-medium">{formatCurrency(totalAmount)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Đã thanh toán</span>
-                  <span className="font-medium text-green-600">{formatCurrency(amountPaid)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Còn lại</span>
+                  <span className="font-medium">CÒN LẠI</span>
                   <span className={cn(
                     "font-bold",
-                    remainingAmount > 0 ? "text-red-600" : "text-green-600"
+                    costBreakdown.remainingAmount > 0 ? "text-red-600" : "text-green-600"
                   )}>
-                    {formatCurrency(remainingAmount)}
+                    {formatCurrency(costBreakdown.remainingAmount)}
                   </span>
                 </div>
+                
                 <div className="flex justify-between items-center pt-1">
-                  <span className="text-muted-foreground">Trạng thái</span>
+                  <span className="text-muted-foreground text-xs">Trạng thái</span>
                   <span className={cn(
-                    "text-xs font-medium px-2 py-0.5 rounded",
-                    calculatedPaymentStatus === 'paid' && "bg-green-100 text-green-700",
-                    calculatedPaymentStatus === 'partial' && "bg-amber-100 text-amber-700",
-                    calculatedPaymentStatus === 'pending' && "bg-red-100 text-red-700"
+                    "text-xs font-medium",
+                    costBreakdown.paymentStatus === 'paid' && "text-green-600",
+                    costBreakdown.paymentStatus === 'partial' && "text-amber-600",
+                    costBreakdown.paymentStatus === 'pending' && "text-red-600"
                   )}>
-                    {calculatedPaymentStatus === 'paid' && 'Đã thanh toán'}
-                    {calculatedPaymentStatus === 'partial' && 'Thanh toán một phần'}
-                    {calculatedPaymentStatus === 'pending' && 'Chưa thanh toán'}
+                    {costBreakdown.paymentStatus === 'paid' && 'Đã thanh toán đủ'}
+                    {costBreakdown.paymentStatus === 'partial' && 'Thanh toán một phần'}
+                    {costBreakdown.paymentStatus === 'pending' && 'Chưa thanh toán'}
                   </span>
                 </div>
               </div>
 
               {/* Quick Payment Button */}
-              {isEdit && calculatedPaymentStatus !== 'paid' && (
+              {isEdit && costBreakdown.paymentStatus !== 'paid' && (
                 <Button
                   type="button"
                   variant="outline"
@@ -714,7 +854,7 @@ export function RoomBookingDialog({
                   disabled={isSubmitting}
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
-                  Nhận thanh toán đầy đủ ({formatCurrency(remainingAmount)})
+                  Nhận thanh toán đầy đủ ({formatCurrency(costBreakdown.remainingAmount)})
                 </Button>
               )}
             </div>
@@ -801,37 +941,18 @@ export function RoomBookingDialog({
         </DialogContent>
       </Dialog>
 
-      {/* Checkout Warning Dialog */}
-      <AlertDialog open={showCheckoutWarning} onOpenChange={setShowCheckoutWarning}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Khách chưa thanh toán đầy đủ
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Khách còn nợ <span className="font-bold text-red-600">{formatCurrency(remainingAmount)}</span>.
-              Bạn có chắc muốn cho trả phòng?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
-            <Button
-              variant="outline"
-              onClick={performCheckOut}
-              disabled={isSubmitting}
-            >
-              Vẫn cho trả phòng
-            </Button>
-            <Button
-              onClick={handlePayAndCheckout}
-              disabled={isSubmitting}
-            >
-              Thanh toán & Trả phòng
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Checkout Summary Dialog */}
+      <CheckoutSummaryDialog
+        open={showCheckoutSummary}
+        onOpenChange={setShowCheckoutSummary}
+        guestName={guestName}
+        roomNumber={roomNumber}
+        actualCheckoutTime={format(new Date(), 'HH:mm')}
+        costBreakdown={costBreakdown}
+        onConfirmCheckout={performCheckOut}
+        onPayAndCheckout={handlePayAndCheckout}
+        isLoading={isSubmitting}
+      />
     </>
   )
 }
