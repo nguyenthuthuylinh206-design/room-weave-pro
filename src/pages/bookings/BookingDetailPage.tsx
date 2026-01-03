@@ -304,30 +304,119 @@ export function BookingDetailPage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
                   <CreditCard className="h-4 w-4 text-primary" />
-                  Thông tin thanh toán
+                  Chi tiết thanh toán
                 </CardTitle>
                 {getPaymentBadge(booking.payment_status || 'pending')}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="divide-y divide-border">
-                <div className="flex items-center justify-between py-3">
-                  <span className="text-muted-foreground">Tiền phòng</span>
-                  <span className="font-medium">
-                    {formatCurrency(booking.room_price || 0)} × {nights} đêm
-                  </span>
+              {/* I. TIỀN PHÒNG */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-muted-foreground">I. TIỀN PHÒNG</h4>
+                <div className="divide-y divide-border rounded-lg border">
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <span className="text-sm">Giá phòng/đêm</span>
+                    <span className="font-mono text-sm">{formatCurrency(booking.room_price || 0)}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <span className="text-sm">Số đêm</span>
+                    <span className="font-mono text-sm">× {nights}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2 bg-muted/50">
+                    <span className="text-sm font-medium">Tiền phòng</span>
+                    <span className="font-mono text-sm font-medium">{formatCurrency((booking.room_price || 0) * nights)}</span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between py-3">
-                  <span className="text-muted-foreground">Phụ thu</span>
-                  <span className="font-medium">
-                    {formatCurrency(booking.extra_charges || 0)}
-                  </span>
+              </div>
+
+              {/* II. PHỤ THU */}
+              {((booking.early_checkin_charge || 0) > 0 || (booking.late_checkout_charge || 0) > 0 || (booking.extra_charges || 0) > 0) && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-muted-foreground">II. PHỤ THU</h4>
+                  <div className="divide-y divide-border rounded-lg border">
+                    {(booking.early_checkin_charge || 0) > 0 && (
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <span className="text-sm">Check-in sớm</span>
+                        <span className="font-mono text-sm text-amber-600">+{formatCurrency(booking.early_checkin_charge || 0)}</span>
+                      </div>
+                    )}
+                    {(booking.late_checkout_charge || 0) > 0 && (
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <span className="text-sm">Check-out trễ</span>
+                        <span className="font-mono text-sm text-amber-600">+{formatCurrency(booking.late_checkout_charge || 0)}</span>
+                      </div>
+                    )}
+                    {(booking.extra_charges || 0) > 0 && (
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <span className="text-sm">Chi phí khác</span>
+                        <span className="font-mono text-sm text-amber-600">+{formatCurrency(booking.extra_charges || 0)}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center justify-between py-3">
-                  <span className="font-semibold">Tổng cộng</span>
-                  <span className="text-xl font-bold text-primary">
-                    {formatCurrency(booking.total_amount || 0)}
-                  </span>
+              )}
+
+              {/* III. DỊCH VỤ SỬ DỤNG */}
+              {(booking.service_charges || 0) > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-muted-foreground">III. DỊCH VỤ SỬ DỤNG</h4>
+                  <div className="divide-y divide-border rounded-lg border">
+                    <div className="flex items-center justify-between px-3 py-2">
+                      <span className="text-sm">Tổng dịch vụ (minibar, room service...)</span>
+                      <span className="font-mono text-sm">{formatCurrency(booking.service_charges || 0)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SUBTOTAL + TAX */}
+              <div className="space-y-2">
+                <div className="divide-y divide-border rounded-lg border">
+                  <div className="flex items-center justify-between px-3 py-2 bg-muted/50">
+                    <span className="text-sm font-medium">Subtotal</span>
+                    <span className="font-mono text-sm font-medium">{formatCurrency(booking.subtotal || 0)}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <span className="text-sm">VAT ({booking.vat_rate || 8}%)</span>
+                    <span className="font-mono text-sm">{formatCurrency(booking.vat_amount || 0)}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <span className="text-sm">Phí dịch vụ ({booking.service_fee_rate || 5}%)</span>
+                    <span className="font-mono text-sm">{formatCurrency(booking.service_fee_amount || 0)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* TỔNG CỘNG */}
+              <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold">TỔNG CỘNG</span>
+                  <span className="text-2xl font-bold text-primary">{formatCurrency(booking.total_amount || 0)}</span>
+                </div>
+              </div>
+
+              {/* THANH TOÁN */}
+              <div className="space-y-2">
+                <div className="divide-y divide-border rounded-lg border">
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <span className="text-sm">Đã đặt cọc</span>
+                    <span className="font-mono text-sm text-green-600">-{formatCurrency(booking.deposit_amount || 0)}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <span className="text-sm">Đã thanh toán</span>
+                    <span className="font-mono text-sm text-green-600">-{formatCurrency(booking.amount_paid || 0)}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2 bg-muted/50">
+                    <span className="text-sm font-medium">Còn phải thu</span>
+                    <span className={cn(
+                      "font-mono text-sm font-bold",
+                      ((booking.total_amount || 0) - (booking.deposit_amount || 0) - (booking.amount_paid || 0)) > 0
+                        ? "text-red-600"
+                        : "text-green-600"
+                    )}>
+                      {formatCurrency(Math.max(0, (booking.total_amount || 0) - (booking.deposit_amount || 0) - (booking.amount_paid || 0)))}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -335,7 +424,7 @@ export function BookingDetailPage() {
                 <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 dark:bg-green-950/30 p-3 rounded-lg">
                   <CheckCircle className="h-4 w-4" />
                   <span>
-                    Đã thanh toán lúc {format(new Date(booking.paid_at), 'HH:mm dd/MM/yyyy', { locale: vi })}
+                    Đã thanh toán đầy đủ lúc {format(new Date(booking.paid_at), 'HH:mm dd/MM/yyyy', { locale: vi })}
                   </span>
                 </div>
               )}

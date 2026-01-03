@@ -2,6 +2,14 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
 import { useState } from 'react'
+import { format } from 'date-fns'
+import { 
+  calculateEarlyCheckinCharge, 
+  calculateLateCheckoutCharge,
+  calculateBookingCost,
+  DEFAULT_PRICING_RULES 
+} from '@/lib/bookingCalculations'
+import { formatCurrency } from '@/lib/utils'
 
 interface UseBookingActionsOptions {
   onSuccess?: () => void
@@ -18,6 +26,7 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
     queryClient.invalidateQueries({ queryKey: ['booking-stats'] })
     queryClient.invalidateQueries({ queryKey: ['today-checkouts'] })
     queryClient.invalidateQueries({ queryKey: ['today-checkins'] })
+    queryClient.invalidateQueries({ queryKey: ['booking-detail'] })
     if (roomId) {
       queryClient.invalidateQueries({ queryKey: ['room-booking', roomId] })
       queryClient.invalidateQueries({ queryKey: ['room-bookings', roomId] })
@@ -26,16 +35,32 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
 
   /**
    * Check-in: Update booking status to 'checked_in' AND room status to 'occupied'
+   * Automatically calculates early check-in surcharge
    */
   const handleCheckIn = async (bookingId: string, roomId: string) => {
     setIsLoading(true)
     try {
+      // First get the booking to calculate surcharge
+      const { data: booking, error: fetchError } = await supabase
+        .from('room_bookings')
+        .select('room_price, vat_rate, service_fee_rate, service_charges, extra_charges, deposit_amount, amount_paid')
+        .eq('id', bookingId)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      // Calculate early check-in surcharge based on actual time
+      const now = new Date()
+      const actualTime = format(now, 'HH:mm')
+      const earlyCheckinCharge = calculateEarlyCheckinCharge(actualTime, booking.room_price || 0)
+
       // Update booking status
       const { error: bookingError } = await supabase
         .from('room_bookings')
         .update({
           status: 'checked_in',
-          actual_check_in: new Date().toISOString(),
+          actual_check_in: now.toISOString(),
+          early_checkin_charge: earlyCheckinCharge,
         })
         .eq('id', bookingId)
 
@@ -49,7 +74,12 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
 
       if (roomError) throw roomError
 
-      toast({ title: 'Check-in thành công' })
+      toast({ 
+        title: 'Check-in thành công',
+        description: earlyCheckinCharge > 0 
+          ? `Phụ thu check-in sớm: ${formatCurrency(earlyCheckinCharge)}`
+          : undefined,
+      })
       invalidateQueries(roomId)
       options?.onSuccess?.()
       return true
@@ -68,17 +98,55 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
 
   /**
    * Check-out: Update booking status to 'checked_out' AND room status to 'check_out'
-   * Room will be in 'check_out' state until cleaned/inspected, then 'vacant'
+   * Automatically calculates late check-out surcharge and final billing
    */
   const handleCheckOut = async (bookingId: string, roomId: string) => {
     setIsLoading(true)
     try {
-      // Update booking status
+      // First get the booking to calculate final billing
+      const { data: booking, error: fetchError } = await supabase
+        .from('room_bookings')
+        .select('room_price, early_checkin_charge, vat_rate, service_fee_rate, service_charges, extra_charges, deposit_amount, amount_paid, check_in_date, check_out_date')
+        .eq('id', bookingId)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      // Calculate late check-out surcharge based on actual time
+      const now = new Date()
+      const actualTime = format(now, 'HH:mm')
+      const lateCheckoutCharge = calculateLateCheckoutCharge(actualTime, booking.room_price || 0)
+
+      // Calculate nights
+      const checkIn = new Date(booking.check_in_date)
+      const checkOut = new Date(booking.check_out_date)
+      const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
+
+      // Calculate final cost breakdown
+      const costBreakdown = calculateBookingCost({
+        roomPrice: booking.room_price || 0,
+        nights,
+        earlyCheckinCharge: booking.early_checkin_charge || 0,
+        lateCheckoutCharge,
+        serviceCharges: booking.service_charges || 0,
+        extraCharges: booking.extra_charges || 0,
+        vatRate: booking.vat_rate || DEFAULT_PRICING_RULES.vatRate,
+        serviceFeeRate: booking.service_fee_rate || DEFAULT_PRICING_RULES.serviceFeeRate,
+        depositAmount: booking.deposit_amount || 0,
+        amountPaid: booking.amount_paid || 0,
+      })
+
+      // Update booking with final calculations
       const { error: bookingError } = await supabase
         .from('room_bookings')
         .update({
           status: 'checked_out',
-          actual_check_out: new Date().toISOString(),
+          actual_check_out: now.toISOString(),
+          late_checkout_charge: lateCheckoutCharge,
+          subtotal: costBreakdown.subtotal,
+          vat_amount: costBreakdown.vatAmount,
+          service_fee_amount: costBreakdown.serviceFeeAmount,
+          total_amount: costBreakdown.totalAmount,
         })
         .eq('id', bookingId)
 
@@ -92,7 +160,15 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
 
       if (roomError) throw roomError
 
-      toast({ title: 'Check-out thành công' })
+      const remainingAmount = costBreakdown.remainingAmount
+      toast({ 
+        title: 'Check-out thành công',
+        description: remainingAmount > 0 
+          ? `Còn phải thu: ${formatCurrency(remainingAmount)}`
+          : lateCheckoutCharge > 0
+          ? `Phụ thu check-out trễ: ${formatCurrency(lateCheckoutCharge)}`
+          : undefined,
+      })
       invalidateQueries(roomId)
       options?.onSuccess?.()
       return true
@@ -115,18 +191,28 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
   const handleMarkAsPaid = async (bookingId: string, totalAmount: number, roomId?: string) => {
     setIsLoading(true)
     try {
+      // Get current booking to calculate proper payment
+      const { data: booking, error: fetchError } = await supabase
+        .from('room_bookings')
+        .select('total_amount, deposit_amount')
+        .eq('id', bookingId)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      const amountToPay = (booking.total_amount || totalAmount) - (booking.deposit_amount || 0)
+
       const { error } = await supabase
         .from('room_bookings')
         .update({
-          payment_status: 'paid',
+          amount_paid: amountToPay,
           paid_at: new Date().toISOString(),
-          total_amount: totalAmount,
         })
         .eq('id', bookingId)
 
       if (error) throw error
 
-      toast({ title: 'Đã đánh dấu thanh toán' })
+      toast({ title: 'Đã đánh dấu thanh toán đầy đủ' })
       invalidateQueries(roomId)
       return true
     } catch (error: any) {
@@ -154,6 +240,14 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
         .eq('id', bookingId)
 
       if (error) throw error
+
+      // If room is associated, set it back to vacant
+      if (roomId) {
+        await supabase
+          .from('rooms')
+          .update({ status: 'vacant' })
+          .eq('id', roomId)
+      }
 
       toast({ title: 'Đã hủy đặt phòng' })
       invalidateQueries(roomId)
