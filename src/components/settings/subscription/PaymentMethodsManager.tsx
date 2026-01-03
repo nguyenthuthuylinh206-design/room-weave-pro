@@ -1,77 +1,167 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, Plus } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { 
+  Building2, 
+  CreditCard, 
+  Copy, 
+  Check, 
+  QrCode,
+  Info,
+  ExternalLink
+} from "lucide-react";
+import { useBankPaymentSettings } from "@/hooks/useBankPaymentSettings";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export function PaymentMethodsManager() {
-  // TODO: Implement actual payment methods fetch when Stripe is integrated
-  const paymentMethods: any[] = [];
+  const { data: bankSettings, isLoading } = useBankPaymentSettings();
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    toast.success('Đã sao chép');
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-[200px] w-full" />
+        <Skeleton className="h-[100px] w-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertTitle>Sắp ra mắt</AlertTitle>
-        <AlertDescription>
-          Chức năng quản lý phương thức thanh toán sẽ được tích hợp sau khi hoàn thành tích hợp với Stripe/VNPay.
-        </AlertDescription>
-      </Alert>
-
+      {/* Bank Transfer Info */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Phương thức thanh toán</CardTitle>
-              <CardDescription>
-                Quản lý các phương thức thanh toán của bạn
-              </CardDescription>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Building2 className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <CardTitle>Chuyển khoản ngân hàng</CardTitle>
+                <CardDescription>
+                  Thanh toán qua VietQR - Tự động xác nhận
+                </CardDescription>
+              </div>
             </div>
-            <Button disabled>
-              <Plus className="h-4 w-4 mr-2" />
-              Thêm phương thức
-            </Button>
+            {bankSettings && (
+              <Badge variant="default" className="bg-green-600">
+                <Check className="h-3 w-3 mr-1" />
+                Đã kích hoạt
+              </Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent>
-          {paymentMethods.length === 0 ? (
-            <div className="text-center py-12">
-              <CreditCard className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">
-                Chưa có phương thức thanh toán nào
+          {!bankSettings ? (
+            <div className="text-center py-8">
+              <QrCode className="h-12 w-12 mx-auto text-muted-foreground mb-4 opacity-50" />
+              <p className="text-muted-foreground mb-2">
+                Chưa có thông tin thanh toán ngân hàng
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Liên hệ quản trị viên để cấu hình phương thức thanh toán
               </p>
             </div>
           ) : (
             <div className="space-y-4">
-              {paymentMethods.map((method) => (
-                <div
-                  key={method.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
-                >
-                  <div className="flex items-center gap-4">
-                    <CreditCard className="h-8 w-8 text-muted-foreground" />
-                    <div>
-                      <div className="font-semibold">
-                        {method.card_brand} •••• {method.card_last4}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Hết hạn {method.card_exp_month}/{method.card_exp_year}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {method.is_default && (
-                      <Badge variant="secondary">Mặc định</Badge>
-                    )}
-                    <Button variant="ghost" size="sm">
-                      Xóa
-                    </Button>
+              {/* Bank Info Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-lg bg-muted/50 space-y-3">
+                  <div>
+                    <span className="text-xs text-muted-foreground uppercase tracking-wider">Ngân hàng</span>
+                    <p className="font-semibold text-lg">{bankSettings.bank_name}</p>
+                    <p className="text-sm text-muted-foreground">Mã: {bankSettings.bank_code}</p>
                   </div>
                 </div>
-              ))}
+                
+                <div className="p-4 rounded-lg bg-muted/50 space-y-3">
+                  <div>
+                    <span className="text-xs text-muted-foreground uppercase tracking-wider">Chủ tài khoản</span>
+                    <p className="font-semibold text-lg">{bankSettings.account_holder}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Account Number with Copy */}
+              <div className="p-4 rounded-lg border-2 border-dashed border-primary/30 bg-primary/5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-muted-foreground uppercase tracking-wider">Số tài khoản</span>
+                    <p className="font-mono text-2xl font-bold text-primary tracking-wider">
+                      {bankSettings.account_number}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(bankSettings.account_number, 'account')}
+                  >
+                    {copiedField === 'account' ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Payment Prefix */}
+              {bankSettings.payment_prefix && (
+                <div className="p-4 rounded-lg bg-muted/50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs text-muted-foreground uppercase tracking-wider">Tiền tố nội dung CK</span>
+                      <p className="font-mono font-semibold">{bankSettings.payment_prefix}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Info Alert */}
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  Khi thanh toán, hệ thống sẽ tự động tạo mã QR với nội dung chuyển khoản. 
+                  Giao dịch được xác nhận tự động trong vài giây sau khi chuyển khoản thành công.
+                </AlertDescription>
+              </Alert>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Other Payment Methods - Coming Soon */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-secondary">
+              <CreditCard className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div>
+              <CardTitle className="text-muted-foreground">Phương thức khác</CardTitle>
+              <CardDescription>
+                Thẻ tín dụng, Ví điện tử
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-6">
+            <CreditCard className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-50" />
+            <p className="text-sm text-muted-foreground">
+              Đang phát triển - Sẽ hỗ trợ Stripe, VNPay trong tương lai
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

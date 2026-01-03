@@ -25,7 +25,6 @@ export function PendingPayments() {
   const [cancelPayment, setCancelPayment] = useState<PendingPayment | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const pendingPayments = payments?.filter(p => p.payment_status === 'pending') || [];
-  const recentPayments = payments?.filter(p => p.payment_status !== 'pending').slice(0, 5) || [];
 
   // Realtime subscription for payment status changes
   useEffect(() => {
@@ -272,59 +271,6 @@ export function PendingPayments() {
           </CardContent>
         </Card>
 
-        {/* Recent Completed/Failed Payments */}
-        {recentPayments.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Giao dịch gần đây</CardTitle>
-              <CardDescription>
-                Các giao dịch đã xử lý gần nhất
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Mã đơn hàng</TableHead>
-                    <TableHead>Số tiền</TableHead>
-                    <TableHead>Ngày xử lý</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead className="text-right">Chi tiết</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentPayments.map((payment) => (
-                    <TableRow key={payment.id}>
-                      <TableCell className="font-mono text-sm">
-                        {payment.invoice?.invoice_number || payment.id.slice(0, 8)}
-                      </TableCell>
-                      <TableCell className="font-semibold text-primary">
-                        {formatVNCurrency(payment.amount)}
-                      </TableCell>
-                      <TableCell>
-                        {payment.payment_date
-                          ? new Date(payment.payment_date).toLocaleString('vi-VN')
-                          : new Date(payment.created_at).toLocaleString('vi-VN')}
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(payment.payment_status)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleViewQR(payment)}
-                        >
-                          Xem chi tiết
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
       </div>
 
       <ViewPaymentQRDialog
