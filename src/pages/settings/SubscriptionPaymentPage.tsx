@@ -11,93 +11,100 @@ import { Loader2, ArrowLeft, CheckCircle, XCircle, Clock, AlertTriangle, History
 import { formatVNCurrency } from '@/lib/pricing';
 import { toast } from 'sonner';
 import Confetti from 'react-confetti';
-
 export default function SubscriptionPaymentPage() {
-  const { invoiceId } = useParams<{ invoiceId: string }>();
+  const {
+    invoiceId
+  } = useParams<{
+    invoiceId: string;
+  }>();
   const navigate = useNavigate();
-  const { data: bankSettings, isLoading: isLoadingBank } = useBankPaymentSettings();
+  const {
+    data: bankSettings,
+    isLoading: isLoadingBank
+  } = useBankPaymentSettings();
   const queryClient = useQueryClient();
   const [showConfetti, setShowConfetti] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
 
   // Fetch payment transaction with invoice
-  const { data: payment, isLoading, error, refetch } = useQuery({
+  const {
+    data: payment,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
     queryKey: ['payment-transaction', invoiceId],
     queryFn: async () => {
       if (!invoiceId) throw new Error('Missing invoiceId');
-
-      const { data, error } = await supabase
-        .from('payment_transactions')
-        .select(`
+      const {
+        data,
+        error
+      } = await supabase.from('payment_transactions').select(`
           *,
           invoice:invoices(*)
-        `)
-        .eq('invoice_id', invoiceId)
-        .single();
-
+        `).eq('invoice_id', invoiceId).single();
       if (error) throw error;
       return data;
     },
     enabled: !!invoiceId,
-    refetchInterval: 5000, // Refetch every 5s as backup
+    refetchInterval: 5000 // Refetch every 5s as backup
   });
 
   // Realtime subscription for instant updates
   useEffect(() => {
     if (!payment?.id) return;
+    const channel = supabase.channel(`payment-status-${payment.id}`).on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'payment_transactions',
+      filter: `id=eq.${payment.id}`
+    }, payload => {
+      console.log('Payment update received:', payload);
+      const newStatus = payload.new?.payment_status;
+      const oldStatus = payload.old?.payment_status;
 
-    const channel = supabase
-      .channel(`payment-status-${payment.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'payment_transactions',
-          filter: `id=eq.${payment.id}`,
-        },
-        (payload) => {
-          console.log('Payment update received:', payload);
-          const newStatus = payload.new?.payment_status;
-          const oldStatus = payload.old?.payment_status;
-          
-          // Check using payload.old instead of React state to ensure accurate comparison
-          if (newStatus === 'completed' && oldStatus !== 'completed') {
-            setJustCompleted(true);
-            setShowConfetti(true);
-            toast.success('🎉 Thanh toán thành công!', {
-              description: 'Gói dịch vụ của bạn đã được kích hoạt.',
-              duration: 5000,
-            });
-            // Invalidate related queries
-            queryClient.invalidateQueries({ queryKey: ['tenant-subscription'] });
-            queryClient.invalidateQueries({ queryKey: ['pending-payments'] });
-            queryClient.invalidateQueries({ queryKey: ['pending-payments-count'] });
-            queryClient.invalidateQueries({ queryKey: ['payment-transactions'] });
-            queryClient.invalidateQueries({ queryKey: ['invoices'] });
-            // Hide confetti after 5 seconds
-            setTimeout(() => setShowConfetti(false), 5000);
-          } else if (newStatus === 'failed' && oldStatus !== 'failed') {
-            toast.error('Thanh toán bị từ chối', {
-              description: 'Vui lòng liên hệ hỗ trợ để được giúp đỡ.',
-            });
-          }
-          
-          // Always refetch to update UI
-          refetch();
-        }
-      )
-      .subscribe();
+      // Check using payload.old instead of React state to ensure accurate comparison
+      if (newStatus === 'completed' && oldStatus !== 'completed') {
+        setJustCompleted(true);
+        setShowConfetti(true);
+        toast.success('🎉 Thanh toán thành công!', {
+          description: 'Gói dịch vụ của bạn đã được kích hoạt.',
+          duration: 5000
+        });
+        // Invalidate related queries
+        queryClient.invalidateQueries({
+          queryKey: ['tenant-subscription']
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['pending-payments']
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['pending-payments-count']
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['payment-transactions']
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['invoices']
+        });
+        // Hide confetti after 5 seconds
+        setTimeout(() => setShowConfetti(false), 5000);
+      } else if (newStatus === 'failed' && oldStatus !== 'failed') {
+        toast.error('Thanh toán bị từ chối', {
+          description: 'Vui lòng liên hệ hỗ trợ để được giúp đỡ.'
+        });
+      }
 
+      // Always refetch to update UI
+      refetch();
+    }).subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
   }, [payment?.id, refetch]);
-
   const handleBack = () => {
     navigate('/settings/subscription');
   };
-
   const handleViewHistory = () => {
     navigate('/settings/subscription');
     // Small delay to ensure navigation, then switch tab
@@ -106,21 +113,16 @@ export default function SubscriptionPaymentPage() {
       if (historyTab) historyTab.click();
     }, 100);
   };
-
   if (isLoading || isLoadingBank) {
-    return (
-      <div className="container mx-auto py-6 flex items-center justify-center min-h-[60vh]">
+    return <div className="container mx-auto py-6 flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-4">
           <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary" />
           <p className="text-muted-foreground">Đang tải thông tin thanh toán...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (error || !payment) {
-    return (
-      <div className="container mx-auto py-6">
+    return <div className="container mx-auto py-6">
         <Card className="max-w-lg mx-auto">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
@@ -138,10 +140,8 @@ export default function SubscriptionPaymentPage() {
             </Button>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
   const paymentStatus = payment.payment_status as string;
   const paymentContent = payment.transaction_reference || '';
   const amount = payment.amount || 0;
@@ -149,8 +149,7 @@ export default function SubscriptionPaymentPage() {
 
   // Success state
   if (paymentStatus === 'completed') {
-    return (
-      <div className="container mx-auto py-6">
+    return <div className="container mx-auto py-6">
         {showConfetti && <Confetti recycle={false} numberOfPieces={200} />}
         <Card className={`max-w-lg mx-auto transition-all duration-500 ${justCompleted ? 'animate-in zoom-in-95 fade-in' : ''}`}>
           <CardHeader className="text-center">
@@ -173,18 +172,14 @@ export default function SubscriptionPaymentPage() {
                   <span className="text-muted-foreground">Mã thanh toán</span>
                   <span className="font-mono font-medium">{paymentContent}</span>
                 </div>
-                {payment.gateway_transaction_id && (
-                  <div className="flex justify-between">
+                {payment.gateway_transaction_id && <div className="flex justify-between">
                     <span className="text-muted-foreground">Mã giao dịch NH</span>
                     <span className="font-mono text-xs">{payment.gateway_transaction_id}</span>
-                  </div>
-                )}
-                {payment.payment_date && (
-                  <div className="flex justify-between">
+                  </div>}
+                {payment.payment_date && <div className="flex justify-between">
                     <span className="text-muted-foreground">Xác nhận lúc</span>
                     <span>{new Date(payment.payment_date).toLocaleString('vi-VN')}</span>
-                  </div>
-                )}
+                  </div>}
               </div>
             </div>
             <div className="flex flex-col gap-2">
@@ -199,14 +194,12 @@ export default function SubscriptionPaymentPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
 
   // Failed state
   if (paymentStatus === 'failed') {
-    return (
-      <div className="container mx-auto py-6">
+    return <div className="container mx-auto py-6">
         <Card className="max-w-lg mx-auto">
           <CardHeader className="text-center">
             <div className="mx-auto w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
@@ -218,25 +211,21 @@ export default function SubscriptionPaymentPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {payment.notes && (
-              <Alert variant="destructive">
+            {payment.notes && <Alert variant="destructive">
                 <AlertDescription>{payment.notes}</AlertDescription>
-              </Alert>
-            )}
+              </Alert>}
             <Button onClick={handleBack} className="w-full">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Quay lại quản lý đăng ký
             </Button>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
 
   // Pending state - show QR Code
   if (!bankSettings) {
-    return (
-      <div className="container mx-auto py-6">
+    return <div className="container mx-auto py-6">
         <Card className="max-w-lg mx-auto">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-amber-600">
@@ -254,12 +243,9 @@ export default function SubscriptionPaymentPage() {
             </Button>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="container mx-auto py-6 max-w-lg">
+  return <div className="container mx-auto py-6 max-w-lg">
       <div className="mb-6">
         <Button variant="ghost" onClick={handleBack} className="mb-2">
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -282,23 +268,10 @@ export default function SubscriptionPaymentPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <BankQRCode
-            bankCode={bankSettings.bank_code}
-            bankName={bankSettings.bank_name}
-            accountNumber={bankSettings.account_number}
-            accountHolder={bankSettings.account_holder}
-            amount={amount}
-            paymentContent={paymentContent}
-            qrTemplate={bankSettings.qr_template}
-          />
+          <BankQRCode bankCode={bankSettings.bank_code} bankName={bankSettings.bank_name} accountNumber={bankSettings.account_number} accountHolder={bankSettings.account_holder} amount={amount} paymentContent={paymentContent} qrTemplate={bankSettings.qr_template} />
 
-          <Alert className="bg-blue-50 dark:bg-blue-950/30 border-blue-200">
-            <AlertDescription className="text-sm">
-              <span className="font-medium">Tự động cập nhật:</span> Sau khi chuyển khoản, hệ thống sẽ tự động xác nhận trong vài giây và trang này sẽ cập nhật ngay lập tức.
-            </AlertDescription>
-          </Alert>
+          
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 }
