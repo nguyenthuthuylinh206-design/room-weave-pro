@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +28,8 @@ import {
 import { useState } from 'react';
 import { PlanChangeDialog } from './PlanChangeDialog';
 import { AddRoomsDialog } from './AddRoomsDialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   active: { label: 'Đang hoạt động', variant: 'default' },
@@ -37,10 +40,37 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
 };
 
 export function SubscriptionOverview() {
+  const queryClient = useQueryClient();
   const { data: subscription, isLoading, error } = useTenantSubscription();
   const { registeredRooms, actualRooms, remainingSlots, canCreateRoom } = useRoomSubscriptionLimit();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [addRoomsDialogOpen, setAddRoomsDialogOpen] = useState(false);
+
+  // Realtime subscription for tenant updates (room count, subscription dates)
+  useEffect(() => {
+    if (!subscription?.id) return;
+
+    const channel = supabase
+      .channel(`subscription-overview-${subscription.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tenants',
+          filter: `id=eq.${subscription.id}`,
+        },
+        () => {
+          // Invalidate subscription queries to refresh data
+          queryClient.invalidateQueries({ queryKey: ['tenant-subscription'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [subscription?.id, queryClient]);
 
   if (isLoading) {
     return (
