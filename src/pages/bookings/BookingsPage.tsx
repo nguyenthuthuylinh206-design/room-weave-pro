@@ -68,6 +68,10 @@ interface BookingWithRoom {
   room_id: string
   hotel_id: string
   tenant_id: string
+  total_amount?: number
+  deposit_amount?: number
+  amount_paid?: number
+  payment_status?: string
   room: {
     room_number: string
     room_type: string
@@ -309,10 +313,10 @@ export function BookingsPage() {
                 <TableRow>
                   <TableHead>Khách</TableHead>
                   <TableHead>Phòng</TableHead>
-                  <TableHead>Trạng thái phòng</TableHead>
                   <TableHead>Check-in</TableHead>
                   <TableHead>Check-out</TableHead>
-                  <TableHead>Số đêm</TableHead>
+                  <TableHead>Tổng tiền</TableHead>
+                  <TableHead>Thanh toán</TableHead>
                   <TableHead>Trạng thái</TableHead>
                   <TableHead>Thao tác</TableHead>
                 </TableRow>
@@ -358,11 +362,6 @@ export function BookingsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {booking.room?.status && (
-                          <RoomStatusBadge status={booking.room.status} />
-                        )}
-                      </TableCell>
-                      <TableCell>
                         <p className={isToday(new Date(booking.check_in_date)) ? 'text-blue-600 font-medium' : ''}>
                           {format(new Date(booking.check_in_date), 'dd/MM/yyyy', { locale: vi })}
                         </p>
@@ -383,10 +382,30 @@ export function BookingsPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Clock className="h-4 w-4" />
-                          <span>{nights} đêm</span>
-                        </div>
+                        <p className="font-mono text-sm font-medium">
+                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(booking.total_amount || 0)}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          const remaining = (booking.total_amount || 0) - (booking.deposit_amount || 0) - (booking.amount_paid || 0)
+                          const paymentStatus = booking.payment_status || 'pending'
+                          
+                          if (paymentStatus === 'paid' || remaining <= 0) {
+                            return <span className="text-xs font-medium text-green-600">Đã TT</span>
+                          } else if ((booking.deposit_amount || 0) + (booking.amount_paid || 0) > 0) {
+                            return (
+                              <div>
+                                <span className="text-xs font-medium text-amber-600">1 phần</span>
+                                <p className="text-xs text-muted-foreground font-mono">
+                                  Còn: {new Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(remaining)}
+                                </p>
+                              </div>
+                            )
+                          } else {
+                            return <span className="text-xs text-muted-foreground">Chờ TT</span>
+                          }
+                        })()}
                       </TableCell>
                       <TableCell>
                         {getStatusBadge(booking.status, booking.check_out_date)}
