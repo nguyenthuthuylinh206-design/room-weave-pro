@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,8 @@ import { Loader2, Clock, CheckCircle, XCircle, QrCode, RefreshCw } from 'lucide-
 import { formatVNCurrency } from '@/lib/pricing';
 import { usePendingPayments, type PendingPayment } from '@/hooks/usePendingPayments';
 import { ViewPaymentQRDialog } from '@/components/payment/ViewPaymentQRDialog';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export function PendingPayments() {
   const { data: payments, isLoading, refetch, isRefetching } = usePendingPayments();
@@ -16,23 +18,68 @@ export function PendingPayments() {
   const pendingPayments = payments?.filter(p => p.payment_status === 'pending') || [];
   const recentPayments = payments?.filter(p => p.payment_status !== 'pending').slice(0, 5) || [];
 
+  // Realtime subscription for payment status changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('pending-payments-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'payment_transactions',
+        },
+        (payload) => {
+          console.log('Payment update received in PendingPayments:', payload);
+          const newStatus = payload.new?.payment_status;
+          const oldStatus = payload.old?.payment_status;
+          
+          if (oldStatus === 'pending' && newStatus === 'completed') {
+            toast.success('🎉 Thanh toán đã được xác nhận!', {
+              description: 'Danh sách đang được cập nhật...',
+            });
+          } else if (oldStatus === 'pending' && newStatus === 'failed') {
+            toast.error('Một giao dịch đã bị từ chối');
+          }
+          
+          refetch();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'payment_transactions',
+        },
+        () => {
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetch]);
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
         return (
-          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800">
             <Clock className="h-3 w-3 mr-1" /> Chờ xác nhận
           </Badge>
         );
       case 'completed':
         return (
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800">
             <CheckCircle className="h-3 w-3 mr-1" /> Đã thanh toán
           </Badge>
         );
       case 'failed':
         return (
-          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800">
             <XCircle className="h-3 w-3 mr-1" /> Từ chối
           </Badge>
         );
@@ -68,11 +115,13 @@ export function PendingPayments() {
                   <Clock className="h-5 w-5" />
                   Đang chờ thanh toán
                   {pendingPayments.length > 0 && (
-                    <Badge variant="secondary">{pendingPayments.length}</Badge>
+                    <Badge variant="destructive" className="animate-pulse">
+                      {pendingPayments.length}
+                    </Badge>
                   )}
                 </CardTitle>
                 <CardDescription>
-                  Các giao dịch đang chờ xác nhận từ quản trị viên
+                  Các giao dịch đang chờ xác nhận (tự động cập nhật)
                 </CardDescription>
               </div>
               <Button
@@ -106,7 +155,7 @@ export function PendingPayments() {
                 </TableHeader>
                 <TableBody>
                   {pendingPayments.map((payment) => (
-                    <TableRow key={payment.id}>
+                    <TableRow key={payment.id} className="transition-colors hover:bg-muted/50">
                       <TableCell className="font-mono text-sm">
                         {payment.invoice?.invoice_number || payment.id.slice(0, 8)}
                       </TableCell>

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,16 +7,20 @@ import { BankQRCode } from '@/components/payment/BankQRCode';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, ArrowLeft, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle, XCircle, Clock, AlertTriangle, History } from 'lucide-react';
 import { formatVNCurrency } from '@/lib/pricing';
+import { toast } from 'sonner';
+import Confetti from 'react-confetti';
 
 export default function SubscriptionPaymentPage() {
   const { invoiceId } = useParams<{ invoiceId: string }>();
   const navigate = useNavigate();
   const { data: bankSettings, isLoading: isLoadingBank } = useBankPaymentSettings();
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [justCompleted, setJustCompleted] = useState(false);
 
   // Fetch payment transaction with invoice
-  const { data: payment, isLoading, error } = useQuery({
+  const { data: payment, isLoading, error, refetch } = useQuery({
     queryKey: ['payment-transaction', invoiceId],
     queryFn: async () => {
       if (!invoiceId) throw new Error('Missing invoiceId');
@@ -33,11 +38,63 @@ export default function SubscriptionPaymentPage() {
       return data;
     },
     enabled: !!invoiceId,
-    refetchInterval: 10000, // Refetch every 10s to check for status updates
+    refetchInterval: 5000, // Refetch every 5s as backup
   });
+
+  // Realtime subscription for instant updates
+  useEffect(() => {
+    if (!payment?.id) return;
+
+    const channel = supabase
+      .channel(`payment-status-${payment.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'payment_transactions',
+          filter: `id=eq.${payment.id}`,
+        },
+        (payload) => {
+          console.log('Payment update received:', payload);
+          const newStatus = payload.new?.payment_status;
+          
+          if (newStatus === 'completed' && payment.payment_status !== 'completed') {
+            setJustCompleted(true);
+            setShowConfetti(true);
+            toast.success('🎉 Thanh toán thành công!', {
+              description: 'Gói dịch vụ của bạn đã được kích hoạt.',
+              duration: 5000,
+            });
+            // Hide confetti after 5 seconds
+            setTimeout(() => setShowConfetti(false), 5000);
+          } else if (newStatus === 'failed' && payment.payment_status !== 'failed') {
+            toast.error('Thanh toán bị từ chối', {
+              description: 'Vui lòng liên hệ hỗ trợ để được giúp đỡ.',
+            });
+          }
+          
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [payment?.id, payment?.payment_status, refetch]);
 
   const handleBack = () => {
     navigate('/settings/subscription');
+  };
+
+  const handleViewHistory = () => {
+    navigate('/settings/subscription');
+    // Small delay to ensure navigation, then switch tab
+    setTimeout(() => {
+      const historyTab = document.querySelector('[value="history"]') as HTMLElement;
+      if (historyTab) historyTab.click();
+    }, 100);
   };
 
   if (isLoading || isLoadingBank) {
@@ -84,37 +141,52 @@ export default function SubscriptionPaymentPage() {
   if (paymentStatus === 'completed') {
     return (
       <div className="container mx-auto py-6">
-        <Card className="max-w-lg mx-auto">
+        {showConfetti && <Confetti recycle={false} numberOfPieces={200} />}
+        <Card className={`max-w-lg mx-auto transition-all duration-500 ${justCompleted ? 'animate-in zoom-in-95 fade-in' : ''}`}>
           <CardHeader className="text-center">
-            <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle className="h-10 w-10 text-green-600" />
+            <div className="mx-auto w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4 animate-in zoom-in-50 duration-300">
+              <CheckCircle className="h-12 w-12 text-green-600" />
             </div>
-            <CardTitle className="text-green-600">Thanh toán thành công!</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-2xl text-green-600">Thanh toán thành công!</CardTitle>
+            <CardDescription className="text-base">
               Cảm ơn bạn đã thanh toán. Gói dịch vụ đã được kích hoạt.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Số tiền</span>
-                <span className="font-medium">{formatVNCurrency(amount)}</span>
+            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Số tiền thanh toán</span>
+                <span className="font-bold text-lg text-primary">{formatVNCurrency(amount)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Mã thanh toán</span>
-                <span className="font-mono">{paymentContent}</span>
-              </div>
-              {payment.payment_date && (
+              <div className="border-t pt-3 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Xác nhận lúc</span>
-                  <span>{new Date(payment.payment_date).toLocaleString('vi-VN')}</span>
+                  <span className="text-muted-foreground">Mã thanh toán</span>
+                  <span className="font-mono font-medium">{paymentContent}</span>
                 </div>
-              )}
+                {payment.gateway_transaction_id && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Mã giao dịch NH</span>
+                    <span className="font-mono text-xs">{payment.gateway_transaction_id}</span>
+                  </div>
+                )}
+                {payment.payment_date && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Xác nhận lúc</span>
+                    <span>{new Date(payment.payment_date).toLocaleString('vi-VN')}</span>
+                  </div>
+                )}
+              </div>
             </div>
-            <Button onClick={handleBack} className="w-full">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Quay lại quản lý đăng ký
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button onClick={handleBack} className="w-full">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Quay lại quản lý đăng ký
+              </Button>
+              <Button variant="outline" onClick={handleViewHistory} className="w-full">
+                <History className="h-4 w-4 mr-2" />
+                Xem lịch sử giao dịch
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -192,7 +264,7 @@ export default function SubscriptionPaymentPage() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2 text-amber-600">
-            <Clock className="h-5 w-5" />
+            <Clock className="h-5 w-5 animate-pulse" />
             <CardTitle className="text-base">Đang chờ thanh toán</CardTitle>
           </div>
           <CardDescription>
@@ -210,10 +282,9 @@ export default function SubscriptionPaymentPage() {
             qrTemplate={bankSettings.qr_template}
           />
 
-          <Alert>
+          <Alert className="bg-blue-50 dark:bg-blue-950/30 border-blue-200">
             <AlertDescription className="text-sm">
-              Sau khi chuyển khoản, hệ thống sẽ tự động xác nhận trong vài phút. 
-              Trang này sẽ tự động cập nhật trạng thái.
+              <span className="font-medium">Tự động cập nhật:</span> Sau khi chuyển khoản, hệ thống sẽ tự động xác nhận trong vài giây và trang này sẽ cập nhật ngay lập tức.
             </AlertDescription>
           </Alert>
         </CardContent>
