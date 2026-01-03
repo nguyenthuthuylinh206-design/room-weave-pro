@@ -197,7 +197,8 @@ export function RoomBookingDialog({
     
     setIsSubmitting(true)
     try {
-      const { error } = await supabase
+      // Update booking status
+      const { error: bookingError } = await supabase
         .from('room_bookings')
         .update({
           status: 'checked_in',
@@ -205,13 +206,23 @@ export function RoomBookingDialog({
         })
         .eq('id', booking.id)
         
-      if (error) throw error
+      if (bookingError) throw bookingError
+
+      // Update room status to 'occupied'
+      const { error: roomError } = await supabase
+        .from('rooms')
+        .update({ status: 'occupied' })
+        .eq('id', roomId)
+        
+      if (roomError) throw roomError
       
       toast({
         title: t('booking.checkInSuccess'),
       })
       
       queryClient.invalidateQueries({ queryKey: ['room-booking', roomId] })
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+      queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
       queryClient.invalidateQueries({ queryKey: ['booking-stats'] })
       onOpenChange(false)
     } catch (error: any) {
@@ -230,7 +241,8 @@ export function RoomBookingDialog({
     
     setIsSubmitting(true)
     try {
-      const { error } = await supabase
+      // Update booking status
+      const { error: bookingError } = await supabase
         .from('room_bookings')
         .update({
           status: 'checked_out',
@@ -238,13 +250,23 @@ export function RoomBookingDialog({
         })
         .eq('id', booking.id)
         
-      if (error) throw error
+      if (bookingError) throw bookingError
+
+      // Update room status to 'check_out' (needs inspection/cleaning)
+      const { error: roomError } = await supabase
+        .from('rooms')
+        .update({ status: 'check_out' })
+        .eq('id', roomId)
+        
+      if (roomError) throw roomError
       
       toast({
         title: t('booking.checkOutSuccess'),
       })
       
       queryClient.invalidateQueries({ queryKey: ['room-booking', roomId] })
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+      queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
       queryClient.invalidateQueries({ queryKey: ['booking-stats'] })
       onOpenChange(false)
     } catch (error: any) {

@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { format, isToday, isTomorrow, isPast, differenceInDays } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Calendar,
   Search,
@@ -19,6 +19,7 @@ import {
   LogOut,
   XCircle,
   CalendarDays,
+  Loader2,
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -46,6 +47,9 @@ import { useHotelContext } from '@/contexts/HotelContext'
 import { useTenant } from '@/hooks/useTenant'
 import { RoomBookingDialog } from '@/components/rooms/RoomBookingDialog'
 import { AddBookingDialog } from '@/components/bookings/AddBookingDialog'
+import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
+import { useBookingActions } from '@/hooks/useBookingActions'
+import type { RoomStatus } from '@/types/rooms.types'
 
 type BookingStatus = 'all' | 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show'
 
@@ -68,6 +72,7 @@ interface BookingWithRoom {
     room_number: string
     room_type: string
     floor: number
+    status: RoomStatus
   }
 }
 
@@ -85,6 +90,27 @@ export function BookingsPage() {
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState<BookingWithRoom | null>(null)
   
+  const queryClient = useQueryClient()
+  const { handleCheckIn, handleCheckOut, isLoading: isActionLoading } = useBookingActions()
+  const [actioningBookingId, setActioningBookingId] = useState<string | null>(null)
+
+  // Realtime subscription for bookings and rooms
+  useEffect(() => {
+    const channel = supabase
+      .channel('bookings-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_bookings' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [queryClient])
+
   const { data: bookings, isLoading } = useQuery({
     queryKey: ['all-bookings', selectedHotelId, statusFilter],
     queryFn: async () => {
@@ -92,7 +118,7 @@ export function BookingsPage() {
         .from('room_bookings')
         .select(`
           *,
-          room:rooms(room_number, room_type, floor)
+          room:rooms(room_number, room_type, floor, status)
         `)
         .order('check_in_date', { ascending: false })
         .limit(100)
@@ -283,11 +309,12 @@ export function BookingsPage() {
                 <TableRow>
                   <TableHead>Khách</TableHead>
                   <TableHead>Phòng</TableHead>
+                  <TableHead>Trạng thái phòng</TableHead>
                   <TableHead>Check-in</TableHead>
                   <TableHead>Check-out</TableHead>
                   <TableHead>Số đêm</TableHead>
                   <TableHead>Trạng thái</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
+                  <TableHead>Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -331,6 +358,11 @@ export function BookingsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
+                        {booking.room?.status && (
+                          <RoomStatusBadge status={booking.room.status} />
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <p className={isToday(new Date(booking.check_in_date)) ? 'text-blue-600 font-medium' : ''}>
                           {format(new Date(booking.check_in_date), 'dd/MM/yyyy', { locale: vi })}
                         </p>
@@ -359,8 +391,56 @@ export function BookingsPage() {
                       <TableCell>
                         {getStatusBadge(booking.status, booking.check_out_date)}
                       </TableCell>
-                      <TableCell>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1">
+                          {booking.status === 'confirmed' && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
+                              disabled={isActionLoading && actioningBookingId === booking.id}
+                              onClick={async () => {
+                                setActioningBookingId(booking.id)
+                                await handleCheckIn(booking.id, booking.room_id)
+                                setActioningBookingId(null)
+                              }}
+                            >
+                              {isActionLoading && actioningBookingId === booking.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <>
+                                  <LogIn className="h-3 w-3 mr-1" />
+                                  Check-in
+                                </>
+                              )}
+                            </Button>
+                          )}
+                          {booking.status === 'checked_in' && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs text-orange-600 border-orange-200 hover:bg-orange-50"
+                              disabled={isActionLoading && actioningBookingId === booking.id}
+                              onClick={async () => {
+                                setActioningBookingId(booking.id)
+                                await handleCheckOut(booking.id, booking.room_id)
+                                setActioningBookingId(null)
+                              }}
+                            >
+                              {isActionLoading && actioningBookingId === booking.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <>
+                                  <LogOut className="h-3 w-3 mr-1" />
+                                  Check-out
+                                </>
+                              )}
+                            </Button>
+                          )}
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </div>
                       </TableCell>
                     </TableRow>
                   )
