@@ -74,5 +74,6 @@ export function usePendingPaymentsCount() {
       return count || 0;
     },
     enabled: !!tenantId,
+    refetchInterval: 30000, // Refetch every 30 seconds for badge updates
   });
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
 import { BankQRCode } from '@/components/payment/BankQRCode';
@@ -16,6 +16,7 @@ export default function SubscriptionPaymentPage() {
   const { invoiceId } = useParams<{ invoiceId: string }>();
   const navigate = useNavigate();
   const { data: bankSettings, isLoading: isLoadingBank } = useBankPaymentSettings();
+  const queryClient = useQueryClient();
   const [showConfetti, setShowConfetti] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
 
@@ -68,6 +69,12 @@ export default function SubscriptionPaymentPage() {
               description: 'Gói dịch vụ của bạn đã được kích hoạt.',
               duration: 5000,
             });
+            // Invalidate related queries
+            queryClient.invalidateQueries({ queryKey: ['tenant-subscription'] });
+            queryClient.invalidateQueries({ queryKey: ['pending-payments'] });
+            queryClient.invalidateQueries({ queryKey: ['pending-payments-count'] });
+            queryClient.invalidateQueries({ queryKey: ['payment-transactions'] });
+            queryClient.invalidateQueries({ queryKey: ['invoices'] });
             // Hide confetti after 5 seconds
             setTimeout(() => setShowConfetti(false), 5000);
           } else if (newStatus === 'failed' && oldStatus !== 'failed') {

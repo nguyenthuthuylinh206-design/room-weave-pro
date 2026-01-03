@@ -223,7 +223,7 @@ export function PlanChangeDialog({
           autoCreateInvoice={true}
           onPaymentCreated={handlePaymentCreated}
           metadata={{
-            type: 'renewal',
+            type: 'extend',
             rooms: registeredRooms,
             duration_days: selectedDuration,
           }}
