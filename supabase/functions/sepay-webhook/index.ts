@@ -5,6 +5,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Normalize string: remove special characters and convert to uppercase
+// This helps match "HDMJX15ZZB" with "HD-MJX15ZZB"
+function normalizeString(str: string): string {
+  return str.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+}
+
 interface SepayWebhookPayload {
   id: number;
   gateway: string;
@@ -105,34 +111,54 @@ Deno.serve(async (req) => {
     console.log(`Found ${pendingPayments?.length || 0} pending payments`);
 
     // Find matching payment by checking if content contains the invoice number or transaction reference
+    // Normalize strings to handle banks removing special characters (e.g., "HD-MJX15ZZB" -> "HDMJX15ZZB")
     let matchedPayment = null;
+    const normalizedContent = normalizeString(content);
+    console.log('Normalized content:', normalizedContent);
+
     for (const payment of pendingPayments || []) {
       const invoiceNumber = payment.invoice?.invoice_number || '';
       const transactionRef = payment.transaction_reference || '';
+      const normalizedInvoiceNum = normalizeString(invoiceNumber);
+      const normalizedTransRef = normalizeString(transactionRef);
       
-      // Check if the transfer content contains the invoice number or transaction reference
-      if (
-        (invoiceNumber && content.toUpperCase().includes(invoiceNumber.toUpperCase())) ||
-        (transactionRef && content.toUpperCase().includes(transactionRef.toUpperCase()))
-      ) {
+      console.log(`Checking payment ${payment.id}:`);
+      console.log(`  - Invoice: "${invoiceNumber}" -> normalized: "${normalizedInvoiceNum}"`);
+      console.log(`  - TransRef: "${transactionRef}" -> normalized: "${normalizedTransRef}"`);
+      console.log(`  - Content normalized: "${normalizedContent}"`);
+      
+      // Check if the normalized transfer content contains the normalized invoice number or transaction reference
+      const invoiceMatch = normalizedInvoiceNum && normalizedContent.includes(normalizedInvoiceNum);
+      const transRefMatch = normalizedTransRef && normalizedContent.includes(normalizedTransRef);
+      
+      console.log(`  - Invoice match: ${invoiceMatch}, TransRef match: ${transRefMatch}`);
+      
+      if (invoiceMatch || transRefMatch) {
         // Verify amount matches (with some tolerance for bank fees)
         const amountDiff = Math.abs(payment.amount - payload.transferAmount);
+        console.log(`  - Amount check: expected ${payment.amount}, got ${payload.transferAmount}, diff: ${amountDiff}`);
+        
         if (amountDiff <= 1000) { // Allow 1000 VND tolerance
+          console.log(`  - ✅ MATCHED!`);
           matchedPayment = payment;
           break;
         } else {
-          console.log(`Amount mismatch: expected ${payment.amount}, got ${payload.transferAmount}`);
+          console.log(`  - ❌ Amount mismatch (diff > 1000 VND)`);
         }
+      } else {
+        console.log(`  - ❌ No content match`);
       }
     }
 
     if (!matchedPayment) {
       console.log('No matching pending payment found for content:', content);
+      console.log('Normalized content was:', normalizedContent);
       return new Response(
         JSON.stringify({ 
           success: true, 
           message: 'No matching pending payment found',
           content: content,
+          normalizedContent: normalizedContent,
           amount: payload.transferAmount
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
