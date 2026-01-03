@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,15 +10,41 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { usePaymentTransactions, useInvoices } from "@/hooks/useSubscription";
 import { formatDate } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Download, FileText, Loader2 } from "lucide-react";
+import { FileText, Loader2, Eye } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from '@/integrations/supabase/client';
+import { formatVNCurrency } from '@/lib/pricing';
+import { Separator } from '@/components/ui/separator';
 
 export function BillingHistory() {
-  const { data: transactions, isLoading: loadingTransactions } = usePaymentTransactions();
-  const { data: invoices, isLoading: loadingInvoices } = useInvoices();
+  const { data: transactions, isLoading: loadingTransactions, refetch: refetchTransactions } = usePaymentTransactions();
+  const { data: invoices, isLoading: loadingInvoices, refetch: refetchInvoices } = useInvoices();
+  const [selectedInvoice, setSelectedInvoice] = useState<typeof invoices extends (infer T)[] | null | undefined ? T : never>(null);
+
+  // Realtime subscription for payment updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('billing-history-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'payment_transactions' },
+        () => refetchTransactions()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'invoices' },
+        () => refetchInvoices()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetchTransactions, refetchInvoices]);
 
   const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
     completed: { label: "Hoàn thành", variant: "default" },
@@ -89,17 +116,20 @@ export function BillingHistory() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-semibold">
-                        {transaction.amount.toLocaleString('vi-VN')}đ
+                        {formatVNCurrency(transaction.amount)}
                       </TableCell>
                       <TableCell className="text-right">
                         {transaction.invoice_id && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            disabled
+                            onClick={() => {
+                              const inv = invoices?.find(i => i.id === transaction.invoice_id);
+                              if (inv) setSelectedInvoice(inv);
+                            }}
                           >
-                            <FileText className="h-4 w-4 mr-1" />
-                            Xem hóa đơn
+                            <Eye className="h-4 w-4 mr-1" />
+                            Chi tiết
                           </Button>
                         )}
                       </TableCell>
@@ -159,12 +189,16 @@ export function BillingHistory() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right font-semibold">
-                      {invoice.total_amount.toLocaleString('vi-VN')}đ
+                      {formatVNCurrency(invoice.total_amount)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" disabled>
-                        <Download className="h-4 w-4 mr-1" />
-                        Tải xuống
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setSelectedInvoice(invoice)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Chi tiết
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -174,6 +208,91 @@ export function BillingHistory() {
           )}
         </CardContent>
       </Card>
+
+      {/* Invoice Detail Dialog */}
+      <Dialog open={!!selectedInvoice} onOpenChange={(open) => !open && setSelectedInvoice(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Hóa đơn {selectedInvoice?.invoice_number}
+            </DialogTitle>
+            <DialogDescription>
+              Chi tiết hóa đơn và thông tin thanh toán
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedInvoice && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Ngày phát hành:</span>
+                  <p className="font-medium">
+                    {formatDate(new Date(selectedInvoice.invoice_date), 'dd/MM/yyyy', { locale: vi })}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Ngày đáo hạn:</span>
+                  <p className="font-medium">
+                    {formatDate(new Date(selectedInvoice.due_date), 'dd/MM/yyyy', { locale: vi })}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Trạng thái:</span>
+                  <div className="mt-1">
+                    <Badge variant={selectedInvoice.status === 'paid' ? 'default' : 'secondary'}>
+                      {selectedInvoice.status === 'paid' ? 'Đã thanh toán' : 
+                       selectedInvoice.status === 'cancelled' ? 'Đã hủy' : 'Chưa thanh toán'}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Thời hạn:</span>
+                  <p className="font-medium">
+                    {formatDate(new Date(selectedInvoice.period_start), 'dd/MM/yyyy', { locale: vi })} - {formatDate(new Date(selectedInvoice.period_end), 'dd/MM/yyyy', { locale: vi })}
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tạm tính:</span>
+                  <span>{formatVNCurrency(selectedInvoice.subtotal)}</span>
+                </div>
+                {selectedInvoice.discount_amount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Giảm giá:</span>
+                    <span>-{formatVNCurrency(selectedInvoice.discount_amount)}</span>
+                  </div>
+                )}
+                {selectedInvoice.tax_amount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Thuế:</span>
+                    <span>{formatVNCurrency(selectedInvoice.tax_amount)}</span>
+                  </div>
+                )}
+                <Separator />
+                <div className="flex justify-between font-semibold text-base">
+                  <span>Tổng cộng:</span>
+                  <span className="text-primary">{formatVNCurrency(selectedInvoice.total_amount)}</span>
+                </div>
+              </div>
+
+              {selectedInvoice.notes && (
+                <>
+                  <Separator />
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Ghi chú:</span>
+                    <p className="mt-1">{selectedInvoice.notes}</p>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

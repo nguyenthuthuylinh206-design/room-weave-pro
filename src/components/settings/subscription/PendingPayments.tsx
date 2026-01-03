@@ -1,22 +1,29 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Clock, CheckCircle, XCircle, QrCode, RefreshCw } from 'lucide-react';
+import { Loader2, Clock, CheckCircle, XCircle, QrCode, RefreshCw, CreditCard, X } from 'lucide-react';
 import { formatVNCurrency } from '@/lib/pricing';
 import { usePendingPayments, type PendingPayment } from '@/hooks/usePendingPayments';
 import { ViewPaymentQRDialog } from '@/components/payment/ViewPaymentQRDialog';
 import { PaymentSuccessDialog } from './PaymentSuccessDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 export function PendingPayments() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: payments, isLoading, refetch, isRefetching } = usePendingPayments();
   const [selectedPayment, setSelectedPayment] = useState<PendingPayment | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [successPayment, setSuccessPayment] = useState<PendingPayment | null>(null);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [cancelPayment, setCancelPayment] = useState<PendingPayment | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
   const pendingPayments = payments?.filter(p => p.payment_status === 'pending') || [];
   const recentPayments = payments?.filter(p => p.payment_status !== 'pending').slice(0, 5) || [];
 
@@ -47,8 +54,17 @@ export function PendingPayments() {
             toast.success('🎉 Thanh toán đã được xác nhận!', {
               description: 'Gói dịch vụ đã được kích hoạt.',
             });
+            
+            // Invalidate related queries
+            queryClient.invalidateQueries({ queryKey: ['tenant-subscription'] });
+            queryClient.invalidateQueries({ queryKey: ['pending-payments'] });
+            queryClient.invalidateQueries({ queryKey: ['pending-payments-count'] });
+            queryClient.invalidateQueries({ queryKey: ['payment-transactions'] });
+            queryClient.invalidateQueries({ queryKey: ['invoices'] });
           } else if (oldStatus === 'pending' && newStatus === 'failed') {
             toast.error('Một giao dịch đã bị từ chối');
+            queryClient.invalidateQueries({ queryKey: ['pending-payments'] });
+            queryClient.invalidateQueries({ queryKey: ['pending-payments-count'] });
           }
           
           refetch();
@@ -100,6 +116,46 @@ export function PendingPayments() {
   const handleViewQR = (payment: PendingPayment) => {
     setSelectedPayment(payment);
     setIsDialogOpen(true);
+  };
+
+  const handleGoToPayment = (payment: PendingPayment) => {
+    if (payment.invoice_id) {
+      navigate(`/settings/subscription/pay/${payment.invoice_id}`);
+    }
+  };
+
+  const handleCancelPayment = async () => {
+    if (!cancelPayment) return;
+    
+    setIsCancelling(true);
+    try {
+      // Update payment transaction status
+      const { error: paymentError } = await supabase
+        .from('payment_transactions')
+        .update({ payment_status: 'failed' })
+        .eq('id', cancelPayment.id);
+      
+      if (paymentError) throw paymentError;
+
+      // Update invoice status if exists
+      if (cancelPayment.invoice_id) {
+        await supabase
+          .from('invoices')
+          .update({ status: 'cancelled' })
+          .eq('id', cancelPayment.invoice_id);
+      }
+
+      toast.success('Đã hủy đơn hàng');
+      queryClient.invalidateQueries({ queryKey: ['pending-payments'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-payments-count'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    } catch (error) {
+      console.error('Cancel payment error:', error);
+      toast.error('Không thể hủy đơn hàng');
+    } finally {
+      setIsCancelling(false);
+      setCancelPayment(null);
+    }
   };
 
   if (isLoading) {
@@ -181,14 +237,32 @@ export function PendingPayments() {
                         {getStatusBadge(payment.payment_status)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewQR(payment)}
-                        >
-                          <QrCode className="h-4 w-4 mr-2" />
-                          Xem QR
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          {payment.invoice_id && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleGoToPayment(payment)}
+                            >
+                              <CreditCard className="h-4 w-4 mr-2" />
+                              Thanh toán
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleViewQR(payment)}
+                          >
+                            <QrCode className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setCancelPayment(payment)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -265,6 +339,28 @@ export function PendingPayments() {
         payment={successPayment}
         showConfetti={true}
       />
+
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={!!cancelPayment} onOpenChange={(open) => !open && setCancelPayment(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hủy đơn hàng?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc muốn hủy đơn hàng này? Hành động này không thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCancelling}>Không</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelPayment}
+              disabled={isCancelling}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isCancelling ? 'Đang hủy...' : 'Hủy đơn hàng'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

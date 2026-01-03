@@ -162,8 +162,14 @@ export function BankQRCode({
           <li>Kiểm tra thông tin và số tiền</li>
           <li>Nhập đúng nội dung chuyển khoản: <strong>{paymentContent}</strong></li>
           <li>Xác nhận và hoàn tất giao dịch</li>
-          <li>Gói dịch vụ sẽ được kích hoạt sau khi xác nhận</li>
         </ol>
+      </div>
+
+      {/* Auto-confirm notice */}
+      <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-4">
+        <p className="text-sm text-green-700 dark:text-green-300">
+          ✨ <strong>Tự động xác nhận:</strong> Sau khi chuyển khoản thành công, hệ thống sẽ tự động xác nhận và kích hoạt gói dịch vụ trong vài giây. Bạn không cần phải làm gì thêm!
+        </p>
       </div>
     </div>
   );
