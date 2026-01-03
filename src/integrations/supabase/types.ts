@@ -3677,12 +3677,16 @@ export type Database = {
         Row: {
           actual_check_in: string | null
           actual_check_out: string | null
+          amount_paid: number | null
           booking_reference: string | null
           booking_source: string | null
           check_in_date: string
           check_out_date: string
           created_at: string | null
           created_by: string | null
+          deposit_amount: number | null
+          expected_check_in_time: string | null
+          expected_check_out_time: string | null
           extra_charges: number | null
           guest_count: number | null
           guest_email: string | null
@@ -3703,12 +3707,16 @@ export type Database = {
         Insert: {
           actual_check_in?: string | null
           actual_check_out?: string | null
+          amount_paid?: number | null
           booking_reference?: string | null
           booking_source?: string | null
           check_in_date: string
           check_out_date: string
           created_at?: string | null
           created_by?: string | null
+          deposit_amount?: number | null
+          expected_check_in_time?: string | null
+          expected_check_out_time?: string | null
           extra_charges?: number | null
           guest_count?: number | null
           guest_email?: string | null
@@ -3729,12 +3737,16 @@ export type Database = {
         Update: {
           actual_check_in?: string | null
           actual_check_out?: string | null
+          amount_paid?: number | null
           booking_reference?: string | null
           booking_source?: string | null
           check_in_date?: string
           check_out_date?: string
           created_at?: string | null
           created_by?: string | null
+          deposit_amount?: number | null
+          expected_check_in_time?: string | null
+          expected_check_out_time?: string | null
           extra_charges?: number | null
           guest_count?: number | null
           guest_email?: string | null
