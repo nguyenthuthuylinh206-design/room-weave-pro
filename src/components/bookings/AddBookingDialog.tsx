@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { format, addDays } from 'date-fns'
+import { format, addDays, differenceInDays } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { 
   Calendar as CalendarIcon, 
@@ -14,6 +14,9 @@ import {
   Loader2,
   Building2,
   CheckCircle2,
+  Clock,
+  CreditCard,
+  Globe,
 } from 'lucide-react'
 import {
   Dialog,
@@ -24,7 +27,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Calendar } from '@/components/ui/calendar'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -33,12 +35,20 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 import { useAvailableRooms, AvailableRoom } from '@/hooks/useAvailableRooms'
 import { useTenant } from '@/hooks/useTenant'
 import { useHotelContext } from '@/contexts/HotelContext'
+import { BOOKING_SOURCES, TIME_OPTIONS } from '@/lib/constants'
 
 interface AddBookingDialogProps {
   open: boolean
@@ -55,24 +65,49 @@ export function AddBookingDialog({
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { tenant } = useTenant()
-  const { selectedHotel, isAllHotelsMode } = useHotelContext()
+  const { isAllHotelsMode } = useHotelContext()
   
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedRoom, setSelectedRoom] = useState<AvailableRoom | null>(null)
   
-  // Form state
+  // Form state - Step 1: Dates & Times
+  const [checkInDate, setCheckInDate] = useState<Date | undefined>(new Date())
+  const [checkOutDate, setCheckOutDate] = useState<Date | undefined>(addDays(new Date(), 1))
+  const [checkInTime, setCheckInTime] = useState('14:00')
+  const [checkOutTime, setCheckOutTime] = useState('12:00')
+  
+  // Form state - Step 3: Guest Info
   const [guestName, setGuestName] = useState('')
   const [guestPhone, setGuestPhone] = useState('')
   const [guestEmail, setGuestEmail] = useState('')
   const [guestCount, setGuestCount] = useState(1)
-  const [checkInDate, setCheckInDate] = useState<Date | undefined>(new Date())
-  const [checkOutDate, setCheckOutDate] = useState<Date | undefined>(addDays(new Date(), 1))
+  const [bookingSource, setBookingSource] = useState('walk_in')
+  const [bookingReference, setBookingReference] = useState('')
   const [notes, setNotes] = useState('')
+  
+  // Form state - Step 4: Pricing
+  const [roomPrice, setRoomPrice] = useState<number>(0)
+  const [depositAmount, setDepositAmount] = useState<number>(0)
   
   // Fetch available rooms based on selected dates
   const { data: availableRooms, isLoading: isLoadingRooms } = useAvailableRooms(
     checkInDate,
     checkOutDate
+  )
+  
+  // Calculate nights
+  const nights = useMemo(() => {
+    if (!checkInDate || !checkOutDate) return 0
+    return Math.max(1, differenceInDays(checkOutDate, checkInDate))
+  }, [checkInDate, checkOutDate])
+  
+  // Calculate estimated total (just room price * nights, without VAT/fees)
+  const estimatedTotal = useMemo(() => roomPrice * nights, [roomPrice, nights])
+  
+  // Remaining amount after deposit
+  const remainingAmount = useMemo(() => 
+    Math.max(0, estimatedTotal - depositAmount), 
+    [estimatedTotal, depositAmount]
   )
   
   // Reset form when dialog closes
@@ -85,14 +120,29 @@ export function AddBookingDialog({
       setGuestCount(1)
       setCheckInDate(new Date())
       setCheckOutDate(addDays(new Date(), 1))
+      setCheckInTime('14:00')
+      setCheckOutTime('12:00')
+      setBookingSource('walk_in')
+      setBookingReference('')
       setNotes('')
+      setRoomPrice(0)
+      setDepositAmount(0)
     }
   }, [open])
   
-  // Clear room selection when dates change
+  // Clear room selection and pricing when dates change
   useEffect(() => {
     setSelectedRoom(null)
+    setRoomPrice(0)
+    setDepositAmount(0)
   }, [checkInDate, checkOutDate])
+  
+  // Auto-fill room price when room is selected
+  useEffect(() => {
+    if (selectedRoom?.base_price) {
+      setRoomPrice(selectedRoom.base_price)
+    }
+  }, [selectedRoom])
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -129,6 +179,14 @@ export function AddBookingDialog({
       return
     }
     
+    if (roomPrice <= 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Vui lòng nhập giá phòng',
+      })
+      return
+    }
+    
     setIsSubmitting(true)
     
     try {
@@ -142,8 +200,17 @@ export function AddBookingDialog({
         guest_count: guestCount,
         check_in_date: format(checkInDate, 'yyyy-MM-dd'),
         check_out_date: format(checkOutDate, 'yyyy-MM-dd'),
+        expected_check_in_time: checkInTime,
+        expected_check_out_time: checkOutTime,
         status: 'confirmed',
         notes: notes.trim() || null,
+        room_price: roomPrice,
+        deposit_amount: depositAmount,
+        amount_paid: depositAmount,
+        payment_status: depositAmount >= estimatedTotal ? 'paid' : depositAmount > 0 ? 'partial' : 'pending',
+        booking_source: bookingSource,
+        booking_reference: bookingReference.trim() || null,
+        total_amount: estimatedTotal, // Preliminary, will be recalculated at checkout with VAT/fees
       }
       
       const { error } = await supabase
@@ -154,6 +221,9 @@ export function AddBookingDialog({
       
       toast({
         title: t('booking.createSuccess'),
+        description: depositAmount > 0 
+          ? `Đã đặt cọc ${formatCurrency(depositAmount)}`
+          : undefined,
       })
       
       queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
@@ -192,71 +262,109 @@ export function AddBookingDialog({
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Step 1: Select Dates */}
+          {/* Step 1: Select Dates & Times */}
           <div className="space-y-3">
             <h3 className="font-medium flex items-center gap-2">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm">1</span>
-              Chọn ngày check-in/out
+              Chọn ngày & giờ check-in/out
             </h3>
             <div className="grid grid-cols-2 gap-3">
+              {/* Check-in Date & Time */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <CalendarIcon className="h-4 w-4" />
                   Check-in *
                 </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !checkInDate && "text-muted-foreground"
-                      )}
-                    >
-                      {checkInDate ? format(checkInDate, 'dd/MM/yyyy', { locale: vi }) : "Chọn ngày"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={checkInDate}
-                      onSelect={setCheckInDate}
-                      locale={vi}
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <div className="flex gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={cn(
+                          "flex-1 justify-start text-left font-normal",
+                          !checkInDate && "text-muted-foreground"
+                        )}
+                      >
+                        {checkInDate ? format(checkInDate, 'dd/MM/yyyy', { locale: vi }) : "Chọn ngày"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={checkInDate}
+                        onSelect={setCheckInDate}
+                        locale={vi}
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Select value={checkInTime} onValueChange={setCheckInTime}>
+                    <SelectTrigger className="w-24">
+                      <Clock className="h-4 w-4 mr-1" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIME_OPTIONS.map(time => (
+                        <SelectItem key={time} value={time}>{time}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+              
+              {/* Check-out Date & Time */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <CalendarIcon className="h-4 w-4" />
                   Check-out *
                 </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !checkOutDate && "text-muted-foreground"
-                      )}
-                    >
-                      {checkOutDate ? format(checkOutDate, 'dd/MM/yyyy', { locale: vi }) : "Chọn ngày"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={checkOutDate}
-                      onSelect={setCheckOutDate}
-                      disabled={(date) => checkInDate ? date <= checkInDate : false}
-                      locale={vi}
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <div className="flex gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={cn(
+                          "flex-1 justify-start text-left font-normal",
+                          !checkOutDate && "text-muted-foreground"
+                        )}
+                      >
+                        {checkOutDate ? format(checkOutDate, 'dd/MM/yyyy', { locale: vi }) : "Chọn ngày"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={checkOutDate}
+                        onSelect={setCheckOutDate}
+                        disabled={(date) => checkInDate ? date <= checkInDate : false}
+                        locale={vi}
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Select value={checkOutTime} onValueChange={setCheckOutTime}>
+                    <SelectTrigger className="w-24">
+                      <Clock className="h-4 w-4 mr-1" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIME_OPTIONS.map(time => (
+                        <SelectItem key={time} value={time}>{time}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
+            
+            {nights > 0 && (
+              <div className="text-sm text-muted-foreground flex items-center gap-2">
+                <CalendarIcon className="h-4 w-4" />
+                Số đêm: <strong>{nights} đêm</strong>
+              </div>
+            )}
           </div>
           
           {/* Step 2: Select Room */}
@@ -276,7 +384,7 @@ export function AddBookingDialog({
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : availableRooms && availableRooms.length > 0 ? (
-              <ScrollArea className="h-[200px] rounded-md border p-2">
+              <ScrollArea className="h-[180px] rounded-md border p-2">
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                   {availableRooms.map((room) => (
                     <button
@@ -298,6 +406,11 @@ export function AddBookingDialog({
                       <span className="text-xs text-muted-foreground">
                         T{room.floor} • {getRoomTypeLabel(room.room_type)}
                       </span>
+                      {room.base_price && room.base_price > 0 && (
+                        <span className="text-xs font-medium text-primary">
+                          {formatCurrency(room.base_price)}
+                        </span>
+                      )}
                       {isAllHotelsMode && room.hotel_name && (
                         <span className="text-xs text-muted-foreground truncate max-w-full">
                           {room.hotel_name}
@@ -320,6 +433,9 @@ export function AddBookingDialog({
                 <span className="text-sm">
                   Đã chọn: <strong>Phòng {selectedRoom.room_number}</strong> 
                   {' '}(Tầng {selectedRoom.floor}, {getRoomTypeLabel(selectedRoom.room_type)})
+                  {selectedRoom.base_price && selectedRoom.base_price > 0 && (
+                    <> - <strong className="text-primary">{formatCurrency(selectedRoom.base_price)}/đêm</strong></>
+                  )}
                 </span>
               </div>
             )}
@@ -332,7 +448,7 @@ export function AddBookingDialog({
               Thông tin khách
             </h3>
             
-            <div className="grid gap-4">
+            <div className="grid gap-3">
               {/* Guest Name */}
               <div className="space-y-2">
                 <Label htmlFor="guestName" className="flex items-center gap-2">
@@ -377,7 +493,7 @@ export function AddBookingDialog({
                 </div>
               </div>
               
-              {/* Guest Count & Notes */}
+              {/* Guest Count & Booking Source */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="guestCount" className="flex items-center gap-2">
@@ -394,6 +510,37 @@ export function AddBookingDialog({
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    Nguồn đặt phòng
+                  </Label>
+                  <Select value={bookingSource} onValueChange={setBookingSource}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BOOKING_SOURCES.map(source => (
+                        <SelectItem key={source.value} value={source.value}>
+                          {source.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              {/* Booking Reference & Notes */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="bookingReference">Mã đặt phòng OTA</Label>
+                  <Input
+                    id="bookingReference"
+                    value={bookingReference}
+                    onChange={(e) => setBookingReference(e.target.value)}
+                    placeholder="ABC123..."
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="notes">Ghi chú</Label>
                   <Input
                     id="notes"
@@ -401,6 +548,77 @@ export function AddBookingDialog({
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="VIP, yêu cầu đặc biệt..."
                   />
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Step 4: Pricing & Deposit */}
+          <div className="space-y-3">
+            <h3 className="font-medium flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm">4</span>
+              Báo giá & Đặt cọc
+            </h3>
+            
+            <div className="grid gap-3 p-4 border rounded-lg bg-muted/30">
+              {/* Room Price */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="roomPrice" className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4" />
+                    Giá phòng/đêm *
+                  </Label>
+                  <Input
+                    id="roomPrice"
+                    type="number"
+                    min={0}
+                    step={1000}
+                    value={roomPrice}
+                    onChange={(e) => setRoomPrice(parseInt(e.target.value) || 0)}
+                    placeholder="500000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Số đêm</Label>
+                  <div className="h-9 flex items-center px-3 border rounded-md bg-muted">
+                    {nights} đêm
+                  </div>
+                </div>
+              </div>
+              
+              {/* Estimated Total */}
+              <div className="flex justify-between items-center py-2 border-t">
+                <span className="text-sm text-muted-foreground">Tổng tiền dự kiến</span>
+                <span className="font-semibold text-lg">{formatCurrency(estimatedTotal)}</span>
+              </div>
+              <p className="text-xs text-muted-foreground -mt-2">
+                (chưa bao gồm phụ thu check-in sớm/trả phòng muộn, VAT, phí dịch vụ)
+              </p>
+              
+              {/* Deposit */}
+              <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+                <div className="space-y-2">
+                  <Label htmlFor="depositAmount" className="flex items-center gap-2">
+                    Đặt cọc trước
+                  </Label>
+                  <Input
+                    id="depositAmount"
+                    type="number"
+                    min={0}
+                    step={1000}
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(parseInt(e.target.value) || 0)}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Còn lại (khi checkout)</Label>
+                  <div className={cn(
+                    "h-9 flex items-center px-3 border rounded-md font-medium",
+                    remainingAmount === 0 ? "bg-green-50 text-green-600 border-green-200" : "bg-muted"
+                  )}>
+                    {formatCurrency(remainingAmount)}
+                  </div>
                 </div>
               </div>
             </div>
