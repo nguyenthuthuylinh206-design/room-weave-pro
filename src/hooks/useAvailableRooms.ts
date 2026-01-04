@@ -11,6 +11,7 @@ export interface AvailableRoom {
   status: string
   hotel_id: string
   hotel_name?: string
+  base_price?: number
 }
 
 export function useAvailableRooms(checkInDate?: Date, checkOutDate?: Date) {
@@ -34,6 +35,7 @@ export function useAvailableRooms(checkInDate?: Date, checkOutDate?: Date) {
           room_type,
           status,
           hotel_id,
+          base_price,
           hotels(name)
         `)
         .eq('tenant_id', tenantId)
@@ -74,12 +76,14 @@ export function useAvailableRooms(checkInDate?: Date, checkOutDate?: Date) {
           .map(room => ({
             ...room,
             hotel_name: (room.hotels as any)?.name,
+            base_price: room.base_price ?? 0,
           })) as AvailableRoom[]
       }
 
       return rooms.map(room => ({
         ...room,
         hotel_name: (room.hotels as any)?.name,
+        base_price: room.base_price ?? 0,
       })) as AvailableRoom[]
     },
     enabled: !!tenantId,

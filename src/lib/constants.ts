@@ -88,3 +88,24 @@ export const STATUS_STYLES = {
   pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
   suspended: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
 }
+
+// Booking sources
+export const BOOKING_SOURCES = [
+  { value: 'walk_in', label: 'Khách vãng lai' },
+  { value: 'phone', label: 'Điện thoại' },
+  { value: 'website', label: 'Website' },
+  { value: 'booking_com', label: 'Booking.com' },
+  { value: 'agoda', label: 'Agoda' },
+  { value: 'traveloka', label: 'Traveloka' },
+  { value: 'expedia', label: 'Expedia' },
+  { value: 'corporate', label: 'Doanh nghiệp' },
+  { value: 'agent', label: 'Đại lý du lịch' },
+  { value: 'other', label: 'Khác' },
+]
+
+// Check-in/out time options
+export const TIME_OPTIONS = [
+  '05:00', '06:00', '07:00', '08:00', '09:00', '10:00',
+  '11:00', '12:00', '13:00', '14:00', '15:00', '16:00',
+  '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00',
+]
