@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
+import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
+import { useUser } from '@/hooks/useUser'
 import type { RoomStatus } from '@/types/rooms.types'
 
 export function useBulkDeleteRooms() {
@@ -59,18 +61,43 @@ export function useBulkDeleteRooms() {
 
 export function useBulkUpdateRoomStatus() {
   const queryClient = useQueryClient()
+  const { tenantId } = useUser()
 
   return useMutation({
     mutationFn: async ({ roomIds, status }: { roomIds: string[]; status: RoomStatus }) => {
+      // If changing to check_out, fetch room data first for notifications
+      let roomsData: Array<{ id: string; room_number: string; hotel_id: string }> = []
+      if (status === 'check_out') {
+        const { data } = await supabase
+          .from('rooms')
+          .select('id, room_number, hotel_id')
+          .in('id', roomIds)
+        roomsData = data || []
+      }
+
       const { error } = await supabase
         .from('rooms')
         .update({ status, updated_at: new Date().toISOString() })
         .in('id', roomIds)
 
       if (error) throw error
-      return { count: roomIds.length, status }
+      return { count: roomIds.length, status, roomsData }
     },
-    onSuccess: ({ count, status }) => {
+    onSuccess: ({ count, status, roomsData }) => {
+      // Send notification for each room changed to check_out
+      if (status === 'check_out' && tenantId) {
+        roomsData.forEach(room => {
+          if (room.hotel_id) {
+            triggerRoomCheckoutNotification({
+              tenantId,
+              hotelId: room.hotel_id,
+              roomId: room.id,
+              roomNumber: room.room_number,
+            }).catch(err => console.error('Bulk checkout notification error:', err))
+          }
+        })
+      }
+
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
       queryClient.invalidateQueries({ queryKey: ['room-stats'] })
       queryClient.invalidateQueries({ queryKey: ['floor-plan'] })
