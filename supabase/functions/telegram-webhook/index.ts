@@ -51,38 +51,57 @@ interface TelegramUpdate {
   }
 }
 
+// Helper function to delay execution
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 async function sendTelegramMessage(
   botToken: string,
   chatId: number | string,
-  text: string
+  text: string,
+  maxRetries: number = 2
 ): Promise<{ ok: boolean; error?: string }> {
-  try {
-    const response = await fetch(
-      `https://api.telegram.org/bot${botToken}/sendMessage`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: text,
-          parse_mode: 'HTML',
-        }),
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(
+        `https://api.telegram.org/bot${botToken}/sendMessage`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: text,
+            parse_mode: 'HTML',
+          }),
+        }
+      )
+      
+      const result = await response.json()
+      
+      if (result.ok) {
+        console.log(`Message sent successfully to ${chatId}`)
+        return { ok: true }
       }
-    )
-    
-    const result = await response.json()
-    
-    if (!result.ok) {
+      
+      // If chat not found and we have retries left, wait and retry
+      if (result.error_code === 400 && attempt < maxRetries) {
+        console.log(`Retry ${attempt + 1}/${maxRetries} for ${chatId} after error: ${result.description}`)
+        await delay(1000)
+        continue
+      }
+      
       console.error(`Failed to send to ${chatId}:`, result.error_code, result.description)
       return { ok: false, error: result.description }
+    } catch (error) {
+      console.error('Failed to send message:', error)
+      if (attempt === maxRetries) {
+        return { ok: false, error: String(error) }
+      }
+      await delay(1000)
     }
-    
-    console.log(`Message sent successfully to ${chatId}`)
-    return { ok: true }
-  } catch (error) {
-    console.error('Failed to send message:', error)
-    return { ok: false, error: String(error) }
   }
+  return { ok: false, error: 'Max retries exceeded' }
 }
 
 Deno.serve(async (req) => {
@@ -179,12 +198,14 @@ Deno.serve(async (req) => {
         
         if (upsertError) {
           console.error('Error saving connection:', upsertError)
+          await delay(500) // Small delay before sending
           await sendTelegramMessage(botToken, chatId,
             '❌ Có lỗi xảy ra khi kết nối.\n\nVui lòng thử lại sau.'
           )
         } else {
           console.log(`Successfully connected user ${user.id} to chat ${chatId}`)
-          await sendTelegramMessage(botToken, chatId,
+          await delay(500) // Small delay before sending welcome message
+          const result = await sendTelegramMessage(botToken, chatId,
             `✅ <b>Kết nối thành công!</b>\n\n` +
             `Xin chào <b>${user.full_name || fromUser.first_name}</b>!\n\n` +
             `Bạn sẽ nhận thông báo từ RoomQC tại đây.\n\n` +
@@ -195,6 +216,9 @@ Deno.serve(async (req) => {
             `• 🧺 Cập nhật giặt ủi\n\n` +
             `Để ngừng nhận thông báo, gõ /stop`
           )
+          if (!result.ok) {
+            console.log(`Note: Connection saved but welcome message failed: ${result.error}`)
+          }
         }
       } else {
         // No valid param, show instructions
