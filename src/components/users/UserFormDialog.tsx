@@ -34,7 +34,8 @@ import { usePositions } from '@/hooks/usePositions'
 import { useUser } from '@/hooks/useUser'
 import { useManagersByHotel } from '@/hooks/useManagersByHotel'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
-import { Eye, EyeOff, Info, AlertTriangle } from 'lucide-react'
+import { Eye, EyeOff, Info, AlertTriangle, Plus } from 'lucide-react'
+import { PositionManagementDialog } from './PositionManagementDialog'
 import { UserWithRelations } from '@/types/database.types'
 
 interface UserFormDialogProps {
@@ -53,6 +54,7 @@ export function UserFormDialog({
   const { t } = useTranslation(['users', 'common'])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [showPositionDialog, setShowPositionDialog] = useState(false)
   const { data: hotels, isLoading: hotelsLoading } = useHotels({ status: 'active' })
   const { data: userLevels, isLoading: levelsLoading } = useAvailableUserLevels()
   const { user: currentUser } = useUser()
@@ -387,6 +389,16 @@ export function UserFormDialog({
                             {position.name}
                           </SelectItem>
                         ))}
+                        <div className="border-t mt-1 pt-1">
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-2 px-2 py-1.5 text-sm text-primary hover:bg-accent rounded-sm cursor-pointer"
+                            onClick={() => setShowPositionDialog(true)}
+                          >
+                            <Plus className="h-4 w-4" />
+                            {t('users:form.createPosition')}
+                          </button>
+                        </div>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -468,6 +480,11 @@ export function UserFormDialog({
           </Form>
         </DialogContent>
       </Dialog>
+      
+      <PositionManagementDialog 
+        open={showPositionDialog} 
+        onOpenChange={setShowPositionDialog} 
+      />
     </>
   )
 }
