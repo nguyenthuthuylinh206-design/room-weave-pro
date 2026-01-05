@@ -46,6 +46,7 @@ import {
   DEFAULT_PRICING_RULES,
   BookingCostBreakdown
 } from '@/lib/bookingCalculations'
+import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
 import type { RoomBooking } from '@/hooks/useRoomBooking'
 
 // Time options for check-in/check-out
@@ -376,6 +377,16 @@ export function RoomBookingDialog({
         
       if (roomError) throw roomError
       
+      // Send checkout notification to staff
+      if (tenantId && hotelId) {
+        triggerRoomCheckoutNotification({
+          tenantId,
+          hotelId,
+          roomId,
+          roomNumber,
+        }).catch(err => console.error('Failed to send checkout notification:', err))
+      }
+      
       toast({
         title: t('booking.checkOutSuccess'),
       })
@@ -465,6 +476,16 @@ export function RoomBookingDialog({
         .eq('id', roomId)
         
       if (roomError) throw roomError
+      
+      // Send checkout notification to staff
+      if (tenantId && hotelId) {
+        triggerRoomCheckoutNotification({
+          tenantId,
+          hotelId,
+          roomId,
+          roomNumber,
+        }).catch(err => console.error('Failed to send checkout notification:', err))
+      }
       
       toast({
         title: 'Đã thanh toán và check-out thành công',
