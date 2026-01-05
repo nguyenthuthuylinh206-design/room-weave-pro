@@ -254,7 +254,7 @@ Deno.serve(async (req) => {
       return new Response('OK', { status: 200 })
     }
     
-    // Handle /status command
+    // Handle /status command - for private chats
     if (update.message?.text === '/status' && update.message.chat.type === 'private') {
       const chatId = update.message.chat.id
       
@@ -276,6 +276,38 @@ Deno.serve(async (req) => {
         await sendTelegramMessage(botToken, chatId,
           `❌ Chưa kết nối với RoomQC.\n\n` +
           `Vui lòng kết nối từ ứng dụng RoomQC.`
+        )
+      }
+      
+      return new Response('OK', { status: 200 })
+    }
+    
+    // Handle /status command - for groups/supergroups
+    if (update.message?.text?.startsWith('/status') && 
+        (update.message.chat.type === 'group' || update.message.chat.type === 'supergroup')) {
+      const chatId = update.message.chat.id
+      const chatTitle = update.message.chat.title || 'Unknown Group'
+      
+      const { data: group } = await supabase
+        .from('telegram_groups')
+        .select('*, tenants(name)')
+        .eq('chat_id', String(chatId))
+        .eq('is_active', true)
+        .single()
+      
+      if (group) {
+        await sendTelegramMessage(botToken, chatId,
+          `✅ <b>Trạng thái nhóm "${chatTitle}"</b>\n\n` +
+          `Khách sạn: <b>${(group.tenants as any)?.name || 'N/A'}</b>\n` +
+          `Loại nhóm: <b>${group.group_type}</b>\n` +
+          `Trạng thái: Đang hoạt động ✓\n\n` +
+          `Nhóm này đang nhận thông báo từ RoomQC.`
+        )
+      } else {
+        await sendTelegramMessage(botToken, chatId,
+          `❌ <b>Nhóm chưa được kết nối với RoomQC</b>\n\n` +
+          `Mã nhóm: <code>${chatId}</code>\n\n` +
+          `Để kết nối, vào ứng dụng RoomQC > Cài đặt > Telegram > Thêm nhóm.`
         )
       }
       
