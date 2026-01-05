@@ -22,6 +22,9 @@ interface SendTelegramNotificationParams {
   sendToOwnerGroups?: boolean;
   sendToManagementGroups?: boolean;
   sendToStaffGroups?: boolean;
+  // NEW: Department-based routing
+  department?: string; // housekeeping, maintenance, laundry, inventory, accounting, front_desk, general
+  notificationTypeFilter?: string; // checkout, checkin, maintenance_new, etc.
   title: string;
   message: string;
   notificationType?: TelegramNotificationType;
@@ -38,6 +41,8 @@ export async function sendTelegramNotification({
   sendToOwnerGroups,
   sendToManagementGroups,
   sendToStaffGroups,
+  department,
+  notificationTypeFilter,
   title,
   message,
   notificationType = 'system',
@@ -54,6 +59,8 @@ export async function sendTelegramNotification({
         send_to_owner_groups: sendToOwnerGroups,
         send_to_management_groups: sendToManagementGroups,
         send_to_staff_groups: sendToStaffGroups,
+        department,
+        notification_type_filter: notificationTypeFilter,
         title,
         message,
         notification_type: notificationType,
@@ -463,6 +470,9 @@ export async function triggerLowStockAlert({
     }),
     sendTelegramNotification({
       tenantId,
+      hotelId,
+      department: 'inventory',
+      notificationTypeFilter: 'inventory_low',
       sendToManagementGroups: true,
       title,
       message: body,

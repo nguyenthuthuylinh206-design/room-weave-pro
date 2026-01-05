@@ -3,18 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
-import { Separator } from '@/components/ui/separator'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { 
   Send, 
   Plus, 
-  Trash2, 
   Loader2, 
   ExternalLink, 
   Users, 
@@ -22,14 +16,14 @@ import {
   CheckCircle2, 
   XCircle,
   MessageCircle,
-  Copy,
   RefreshCw,
-  Building2
+  ChevronDown
 } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
+import { AddTelegramGroupDialog, TelegramGroupCard, DEPARTMENTS } from '@/components/settings/telegram'
 
 interface TelegramConnection {
   id: string
@@ -46,6 +40,8 @@ interface TelegramGroup {
   chat_id: string
   chat_title: string
   group_type: string
+  department: string | null
+  notification_types: string[] | null
   hotel_id: string | null
   is_active: boolean
   created_at: string
@@ -60,22 +56,8 @@ export default function TelegramSettingsPage() {
   const queryClient = useQueryClient()
   
   const [addGroupOpen, setAddGroupOpen] = useState(false)
-  const [newGroupChatId, setNewGroupChatId] = useState('')
-  const [newGroupTitle, setNewGroupTitle] = useState('')
-  const [newGroupType, setNewGroupType] = useState('general')
-  const [newGroupHotelId, setNewGroupHotelId] = useState<string | null>(null)
   const [testingSend, setTestingSend] = useState(false)
-
-  // Auto-set hotel_id when opening add group dialog
-  useEffect(() => {
-    if (addGroupOpen) {
-      if (selectedHotel && !isAllHotelsMode) {
-        setNewGroupHotelId(selectedHotel.id)
-      } else {
-        setNewGroupHotelId(null)
-      }
-    }
-  }, [addGroupOpen, selectedHotel, isAllHotelsMode])
+  const [expandedDepartments, setExpandedDepartments] = useState<string[]>(['housekeeping', 'maintenance', 'general'])
 
   // Bot info
   const BOT_USERNAME = 'roomqc_bot'
@@ -142,17 +124,26 @@ export default function TelegramSettingsPage() {
 
   // Add group
   const addGroupMutation = useMutation({
-    mutationFn: async () => {
-      if (!tenantId || !newGroupChatId) throw new Error('Missing data')
+    mutationFn: async (data: {
+      chatId: string
+      title: string
+      groupType: string
+      department: string | null
+      notificationTypes: string[]
+      hotelId: string | null
+    }) => {
+      if (!tenantId) throw new Error('Missing tenant')
       
       const { error } = await supabase
         .from('telegram_groups')
         .insert({
           tenant_id: tenantId,
-          hotel_id: newGroupHotelId, // Auto-set based on selected hotel
-          chat_id: newGroupChatId.trim(),
-          chat_title: newGroupTitle.trim() || `Group ${newGroupChatId}`,
-          group_type: newGroupType,
+          hotel_id: data.hotelId,
+          chat_id: data.chatId,
+          chat_title: data.title,
+          group_type: data.groupType,
+          department: data.department,
+          notification_types: data.notificationTypes.length > 0 ? data.notificationTypes : null,
           added_by: user?.id,
           is_active: true
         })
@@ -167,10 +158,6 @@ export default function TelegramSettingsPage() {
     onSuccess: () => {
       toast({ title: 'Đã thêm nhóm Telegram' })
       setAddGroupOpen(false)
-      setNewGroupChatId('')
-      setNewGroupTitle('')
-      setNewGroupType('general')
-      setNewGroupHotelId(null)
       refetchGroups()
     },
     onError: (error) => {
@@ -178,18 +165,31 @@ export default function TelegramSettingsPage() {
     }
   })
 
-  // Filter groups by selected hotel
-  const filteredGroups = useMemo(() => {
-    if (!groups) return []
+  // Filter and group by department
+  const groupedByDepartment = useMemo(() => {
+    if (!groups) return {}
     
-    if (isAllHotelsMode || !selectedHotel) {
-      return groups // Show all groups when viewing all hotels
+    let filteredGroups = groups
+    
+    // Filter by selected hotel
+    if (!isAllHotelsMode && selectedHotel) {
+      filteredGroups = groups.filter(g => 
+        g.hotel_id === selectedHotel.id || g.hotel_id === null
+      )
     }
     
-    // Filter: groups linked to selected hotel OR tenant-wide groups (hotel_id = null)
-    return groups.filter(g => 
-      g.hotel_id === selectedHotel.id || g.hotel_id === null
-    )
+    // Group by department
+    const grouped: Record<string, TelegramGroup[]> = {}
+    
+    filteredGroups.forEach(group => {
+      const dept = group.department || 'no_department'
+      if (!grouped[dept]) {
+        grouped[dept] = []
+      }
+      grouped[dept].push(group)
+    })
+    
+    return grouped
   }, [groups, selectedHotel, isAllHotelsMode])
 
   // Toggle group active
@@ -265,17 +265,21 @@ export default function TelegramSettingsPage() {
     }
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    toast({ title: 'Đã copy' })
+  const toggleDepartment = (dept: string) => {
+    setExpandedDepartments(prev =>
+      prev.includes(dept)
+        ? prev.filter(d => d !== dept)
+        : [...prev, dept]
+    )
   }
 
-  const groupTypeLabels: Record<string, string> = {
-    general: 'Chung',
-    owner: 'Chủ sở hữu',
-    management: 'Quản lý',
-    staff: 'Nhân viên'
+  const getDepartmentLabel = (dept: string) => {
+    if (dept === 'no_department') return 'Không phân bộ phận'
+    return DEPARTMENTS.find(d => d.value === dept)?.label || dept
   }
+
+  const totalGroups = groups?.length || 0
+  const activeGroups = groups?.filter(g => g.is_active).length || 0
 
   return (
     <div className="space-y-6">
@@ -400,110 +404,20 @@ export default function TelegramSettingsPage() {
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
                   Nhóm Telegram
+                  {totalGroups > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {activeGroups}/{totalGroups} hoạt động
+                    </Badge>
+                  )}
                 </CardTitle>
                 <CardDescription>
-                  Thêm nhóm Telegram để gửi thông báo cho nhiều người
+                  Thêm nhóm Telegram để gửi thông báo cho nhiều người theo bộ phận
                 </CardDescription>
               </div>
-              <Dialog open={addGroupOpen} onOpenChange={setAddGroupOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Thêm nhóm
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Thêm nhóm Telegram</DialogTitle>
-                    <DialogDescription>
-                      Thêm bot @{BOT_USERNAME} vào nhóm, sau đó nhập mã nhóm (Chat ID) được hiển thị
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <div className="space-y-4 py-4">
-                    <Alert>
-                      <AlertDescription className="text-sm">
-                        <strong>Hướng dẫn:</strong>
-                        <ol className="list-decimal list-inside mt-2 space-y-1">
-                          <li>Thêm @{BOT_USERNAME} vào nhóm Telegram của bạn</li>
-                          <li>Bot sẽ gửi mã nhóm (Chat ID) vào nhóm</li>
-                          <li>Nhập mã đó vào ô bên dưới</li>
-                        </ol>
-                      </AlertDescription>
-                    </Alert>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="chat-id">Mã nhóm (Chat ID) *</Label>
-                      <Input
-                        id="chat-id"
-                        placeholder="-1001234567890"
-                        value={newGroupChatId}
-                        onChange={(e) => setNewGroupChatId(e.target.value)}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="group-title">Tên nhóm</Label>
-                      <Input
-                        id="group-title"
-                        placeholder="VD: Nhóm quản lý khách sạn ABC"
-                        value={newGroupTitle}
-                        onChange={(e) => setNewGroupTitle(e.target.value)}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Loại nhóm</Label>
-                      <Select value={newGroupType} onValueChange={setNewGroupType}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="general">Chung - Nhận tất cả thông báo</SelectItem>
-                          <SelectItem value="owner">Chủ sở hữu - Chỉ thông báo quan trọng</SelectItem>
-                          <SelectItem value="management">Quản lý - Thông báo quản lý</SelectItem>
-                          <SelectItem value="staff">Nhân viên - Thông báo công việc</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4" />
-                        Khách sạn
-                      </Label>
-                      {selectedHotel && !isAllHotelsMode ? (
-                        <div className="p-2 border rounded-lg bg-muted text-sm flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-muted-foreground" />
-                          {selectedHotel.name}
-                        </div>
-                      ) : (
-                        <div className="p-2 border rounded-lg bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-700 dark:text-amber-400">
-                          Tất cả khách sạn (nhận thông báo từ mọi khách sạn)
-                        </div>
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        Chọn khách sạn trong menu trên để gắn nhóm với khách sạn cụ thể
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setAddGroupOpen(false)}>
-                      Hủy
-                    </Button>
-                    <Button 
-                      onClick={() => addGroupMutation.mutate()}
-                      disabled={!newGroupChatId.trim() || addGroupMutation.isPending}
-                    >
-                      {addGroupMutation.isPending && (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      )}
-                      Thêm nhóm
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              <Button size="sm" onClick={() => setAddGroupOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Thêm nhóm
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -512,61 +426,46 @@ export default function TelegramSettingsPage() {
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Đang tải...
               </div>
-            ) : filteredGroups && filteredGroups.length > 0 ? (
-              <div className="space-y-3">
-                {filteredGroups.map((group) => (
-                  <div 
-                    key={group.id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
+            ) : Object.keys(groupedByDepartment).length > 0 ? (
+              <div className="space-y-4">
+                {Object.entries(groupedByDepartment).map(([dept, deptGroups]) => (
+                  <Collapsible
+                    key={dept}
+                    open={expandedDepartments.includes(dept)}
+                    onOpenChange={() => toggleDepartment(dept)}
                   >
-                    <div className="flex items-center gap-3">
-                      <Users className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">{group.chat_title}</p>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+                    <CollapsibleTrigger asChild>
+                      <button className="flex items-center justify-between w-full p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                        <div className="flex items-center gap-2">
+                          <ChevronDown className={`h-4 w-4 transition-transform ${
+                            expandedDepartments.includes(dept) ? '' : '-rotate-90'
+                          }`} />
+                          <span className="font-medium text-sm uppercase tracking-wide">
+                            {getDepartmentLabel(dept)}
+                          </span>
                           <Badge variant="outline" className="text-xs">
-                            {groupTypeLabels[group.group_type] || group.group_type}
+                            {deptGroups.length}
                           </Badge>
-                          {group.hotel_id ? (
-                            group.hotels && (
-                              <span className="flex items-center gap-1">
-                                <Building2 className="h-3 w-3" />
-                                {group.hotels.name}
-                              </span>
-                            )
-                          ) : (
-                            <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                              <Building2 className="h-3 w-3" />
-                              Tất cả khách sạn
-                            </span>
-                          )}
-                          <button 
-                            className="hover:text-foreground flex items-center gap-1"
-                            onClick={() => copyToClipboard(group.chat_id)}
-                          >
-                            <Copy className="h-3 w-3" />
-                            {group.chat_id}
-                          </button>
                         </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Switch
-                        checked={group.is_active}
-                        onCheckedChange={(checked) => 
-                          toggleGroupMutation.mutate({ groupId: group.id, isActive: checked })
-                        }
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => deleteGroupMutation.mutate(group.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
+                        <Badge 
+                          variant={deptGroups.some(g => g.is_active) ? 'default' : 'secondary'}
+                          className="text-xs"
+                        >
+                          {deptGroups.filter(g => g.is_active).length} hoạt động
+                        </Badge>
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pt-2 pl-2 space-y-2">
+                      {deptGroups.map((group) => (
+                        <TelegramGroupCard
+                          key={group.id}
+                          group={group}
+                          onToggle={(id, active) => toggleGroupMutation.mutate({ groupId: id, isActive: active })}
+                          onDelete={(id) => deleteGroupMutation.mutate(id)}
+                        />
+                      ))}
+                    </CollapsibleContent>
+                  </Collapsible>
                 ))}
               </div>
             ) : (
@@ -614,6 +513,17 @@ export default function TelegramSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Add Group Dialog */}
+      <AddTelegramGroupDialog
+        open={addGroupOpen}
+        onOpenChange={setAddGroupOpen}
+        onSubmit={(data) => addGroupMutation.mutate(data)}
+        isLoading={addGroupMutation.isPending}
+        botUsername={BOT_USERNAME}
+        selectedHotel={selectedHotel}
+        isAllHotelsMode={isAllHotelsMode}
+      />
     </div>
   )
 }

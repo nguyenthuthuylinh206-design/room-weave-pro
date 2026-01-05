@@ -14,6 +14,9 @@ interface TelegramPayload {
   send_to_owner_groups?: boolean
   send_to_management_groups?: boolean
   send_to_staff_groups?: boolean
+  // NEW: Department-based routing
+  department?: string // housekeeping, maintenance, laundry, inventory, accounting, front_desk, general
+  notification_type_filter?: string // checkout, checkin, maintenance_new, etc.
   title: string
   message: string
   notification_type?: 'booking' | 'checkin' | 'checkout' | 'maintenance' | 'inventory' | 'payment' | 'laundry' | 'system'
@@ -121,11 +124,11 @@ Deno.serve(async (req) => {
       }
     }
     
-    // Helper to build query with optional hotel_id filter
+    // Helper to build query with optional hotel_id, department, and notification_type filter
     const buildGroupQuery = (groupTypes?: string[]) => {
       let query = supabase
         .from('telegram_groups')
-        .select('chat_id')
+        .select('chat_id, notification_types')
         .eq('tenant_id', payload.tenant_id)
         .eq('is_active', true)
       
@@ -134,42 +137,87 @@ Deno.serve(async (req) => {
         query = query.or(`hotel_id.eq.${payload.hotel_id},hotel_id.is.null`)
       }
       
+      // NEW: Filter by department
+      if (payload.department) {
+        // Include groups with matching department OR groups without department (general)
+        query = query.or(`department.eq.${payload.department},department.is.null`)
+      }
+      
       if (groupTypes?.length) {
         query = query.in('group_type', groupTypes)
       }
       
       return query
     }
+
+    // Helper to filter by notification_type
+    const filterByNotificationType = (groups: { chat_id: string; notification_types: string[] | null }[] | null): string[] => {
+      if (!groups) return []
+      
+      // If notification_type_filter is specified, filter groups that accept this type
+      if (payload.notification_type_filter) {
+        return groups
+          .filter(g => {
+            // Groups with null notification_types accept all types
+            if (!g.notification_types || g.notification_types.length === 0) return true
+            return g.notification_types.includes(payload.notification_type_filter!)
+          })
+          .map(g => g.chat_id)
+      }
+      
+      return groups.map(g => g.chat_id)
+    }
     
-    // 3. Gửi cho tất cả nhóm của tenant (hoặc hotel cụ thể)
+    // 3. Gửi cho tất cả nhóm của tenant (hoặc hotel/department cụ thể)
     if (payload.send_to_all_groups) {
-      console.log('Fetching all groups for tenant:', payload.tenant_id, payload.hotel_id ? `hotel: ${payload.hotel_id}` : '')
+      console.log('Fetching all groups for tenant:', payload.tenant_id, 
+        payload.hotel_id ? `hotel: ${payload.hotel_id}` : '',
+        payload.department ? `department: ${payload.department}` : '')
       const { data: allGroups, error: agError } = await buildGroupQuery()
       
       if (agError) {
         console.error('Error fetching all groups:', agError)
       } else {
-        chatIds.push(...(allGroups || []).map(g => g.chat_id))
-        console.log(`Found ${allGroups?.length || 0} tenant groups`)
+        const filteredChatIds = filterByNotificationType(allGroups)
+        chatIds.push(...filteredChatIds)
+        console.log(`Found ${filteredChatIds.length} tenant groups after filtering`)
       }
     }
     
     // 4. Gửi cho nhóm owner
     if (payload.send_to_owner_groups) {
       const { data: ownerGroups } = await buildGroupQuery(['owner'])
-      chatIds.push(...(ownerGroups || []).map(g => g.chat_id))
+      const filteredChatIds = filterByNotificationType(ownerGroups)
+      chatIds.push(...filteredChatIds)
     }
     
     // 5. Gửi cho nhóm management
     if (payload.send_to_management_groups) {
       const { data: mgmtGroups } = await buildGroupQuery(['owner', 'management'])
-      chatIds.push(...(mgmtGroups || []).map(g => g.chat_id))
+      const filteredChatIds = filterByNotificationType(mgmtGroups)
+      chatIds.push(...filteredChatIds)
     }
     
     // 6. Gửi cho nhóm staff
     if (payload.send_to_staff_groups) {
       const { data: staffGroups } = await buildGroupQuery(['staff', 'general'])
-      chatIds.push(...(staffGroups || []).map(g => g.chat_id))
+      const filteredChatIds = filterByNotificationType(staffGroups)
+      chatIds.push(...filteredChatIds)
+    }
+
+    // 7. NEW: Gửi theo department nếu không có flag nào khác
+    if (payload.department && !payload.send_to_all_groups && !payload.send_to_owner_groups && 
+        !payload.send_to_management_groups && !payload.send_to_staff_groups) {
+      console.log('Fetching groups by department:', payload.department)
+      const { data: deptGroups, error: deptError } = await buildGroupQuery()
+      
+      if (deptError) {
+        console.error('Error fetching department groups:', deptError)
+      } else {
+        const filteredChatIds = filterByNotificationType(deptGroups)
+        chatIds.push(...filteredChatIds)
+        console.log(`Found ${filteredChatIds.length} department groups`)
+      }
     }
     
     // Remove duplicates
