@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -23,9 +23,11 @@ import {
   XCircle,
   MessageCircle,
   Copy,
-  RefreshCw
+  RefreshCw,
+  Building2
 } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
 
@@ -53,6 +55,7 @@ interface TelegramGroup {
 export default function TelegramSettingsPage() {
   const { t } = useTranslation(['settings', 'common'])
   const { user, tenantId, hasAnyRole } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const isAdmin = hasAnyRole(['super_admin', 'owner', 'hotel_manager'])
   const queryClient = useQueryClient()
   
@@ -60,7 +63,19 @@ export default function TelegramSettingsPage() {
   const [newGroupChatId, setNewGroupChatId] = useState('')
   const [newGroupTitle, setNewGroupTitle] = useState('')
   const [newGroupType, setNewGroupType] = useState('general')
+  const [newGroupHotelId, setNewGroupHotelId] = useState<string | null>(null)
   const [testingSend, setTestingSend] = useState(false)
+
+  // Auto-set hotel_id when opening add group dialog
+  useEffect(() => {
+    if (addGroupOpen) {
+      if (selectedHotel && !isAllHotelsMode) {
+        setNewGroupHotelId(selectedHotel.id)
+      } else {
+        setNewGroupHotelId(null)
+      }
+    }
+  }, [addGroupOpen, selectedHotel, isAllHotelsMode])
 
   // Bot info
   const BOT_USERNAME = 'roomqc_bot'
@@ -134,6 +149,7 @@ export default function TelegramSettingsPage() {
         .from('telegram_groups')
         .insert({
           tenant_id: tenantId,
+          hotel_id: newGroupHotelId, // Auto-set based on selected hotel
           chat_id: newGroupChatId.trim(),
           chat_title: newGroupTitle.trim() || `Group ${newGroupChatId}`,
           group_type: newGroupType,
@@ -154,12 +170,27 @@ export default function TelegramSettingsPage() {
       setNewGroupChatId('')
       setNewGroupTitle('')
       setNewGroupType('general')
+      setNewGroupHotelId(null)
       refetchGroups()
     },
     onError: (error) => {
       toast({ title: 'Lỗi', description: String(error), variant: 'destructive' })
     }
   })
+
+  // Filter groups by selected hotel
+  const filteredGroups = useMemo(() => {
+    if (!groups) return []
+    
+    if (isAllHotelsMode || !selectedHotel) {
+      return groups // Show all groups when viewing all hotels
+    }
+    
+    // Filter: groups linked to selected hotel OR tenant-wide groups (hotel_id = null)
+    return groups.filter(g => 
+      g.hotel_id === selectedHotel.id || g.hotel_id === null
+    )
+  }, [groups, selectedHotel, isAllHotelsMode])
 
   // Toggle group active
   const toggleGroupMutation = useMutation({
@@ -435,6 +466,26 @@ export default function TelegramSettingsPage() {
                         </SelectContent>
                       </Select>
                     </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        Khách sạn
+                      </Label>
+                      {selectedHotel && !isAllHotelsMode ? (
+                        <div className="p-2 border rounded-lg bg-muted text-sm flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                          {selectedHotel.name}
+                        </div>
+                      ) : (
+                        <div className="p-2 border rounded-lg bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-700 dark:text-amber-400">
+                          Tất cả khách sạn (nhận thông báo từ mọi khách sạn)
+                        </div>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Chọn khách sạn trong menu trên để gắn nhóm với khách sạn cụ thể
+                      </p>
+                    </div>
                   </div>
                   
                   <DialogFooter>
@@ -461,9 +512,9 @@ export default function TelegramSettingsPage() {
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Đang tải...
               </div>
-            ) : groups && groups.length > 0 ? (
+            ) : filteredGroups && filteredGroups.length > 0 ? (
               <div className="space-y-3">
-                {groups.map((group) => (
+                {filteredGroups.map((group) => (
                   <div 
                     key={group.id}
                     className="flex items-center justify-between p-3 border rounded-lg"
@@ -472,12 +523,22 @@ export default function TelegramSettingsPage() {
                       <Users className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="font-medium">{group.chat_title}</p>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
                           <Badge variant="outline" className="text-xs">
                             {groupTypeLabels[group.group_type] || group.group_type}
                           </Badge>
-                          {group.hotels && (
-                            <span>• {group.hotels.name}</span>
+                          {group.hotel_id ? (
+                            group.hotels && (
+                              <span className="flex items-center gap-1">
+                                <Building2 className="h-3 w-3" />
+                                {group.hotels.name}
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                              <Building2 className="h-3 w-3" />
+                              Tất cả khách sạn
+                            </span>
                           )}
                           <button 
                             className="hover:text-foreground flex items-center gap-1"
