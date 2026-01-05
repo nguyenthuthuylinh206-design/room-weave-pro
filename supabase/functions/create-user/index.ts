@@ -158,13 +158,14 @@ serve(async (req) => {
     // Use password from request instead of generating
     console.log('Creating auth user...')
     
-    // Create auth user
+    // Create auth user with flag to skip handle_new_user trigger
     const { data: authUser, error: authUserError } = await supabaseAdmin.auth.admin.createUser({
       email: email.toLowerCase(),
       password: password,
       email_confirm: true,
       user_metadata: {
         full_name: fullName,
+        created_by_admin: 'true', // Flag to skip handle_new_user trigger
       }
     })
 
