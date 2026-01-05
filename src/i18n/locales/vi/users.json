@@ -83,6 +83,7 @@
     "selectPosition": "Chọn chức vụ",
     "selectManager": "Chọn quản lý phụ trách",
     "createUser": "Tạo người dùng",
+    "createPosition": "+ Tạo chức vụ mới",
     "noManagersWarning": "Khách sạn này chưa có Quản lý. Nhân viên sẽ báo cáo trực tiếp cho Owner.",
     "noSupervisorOption": "Không có (Owner quản lý trực tiếp)",
     "loadingManagers": "Đang tải danh sách quản lý..."

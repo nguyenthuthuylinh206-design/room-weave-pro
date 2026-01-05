@@ -83,6 +83,7 @@
     "selectPosition": "Select position",
     "selectManager": "Select responsible manager",
     "createUser": "Create User",
+    "createPosition": "+ Create new position",
     "noManagersWarning": "This hotel has no Manager. Staff will report directly to Owner.",
     "noSupervisorOption": "None (Direct to Owner)",
     "loadingManagers": "Loading managers..."
