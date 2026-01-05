@@ -12,9 +12,10 @@ import { useUsers } from '@/hooks/useUsers'
 import { useRoles } from '@/hooks/useRoles'
 import { VariablePicker } from '../shared/VariablePicker'
 import { UserMultiSelect } from '@/components/shared/UserMultiSelect'
+import { TelegramNotificationAction } from './TelegramNotificationAction'
 
 interface SendNotificationActionConfig {
-  notification_type: 'inapp' | 'email' | 'both'
+  notification_type: 'inapp' | 'email' | 'telegram' | 'both' | 'all'
   use_template: boolean
   template_id?: string
   custom_subject?: string
@@ -26,6 +27,8 @@ interface SendNotificationActionConfig {
   include_link: boolean
   mark_urgent: boolean
   require_acknowledgment: boolean
+  // Telegram specific
+  telegram_config?: any
 }
 
 interface SendNotificationActionProps {
@@ -70,24 +73,42 @@ export const SendNotificationAction = ({
         <RadioGroup
           value={localConfig.notification_type}
           onValueChange={(value) => handleChange('notification_type', value)}
+          className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap"
         >
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="inapp" id="type-inapp" />
-            <Label htmlFor="type-inapp" className="font-normal">In-App Notification</Label>
+            <Label htmlFor="type-inapp" className="font-normal">In-App</Label>
           </div>
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="email" id="type-email" />
             <Label htmlFor="type-email" className="font-normal">Email</Label>
           </div>
           <div className="flex items-center space-x-2">
+            <RadioGroupItem value="telegram" id="type-telegram" />
+            <Label htmlFor="type-telegram" className="font-normal">📱 Telegram</Label>
+          </div>
+          <div className="flex items-center space-x-2">
             <RadioGroupItem value="both" id="type-both" />
-            <Label htmlFor="type-both" className="font-normal">Both</Label>
+            <Label htmlFor="type-both" className="font-normal">In-App + Email</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="all" id="type-all" />
+            <Label htmlFor="type-all" className="font-normal">Tất cả</Label>
           </div>
         </RadioGroup>
       </div>
+
+      {/* Telegram Configuration */}
+      {['telegram', 'all'].includes(localConfig.notification_type) && (
+        <TelegramNotificationAction
+          config={localConfig.telegram_config}
+          onChange={(telegramConfig) => handleChange('telegram_config', telegramConfig)}
+          triggerType={triggerType}
+        />
+      )}
       
       {/* Email configuration */}
-      {['email', 'both'].includes(localConfig.notification_type) && (
+      {['email', 'both', 'all'].includes(localConfig.notification_type) && (
         <div className="space-y-4 p-4 border rounded-lg">
           <div>
             <Label>Email Content</Label>
@@ -161,82 +182,84 @@ export const SendNotificationAction = ({
         </div>
       )}
       
-      {/* Recipients */}
-      <div>
-        <Label>Recipients *</Label>
-        <RadioGroup
-          value={localConfig.recipient_mode}
-          onValueChange={(value) => handleChange('recipient_mode', value)}
-        >
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="users" id="recip-users" />
-              <Label htmlFor="recip-users" className="font-normal">Specific users</Label>
-            </div>
-            {localConfig.recipient_mode === 'users' && (
-              <div className="ml-6">
-                <UserMultiSelect
-                  value={localConfig.user_ids || []}
-                  onChange={(values) => handleChange('user_ids', values)}
-                />
+      {/* Recipients - for In-App and Email only */}
+      {['inapp', 'email', 'both'].includes(localConfig.notification_type) && (
+        <div>
+          <Label>Recipients *</Label>
+          <RadioGroup
+            value={localConfig.recipient_mode}
+            onValueChange={(value) => handleChange('recipient_mode', value)}
+          >
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="users" id="recip-users" />
+                <Label htmlFor="recip-users" className="font-normal">Specific users</Label>
               </div>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="roles" id="recip-roles" />
-              <Label htmlFor="recip-roles" className="font-normal">By role</Label>
+              {localConfig.recipient_mode === 'users' && (
+                <div className="ml-6">
+                  <UserMultiSelect
+                    value={localConfig.user_ids || []}
+                    onChange={(values) => handleChange('user_ids', values)}
+                  />
+                </div>
+              )}
             </div>
-            {localConfig.recipient_mode === 'roles' && (
-              <div className="ml-6 space-y-2">
-                {roles?.map((role) => (
-                  <div key={role.value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`role-${role.value}`}
-                      checked={localConfig.role_ids?.includes(role.value)}
-                      onCheckedChange={(checked) => {
-                        const current = localConfig.role_ids || []
-                        const updated = checked
-                          ? [...current, role.value]
-                          : current.filter(id => id !== role.value)
-                        handleChange('role_ids', updated)
-                      }}
-                    />
-                    <Label htmlFor={`role-${role.value}`} className="font-normal">
-                      {role.label}
-                    </Label>
-                  </div>
-                ))}
+            
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="roles" id="recip-roles" />
+                <Label htmlFor="recip-roles" className="font-normal">By role</Label>
               </div>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="dynamic" id="recip-dynamic" />
-              <Label htmlFor="recip-dynamic" className="font-normal">Dynamic (from trigger data)</Label>
+              {localConfig.recipient_mode === 'roles' && (
+                <div className="ml-6 space-y-2">
+                  {roles?.map((role) => (
+                    <div key={role.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`role-${role.value}`}
+                        checked={localConfig.role_ids?.includes(role.value)}
+                        onCheckedChange={(checked) => {
+                          const current = localConfig.role_ids || []
+                          const updated = checked
+                            ? [...current, role.value]
+                            : current.filter(id => id !== role.value)
+                          handleChange('role_ids', updated)
+                        }}
+                      />
+                      <Label htmlFor={`role-${role.value}`} className="font-normal">
+                        {role.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            {localConfig.recipient_mode === 'dynamic' && (
-              <div className="ml-6">
-                <Select
-                  value={localConfig.dynamic_field}
-                  onValueChange={(value) => handleChange('dynamic_field', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select field" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="item.manager_id">Item's Manager</SelectItem>
-                    <SelectItem value="hotel.manager_id">Hotel Manager</SelectItem>
-                    <SelectItem value="category.default_assignee">Category Default Assignee</SelectItem>
-                  </SelectContent>
-                </Select>
+            
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="dynamic" id="recip-dynamic" />
+                <Label htmlFor="recip-dynamic" className="font-normal">Dynamic (from trigger data)</Label>
               </div>
-            )}
-          </div>
-        </RadioGroup>
-      </div>
+              {localConfig.recipient_mode === 'dynamic' && (
+                <div className="ml-6">
+                  <Select
+                    value={localConfig.dynamic_field}
+                    onValueChange={(value) => handleChange('dynamic_field', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select field" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="item.manager_id">Item's Manager</SelectItem>
+                      <SelectItem value="hotel.manager_id">Hotel Manager</SelectItem>
+                      <SelectItem value="category.default_assignee">Category Default Assignee</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          </RadioGroup>
+        </div>
+      )}
       
       {/* Additional options */}
       <div className="space-y-2">

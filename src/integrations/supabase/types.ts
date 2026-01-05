@@ -4814,6 +4814,7 @@ export type Database = {
           chat_id: string
           chat_title: string
           created_at: string | null
+          department: string | null
           group_type: string | null
           hotel_id: string | null
           id: string
@@ -4827,6 +4828,7 @@ export type Database = {
           chat_id: string
           chat_title: string
           created_at?: string | null
+          department?: string | null
           group_type?: string | null
           hotel_id?: string | null
           id?: string
@@ -4840,6 +4842,7 @@ export type Database = {
           chat_id?: string
           chat_title?: string
           created_at?: string | null
+          department?: string | null
           group_type?: string | null
           hotel_id?: string | null
           id?: string
