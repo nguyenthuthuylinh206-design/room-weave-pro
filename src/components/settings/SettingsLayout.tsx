@@ -15,7 +15,8 @@ import {
   Zap,
   CreditCard,
   BarChart3,
-  KeyRound
+  KeyRound,
+  MessageCircle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -28,6 +29,7 @@ const settingsNavigation = [
   { name: 'Đăng ký & Thanh toán', href: '/settings/subscription', icon: CreditCard },
   { name: 'Mức sử dụng', href: '/settings/usage', icon: BarChart3 },
   { name: 'Thông báo', href: '/settings/notifications', icon: Bell },
+  { name: 'Telegram', href: '/settings/telegram', icon: MessageCircle },
   { name: 'Cấu hình nghiệp vụ', href: '/settings/business', icon: Briefcase },
   { name: 'Tự động hóa', href: '/settings/workflows', icon: Zap },
   { name: 'Tích hợp & API', href: '/settings/integrations', icon: Plug },

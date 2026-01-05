@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ChevronRight, User, Building2, Users, Mail, Globe, Shield, Database, Bell, LogOut } from 'lucide-react'
+import { ChevronRight, User, Building2, Users, Mail, Globe, Shield, Database, Bell, LogOut, MessageCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 interface SettingsItem {
@@ -88,7 +88,7 @@ export const MobileSettingsPage = () => {
           id: 'telegram',
           title: 'Telegram',
           description: 'Nhận thông báo qua Telegram',
-          icon: Bell,
+          icon: MessageCircle,
           route: '/settings/telegram',
         },
         {
