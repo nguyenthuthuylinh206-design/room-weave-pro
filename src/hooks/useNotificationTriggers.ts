@@ -132,7 +132,7 @@ export async function createInAppNotification({
   }
 }
 
-// Create notifications for multiple recipients using RPC
+// Create notifications for multiple recipients using RPC - PARALLEL
 export async function createMultipleNotifications({
   recipientIds,
   tenantId,
@@ -154,12 +154,10 @@ export async function createMultipleNotifications({
 }): Promise<number> {
   if (recipientIds.length === 0) return 0;
 
-  let successCount = 0;
-  
-  // Create notifications one by one using RPC function
-  for (const userId of recipientIds) {
-    try {
-      const { error } = await supabase.rpc('create_notification_for_user', {
+  // Create notifications in parallel for speed
+  const results = await Promise.allSettled(
+    recipientIds.map(userId =>
+      supabase.rpc('create_notification_for_user', {
         p_user_id: userId,
         p_tenant_id: tenantId,
         p_title: title,
@@ -168,13 +166,13 @@ export async function createMultipleNotifications({
         p_action_url: actionUrl ?? null,
         p_icon: icon ?? null,
         p_metadata: metadata ?? null,
-      });
+      })
+    )
+  );
 
-      if (!error) successCount++;
-    } catch (error) {
-      console.error(`Error creating notification for user ${userId}:`, error);
-    }
-  }
+  const successCount = results.filter(
+    r => r.status === 'fulfilled' && !r.value.error
+  ).length;
 
   return successCount;
 }
@@ -260,7 +258,7 @@ export async function sendPushNotification(params: {
   return result.ok;
 }
 
-// Send push notifications to multiple users
+// Send push notifications to multiple users - BATCH for speed
 export async function sendMultiplePushNotifications({
   recipientIds,
   tenantId,
@@ -282,24 +280,35 @@ export async function sendMultiplePushNotifications({
   icon?: string;
   image?: string;
 }): Promise<number> {
-  let successCount = 0;
-  
-  for (const userId of recipientIds) {
-    const success = await sendPushNotification({
-      userId,
-      tenantId,
-      title,
-      body,
-      actionUrl,
-      tag,
-      notificationType,
-      icon,
-      image,
+  if (recipientIds.length === 0) return 0;
+
+  // Use batch API call with user_ids array for speed
+  try {
+    const { data, error } = await supabase.functions.invoke('send-push-notification', {
+      body: {
+        user_ids: recipientIds,
+        tenant_id: tenantId,
+        title,
+        body,
+        icon,
+        image,
+        notification_type: notificationType,
+        action_url: actionUrl || '/',
+        data: { url: actionUrl || '/', type: notificationType },
+        tag,
+      },
     });
-    if (success) successCount++;
+
+    if (error) {
+      console.error('[Push] Batch send error:', error);
+      return 0;
+    }
+
+    return typeof data?.sent === 'number' ? data.sent : 0;
+  } catch (err) {
+    console.error('[Push] Batch send failed:', err);
+    return 0;
   }
-  
-  return successCount;
 }
 
 // ==================== SUPERVISOR-BASED NOTIFICATIONS ====================
@@ -332,26 +341,27 @@ export async function notifyStaffSupervisor({
   const supervisor = await getStaffSupervisor(staffUserId);
   
   if (supervisor) {
-    // Send to specific supervisor only
-    await createInAppNotification({
-      userId: supervisor.id,
-      tenantId,
-      title,
-      body,
-      type,
-      actionUrl,
-      icon,
-      metadata,
-    });
-
-    await sendPushNotification({
-      userId: supervisor.id,
-      tenantId,
-      title,
-      body,
-      actionUrl,
-      notificationType: type,
-    });
+    // Send to specific supervisor only - PARALLEL
+    await Promise.all([
+      createInAppNotification({
+        userId: supervisor.id,
+        tenantId,
+        title,
+        body,
+        type,
+        actionUrl,
+        icon,
+        metadata,
+      }),
+      sendPushNotification({
+        userId: supervisor.id,
+        tenantId,
+        title,
+        body,
+        actionUrl,
+        notificationType: type,
+      }),
+    ]);
 
     return { supervisorId: supervisor.id, fallbackToAllManagers: false, recipientCount: 1 };
   }
@@ -362,25 +372,27 @@ export async function notifyStaffSupervisor({
     const recipientIds = managers.map(m => m.id).filter(id => id !== staffUserId);
 
     if (recipientIds.length > 0) {
-      await createMultipleNotifications({
-        recipientIds,
-        tenantId,
-        title,
-        body,
-        type,
-        actionUrl,
-        icon,
-        metadata,
-      });
-
-      await sendMultiplePushNotifications({
-        recipientIds,
-        tenantId,
-        title,
-        body,
-        actionUrl,
-        notificationType: type,
-      });
+      // Send in-app and push PARALLEL
+      await Promise.all([
+        createMultipleNotifications({
+          recipientIds,
+          tenantId,
+          title,
+          body,
+          type,
+          actionUrl,
+          icon,
+          metadata,
+        }),
+        sendMultiplePushNotifications({
+          recipientIds,
+          tenantId,
+          title,
+          body,
+          actionUrl,
+          notificationType: type,
+        }),
+      ]);
 
       return { fallbackToAllManagers: true, recipientCount: recipientIds.length };
     }
@@ -425,36 +437,36 @@ export async function triggerLowStockAlert({
 
   const recipientIds = recipients.map(r => r.id);
 
-  await createMultipleNotifications({
-    recipientIds,
-    tenantId,
-    title,
-    body,
-    type,
-    actionUrl,
-    icon: 'alert-triangle',
-    metadata: { itemId, currentStock, minimumStock, hotelId } as Json,
-  });
-
-  await sendMultiplePushNotifications({
-    recipientIds,
-    tenantId,
-    title,
-    body,
-    actionUrl,
-    tag: `low-stock-${itemId}`,
-    notificationType: type,
-  });
-
-  // Send Telegram notification to management groups
-  await sendTelegramNotification({
-    tenantId,
-    sendToManagementGroups: true,
-    title,
-    message: body,
-    notificationType: 'inventory',
-    actionUrl,
-  });
+  // Send all notifications in PARALLEL for speed
+  await Promise.all([
+    createMultipleNotifications({
+      recipientIds,
+      tenantId,
+      title,
+      body,
+      type,
+      actionUrl,
+      icon: 'alert-triangle',
+      metadata: { itemId, currentStock, minimumStock, hotelId } as Json,
+    }),
+    sendMultiplePushNotifications({
+      recipientIds,
+      tenantId,
+      title,
+      body,
+      actionUrl,
+      tag: `low-stock-${itemId}`,
+      notificationType: type,
+    }),
+    sendTelegramNotification({
+      tenantId,
+      sendToManagementGroups: true,
+      title,
+      message: body,
+      notificationType: 'inventory',
+      actionUrl,
+    }),
+  ]);
 }
 
 // Trigger when room status changes to check_out - notify hotel staff
@@ -499,36 +511,36 @@ export async function triggerRoomCheckoutNotification({
     return;
   }
 
-  await createMultipleNotifications({
-    recipientIds,
-    tenantId,
-    title,
-    body,
-    type: 'room_checkout',
-    actionUrl,
-    icon: 'door-open',
-    metadata: { roomId, roomNumber, hotelId } as Json,
-  });
-
-  await sendMultiplePushNotifications({
-    recipientIds,
-    tenantId,
-    title,
-    body,
-    actionUrl,
-    tag: `room-checkout-${roomId}`,
-    notificationType: 'room_checkout',
-  });
-
-  // Send Telegram notification to staff groups
-  await sendTelegramNotification({
-    tenantId,
-    sendToStaffGroups: true,
-    title,
-    message: body,
-    notificationType: 'checkout',
-    actionUrl,
-  });
+  // Send all notifications in PARALLEL for speed
+  await Promise.all([
+    createMultipleNotifications({
+      recipientIds,
+      tenantId,
+      title,
+      body,
+      type: 'room_checkout',
+      actionUrl,
+      icon: 'door-open',
+      metadata: { roomId, roomNumber, hotelId } as Json,
+    }),
+    sendMultiplePushNotifications({
+      recipientIds,
+      tenantId,
+      title,
+      body,
+      actionUrl,
+      tag: `room-checkout-${roomId}`,
+      notificationType: 'room_checkout',
+    }),
+    sendTelegramNotification({
+      tenantId,
+      sendToStaffGroups: true,
+      title,
+      message: body,
+      notificationType: 'checkout',
+      actionUrl,
+    }),
+  ]);
 }
 
 export async function triggerMaintenanceNewNotification({
@@ -552,29 +564,28 @@ export async function triggerMaintenanceNewNotification({
   const body = `${requestCode}: ${title} tại ${location}`;
   const actionUrl = `/maintenance/${requestId}`;
 
-  // Use supervisor-based notification: notify the staff's supervisor first
-  // If no supervisor, fallback to all hotel managers
-  await notifyStaffSupervisor({
-    staffUserId: createdByUserId,
-    tenantId,
-    hotelId,
-    title: notifTitle,
-    body,
-    type: 'maintenance_new',
-    actionUrl,
-    icon: 'wrench',
-    metadata: { requestId, requestCode, hotelId, createdBy: createdByUserId } as Json,
-  });
-
-  // Send Telegram notification to management groups
-  await sendTelegramNotification({
-    tenantId,
-    sendToManagementGroups: true,
-    title: notifTitle,
-    message: body,
-    notificationType: 'maintenance',
-    actionUrl,
-  });
+  // Send supervisor notifications and Telegram in PARALLEL
+  await Promise.all([
+    notifyStaffSupervisor({
+      staffUserId: createdByUserId,
+      tenantId,
+      hotelId,
+      title: notifTitle,
+      body,
+      type: 'maintenance_new',
+      actionUrl,
+      icon: 'wrench',
+      metadata: { requestId, requestCode, hotelId, createdBy: createdByUserId } as Json,
+    }),
+    sendTelegramNotification({
+      tenantId,
+      sendToManagementGroups: true,
+      title: notifTitle,
+      message: body,
+      notificationType: 'maintenance',
+      actionUrl,
+    }),
+  ]);
 }
 
 // Trigger for maintenance completed - sends to original reporter
@@ -599,26 +610,28 @@ export async function triggerMaintenanceCompletedNotification({
   const body = `${requestCode}: ${title} đã được xử lý xong`;
   const actionUrl = `/maintenance/${requestId}`;
 
-  await createInAppNotification({
-    userId: reportedByUserId,
-    tenantId,
-    title: notifTitle,
-    body,
-    type: 'maintenance_completed',
-    actionUrl,
-    icon: 'check-circle',
-    metadata: { requestId, requestCode, completedBy: completedByUserId } as Json,
-  });
-
-  await sendPushNotification({
-    userId: reportedByUserId,
-    tenantId,
-    title: notifTitle,
-    body,
-    actionUrl,
-    tag: `maintenance-complete-${requestId}`,
-    notificationType: 'maintenance_completed',
-  });
+  // Send in-app and push in PARALLEL
+  await Promise.all([
+    createInAppNotification({
+      userId: reportedByUserId,
+      tenantId,
+      title: notifTitle,
+      body,
+      type: 'maintenance_completed',
+      actionUrl,
+      icon: 'check-circle',
+      metadata: { requestId, requestCode, completedBy: completedByUserId } as Json,
+    }),
+    sendPushNotification({
+      userId: reportedByUserId,
+      tenantId,
+      title: notifTitle,
+      body,
+      actionUrl,
+      tag: `maintenance-complete-${requestId}`,
+      notificationType: 'maintenance_completed',
+    }),
+  ]);
 }
 
 // Trigger for laundry batch completed - sends to hotel staff
@@ -651,37 +664,37 @@ export async function triggerLaundryCompletedNotification({
 
   const recipientIds = recipients.map(r => r.id);
 
-  await createMultipleNotifications({
-    recipientIds,
-    tenantId,
-    title,
-    body,
-    type: 'laundry_completed',
-    actionUrl,
-    icon: 'shirt',
-    metadata: { batchId, batchCode, totalItems, hotelId } as Json,
-  });
-
-  await sendMultiplePushNotifications({
-    recipientIds,
-    tenantId,
-    title,
-    body,
-    actionUrl,
-    tag: `laundry-${batchId}`,
-    notificationType: 'laundry_completed',
-  });
-
-  // Send Telegram notification to management groups
-  await sendTelegramNotification({
-    tenantId,
-    sendToManagementGroups: true,
-    sendToStaffGroups: true,
-    title,
-    message: body,
-    notificationType: 'laundry',
-    actionUrl,
-  });
+  // Send all notifications in PARALLEL
+  await Promise.all([
+    createMultipleNotifications({
+      recipientIds,
+      tenantId,
+      title,
+      body,
+      type: 'laundry_completed',
+      actionUrl,
+      icon: 'shirt',
+      metadata: { batchId, batchCode, totalItems, hotelId } as Json,
+    }),
+    sendMultiplePushNotifications({
+      recipientIds,
+      tenantId,
+      title,
+      body,
+      actionUrl,
+      tag: `laundry-${batchId}`,
+      notificationType: 'laundry_completed',
+    }),
+    sendTelegramNotification({
+      tenantId,
+      sendToManagementGroups: true,
+      sendToStaffGroups: true,
+      title,
+      message: body,
+      notificationType: 'laundry',
+      actionUrl,
+    }),
+  ]);
 }
 
 // Trigger for PO pending approval - sends to approvers (managers/owner)
@@ -711,26 +724,28 @@ export async function triggerPOPendingApprovalNotification({
 
   const recipientIds = recipients.map(r => r.id);
 
-  await createMultipleNotifications({
-    recipientIds,
-    tenantId,
-    title,
-    body,
-    type: 'po_pending_approval',
-    actionUrl,
-    icon: 'file-text',
-    metadata: { poId, poCode, createdBy: createdByUserId } as Json,
-  });
-
-  await sendMultiplePushNotifications({
-    recipientIds,
-    tenantId,
-    title,
-    body,
-    actionUrl,
-    tag: `po-pending-${poId}`,
-    notificationType: 'po_pending_approval',
-  });
+  // Send all in PARALLEL
+  await Promise.all([
+    createMultipleNotifications({
+      recipientIds,
+      tenantId,
+      title,
+      body,
+      type: 'po_pending_approval',
+      actionUrl,
+      icon: 'file-text',
+      metadata: { poId, poCode, createdBy: createdByUserId } as Json,
+    }),
+    sendMultiplePushNotifications({
+      recipientIds,
+      tenantId,
+      title,
+      body,
+      actionUrl,
+      tag: `po-pending-${poId}`,
+      notificationType: 'po_pending_approval',
+    }),
+  ]);
 }
 
 // Trigger for PO approved - sends to creator
@@ -753,26 +768,28 @@ export async function triggerPOApprovedNotification({
   const body = `Đơn hàng ${poCode} đã được phê duyệt`;
   const actionUrl = `/purchase-orders/${poId}`;
 
-  await createInAppNotification({
-    userId: createdByUserId,
-    tenantId,
-    title,
-    body,
-    type: 'po_approved',
-    actionUrl,
-    icon: 'check-circle',
-    metadata: { poId, poCode, approvedBy: approvedByUserId } as Json,
-  });
-
-  await sendPushNotification({
-    userId: createdByUserId,
-    tenantId,
-    title,
-    body,
-    actionUrl,
-    tag: `po-${poId}`,
-    notificationType: 'po_approved',
-  });
+  // Send in-app and push in PARALLEL
+  await Promise.all([
+    createInAppNotification({
+      userId: createdByUserId,
+      tenantId,
+      title,
+      body,
+      type: 'po_approved',
+      actionUrl,
+      icon: 'check-circle',
+      metadata: { poId, poCode, approvedBy: approvedByUserId } as Json,
+    }),
+    sendPushNotification({
+      userId: createdByUserId,
+      tenantId,
+      title,
+      body,
+      actionUrl,
+      tag: `po-${poId}`,
+      notificationType: 'po_approved',
+    }),
+  ]);
 }
 
 // Trigger for task assigned - sends to assigned user
@@ -806,26 +823,28 @@ export async function triggerTaskAssignedNotification({
   const title = 'Bạn được phân công công việc mới';
   const body = `${taskTypeLabels[taskType]}: ${taskTitle} - Phân công bởi ${assigner?.full_name || 'Quản lý'}`;
 
-  await createInAppNotification({
-    userId: assignedToUserId,
-    tenantId,
-    title,
-    body,
-    type: 'task_assigned',
-    actionUrl,
-    icon: 'user-check',
-    metadata: { taskId, taskType, assignedBy: assignedByUserId } as Json,
-  });
-
-  await sendPushNotification({
-    userId: assignedToUserId,
-    tenantId,
-    title,
-    body,
-    actionUrl,
-    tag: `task-${taskType}-${taskId}`,
-    notificationType: 'task_assigned',
-  });
+  // Send in-app and push in PARALLEL
+  await Promise.all([
+    createInAppNotification({
+      userId: assignedToUserId,
+      tenantId,
+      title,
+      body,
+      type: 'task_assigned',
+      actionUrl,
+      icon: 'user-check',
+      metadata: { taskId, taskType, assignedBy: assignedByUserId } as Json,
+    }),
+    sendPushNotification({
+      userId: assignedToUserId,
+      tenantId,
+      title,
+      body,
+      actionUrl,
+      tag: `task-${taskType}-${taskId}`,
+      notificationType: 'task_assigned',
+    }),
+  ]);
 }
 
 // Trigger for room check completed - sends to staff's supervisor
@@ -892,26 +911,28 @@ export async function triggerDistributionOrderCreated({
   const body = `${orderCode}: ${totalRooms} phòng, ${totalItems} sản phẩm - Phân công bởi ${creator?.full_name || 'Quản lý'}`;
   const actionUrl = `/inventory/distribution/${orderId}`;
 
-  await createInAppNotification({
-    userId: assignedToUserId,
-    tenantId,
-    title,
-    body,
-    type: 'task_assigned',
-    actionUrl,
-    icon: 'truck',
-    metadata: { orderId, orderCode, totalRooms, totalItems, createdBy: createdByUserId } as Json,
-  });
-
-  await sendPushNotification({
-    userId: assignedToUserId,
-    tenantId,
-    title,
-    body,
-    actionUrl,
-    tag: `distribution-${orderId}`,
-    notificationType: 'task_assigned',
-  });
+  // Send in-app and push in PARALLEL
+  await Promise.all([
+    createInAppNotification({
+      userId: assignedToUserId,
+      tenantId,
+      title,
+      body,
+      type: 'task_assigned',
+      actionUrl,
+      icon: 'truck',
+      metadata: { orderId, orderCode, totalRooms, totalItems, createdBy: createdByUserId } as Json,
+    }),
+    sendPushNotification({
+      userId: assignedToUserId,
+      tenantId,
+      title,
+      body,
+      actionUrl,
+      tag: `distribution-${orderId}`,
+      notificationType: 'task_assigned',
+    }),
+  ]);
 }
 
 // Trigger when delivery is confirmed - notify order creator
@@ -941,26 +962,28 @@ export async function triggerDistributionDeliveryConfirmed({
     : `${orderCode}: Phòng ${roomNumber} đã xác nhận nhận hàng - bởi ${confirmer?.full_name || 'Nhân viên'}`;
   const actionUrl = `/inventory/distribution/${orderId}`;
 
-  await createInAppNotification({
-    userId: createdByUserId,
-    tenantId,
-    title,
-    body,
-    type: allCompleted ? 'success' : 'info',
-    actionUrl,
-    icon: allCompleted ? 'check-circle' : 'truck',
-    metadata: { orderId, orderCode, roomNumber, confirmedBy: confirmedByUserId, allCompleted } as Json,
-  });
-
-  await sendPushNotification({
-    userId: createdByUserId,
-    tenantId,
-    title,
-    body,
-    actionUrl,
-    tag: `distribution-confirm-${orderId}`,
-    notificationType: allCompleted ? 'success' : 'info',
-  });
+  // Send in-app and push in PARALLEL
+  await Promise.all([
+    createInAppNotification({
+      userId: createdByUserId,
+      tenantId,
+      title,
+      body,
+      type: allCompleted ? 'success' : 'info',
+      actionUrl,
+      icon: allCompleted ? 'check-circle' : 'truck',
+      metadata: { orderId, orderCode, roomNumber, confirmedBy: confirmedByUserId, allCompleted } as Json,
+    }),
+    sendPushNotification({
+      userId: createdByUserId,
+      tenantId,
+      title,
+      body,
+      actionUrl,
+      tag: `distribution-confirm-${orderId}`,
+      notificationType: allCompleted ? 'success' : 'info',
+    }),
+  ]);
 }
 
 // Trigger when delivery is rejected - notify creator and assigned staff
@@ -990,53 +1013,61 @@ export async function triggerDistributionDeliveryRejected({
   const body = `${orderCode}: Phòng ${roomNumber} từ chối nhận hàng - ${rejectionReason}`;
   const actionUrl = `/inventory/distribution/${orderId}`;
 
+  // Build notification promises
+  const notificationPromises: Promise<any>[] = [];
+
   // Notify creator
   if (createdByUserId !== rejectedByUserId) {
-    await createInAppNotification({
-      userId: createdByUserId,
-      tenantId,
-      title,
-      body,
-      type: 'warning',
-      actionUrl,
-      icon: 'alert-triangle',
-      metadata: { orderId, orderCode, roomNumber, rejectedBy: rejectedByUserId, reason: rejectionReason } as Json,
-    });
-
-    await sendPushNotification({
-      userId: createdByUserId,
-      tenantId,
-      title,
-      body,
-      actionUrl,
-      tag: `distribution-reject-${orderId}`,
-      notificationType: 'warning',
-    });
+    notificationPromises.push(
+      createInAppNotification({
+        userId: createdByUserId,
+        tenantId,
+        title,
+        body,
+        type: 'warning',
+        actionUrl,
+        icon: 'alert-triangle',
+        metadata: { orderId, orderCode, roomNumber, rejectedBy: rejectedByUserId, reason: rejectionReason } as Json,
+      }),
+      sendPushNotification({
+        userId: createdByUserId,
+        tenantId,
+        title,
+        body,
+        actionUrl,
+        tag: `distribution-reject-${orderId}`,
+        notificationType: 'warning',
+      })
+    );
   }
 
   // Notify assigned staff
   if (assignedToUserId && assignedToUserId !== rejectedByUserId && assignedToUserId !== createdByUserId) {
-    await createInAppNotification({
-      userId: assignedToUserId,
-      tenantId,
-      title,
-      body,
-      type: 'warning',
-      actionUrl,
-      icon: 'alert-triangle',
-      metadata: { orderId, orderCode, roomNumber, rejectedBy: rejectedByUserId, reason: rejectionReason } as Json,
-    });
-
-    await sendPushNotification({
-      userId: assignedToUserId,
-      tenantId,
-      title,
-      body,
-      actionUrl,
-      tag: `distribution-reject-${orderId}`,
-      notificationType: 'warning',
-    });
+    notificationPromises.push(
+      createInAppNotification({
+        userId: assignedToUserId,
+        tenantId,
+        title,
+        body,
+        type: 'warning',
+        actionUrl,
+        icon: 'alert-triangle',
+        metadata: { orderId, orderCode, roomNumber, rejectedBy: rejectedByUserId, reason: rejectionReason } as Json,
+      }),
+      sendPushNotification({
+        userId: assignedToUserId,
+        tenantId,
+        title,
+        body,
+        actionUrl,
+        tag: `distribution-reject-${orderId}`,
+        notificationType: 'warning',
+      })
+    );
   }
+
+  // Execute all in PARALLEL
+  await Promise.all(notificationPromises);
 }
 
 // Trigger when distribution order is cancelled - notify assigned staff
@@ -1060,26 +1091,28 @@ export async function triggerDistributionOrderCancelled({
   const body = `${orderCode} đã bị hủy bởi ${canceller?.full_name || 'Quản lý'}`;
   const actionUrl = `/inventory/distribution`;
 
-  await createInAppNotification({
-    userId: assignedToUserId,
-    tenantId,
-    title,
-    body,
-    type: 'warning',
-    actionUrl,
-    icon: 'x-circle',
-    metadata: { orderId, orderCode, cancelledBy: cancelledByUserId } as Json,
-  });
-
-  await sendPushNotification({
-    userId: assignedToUserId,
-    tenantId,
-    title,
-    body,
-    actionUrl,
-    tag: `distribution-cancel-${orderId}`,
-    notificationType: 'warning',
-  });
+  // Send in-app and push in PARALLEL
+  await Promise.all([
+    createInAppNotification({
+      userId: assignedToUserId,
+      tenantId,
+      title,
+      body,
+      type: 'warning',
+      actionUrl,
+      icon: 'x-circle',
+      metadata: { orderId, orderCode, cancelledBy: cancelledByUserId } as Json,
+    }),
+    sendPushNotification({
+      userId: assignedToUserId,
+      tenantId,
+      title,
+      body,
+      actionUrl,
+      tag: `distribution-cancel-${orderId}`,
+      notificationType: 'warning',
+    }),
+  ]);
 }
 
 // Generic notification trigger (legacy support)
@@ -1137,26 +1170,28 @@ export async function triggerLowStockAlertLegacy(
   const body = `${itemName} chỉ còn ${currentStock}/${minimumStock} đơn vị`;
   const actionUrl = `/items/${itemId}`;
   
-  await createInAppNotification({
-    userId,
-    tenantId,
-    title,
-    body,
-    type: currentStock <= 5 ? 'critical_stock' : 'low_stock',
-    actionUrl,
-    icon: 'alert-triangle',
-    metadata: { itemId, currentStock, minimumStock } as Json,
-  });
-
-  await sendPushNotification({
-    userId,
-    tenantId,
-    title,
-    body,
-    actionUrl,
-    tag: `low-stock-${itemId}`,
-    notificationType: currentStock <= 5 ? 'critical_stock' : 'low_stock',
-  });
+  // Send in-app and push in PARALLEL
+  await Promise.all([
+    createInAppNotification({
+      userId,
+      tenantId,
+      title,
+      body,
+      type: currentStock <= 5 ? 'critical_stock' : 'low_stock',
+      actionUrl,
+      icon: 'alert-triangle',
+      metadata: { itemId, currentStock, minimumStock } as Json,
+    }),
+    sendPushNotification({
+      userId,
+      tenantId,
+      title,
+      body,
+      actionUrl,
+      tag: `low-stock-${itemId}`,
+      notificationType: currentStock <= 5 ? 'critical_stock' : 'low_stock',
+    }),
+  ]);
 }
 
 export async function triggerMaintenanceNotification(
@@ -1171,26 +1206,28 @@ export async function triggerMaintenanceNotification(
   const body = `${requestCode}: ${title} tại ${location}`;
   const actionUrl = `/maintenance/${requestId}`;
   
-  await createInAppNotification({
-    userId,
-    tenantId,
-    title: notifTitle,
-    body,
-    type: 'maintenance_new',
-    actionUrl,
-    icon: 'wrench',
-    metadata: { requestId, requestCode } as Json,
-  });
-
-  await sendPushNotification({
-    userId,
-    tenantId,
-    title: notifTitle,
-    body,
-    actionUrl,
-    tag: `maintenance-${requestId}`,
-    notificationType: 'maintenance_new',
-  });
+  // Send in-app and push in PARALLEL
+  await Promise.all([
+    createInAppNotification({
+      userId,
+      tenantId,
+      title: notifTitle,
+      body,
+      type: 'maintenance_new',
+      actionUrl,
+      icon: 'wrench',
+      metadata: { requestId, requestCode } as Json,
+    }),
+    sendPushNotification({
+      userId,
+      tenantId,
+      title: notifTitle,
+      body,
+      actionUrl,
+      tag: `maintenance-${requestId}`,
+      notificationType: 'maintenance_new',
+    }),
+  ]);
 }
 
 export async function triggerLaundryCompletedNotificationLegacy(
@@ -1204,26 +1241,28 @@ export async function triggerLaundryCompletedNotificationLegacy(
   const body = `Lô ${batchCode} với ${totalItems} món đã sẵn sàng nhận`;
   const actionUrl = `/laundry/${batchId}`;
   
-  await createInAppNotification({
-    userId,
-    tenantId,
-    title,
-    body,
-    type: 'laundry_completed',
-    actionUrl,
-    icon: 'shirt',
-    metadata: { batchId, batchCode, totalItems } as Json,
-  });
-
-  await sendPushNotification({
-    userId,
-    tenantId,
-    title,
-    body,
-    actionUrl,
-    tag: `laundry-${batchId}`,
-    notificationType: 'laundry_completed',
-  });
+  // Send in-app and push in PARALLEL
+  await Promise.all([
+    createInAppNotification({
+      userId,
+      tenantId,
+      title,
+      body,
+      type: 'laundry_completed',
+      actionUrl,
+      icon: 'shirt',
+      metadata: { batchId, batchCode, totalItems } as Json,
+    }),
+    sendPushNotification({
+      userId,
+      tenantId,
+      title,
+      body,
+      actionUrl,
+      tag: `laundry-${batchId}`,
+      notificationType: 'laundry_completed',
+    }),
+  ]);
 }
 
 export async function triggerPOApprovedNotificationLegacy(
@@ -1236,24 +1275,26 @@ export async function triggerPOApprovedNotificationLegacy(
   const body = `Đơn hàng ${poCode} đã được phê duyệt`;
   const actionUrl = `/purchase-orders/${poId}`;
   
-  await createInAppNotification({
-    userId,
-    tenantId,
-    title,
-    body,
-    type: 'po_approved',
-    actionUrl,
-    icon: 'check-circle',
-    metadata: { poId, poCode } as Json,
-  });
-
-  await sendPushNotification({
-    userId,
-    tenantId,
-    title,
-    body,
-    actionUrl,
-    tag: `po-${poId}`,
-    notificationType: 'po_approved',
-  });
+  // Send in-app and push in PARALLEL
+  await Promise.all([
+    createInAppNotification({
+      userId,
+      tenantId,
+      title,
+      body,
+      type: 'po_approved',
+      actionUrl,
+      icon: 'check-circle',
+      metadata: { poId, poCode } as Json,
+    }),
+    sendPushNotification({
+      userId,
+      tenantId,
+      title,
+      body,
+      actionUrl,
+      tag: `po-${poId}`,
+      notificationType: 'po_approved',
+    }),
+  ]);
 }
