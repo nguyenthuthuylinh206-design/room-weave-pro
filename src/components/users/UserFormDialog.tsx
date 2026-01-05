@@ -198,7 +198,7 @@ export function UserFormDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {user ? t('users:form.editTitle') : t('users:form.title')}
@@ -311,7 +311,7 @@ export function UserFormDialog({
                           <SelectValue placeholder={t('users:form.selectLevel')} />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="z-[200]">
                         {availableUserLevels.map((level) => (
                           <SelectItem key={level.code} value={level.code}>
                             <div className="flex flex-col">
@@ -349,7 +349,7 @@ export function UserFormDialog({
                           <SelectValue placeholder={t('users:form.selectHotel')} />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="z-[200]">
                         {hotels?.map((hotel) => (
                           <SelectItem key={hotel.id} value={hotel.id}>
                             {hotel.name}
@@ -381,7 +381,7 @@ export function UserFormDialog({
                           <SelectValue placeholder={t('users:form.selectPosition')} />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="z-[200]">
                         {positions?.map((position) => (
                           <SelectItem key={position.id} value={position.id}>
                             {position.name}
@@ -430,7 +430,7 @@ export function UserFormDialog({
                                 <SelectValue placeholder={t('users:form.selectManager')} />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent className="z-[200]">
                               {/* Option for direct Owner management */}
                               <SelectItem value="none">
                                 {t('users:form.noSupervisorOption')}
