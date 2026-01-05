@@ -9,6 +9,68 @@ import {
   RecipientRole 
 } from '@/utils/notificationRecipients';
 
+// ==================== TELEGRAM NOTIFICATION HELPER ====================
+
+export type TelegramNotificationType = 'booking' | 'checkin' | 'checkout' | 'maintenance' | 'inventory' | 'payment' | 'laundry' | 'system';
+
+interface SendTelegramNotificationParams {
+  tenantId: string;
+  userIds?: string[];
+  groupIds?: string[];
+  sendToAllGroups?: boolean;
+  sendToOwnerGroups?: boolean;
+  sendToManagementGroups?: boolean;
+  sendToStaffGroups?: boolean;
+  title: string;
+  message: string;
+  notificationType?: TelegramNotificationType;
+  actionUrl?: string;
+}
+
+// Helper function to send Telegram notifications
+export async function sendTelegramNotification({
+  tenantId,
+  userIds,
+  groupIds,
+  sendToAllGroups,
+  sendToOwnerGroups,
+  sendToManagementGroups,
+  sendToStaffGroups,
+  title,
+  message,
+  notificationType = 'system',
+  actionUrl,
+}: SendTelegramNotificationParams): Promise<{ success: boolean; sent: number; total: number }> {
+  try {
+    const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
+      body: {
+        tenant_id: tenantId,
+        user_ids: userIds,
+        group_ids: groupIds,
+        send_to_all_groups: sendToAllGroups,
+        send_to_owner_groups: sendToOwnerGroups,
+        send_to_management_groups: sendToManagementGroups,
+        send_to_staff_groups: sendToStaffGroups,
+        title,
+        message,
+        notification_type: notificationType,
+        action_url: actionUrl,
+      },
+    });
+
+    if (error) {
+      console.error('[Telegram] Error sending notification:', error);
+      return { success: false, sent: 0, total: 0 };
+    }
+
+    console.log('[Telegram] Notification sent:', data);
+    return data as { success: boolean; sent: number; total: number };
+  } catch (err) {
+    console.error('[Telegram] Failed to send notification:', err);
+    return { success: false, sent: 0, total: 0 };
+  }
+}
+
 export type NotificationType = 
   | 'low_stock'
   | 'critical_stock'
@@ -383,6 +445,16 @@ export async function triggerLowStockAlert({
     tag: `low-stock-${itemId}`,
     notificationType: type,
   });
+
+  // Send Telegram notification to management groups
+  await sendTelegramNotification({
+    tenantId,
+    sendToManagementGroups: true,
+    title,
+    message: body,
+    notificationType: 'inventory',
+    actionUrl,
+  });
 }
 
 // Trigger when room status changes to check_out - notify hotel staff
@@ -447,6 +519,16 @@ export async function triggerRoomCheckoutNotification({
     tag: `room-checkout-${roomId}`,
     notificationType: 'room_checkout',
   });
+
+  // Send Telegram notification to staff groups
+  await sendTelegramNotification({
+    tenantId,
+    sendToStaffGroups: true,
+    title,
+    message: body,
+    notificationType: 'checkout',
+    actionUrl,
+  });
 }
 
 export async function triggerMaintenanceNewNotification({
@@ -482,6 +564,16 @@ export async function triggerMaintenanceNewNotification({
     actionUrl,
     icon: 'wrench',
     metadata: { requestId, requestCode, hotelId, createdBy: createdByUserId } as Json,
+  });
+
+  // Send Telegram notification to management groups
+  await sendTelegramNotification({
+    tenantId,
+    sendToManagementGroups: true,
+    title: notifTitle,
+    message: body,
+    notificationType: 'maintenance',
+    actionUrl,
   });
 }
 
@@ -578,6 +670,17 @@ export async function triggerLaundryCompletedNotification({
     actionUrl,
     tag: `laundry-${batchId}`,
     notificationType: 'laundry_completed',
+  });
+
+  // Send Telegram notification to management groups
+  await sendTelegramNotification({
+    tenantId,
+    sendToManagementGroups: true,
+    sendToStaffGroups: true,
+    title,
+    message: body,
+    notificationType: 'laundry',
+    actionUrl,
   });
 }
 
