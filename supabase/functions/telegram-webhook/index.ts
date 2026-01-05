@@ -25,6 +25,8 @@ interface TelegramUpdate {
     }
     date: number
     text?: string
+    migrate_to_chat_id?: number // When group becomes supergroup
+    migrate_from_chat_id?: number // When receiving from old group
   }
   my_chat_member?: {
     chat: {
@@ -53,9 +55,9 @@ async function sendTelegramMessage(
   botToken: string,
   chatId: number | string,
   text: string
-): Promise<void> {
+): Promise<{ ok: boolean; error?: string }> {
   try {
-    await fetch(
+    const response = await fetch(
       `https://api.telegram.org/bot${botToken}/sendMessage`,
       {
         method: 'POST',
@@ -67,8 +69,19 @@ async function sendTelegramMessage(
         }),
       }
     )
+    
+    const result = await response.json()
+    
+    if (!result.ok) {
+      console.error(`Failed to send to ${chatId}:`, result.error_code, result.description)
+      return { ok: false, error: result.description }
+    }
+    
+    console.log(`Message sent successfully to ${chatId}`)
+    return { ok: true }
   } catch (error) {
     console.error('Failed to send message:', error)
+    return { ok: false, error: String(error) }
   }
 }
 
@@ -97,6 +110,31 @@ Deno.serve(async (req) => {
     
     const update: TelegramUpdate = await req.json()
     console.log('Received Telegram update:', JSON.stringify(update, null, 2))
+    
+    // Handle group migration (group -> supergroup)
+    if (update.message?.migrate_to_chat_id) {
+      const oldChatId = update.message.chat.id
+      const newChatId = update.message.migrate_to_chat_id
+      
+      console.log(`Group migrated: ${oldChatId} -> ${newChatId}`)
+      
+      // Update chat_id in database
+      const { error } = await supabase
+        .from('telegram_groups')
+        .update({ 
+          chat_id: String(newChatId), 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('chat_id', String(oldChatId))
+      
+      if (error) {
+        console.error('Error updating migrated group:', error)
+      } else {
+        console.log(`Successfully updated group chat_id from ${oldChatId} to ${newChatId}`)
+      }
+      
+      return new Response('OK', { status: 200 })
+    }
     
     // Handle /start command from private chat
     if (update.message?.text?.startsWith('/start') && update.message.chat.type === 'private') {
