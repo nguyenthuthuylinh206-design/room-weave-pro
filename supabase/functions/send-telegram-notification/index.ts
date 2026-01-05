@@ -7,6 +7,7 @@ const corsHeaders = {
 
 interface TelegramPayload {
   tenant_id: string
+  hotel_id?: string // Filter groups by specific hotel
   user_ids?: string[]
   group_ids?: string[]
   send_to_all_groups?: boolean
@@ -120,14 +121,30 @@ Deno.serve(async (req) => {
       }
     }
     
-    // 3. Gửi cho tất cả nhóm của tenant
-    if (payload.send_to_all_groups) {
-      console.log('Fetching all groups for tenant:', payload.tenant_id)
-      const { data: allGroups, error: agError } = await supabase
+    // Helper to build query with optional hotel_id filter
+    const buildGroupQuery = (groupTypes?: string[]) => {
+      let query = supabase
         .from('telegram_groups')
         .select('chat_id')
         .eq('tenant_id', payload.tenant_id)
         .eq('is_active', true)
+      
+      // If hotel_id is specified, filter by hotel OR groups without hotel (tenant-wide)
+      if (payload.hotel_id) {
+        query = query.or(`hotel_id.eq.${payload.hotel_id},hotel_id.is.null`)
+      }
+      
+      if (groupTypes?.length) {
+        query = query.in('group_type', groupTypes)
+      }
+      
+      return query
+    }
+    
+    // 3. Gửi cho tất cả nhóm của tenant (hoặc hotel cụ thể)
+    if (payload.send_to_all_groups) {
+      console.log('Fetching all groups for tenant:', payload.tenant_id, payload.hotel_id ? `hotel: ${payload.hotel_id}` : '')
+      const { data: allGroups, error: agError } = await buildGroupQuery()
       
       if (agError) {
         console.error('Error fetching all groups:', agError)
@@ -139,37 +156,19 @@ Deno.serve(async (req) => {
     
     // 4. Gửi cho nhóm owner
     if (payload.send_to_owner_groups) {
-      const { data: ownerGroups } = await supabase
-        .from('telegram_groups')
-        .select('chat_id')
-        .eq('tenant_id', payload.tenant_id)
-        .eq('group_type', 'owner')
-        .eq('is_active', true)
-      
+      const { data: ownerGroups } = await buildGroupQuery(['owner'])
       chatIds.push(...(ownerGroups || []).map(g => g.chat_id))
     }
     
     // 5. Gửi cho nhóm management
     if (payload.send_to_management_groups) {
-      const { data: mgmtGroups } = await supabase
-        .from('telegram_groups')
-        .select('chat_id')
-        .eq('tenant_id', payload.tenant_id)
-        .in('group_type', ['owner', 'management'])
-        .eq('is_active', true)
-      
+      const { data: mgmtGroups } = await buildGroupQuery(['owner', 'management'])
       chatIds.push(...(mgmtGroups || []).map(g => g.chat_id))
     }
     
     // 6. Gửi cho nhóm staff
     if (payload.send_to_staff_groups) {
-      const { data: staffGroups } = await supabase
-        .from('telegram_groups')
-        .select('chat_id')
-        .eq('tenant_id', payload.tenant_id)
-        .in('group_type', ['staff', 'general'])
-        .eq('is_active', true)
-      
+      const { data: staffGroups } = await buildGroupQuery(['staff', 'general'])
       chatIds.push(...(staffGroups || []).map(g => g.chat_id))
     }
     

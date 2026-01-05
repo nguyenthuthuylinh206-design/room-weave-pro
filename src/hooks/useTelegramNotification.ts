@@ -5,6 +5,7 @@ export type TelegramNotificationType = 'booking' | 'checkin' | 'checkout' | 'mai
 
 export interface TelegramNotificationPayload {
   tenant_id: string
+  hotel_id?: string // Filter groups by specific hotel
   user_ids?: string[]
   group_ids?: string[]
   send_to_all_groups?: boolean
