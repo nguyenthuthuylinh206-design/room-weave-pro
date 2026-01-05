@@ -54,6 +54,7 @@ import UsageDashboardPage from "./pages/settings/UsageDashboardPage";
 import SystemSecurityPage from "./pages/settings/SystemSecurityPage";
 import { NotificationSettingsPage } from "./pages/settings/NotificationSettingsPage";
 import PushDevicesPage from "./pages/settings/PushDevicesPage";
+import TelegramSettingsPage from "./pages/settings/TelegramSettingsPage";
 import { BusinessConfigurationPage } from "./pages/settings/BusinessConfigurationPage";
 import CategoryManagementPage from "./pages/settings/CategoryManagementPage";
 import WorkflowsPage from "./pages/settings/WorkflowsPage";
@@ -556,7 +557,7 @@ const router = createBrowserRouter([
               </PermissionRoute>
             )
           },
-          { 
+{ 
             path: "notifications/devices", 
             element: (
               <PermissionRoute module="settings">
@@ -565,7 +566,15 @@ const router = createBrowserRouter([
             )
           },
           { 
-            path: "business", 
+            path: "telegram", 
+            element: (
+              <PermissionRoute module="settings">
+                <TelegramSettingsPage />
+              </PermissionRoute>
+            )
+          },
+          { 
+            path: "business",
             element: (
               <PermissionRoute module="settings">
                 <BusinessConfigurationPage />
