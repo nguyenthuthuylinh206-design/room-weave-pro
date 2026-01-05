@@ -62,8 +62,8 @@ export default function TelegramSettingsPage() {
   const [newGroupType, setNewGroupType] = useState('general')
   const [testingSend, setTestingSend] = useState(false)
 
-  // Bot info - replace with your actual bot username
-  const BOT_USERNAME = 'RoomQCBot'
+  // Bot info
+  const BOT_USERNAME = 'roomqc_bot'
   
   // Generate connect link for user
   const connectLink = user?.id 
