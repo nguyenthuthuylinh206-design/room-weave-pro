@@ -77,12 +77,19 @@ export const MobileSettingsPage = () => {
           route: '/settings/email-templates',
           requireAdmin: true,
         },
-        {
+{
           id: 'notifications',
           title: t('notifications.title'),
           description: t('notifications.description'),
           icon: Bell,
           route: '/settings/notifications',
+        },
+        {
+          id: 'telegram',
+          title: 'Telegram',
+          description: 'Nhận thông báo qua Telegram',
+          icon: Bell,
+          route: '/settings/telegram',
         },
         {
           id: 'localization',

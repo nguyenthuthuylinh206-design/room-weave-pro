@@ -1,0 +1,333 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+interface TelegramUpdate {
+  update_id: number
+  message?: {
+    message_id: number
+    from: {
+      id: number
+      is_bot: boolean
+      first_name: string
+      username?: string
+      language_code?: string
+    }
+    chat: {
+      id: number
+      type: 'private' | 'group' | 'supergroup' | 'channel'
+      title?: string
+      username?: string
+      first_name?: string
+    }
+    date: number
+    text?: string
+  }
+  my_chat_member?: {
+    chat: {
+      id: number
+      type: 'private' | 'group' | 'supergroup' | 'channel'
+      title?: string
+    }
+    from: {
+      id: number
+      first_name: string
+      username?: string
+    }
+    new_chat_member: {
+      user: {
+        id: number
+        is_bot: boolean
+        first_name: string
+        username?: string
+      }
+      status: 'member' | 'administrator' | 'left' | 'kicked'
+    }
+  }
+}
+
+async function sendTelegramMessage(
+  botToken: string,
+  chatId: number | string,
+  text: string
+): Promise<void> {
+  try {
+    await fetch(
+      `https://api.telegram.org/bot${botToken}/sendMessage`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: text,
+          parse_mode: 'HTML',
+        }),
+      }
+    )
+  } catch (error) {
+    console.error('Failed to send message:', error)
+  }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
+
+  // Allow GET for webhook verification
+  if (req.method === 'GET') {
+    return new Response('Telegram webhook is active', { 
+      headers: { ...corsHeaders, 'Content-Type': 'text/plain' } 
+    })
+  }
+
+  try {
+    const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN')
+    if (!botToken) {
+      console.error('TELEGRAM_BOT_TOKEN not configured')
+      return new Response('OK', { status: 200 })
+    }
+    
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    
+    const update: TelegramUpdate = await req.json()
+    console.log('Received Telegram update:', JSON.stringify(update, null, 2))
+    
+    // Handle /start command from private chat
+    if (update.message?.text?.startsWith('/start') && update.message.chat.type === 'private') {
+      const chatId = update.message.chat.id
+      const fromUser = update.message.from
+      const startParam = update.message.text.split(' ')[1] // /start USER_UUID
+      
+      console.log(`Received /start from chat ${chatId}, param: ${startParam}`)
+      
+      if (startParam && startParam.length === 36) {
+        // Validate UUID format and check user exists
+        const { data: user, error: userError } = await supabase
+          .from('users')
+          .select('id, tenant_id, full_name')
+          .eq('id', startParam)
+          .single()
+        
+        if (userError || !user) {
+          console.error('User not found:', startParam)
+          await sendTelegramMessage(botToken, chatId,
+            '❌ Không tìm thấy tài khoản.\n\n' +
+            'Vui lòng sử dụng đường link kết nối từ ứng dụng RoomQC.'
+          )
+          return new Response('OK', { status: 200 })
+        }
+        
+        // Upsert connection
+        const { error: upsertError } = await supabase
+          .from('telegram_connections')
+          .upsert({
+            user_id: user.id,
+            tenant_id: user.tenant_id,
+            chat_id: String(chatId),
+            chat_type: 'private',
+            username: fromUser.username,
+            first_name: fromUser.first_name,
+            is_active: true,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id,chat_id'
+          })
+        
+        if (upsertError) {
+          console.error('Error saving connection:', upsertError)
+          await sendTelegramMessage(botToken, chatId,
+            '❌ Có lỗi xảy ra khi kết nối.\n\nVui lòng thử lại sau.'
+          )
+        } else {
+          console.log(`Successfully connected user ${user.id} to chat ${chatId}`)
+          await sendTelegramMessage(botToken, chatId,
+            `✅ <b>Kết nối thành công!</b>\n\n` +
+            `Xin chào <b>${user.full_name || fromUser.first_name}</b>!\n\n` +
+            `Bạn sẽ nhận thông báo từ RoomQC tại đây.\n\n` +
+            `📱 Các loại thông báo:\n` +
+            `• 🏨 Đặt phòng mới\n` +
+            `• 🔧 Yêu cầu bảo trì\n` +
+            `• 📦 Cảnh báo kho\n` +
+            `• 🧺 Cập nhật giặt ủi\n\n` +
+            `Để ngừng nhận thông báo, gõ /stop`
+          )
+        }
+      } else {
+        // No valid param, show instructions
+        await sendTelegramMessage(botToken, chatId,
+          `👋 Xin chào!\n\n` +
+          `Để kết nối với RoomQC, vui lòng:\n\n` +
+          `1. Đăng nhập vào ứng dụng RoomQC\n` +
+          `2. Vào <b>Cài đặt > Telegram</b>\n` +
+          `3. Nhấn nút <b>"Kết nối Telegram"</b>\n\n` +
+          `Hoặc sử dụng đường link được cung cấp trong ứng dụng.`
+        )
+      }
+      
+      return new Response('OK', { status: 200 })
+    }
+    
+    // Handle /stop command
+    if (update.message?.text === '/stop' && update.message.chat.type === 'private') {
+      const chatId = update.message.chat.id
+      
+      const { error } = await supabase
+        .from('telegram_connections')
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq('chat_id', String(chatId))
+      
+      if (!error) {
+        await sendTelegramMessage(botToken, chatId,
+          '🔕 Đã tắt thông báo Telegram.\n\n' +
+          'Để bật lại, vui lòng kết nối lại từ ứng dụng RoomQC.'
+        )
+      }
+      
+      return new Response('OK', { status: 200 })
+    }
+    
+    // Handle /status command
+    if (update.message?.text === '/status' && update.message.chat.type === 'private') {
+      const chatId = update.message.chat.id
+      
+      const { data: connection } = await supabase
+        .from('telegram_connections')
+        .select('*, users(full_name)')
+        .eq('chat_id', String(chatId))
+        .eq('is_active', true)
+        .single()
+      
+      if (connection) {
+        await sendTelegramMessage(botToken, chatId,
+          `✅ <b>Trạng thái kết nối</b>\n\n` +
+          `Tài khoản: <b>${(connection.users as any)?.full_name || 'N/A'}</b>\n` +
+          `Trạng thái: Đang hoạt động ✓\n\n` +
+          `Bạn đang nhận thông báo từ RoomQC.`
+        )
+      } else {
+        await sendTelegramMessage(botToken, chatId,
+          `❌ Chưa kết nối với RoomQC.\n\n` +
+          `Vui lòng kết nối từ ứng dụng RoomQC.`
+        )
+      }
+      
+      return new Response('OK', { status: 200 })
+    }
+    
+    // Handle bot added to group
+    if (update.my_chat_member) {
+      const chatMember = update.my_chat_member
+      const newStatus = chatMember.new_chat_member.status
+      const chatId = chatMember.chat.id
+      const chatTitle = chatMember.chat.title || 'Unknown Group'
+      
+      if (newStatus === 'member' || newStatus === 'administrator') {
+        console.log(`Bot added to group: ${chatTitle} (${chatId})`)
+        
+        await sendTelegramMessage(botToken, chatId,
+          `🏨 <b>RoomQC Notification Bot</b>\n\n` +
+          `Bot đã được thêm vào nhóm "<b>${chatTitle}</b>".\n\n` +
+          `📋 <b>Để kết nối với hệ thống:</b>\n\n` +
+          `1. Đăng nhập vào ứng dụng RoomQC (quyền Owner/Manager)\n` +
+          `2. Vào <b>Cài đặt > Telegram</b>\n` +
+          `3. Nhấn <b>"Thêm nhóm"</b>\n` +
+          `4. Nhập mã nhóm:\n\n` +
+          `<code>${chatId}</code>\n\n` +
+          `⚠️ Lưu ý: Chỉ Owner và Manager mới có quyền thêm nhóm.`
+        )
+      } else if (newStatus === 'left' || newStatus === 'kicked') {
+        console.log(`Bot removed from group: ${chatTitle} (${chatId})`)
+        
+        // Deactivate group in database
+        await supabase
+          .from('telegram_groups')
+          .update({ is_active: false, updated_at: new Date().toISOString() })
+          .eq('chat_id', String(chatId))
+      }
+      
+      return new Response('OK', { status: 200 })
+    }
+    
+    // Handle group messages with /link command
+    if (update.message?.text?.startsWith('/link') && 
+        (update.message.chat.type === 'group' || update.message.chat.type === 'supergroup')) {
+      const chatId = update.message.chat.id
+      const chatTitle = update.message.chat.title || 'Unknown Group'
+      const linkParam = update.message.text.split(' ')[1] // /link TENANT_UUID
+      
+      if (linkParam && linkParam.length === 36) {
+        // Validate tenant exists
+        const { data: tenant } = await supabase
+          .from('tenants')
+          .select('id, name')
+          .eq('id', linkParam)
+          .single()
+        
+        if (tenant) {
+          // Check if group already exists
+          const { data: existingGroup } = await supabase
+            .from('telegram_groups')
+            .select('id')
+            .eq('chat_id', String(chatId))
+            .single()
+          
+          if (existingGroup) {
+            // Update existing
+            await supabase
+              .from('telegram_groups')
+              .update({
+                tenant_id: tenant.id,
+                chat_title: chatTitle,
+                is_active: true,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', existingGroup.id)
+          } else {
+            // Insert new
+            await supabase
+              .from('telegram_groups')
+              .insert({
+                tenant_id: tenant.id,
+                chat_id: String(chatId),
+                chat_title: chatTitle,
+                group_type: 'general',
+                is_active: true
+              })
+          }
+          
+          await sendTelegramMessage(botToken, chatId,
+            `✅ <b>Kết nối thành công!</b>\n\n` +
+            `Nhóm "<b>${chatTitle}</b>" đã được liên kết với <b>${tenant.name}</b>.\n\n` +
+            `Nhóm này sẽ nhận thông báo từ RoomQC.`
+          )
+        } else {
+          await sendTelegramMessage(botToken, chatId,
+            `❌ Không tìm thấy khách sạn.\n\nVui lòng kiểm tra lại mã liên kết.`
+          )
+        }
+      } else {
+        await sendTelegramMessage(botToken, chatId,
+          `📋 <b>Mã nhóm của bạn:</b>\n\n` +
+          `<code>${chatId}</code>\n\n` +
+          `Sử dụng mã này trong ứng dụng RoomQC để thêm nhóm.`
+        )
+      }
+      
+      return new Response('OK', { status: 200 })
+    }
+    
+    // Default response for unhandled updates
+    return new Response('OK', { status: 200 })
+    
+  } catch (error) {
+    console.error('Error processing webhook:', error)
+    // Always return 200 to prevent Telegram from retrying
+    return new Response('OK', { status: 200 })
+  }
+})

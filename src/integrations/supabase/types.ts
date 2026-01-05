@@ -4741,6 +4741,151 @@ export type Database = {
           },
         ]
       }
+      telegram_connections: {
+        Row: {
+          chat_id: string
+          chat_title: string | null
+          chat_type: string | null
+          created_at: string | null
+          first_name: string | null
+          id: string
+          is_active: boolean | null
+          notification_types: string[] | null
+          tenant_id: string
+          updated_at: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Insert: {
+          chat_id: string
+          chat_title?: string | null
+          chat_type?: string | null
+          created_at?: string | null
+          first_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          notification_types?: string[] | null
+          tenant_id: string
+          updated_at?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Update: {
+          chat_id?: string
+          chat_title?: string | null
+          chat_type?: string | null
+          created_at?: string | null
+          first_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          notification_types?: string[] | null
+          tenant_id?: string
+          updated_at?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_connections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "telegram_connections_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "telegram_connections_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telegram_groups: {
+        Row: {
+          added_by: string | null
+          chat_id: string
+          chat_title: string
+          created_at: string | null
+          group_type: string | null
+          hotel_id: string | null
+          id: string
+          is_active: boolean | null
+          notification_types: string[] | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          added_by?: string | null
+          chat_id: string
+          chat_title: string
+          created_at?: string | null
+          group_type?: string | null
+          hotel_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          notification_types?: string[] | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          added_by?: string | null
+          chat_id?: string
+          chat_title?: string
+          created_at?: string | null
+          group_type?: string | null
+          hotel_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          notification_types?: string[] | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_groups_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "telegram_groups_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "telegram_groups_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "telegram_groups_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "telegram_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_usage: {
         Row: {
           current_hotels_count: number | null
