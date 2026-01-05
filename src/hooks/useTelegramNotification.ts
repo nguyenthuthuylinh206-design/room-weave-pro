@@ -1,7 +1,9 @@
 import { useMutation } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 
-interface TelegramNotificationPayload {
+export type TelegramNotificationType = 'booking' | 'checkin' | 'checkout' | 'maintenance' | 'inventory' | 'payment' | 'laundry' | 'system'
+
+export interface TelegramNotificationPayload {
   tenant_id: string
   user_ids?: string[]
   group_ids?: string[]
@@ -11,11 +13,11 @@ interface TelegramNotificationPayload {
   send_to_staff_groups?: boolean
   title: string
   message: string
-  notification_type?: 'booking' | 'checkin' | 'checkout' | 'maintenance' | 'inventory' | 'payment' | 'laundry' | 'system'
+  notification_type?: TelegramNotificationType
   action_url?: string
 }
 
-interface TelegramNotificationResult {
+export interface TelegramNotificationResult {
   success: boolean
   sent: number
   total: number
