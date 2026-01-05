@@ -15,6 +15,7 @@ export type TelegramNotificationType = 'booking' | 'checkin' | 'checkout' | 'mai
 
 interface SendTelegramNotificationParams {
   tenantId: string;
+  hotelId?: string; // Filter groups by specific hotel
   userIds?: string[];
   groupIds?: string[];
   sendToAllGroups?: boolean;
@@ -30,6 +31,7 @@ interface SendTelegramNotificationParams {
 // Helper function to send Telegram notifications
 export async function sendTelegramNotification({
   tenantId,
+  hotelId,
   userIds,
   groupIds,
   sendToAllGroups,
@@ -45,6 +47,7 @@ export async function sendTelegramNotification({
     const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
       body: {
         tenant_id: tenantId,
+        hotel_id: hotelId,
         user_ids: userIds,
         group_ids: groupIds,
         send_to_all_groups: sendToAllGroups,
@@ -534,6 +537,7 @@ export async function triggerRoomCheckoutNotification({
     }),
     sendTelegramNotification({
       tenantId,
+      hotelId, // Filter to groups linked to this hotel
       sendToStaffGroups: true,
       title,
       message: body,
