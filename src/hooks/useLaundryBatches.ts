@@ -499,23 +499,34 @@ export function useStockInFromLaundry() {
       
       if (updateError) throw updateError
       
-      // 10. Tạo notification
-      await supabase.from('notifications').insert({
-        tenant_id: tenant.id,
-        user_id: user.id,
-        category: 'inventory',
-        type: 'info',
-        title: 'Đã nhập kho từ giặt là',
-        message: `Lô ${batchCode} đã được nhập vào kho ${selectedHotel.name}`,
-        action_url: `/laundry/batches/${batchId}`
-      })
+      // 10. Get batch info for notification
+      const { data: batchInfo } = await supabase
+        .from('laundry_batches')
+        .select('batch_code, hotel_id, total_items')
+        .eq('id', batchId)
+        .single()
+      
+      return { batchInfo, batchCode }
     },
-    onSuccess: (_, variables) => {
+    onSuccess: async (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['laundry-batch', variables.batchId] })
       queryClient.invalidateQueries({ queryKey: ['laundry-batches'] })
       queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
+      
+      // Trigger laundry completed notification
+      if (result.batchInfo && tenant?.id) {
+        const { triggerLaundryCompletedNotification } = await import('./useNotificationTriggers')
+        await triggerLaundryCompletedNotification({
+          tenantId: tenant.id,
+          hotelId: result.batchInfo.hotel_id,
+          batchCode: result.batchInfo.batch_code,
+          totalItems: result.batchInfo.total_items || 0,
+          batchId: variables.batchId,
+          completedByUserId: user?.id,
+        }).catch(err => console.error('Failed to send laundry notification:', err))
+      }
       
       toast({
         title: 'Thành công',

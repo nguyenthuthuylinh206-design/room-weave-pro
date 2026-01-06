@@ -474,6 +474,7 @@ export async function triggerLowStockAlert({
       department: 'inventory',
       notificationTypeFilter: 'inventory_low',
       sendToManagementGroups: true,
+      sendToStaffGroups: true,
       title,
       message: body,
       notificationType: 'inventory',
@@ -547,14 +548,86 @@ export async function triggerRoomCheckoutNotification({
     }),
     sendTelegramNotification({
       tenantId,
-      hotelId, // Filter to groups linked to this hotel
+      hotelId,
       sendToStaffGroups: true,
+      notificationTypeFilter: 'checkout',
       title,
       message: body,
       notificationType: 'checkout',
       actionUrl,
     }),
   ]);
+}
+
+// Trigger when room status changes to check_in - notify hotel staff
+export async function triggerRoomCheckinNotification({
+  tenantId,
+  hotelId,
+  roomId,
+  roomNumber,
+  guestName,
+  changedByUserId,
+}: {
+  tenantId: string;
+  hotelId: string;
+  roomId: string;
+  roomNumber: string;
+  guestName?: string;
+  changedByUserId?: string;
+}) {
+  const title = `Phòng ${roomNumber} - Check-in`;
+  const body = guestName 
+    ? `Khách "${guestName}" đã nhận phòng.` 
+    : `Khách đã nhận phòng.`;
+  const actionUrl = `/rooms/${roomId}`;
+
+  // Send Telegram notification to staff groups
+  await sendTelegramNotification({
+    tenantId,
+    hotelId,
+    sendToStaffGroups: true,
+    notificationTypeFilter: 'checkin',
+    title,
+    message: body,
+    notificationType: 'checkin',
+    actionUrl,
+  });
+}
+
+// Trigger when new booking is created
+export async function triggerNewBookingNotification({
+  tenantId,
+  hotelId,
+  roomNumber,
+  guestName,
+  checkInDate,
+  checkOutDate,
+  bookingId,
+}: {
+  tenantId: string;
+  hotelId: string;
+  roomNumber: string;
+  guestName: string;
+  checkInDate: string;
+  checkOutDate: string;
+  bookingId: string;
+}) {
+  const title = `Đặt phòng mới - ${roomNumber}`;
+  const body = `Khách: ${guestName}\nNhận: ${checkInDate}\nTrả: ${checkOutDate}`;
+  const actionUrl = `/rooms?booking=${bookingId}`;
+
+  // Send Telegram notification to management and staff groups
+  await sendTelegramNotification({
+    tenantId,
+    hotelId,
+    sendToManagementGroups: true,
+    sendToStaffGroups: true,
+    notificationTypeFilter: 'booking',
+    title,
+    message: body,
+    notificationType: 'booking',
+    actionUrl,
+  });
 }
 
 export async function triggerMaintenanceNewNotification({
@@ -593,7 +666,10 @@ export async function triggerMaintenanceNewNotification({
     }),
     sendTelegramNotification({
       tenantId,
+      hotelId,
       sendToManagementGroups: true,
+      sendToStaffGroups: true,
+      notificationTypeFilter: 'maintenance_new',
       title: notifTitle,
       message: body,
       notificationType: 'maintenance',
@@ -605,6 +681,7 @@ export async function triggerMaintenanceNewNotification({
 // Trigger for maintenance completed - sends to original reporter
 export async function triggerMaintenanceCompletedNotification({
   tenantId,
+  hotelId,
   requestCode,
   title,
   requestId,
@@ -612,40 +689,58 @@ export async function triggerMaintenanceCompletedNotification({
   completedByUserId,
 }: {
   tenantId: string;
+  hotelId?: string;
   requestCode: string;
   title: string;
   requestId: string;
   reportedByUserId: string;
   completedByUserId: string;
 }) {
-  if (reportedByUserId === completedByUserId) return; // Don't notify yourself
-
   const notifTitle = 'Yêu cầu bảo trì đã hoàn thành';
   const body = `${requestCode}: ${title} đã được xử lý xong`;
   const actionUrl = `/maintenance/${requestId}`;
 
-  // Send in-app and push in PARALLEL
-  await Promise.all([
-    createInAppNotification({
-      userId: reportedByUserId,
+  const notificationPromises: Promise<any>[] = [
+    // Always send Telegram notification
+    sendTelegramNotification({
       tenantId,
+      hotelId,
+      sendToManagementGroups: true,
+      sendToStaffGroups: true,
+      notificationTypeFilter: 'maintenance_completed',
       title: notifTitle,
-      body,
-      type: 'maintenance_completed',
+      message: body,
+      notificationType: 'maintenance',
       actionUrl,
-      icon: 'check-circle',
-      metadata: { requestId, requestCode, completedBy: completedByUserId } as Json,
     }),
-    sendPushNotification({
-      userId: reportedByUserId,
-      tenantId,
-      title: notifTitle,
-      body,
-      actionUrl,
-      tag: `maintenance-complete-${requestId}`,
-      notificationType: 'maintenance_completed',
-    }),
-  ]);
+  ];
+
+  // Only send in-app and push to reporter if different from completer
+  if (reportedByUserId !== completedByUserId) {
+    notificationPromises.push(
+      createInAppNotification({
+        userId: reportedByUserId,
+        tenantId,
+        title: notifTitle,
+        body,
+        type: 'maintenance_completed',
+        actionUrl,
+        icon: 'check-circle',
+        metadata: { requestId, requestCode, completedBy: completedByUserId } as Json,
+      }),
+      sendPushNotification({
+        userId: reportedByUserId,
+        tenantId,
+        title: notifTitle,
+        body,
+        actionUrl,
+        tag: `maintenance-complete-${requestId}`,
+        notificationType: 'maintenance_completed',
+      })
+    );
+  }
+
+  await Promise.all(notificationPromises);
 }
 
 // Trigger for laundry batch completed - sends to hotel staff
@@ -664,9 +759,9 @@ export async function triggerLaundryCompletedNotification({
   batchId: string;
   completedByUserId?: string;
 }) {
-  const title = 'Đồ giặt đã hoàn thành';
-  const body = `Lô ${batchCode} với ${totalItems} món đã sẵn sàng nhận`;
-  const actionUrl = `/laundry/${batchId}`;
+  const title = 'Đồ giặt đã nhập kho';
+  const body = `Lô ${batchCode} với ${totalItems} món đã nhập kho thành công`;
+  const actionUrl = `/laundry/batches/${batchId}`;
 
   // Notify managers and housekeeping staff
   const recipients = await getNotificationRecipients({
@@ -701,8 +796,10 @@ export async function triggerLaundryCompletedNotification({
     }),
     sendTelegramNotification({
       tenantId,
+      hotelId,
       sendToManagementGroups: true,
       sendToStaffGroups: true,
+      notificationTypeFilter: 'laundry',
       title,
       message: body,
       notificationType: 'laundry',
