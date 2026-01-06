@@ -14,13 +14,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { Star, TrendingUp, CheckCircle, AlertCircle, FileDown } from 'lucide-react';
-
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND'
-  }).format(amount);
-};
+import { formatCurrency } from '@/lib/utils';
 
 const VendorComparison: React.FC = () => {
   const [searchParams] = useSearchParams();
