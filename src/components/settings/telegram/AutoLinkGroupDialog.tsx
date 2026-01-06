@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ExternalLink, Loader2, CheckCircle2, Clock } from 'lucide-react'
+import { ExternalLink, Loader2, CheckCircle2, Clock, Send, Check } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { toast } from '@/hooks/use-toast'
@@ -42,14 +42,16 @@ export function AutoLinkGroupDialog({
 }: AutoLinkGroupDialogProps) {
   const { user, tenantId } = useUser()
   
-  const [step, setStep] = useState<'config' | 'waiting'>('config')
+  const [step, setStep] = useState<'config' | 'waiting' | 'success'>('config')
   const [groupType, setGroupType] = useState('staff')
   const [department, setDepartment] = useState<string>('')
   const [notificationTypes, setNotificationTypes] = useState<string[]>([])
   const [pendingLinkId, setPendingLinkId] = useState<string | null>(null)
   const [countdown, setCountdown] = useState(600) // 10 minutes in seconds
   const [isCreating, setIsCreating] = useState(false)
-  const [linkedGroup, setLinkedGroup] = useState<{ title: string } | null>(null)
+  const [linkedGroup, setLinkedGroup] = useState<{ chatId: string; title: string } | null>(null)
+  const [isTesting, setIsTesting] = useState(false)
+  const [testSent, setTestSent] = useState(false)
 
   // Fetch user's telegram connection to get telegram_user_id
   const [telegramUserId, setTelegramUserId] = useState<string | null>(null)
@@ -93,7 +95,7 @@ export function AutoLinkGroupDialog({
     return () => clearInterval(timer)
   }, [step])
 
-  // Realtime subscription for new telegram groups
+  // Realtime subscription for pending group link completion
   useEffect(() => {
     if (step !== 'waiting' || !pendingLinkId) return
 
@@ -107,18 +109,26 @@ export function AutoLinkGroupDialog({
           table: 'pending_group_links',
           filter: `id=eq.${pendingLinkId}`
         },
-        (payload) => {
+        async (payload) => {
           const updated = payload.new as any
-          if (updated.status === 'completed') {
-            setLinkedGroup({ title: updated.chat_id })
+          if (updated.status === 'completed' && updated.chat_id) {
+            // Fetch group title from telegram_groups
+            const { data: newGroup } = await supabase
+              .from('telegram_groups')
+              .select('chat_title')
+              .eq('chat_id', updated.chat_id)
+              .maybeSingle()
+
+            setLinkedGroup({
+              chatId: updated.chat_id,
+              title: newGroup?.chat_title || 'Nhóm mới'
+            })
+            setStep('success')
+            
             toast({
               title: '✅ Nhóm đã được liên kết!',
               description: 'Nhóm Telegram đã được thêm tự động.',
             })
-            setTimeout(() => {
-              onSuccess()
-              handleClose()
-            }, 1500)
           }
         }
       )
@@ -186,6 +196,39 @@ export function AutoLinkGroupDialog({
     }
   }
 
+  const handleTestMessage = async () => {
+    if (!linkedGroup?.chatId || !tenantId) return
+    
+    setIsTesting(true)
+    try {
+      const { error } = await supabase.functions.invoke('send-telegram-notification', {
+        body: {
+          tenant_id: tenantId,
+          group_ids: [linkedGroup.chatId],
+          title: '🧪 Tin nhắn thử nghiệm',
+          message: `Xin chào! Đây là tin nhắn thử từ RoomQC.\n\nNhóm "${linkedGroup.title}" đã được kết nối thành công.`,
+          notification_type: 'system'
+        }
+      })
+      
+      if (error) throw error
+      
+      setTestSent(true)
+      toast({
+        title: 'Đã gửi tin nhắn thử',
+        description: 'Kiểm tra nhóm Telegram của bạn'
+      })
+    } catch (error) {
+      toast({
+        title: 'Lỗi gửi tin nhắn',
+        description: String(error),
+        variant: 'destructive'
+      })
+    } finally {
+      setIsTesting(false)
+    }
+  }
+
   const handleClose = () => {
     setStep('config')
     setGroupType('staff')
@@ -194,7 +237,13 @@ export function AutoLinkGroupDialog({
     setPendingLinkId(null)
     setCountdown(600)
     setLinkedGroup(null)
+    setTestSent(false)
     onOpenChange(false)
+  }
+
+  const handleComplete = () => {
+    onSuccess()
+    handleClose()
   }
 
   const toggleNotificationType = (type: string) => {
@@ -216,17 +265,74 @@ export function AutoLinkGroupDialog({
           <DialogTitle>🔗 Liên kết nhóm Telegram</DialogTitle>
           <DialogDescription>
             {step === 'config' 
-              ? 'Chọn cấu hình cho nhóm mới, sau đó thêm bot vào nhóm' 
-              : 'Đang chờ bạn thêm bot vào nhóm Telegram...'}
+              ? 'Chọn cấu hình cho nhóm mới, sau đó thêm bot vào nhóm'
+              : step === 'waiting'
+              ? 'Đang chờ bạn thêm bot vào nhóm Telegram...'
+              : 'Nhóm đã được liên kết thành công'}
           </DialogDescription>
         </DialogHeader>
 
-        {linkedGroup ? (
-          <div className="flex flex-col items-center gap-4 py-8">
-            <CheckCircle2 className="h-16 w-16 text-green-600" />
-            <div className="text-center">
-              <p className="font-medium text-lg">Đã liên kết thành công!</p>
-              <p className="text-muted-foreground">Nhóm đã được thêm vào hệ thống</p>
+        {step === 'success' && linkedGroup ? (
+          <div className="space-y-4 py-4">
+            {/* Success Icon */}
+            <div className="flex items-center justify-center">
+              <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle2 className="h-10 w-10 text-green-600" />
+              </div>
+            </div>
+
+            {/* Success Message */}
+            <div className="text-center space-y-1">
+              <p className="font-medium text-lg">Kết nối thành công!</p>
+              <p className="text-sm text-muted-foreground">
+                Nhóm "<span className="font-medium">{linkedGroup.title}</span>" đã được liên kết
+              </p>
+            </div>
+
+            {/* Group Info */}
+            <div className="bg-muted rounded-lg p-3 text-sm space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Bộ phận:</span>
+                <span>{DEPARTMENTS.find(d => d.value === department)?.label || 'Chung'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Loại nhóm:</span>
+                <span>{GROUP_TYPES.find(t => t.value === groupType)?.label}</span>
+              </div>
+            </div>
+
+            {/* Test Sent Confirmation */}
+            {testSent && (
+              <Alert className="bg-green-50 border-green-200">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-700">
+                  Đã gửi tin nhắn thử thành công!
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={handleTestMessage}
+                disabled={isTesting}
+                className="flex-1"
+              >
+                {isTesting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4 mr-2" />
+                )}
+                {testSent ? 'Gửi lại' : 'Gửi tin nhắn thử'}
+              </Button>
+              <Button 
+                onClick={handleComplete}
+                className="flex-1"
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Hoàn tất
+              </Button>
             </div>
           </div>
         ) : step === 'config' ? (
