@@ -5,16 +5,45 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { useBookingStats, useTodayCheckouts } from '@/hooks/useBookingStats'
 import { formatCurrency, cn } from '@/lib/utils'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/integrations/supabase/client'
+import { useUser } from '@/hooks/useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
 
 export function OwnerRevenueOverview() {
+  const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const { data: stats, isLoading: statsLoading } = useBookingStats()
   const { data: checkouts, isLoading: checkoutsLoading } = useTodayCheckouts()
 
-  const isLoading = statsLoading || checkoutsLoading
+  // Query all pending/partial bookings for accurate pending payment
+  const { data: pendingBookings, isLoading: pendingLoading } = useQuery({
+    queryKey: ['all-pending-payments', tenantId, isAllHotelsMode ? 'all' : selectedHotel?.id],
+    queryFn: async () => {
+      let query = supabase
+        .from('room_bookings')
+        .select('id, total_amount, amount_paid, payment_status')
+        .eq('tenant_id', tenantId!)
+        .in('payment_status', ['pending', 'partial'])
 
-  // Calculate pending payment amount
-  const pendingPayment = checkouts?.filter(c => c.payment_status !== 'paid')
-    .reduce((sum, c) => sum + c.total_amount, 0) || 0
+      if (!isAllHotelsMode && selectedHotel?.id) {
+        query = query.eq('hotel_id', selectedHotel.id)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+      return data
+    },
+    enabled: !!tenantId && (isAllHotelsMode || !!selectedHotel?.id)
+  })
+
+  const isLoading = statsLoading || checkoutsLoading || pendingLoading
+
+  // Calculate pending payment from all unpaid bookings (remaining amount)
+  const pendingPayment = pendingBookings?.reduce((sum, b) => {
+    const remaining = (b.total_amount || 0) - (b.amount_paid || 0)
+    return sum + Math.max(0, remaining)
+  }, 0) || 0
 
   if (isLoading) {
     return (

@@ -54,31 +54,39 @@ export function MobileDashboard() {
   const { data: topItems } = useTopItems(5)
   const queryClient = useQueryClient()
 
-  // Get room stats
+  // Get room stats - separate queries to avoid mutation bug
   const { data: roomStats } = useQuery({
-    queryKey: ['room-stats', tenantId, selectedHotel?.id],
+    queryKey: ['room-stats', tenantId, selectedHotel?.id, isAllHotelsMode],
     queryFn: async () => {
-      let query = supabase
-        .from('rooms')
-        .select('status', { count: 'exact' })
-        .eq('tenant_id', tenantId!)
+      const buildQuery = (status?: string) => {
+        let query = supabase
+          .from('rooms')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenantId!)
 
-      if (!isAllHotelsMode && selectedHotel?.id) {
-        query = query.eq('hotel_id', selectedHotel.id)
+        if (!isAllHotelsMode && selectedHotel?.id) {
+          query = query.eq('hotel_id', selectedHotel.id)
+        }
+
+        if (status) {
+          query = query.eq('status', status)
+        }
+
+        return query
       }
 
-      const [total, available, occupied, maintenance] = await Promise.all([
-        query,
-        query.eq('status', 'available'),
-        query.eq('status', 'occupied'),
-        query.eq('status', 'maintenance')
+      const [totalResult, availableResult, occupiedResult, maintenanceResult] = await Promise.all([
+        buildQuery(),
+        buildQuery('available'),
+        buildQuery('occupied'),
+        buildQuery('maintenance')
       ])
 
       return {
-        total: total.count || 0,
-        available: available.count || 0,
-        occupied: occupied.count || 0,
-        maintenance: maintenance.count || 0
+        total: totalResult.count || 0,
+        available: availableResult.count || 0,
+        occupied: occupiedResult.count || 0,
+        maintenance: maintenanceResult.count || 0
       }
     },
     enabled: !!tenantId
