@@ -23,7 +23,7 @@ import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
-import { AddTelegramGroupDialog, TelegramGroupCard, DEPARTMENTS } from '@/components/settings/telegram'
+import { AddTelegramGroupDialog, EditTelegramGroupDialog, TelegramGroupCard, DEPARTMENTS } from '@/components/settings/telegram'
 
 interface TelegramConnection {
   id: string
@@ -56,6 +56,7 @@ export default function TelegramSettingsPage() {
   const queryClient = useQueryClient()
   
   const [addGroupOpen, setAddGroupOpen] = useState(false)
+  const [editingGroup, setEditingGroup] = useState<TelegramGroup | null>(null)
   const [testingSend, setTestingSend] = useState(false)
   const [expandedDepartments, setExpandedDepartments] = useState<string[]>(['housekeeping', 'maintenance', 'general'])
 
@@ -220,6 +221,39 @@ export default function TelegramSettingsPage() {
     onSuccess: () => {
       toast({ title: 'Đã xóa nhóm' })
       refetchGroups()
+    }
+  })
+
+  // Update group
+  const updateGroupMutation = useMutation({
+    mutationFn: async ({ groupId, data }: {
+      groupId: string
+      data: {
+        title: string
+        groupType: string
+        department: string | null
+        notificationTypes: string[]
+      }
+    }) => {
+      const { error } = await supabase
+        .from('telegram_groups')
+        .update({
+          chat_title: data.title,
+          group_type: data.groupType,
+          department: data.department,
+          notification_types: data.notificationTypes.length > 0 ? data.notificationTypes : null,
+        })
+        .eq('id', groupId)
+      
+      if (error) throw error
+    },
+    onSuccess: () => {
+      toast({ title: 'Đã cập nhật nhóm' })
+      setEditingGroup(null)
+      refetchGroups()
+    },
+    onError: (error) => {
+      toast({ title: 'Lỗi', description: String(error), variant: 'destructive' })
     }
   })
 
@@ -463,6 +497,7 @@ export default function TelegramSettingsPage() {
                           tenantId={tenantId!}
                           onToggle={(id, active) => toggleGroupMutation.mutate({ groupId: id, isActive: active })}
                           onDelete={(id) => deleteGroupMutation.mutate(id)}
+                          onEdit={(g) => setEditingGroup(g as TelegramGroup)}
                         />
                       ))}
                     </CollapsibleContent>
@@ -524,6 +559,15 @@ export default function TelegramSettingsPage() {
         botUsername={BOT_USERNAME}
         selectedHotel={selectedHotel}
         isAllHotelsMode={isAllHotelsMode}
+      />
+
+      {/* Edit Group Dialog */}
+      <EditTelegramGroupDialog
+        open={!!editingGroup}
+        onOpenChange={(open) => !open && setEditingGroup(null)}
+        group={editingGroup}
+        onSubmit={(groupId, data) => updateGroupMutation.mutate({ groupId, data })}
+        isLoading={updateGroupMutation.isPending}
       />
 
     </div>
