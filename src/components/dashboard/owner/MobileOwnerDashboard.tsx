@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { DollarSign, TrendingDown, ShoppingCart, Wrench, Wind, AlertTriangle, Package, ChevronRight, BarChart3, FileText, Settings, Building2, Users } from 'lucide-react'
+import { DollarSign, TrendingDown, ShoppingCart, Wrench, Wind, AlertTriangle, Package, ChevronRight, BarChart3, FileText, Settings, Building2, Users, Receipt, TrendingUp, Clock } from 'lucide-react'
 import { useMonthlyExpenses } from '@/hooks/useMonthlyExpenses'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
 import { useLowStockItems } from '@/hooks/useInventoryDashboard'
@@ -10,6 +10,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/integrations/supabase/client'
+import { useBookingStats } from '@/hooks/useBookingStats'
 
 type DateRangePreset = '1m' | '3m' | '6m' | '12m'
 
@@ -20,15 +23,43 @@ interface MobileOwnerDashboardProps {
 }
 
 export function MobileOwnerDashboard({ dateRange, datePreset, onDatePresetChange }: MobileOwnerDashboardProps) {
-  const { user } = useUser()
+  const { user, tenantId } = useUser()
   const { isAllHotelsMode, selectedHotel } = useHotelContext()
   const monthsDiff = Math.max(1, Math.ceil((dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24 * 30)))
   
   const { data: expenses, isLoading: expensesLoading } = useMonthlyExpenses(monthsDiff)
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
   const { data: lowStockItems, isLoading: lowStockLoading } = useLowStockItems()
+  const { data: bookingStats, isLoading: bookingStatsLoading } = useBookingStats()
 
-  const isLoading = expensesLoading || statsLoading || lowStockLoading
+  // Query all pending/partial bookings for accurate pending payment
+  const { data: pendingBookings, isLoading: pendingLoading } = useQuery({
+    queryKey: ['all-pending-payments', tenantId, isAllHotelsMode ? 'all' : selectedHotel?.id],
+    queryFn: async () => {
+      let query = supabase
+        .from('room_bookings')
+        .select('id, total_amount, amount_paid, payment_status')
+        .eq('tenant_id', tenantId!)
+        .in('payment_status', ['pending', 'partial'])
+
+      if (!isAllHotelsMode && selectedHotel?.id) {
+        query = query.eq('hotel_id', selectedHotel.id)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+      return data
+    },
+    enabled: !!tenantId && (isAllHotelsMode || !!selectedHotel?.id)
+  })
+
+  // Calculate pending payment from all unpaid bookings
+  const pendingPayment = pendingBookings?.reduce((sum, b) => {
+    const remaining = (b.total_amount || 0) - (b.amount_paid || 0)
+    return sum + Math.max(0, remaining)
+  }, 0) || 0
+
+  const isLoading = expensesLoading || statsLoading || lowStockLoading || bookingStatsLoading || pendingLoading
 
   const totals = useMemo(() => {
     if (!expenses) return { purchase: 0, laundry: 0, maintenance: 0, total: 0 }
@@ -119,6 +150,37 @@ export function MobileOwnerDashboard({ dateRange, datePreset, onDatePresetChange
           ))}
         </div>
       )}
+
+      {/* Revenue Section - Today */}
+      <div className="border border-border rounded-lg divide-y divide-border">
+        <div className="flex items-center justify-between p-3">
+          <div className="flex items-center gap-2">
+            <Receipt className="h-4 w-4 text-green-600" />
+            <span className="text-xs text-muted-foreground">Đã thu hôm nay</span>
+          </div>
+          <span className="text-sm font-semibold text-green-600">
+            {formatCurrency(bookingStats?.todayRevenue || 0)}
+          </span>
+        </div>
+        <div className="flex items-center justify-between p-3">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-orange-600" />
+            <span className="text-xs text-muted-foreground">Chờ thanh toán</span>
+          </div>
+          <span className="text-sm font-semibold text-orange-600">
+            {formatCurrency(pendingPayment)}
+          </span>
+        </div>
+        <div className="flex items-center justify-between p-3">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-primary" />
+            <span className="text-xs text-muted-foreground">Doanh thu dự kiến</span>
+          </div>
+          <span className="text-sm font-semibold text-primary">
+            {formatCurrency(bookingStats?.projectedRevenue || 0)}
+          </span>
+        </div>
+      </div>
 
       {/* Financial Overview */}
       {isLoading ? (
