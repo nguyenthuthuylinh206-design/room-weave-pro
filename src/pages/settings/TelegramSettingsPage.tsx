@@ -23,8 +23,8 @@ import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
-import { AddTelegramGroupDialog, TelegramGroupCard, BulkAddGroupDialog, DEPARTMENTS, type ParsedGroup } from '@/components/settings/telegram'
-import { Zap } from 'lucide-react'
+import { AddTelegramGroupDialog, TelegramGroupCard, BulkAddGroupDialog, AutoLinkGroupDialog, DEPARTMENTS, type ParsedGroup } from '@/components/settings/telegram'
+import { Zap, Link2 } from 'lucide-react'
 
 interface TelegramConnection {
   id: string
@@ -58,6 +58,7 @@ export default function TelegramSettingsPage() {
   
   const [addGroupOpen, setAddGroupOpen] = useState(false)
   const [bulkAddOpen, setBulkAddOpen] = useState(false)
+  const [autoLinkOpen, setAutoLinkOpen] = useState(false)
   const [testingSend, setTestingSend] = useState(false)
   const [expandedDepartments, setExpandedDepartments] = useState<string[]>(['housekeeping', 'maintenance', 'general'])
 
@@ -457,6 +458,10 @@ export default function TelegramSettingsPage() {
                 </CardDescription>
               </div>
               <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setAutoLinkOpen(true)}>
+                  <Link2 className="h-4 w-4 mr-2" />
+                  Liên kết nhóm
+                </Button>
                 <Button size="sm" variant="outline" onClick={() => setBulkAddOpen(true)}>
                   <Zap className="h-4 w-4 mr-2" />
                   Thiết lập nhanh
@@ -580,6 +585,16 @@ export default function TelegramSettingsPage() {
         onSubmit={(groups) => bulkAddGroupMutation.mutate(groups)}
         isLoading={bulkAddGroupMutation.isPending}
         selectedHotel={!isAllHotelsMode ? selectedHotel : null}
+      />
+
+      {/* Auto Link Dialog */}
+      <AutoLinkGroupDialog
+        open={autoLinkOpen}
+        onOpenChange={setAutoLinkOpen}
+        onSuccess={refetchGroups}
+        selectedHotel={selectedHotel}
+        isAllHotelsMode={isAllHotelsMode}
+        botUsername={BOT_USERNAME}
       />
     </div>
   )
