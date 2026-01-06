@@ -49,6 +49,7 @@ import { RoomBookingDialog } from '@/components/rooms/RoomBookingDialog'
 import { AddBookingDialog } from '@/components/bookings/AddBookingDialog'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
 import { useBookingActions } from '@/hooks/useBookingActions'
+import { formatCurrency } from '@/lib/utils'
 import type { RoomStatus } from '@/types/rooms.types'
 
 type BookingStatus = 'all' | 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show'
@@ -383,7 +384,7 @@ export function BookingsPage() {
                       </TableCell>
                       <TableCell>
                         <p className="font-mono text-sm font-medium">
-                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(booking.total_amount || 0)}
+                          {formatCurrency(booking.total_amount || 0)}
                         </p>
                       </TableCell>
                       <TableCell>

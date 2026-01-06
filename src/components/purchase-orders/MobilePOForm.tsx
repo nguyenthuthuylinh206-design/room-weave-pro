@@ -21,6 +21,7 @@ import { useHotelContext } from '@/contexts/HotelContext'
 import { DatePicker } from '@/components/shared/DatePicker'
 import { toast } from 'sonner'
 import { addDays, format } from 'date-fns'
+import { formatCurrency } from '@/lib/utils'
 
 const poSchema = z.object({
   vendor_id: z.string().uuid('validation.vendorRequired'),
@@ -132,13 +133,6 @@ export function MobilePOForm() {
     const tax = subtotal * (form.watch('tax_rate') / 100)
     const shipping = form.watch('shipping_fee')
     return subtotal + tax + shipping
-  }
-  
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
-    }).format(amount)
   }
   
   const onSubmit = async (data: POFormData) => {
