@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
-import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
+import { triggerRoomCheckoutNotification, triggerRoomCheckinNotification } from '@/hooks/useNotificationTriggers'
 import type { RoomWithStats, RoomFilters } from '@/types/rooms.types'
 
 export function useRooms(filters: RoomFilters = {}) {
@@ -258,6 +258,20 @@ export function useUpdateRoom() {
           roomNumber: room.room_number,
           changedByUserId: user?.id,
         }).catch(err => console.error('Failed to send checkout notification:', err))
+      }
+      
+      // Send notification when status changes to check_in or occupied
+      if ((data.status === 'check_in' || data.status === 'occupied') && 
+          previousStatus !== 'check_in' && 
+          previousStatus !== 'occupied' && 
+          tenantId && room.hotel_id) {
+        triggerRoomCheckinNotification({
+          tenantId,
+          hotelId: room.hotel_id,
+          roomId: id,
+          roomNumber: room.room_number,
+          changedByUserId: user?.id,
+        }).catch(err => console.error('Failed to send check-in notification:', err))
       }
       
       return room
