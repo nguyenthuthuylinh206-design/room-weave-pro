@@ -320,21 +320,96 @@ Deno.serve(async (req) => {
       const newStatus = chatMember.new_chat_member.status
       const chatId = chatMember.chat.id
       const chatTitle = chatMember.chat.title || 'Unknown Group'
+      const fromUserId = String(chatMember.from.id)
       
       if (newStatus === 'member' || newStatus === 'administrator') {
-        console.log(`Bot added to group: ${chatTitle} (${chatId})`)
+        console.log(`Bot added to group: ${chatTitle} (${chatId}) by user ${fromUserId}`)
         
-        await sendTelegramMessage(botToken, chatId,
-          `🏨 <b>RoomQC Notification Bot</b>\n\n` +
-          `Bot đã được thêm vào nhóm "<b>${chatTitle}</b>".\n\n` +
-          `📋 <b>Để kết nối với hệ thống:</b>\n\n` +
-          `1. Đăng nhập vào ứng dụng RoomQC (quyền Owner/Manager)\n` +
-          `2. Vào <b>Cài đặt > Telegram</b>\n` +
-          `3. Nhấn <b>"Thêm nhóm"</b>\n` +
-          `4. Nhập mã nhóm:\n\n` +
-          `<code>${chatId}</code>\n\n` +
-          `⚠️ Lưu ý: Chỉ Owner và Manager mới có quyền thêm nhóm.`
-        )
+        // Check for pending link request from this user
+        const { data: pendingLink } = await supabase
+          .from('pending_group_links')
+          .select('*')
+          .eq('telegram_user_id', fromUserId)
+          .eq('status', 'pending')
+          .gte('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        
+        if (pendingLink) {
+          console.log(`Found pending link for user ${fromUserId}, auto-registering group`)
+          
+          // Check if group already exists
+          const { data: existingGroup } = await supabase
+            .from('telegram_groups')
+            .select('id')
+            .eq('chat_id', String(chatId))
+            .maybeSingle()
+          
+          if (existingGroup) {
+            // Update existing group
+            await supabase
+              .from('telegram_groups')
+              .update({
+                tenant_id: pendingLink.tenant_id,
+                hotel_id: pendingLink.hotel_id,
+                chat_title: chatTitle,
+                group_type: pendingLink.group_type || 'staff',
+                department: pendingLink.department,
+                notification_types: pendingLink.notification_types,
+                added_by: pendingLink.added_by,
+                is_active: true,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', existingGroup.id)
+          } else {
+            // Insert new group
+            await supabase
+              .from('telegram_groups')
+              .insert({
+                tenant_id: pendingLink.tenant_id,
+                hotel_id: pendingLink.hotel_id,
+                chat_id: String(chatId),
+                chat_title: chatTitle,
+                group_type: pendingLink.group_type || 'staff',
+                department: pendingLink.department,
+                notification_types: pendingLink.notification_types,
+                added_by: pendingLink.added_by,
+                is_active: true
+              })
+          }
+          
+          // Update pending link status
+          await supabase
+            .from('pending_group_links')
+            .update({ 
+              status: 'completed', 
+              chat_id: String(chatId) 
+            })
+            .eq('id', pendingLink.id)
+          
+          // Send success message
+          const deptLabel = pendingLink.department || 'Chung'
+          await sendTelegramMessage(botToken, chatId,
+            `✅ <b>Nhóm đã được liên kết tự động!</b>\n\n` +
+            `Nhóm "<b>${chatTitle}</b>" đã được kết nối thành công.\n` +
+            `Bộ phận: <b>${deptLabel}</b>\n\n` +
+            `Nhóm này sẽ nhận thông báo từ RoomQC.`
+          )
+        } else {
+          // No pending link - show manual instructions
+          await sendTelegramMessage(botToken, chatId,
+            `🏨 <b>RoomQC Notification Bot</b>\n\n` +
+            `Bot đã được thêm vào nhóm "<b>${chatTitle}</b>".\n\n` +
+            `📋 <b>Để kết nối với hệ thống:</b>\n\n` +
+            `1. Đăng nhập vào ứng dụng RoomQC (quyền Owner/Manager)\n` +
+            `2. Vào <b>Cài đặt > Telegram</b>\n` +
+            `3. Nhấn <b>"Thêm nhóm"</b>\n` +
+            `4. Nhập mã nhóm:\n\n` +
+            `<code>${chatId}</code>\n\n` +
+            `⚠️ Lưu ý: Chỉ Owner và Manager mới có quyền thêm nhóm.`
+          )
+        }
       } else if (newStatus === 'left' || newStatus === 'kicked') {
         console.log(`Bot removed from group: ${chatTitle} (${chatId})`)
         

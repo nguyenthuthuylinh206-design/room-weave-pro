@@ -3017,6 +3017,73 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_group_links: {
+        Row: {
+          added_by: string
+          chat_id: string | null
+          created_at: string | null
+          department: string | null
+          expires_at: string | null
+          group_type: string | null
+          hotel_id: string | null
+          id: string
+          notification_types: string[] | null
+          status: string | null
+          telegram_user_id: string
+          tenant_id: string
+        }
+        Insert: {
+          added_by: string
+          chat_id?: string | null
+          created_at?: string | null
+          department?: string | null
+          expires_at?: string | null
+          group_type?: string | null
+          hotel_id?: string | null
+          id?: string
+          notification_types?: string[] | null
+          status?: string | null
+          telegram_user_id: string
+          tenant_id: string
+        }
+        Update: {
+          added_by?: string
+          chat_id?: string | null
+          created_at?: string | null
+          department?: string | null
+          expires_at?: string | null
+          group_type?: string | null
+          hotel_id?: string | null
+          id?: string
+          notification_types?: string[] | null
+          status?: string | null
+          telegram_user_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_group_links_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "pending_group_links_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_group_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       permissions: {
         Row: {
           action: string
