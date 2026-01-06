@@ -46,7 +46,7 @@ import {
   DEFAULT_PRICING_RULES,
   BookingCostBreakdown
 } from '@/lib/bookingCalculations'
-import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
+import { triggerRoomCheckoutNotification, triggerRoomCheckinNotification, triggerNewBookingNotification } from '@/hooks/useNotificationTriggers'
 import type { RoomBooking } from '@/hooks/useRoomBooking'
 
 // Time options for check-in/check-out
@@ -258,11 +258,26 @@ export function RoomBookingDialog({
           title: t('booking.updateSuccess'),
         })
       } else {
-        const { error } = await supabase
+        const { data: newBooking, error } = await supabase
           .from('room_bookings')
           .insert(bookingData)
+          .select('id')
+          .single()
           
         if (error) throw error
+        
+        // Trigger new booking notification
+        if (tenantId && hotelId && newBooking) {
+          triggerNewBookingNotification({
+            tenantId,
+            hotelId,
+            roomNumber,
+            guestName: guestName.trim(),
+            checkInDate: format(checkInDate, 'dd/MM/yyyy'),
+            checkOutDate: format(checkOutDate, 'dd/MM/yyyy'),
+            bookingId: newBooking.id,
+          }).catch(err => console.error('Failed to send booking notification:', err))
+        }
         
         toast({
           title: t('booking.createSuccess'),
@@ -312,6 +327,17 @@ export function RoomBookingDialog({
         .eq('id', roomId)
         
       if (roomError) throw roomError
+      
+      // Send check-in notification
+      if (tenantId && hotelId) {
+        triggerRoomCheckinNotification({
+          tenantId,
+          hotelId,
+          roomId,
+          roomNumber,
+          guestName: guestName || undefined,
+        }).catch(err => console.error('Failed to send check-in notification:', err))
+      }
       
       toast({
         title: t('booking.checkInSuccess'),
