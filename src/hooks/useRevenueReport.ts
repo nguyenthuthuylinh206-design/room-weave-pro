@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from '@/hooks/useUser'
+import { useHotelContext } from '@/contexts/HotelContext'
 import { startOfMonth, endOfMonth, subMonths, format, startOfDay, endOfDay } from 'date-fns'
 
 export interface RevenueData {
@@ -28,10 +29,11 @@ export interface RevenueReport {
 }
 
 export function useRevenueReport() {
-  const { hotelId, tenantId } = useUser()
+  const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
 
   return useQuery({
-    queryKey: ['revenue-report', hotelId, tenantId],
+    queryKey: ['revenue-report', tenantId, isAllHotelsMode ? 'all' : selectedHotel?.id],
     queryFn: async (): Promise<RevenueReport> => {
       const today = new Date()
       const startOfToday = startOfDay(today).toISOString()
@@ -41,11 +43,16 @@ export function useRevenueReport() {
       const lastMonthStart = startOfMonth(subMonths(today, 1)).toISOString()
       const lastMonthEnd = endOfMonth(subMonths(today, 1)).toISOString()
 
-      // Build query base
+      // Build query base - filter by tenant first
       let query = supabase.from('room_bookings').select('*')
       
-      if (hotelId) {
-        query = query.eq('hotel_id', hotelId)
+      if (tenantId) {
+        query = query.eq('tenant_id', tenantId)
+      }
+
+      // Filter by hotel if not in All Hotels mode
+      if (!isAllHotelsMode && selectedHotel?.id) {
+        query = query.eq('hotel_id', selectedHotel.id)
       }
 
       const { data: allBookings, error } = await query
@@ -60,22 +67,37 @@ export function useRevenueReport() {
       // Helper function to calculate revenue data
       const calculateRevenueData = (filteredBookings: typeof bookings): RevenueData => {
         const paidBookings = filteredBookings.filter(b => b.payment_status === 'paid')
-        const pendingBookings = filteredBookings.filter(b => b.payment_status === 'pending' || !b.payment_status)
+        // Include both pending and partial status
+        const pendingBookings = filteredBookings.filter(b => 
+          b.payment_status === 'pending' || 
+          b.payment_status === 'partial' || 
+          !b.payment_status
+        )
         const refundedBookings = filteredBookings.filter(b => b.payment_status === 'refunded')
 
-        const paidRevenue = paidBookings.reduce((sum, b) => sum + (b.total_amount || 0), 0)
-        const pendingRevenue = pendingBookings.reduce((sum, b) => sum + (b.total_amount || 0), 0)
+        // Paid revenue = sum of amount_paid for fully paid bookings
+        const paidRevenue = paidBookings.reduce((sum, b) => sum + (b.amount_paid || 0), 0)
+        
+        // Pending revenue = remaining amount for unpaid/partial bookings
+        const pendingRevenue = pendingBookings.reduce((sum, b) => {
+          const remaining = (b.total_amount || 0) - (b.amount_paid || 0)
+          return sum + Math.max(0, remaining)
+        }, 0)
+        
         const refundedRevenue = refundedBookings.reduce((sum, b) => sum + (b.total_amount || 0), 0)
 
+        // Total revenue = what's been paid + what's pending
+        const totalRevenue = paidRevenue + pendingRevenue
+
         return {
-          totalRevenue: paidRevenue + pendingRevenue,
+          totalRevenue,
           paidRevenue,
           pendingRevenue,
           refundedRevenue,
           bookingsCount: filteredBookings.length,
           paidBookingsCount: paidBookings.length,
           averageBookingValue: filteredBookings.length > 0 
-            ? (paidRevenue + pendingRevenue) / filteredBookings.length 
+            ? totalRevenue / filteredBookings.length 
             : 0,
         }
       }
@@ -132,20 +154,20 @@ export function useRevenueReport() {
         revenueGrowth,
       }
     },
-    enabled: !!tenantId,
+    enabled: !!tenantId && (isAllHotelsMode || !!selectedHotel?.id),
     staleTime: 5 * 60 * 1000,
   })
 }
 
 export function useOwnerAlerts() {
-  const { hotelId, tenantId } = useUser()
+  const { tenantId } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
 
   return useQuery({
-    queryKey: ['owner-alerts', hotelId, tenantId],
+    queryKey: ['owner-alerts', tenantId, isAllHotelsMode ? 'all' : selectedHotel?.id],
     queryFn: async () => {
       const today = new Date()
       const todayStr = format(today, 'yyyy-MM-dd')
-      const threeDaysAgo = format(subMonths(today, 0), 'yyyy-MM-dd') // Actually 3 days ago
       
       // Query overdue checkouts
       let overdueQuery = supabase
@@ -155,8 +177,12 @@ export function useOwnerAlerts() {
         .lt('check_out_date', todayStr)
         .limit(10)
 
-      if (hotelId) {
-        overdueQuery = overdueQuery.eq('hotel_id', hotelId)
+      if (tenantId) {
+        overdueQuery = overdueQuery.eq('tenant_id', tenantId)
+      }
+
+      if (!isAllHotelsMode && selectedHotel?.id) {
+        overdueQuery = overdueQuery.eq('hotel_id', selectedHotel.id)
       }
 
       const { data: overdueCheckouts } = await overdueQuery
@@ -164,13 +190,17 @@ export function useOwnerAlerts() {
       // Query unpaid bookings (checked out but not paid)
       let unpaidQuery = supabase
         .from('room_bookings')
-        .select('id, guest_name, total_amount, check_out_date, room:rooms(room_number)')
+        .select('id, guest_name, total_amount, amount_paid, check_out_date, room:rooms(room_number)')
         .eq('status', 'checked_out')
         .neq('payment_status', 'paid')
         .limit(10)
 
-      if (hotelId) {
-        unpaidQuery = unpaidQuery.eq('hotel_id', hotelId)
+      if (tenantId) {
+        unpaidQuery = unpaidQuery.eq('tenant_id', tenantId)
+      }
+
+      if (!isAllHotelsMode && selectedHotel?.id) {
+        unpaidQuery = unpaidQuery.eq('hotel_id', selectedHotel.id)
       }
 
       const { data: unpaidBookings } = await unpaidQuery
@@ -192,7 +222,7 @@ export function useOwnerAlerts() {
         totalAlerts: (overdueCheckouts?.length || 0) + (unpaidBookings?.length || 0) + (unresolvedDamages?.length || 0),
       }
     },
-    enabled: !!tenantId,
+    enabled: !!tenantId && (isAllHotelsMode || !!selectedHotel?.id),
     staleTime: 2 * 60 * 1000,
   })
 }
