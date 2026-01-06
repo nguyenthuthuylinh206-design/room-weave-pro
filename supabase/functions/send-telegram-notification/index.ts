@@ -154,15 +154,31 @@ Deno.serve(async (req) => {
     const filterByNotificationType = (groups: { chat_id: string; notification_types: string[] | null }[] | null): string[] => {
       if (!groups) return []
       
+      console.log(`Filtering ${groups.length} groups by notification_type: ${payload.notification_type_filter || 'none'}`)
+      
       // If notification_type_filter is specified, filter groups that accept this type
       if (payload.notification_type_filter) {
-        return groups
-          .filter(g => {
-            // Groups with null notification_types accept all types
-            if (!g.notification_types || g.notification_types.length === 0) return true
-            return g.notification_types.includes(payload.notification_type_filter!)
-          })
-          .map(g => g.chat_id)
+        const filtered = groups.filter(g => {
+          // Groups with null/empty notification_types accept all types
+          if (!g.notification_types || g.notification_types.length === 0) {
+            console.log(`  - Group ${g.chat_id}: PASS (no filter set)`)
+            return true
+          }
+          
+          // Groups with 'all' accept all notification types
+          if (g.notification_types.includes('all')) {
+            console.log(`  - Group ${g.chat_id}: PASS (has 'all')`)
+            return true
+          }
+          
+          // Otherwise, check if specific type is in the list
+          const hasType = g.notification_types.includes(payload.notification_type_filter!)
+          console.log(`  - Group ${g.chat_id}: ${hasType ? 'PASS' : 'SKIP'} (types: ${g.notification_types.join(', ')})`)
+          return hasType
+        })
+        
+        console.log(`Filtered result: ${filtered.length}/${groups.length} groups passed`)
+        return filtered.map(g => g.chat_id)
       }
       
       return groups.map(g => g.chat_id)
