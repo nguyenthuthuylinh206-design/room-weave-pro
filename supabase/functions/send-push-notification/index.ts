@@ -298,6 +298,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
     const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY')
     const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY')
 
@@ -316,6 +317,45 @@ Deno.serve(async (req) => {
     
     if (userIds.length === 0) {
       throw new Error('No user_id or user_ids provided')
+    }
+
+    // Authorization check: Verify the requesting user belongs to the same tenant
+    // Get authorization header to identify the caller
+    const authHeader = req.headers.get('Authorization')
+    if (authHeader) {
+      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } }
+      })
+      
+      const { data: { user: callingUser } } = await supabaseAuth.auth.getUser()
+      
+      if (callingUser) {
+        // Get calling user's tenant
+        const { data: callerData } = await supabase
+          .from('users')
+          .select('tenant_id')
+          .eq('id', callingUser.id)
+          .single()
+        
+        if (callerData?.tenant_id) {
+          // Verify all target users belong to the same tenant
+          const { data: targetUsers } = await supabase
+            .from('users')
+            .select('id, tenant_id')
+            .in('id', userIds)
+          
+          const crossTenantUsers = targetUsers?.filter(u => u.tenant_id !== callerData.tenant_id) || []
+          
+          if (crossTenantUsers.length > 0) {
+            console.error('Cross-tenant notification attempt blocked:', {
+              callerId: callingUser.id,
+              callerTenant: callerData.tenant_id,
+              blockedUsers: crossTenantUsers.map(u => u.id)
+            })
+            throw new Error('Cannot send notifications to users in different tenants')
+          }
+        }
+      }
     }
 
     // Fetch active subscriptions for users

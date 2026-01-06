@@ -230,6 +230,12 @@ serve(async (req) => {
       }
     )
 
+    // Create service role client for cross-checks
+    const supabaseService = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
     // Verify user is authenticated
     const {
       data: { user },
@@ -242,6 +248,32 @@ serve(async (req) => {
 
     // Parse request body
     const { notification_type, to_email, to_name, template_data }: EmailRequest = await req.json()
+
+    // Authorization check: Get calling user's tenant and verify they can send to target email
+    const { data: callerData } = await supabaseService
+      .from('users')
+      .select('tenant_id, user_level_code')
+      .eq('id', user.id)
+      .single()
+
+    if (callerData?.tenant_id) {
+      // Check if target email belongs to a user in a different tenant
+      const { data: targetUser } = await supabaseService
+        .from('users')
+        .select('tenant_id')
+        .eq('email', to_email)
+        .single()
+
+      if (targetUser && targetUser.tenant_id !== callerData.tenant_id) {
+        console.error('Cross-tenant email attempt blocked:', {
+          callerId: user.id,
+          callerTenant: callerData.tenant_id,
+          targetEmail: to_email,
+          targetTenant: targetUser.tenant_id
+        })
+        throw new Error('Cannot send emails to users in different tenants')
+      }
+    }
 
     console.log('Sending email:', { notification_type, to_email })
 

@@ -26,6 +26,29 @@ interface SepayWebhookPayload {
   accumulated: number;
 }
 
+// Log webhook attempt to database for audit trail
+async function logWebhookAttempt(
+  supabase: any,
+  payload: SepayWebhookPayload | null,
+  status: 'success' | 'failed' | 'rejected',
+  message: string,
+  matchedPaymentId?: string
+) {
+  try {
+    await supabase.from('payment_webhook_logs').insert({
+      provider: 'sepay',
+      payload: payload ? JSON.stringify(payload) : null,
+      status,
+      message,
+      matched_payment_id: matchedPaymentId,
+      ip_address: null, // Cannot get IP in edge function
+      created_at: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Failed to log webhook attempt:', err);
+  }
+}
+
 Deno.serve(async (req) => {
   console.log('=== SePay Webhook Request Received ===');
   console.log('Method:', req.method);
@@ -43,23 +66,41 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // API key verification is now OPTIONAL since SePay may be configured as "Không cần chứng thực"
+  try {
+    // API key verification - MANDATORY when SEPAY_API_KEY is configured
+    // This provides authentication for the webhook endpoint
     const SEPAY_API_KEY = Deno.env.get('SEPAY_API_KEY');
     const authHeader = req.headers.get('Authorization');
     
-    if (authHeader) {
-      const providedKey = authHeader.replace('Bearer ', '').replace('Apikey ', '');
-      if (SEPAY_API_KEY && providedKey !== SEPAY_API_KEY) {
-        console.log('Warning: API key mismatch, but continuing anyway for debugging');
-      } else {
-        console.log('API key verified successfully');
+    if (SEPAY_API_KEY) {
+      // If SEPAY_API_KEY is configured, require valid authentication
+      if (!authHeader) {
+        console.log('REJECTED: No Authorization header but SEPAY_API_KEY is configured');
+        await logWebhookAttempt(supabase, null, 'rejected', 'Missing Authorization header');
+        return new Response(
+          JSON.stringify({ success: false, error: 'Authentication required' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
+      
+      const providedKey = authHeader.replace('Bearer ', '').replace('Apikey ', '');
+      if (providedKey !== SEPAY_API_KEY) {
+        console.log('REJECTED: API key mismatch');
+        await logWebhookAttempt(supabase, null, 'rejected', 'Invalid API key');
+        return new Response(
+          JSON.stringify({ success: false, error: 'Invalid API key' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      console.log('API key verified successfully');
     } else {
-      console.log('No Authorization header - SePay configured as "Không cần chứng thực"');
+      // SEPAY_API_KEY not configured - log warning but allow (for initial setup)
+      console.log('WARNING: SEPAY_API_KEY not configured - webhook is not protected');
+      console.log('Configure SEPAY_API_KEY secret and enable authentication in SePay dashboard');
     }
 
     // Parse request body
@@ -86,7 +127,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    // supabase client already created above
 
     // Extract invoice number from content (format: HD-XXXXXX or similar)
     const content = payload.content || payload.description || '';
