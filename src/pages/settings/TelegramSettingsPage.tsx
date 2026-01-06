@@ -23,7 +23,8 @@ import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
-import { AddTelegramGroupDialog, TelegramGroupCard, DEPARTMENTS } from '@/components/settings/telegram'
+import { AddTelegramGroupDialog, TelegramGroupCard, BulkAddGroupDialog, DEPARTMENTS, type ParsedGroup } from '@/components/settings/telegram'
+import { Zap } from 'lucide-react'
 
 interface TelegramConnection {
   id: string
@@ -56,6 +57,7 @@ export default function TelegramSettingsPage() {
   const queryClient = useQueryClient()
   
   const [addGroupOpen, setAddGroupOpen] = useState(false)
+  const [bulkAddOpen, setBulkAddOpen] = useState(false)
   const [testingSend, setTestingSend] = useState(false)
   const [expandedDepartments, setExpandedDepartments] = useState<string[]>(['housekeeping', 'maintenance', 'general'])
 
@@ -158,6 +160,46 @@ export default function TelegramSettingsPage() {
     onSuccess: () => {
       toast({ title: 'Đã thêm nhóm Telegram' })
       setAddGroupOpen(false)
+      refetchGroups()
+    },
+    onError: (error) => {
+      toast({ title: 'Lỗi', description: String(error), variant: 'destructive' })
+    }
+  })
+
+  // Bulk add groups
+  const bulkAddGroupMutation = useMutation({
+    mutationFn: async (groups: ParsedGroup[]) => {
+      if (!tenantId) throw new Error('Missing tenant')
+      
+      const insertData = groups.map(g => ({
+        tenant_id: tenantId,
+        hotel_id: !isAllHotelsMode && selectedHotel ? selectedHotel.id : null,
+        chat_id: g.chatId,
+        chat_title: g.title,
+        group_type: g.groupType,
+        department: g.department,
+        notification_types: g.notificationTypes.length > 0 ? g.notificationTypes : null,
+        added_by: user?.id,
+        is_active: true
+      }))
+      
+      const { error } = await supabase
+        .from('telegram_groups')
+        .insert(insertData)
+      
+      if (error) {
+        if (error.code === '23505') {
+          throw new Error('Một hoặc nhiều nhóm đã được thêm trước đó')
+        }
+        throw error
+      }
+      
+      return groups.length
+    },
+    onSuccess: (count) => {
+      toast({ title: `Đã tạo ${count} nhóm Telegram` })
+      setBulkAddOpen(false)
       refetchGroups()
     },
     onError: (error) => {
@@ -414,10 +456,16 @@ export default function TelegramSettingsPage() {
                   Thêm nhóm Telegram để gửi thông báo cho nhiều người theo bộ phận
                 </CardDescription>
               </div>
-              <Button size="sm" onClick={() => setAddGroupOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Thêm nhóm
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setBulkAddOpen(true)}>
+                  <Zap className="h-4 w-4 mr-2" />
+                  Thiết lập nhanh
+                </Button>
+                <Button size="sm" onClick={() => setAddGroupOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Thêm nhóm
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -523,6 +571,15 @@ export default function TelegramSettingsPage() {
         botUsername={BOT_USERNAME}
         selectedHotel={selectedHotel}
         isAllHotelsMode={isAllHotelsMode}
+      />
+
+      {/* Bulk Add Dialog */}
+      <BulkAddGroupDialog
+        open={bulkAddOpen}
+        onOpenChange={setBulkAddOpen}
+        onSubmit={(groups) => bulkAddGroupMutation.mutate(groups)}
+        isLoading={bulkAddGroupMutation.isPending}
+        selectedHotel={!isAllHotelsMode ? selectedHotel : null}
       />
     </div>
   )
