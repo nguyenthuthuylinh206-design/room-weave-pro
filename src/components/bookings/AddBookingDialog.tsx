@@ -577,6 +577,11 @@ export function AddBookingDialog({
                     onChange={(e) => setRoomPrice(parseInt(e.target.value) || 0)}
                     placeholder="500000"
                   />
+                  {roomPrice > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      = {formatCurrency(roomPrice)}
+                    </span>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Số đêm</Label>
@@ -610,6 +615,11 @@ export function AddBookingDialog({
                     onChange={(e) => setDepositAmount(parseInt(e.target.value) || 0)}
                     placeholder="0"
                   />
+                  {depositAmount > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      = {formatCurrency(depositAmount)}
+                    </span>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Còn lại (khi checkout)</Label>
