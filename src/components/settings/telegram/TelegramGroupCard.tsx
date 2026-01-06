@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
-import { Users, Building2, Copy, Trash2 } from 'lucide-react'
+import { Users, Building2, Copy, Trash2, Send, Loader2 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
+import { supabase } from '@/integrations/supabase/client'
 import { DEPARTMENTS, GROUP_TYPES, NOTIFICATION_TYPES } from './AddTelegramGroupDialog'
 
 interface TelegramGroupCardProps {
@@ -17,14 +19,38 @@ interface TelegramGroupCardProps {
     is_active: boolean
     hotels?: { name: string } | null
   }
+  tenantId: string
   onToggle: (groupId: string, isActive: boolean) => void
   onDelete: (groupId: string) => void
 }
 
-export function TelegramGroupCard({ group, onToggle, onDelete }: TelegramGroupCardProps) {
+export function TelegramGroupCard({ group, tenantId, onToggle, onDelete }: TelegramGroupCardProps) {
+  const [isTesting, setIsTesting] = useState(false)
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
     toast({ title: 'Đã copy' })
+  }
+
+  const handleTestMessage = async () => {
+    setIsTesting(true)
+    try {
+      const { error } = await supabase.functions.invoke('send-telegram-notification', {
+        body: {
+          tenant_id: tenantId,
+          group_ids: [group.id],
+          title: '🧪 Test',
+          message: `Nhóm "${group.chat_title}" đang hoạt động!`,
+          notification_type: 'system'
+        }
+      })
+      if (error) throw error
+      toast({ title: 'Đã gửi tin nhắn test' })
+    } catch (error) {
+      toast({ title: 'Lỗi', description: String(error), variant: 'destructive' })
+    } finally {
+      setIsTesting(false)
+    }
   }
 
   const groupTypeLabel = GROUP_TYPES.find(t => t.value === group.group_type)?.label || group.group_type
@@ -85,6 +111,7 @@ export function TelegramGroupCard({ group, onToggle, onDelete }: TelegramGroupCa
 
           {/* Chat ID */}
           <button
+            type="button"
             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mt-1"
             onClick={() => copyToClipboard(group.chat_id)}
           >
@@ -95,6 +122,20 @@ export function TelegramGroupCard({ group, onToggle, onDelete }: TelegramGroupCa
       </div>
 
       <div className="flex items-center gap-2 flex-shrink-0">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={handleTestMessage}
+          disabled={isTesting || !group.is_active}
+          title="Gửi tin nhắn test"
+        >
+          {isTesting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
+        </Button>
         <Switch
           checked={group.is_active}
           onCheckedChange={(checked) => onToggle(group.id, checked)}
