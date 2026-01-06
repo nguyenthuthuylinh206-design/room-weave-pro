@@ -17,6 +17,7 @@ import {
   Clock,
   CreditCard,
   Globe,
+  Percent,
 } from 'lucide-react'
 import {
   Dialog,
@@ -88,6 +89,8 @@ export function AddBookingDialog({
   // Form state - Step 4: Pricing
   const [roomPrice, setRoomPrice] = useState<number>(0)
   const [depositAmount, setDepositAmount] = useState<number>(0)
+  const [includeVat, setIncludeVat] = useState(true)
+  const [vatRate, setVatRate] = useState(8)
   
   // Fetch available rooms based on selected dates
   const { data: availableRooms, isLoading: isLoadingRooms } = useAvailableRooms(
@@ -101,8 +104,17 @@ export function AddBookingDialog({
     return Math.max(1, differenceInDays(checkOutDate, checkInDate))
   }, [checkInDate, checkOutDate])
   
-  // Calculate estimated total (just room price * nights, without VAT/fees)
-  const estimatedTotal = useMemo(() => roomPrice * nights, [roomPrice, nights])
+  // Calculate subtotal (room price x nights)
+  const subtotal = useMemo(() => roomPrice * nights, [roomPrice, nights])
+  
+  // Calculate VAT amount
+  const vatAmount = useMemo(() => 
+    includeVat ? Math.round(subtotal * vatRate / 100) : 0,
+    [subtotal, includeVat, vatRate]
+  )
+  
+  // Calculate estimated total (subtotal + VAT)
+  const estimatedTotal = useMemo(() => subtotal + vatAmount, [subtotal, vatAmount])
   
   // Remaining amount after deposit
   const remainingAmount = useMemo(() => 
@@ -127,6 +139,8 @@ export function AddBookingDialog({
       setNotes('')
       setRoomPrice(0)
       setDepositAmount(0)
+      setIncludeVat(true)
+      setVatRate(8)
     }
   }, [open])
   
@@ -210,7 +224,10 @@ export function AddBookingDialog({
         payment_status: depositAmount >= estimatedTotal ? 'paid' : depositAmount > 0 ? 'partial' : 'pending',
         booking_source: bookingSource,
         booking_reference: bookingReference.trim() || null,
-        total_amount: estimatedTotal, // Preliminary, will be recalculated at checkout with VAT/fees
+        subtotal: subtotal,
+        vat_rate: includeVat ? vatRate : 0,
+        vat_amount: vatAmount,
+        total_amount: estimatedTotal,
       }
       
       const { error } = await supabase
@@ -593,13 +610,56 @@ export function AddBookingDialog({
                 </div>
               </div>
               
+              {/* Subtotal */}
+              <div className="flex justify-between items-center py-2 border-t">
+                <span className="text-sm text-muted-foreground">Tiền phòng ({nights} đêm)</span>
+                <span className="font-medium">{formatCurrency(subtotal)}</span>
+              </div>
+              
+              {/* VAT Toggle & Input */}
+              <div className="flex items-center justify-between gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includeVat}
+                    onChange={(e) => setIncludeVat(e.target.checked)}
+                    className="h-4 w-4 rounded border-border"
+                  />
+                  <span className="text-sm">Bao gồm VAT</span>
+                </label>
+                {includeVat && (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={vatRate > 0 ? vatRate.toString() : ''}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '')
+                        setVatRate(Math.min(100, parseInt(value) || 0))
+                      }}
+                      className="w-16 h-8 text-center"
+                      placeholder="8"
+                    />
+                    <Percent className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+              
+              {/* VAT Amount */}
+              {includeVat && vatAmount > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Thuế VAT ({vatRate}%)</span>
+                  <span className="font-medium">{formatCurrency(vatAmount)}</span>
+                </div>
+              )}
+              
               {/* Estimated Total */}
               <div className="flex justify-between items-center py-2 border-t">
-                <span className="text-sm text-muted-foreground">Tổng tiền dự kiến</span>
-                <span className="font-semibold text-lg">{formatCurrency(estimatedTotal)}</span>
+                <span className="text-sm font-medium">TỔNG TIỀN DỰ KIẾN</span>
+                <span className="font-semibold text-lg text-primary">{formatCurrency(estimatedTotal)}</span>
               </div>
               <p className="text-xs text-muted-foreground -mt-2">
-                (chưa bao gồm phụ thu check-in sớm/trả phòng muộn, VAT, phí dịch vụ)
+                (chưa bao gồm phụ thu check-in sớm/trả phòng muộn, phí dịch vụ)
               </p>
               
               {/* Deposit */}
