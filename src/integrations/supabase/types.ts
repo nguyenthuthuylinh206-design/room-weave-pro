@@ -7153,6 +7153,10 @@ export type Database = {
         Args: { p_new_plan_id: string; p_tenant_id: string }
         Returns: Json
       }
+      works_at_same_hotel: {
+        Args: { target_user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
