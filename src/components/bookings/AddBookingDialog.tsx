@@ -570,11 +570,13 @@ export function AddBookingDialog({
                   </Label>
                   <Input
                     id="roomPrice"
-                    type="number"
-                    min={0}
-                    step={1000}
-                    value={roomPrice}
-                    onChange={(e) => setRoomPrice(parseInt(e.target.value) || 0)}
+                    type="text"
+                    inputMode="numeric"
+                    value={roomPrice > 0 ? roomPrice.toString() : ''}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, '')
+                      setRoomPrice(parseInt(value) || 0)
+                    }}
                     placeholder="500000"
                   />
                   {roomPrice > 0 && (
@@ -608,11 +610,13 @@ export function AddBookingDialog({
                   </Label>
                   <Input
                     id="depositAmount"
-                    type="number"
-                    min={0}
-                    step={1000}
-                    value={depositAmount}
-                    onChange={(e) => setDepositAmount(parseInt(e.target.value) || 0)}
+                    type="text"
+                    inputMode="numeric"
+                    value={depositAmount > 0 ? depositAmount.toString() : ''}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, '')
+                      setDepositAmount(parseInt(value) || 0)
+                    }}
                     placeholder="0"
                   />
                   {depositAmount > 0 && (
