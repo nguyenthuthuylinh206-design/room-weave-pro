@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { PermissionGate } from '@/components/auth/PermissionGate'
+import { Button } from '@/components/ui/button'
 import { Plus, Wrench, Clock, PlayCircle, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -41,12 +43,14 @@ export default function MaintenanceRequestList() {
       <PageHeader
         title={t('list.title')}
         description={t('list.description')}
-        action={{
-          label: t('list.createRequest'),
-          icon: Plus,
-          onClick: () => navigate('/maintenance/requests/new'),
-        }}
-      />
+      >
+        <PermissionGate module="maintenance" action="create">
+          <Button onClick={() => navigate('/maintenance/requests/new')}>
+            <Plus className="mr-2 h-4 w-4" />
+            {t('list.createRequest')}
+          </Button>
+        </PermissionGate>
+      </PageHeader>
 
       {/* Stats Row */}
       <div className="grid gap-3 md:grid-cols-5">

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Plus, Download, Eye, Filter } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileLaundryBatchesPage } from '@/components/laundry/MobileLaundryBatchesPage'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -99,10 +100,12 @@ export function LaundryBatchesPage() {
             <Download className="mr-2 h-4 w-4" />
             {t('actions.exportExcel')}
           </Button>
-          <Button onClick={() => navigate('/laundry/batches/new')}>
-            <Plus className="mr-2 h-4 w-4" />
-            {t('batches.new')}
-          </Button>
+          <PermissionGate module="laundry" action="create">
+            <Button onClick={() => navigate('/laundry/batches/new')}>
+              <Plus className="mr-2 h-4 w-4" />
+              {t('batches.new')}
+            </Button>
+          </PermissionGate>
         </div>
       </PageHeader>
       

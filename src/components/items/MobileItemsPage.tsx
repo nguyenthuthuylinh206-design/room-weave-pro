@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Search, Package, DollarSign, AlertTriangle, XCircle, SlidersHorizontal, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PermissionGate } from '@/components/auth/PermissionGate'
+import { useHasPermission } from '@/hooks/usePermission'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
@@ -69,14 +71,16 @@ export function MobileItemsPage() {
               <h1 className="text-lg font-semibold">Tài sản</h1>
               <p className="text-xs text-muted-foreground">{totalItems} sản phẩm</p>
             </div>
-            <Button
-              size="sm"
-              onClick={() => navigate('/items/new')}
-              className="h-8 px-3"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Thêm
-            </Button>
+            <PermissionGate module="items" action="create">
+              <Button
+                size="sm"
+                onClick={() => navigate('/items/new')}
+                className="h-8 px-3"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Thêm
+              </Button>
+            </PermissionGate>
           </div>
           
           {/* Search & Filter */}

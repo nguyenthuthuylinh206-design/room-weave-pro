@@ -1,5 +1,6 @@
 import { X, Trash2, FileDown, QrCode, Ban, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import { Card } from '@/components/ui/card'
 import {
   AlertDialog,
@@ -181,48 +182,52 @@ export function BulkActionsBar({
           QR
         </Button>
         
-        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleDiscontinue} disabled={isDiscontinuing}>
-          {isDiscontinuing ? (
-            <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Ban className="mr-1 h-3.5 w-3.5" />
-          )}
-          Ngừng
-        </Button>
+        <PermissionGate module="items" action="update">
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleDiscontinue} disabled={isDiscontinuing}>
+            {isDiscontinuing ? (
+              <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Ban className="mr-1 h-3.5 w-3.5" />
+            )}
+            Ngừng
+          </Button>
+        </PermissionGate>
         
-        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive hover:text-destructive">
-              <Trash2 className="mr-1 h-3.5 w-3.5" />
-              Xóa
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
-              <AlertDialogDescription>
-                Bạn có chắc muốn xóa {selectedCount} items đã chọn?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={deleteItems.isPending}>Hủy</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDelete}
-                disabled={deleteItems.isPending}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {deleteItems.isPending ? (
-                  <>
-                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                    Đang xóa...
-                  </>
-                ) : (
-                  'Xóa'
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <PermissionGate module="items" action="delete">
+          <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive hover:text-destructive">
+                <Trash2 className="mr-1 h-3.5 w-3.5" />
+                Xóa
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Bạn có chắc muốn xóa {selectedCount} items đã chọn?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={deleteItems.isPending}>Hủy</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  disabled={deleteItems.isPending}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {deleteItems.isPending ? (
+                    <>
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      Đang xóa...
+                    </>
+                  ) : (
+                    'Xóa'
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </PermissionGate>
       </div>
     </div>
   )
