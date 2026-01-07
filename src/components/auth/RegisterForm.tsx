@@ -65,6 +65,11 @@ export function RegisterForm() {
       }
 
       if (authData.user) {
+        // Send welcome email (fire and forget - don't block registration)
+        supabase.functions.invoke('send-welcome-email', {
+          body: { email: data.email, fullName: data.fullName }
+        }).catch(err => console.error('Failed to send welcome email:', err))
+
         toast.success('Đăng ký thành công! Vui lòng đăng nhập.')
         navigate('/auth/login')
       }
