@@ -105,14 +105,22 @@ serve(async (req: Request): Promise<Response> => {
 
     const { subject, html } = generateWelcomeEmail(fullName)
 
-    const emailResponse = await resend.emails.send({
-      from: 'RoomQc <onboarding@resend.dev>',
+    const { data: emailData, error: emailError } = await resend.emails.send({
+      from: 'RoomQc <noreply@roomqc.com>',
       to: [email],
       subject,
       html,
     })
 
-    console.log('Welcome email sent successfully:', emailResponse)
+    if (emailError) {
+      console.error('Resend API error:', JSON.stringify(emailError))
+      return new Response(
+        JSON.stringify({ error: emailError.message || 'Failed to send email', details: emailError }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log('Welcome email sent successfully:', emailData)
 
     return new Response(
       JSON.stringify({ success: true, message: 'Email chào mừng đã được gửi' }),
