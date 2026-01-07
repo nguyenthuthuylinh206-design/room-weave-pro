@@ -10,6 +10,7 @@ import { PriorityBadge } from './PriorityBadge'
 import { CompleteRequestDialog } from './CompleteRequestDialog'
 import { CancelRequestDialog } from './CancelRequestDialog'
 import { UpdateProgressDialog } from './UpdateProgressDialog'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import {
   MapPin,
   User,
@@ -113,41 +114,43 @@ export const MobileMaintenanceRequestDetail = () => {
         </Card>
 
         {/* Action Buttons */}
-        {canUpdate && (
-          <div className="grid grid-cols-2 gap-3">
-            {request.status === 'pending' && (
-              <Button
-                className="flex-1"
-                onClick={() => {
-                  /* Handle start */
-                }}
-              >
-                <Play className="h-4 w-4 mr-2" />
-                Bắt đầu
-              </Button>
-            )}
-            {canComplete && (
-              <Button
-                className="flex-1"
-                variant="default"
-                onClick={() => setShowCompleteDialog(true)}
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Hoàn thành
-              </Button>
-            )}
-            {canCancel && (
-              <Button
-                variant="destructive"
-                className="flex-1"
-                onClick={() => setShowCancelDialog(true)}
-              >
-                <XCircle className="h-4 w-4 mr-2" />
-                Hủy
-              </Button>
-            )}
-          </div>
-        )}
+        <PermissionGate module="maintenance" action="update">
+          {canUpdate && (
+            <div className="grid grid-cols-2 gap-3">
+              {request.status === 'pending' && (
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    /* Handle start */
+                  }}
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Bắt đầu
+                </Button>
+              )}
+              {canComplete && (
+                <Button
+                  className="flex-1"
+                  variant="default"
+                  onClick={() => setShowCompleteDialog(true)}
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Hoàn thành
+                </Button>
+              )}
+              {canCancel && (
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={() => setShowCancelDialog(true)}
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Hủy
+                </Button>
+              )}
+            </div>
+          )}
+        </PermissionGate>
 
         {/* Timeline */}
         <Card>

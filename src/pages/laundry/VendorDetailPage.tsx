@@ -29,6 +29,7 @@ import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileVendorDetailPage } from '@/components/laundry/MobileVendorDetailPage'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 
 export function VendorDetailPage() {
   const { t } = useTranslation(['laundry', 'common'])
@@ -78,10 +79,12 @@ export function VendorDetailPage() {
             <ArrowLeft className="mr-2 h-4 w-4" />
             {t('laundry:vendorDetail.back')}
           </Button>
-          <Button onClick={() => navigate(`/laundry/vendors/${id}/edit`)}>
-            <Edit className="mr-2 h-4 w-4" />
-            {t('laundry:vendorDetail.editInfo')}
-          </Button>
+          <PermissionGate module="laundry" action="update">
+            <Button onClick={() => navigate(`/laundry/vendors/${id}/edit`)}>
+              <Edit className="mr-2 h-4 w-4" />
+              {t('laundry:vendorDetail.editInfo')}
+            </Button>
+          </PermissionGate>
         </div>
       </PageHeader>
       
@@ -304,14 +307,16 @@ export function VendorDetailPage() {
                     <Package className="mr-2 h-4 w-4" />
                     {t('laundry:vendorDetail.quickActions.createBatch')}
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => navigate(`/laundry/vendors/${id}/edit`)}
-                  >
-                    <Edit className="mr-2 h-4 w-4" />
-                    {t('laundry:vendorDetail.quickActions.editInfo')}
-                  </Button>
+                  <PermissionGate module="laundry" action="update">
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => navigate(`/laundry/vendors/${id}/edit`)}
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      {t('laundry:vendorDetail.quickActions.editInfo')}
+                    </Button>
+                  </PermissionGate>
                   <Button 
                     variant="outline" 
                     className="w-full"

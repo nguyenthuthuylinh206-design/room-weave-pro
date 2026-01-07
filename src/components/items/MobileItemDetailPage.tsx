@@ -4,6 +4,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
 import { useItem } from '@/hooks/useItems'
+import { PermissionGate } from '@/components/auth/PermissionGate'
+import { useUser } from '@/hooks/useUser'
+import { isAdminUser } from '@/lib/userAccess'
 import {
   Package,
   Edit,
@@ -40,7 +43,11 @@ export const MobileItemDetailPage = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data, isLoading } = useItem(id)
+  const { user } = useUser()
   const [showQR, setShowQR] = useState(false)
+  
+  // Check if user can edit
+  const canEdit = user && isAdminUser(user)
 
   if (isLoading) {
     return (
@@ -98,10 +105,10 @@ export const MobileItemDetailPage = () => {
       <MobileDetailHeader
         title={item.code}
         showBack
-        action={{
+        action={canEdit ? {
           icon: Edit,
           onClick: () => navigate(`/items/${id}/edit`),
-        }}
+        } : undefined}
       />
 
       <div className="p-4 space-y-4">
