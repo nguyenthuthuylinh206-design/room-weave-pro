@@ -4,6 +4,7 @@ import { Plus, Bed, ClipboardCheck, AlertCircle } from 'lucide-react'
 import { PullToRefresh } from '@/components/mobile/TouchOptimized'
 import { SwipeableCard } from '@/components/mobile/TouchOptimized'
 import { Badge } from '@/components/ui/badge'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import { useRooms, useRoomStats } from '@/hooks/useRooms'
 import { useUser } from '@/hooks/useUser'
 import { useQueryClient } from '@tanstack/react-query'
@@ -85,15 +86,17 @@ export function MobileRoomsDashboard() {
           </div>
         </div>
 
-        {/* Quick Actions - Icon only */}
+        {/* Quick Actions - Icon only, permission protected */}
         <div className="px-4 flex gap-2">
-          <button
-            onClick={() => navigate('/rooms/new')}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs border rounded-lg hover:bg-muted/50"
-          >
-            <Plus className="h-3.5 w-3.5 text-primary" />
-            <span>Thêm</span>
-          </button>
+          <PermissionGate module="rooms" action="create">
+            <button
+              onClick={() => navigate('/rooms/new')}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs border rounded-lg hover:bg-muted/50"
+            >
+              <Plus className="h-3.5 w-3.5 text-primary" />
+              <span>Thêm</span>
+            </button>
+          </PermissionGate>
           <button
             onClick={() => navigate('/rooms?action=check')}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs border rounded-lg hover:bg-muted/50"

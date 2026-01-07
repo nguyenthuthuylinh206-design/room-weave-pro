@@ -21,6 +21,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useUser } from '@/hooks/useUser'
 import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
 import { cn } from '@/lib/utils'
+import { isAdminUser } from '@/lib/userAccess'
 
 interface MenuItem {
   icon: typeof Settings
@@ -37,7 +38,7 @@ interface MenuSection {
 
 export default function MorePage() {
   const navigate = useNavigate()
-  const { user, role } = useUser()
+  const { user } = useUser()
   const { data: modulePermissions } = useUserModulePermissions()
   const { signOut } = useAuth()
 
@@ -124,10 +125,12 @@ export default function MorePage() {
     }
   ]
 
-  // Check if user has module access
+  // Check if user has module access - using unified userAccess utility
   const hasModuleAccess = (moduleCode?: string): boolean => {
     if (!moduleCode) return true
-    if (role === 'super_admin' || role === 'owner') return true
+    
+    // Admin users always have access
+    if (isAdminUser(user)) return true
     
     const permission = modulePermissions?.find(p => p.module === moduleCode)
     if (!permission) return false
