@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X, Trash2, RefreshCw, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import {
   Sheet,
   SheetContent,
@@ -96,15 +97,17 @@ export function MobileRoomBulkActionsBar({ selectedIds, onClearSelection }: Mobi
               <RefreshCw className={`h-4 w-4 mr-1 ${bulkUpdateStatus.isPending ? 'animate-spin' : ''}`} />
               Đổi TT
             </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setShowDeleteDialog(true)}
-              disabled={bulkDelete.isPending}
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Xóa
-            </Button>
+            <PermissionGate module="rooms" action="delete">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={bulkDelete.isPending}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Xóa
+              </Button>
+            </PermissionGate>
           </div>
         </div>
       </div>

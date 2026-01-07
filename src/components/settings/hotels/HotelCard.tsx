@@ -7,6 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import { 
   Building2, 
   MapPin, 
@@ -182,30 +183,34 @@ export function HotelCard({ hotel, onEdit, onDelete, onView, onDeactivate }: Hot
                 Xem chi tiết
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem onClick={() => onEdit(hotel)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Chỉnh sửa
-            </DropdownMenuItem>
-            {hotel.status === 'active' && onDeactivate && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={() => onDeactivate(hotel)}
-                  className="text-amber-600"
-                >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  Tạm ngưng
-                </DropdownMenuItem>
-              </>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={() => onDelete(hotel)}
-              className="text-destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Xóa
-            </DropdownMenuItem>
+            <PermissionGate module="hotels" action="update">
+              <DropdownMenuItem onClick={() => onEdit(hotel)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Chỉnh sửa
+              </DropdownMenuItem>
+              {hotel.status === 'active' && onDeactivate && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => onDeactivate(hotel)}
+                    className="text-amber-600"
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Tạm ngưng
+                  </DropdownMenuItem>
+                </>
+              )}
+            </PermissionGate>
+            <PermissionGate module="hotels" action="delete">
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => onDelete(hotel)}
+                className="text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Xóa
+              </DropdownMenuItem>
+            </PermissionGate>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

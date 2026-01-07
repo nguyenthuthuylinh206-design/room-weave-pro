@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Star, MoreHorizontal } from 'lucide-react'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import {
   Table,
   TableBody,
@@ -157,18 +158,20 @@ export function VendorTable({ vendors, onRowClick }: VendorTableProps) {
                         }}>
                           Xem chi tiết
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation()
-                          navigate(`/laundry/vendors/${vendor.id}/edit`)
-                        }}>
-                          Sửa thông tin
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation()
-                          handleToggleStatus(vendor)
-                        }}>
-                          {vendor.status === 'active' ? 'Vô hiệu hóa' : 'Kích hoạt'}
-                        </DropdownMenuItem>
+                        <PermissionGate module="laundry" action="update">
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation()
+                            navigate(`/laundry/vendors/${vendor.id}/edit`)
+                          }}>
+                            Sửa thông tin
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation()
+                            handleToggleStatus(vendor)
+                          }}>
+                            {vendor.status === 'active' ? 'Vô hiệu hóa' : 'Kích hoạt'}
+                          </DropdownMenuItem>
+                        </PermissionGate>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

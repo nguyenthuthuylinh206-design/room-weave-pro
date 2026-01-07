@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Loader2,
 } from 'lucide-react'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -358,30 +359,34 @@ function ItemActions({ item }: { item: ItemWithCategory }) {
             <Eye className="mr-2 h-4 w-4" />
             Xem chi tiết
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigate(`/items/${item.id}/edit`)}>
-            <Edit className="mr-2 h-4 w-4" />
-            Sửa
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleCopy}>
-            <Copy className="mr-2 h-4 w-4" />
-            Sao chép
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handlePrintQR}>
-            <QrCode className="mr-2 h-4 w-4" />
-            In nhãn QR
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setShowDiscontinueDialog(true)}>
-            <Ban className="mr-2 h-4 w-4" />
-            Ngừng kinh doanh
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={() => setShowDeleteDialog(true)}
-            className="text-destructive"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Xóa
-          </DropdownMenuItem>
+          <PermissionGate module="items" action="update">
+            <DropdownMenuItem onClick={() => navigate(`/items/${item.id}/edit`)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Sửa
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleCopy}>
+              <Copy className="mr-2 h-4 w-4" />
+              Sao chép
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handlePrintQR}>
+              <QrCode className="mr-2 h-4 w-4" />
+              In nhãn QR
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setShowDiscontinueDialog(true)}>
+              <Ban className="mr-2 h-4 w-4" />
+              Ngừng kinh doanh
+            </DropdownMenuItem>
+          </PermissionGate>
+          <PermissionGate module="items" action="delete">
+            <DropdownMenuItem 
+              onClick={() => setShowDeleteDialog(true)}
+              className="text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Xóa
+            </DropdownMenuItem>
+          </PermissionGate>
         </DropdownMenuContent>
       </DropdownMenu>
       
