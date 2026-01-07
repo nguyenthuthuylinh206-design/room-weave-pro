@@ -1,7 +1,42 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { Resend } from 'https://esm.sh/resend@4.0.1'
 
-const resend = new Resend(Deno.env.get('RESEND_API_KEY') as string)
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')?.trim()
+
+type ResendSendEmailParams = {
+  from: string
+  to: string[]
+  subject: string
+  html: string
+}
+
+async function sendEmailViaResend(params: ResendSendEmailParams): Promise<{ id?: string }> {
+  if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY not configured')
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(params),
+  })
+
+  const text = await response.text()
+  let json: any = null
+  try {
+    json = JSON.parse(text)
+  } catch {
+    // ignore
+  }
+
+  if (!response.ok) {
+    const message = json?.message || json?.error?.message || text || `Resend error ${response.status}`
+    throw new Error(message)
+  }
+
+  const id = json?.id ?? json?.data?.id
+  return { id }
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -296,20 +331,15 @@ Deno.serve(async (req) => {
         throw new Error(`Unknown notification type: ${notification_type}`)
     }
 
-    // Send email via Resend
-    const { data: emailData, error: emailError } = await resend.emails.send({
+    // Send email via Resend (direct API call to reduce bundle size)
+    const { id: providerMessageId } = await sendEmailViaResend({
       from: 'RoomQc <noreply@roomqc.com>',
       to: [to_email],
       subject: emailContent.subject,
       html: emailContent.html,
     })
 
-    if (emailError) {
-      console.error('Resend API error:', JSON.stringify(emailError))
-      throw new Error(emailError.message || 'Failed to send email')
-    }
-
-    console.log('Email sent successfully:', emailData)
+    console.log('Email sent successfully:', { providerMessageId })
 
     // Log the email notification in database
     const { error: dbError } = await supabaseClient
@@ -324,7 +354,7 @@ Deno.serve(async (req) => {
         status: 'sent',
         sent_at: new Date().toISOString(),
         provider: 'resend',
-        provider_message_id: emailData?.id,
+        provider_message_id: providerMessageId,
       })
 
     if (dbError) {
@@ -335,7 +365,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message_id: emailData?.id,
+        message_id: providerMessageId,
       }),
       {
         status: 200,
