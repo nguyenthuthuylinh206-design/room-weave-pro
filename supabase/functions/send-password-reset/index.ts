@@ -28,8 +28,9 @@ async function hashOTP(otp: string): Promise<string> {
 }
 
 function generateOTPEmail(otp: string): { subject: string; html: string } {
+  const otpDigits = otp.split('')
   return {
-    subject: '🔐 Mã xác nhận đặt lại mật khẩu',
+    subject: '🔐 [RoomQc] Mã xác nhận đặt lại mật khẩu',
     html: `
       <!DOCTYPE html>
       <html>
@@ -39,40 +40,61 @@ function generateOTPEmail(otp: string): { subject: string; html: string } {
         </head>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; background-color: #f6f9fc; margin: 0; padding: 20px;">
           <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-            <!-- Header -->
+            <!-- Header with RoomQc branding -->
             <div style="text-align: center; margin-bottom: 32px;">
-              <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
-                <span style="font-size: 32px;">🔐</span>
+              <h1 style="font-size: 32px; font-weight: bold; margin: 0 0 8px 0;">
+                <span style="color: #667eea;">Room</span><span style="color: #764ba2;">Qc</span>
+              </h1>
+              <p style="color: #718096; font-size: 14px; margin: 0;">Hệ thống quản lý khách sạn</p>
+            </div>
+
+            <!-- Title -->
+            <div style="text-align: center; margin-bottom: 24px;">
+              <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
+                <span style="font-size: 28px;">🔐</span>
               </div>
-              <h1 style="color: #1a1a1a; font-size: 24px; font-weight: bold; margin: 0;">Mã xác nhận của bạn</h1>
+              <h2 style="color: #1a1a1a; font-size: 20px; font-weight: 600; margin: 0;">Mã xác nhận đặt lại mật khẩu</h2>
             </div>
 
             <!-- Content -->
-            <p style="color: #4a5568; font-size: 16px; line-height: 26px; margin: 0 0 24px 0; text-align: center;">
-              Sử dụng mã bên dưới để đặt lại mật khẩu của bạn:
+            <p style="color: #4a5568; font-size: 15px; line-height: 24px; margin: 0 0 24px 0; text-align: center;">
+              Nhập mã bên dưới để tiếp tục đặt lại mật khẩu của bạn:
             </p>
 
-            <!-- OTP Code -->
+            <!-- OTP Code - Individual boxes -->
             <div style="text-align: center; margin: 32px 0;">
-              <div style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 4px; border-radius: 12px;">
-                <div style="background: #ffffff; padding: 20px 40px; border-radius: 10px;">
-                  <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #1a1a1a; font-family: 'Courier New', monospace;">${otp}</span>
-                </div>
-              </div>
+              <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
+                <tr>
+                  ${otpDigits.map(digit => `
+                    <td style="padding: 0 4px;">
+                      <div style="width: 48px; height: 56px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; padding: 2px;">
+                        <div style="width: 100%; height: 100%; background: #ffffff; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                          <span style="font-size: 28px; font-weight: bold; color: #1a1a1a; font-family: 'Courier New', monospace;">${digit}</span>
+                        </div>
+                      </div>
+                    </td>
+                  `).join('')}
+                </tr>
+              </table>
             </div>
 
             <!-- Warning -->
-            <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 16px; margin: 24px 0;">
-              <p style="color: #856404; font-size: 14px; margin: 0; display: flex; align-items: flex-start;">
-                <span style="margin-right: 8px;">⏱️</span>
-                <span>Mã này sẽ hết hạn sau <strong>5 phút</strong>. Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</span>
+            <div style="background-color: #fef3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 16px; margin: 24px 0;">
+              <p style="color: #856404; font-size: 14px; margin: 0; text-align: center;">
+                ⏱️ Mã này sẽ hết hạn sau <strong>5 phút</strong>
+              </p>
+              <p style="color: #856404; font-size: 13px; margin: 8px 0 0 0; text-align: center;">
+                Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.
               </p>
             </div>
 
             <!-- Footer -->
             <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
             <p style="color: #a0aec0; font-size: 12px; text-align: center; margin: 0;">
-              Email này được gửi tự động từ hệ thống. Vui lòng không trả lời email này.
+              Email này được gửi tự động từ hệ thống <strong>RoomQc</strong>.
+            </p>
+            <p style="color: #a0aec0; font-size: 12px; text-align: center; margin: 4px 0 0 0;">
+              Vui lòng không trả lời email này.
             </p>
           </div>
         </body>
@@ -183,7 +205,7 @@ serve(async (req) => {
 
     // Send email via Resend
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: 'Hotel Management <onboarding@resend.dev>',
+      from: 'RoomQc <onboarding@resend.dev>',
       to: [normalizedEmail],
       subject: emailContent.subject,
       html: emailContent.html,
