@@ -7047,6 +7047,10 @@ export type Database = {
         Args: { p_action: string; p_module: string; p_user_id: string }
         Returns: boolean
       }
+      increment_quantity_in_laundry: {
+        Args: { p_item_id: string; p_quantity: number }
+        Returns: undefined
+      }
       increment_staff_stat: {
         Args: {
           p_hotel_id: string
