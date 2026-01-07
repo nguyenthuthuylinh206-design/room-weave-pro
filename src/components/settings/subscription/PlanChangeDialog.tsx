@@ -16,7 +16,8 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTenantSubscription, useUpdateTenantSubscription } from '@/hooks/useSubscription';
 import { useBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
-import { Info, Loader2, Package, CreditCard } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Info, Loader2, Package, CreditCard, Minus, Plus } from 'lucide-react';
 import {
   PRICE_PER_ROOM_DAILY,
   DURATION_OPTIONS,
@@ -46,9 +47,17 @@ export function PlanChangeDialog({
 
   const [selectedDuration, setSelectedDuration] = useState(initialDuration);
   const [showBankPayment, setShowBankPayment] = useState(false);
+  const [rooms, setRooms] = useState(initialRooms);
 
-  // Use registered rooms from subscription (read-only)
+  // Current registered rooms from subscription
   const registeredRooms = subscription?.registered_rooms || initialRooms;
+
+  // Sync rooms state with subscription data
+  useEffect(() => {
+    if (subscription?.registered_rooms) {
+      setRooms(subscription.registered_rooms);
+    }
+  }, [subscription?.registered_rooms]);
 
   // Update duration when initial value changes
   useEffect(() => {
@@ -56,8 +65,8 @@ export function PlanChangeDialog({
   }, [initialDuration]);
 
   const pricing = useMemo(
-    () => calculateSubscriptionPrice(registeredRooms, selectedDuration),
-    [registeredRooms, selectedDuration]
+    () => calculateSubscriptionPrice(rooms, selectedDuration),
+    [rooms, selectedDuration]
   );
 
   const currentEndDate = subscription?.subscription_end_date 
@@ -73,11 +82,15 @@ export function PlanChangeDialog({
     } else {
       // Direct confirm without bank payment
       await updateSubscription.mutateAsync({
-        rooms: registeredRooms,
+        rooms: rooms,
         durationDays: selectedDuration,
       });
       onOpenChange(false);
     }
+  };
+
+  const handleRoomsChange = (value: number) => {
+    setRooms(Math.max(1, Math.min(9999, value)));
   };
 
   const handlePaymentCreated = (invoiceId: string) => {
@@ -119,16 +132,43 @@ export function PlanChangeDialog({
               </Alert>
             )}
 
-            {/* Room Count - Read Only */}
+            {/* Room Count - Adjustable */}
             <div className="space-y-2">
-              <Label>Số phòng gia hạn</Label>
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
-                <Package className="h-5 w-5 text-muted-foreground" />
-                <span className="font-semibold text-lg">{registeredRooms} phòng</span>
+              <Label>Số phòng đăng ký</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9"
+                  onClick={() => handleRoomsChange(rooms - 10)}
+                  disabled={rooms <= 1}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <Input
+                  type="number"
+                  min={1}
+                  max={9999}
+                  value={rooms}
+                  onChange={(e) => handleRoomsChange(parseInt(e.target.value) || 1)}
+                  className="w-24 text-center h-9"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9"
+                  onClick={() => handleRoomsChange(rooms + 10)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Cần mua thêm phòng? Sử dụng nút "Mua thêm phòng" ở trang gói dịch vụ.
-              </p>
+              {rooms !== registeredRooms && (
+                <p className="text-xs text-muted-foreground">
+                  Thay đổi: {registeredRooms} → {rooms} phòng ({rooms > registeredRooms ? '+' : ''}{rooms - registeredRooms})
+                </p>
+              )}
             </div>
 
             {/* Duration Selection */}
@@ -169,7 +209,7 @@ export function PlanChangeDialog({
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Giá gốc</span>
                 <span>
-                  {registeredRooms} × {formatVNCurrency(PRICE_PER_ROOM_DAILY)} × {pricing.days} ngày ={' '}
+                  {rooms} × {formatVNCurrency(PRICE_PER_ROOM_DAILY)} × {pricing.days} ngày ={' '}
                   {formatVNCurrency(pricing.basePrice)}
                 </span>
               </div>
@@ -219,12 +259,13 @@ export function PlanChangeDialog({
           open={showBankPayment}
           onOpenChange={handlePaymentDialogClose}
           amount={pricing.finalPrice}
-          description={`Gia hạn gói dịch vụ ${registeredRooms} phòng - ${selectedDuration} ngày`}
+          description={`Gia hạn gói dịch vụ ${rooms} phòng - ${selectedDuration} ngày${rooms !== registeredRooms ? ` (thay đổi từ ${registeredRooms} phòng)` : ''}`}
           autoCreateInvoice={true}
           onPaymentCreated={handlePaymentCreated}
           metadata={{
             type: 'extend',
-            rooms: registeredRooms,
+            rooms: rooms,
+            previous_rooms: registeredRooms,
             duration_days: selectedDuration,
           }}
         />
