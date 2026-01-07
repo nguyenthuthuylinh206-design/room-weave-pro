@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.sync-sepay-transactions]
 verify_jwt = false
+
+[functions.expire-pending-payments]
+verify_jwt = false
