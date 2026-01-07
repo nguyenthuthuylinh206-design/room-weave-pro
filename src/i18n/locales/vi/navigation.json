@@ -53,5 +53,16 @@
   "users": "Nhân sự",
   "help": "Trợ giúp",
   "profile": "Hồ sơ cá nhân",
-  "logout": "Đăng xuất"
+  "logout": "Đăng xuất",
+  "generalSettings": "Cài đặt chung",
+  "usersPermissions": "Người dùng & Phân quyền",
+  "changePassword": "Đổi mật khẩu",
+  "subscription": "Đăng ký & Thanh toán",
+  "usage": "Mức sử dụng",
+  "businessConfig": "Cấu hình nghiệp vụ",
+  "automation": "Tự động hóa",
+  "integrations": "Tích hợp & API",
+  "systemSecurity": "Hệ thống & Bảo mật",
+  "telegram": "Telegram",
+  "notifications": "Thông báo"
 }

@@ -51,5 +51,15 @@
   "users": "Staff",
   "help": "Help",
   "profile": "Profile",
-  "logout": "Logout"
+  "logout": "Logout",
+  "generalSettings": "General Settings",
+  "usersPermissions": "Users & Permissions",
+  "changePassword": "Change Password",
+  "subscription": "Subscription & Billing",
+  "usage": "Usage",
+  "businessConfig": "Business Configuration",
+  "automation": "Automation",
+  "integrations": "Integrations & API",
+  "systemSecurity": "System & Security",
+  "telegram": "Telegram"
 }
