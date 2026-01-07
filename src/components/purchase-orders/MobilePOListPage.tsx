@@ -4,6 +4,7 @@ import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { FileText, Clock, CheckCircle, XCircle, Plus } from 'lucide-react'
@@ -55,15 +56,17 @@ export const MobilePOListPage = () => {
       />
 
       {/* Add Button */}
-      <div className="p-4">
-        <Button
-          className="w-full"
-          onClick={() => navigate('/purchase-orders/new')}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Tạo đơn đặt hàng mới
-        </Button>
-      </div>
+      <PermissionGate module="purchase_orders" action="create">
+        <div className="p-4">
+          <Button
+            className="w-full"
+            onClick={() => navigate('/purchase-orders/new')}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Tạo đơn đặt hàng mới
+          </Button>
+        </div>
+      </PermissionGate>
 
       {/* Filter Tabs */}
       <div className="sticky top-14 bg-background border-b z-10 px-4 py-3 overflow-x-auto">

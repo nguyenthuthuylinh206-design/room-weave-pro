@@ -31,6 +31,7 @@ import {
   MoreHorizontal,
   AlertCircle
 } from 'lucide-react';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { differenceInDays, formatDistanceToNow } from 'date-fns';
@@ -275,37 +276,47 @@ const POTable: React.FC<POTableProps> = ({
 
                         {po.status === 'draft' && (
                           <>
-                            <DropdownMenuItem
-                              onClick={() => navigate(`/purchase-orders/${po.id}/edit`)}
-                            >
-                              <Edit className="w-4 h-4 mr-2" />
-                              Sửa
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Send className="w-4 h-4 mr-2" />
-                              Gửi duyệt
-                            </DropdownMenuItem>
+                            <PermissionGate module="purchase_orders" action="update">
+                              <DropdownMenuItem
+                                onClick={() => navigate(`/purchase-orders/${po.id}/edit`)}
+                              >
+                                <Edit className="w-4 h-4 mr-2" />
+                                Sửa
+                              </DropdownMenuItem>
+                            </PermissionGate>
+                            <PermissionGate module="purchase_orders" action="update">
+                              <DropdownMenuItem>
+                                <Send className="w-4 h-4 mr-2" />
+                                Gửi duyệt
+                              </DropdownMenuItem>
+                            </PermissionGate>
                           </>
                         )}
 
                         {po.status === 'submitted' && (
                           <>
-                            <DropdownMenuItem>
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Duyệt
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <XCircle className="w-4 h-4 mr-2" />
-                              Từ chối
-                            </DropdownMenuItem>
+                            <PermissionGate module="purchase_orders" action="approve">
+                              <DropdownMenuItem>
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Duyệt
+                              </DropdownMenuItem>
+                            </PermissionGate>
+                            <PermissionGate module="purchase_orders" action="approve">
+                              <DropdownMenuItem>
+                                <XCircle className="w-4 h-4 mr-2" />
+                                Từ chối
+                              </DropdownMenuItem>
+                            </PermissionGate>
                           </>
                         )}
 
                         {(po.status === 'ordered' || po.status === 'partial') && (
-                          <DropdownMenuItem>
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            Nhận hàng
-                          </DropdownMenuItem>
+                          <PermissionGate module="purchase_orders" action="update">
+                            <DropdownMenuItem>
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Nhận hàng
+                            </DropdownMenuItem>
+                          </PermissionGate>
                         )}
 
                         <DropdownMenuSeparator />
@@ -323,10 +334,12 @@ const POTable: React.FC<POTableProps> = ({
                         {(po.status === 'draft' || po.status === 'submitted') && (
                           <>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600">
-                              <Trash className="w-4 h-4 mr-2" />
-                              Xóa
-                            </DropdownMenuItem>
+                            <PermissionGate module="purchase_orders" action="delete">
+                              <DropdownMenuItem className="text-red-600">
+                                <Trash className="w-4 h-4 mr-2" />
+                                Xóa
+                              </DropdownMenuItem>
+                            </PermissionGate>
                           </>
                         )}
                       </DropdownMenuContent>

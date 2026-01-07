@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import { Badge } from '@/components/ui/badge'
 import { 
   AlertDialog, 
@@ -163,15 +164,17 @@ export default function PushDevicesPage() {
         </div>
         <div className="flex items-center gap-2">
           {inactiveDevices.length > 0 && (
-            <Button
-              variant="outline"
-              onClick={() => deleteAllInactiveMutation.mutate()}
-              disabled={deleteAllInactiveMutation.isPending}
-            >
-              {deleteAllInactiveMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              <Trash2 className="h-4 w-4 mr-2" />
-              Xóa thiết bị không hoạt động ({inactiveDevices.length})
-            </Button>
+            <PermissionGate module="settings" action="delete">
+              <Button
+                variant="outline"
+                onClick={() => deleteAllInactiveMutation.mutate()}
+                disabled={deleteAllInactiveMutation.isPending}
+              >
+                {deleteAllInactiveMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                <Trash2 className="h-4 w-4 mr-2" />
+                Xóa thiết bị không hoạt động ({inactiveDevices.length})
+              </Button>
+            </PermissionGate>
           )}
           <Button variant="outline" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -317,9 +320,11 @@ function DeviceItem({ device, onDelete }: { device: PushDevice; onDelete: () => 
           </div>
         </div>
       </div>
-      <Button variant="ghost" size="icon" onClick={onDelete} className="text-destructive hover:text-destructive">
-        <Trash2 className="h-4 w-4" />
-      </Button>
+      <PermissionGate module="settings" action="delete">
+        <Button variant="ghost" size="icon" onClick={onDelete} className="text-destructive hover:text-destructive">
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </PermissionGate>
     </div>
   )
 }

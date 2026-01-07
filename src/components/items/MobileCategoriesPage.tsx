@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, ArrowLeft, PackageX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { MobileCategoryCard } from './MobileCategoryCard'
 import { CategoryFormSheet } from './CategoryFormSheet'
@@ -74,13 +75,15 @@ export function MobileCategoriesPage() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="text-xl font-bold flex-1">Danh mục tài sản</h1>
-            <Button
-              size="icon"
-              onClick={() => handleOpenForm()}
-              className="rounded-full h-12 w-12 shrink-0"
-            >
-              <Plus className="h-5 w-5" />
-            </Button>
+            <PermissionGate module="items" action="create">
+              <Button
+                size="icon"
+                onClick={() => handleOpenForm()}
+                className="rounded-full h-12 w-12 shrink-0"
+              >
+                <Plus className="h-5 w-5" />
+              </Button>
+            </PermissionGate>
           </div>
         </div>
       </div>
@@ -102,10 +105,12 @@ export function MobileCategoriesPage() {
               <p className="text-sm text-muted-foreground mb-6 max-w-sm">
                 Tạo danh mục đầu tiên để bắt đầu phân loại tài sản
               </p>
-              <Button onClick={() => handleOpenForm()} className="h-12 gap-2">
-                <Plus className="h-4 w-4" />
-                Thêm danh mục đầu tiên
-              </Button>
+              <PermissionGate module="items" action="create">
+                <Button onClick={() => handleOpenForm()} className="h-12 gap-2">
+                  <Plus className="h-4 w-4" />
+                  Thêm danh mục đầu tiên
+                </Button>
+              </PermissionGate>
             </div>
           ) : (
             <div className="space-y-3">
