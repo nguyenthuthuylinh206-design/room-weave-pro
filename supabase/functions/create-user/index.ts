@@ -329,6 +329,70 @@ serve(async (req) => {
 
     console.log('User creation completed successfully')
 
+    // Get requesting user's name and hotel name for welcome email
+    let createdByName = 'Quản trị viên'
+    let hotelNameForEmail: string | undefined
+
+    try {
+      const { data: creatorData } = await supabaseAdmin
+        .from('users')
+        .select('full_name')
+        .eq('id', requestingUser.id)
+        .single()
+      
+      if (creatorData?.full_name) {
+        createdByName = creatorData.full_name
+      }
+
+      if (hotelId) {
+        const { data: hotelData } = await supabaseAdmin
+          .from('hotels')
+          .select('name')
+          .eq('id', hotelId)
+          .single()
+        
+        if (hotelData?.name) {
+          hotelNameForEmail = hotelData.name
+        }
+      }
+    } catch (queryError) {
+      console.error('Error getting creator/hotel info:', queryError)
+    }
+
+    // Send welcome email to new user
+    try {
+      const welcomeEmailPayload = {
+        email: email.toLowerCase(),
+        fullName: fullName,
+        isCreatedByAdmin: true,
+        createdByName: createdByName,
+        roleName: userLevelCode === 'manager' ? 'Quản lý' : 'Nhân viên',
+        hotelName: hotelNameForEmail,
+        tempPassword: password
+      }
+
+      console.log('Sending welcome email to new user...')
+      
+      const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-welcome-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`
+        },
+        body: JSON.stringify(welcomeEmailPayload)
+      })
+
+      if (emailResponse.ok) {
+        console.log('Welcome email sent successfully')
+      } else {
+        const errorText = await emailResponse.text()
+        console.error('Failed to send welcome email:', errorText)
+      }
+    } catch (emailError) {
+      console.error('Error sending welcome email:', emailError)
+      // Don't throw - email failure shouldn't block user creation
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
