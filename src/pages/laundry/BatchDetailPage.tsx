@@ -14,6 +14,7 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -178,38 +179,40 @@ export function BatchDetailPage() {
             Quay lại
           </Button>
           
-          {/* Update Cost Button */}
-          {['delivered', 'washing', 'ready'].includes(batch.status) && (
-            <Button 
-              variant="outline"
-              onClick={() => setShowUpdateCostDialog(true)}
-            >
-              <DollarSign className="mr-2 h-4 w-4" />
-              {batch.estimated_cost > 0 ? 'Cập nhật chi phí' : 'Thêm chi phí'}
-            </Button>
-          )}
-          
-          {/* Status Change Buttons */}
-          {batch.status === 'delivered' && (
-            <Button onClick={() => handleStatusChange('ready')}>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Đánh dấu sẵn sàng
-            </Button>
-          )}
-          
-          {batch.status === 'ready' && (
-            <Button onClick={() => navigate(`/laundry/batches/${id}/receive`)}>
-              <PackageIcon className="mr-2 h-4 w-4" />
-              Nhận đồ về
-            </Button>
-          )}
-          
-          {batch.status === 'received' && canStockIn && (
-            <Button onClick={handleStockIn} disabled={stockInMutation.isPending}>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              {stockInMutation.isPending ? 'Đang nhập...' : 'Nhập vào kho'}
-            </Button>
-          )}
+          <PermissionGate module="laundry" action="update">
+            {/* Update Cost Button */}
+            {['delivered', 'washing', 'ready'].includes(batch.status) && (
+              <Button 
+                variant="outline"
+                onClick={() => setShowUpdateCostDialog(true)}
+              >
+                <DollarSign className="mr-2 h-4 w-4" />
+                {batch.estimated_cost > 0 ? 'Cập nhật chi phí' : 'Thêm chi phí'}
+              </Button>
+            )}
+            
+            {/* Status Change Buttons */}
+            {batch.status === 'delivered' && (
+              <Button onClick={() => handleStatusChange('ready')}>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Đánh dấu sẵn sàng
+              </Button>
+            )}
+            
+            {batch.status === 'ready' && (
+              <Button onClick={() => navigate(`/laundry/batches/${id}/receive`)}>
+                <PackageIcon className="mr-2 h-4 w-4" />
+                Nhận đồ về
+              </Button>
+            )}
+            
+            {batch.status === 'received' && canStockIn && (
+              <Button onClick={handleStockIn} disabled={stockInMutation.isPending}>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                {stockInMutation.isPending ? 'Đang nhập...' : 'Nhập vào kho'}
+              </Button>
+            )}
+          </PermissionGate>
         </div>
       </PageHeader>
       

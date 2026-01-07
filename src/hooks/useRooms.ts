@@ -6,6 +6,7 @@ import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
 import { triggerRoomCheckoutNotification, triggerRoomCheckinNotification } from '@/hooks/useNotificationTriggers'
 import type { RoomWithStats, RoomFilters } from '@/types/rooms.types'
+import { isAdminUser } from '@/lib/userAccess'
 
 export function useRooms(filters: RoomFilters = {}) {
   const { tenantId } = useUser()
@@ -64,6 +65,9 @@ export function useRooms(filters: RoomFilters = {}) {
 }
 
 export function useRoom(roomId: string | undefined) {
+  const { user } = useUser()
+  const { availableHotels } = useHotelContext()
+  
   return useQuery({
     queryKey: ['room', roomId],
     queryFn: async () => {
@@ -80,6 +84,14 @@ export function useRoom(roomId: string | undefined) {
         .single()
       
       if (roomError) throw roomError
+      
+      // Hotel access check for non-admin users
+      if (!isAdminUser(user) && availableHotels.length > 0) {
+        const hasAccess = availableHotels.some(h => h.id === room.hotel_id)
+        if (!hasAccess) {
+          throw new Error('Bạn không có quyền truy cập phòng này')
+        }
+      }
       
       // Fetch room items with standards comparison
       const { data: itemsWithStandards, error: itemsError } = await supabase

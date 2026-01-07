@@ -1,5 +1,5 @@
-import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Package, Truck, CheckCircle, DollarSign, Clock } from 'lucide-react'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { ArrowLeft, Package, Truck, CheckCircle, DollarSign, Clock, Warehouse } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -7,15 +7,19 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { BatchStatusBadge } from '@/components/laundry/BatchStatusBadge'
-import { useLaundryBatch } from '@/hooks/useLaundryBatches'
+import { useLaundryBatch, useUpdateBatchStatus, useStockInFromLaundry } from '@/hooks/useLaundryBatches'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { format } from 'date-fns'
 import { vi, enUS } from 'date-fns/locale'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 
 export function MobileBatchDetail() {
   const { t, i18n } = useTranslation('laundry')
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { data, isLoading } = useLaundryBatch(id)
+  const updateStatusMutation = useUpdateBatchStatus()
+  const stockInMutation = useStockInFromLaundry()
   const dateLocale = i18n.language === 'vi' ? vi : enUS
 
   if (isLoading) {
@@ -56,8 +60,29 @@ export function MobileBatchDetail() {
 
   const currentStatusIndex = statusSteps.findIndex(s => s.status === batch.status)
 
+  const handleStatusChange = (newStatus: string) => {
+    updateStatusMutation.mutate({ batchId: id!, status: newStatus as any })
+  }
+
+  const handleStockIn = () => {
+    const itemsToStock = items.map((item: any) => ({
+      item_id: item.item_id,
+      quantity_returned: item.quantity_returned || item.quantity_delivered,
+      quantity_lost: item.quantity_lost || 0,
+      quantity_damaged: item.quantity_damaged || 0
+    }))
+    
+    stockInMutation.mutate({
+      batchId: id!,
+      batchCode: batch.batch_code,
+      items: itemsToStock
+    })
+  }
+
+  const showActionBar = ['delivered', 'ready', 'received'].includes(batch.status)
+
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className={`min-h-screen bg-background ${showActionBar ? 'pb-24' : 'pb-20'}`}>
       {/* Sticky Header */}
       <div className="sticky top-0 z-10 bg-background border-b">
         <div className="flex items-center gap-3 p-4">
@@ -247,6 +272,43 @@ export function MobileBatchDetail() {
           )}
         </div>
       </ScrollArea>
+
+      {/* Sticky Bottom Action Bar */}
+      <PermissionGate module="laundry" action="update">
+        {showActionBar && (
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t safe-area-pb">
+            {batch.status === 'delivered' && (
+              <Button 
+                className="w-full" 
+                onClick={() => handleStatusChange('ready')}
+                disabled={updateStatusMutation.isPending}
+              >
+                <CheckCircle className="mr-2 h-4 w-4" />
+                {updateStatusMutation.isPending ? 'Đang xử lý...' : 'Đánh dấu sẵn sàng'}
+              </Button>
+            )}
+            {batch.status === 'ready' && (
+              <Button 
+                className="w-full" 
+                onClick={() => navigate(`/laundry/batches/${id}/receive`)}
+              >
+                <Package className="mr-2 h-4 w-4" />
+                Nhận đồ về
+              </Button>
+            )}
+            {batch.status === 'received' && (
+              <Button 
+                className="w-full" 
+                onClick={handleStockIn}
+                disabled={stockInMutation.isPending}
+              >
+                <Warehouse className="mr-2 h-4 w-4" />
+                {stockInMutation.isPending ? 'Đang nhập kho...' : 'Nhập vào kho'}
+              </Button>
+            )}
+          </div>
+        )}
+      </PermissionGate>
     </div>
   )
 }
