@@ -1,5 +1,4 @@
-import { serve } from 'https://deno.land/std@0.190.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 import { Resend } from 'https://esm.sh/resend@4.0.1'
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY') as string)
@@ -103,7 +102,7 @@ function generateOTPEmail(otp: string): { subject: string; html: string } {
   }
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
