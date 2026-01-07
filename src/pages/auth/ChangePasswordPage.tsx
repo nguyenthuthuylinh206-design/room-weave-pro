@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { z } from 'zod'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 
 import { useAuth } from '@/contexts/AuthContext'
 import { useUser } from '@/hooks/useUser'
@@ -44,6 +45,7 @@ type ChangePasswordFormData = z.infer<typeof changePasswordSchema>
 export default function ChangePasswordPage() {
   const { t } = useTranslation(['auth', 'common'])
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { updatePassword } = useAuth()
   const { user } = useUser()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -88,6 +90,12 @@ export default function ChangePasswordPage() {
           console.error('Failed to update must_change_password in database:', dbError)
         }
       }
+
+      // Invalidate user cache to get fresh data
+      await queryClient.invalidateQueries({ queryKey: ['user'] })
+      
+      // Small delay to ensure cache is cleared
+      await new Promise(resolve => setTimeout(resolve, 300))
 
       toast.success('Đổi mật khẩu thành công!')
       navigate('/auth/callback', { replace: true })
