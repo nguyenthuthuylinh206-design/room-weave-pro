@@ -227,36 +227,30 @@ export function useDeleteTransaction() {
   
   return useMutation({
     mutationFn: async (transactionId: string) => {
-      const { data: transaction } = await supabase
-        .from('inventory_transactions')
-        .select('created_at')
-        .eq('id', transactionId)
-        .single()
-      
-      if (!transaction) throw new Error('Transaction not found')
-      
-      const hoursSinceCreation = 
-        (Date.now() - new Date(transaction.created_at).getTime()) / (1000 * 60 * 60)
-      
-      if (hoursSinceCreation > 24) {
-        throw new Error('Chỉ có thể hủy giao dịch trong vòng 24 giờ')
-      }
-      
-      const { error } = await supabase
-        .from('inventory_transactions')
-        .delete()
-        .eq('id', transactionId)
+      // Use RPC to delete transaction AND reverse inventory changes
+      const { data, error } = await supabase.rpc('delete_inventory_transaction', {
+        p_transaction_id: transactionId
+      })
       
       if (error) throw error
+      
+      const result = data as { success: boolean; error?: string }
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Không thể hủy giao dịch')
+      }
+      
+      return result
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
       queryClient.invalidateQueries({ queryKey: ['inventory-dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['low-stock-items'] })
       
       toast({
         title: 'Thành công',
-        description: 'Đã hủy giao dịch',
+        description: 'Đã hủy giao dịch và hoàn nguyên số lượng tồn kho',
       })
     },
     onError: (error: Error) => {
