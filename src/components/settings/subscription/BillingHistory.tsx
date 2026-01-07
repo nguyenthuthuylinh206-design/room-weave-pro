@@ -14,16 +14,65 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { usePaymentTransactions, useInvoices } from "@/hooks/useSubscription";
 import { formatDate } from "date-fns";
 import { vi } from "date-fns/locale";
-import { FileText, History, CheckCircle, XCircle, Clock, RefreshCw } from "lucide-react";
+import { FileText, History, CheckCircle, XCircle, Clock, RefreshCw, Download, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from '@/integrations/supabase/client';
 import { formatVNCurrency } from '@/lib/pricing';
 import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
+import { useUser } from '@/hooks/useUser';
 
 export function BillingHistory() {
   const { data: transactions, isLoading: loadingTransactions, refetch: refetchTransactions } = usePaymentTransactions();
   const { data: invoices, isLoading: loadingInvoices, refetch: refetchInvoices } = useInvoices();
   const [selectedInvoice, setSelectedInvoice] = useState<typeof invoices extends (infer T)[] | null | undefined ? T : never>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const { user } = useUser();
+
+  const canSync = user?.user_level_code === 'super_admin' || user?.user_level_code === 'tenant_owner';
+
+  const handleSyncTransactions = async () => {
+    if (!canSync) return;
+    
+    setIsSyncing(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      const response = await supabase.functions.invoke('sync-sepay-transactions', {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Sync failed');
+      }
+
+      const result = response.data;
+      
+      if (result.success) {
+        if (result.matched > 0) {
+          toast.success(`Đã đồng bộ ${result.matched} giao dịch thành công!`, {
+            description: `Hóa đơn: ${result.matchedInvoices?.join(', ')}`
+          });
+          refetchTransactions();
+          refetchInvoices();
+        } else {
+          toast.info('Không tìm thấy giao dịch mới để đồng bộ', {
+            description: `Đã kiểm tra ${result.totalTransactions || 0} giao dịch từ SePay`
+          });
+        }
+      } else {
+        throw new Error(result.error || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+      toast.error('Lỗi đồng bộ giao dịch', {
+        description: error instanceof Error ? error.message : 'Vui lòng thử lại sau'
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Realtime subscription for payment updates
   useEffect(() => {
@@ -110,17 +159,34 @@ export function BillingHistory() {
                 </CardDescription>
               </div>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => {
-                refetchTransactions();
-                refetchInvoices();
-              }}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Làm mới
-            </Button>
+            <div className="flex items-center gap-2">
+              {canSync && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleSyncTransactions}
+                  disabled={isSyncing}
+                >
+                  {isSyncing ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  Đồng bộ SePay
+                </Button>
+              )}
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  refetchTransactions();
+                  refetchInvoices();
+                }}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Làm mới
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
