@@ -13,6 +13,14 @@ interface EmailTemplatePreviewProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Escape HTML to prevent XSS
+const escapeHtml = (str: string): string => {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+};
+
 export function EmailTemplatePreview({
   template,
   open,
@@ -20,15 +28,19 @@ export function EmailTemplatePreview({
 }: EmailTemplatePreviewProps) {
   if (!template) return null;
 
+  // Sanitize user-provided content
+  const safeName = escapeHtml(template.name);
+  const safePreview = escapeHtml(template.preview);
+
   const sampleHTML = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; text-align: center;">
-        <h1 style="color: white; margin: 0;">${template.name}</h1>
+        <h1 style="color: white; margin: 0;">${safeName}</h1>
       </div>
       <div style="padding: 40px; background: white;">
         <h2>Hi {{tenant_name}},</h2>
         <p style="line-height: 1.6; color: #333;">
-          ${template.preview}
+          ${safePreview}
         </p>
         <div style="text-align: center; margin: 30px 0;">
           <a href="#" style="background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">

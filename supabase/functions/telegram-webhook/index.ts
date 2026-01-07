@@ -123,6 +123,19 @@ Deno.serve(async (req) => {
       return new Response('OK', { status: 200 })
     }
     
+    // Validate webhook secret token to prevent spoofing
+    const webhookSecret = Deno.env.get('TELEGRAM_WEBHOOK_SECRET')
+    if (webhookSecret) {
+      const receivedSecret = req.headers.get('X-Telegram-Bot-Api-Secret-Token')
+      if (receivedSecret !== webhookSecret) {
+        console.error('REJECTED: Invalid or missing webhook secret token')
+        return new Response('Unauthorized', { status: 401 })
+      }
+      console.log('Webhook secret validated successfully')
+    } else {
+      console.warn('WARNING: TELEGRAM_WEBHOOK_SECRET not configured - webhook is not protected')
+    }
+    
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
