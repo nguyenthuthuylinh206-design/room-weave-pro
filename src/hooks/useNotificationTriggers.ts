@@ -512,11 +512,16 @@ export async function triggerRoomCheckoutNotification({
     return;
   }
 
+  // If hotel has only one user (owner), don't exclude them - they should still receive notification
+  const allUserIds = (staffRows || [])
+    .map(r => r.user_id)
+    .filter((id): id is string => !!id);
+  
+  const isSingleUserHotel = allUserIds.length <= 1;
+
   const recipientIds = Array.from(
     new Set(
-      (staffRows || [])
-        .map(r => r.user_id)
-        .filter((id): id is string => !!id && id !== changedByUserId)
+      allUserIds.filter(id => isSingleUserHotel ? true : id !== changedByUserId)
     )
   );
 
