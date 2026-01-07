@@ -16,8 +16,9 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTenantSubscription, useUpdateTenantSubscription } from '@/hooks/useSubscription';
 import { useBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
+import { useRoomSubscriptionLimit } from '@/hooks/useRoomSubscriptionLimit';
 import { Input } from '@/components/ui/input';
-import { Info, Loader2, Package, CreditCard, Minus, Plus } from 'lucide-react';
+import { Info, Loader2, Package, CreditCard, Minus, Plus, AlertTriangle } from 'lucide-react';
 import {
   PRICE_PER_ROOM_DAILY,
   DURATION_OPTIONS,
@@ -43,6 +44,7 @@ export function PlanChangeDialog({
   const navigate = useNavigate();
   const { data: subscription } = useTenantSubscription();
   const { data: bankSettings } = useBankPaymentSettings();
+  const { actualRooms: dbActualRooms } = useRoomSubscriptionLimit();
   const updateSubscription = useUpdateTenantSubscription();
 
   const [selectedDuration, setSelectedDuration] = useState(initialDuration);
@@ -51,6 +53,9 @@ export function PlanChangeDialog({
 
   // Current registered rooms from subscription
   const registeredRooms = subscription?.registered_rooms || initialRooms;
+  
+  // Minimum rooms is the actual count in database
+  const minRooms = dbActualRooms || 1;
 
   // Sync rooms state with subscription data
   useEffect(() => {
@@ -74,7 +79,13 @@ export function PlanChangeDialog({
     : new Date();
   const newEndDate = calculateEndDate(currentEndDate, selectedDuration);
 
+  // Validation: rooms must be >= actual rooms in database
+  const isRoomsBelowMinimum = rooms < minRooms;
+
   const handleConfirm = async () => {
+    // Prevent confirm if rooms below minimum
+    if (isRoomsBelowMinimum) return;
+
     // If bank payment is available, close this dialog and open bank payment
     if (bankSettings) {
       onOpenChange(false); // Close this dialog first
@@ -90,6 +101,7 @@ export function PlanChangeDialog({
   };
 
   const handleRoomsChange = (value: number) => {
+    // Allow setting any value >= 1, but show warning if below minRooms
     setRooms(Math.max(1, Math.min(9999, value)));
   };
 
@@ -164,10 +176,18 @@ export function PlanChangeDialog({
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
-              {rooms !== registeredRooms && (
+              {rooms !== registeredRooms && !isRoomsBelowMinimum && (
                 <p className="text-xs text-muted-foreground">
                   Thay đổi: {registeredRooms} → {rooms} phòng ({rooms > registeredRooms ? '+' : ''}{rooms - registeredRooms})
                 </p>
+              )}
+              {isRoomsBelowMinimum && (
+                <Alert variant="destructive" className="py-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    Không thể giảm xuống dưới {minRooms} phòng (số phòng thực tế đang có trong hệ thống)
+                  </AlertDescription>
+                </Alert>
               )}
             </div>
 
@@ -245,7 +265,10 @@ export function PlanChangeDialog({
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Hủy
             </Button>
-            <Button onClick={handleConfirm} disabled={updateSubscription.isPending}>
+            <Button 
+              onClick={handleConfirm} 
+              disabled={updateSubscription.isPending || isRoomsBelowMinimum}
+            >
               {updateSubscription.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {bankSettings ? 'Tiếp tục thanh toán' : 'Xác nhận gia hạn'}
             </Button>
