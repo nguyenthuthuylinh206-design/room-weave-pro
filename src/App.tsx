@@ -89,6 +89,7 @@ import POFormPage from "./pages/purchase-orders/POFormPage";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
+import AuthChangePasswordPage from "./pages/auth/ChangePasswordPage";
 
 import AuthCallback from "./pages/auth/AuthCallback";
 import Onboarding from "./pages/auth/Onboarding";
@@ -121,6 +122,14 @@ const router = createBrowserRouter([
   { path: "/auth/login", element: <Login /> },
   { path: "/auth/register", element: <Register /> },
   { path: "/auth/forgot-password", element: <ForgotPassword /> },
+  { 
+    path: "/auth/change-password", 
+    element: (
+      <AuthGuard>
+        <AuthChangePasswordPage />
+      </AuthGuard>
+    ) 
+  },
   
   { path: "/auth/callback", element: <AuthCallback /> },
   { path: "/unauthorized", element: <Unauthorized /> },

@@ -194,6 +194,10 @@ Deno.serve(async (req) => {
     if (!matchedPayment) {
       console.log('No matching pending payment found for content:', content);
       console.log('Normalized content was:', normalizedContent);
+      
+      // Log no match for audit trail
+      await logWebhookAttempt(supabase, payload, 'failed', `No matching pending payment found. Content: ${content}, Amount: ${payload.transferAmount}`);
+      
       return new Response(
         JSON.stringify({ 
           success: true, 
@@ -331,6 +335,9 @@ Deno.serve(async (req) => {
     }
 
     console.log('Payment processed successfully');
+
+    // Log success for audit trail
+    await logWebhookAttempt(supabase, payload, 'success', `Payment confirmed for invoice ${matchedPayment.invoice?.invoice_number}`, matchedPayment.id);
 
     return new Response(
       JSON.stringify({ 

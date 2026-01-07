@@ -22,20 +22,9 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from '@/components/ui/input-otp'
-import { forgotPasswordSchema, ForgotPasswordData } from '@/lib/validations/auth.schemas'
+import { forgotPasswordSchema, ForgotPasswordData, resetPasswordSchema, ResetPasswordData } from '@/lib/validations/auth.schemas'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
-
-// Schema for password reset
-const resetPasswordSchema = z.object({
-  password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Mật khẩu xác nhận không khớp',
-  path: ['confirmPassword'],
-})
-
-type ResetPasswordData = z.infer<typeof resetPasswordSchema>
 
 type Step = 'email' | 'otp' | 'password' | 'success'
 
