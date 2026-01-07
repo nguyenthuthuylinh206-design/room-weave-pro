@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Lock, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -28,7 +28,6 @@ export function ResetPasswordForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [isValidToken, setIsValidToken] = useState<boolean | null>(null)
-  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { updatePassword } = useAuth()
 
@@ -43,30 +42,57 @@ export function ResetPasswordForm() {
   const password = form.watch('password')
 
   useEffect(() => {
-    const verifyToken = async () => {
-      const accessToken = searchParams.get('access_token')
-      const type = searchParams.get('type')
+    const handlePasswordRecovery = async () => {
+      // Supabase returns tokens in URL hash fragment, not query params
+      const hashParams = new URLSearchParams(window.location.hash.substring(1))
+      const accessToken = hashParams.get('access_token')
+      const refreshToken = hashParams.get('refresh_token')
+      const type = hashParams.get('type')
 
-      if (!accessToken || type !== 'recovery') {
-        setIsValidToken(false)
-        return
-      }
+      if (accessToken && type === 'recovery') {
+        try {
+          // Set the session from URL tokens
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || '',
+          })
 
-      try {
-        const { data, error } = await supabase.auth.getSession()
-        
-        if (error || !data.session) {
+          if (error) {
+            console.error('Failed to set session:', error)
+            setIsValidToken(false)
+          } else if (data.session) {
+            setIsValidToken(true)
+            // Clean up URL hash
+            window.history.replaceState(null, '', window.location.pathname)
+          } else {
+            setIsValidToken(false)
+          }
+        } catch (error) {
+          console.error('Error setting session:', error)
           setIsValidToken(false)
-        } else {
-          setIsValidToken(true)
         }
-      } catch (error) {
-        setIsValidToken(false)
+      } else {
+        // Listen for PASSWORD_RECOVERY event
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          if (event === 'PASSWORD_RECOVERY' && session) {
+            setIsValidToken(true)
+          }
+        })
+
+        // Check if there's already a valid session
+        const { data } = await supabase.auth.getSession()
+        if (data.session) {
+          setIsValidToken(true)
+        } else {
+          setIsValidToken(false)
+        }
+
+        return () => subscription.unsubscribe()
       }
     }
 
-    verifyToken()
-  }, [searchParams])
+    handlePasswordRecovery()
+  }, [])
 
   const onSubmit = async (data: ResetPasswordData) => {
     const { error } = await updatePassword(data.password)
