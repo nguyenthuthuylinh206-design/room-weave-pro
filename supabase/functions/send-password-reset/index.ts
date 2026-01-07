@@ -1,8 +1,42 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { Resend } from 'https://esm.sh/resend@4.0.1'
 
-const resend = new Resend(Deno.env.get('RESEND_API_KEY') as string)
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')?.trim()
 
+type ResendSendEmailParams = {
+  from: string
+  to: string[]
+  subject: string
+  html: string
+}
+
+async function sendEmailViaResend(params: ResendSendEmailParams): Promise<{ id?: string }> {
+  if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY not configured')
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(params),
+  })
+
+  const text = await response.text()
+  let json: any = null
+  try {
+    json = JSON.parse(text)
+  } catch {
+    // ignore
+  }
+
+  if (!response.ok) {
+    const message = json?.message || json?.error?.message || text || `Resend error ${response.status}`
+    throw new Error(message)
+  }
+
+  const id = json?.id ?? json?.data?.id
+  return { id }
+}
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -202,29 +236,29 @@ Deno.serve(async (req) => {
     // Generate email content
     const emailContent = generateOTPEmail(otp)
 
-    // Send email via Resend
-    const { data: emailData, error: emailError } = await resend.emails.send({
-      from: 'RoomQc <noreply@roomqc.com>',
-      to: [normalizedEmail],
-      subject: emailContent.subject,
-      html: emailContent.html,
-    })
-
-    if (emailError) {
-      console.error('Resend API error:', JSON.stringify(emailError))
+    // Send email via Resend (direct API call to reduce bundle size)
+    try {
+      await sendEmailViaResend({
+        from: 'RoomQc <noreply@roomqc.com>',
+        to: [normalizedEmail],
+        subject: emailContent.subject,
+        html: emailContent.html,
+      })
+    } catch (err: any) {
+      console.error('Resend API error:', err?.message || String(err))
       // Clean up OTP if email fails
       await supabaseAdmin
         .from('password_reset_otps')
         .delete()
         .eq('email', normalizedEmail)
-      
+
       return new Response(
         JSON.stringify({ error: 'Không thể gửi email. Vui lòng thử lại sau.' }),
         { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       )
     }
 
-    console.log('OTP email sent successfully:', emailData?.id)
+    console.log('OTP email sent successfully')
 
     // Log to database (optional)
     try {

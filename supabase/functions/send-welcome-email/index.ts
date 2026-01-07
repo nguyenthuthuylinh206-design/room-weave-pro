@@ -1,6 +1,40 @@
-import { Resend } from 'https://esm.sh/resend@4.0.1'
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')?.trim()
 
-const resend = new Resend(Deno.env.get('RESEND_API_KEY') as string)
+type ResendSendEmailParams = {
+  from: string
+  to: string[]
+  subject: string
+  html: string
+}
+
+async function sendEmailViaResend(params: ResendSendEmailParams): Promise<{ id?: string }> {
+  if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY not configured')
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(params),
+  })
+
+  const text = await response.text()
+  let json: any = null
+  try {
+    json = JSON.parse(text)
+  } catch {
+    // ignore
+  }
+
+  if (!response.ok) {
+    const message = json?.message || json?.error?.message || text || `Resend error ${response.status}`
+    throw new Error(message)
+  }
+
+  const id = json?.id ?? json?.data?.id
+  return { id }
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -240,22 +274,24 @@ Deno.serve(async (req: Request): Promise<Response> => {
       html = emailContent.html
     }
 
-    const { data: emailData, error: emailError } = await resend.emails.send({
-      from: 'RoomQc <noreply@roomqc.com>',
-      to: [email],
-      subject,
-      html,
-    })
-
-    if (emailError) {
-      console.error('Resend API error:', JSON.stringify(emailError))
+    let providerMessageId: string | undefined
+    try {
+      const res = await sendEmailViaResend({
+        from: 'RoomQc <noreply@roomqc.com>',
+        to: [email],
+        subject,
+        html,
+      })
+      providerMessageId = res.id
+    } catch (err: any) {
+      console.error('Resend API error:', err?.message || String(err))
       return new Response(
-        JSON.stringify({ error: emailError.message || 'Failed to send email', details: emailError }),
+        JSON.stringify({ error: err?.message || 'Failed to send email' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log('Welcome email sent successfully:', emailData)
+    console.log('Welcome email sent successfully:', { providerMessageId })
 
     return new Response(
       JSON.stringify({ success: true, message: 'Email chào mừng đã được gửi' }),
