@@ -136,9 +136,37 @@ export function useCreateRoomCheck() {
       // Calculate quantity changes based on items marked during check
       const quantityChanges: Record<string, number> = {}
       
-      // 1. Đồ gửi giặt → Giảm quantity (lấy ra khỏi phòng)
-      for (const item of data.items_sent_to_laundry || []) {
+      // 1. Đồ gửi giặt → Giảm quantity trong room_items (lấy ra khỏi phòng)
+      //    Và cập nhật quantity_in_laundry trong bảng items
+      const laundryItems = data.items_sent_to_laundry || []
+      for (const item of laundryItems) {
         quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) - item.quantity
+      }
+      
+      // Update quantity_in_laundry in items table for laundry items
+      if (laundryItems.length > 0) {
+        for (const item of laundryItems) {
+          // Use direct update instead of RPC to avoid type issues
+          const { data: currentItem } = await supabase
+            .from('items')
+            .select('quantity_in_laundry, quantity_in_stock')
+            .eq('id', item.item_id)
+            .single()
+          
+          if (currentItem) {
+            const { error: updateError } = await supabase
+              .from('items')
+              .update({
+                quantity_in_laundry: (currentItem.quantity_in_laundry || 0) + item.quantity,
+                quantity_in_stock: Math.max(0, (currentItem.quantity_in_stock || 0) - item.quantity),
+              })
+              .eq('id', item.item_id)
+            
+            if (updateError) {
+              console.error('Error updating quantity_in_laundry:', updateError)
+            }
+          }
+        }
       }
       
       // 2. Đồ mất → Giảm quantity

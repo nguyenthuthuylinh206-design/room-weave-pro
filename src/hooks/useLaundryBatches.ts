@@ -175,6 +175,28 @@ export function useReceiveLaundryBatch() {
       batchId: string
       data: ReceiveBatchData
     }) => {
+      // 0. Validate current status - only 'ready' can transition to 'received'
+      const { data: currentBatch, error: fetchError } = await supabase
+        .from('laundry_batches')
+        .select('status')
+        .eq('id', batchId)
+        .single()
+      
+      if (fetchError) throw fetchError
+      
+      if (currentBatch.status !== 'ready') {
+        const statusLabels: Record<string, string> = {
+          delivered: 'Đã giao',
+          washing: 'Đang giặt',
+          ready: 'Sẵn sàng nhận',
+          received: 'Đã nhận về',
+          stocked: 'Đã nhập kho',
+        }
+        throw new Error(
+          `Chỉ có thể nhận lô giặt ở trạng thái "Sẵn sàng nhận". Trạng thái hiện tại: "${statusLabels[currentBatch.status] || currentBatch.status}"`
+        )
+      }
+
       // 1. Update batch
       const { error: batchError } = await supabase
         .from('laundry_batches')
