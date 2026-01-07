@@ -13,9 +13,23 @@ interface PasswordResetRequest {
   email: string
 }
 
-function generatePasswordResetEmail(resetLink: string): { subject: string; html: string } {
+// Generate a random 6-digit OTP
+function generateOTP(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString()
+}
+
+// Simple hash function for OTP (for storage)
+async function hashOTP(otp: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(otp + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+function generateOTPEmail(otp: string): { subject: string; html: string } {
   return {
-    subject: '🔐 Đặt lại mật khẩu của bạn',
+    subject: '🔐 Mã xác nhận đặt lại mật khẩu',
     html: `
       <!DOCTYPE html>
       <html>
@@ -30,36 +44,30 @@ function generatePasswordResetEmail(resetLink: string): { subject: string; html:
               <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
                 <span style="font-size: 32px;">🔐</span>
               </div>
-              <h1 style="color: #1a1a1a; font-size: 24px; font-weight: bold; margin: 0;">Đặt lại mật khẩu</h1>
+              <h1 style="color: #1a1a1a; font-size: 24px; font-weight: bold; margin: 0;">Mã xác nhận của bạn</h1>
             </div>
 
             <!-- Content -->
-            <p style="color: #4a5568; font-size: 16px; line-height: 26px; margin: 0 0 24px 0;">
-              Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản của mình. Nhấp vào nút bên dưới để tiếp tục:
+            <p style="color: #4a5568; font-size: 16px; line-height: 26px; margin: 0 0 24px 0; text-align: center;">
+              Sử dụng mã bên dưới để đặt lại mật khẩu của bạn:
             </p>
 
-            <!-- CTA Button -->
+            <!-- OTP Code -->
             <div style="text-align: center; margin: 32px 0;">
-              <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; padding: 14px 40px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);">
-                Đặt lại mật khẩu
-              </a>
+              <div style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 4px; border-radius: 12px;">
+                <div style="background: #ffffff; padding: 20px 40px; border-radius: 10px;">
+                  <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #1a1a1a; font-family: 'Courier New', monospace;">${otp}</span>
+                </div>
+              </div>
             </div>
 
             <!-- Warning -->
             <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 16px; margin: 24px 0;">
               <p style="color: #856404; font-size: 14px; margin: 0; display: flex; align-items: flex-start;">
-                <span style="margin-right: 8px;">⚠️</span>
-                <span>Link này sẽ hết hạn sau <strong>1 giờ</strong>. Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</span>
+                <span style="margin-right: 8px;">⏱️</span>
+                <span>Mã này sẽ hết hạn sau <strong>5 phút</strong>. Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</span>
               </p>
             </div>
-
-            <!-- Alternative Link -->
-            <p style="color: #718096; font-size: 14px; line-height: 22px; margin: 24px 0;">
-              Nếu nút không hoạt động, bạn có thể copy và paste link sau vào trình duyệt:
-            </p>
-            <p style="background-color: #f7fafc; padding: 12px; border-radius: 6px; word-break: break-all; font-size: 12px; color: #4a5568; margin: 0;">
-              ${resetLink}
-            </p>
 
             <!-- Footer -->
             <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
@@ -98,7 +106,8 @@ serve(async (req) => {
       )
     }
 
-    console.log('Processing password reset for:', email)
+    const normalizedEmail = email.toLowerCase().trim()
+    console.log('Processing password reset for:', normalizedEmail)
 
     // Create Supabase admin client
     const supabaseAdmin = createClient(
@@ -116,7 +125,7 @@ serve(async (req) => {
     const { data: existingUser, error: userError } = await supabaseAdmin
       .from('users')
       .select('id, email, full_name')
-      .eq('email', email.toLowerCase().trim())
+      .eq('email', normalizedEmail)
       .maybeSingle()
 
     if (userError) {
@@ -124,8 +133,7 @@ serve(async (req) => {
     }
 
     if (!existingUser) {
-      console.log('Email not found in system:', email)
-      // Return 200 with success: false to avoid SDK error handling issues
+      console.log('Email not found in system:', normalizedEmail)
       return new Response(
         JSON.stringify({ 
           success: false,
@@ -138,68 +146,72 @@ serve(async (req) => {
 
     console.log('Found user:', existingUser.id)
 
-    // Get the origin from request headers or use default
-    const origin = req.headers.get('origin') || Deno.env.get('SITE_URL') || 'https://ehjtoajnlnuvuiwkpmbp.lovableproject.com'
-    const redirectTo = `${origin}/auth/reset-password`
+    // Delete any existing unused OTPs for this email
+    await supabaseAdmin
+      .from('password_reset_otps')
+      .delete()
+      .eq('email', normalizedEmail)
 
-    console.log('Redirect URL:', redirectTo)
+    // Generate new OTP
+    const otp = generateOTP()
+    const otpHash = await hashOTP(otp)
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
 
-    // Generate password reset link using Supabase Admin API
-    const { data, error } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'recovery',
-      email: email,
-      options: {
-        redirectTo: redirectTo,
-      },
-    })
+    console.log('Generated OTP for:', normalizedEmail)
 
-    if (error) {
-      console.error('Supabase error:', error)
+    // Store OTP in database
+    const { error: insertError } = await supabaseAdmin
+      .from('password_reset_otps')
+      .insert({
+        email: normalizedEmail,
+        otp_hash: otpHash,
+        expires_at: expiresAt.toISOString(),
+        used: false,
+        attempts: 0,
+      })
+
+    if (insertError) {
+      console.error('Error storing OTP:', insertError)
       return new Response(
-        JSON.stringify({ error: 'Không thể tạo link đặt lại mật khẩu. Vui lòng thử lại.' }),
+        JSON.stringify({ error: 'Không thể tạo mã xác nhận. Vui lòng thử lại.' }),
         { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       )
     }
-
-    if (!data?.properties?.action_link) {
-      console.error('No action link generated')
-      return new Response(
-        JSON.stringify({ error: 'Không thể tạo link đặt lại mật khẩu. Vui lòng thử lại.' }),
-        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-      )
-    }
-
-    const resetLink = data.properties.action_link
-    console.log('Generated reset link successfully')
 
     // Generate email content
-    const emailContent = generatePasswordResetEmail(resetLink)
+    const emailContent = generateOTPEmail(otp)
 
     // Send email via Resend
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: 'Hotel Management <onboarding@resend.dev>',
-      to: [email],
+      to: [normalizedEmail],
       subject: emailContent.subject,
       html: emailContent.html,
     })
 
     if (emailError) {
       console.error('Resend error:', emailError)
+      // Clean up OTP if email fails
+      await supabaseAdmin
+        .from('password_reset_otps')
+        .delete()
+        .eq('email', normalizedEmail)
+      
       return new Response(
         JSON.stringify({ error: 'Không thể gửi email. Vui lòng thử lại sau.' }),
         { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       )
     }
 
-    console.log('Email sent successfully:', emailData?.id)
+    console.log('OTP email sent successfully:', emailData?.id)
 
-    // Log to database (optional, don't fail if this fails)
+    // Log to database (optional)
     try {
       await supabaseAdmin
         .from('email_notifications')
         .insert({
-          notification_type: 'password_reset',
-          to_email: email,
+          notification_type: 'password_reset_otp',
+          to_email: normalizedEmail,
           subject: emailContent.subject,
           body_html: emailContent.html,
           status: 'sent',
@@ -212,7 +224,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Email đặt lại mật khẩu đã được gửi thành công.',
+        message: 'Mã xác nhận đã được gửi đến email của bạn.',
       }),
       { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     )
