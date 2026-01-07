@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
+import { isAdminUser } from '@/lib/userAccess'
 
 export interface MaintenanceRequest {
   id: string
@@ -133,6 +134,8 @@ export function useMaintenanceRequests(filters: MaintenanceFilters = {}) {
 
 export function useMaintenanceRequest(id: string) {
   const { toast } = useToast()
+  const { user } = useUser()
+  const { availableHotels } = useHotelContext()
 
   return useQuery({
     queryKey: ['maintenance-request', id],
@@ -149,6 +152,15 @@ export function useMaintenanceRequest(id: string) {
         .single()
 
       if (error) throw error
+      
+      // Hotel access check for non-admin users
+      if (!isAdminUser(user) && availableHotels.length > 0 && data?.hotel_id) {
+        const hasAccess = availableHotels.some(h => h.id === data.hotel_id)
+        if (!hasAccess) {
+          throw new Error('Bạn không có quyền truy cập yêu cầu bảo trì này')
+        }
+      }
+      
       return data
     },
     enabled: !!id,

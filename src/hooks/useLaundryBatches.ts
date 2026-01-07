@@ -4,6 +4,7 @@ import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useTenant } from './useTenant'
 import { toast } from './use-toast'
+import { isAdminUser } from '@/lib/userAccess'
 import type { 
   LaundryBatchWithVendor, 
   LaundryBatchFilters,
@@ -56,6 +57,9 @@ export function useLaundryBatches(
 }
 
 export function useLaundryBatch(batchId: string | undefined) {
+  const { user } = useUser()
+  const { availableHotels } = useHotelContext()
+  
   return useQuery({
     queryKey: ['laundry-batch', batchId],
     queryFn: async () => {
@@ -65,6 +69,16 @@ export function useLaundryBatch(batchId: string | undefined) {
         .rpc('get_laundry_batch_detail', { p_batch_id: batchId })
       
       if (error) throw error
+      
+      // Hotel access check for non-admin users
+      const batchData = data as any
+      if (!isAdminUser(user) && availableHotels.length > 0 && batchData?.batch?.hotel_id) {
+        const hasAccess = availableHotels.some(h => h.id === batchData.batch.hotel_id)
+        if (!hasAccess) {
+          throw new Error('Bạn không có quyền truy cập lô giặt này')
+        }
+      }
+      
       return data
     },
     enabled: !!batchId,
