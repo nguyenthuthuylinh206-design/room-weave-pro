@@ -2834,6 +2834,36 @@ export type Database = {
           },
         ]
       }
+      password_reset_otps: {
+        Row: {
+          attempts: number
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          otp_hash: string
+          used: boolean
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          otp_hash: string
+          used?: boolean
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          otp_hash?: string
+          used?: boolean
+        }
+        Relationships: []
+      }
       payment_methods: {
         Row: {
           billing_address: Json | null
@@ -6021,6 +6051,7 @@ export type Database = {
         Args: { p_resource_type: string; p_tenant_id: string }
         Returns: boolean
       }
+      cleanup_expired_otps: { Args: never; Returns: undefined }
       cleanup_old_check_sessions: { Args: never; Returns: undefined }
       cleanup_orphaned_auth_users: { Args: never; Returns: number }
       close_route_if_complete: {
