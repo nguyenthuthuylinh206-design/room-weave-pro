@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
+import { isAdminUser } from '@/lib/userAccess'
 
 export type PermissionModule = 
   | 'dashboard'
@@ -48,8 +49,8 @@ export const ALL_ACTIONS: { code: PermissionAction; name: string }[] = [
 export function usePermissions() {
   const { user, isLoading: userLoading } = useUser()
   
-  // Super admin and tenant owner bypass - they have all permissions
-  const isAdmin = user?.user_level_code === 'super_admin' || user?.user_level_code === 'tenant_owner'
+  // Using unified userAccess utility for consistent admin check
+  const isAdmin = isAdminUser(user)
 
   const can = (module: PermissionModule, action: PermissionAction): boolean => {
     if (isAdmin) return true
@@ -73,8 +74,8 @@ export function usePermissions() {
 export function useHasPermission(module: PermissionModule, action: PermissionAction) {
   const { user, isLoading: userLoading } = useUser()
   
-  // Super admin and tenant owner bypass
-  const isAdmin = user?.user_level_code === 'super_admin' || user?.user_level_code === 'tenant_owner'
+  // Using unified userAccess utility for consistent admin check
+  const isAdmin = isAdminUser(user)
   
   const { data: hasPermission, isLoading: permLoading } = useQuery({
     queryKey: ['has-permission', user?.id, module, action],
@@ -97,7 +98,7 @@ export function useHasPermission(module: PermissionModule, action: PermissionAct
       
       return data as boolean
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && !isAdmin, // Skip query for admins
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   })
   
@@ -106,7 +107,7 @@ export function useHasPermission(module: PermissionModule, action: PermissionAct
     return { hasPermission: false, isLoading: true }
   }
   
-  // Admin always has permission
+  // Admin always has permission - no need to wait for query
   if (isAdmin) {
     return { hasPermission: true, isLoading: false }
   }

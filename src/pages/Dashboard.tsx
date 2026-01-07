@@ -13,16 +13,18 @@ import { useDashboardStats } from '@/hooks/useDashboardStats'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useTranslation } from 'react-i18next'
+import { isAdminUser, isTenantOwner } from '@/lib/userAccess'
 
 export default function Dashboard() {
   const { t } = useTranslation('dashboard')
-  const { user, hasRole } = useUser()
+  const { user } = useUser()
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const { data: stats, isLoading } = useDashboardStats()
   const { isMobile } = useBreakpoint()
 
   // Check if user is owner (tenant_owner) - show executive dashboard
-  const isOwner = hasRole('owner')
+  // Using unified userAccess utility for consistent role checks
+  const isOwner = isTenantOwner(user)
 
   // Owner view - Financial focus
   if (isOwner) {

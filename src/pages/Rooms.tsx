@@ -12,6 +12,7 @@ import { StaffRoomCheckView } from '@/components/rooms/StaffRoomCheckView'
 import { ManagerRoomChecksView } from '@/components/rooms/ManagerRoomChecksView'
 import { MobileRoomsDashboard } from '@/components/rooms/MobileRoomsDashboard'
 import { RoomStatusSelector } from '@/components/rooms/RoomStatusSelector'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import type { RoomStatus } from '@/types/rooms.types'
 
 export default function RoomsPage() {
@@ -42,10 +43,12 @@ export default function RoomsPage() {
         title="Quản lý Phòng"
         description="Quản lý thông tin phòng và trạng thái"
       >
-        <Button onClick={() => navigate('/rooms/new')}>
-          <Plus className="mr-2 h-4 w-4" />
-          Thêm phòng mới
-        </Button>
+        <PermissionGate module="rooms" action="create">
+          <Button onClick={() => navigate('/rooms/new')}>
+            <Plus className="mr-2 h-4 w-4" />
+            Thêm phòng mới
+          </Button>
+        </PermissionGate>
       </PageHeader>
 
       <Tabs defaultValue="overview" className="space-y-6">

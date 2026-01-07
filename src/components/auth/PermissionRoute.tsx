@@ -1,9 +1,10 @@
 import { ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useUser } from '@/hooks/useUser'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueries } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { Loader2 } from 'lucide-react'
+import { isAdminUser } from '@/lib/userAccess'
 
 export type PermissionModule = 
   | 'dashboard'
@@ -55,8 +56,8 @@ export function PermissionRoute({
     return <Navigate to="/auth/login" replace />
   }
   
-  // Check if user is admin - MUST happen AFTER user is confirmed loaded
-  const isAdmin = user.user_level_code === 'super_admin' || user.user_level_code === 'tenant_owner'
+  // Check if user is admin - using unified userAccess utility
+  const isAdmin = isAdminUser(user)
   
   // Admin users ALWAYS have access - bypass all permission checks
   if (isAdmin) {
@@ -129,13 +130,14 @@ function NonAdminPermissionCheck({
 
 /**
  * Hook to check multiple permissions at once
+ * Optimized for performance: fetches all permissions in one query for non-admin users
  */
 export function useCanAccess(module: PermissionModule, actions: PermissionAction[]) {
   const { user, isLoading: userLoading } = useUser()
-  const isAdmin = user?.user_level_code === 'super_admin' || user?.user_level_code === 'tenant_owner'
+  const isAdmin = isAdminUser(user)
   
-  // For admin, return all true immediately
-  if (isAdmin && !userLoading) {
+  // For admin, return all true immediately without any queries
+  if (isAdmin && !userLoading && user) {
     return {
       permissions: actions.reduce((acc, action) => {
         acc[action] = true
@@ -149,17 +151,42 @@ export function useCanAccess(module: PermissionModule, actions: PermissionAction
     }
   }
   
-  // For non-admin, we'd need to check each permission
-  // This is a simplified version that returns loading while user loads
+  // For non-admin users, fetch all permissions at once using Promise.all
+  const permissionQueries = useQueries({
+    queries: actions.map(action => ({
+      queryKey: ['route-permission', user?.id, module, action],
+      queryFn: async () => {
+        if (!user?.id) return false
+        const { data, error } = await supabase.rpc('has_user_permission', {
+          p_user_id: user.id,
+          p_module: module,
+          p_action: action,
+        })
+        if (error) {
+          console.error('Permission check error:', error)
+          return false
+        }
+        return data as boolean
+      },
+      enabled: !!user?.id && !isAdmin,
+      staleTime: 5 * 60 * 1000, // 5 minutes for better caching
+    })),
+  })
+  
+  const isLoading = userLoading || permissionQueries.some(q => q.isLoading)
+  
+  // Build permissions object from query results
+  const permissions = actions.reduce((acc, action, index) => {
+    acc[action] = permissionQueries[index]?.data ?? false
+    return acc
+  }, {} as Record<PermissionAction, boolean>)
+  
   return {
-    permissions: actions.reduce((acc, action) => {
-      acc[action] = false
-      return acc
-    }, {} as Record<PermissionAction, boolean>),
-    isLoading: userLoading,
-    canView: false,
-    canCreate: false,
-    canUpdate: false,
-    canDelete: false,
+    permissions,
+    isLoading,
+    canView: permissions['view'] ?? false,
+    canCreate: permissions['create'] ?? false,
+    canUpdate: permissions['update'] ?? false,
+    canDelete: permissions['delete'] ?? false,
   }
 }

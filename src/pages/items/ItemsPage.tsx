@@ -8,6 +8,7 @@ import { ItemTable } from '@/components/items/ItemTable'
 import { ItemTabs } from '@/components/items/ItemTabs'
 import { BulkActionsBar } from '@/components/items/BulkActionsBar'
 import { MobileItemsPage } from '@/components/items/MobileItemsPage'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import { useItems } from '@/hooks/useItems'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useTranslation } from 'react-i18next'
@@ -66,12 +67,14 @@ export function ItemsPage() {
       <PageHeader
         title={t('title')}
         description={t('description', 'Quản lý tất cả tài sản và đồ dùng trong khách sạn')}
-        action={{
-          label: t('addNew'),
-          icon: Plus,
-          onClick: () => navigate('/items/new'),
-        }}
-      />
+      >
+        <PermissionGate module="items" action="create">
+          <Button onClick={() => navigate('/items/new')}>
+            <Plus className="mr-2 h-4 w-4" />
+            {t('addNew')}
+          </Button>
+        </PermissionGate>
+      </PageHeader>
       
       <ItemTabs
         activeTab={filters.categoryId || 'all'}
