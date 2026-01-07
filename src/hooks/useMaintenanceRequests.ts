@@ -261,12 +261,54 @@ export function useUpdateMaintenanceRequest() {
   })
 }
 
+// Valid status transitions map
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  waiting: ['pending', 'cancelled'],
+  pending: ['in_progress', 'cancelled'],
+  in_progress: ['completed', 'cancelled'],
+  completed: [],
+  cancelled: [],
+}
+
+async function validateStatusTransition(id: string, targetStatus: string): Promise<string> {
+  const { data: request, error } = await supabase
+    .from('maintenance_requests')
+    .select('status')
+    .eq('id', id)
+    .single()
+
+  if (error || !request) {
+    throw new Error('Không tìm thấy yêu cầu bảo trì')
+  }
+
+  const currentStatus = request.status as string
+  const allowedTransitions = VALID_TRANSITIONS[currentStatus] || []
+
+  if (!allowedTransitions.includes(targetStatus)) {
+    const statusLabels: Record<string, string> = {
+      waiting: 'Chờ tiếp nhận',
+      pending: 'Đã tiếp nhận',
+      in_progress: 'Đang xử lý',
+      completed: 'Hoàn thành',
+      cancelled: 'Đã hủy',
+    }
+    throw new Error(
+      `Không thể chuyển từ "${statusLabels[currentStatus]}" sang "${statusLabels[targetStatus]}"`
+    )
+  }
+
+  return currentStatus
+}
+
 export function useAcceptRequest() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Validate: only from 'waiting' -> 'pending'
+      await validateStatusTransition(id, 'pending')
+
       const { data, error } = await supabase
         .from('maintenance_requests')
         .update({
@@ -288,6 +330,13 @@ export function useAcceptRequest() {
         description: 'Đã tiếp nhận yêu cầu',
       })
     },
+    onError: (error: any) => {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
+    },
   })
 }
 
@@ -297,6 +346,9 @@ export function useStartRequest() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Validate: only from 'pending' -> 'in_progress'
+      await validateStatusTransition(id, 'in_progress')
+
       const { data, error } = await supabase
         .from('maintenance_requests')
         .update({
@@ -318,6 +370,13 @@ export function useStartRequest() {
         description: 'Đã bắt đầu kiểm tra',
       })
     },
+    onError: (error: any) => {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
+    },
   })
 }
 
@@ -328,6 +387,9 @@ export function useCompleteRequest() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      // Validate: only from 'in_progress' -> 'completed'
+      await validateStatusTransition(id, 'completed')
+
       const { data: request, error } = await supabase
         .from('maintenance_requests')
         .update({
@@ -367,6 +429,13 @@ export function useCompleteRequest() {
         description: 'Đã hoàn thành yêu cầu',
       })
     },
+    onError: (error: any) => {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
+    },
   })
 }
 
@@ -376,6 +445,9 @@ export function useCancelRequest() {
 
   return useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      // Validate: from 'waiting', 'pending', or 'in_progress' -> 'cancelled'
+      await validateStatusTransition(id, 'cancelled')
+
       const { data, error } = await supabase
         .from('maintenance_requests')
         .update({
@@ -394,6 +466,13 @@ export function useCancelRequest() {
       toast({
         title: 'Thành công',
         description: 'Đã hủy yêu cầu',
+      })
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
       })
     },
   })
