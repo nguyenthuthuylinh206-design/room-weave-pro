@@ -6034,6 +6034,10 @@ export type Database = {
         Args: { p_manager_id: string; p_target_user_id: string }
         Returns: boolean
       }
+      cancel_booking: {
+        Args: { p_booking_id: string; p_room_id?: string }
+        Returns: Json
+      }
       cancel_distribution_order: {
         Args: { p_cancelled_by: string; p_order_id: string }
         Returns: Json
@@ -7084,6 +7088,27 @@ export type Database = {
         }
         Returns: Json
       }
+      perform_checkin: {
+        Args: {
+          p_booking_id: string
+          p_early_checkin_charge?: number
+          p_room_id: string
+        }
+        Returns: Json
+      }
+      perform_checkout: {
+        Args: {
+          p_booking_id: string
+          p_late_checkout_charge?: number
+          p_room_id: string
+          p_service_charges?: number
+          p_service_fee_amount?: number
+          p_subtotal?: number
+          p_total_amount?: number
+          p_vat_amount?: number
+        }
+        Returns: Json
+      }
       process_expired_subscriptions: { Args: never; Returns: undefined }
       queue_email_notification: {
         Args: {
@@ -7171,6 +7196,14 @@ export type Database = {
           p_notes?: string
           p_order_id: string
           p_rooms?: Json
+        }
+        Returns: Json
+      }
+      update_room_status_safe: {
+        Args: {
+          p_expected_updated_at?: string
+          p_new_status: string
+          p_room_id: string
         }
         Returns: Json
       }

@@ -38,13 +38,17 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
    * Check-in: Update booking status to 'checked_in' AND room status to 'occupied'
    * Automatically calculates early check-in surcharge
    */
+  /**
+   * Check-in: Update booking status to 'checked_in' AND room status to 'occupied'
+   * Uses database transaction (RPC) to ensure atomicity for concurrent users
+   */
   const handleCheckIn = async (bookingId: string, roomId: string) => {
     setIsLoading(true)
     try {
       // First get the booking to calculate surcharge
       const { data: booking, error: fetchError } = await supabase
         .from('room_bookings')
-        .select('room_price, vat_rate, service_fee_rate, service_charges, extra_charges, deposit_amount, amount_paid')
+        .select('room_price')
         .eq('id', bookingId)
         .single()
 
@@ -55,25 +59,14 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
       const actualTime = format(now, 'HH:mm')
       const earlyCheckinCharge = calculateEarlyCheckinCharge(actualTime, booking.room_price || 0)
 
-      // Update booking status
-      const { error: bookingError } = await supabase
-        .from('room_bookings')
-        .update({
-          status: 'checked_in',
-          actual_check_in: now.toISOString(),
-          early_checkin_charge: earlyCheckinCharge,
-        })
-        .eq('id', bookingId)
+      // Use transaction-safe RPC function to update both booking and room atomically
+      const { data: result, error: rpcError } = await supabase.rpc('perform_checkin', {
+        p_booking_id: bookingId,
+        p_room_id: roomId,
+        p_early_checkin_charge: earlyCheckinCharge,
+      })
 
-      if (bookingError) throw bookingError
-
-      // Update room status to 'occupied'
-      const { error: roomError } = await supabase
-        .from('rooms')
-        .update({ status: 'occupied' })
-        .eq('id', roomId)
-
-      if (roomError) throw roomError
+      if (rpcError) throw rpcError
 
       toast({ 
         title: 'Check-in thành công',
@@ -89,7 +82,9 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
       toast({
         variant: 'destructive',
         title: 'Lỗi check-in',
-        description: error.message,
+        description: error.message?.includes('already checked') 
+          ? 'Booking đã được check-in hoặc không hợp lệ'
+          : error.message,
       })
       return false
     } finally {
@@ -99,7 +94,7 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
 
   /**
    * Check-out: Update booking status to 'checked_out' AND room status to 'check_out'
-   * Automatically calculates late check-out surcharge and final billing
+   * Uses database transaction (RPC) to ensure atomicity for concurrent users
    */
   const handleCheckOut = async (bookingId: string, roomId: string) => {
     setIsLoading(true)
@@ -141,30 +136,19 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
         amountPaid: booking.amount_paid || 0,
       })
 
-      // Update booking with final calculations
-      const { error: bookingError } = await supabase
-        .from('room_bookings')
-        .update({
-          status: 'checked_out',
-          actual_check_out: now.toISOString(),
-          late_checkout_charge: lateCheckoutCharge,
-          service_charges: serviceCharges,
-          subtotal: costBreakdown.subtotal,
-          vat_amount: costBreakdown.vatAmount,
-          service_fee_amount: costBreakdown.serviceFeeAmount,
-          total_amount: costBreakdown.totalAmount,
-        })
-        .eq('id', bookingId)
+      // Use transaction-safe RPC function to update both booking and room atomically
+      const { data: result, error: rpcError } = await supabase.rpc('perform_checkout', {
+        p_booking_id: bookingId,
+        p_room_id: roomId,
+        p_late_checkout_charge: lateCheckoutCharge,
+        p_service_charges: serviceCharges,
+        p_subtotal: costBreakdown.subtotal,
+        p_vat_amount: costBreakdown.vatAmount,
+        p_service_fee_amount: costBreakdown.serviceFeeAmount,
+        p_total_amount: costBreakdown.totalAmount,
+      })
 
-      if (bookingError) throw bookingError
-
-      // Update room status to 'check_out' (needs inspection/cleaning)
-      const { error: roomError } = await supabase
-        .from('rooms')
-        .update({ status: 'check_out' })
-        .eq('id', roomId)
-
-      if (roomError) throw roomError
+      if (rpcError) throw rpcError
 
       const remainingAmount = costBreakdown.remainingAmount
       toast({ 
@@ -183,7 +167,11 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
       toast({
         variant: 'destructive',
         title: 'Lỗi check-out',
-        description: error.message,
+        description: error.message?.includes('not in checked_in') 
+          ? 'Booking chưa check-in hoặc đã check-out'
+          : error.message?.includes('modified by another')
+          ? 'Phòng đã được cập nhật bởi người khác. Vui lòng refresh lại.'
+          : error.message,
       })
       return false
     } finally {
@@ -236,24 +224,18 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
 
   /**
    * Cancel booking
+   * Uses database transaction (RPC) to ensure atomicity for concurrent users
    */
   const handleCancel = async (bookingId: string, roomId?: string) => {
     setIsLoading(true)
     try {
-      const { error } = await supabase
-        .from('room_bookings')
-        .update({ status: 'cancelled' })
-        .eq('id', bookingId)
+      // Use transaction-safe RPC function
+      const { data: result, error: rpcError } = await supabase.rpc('cancel_booking', {
+        p_booking_id: bookingId,
+        p_room_id: roomId || null,
+      })
 
-      if (error) throw error
-
-      // If room is associated, set it back to vacant
-      if (roomId) {
-        await supabase
-          .from('rooms')
-          .update({ status: 'vacant' })
-          .eq('id', roomId)
-      }
+      if (rpcError) throw rpcError
 
       toast({ title: 'Đã hủy đặt phòng' })
       invalidateQueries(roomId)
@@ -263,7 +245,9 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
       toast({
         variant: 'destructive',
         title: 'Lỗi hủy đặt phòng',
-        description: error.message,
+        description: error.message?.includes('cannot be cancelled')
+          ? 'Không thể hủy booking đã hoàn thành hoặc đã hủy'
+          : error.message,
       })
       return false
     } finally {

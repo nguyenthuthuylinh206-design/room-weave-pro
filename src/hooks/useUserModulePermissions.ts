@@ -30,6 +30,7 @@ export function useUserModulePermissions() {
       return (data || []) as unknown as PermissionSummary[]
     },
     enabled: !!user?.id,
-    staleTime: 30 * 1000, // Reduced from 2 min to 30 sec for faster permission updates
+    staleTime: 5 * 60 * 1000, // 5 minutes - balance between performance and responsiveness for 100+ users
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
   })
 }
