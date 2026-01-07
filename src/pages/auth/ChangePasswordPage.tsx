@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 
 import { useAuth } from '@/contexts/AuthContext'
+import { useUser } from '@/hooks/useUser'
 import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -43,7 +44,8 @@ type ChangePasswordFormData = z.infer<typeof changePasswordSchema>
 export default function ChangePasswordPage() {
   const { t } = useTranslation(['auth', 'common'])
   const navigate = useNavigate()
-  const { user, updatePassword } = useAuth()
+  const { updatePassword } = useAuth()
+  const { user } = useUser()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -74,6 +76,18 @@ export default function ChangePasswordPage() {
       await supabase.auth.updateUser({
         data: { must_change_password: false }
       })
+
+      // Update database users table
+      if (user?.id) {
+        const { error: dbError } = await supabase
+          .from('users')
+          .update({ must_change_password: false })
+          .eq('id', user.id)
+
+        if (dbError) {
+          console.error('Failed to update must_change_password in database:', dbError)
+        }
+      }
 
       toast.success('Đổi mật khẩu thành công!')
       navigate('/auth/callback', { replace: true })
