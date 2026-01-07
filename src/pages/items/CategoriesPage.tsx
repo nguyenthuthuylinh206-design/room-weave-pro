@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeft, Plus, Edit, Trash2, Package, AlertTriangle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -212,10 +213,12 @@ export function CategoriesPage() {
             <p className="text-muted-foreground">{t('categoriesPage.description')}</p>
           </div>
         </div>
-        <Button onClick={() => handleOpenDialog()}>
-          <Plus className="w-4 h-4 mr-2" />
-          {t('categoriesPage.addCategory')}
-        </Button>
+        <PermissionGate module="items" action="create">
+          <Button onClick={() => handleOpenDialog()}>
+            <Plus className="w-4 h-4 mr-2" />
+            {t('categoriesPage.addCategory')}
+          </Button>
+        </PermissionGate>
       </div>
 
       {/* Tenant/Hotel Missing Alert */}
@@ -277,25 +280,29 @@ export function CategoriesPage() {
                   />
                 </div>
                 <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleOpenDialog(category)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => {
-                      setDeletingCategoryId(category.id)
-                      setDeleteDialogOpen(true)
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  <PermissionGate module="items" action="update">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleOpenDialog(category)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </PermissionGate>
+                  <PermissionGate module="items" action="delete">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => {
+                        setDeletingCategoryId(category.id)
+                        setDeleteDialogOpen(true)
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </PermissionGate>
                 </div>
               </div>
 

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DeleteUserDialog } from './DeleteUserDialog'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import {
   Table,
   TableBody,
@@ -169,30 +170,34 @@ export function UserTable({ users, onEdit, onManagePermissions }: UserTableProps
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>{t('common:actions')}</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        {onEdit && (
-                          <DropdownMenuItem onClick={() => onEdit(user)}>
-                            <Pencil className="h-4 w-4 mr-2" />
-                            {t('common:edit')}
-                          </DropdownMenuItem>
-                        )}
-                        {onManagePermissions && (
-                          <DropdownMenuItem onClick={() => onManagePermissions(user.id)}>
-                            <Shield className="h-4 w-4 mr-2" />
-                            {t('users:permissions.title')}
-                          </DropdownMenuItem>
-                        )}
-                        {!user.is_primary_owner && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteClick(user)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              {t('common:delete')}
+                        <PermissionGate module="users" action="update">
+                          {onEdit && (
+                            <DropdownMenuItem onClick={() => onEdit(user)}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              {t('common:edit')}
                             </DropdownMenuItem>
-                          </>
-                        )}
+                          )}
+                          {onManagePermissions && (
+                            <DropdownMenuItem onClick={() => onManagePermissions(user.id)}>
+                              <Shield className="h-4 w-4 mr-2" />
+                              {t('users:permissions.title')}
+                            </DropdownMenuItem>
+                          )}
+                        </PermissionGate>
+                        <PermissionGate module="users" action="delete">
+                          {!user.is_primary_owner && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteClick(user)}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                {t('common:delete')}
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </PermissionGate>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

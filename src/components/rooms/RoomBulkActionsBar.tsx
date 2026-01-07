@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
 import { X, Trash2, RefreshCw, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import {
   Select,
   SelectContent,
@@ -116,15 +117,17 @@ export function RoomBulkActionsBar({ selectedIds, onClearSelection }: RoomBulkAc
           </Select>
 
           {/* Delete button */}
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setShowDeleteDialog(true)}
-            disabled={bulkDelete.isPending}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            {t('bulkActions.delete', { count: selectedIds.length })}
-          </Button>
+          <PermissionGate module="rooms" action="delete">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowDeleteDialog(true)}
+              disabled={bulkDelete.isPending}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {t('bulkActions.delete', { count: selectedIds.length })}
+            </Button>
+          </PermissionGate>
         </div>
       </div>
 

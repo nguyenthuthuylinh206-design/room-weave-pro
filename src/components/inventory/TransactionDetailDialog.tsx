@@ -12,6 +12,7 @@ import {
   Package,
 } from 'lucide-react'
 import { ResponsiveDialog } from '@/components/mobile/ResponsiveDialog'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import { Button } from '@/components/ui/button'
 import { TouchButton } from '@/components/mobile/TouchOptimized'
 import { Badge } from '@/components/ui/badge'
@@ -291,16 +292,18 @@ export function TransactionDetailDialog({
                 Sao chép mã giao dịch
               </TouchButton>
               
-              {canDelete && (
-                <TouchButton
-                  variant="destructive"
-                  className="w-full justify-start"
-                  onClick={() => setShowDeleteConfirm(true)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Xóa giao dịch
-                </TouchButton>
-              )}
+              <PermissionGate module="inventory" action="delete">
+                {canDelete && (
+                  <TouchButton
+                    variant="destructive"
+                    className="w-full justify-start"
+                    onClick={() => setShowDeleteConfirm(true)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Xóa giao dịch
+                  </TouchButton>
+                )}
+              </PermissionGate>
             </div>
           </div>
         ) : (
@@ -515,15 +518,17 @@ export function TransactionDetailDialog({
                 </Button>
               </div>
               
-              {canDelete && (
-                <Button
-                  variant="destructive"
-                  onClick={() => setShowDeleteConfirm(true)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Hủy giao dịch
-                </Button>
-              )}
+              <PermissionGate module="inventory" action="delete">
+                {canDelete && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => setShowDeleteConfirm(true)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Hủy giao dịch
+                  </Button>
+                )}
+              </PermissionGate>
             </div>
           </div>
         )}

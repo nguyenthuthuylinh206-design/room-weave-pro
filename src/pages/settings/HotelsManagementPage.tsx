@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Building2, Plus, Search } from 'lucide-react'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import { useHotels, useDeleteHotel, Hotel } from '@/hooks/useHotels'
 import { HotelCard } from '@/components/settings/hotels/HotelCard'
 import { HotelFormDialog } from '@/components/settings/hotels/HotelFormDialog'
@@ -122,10 +123,12 @@ export default function HotelsManagementPage() {
             {hotels?.length || 0} khách sạn trong hệ thống
           </p>
         </div>
-        <Button size="sm" onClick={handleAddNew} className="h-8">
-          <Plus className="h-4 w-4 mr-1" />
-          Thêm mới
-        </Button>
+        <PermissionGate module="hotels" action="create">
+          <Button size="sm" onClick={handleAddNew} className="h-8">
+            <Plus className="h-4 w-4 mr-1" />
+            Thêm mới
+          </Button>
+        </PermissionGate>
       </div>
 
       {/* Stats Row */}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Vendor } from '@/types/vendor.types';
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -203,21 +204,25 @@ export function VendorTable({ vendors, selectedVendors, onSelectionChange }: Ven
                       <Eye className="mr-2 w-4 h-4" />
                       {t('actions.viewDetail')}
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate(`/vendors/${vendor.id}/edit`)}>
-                      <Edit className="mr-2 w-4 h-4" />
-                      {t('actions.edit')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleToggleStatus(vendor)}>
-                      {vendor.status === 'active' ? t('actions.deactivate') : t('actions.activate')}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={() => handleDelete(vendor)}
-                      className="text-destructive"
-                    >
-                      <Trash2 className="mr-2 w-4 h-4" />
-                      {t('actions.delete')}
-                    </DropdownMenuItem>
+                    <PermissionGate module="vendors" action="update">
+                      <DropdownMenuItem onClick={() => navigate(`/vendors/${vendor.id}/edit`)}>
+                        <Edit className="mr-2 w-4 h-4" />
+                        {t('actions.edit')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleToggleStatus(vendor)}>
+                        {vendor.status === 'active' ? t('actions.deactivate') : t('actions.activate')}
+                      </DropdownMenuItem>
+                    </PermissionGate>
+                    <PermissionGate module="vendors" action="delete">
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => handleDelete(vendor)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="mr-2 w-4 h-4" />
+                        {t('actions.delete')}
+                      </DropdownMenuItem>
+                    </PermissionGate>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
