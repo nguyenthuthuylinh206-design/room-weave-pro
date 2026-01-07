@@ -43,7 +43,7 @@ import { VendorListPage } from "./pages/laundry/VendorListPage";
 import { VendorDetailPage } from "./pages/laundry/VendorDetailPage";
 import { VendorFormPage } from "./pages/laundry/VendorFormPage";
 import { SettingsPage } from "./pages/settings/SettingsPage";
-import { SettingsLayout } from "./components/settings/SettingsLayout";
+
 import { GeneralSettingsPage } from "./pages/settings/GeneralSettingsPage";
 import HotelsManagementPage from "./pages/settings/HotelsManagementPage";
 import { SuperAdminLayout } from './components/super-admin/SuperAdminLayout';
@@ -507,107 +507,101 @@ const router = createBrowserRouter([
         )
       },
 
-      // Settings - Permission Based
-      {
-        path: "settings",
-        element: <SettingsLayout />,
-        children: [
-          { index: true, element: <Navigate to="/settings/general" replace /> },
-          { 
-            path: "general", 
-            element: (
-              <PermissionRoute module="settings">
-                <GeneralSettingsPage />
-              </PermissionRoute>
-            )
-          },
-          { 
-            path: "hotels", 
-            element: (
-              <PermissionRoute module="hotels">
-                <HotelsManagementPage />
-              </PermissionRoute>
-            )
-          },
-          { 
-            path: "categories", 
-            element: (
-              <PermissionRoute module="settings">
-                <CategoryManagementPage />
-              </PermissionRoute>
-            )
-          },
-          { 
-            path: "users", 
-            element: (
-              <PermissionRoute module="users">
-                <UsersPage />
-              </PermissionRoute>
-            )
-          },
-          { path: "change-password", element: <ChangePasswordPage /> },
-          { path: "subscription", element: <SubscriptionPage /> },
-          { path: "subscription/pay/:invoiceId", element: <SubscriptionPaymentPage /> },
-          { path: "usage", element: <UsageDashboardPage /> },
-          { 
-            path: "notifications", 
-            element: (
-              <PermissionRoute module="settings">
-                <NotificationSettingsPage />
-              </PermissionRoute>
-            )
-          },
-{ 
-            path: "notifications/devices", 
-            element: (
-              <PermissionRoute module="settings">
-                <PushDevicesPage />
-              </PermissionRoute>
-            )
-          },
-          { 
-            path: "telegram", 
-            element: (
-              <PermissionRoute module="settings">
-                <TelegramSettingsPage />
-              </PermissionRoute>
-            )
-          },
-          { 
-            path: "business",
-            element: (
-              <PermissionRoute module="settings">
-                <BusinessConfigurationPage />
-              </PermissionRoute>
-            )
-          },
-          {
-            path: "workflows",
-            element: (
-              <PermissionRoute module="settings" action="manage">
-                <WorkflowsPage />
-              </PermissionRoute>
-            ),
-          },
-          { 
-            path: "integrations", 
-            element: (
-              <PermissionRoute module="settings" action="manage">
-                <IntegrationsPage />
-              </PermissionRoute>
-            )
-          },
-          { 
-            path: "security", 
-            element: (
-              <PermissionRoute module="settings">
-                <SystemSecurityPage />
-              </PermissionRoute>
-            )
-          },
-          { path: "system-test", element: <SystemTestPage /> },
-        ],
+      // Settings - Permission Based (flat routes)
+      { path: "settings", element: <Navigate to="/settings/general" replace /> },
+      { 
+        path: "settings/general", 
+        element: (
+          <PermissionRoute module="settings">
+            <GeneralSettingsPage />
+          </PermissionRoute>
+        )
       },
+      { 
+        path: "settings/hotels", 
+        element: (
+          <PermissionRoute module="hotels">
+            <HotelsManagementPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "settings/categories", 
+        element: (
+          <PermissionRoute module="settings">
+            <CategoryManagementPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "settings/users", 
+        element: (
+          <PermissionRoute module="users">
+            <UsersPage />
+          </PermissionRoute>
+        )
+      },
+      { path: "settings/change-password", element: <ChangePasswordPage /> },
+      { path: "settings/subscription", element: <SubscriptionPage /> },
+      { path: "settings/subscription/pay/:invoiceId", element: <SubscriptionPaymentPage /> },
+      { path: "settings/usage", element: <UsageDashboardPage /> },
+      { 
+        path: "settings/notifications", 
+        element: (
+          <PermissionRoute module="settings">
+            <NotificationSettingsPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "settings/notifications/devices", 
+        element: (
+          <PermissionRoute module="settings">
+            <PushDevicesPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "settings/telegram", 
+        element: (
+          <PermissionRoute module="settings">
+            <TelegramSettingsPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "settings/business",
+        element: (
+          <PermissionRoute module="settings">
+            <BusinessConfigurationPage />
+          </PermissionRoute>
+        )
+      },
+      {
+        path: "settings/workflows",
+        element: (
+          <PermissionRoute module="settings" action="manage">
+            <WorkflowsPage />
+          </PermissionRoute>
+        ),
+      },
+      { 
+        path: "settings/integrations", 
+        element: (
+          <PermissionRoute module="settings" action="manage">
+            <IntegrationsPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "settings/security", 
+        element: (
+          <PermissionRoute module="settings">
+            <SystemSecurityPage />
+          </PermissionRoute>
+        )
+      },
+      { path: "settings/system-test", element: <SystemTestPage /> },
 
       // Profile - Always accessible
       { path: "profile", element: <ProfilePage /> },

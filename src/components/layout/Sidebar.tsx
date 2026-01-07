@@ -43,6 +43,8 @@ import {
   BarChart3,
   CalendarDays,
   CreditCard,
+  KeyRound,
+  MessageCircle,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -87,9 +89,24 @@ const ownerNavigation: NavItem[] = [
       { titleKey: 'maintenanceReport', href: '/reports/maintenance', icon: Wrench },
     ],
   },
-  { titleKey: 'hotels', href: '/settings/hotels', icon: Building2 },
-  { titleKey: 'users', href: '/settings/users', icon: Users },
-  { titleKey: 'settings', href: '/settings/general', icon: Settings },
+  {
+    titleKey: 'settings',
+    icon: Settings,
+    children: [
+      { titleKey: 'generalSettings', href: '/settings/general', icon: Settings },
+      { titleKey: 'hotels', href: '/settings/hotels', icon: Building2 },
+      { titleKey: 'usersPermissions', href: '/settings/users', icon: Users },
+      { titleKey: 'changePassword', href: '/settings/change-password', icon: KeyRound },
+      { titleKey: 'subscription', href: '/settings/subscription', icon: CreditCard },
+      { titleKey: 'usage', href: '/settings/usage', icon: BarChart3 },
+      { titleKey: 'notifications', href: '/settings/notifications', icon: Bell },
+      { titleKey: 'telegram', href: '/settings/telegram', icon: MessageCircle },
+      { titleKey: 'businessConfig', href: '/settings/business', icon: Briefcase },
+      { titleKey: 'automation', href: '/settings/workflows', icon: Zap },
+      { titleKey: 'integrations', href: '/settings/integrations', icon: Plug },
+      { titleKey: 'systemSecurity', href: '/settings/security', icon: Lock },
+    ],
+  },
 ]
 
 // Manager/Staff navigation (operational details)
@@ -190,9 +207,22 @@ const navigation: NavItem[] = [
   },
   {
     titleKey: 'settings',
-    href: '/settings/general',
     icon: Settings,
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
+    children: [
+      { titleKey: 'generalSettings', href: '/settings/general', icon: Settings },
+      { titleKey: 'hotels', href: '/settings/hotels', icon: Building2 },
+      { titleKey: 'usersPermissions', href: '/settings/users', icon: Users },
+      { titleKey: 'changePassword', href: '/settings/change-password', icon: KeyRound },
+      { titleKey: 'subscription', href: '/settings/subscription', icon: CreditCard },
+      { titleKey: 'usage', href: '/settings/usage', icon: BarChart3 },
+      { titleKey: 'notifications', href: '/settings/notifications', icon: Bell },
+      { titleKey: 'telegram', href: '/settings/telegram', icon: MessageCircle },
+      { titleKey: 'businessConfig', href: '/settings/business', icon: Briefcase },
+      { titleKey: 'automation', href: '/settings/workflows', icon: Zap },
+      { titleKey: 'integrations', href: '/settings/integrations', icon: Plug },
+      { titleKey: 'systemSecurity', href: '/settings/security', icon: Lock },
+    ],
   },
 ]
 
