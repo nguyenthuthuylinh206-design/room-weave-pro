@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { Eye, EyeOff, UserPlus, Loader2, Mail, User, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,6 +25,7 @@ import { registerSchema, RegisterFormData } from '@/lib/validations/auth.schemas
 export function RegisterForm() {
   const { t } = useTranslation(['auth', 'common'])
   const navigate = useNavigate()
+  const { signUp } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -44,16 +46,8 @@ export function RegisterForm() {
     setIsSubmitting(true)
 
     try {
-      // Sign up with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            full_name: data.fullName,
-          },
-        },
-      })
+      // Use AuthContext signUp which includes emailRedirectTo
+      const { error: authError } = await signUp(data.email, data.password, data.fullName)
 
       if (authError) {
         if (authError.message.includes('already registered')) {
@@ -64,15 +58,13 @@ export function RegisterForm() {
         return
       }
 
-      if (authData.user) {
-        // Send welcome email (fire and forget - don't block registration)
-        supabase.functions.invoke('send-welcome-email', {
-          body: { email: data.email, fullName: data.fullName }
-        }).catch(err => console.error('Failed to send welcome email:', err))
+      // Send welcome email (fire and forget - don't block registration)
+      supabase.functions.invoke('send-welcome-email', {
+        body: { email: data.email, fullName: data.fullName }
+      }).catch(err => console.error('Failed to send welcome email:', err))
 
-        toast.success('Đăng ký thành công! Vui lòng đăng nhập.')
-        navigate('/auth/login')
-      }
+      toast.success('Đăng ký thành công! Vui lòng đăng nhập.')
+      navigate('/auth/login')
     } catch (error: any) {
       console.error('Registration error:', error)
       toast.error('Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại.')

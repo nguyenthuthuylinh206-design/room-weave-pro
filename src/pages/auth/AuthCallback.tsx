@@ -32,19 +32,19 @@ export default function AuthCallback() {
       return
     }
     
+    // Check if user must change password (staff/manager created by admin)
+    const mustChangePassword = authUser?.user_metadata?.must_change_password === true
+    if (mustChangePassword) {
+      navigate('/auth/change-password', { replace: true })
+      return
+    }
+    
     // firstAccessibleRoute = null nghĩa là đang chờ permissions load
     if (firstAccessibleRoute === null) {
       return
     }
 
-    // Có route để redirect
-    if (firstAccessibleRoute !== '/unauthorized') {
-      toast({
-        title: 'Đăng nhập thành công',
-        description: 'Chào mừng bạn quay trở lại!',
-      })
-    }
-    
+    // Redirect to first accessible route (toast is already shown by AuthContext)
     navigate(firstAccessibleRoute, { replace: true })
   }, [authUser, user, isLoading, firstAccessibleRoute, navigate, toast])
 

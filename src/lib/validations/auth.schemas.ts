@@ -45,7 +45,7 @@ export const forgotPasswordSchema = z.object({
 
 export type ForgotPasswordData = z.infer<typeof forgotPasswordSchema>
 
-// Reset password schema
+// Reset password schema (same strong validation as registration)
 export const resetPasswordSchema = z.object({
   password: passwordSchema,
   confirmPassword: z.string(),
