@@ -37,6 +37,7 @@ import { cn } from '@/lib/utils'
 import { QRCodeDisplay } from '@/components/shared/QRCodeDisplay'
 import { MobileItemDetailPage } from '@/components/items/MobileItemDetailPage'
 import { useBreakpoint } from '@/lib/breakpoints'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 
 export default function ItemDetailPage() {
   const { t } = useTranslation(['items', 'common'])
@@ -118,10 +119,12 @@ export default function ItemDetailPage() {
             </p>
           </div>
         </div>
-        <Button onClick={() => navigate(`/items/${id}/edit`)}>
-          <Edit className="mr-2 h-4 w-4" />
-          {t('items:edit')}
-        </Button>
+        <PermissionGate module="items" action="update">
+          <Button onClick={() => navigate(`/items/${id}/edit`)}>
+            <Edit className="mr-2 h-4 w-4" />
+            {t('items:edit')}
+          </Button>
+        </PermissionGate>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">

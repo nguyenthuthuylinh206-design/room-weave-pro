@@ -44,6 +44,7 @@ import { RoomSupplementSheet } from '@/components/rooms/RoomSupplementSheet'
 import { GuestInfoCard } from '@/components/rooms/GuestInfoCard'
 import { StaffRoomDetailPage } from '@/components/rooms/StaffRoomDetailPage'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 import { useRoom } from '@/hooks/useRooms'
 import { useApplyStandards } from '@/hooks/useRoomStandards'
 import { useRoomDistributionHistory } from '@/hooks/useRoomDistributionHistory'
@@ -253,10 +254,12 @@ export function MobileRoomDetailPage() {
                   <RefreshCw className={`h-4 w-4 mr-2 ${applyStandards.isPending ? 'animate-spin' : ''}`} />
                   {standardItems.length === 0 ? t('detail.applyStandards') : t('detail.syncStandards')}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate(`/rooms/${id}/edit`)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  {t('detail.editInfo')}
-                </DropdownMenuItem>
+                <PermissionGate module="rooms" action="update">
+                  <DropdownMenuItem onClick={() => navigate(`/rooms/${id}/edit`)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    {t('detail.editInfo')}
+                  </DropdownMenuItem>
+                </PermissionGate>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useBreakpoint } from '@/lib/breakpoints';
 import { MobilePODetail } from '@/components/purchase-orders/MobilePODetail';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 
 const PODetailPage: React.FC = () => {
   const { isMobile } = useBreakpoint()
@@ -72,11 +73,13 @@ const PODetailPage: React.FC = () => {
               </div>
             </div>
             <div className="flex gap-2">
-              {po.status === 'draft' && (
-                <Button size="sm" onClick={() => navigate(`/purchase-orders/${id}/edit`)}>
-                  <Edit className="w-4 h-4 mr-2" />Sửa
-                </Button>
-              )}
+              <PermissionGate module="purchase_orders" action="update">
+                {po.status === 'draft' && (
+                  <Button size="sm" onClick={() => navigate(`/purchase-orders/${id}/edit`)}>
+                    <Edit className="w-4 h-4 mr-2" />Sửa
+                  </Button>
+                )}
+              </PermissionGate>
               <Button variant="outline" size="sm"><Printer className="w-4 h-4 mr-2" />In</Button>
             </div>
           </div>

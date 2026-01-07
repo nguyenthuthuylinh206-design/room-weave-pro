@@ -34,6 +34,7 @@ import {
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { useBreakpoint } from '@/lib/breakpoints'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 
 export default function MaintenanceRequestDetail() {
   const { id } = useParams<{ id: string }>()
@@ -134,57 +135,59 @@ export default function MaintenanceRequestDetail() {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-wrap gap-2">
-        {request.status === 'waiting' && (
-          <>
-            <Button onClick={handleAcceptRequest}>
-              <ClipboardCheck className="h-4 w-4 mr-2" />
-              Tiếp nhận
-            </Button>
-            <Button variant="outline" asChild>
-              <Link to={`/maintenance/requests/edit/${id}`}>
-                <Edit className="h-4 w-4 mr-2" />
-                Sửa
-              </Link>
-            </Button>
-            <Button variant="destructive" onClick={() => setShowCancelDialog(true)}>
-              <XCircle className="h-4 w-4 mr-2" />
-              Hủy
-            </Button>
-          </>
-        )}
+      <PermissionGate module="maintenance" action="update">
+        <div className="flex flex-wrap gap-2">
+          {request.status === 'waiting' && (
+            <>
+              <Button onClick={handleAcceptRequest}>
+                <ClipboardCheck className="h-4 w-4 mr-2" />
+                Tiếp nhận
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to={`/maintenance/requests/edit/${id}`}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Sửa
+                </Link>
+              </Button>
+              <Button variant="destructive" onClick={() => setShowCancelDialog(true)}>
+                <XCircle className="h-4 w-4 mr-2" />
+                Hủy
+              </Button>
+            </>
+          )}
 
-        {request.status === 'pending' && (
-          <>
-            <Button onClick={handleStartRequest}>
-              <Wrench className="h-4 w-4 mr-2" />
-              Bắt đầu kiểm tra
-            </Button>
-            <Button variant="outline" asChild>
-              <Link to={`/maintenance/requests/edit/${id}`}>
-                <Edit className="h-4 w-4 mr-2" />
-                Sửa
-              </Link>
-            </Button>
-            <Button variant="destructive" onClick={() => setShowCancelDialog(true)}>
-              <XCircle className="h-4 w-4 mr-2" />
-              Hủy
-            </Button>
-          </>
-        )}
-        
-        {request.status === 'in_progress' && (
-          <>
-            <Button onClick={() => setShowUpdateDialog(true)} variant="outline">
-              <FileText className="h-4 w-4 mr-2" />
-              Cập nhật tiến độ
-            </Button>
-            <Button onClick={() => setShowCompleteDialog(true)}>
-              Hoàn thành
-            </Button>
-          </>
-        )}
-      </div>
+          {request.status === 'pending' && (
+            <>
+              <Button onClick={handleStartRequest}>
+                <Wrench className="h-4 w-4 mr-2" />
+                Bắt đầu kiểm tra
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to={`/maintenance/requests/edit/${id}`}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Sửa
+                </Link>
+              </Button>
+              <Button variant="destructive" onClick={() => setShowCancelDialog(true)}>
+                <XCircle className="h-4 w-4 mr-2" />
+                Hủy
+              </Button>
+            </>
+          )}
+          
+          {request.status === 'in_progress' && (
+            <>
+              <Button onClick={() => setShowUpdateDialog(true)} variant="outline">
+                <FileText className="h-4 w-4 mr-2" />
+                Cập nhật tiến độ
+              </Button>
+              <Button onClick={() => setShowCompleteDialog(true)}>
+                Hoàn thành
+              </Button>
+            </>
+          )}
+        </div>
+      </PermissionGate>
 
       <div className="grid gap-6 md:grid-cols-3">
         {/* Main Info */}

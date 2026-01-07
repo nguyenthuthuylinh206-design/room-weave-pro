@@ -28,6 +28,7 @@ import { useApplyStandards } from '@/hooks/useRoomStandards'
 import { useRoomDistributionHistory } from '@/hooks/useRoomDistributionHistory'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { formatCurrency } from '@/lib/utils'
+import { PermissionGate } from '@/components/auth/PermissionGate'
 
 export function RoomDetailPage() {
   const { t } = useTranslation(['rooms', 'common', 'distribution'])
@@ -103,10 +104,12 @@ export function RoomDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigate(`/rooms/${id}/edit`)}>
-            <Edit className="mr-1.5 h-3.5 w-3.5" />
-            Sửa
-          </Button>
+          <PermissionGate module="rooms" action="update">
+            <Button variant="outline" size="sm" onClick={() => navigate(`/rooms/${id}/edit`)}>
+              <Edit className="mr-1.5 h-3.5 w-3.5" />
+              Sửa
+            </Button>
+          </PermissionGate>
           <Button size="sm" onClick={() => navigate(`/rooms/${id}/check`)}>
             <ClipboardCheck className="mr-1.5 h-3.5 w-3.5" />
             Kiểm tra

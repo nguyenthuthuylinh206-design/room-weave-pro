@@ -542,9 +542,30 @@ const router = createBrowserRouter([
         )
       },
       { path: "settings/change-password", element: <ChangePasswordPage /> },
-      { path: "settings/subscription", element: <SubscriptionPage /> },
-      { path: "settings/subscription/pay/:invoiceId", element: <SubscriptionPaymentPage /> },
-      { path: "settings/usage", element: <UsageDashboardPage /> },
+      { 
+        path: "settings/subscription", 
+        element: (
+          <RoleGuard allowedRoles={['super_admin', 'owner']}>
+            <SubscriptionPage />
+          </RoleGuard>
+        )
+      },
+      { 
+        path: "settings/subscription/pay/:invoiceId", 
+        element: (
+          <RoleGuard allowedRoles={['super_admin', 'owner']}>
+            <SubscriptionPaymentPage />
+          </RoleGuard>
+        )
+      },
+      { 
+        path: "settings/usage", 
+        element: (
+          <RoleGuard allowedRoles={['super_admin', 'owner']}>
+            <UsageDashboardPage />
+          </RoleGuard>
+        )
+      },
       { 
         path: "settings/notifications", 
         element: (
@@ -601,7 +622,14 @@ const router = createBrowserRouter([
           </PermissionRoute>
         )
       },
-      { path: "settings/system-test", element: <SystemTestPage /> },
+      { 
+        path: "settings/system-test", 
+        element: (
+          <RoleGuard allowedRoles={['super_admin', 'owner']}>
+            <SystemTestPage />
+          </RoleGuard>
+        )
+      },
 
       // Profile - Always accessible
       { path: "profile", element: <ProfilePage /> },
