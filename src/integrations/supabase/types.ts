@@ -6281,6 +6281,10 @@ export type Database = {
         Args: { p_email: string; p_full_name?: string }
         Returns: Json
       }
+      delete_inventory_transaction: {
+        Args: { p_transaction_id: string }
+        Returns: Json
+      }
       deliver_stop:
         | {
             Args: {
