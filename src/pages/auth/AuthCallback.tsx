@@ -33,7 +33,7 @@ export default function AuthCallback() {
     }
     
     // Check if user must change password (staff/manager created by admin)
-    const mustChangePassword = authUser?.user_metadata?.must_change_password === true
+    const mustChangePassword = user?.must_change_password === true
     if (mustChangePassword) {
       navigate('/auth/change-password', { replace: true })
       return
