@@ -27,10 +27,17 @@ serve(async (req) => {
       )
     }
 
-    // Validate password strength
-    if (new_password.length < 6) {
+    // Validate password strength (must match frontend schema)
+    const passwordErrors: string[] = []
+    if (new_password.length < 8) passwordErrors.push('ít nhất 8 ký tự')
+    if (!/[A-Z]/.test(new_password)) passwordErrors.push('ít nhất 1 chữ hoa')
+    if (!/[a-z]/.test(new_password)) passwordErrors.push('ít nhất 1 chữ thường')
+    if (!/[0-9]/.test(new_password)) passwordErrors.push('ít nhất 1 số')
+    if (!/[^A-Za-z0-9]/.test(new_password)) passwordErrors.push('ít nhất 1 ký tự đặc biệt')
+
+    if (passwordErrors.length > 0) {
       return new Response(
-        JSON.stringify({ error: 'Mật khẩu phải có ít nhất 6 ký tự' }),
+        JSON.stringify({ error: `Mật khẩu phải có ${passwordErrors.join(', ')}` }),
         { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       )
     }
