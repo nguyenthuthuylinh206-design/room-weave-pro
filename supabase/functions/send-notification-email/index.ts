@@ -299,15 +299,15 @@ serve(async (req) => {
 
     // Send email via Resend
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: 'Hotel Management System <onboarding@resend.dev>',
+      from: 'RoomQc <noreply@roomqc.com>',
       to: [to_email],
       subject: emailContent.subject,
       html: emailContent.html,
     })
 
     if (emailError) {
-      console.error('Resend error:', emailError)
-      throw emailError
+      console.error('Resend API error:', JSON.stringify(emailError))
+      throw new Error(emailError.message || 'Failed to send email')
     }
 
     console.log('Email sent successfully:', emailData)

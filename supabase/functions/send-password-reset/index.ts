@@ -205,14 +205,14 @@ serve(async (req) => {
 
     // Send email via Resend
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: 'RoomQc <onboarding@resend.dev>',
+      from: 'RoomQc <noreply@roomqc.com>',
       to: [normalizedEmail],
       subject: emailContent.subject,
       html: emailContent.html,
     })
 
     if (emailError) {
-      console.error('Resend error:', emailError)
+      console.error('Resend API error:', JSON.stringify(emailError))
       // Clean up OTP if email fails
       await supabaseAdmin
         .from('password_reset_otps')
