@@ -58,8 +58,10 @@
   "subscription": "Subscription & Billing",
   "usage": "Usage",
   "businessConfig": "Business Configuration",
+  "pricingRules": "Surcharges & Fees",
   "automation": "Automation",
   "integrations": "Integrations & API",
   "systemSecurity": "System & Security",
-  "telegram": "Telegram"
+  "telegram": "Telegram",
+  "notifications": "Notifications"
 }
