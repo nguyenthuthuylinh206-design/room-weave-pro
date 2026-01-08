@@ -105,9 +105,11 @@ export function BookingsPage() {
       .channel('bookings-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'room_bookings' }, () => {
         queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
+        queryClient.invalidateQueries({ queryKey: ['available-rooms'] })
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => {
         queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
+        queryClient.invalidateQueries({ queryKey: ['available-rooms'] })
       })
       .subscribe()
 

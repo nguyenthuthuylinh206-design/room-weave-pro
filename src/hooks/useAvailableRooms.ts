@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useTenant } from '@/hooks/useTenant'
@@ -17,8 +18,36 @@ export interface AvailableRoom {
 export function useAvailableRooms(checkInDate?: Date, checkOutDate?: Date) {
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const { tenant } = useTenant()
+  const queryClient = useQueryClient()
   const tenantId = tenant?.id
   const hotelId = selectedHotel?.id
+
+  // Realtime subscription for rooms and bookings changes
+  useEffect(() => {
+    if (!tenantId) return
+
+    const channel = supabase
+      .channel('available-rooms-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'rooms' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['available-rooms'] })
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'room_bookings' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['available-rooms'] })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [tenantId, queryClient])
 
   return useQuery({
     queryKey: ['available-rooms', tenantId, hotelId, checkInDate?.toISOString(), checkOutDate?.toISOString()],
