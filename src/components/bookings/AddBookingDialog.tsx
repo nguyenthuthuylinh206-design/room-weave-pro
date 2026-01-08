@@ -91,6 +91,8 @@ export function AddBookingDialog({
   const [depositAmount, setDepositAmount] = useState<number>(0)
   const [includeVat, setIncludeVat] = useState(true)
   const [vatRate, setVatRate] = useState(8)
+  const [includeServiceFee, setIncludeServiceFee] = useState(true)
+  const [serviceFeeRate, setServiceFeeRate] = useState(5)
   
   // Fetch available rooms based on selected dates
   const { data: availableRooms, isLoading: isLoadingRooms } = useAvailableRooms(
@@ -113,8 +115,14 @@ export function AddBookingDialog({
     [subtotal, includeVat, vatRate]
   )
   
-  // Calculate estimated total (subtotal + VAT)
-  const estimatedTotal = useMemo(() => subtotal + vatAmount, [subtotal, vatAmount])
+  // Calculate Service Fee amount
+  const serviceFeeAmount = useMemo(() => 
+    includeServiceFee ? Math.round(subtotal * serviceFeeRate / 100) : 0,
+    [subtotal, includeServiceFee, serviceFeeRate]
+  )
+  
+  // Calculate estimated total (subtotal + VAT + Service Fee)
+  const estimatedTotal = useMemo(() => subtotal + vatAmount + serviceFeeAmount, [subtotal, vatAmount, serviceFeeAmount])
   
   // Remaining amount after deposit
   const remainingAmount = useMemo(() => 
@@ -141,6 +149,8 @@ export function AddBookingDialog({
       setDepositAmount(0)
       setIncludeVat(true)
       setVatRate(8)
+      setIncludeServiceFee(true)
+      setServiceFeeRate(5)
     }
   }, [open])
   
@@ -227,6 +237,8 @@ export function AddBookingDialog({
         subtotal: subtotal,
         vat_rate: includeVat ? vatRate : 0,
         vat_amount: vatAmount,
+        service_fee_rate: includeServiceFee ? serviceFeeRate : 0,
+        service_fee_amount: serviceFeeAmount,
         total_amount: estimatedTotal,
       }
       
@@ -653,13 +665,50 @@ export function AddBookingDialog({
                 </div>
               )}
               
+              {/* Service Fee Toggle & Input */}
+              <div className="flex items-center justify-between gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includeServiceFee}
+                    onChange={(e) => setIncludeServiceFee(e.target.checked)}
+                    className="h-4 w-4 rounded border-border"
+                  />
+                  <span className="text-sm">Phí dịch vụ</span>
+                </label>
+                {includeServiceFee && (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={serviceFeeRate > 0 ? serviceFeeRate.toString() : ''}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '')
+                        setServiceFeeRate(Math.min(100, parseInt(value) || 0))
+                      }}
+                      className="w-16 h-8 text-center"
+                      placeholder="5"
+                    />
+                    <Percent className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+              
+              {/* Service Fee Amount */}
+              {includeServiceFee && serviceFeeAmount > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Phí dịch vụ ({serviceFeeRate}%)</span>
+                  <span className="font-medium">{formatCurrency(serviceFeeAmount)}</span>
+                </div>
+              )}
+              
               {/* Estimated Total */}
               <div className="flex justify-between items-center py-2 border-t">
                 <span className="text-sm font-medium">TỔNG TIỀN DỰ KIẾN</span>
                 <span className="font-semibold text-lg text-primary">{formatCurrency(estimatedTotal)}</span>
               </div>
               <p className="text-xs text-muted-foreground -mt-2">
-                (chưa bao gồm phụ thu check-in sớm/trả phòng muộn, phí dịch vụ)
+                (chưa bao gồm phụ thu check-in sớm/trả phòng muộn)
               </p>
               
               {/* Deposit */}

@@ -58,12 +58,17 @@ export function useAvailableRooms(checkInDate?: Date, checkOutDate?: Date) {
       if (checkInDate && checkOutDate && rooms && rooms.length > 0) {
         const roomIds = rooms.map(r => r.id)
         
+        // Correct overlap logic: existing.check_in < new.check_out AND existing.check_out > new.check_in
+        const checkIn = checkInDate.toISOString().split('T')[0]
+        const checkOut = checkOutDate.toISOString().split('T')[0]
+        
         const { data: conflictingBookings, error: bookingsError } = await supabase
           .from('room_bookings')
           .select('room_id')
           .in('room_id', roomIds)
           .in('status', ['confirmed', 'checked_in'])
-          .or(`check_in_date.lte.${checkOutDate.toISOString().split('T')[0]},check_out_date.gte.${checkInDate.toISOString().split('T')[0]}`)
+          .lt('check_in_date', checkOut)  // existing check_in < new checkout
+          .gt('check_out_date', checkIn)  // existing check_out > new checkin
 
         if (bookingsError) {
           console.error('Error checking booking conflicts:', bookingsError)
