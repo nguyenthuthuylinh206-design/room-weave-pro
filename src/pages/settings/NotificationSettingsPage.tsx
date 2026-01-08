@@ -193,7 +193,7 @@ export function NotificationSettingsPage() {
                     onClick={() => navigate('/settings/notifications/devices')}
                   >
                     <Settings2 className="h-4 w-4 mr-2" />
-                    Quản lý thiết bị
+                    {t('settings:notifications.pushNotifications.manageDevices')}
                   </Button>
                 </div>
               </div>

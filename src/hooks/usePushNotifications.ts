@@ -4,8 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/hooks/useUser';
 import { toast } from 'sonner';
 
-// VAPID public key - must match the one in secrets
-const VAPID_PUBLIC_KEY = 'BCHjtRPTJBxNXVoRvSR5Nn51WS1Naju_zvSUB2Tm2CWRMoj8tC7_g61mvYQyj_AnndZczKFYTnfigjN6y6PSDIY';
+// VAPID public key - supports env variable for easy rotation
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BCHjtRPTJBxNXVoRvSR5Nn51WS1Naju_zvSUB2Tm2CWRMoj8tC7_g61mvYQyj_AnndZczKFYTnfigjN6y6PSDIY';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);

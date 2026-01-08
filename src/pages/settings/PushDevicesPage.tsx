@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/integrations/supabase/client'
@@ -89,6 +89,18 @@ export default function PushDevicesPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [deleteDevice, setDeleteDevice] = useState<PushDevice | null>(null)
+  const [currentEndpoint, setCurrentEndpoint] = useState<string | null>(null)
+
+  // Get current device's push subscription endpoint
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(reg => {
+        reg.pushManager.getSubscription().then(sub => {
+          setCurrentEndpoint(sub?.endpoint || null)
+        })
+      }).catch(console.error)
+    }
+  }, [])
 
   const { data: devices, isLoading, refetch } = useQuery({
     queryKey: ['push-devices', user?.id],
@@ -223,6 +235,7 @@ export default function PushDevicesPage() {
                       key={device.id}
                       device={device}
                       onDelete={() => setDeleteDevice(device)}
+                      isCurrentDevice={device.endpoint === currentEndpoint}
                     />
                   ))}
                 </div>
@@ -249,6 +262,7 @@ export default function PushDevicesPage() {
                       key={device.id}
                       device={device}
                       onDelete={() => setDeleteDevice(device)}
+                      isCurrentDevice={device.endpoint === currentEndpoint}
                     />
                   ))}
                 </div>
@@ -284,13 +298,13 @@ export default function PushDevicesPage() {
   )
 }
 
-function DeviceItem({ device, onDelete }: { device: PushDevice; onDelete: () => void }) {
+function DeviceItem({ device, onDelete, isCurrentDevice }: { device: PushDevice; onDelete: () => void; isCurrentDevice?: boolean }) {
   const deviceType = getDeviceType(device.user_agent)
   const browser = getBrowserName(device.user_agent)
   const displayName = device.device_name || `${deviceType}${browser ? ` (${browser})` : ''}`
 
   return (
-    <div className="flex items-center justify-between p-4 border rounded-lg bg-card">
+    <div className={`flex items-center justify-between p-4 border rounded-lg bg-card ${isCurrentDevice ? 'ring-2 ring-primary/50' : ''}`}>
       <div className="flex items-center gap-4">
         <div className={`p-2 rounded-full ${device.is_active ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground'}`}>
           {getDeviceIcon(device.user_agent)}
@@ -298,6 +312,9 @@ function DeviceItem({ device, onDelete }: { device: PushDevice; onDelete: () => 
         <div>
           <div className="flex items-center gap-2">
             <span className="font-medium">{displayName}</span>
+            {isCurrentDevice && (
+              <Badge variant="secondary" className="text-xs">Thiết bị này</Badge>
+            )}
             {!device.is_active && (
               <Badge variant="destructive" className="text-xs">Không hoạt động</Badge>
             )}

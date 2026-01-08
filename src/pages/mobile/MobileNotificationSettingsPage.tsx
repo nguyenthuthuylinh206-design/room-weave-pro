@@ -23,7 +23,8 @@ import {
   Shirt,
   Clock,
   Loader2,
-  Send
+  Send,
+  Settings2
 } from 'lucide-react'
 import { useNotificationPreferences } from '@/hooks/useNotificationPreferences'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
@@ -223,6 +224,15 @@ export default function MobileNotificationSettingsPage() {
                       Hủy đăng ký
                     </Button>
                   </div>
+                  <Separator />
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => navigate('/settings/notifications/devices')}
+                  >
+                    <Settings2 className="h-4 w-4 mr-2" />
+                    Quản lý thiết bị
+                  </Button>
                 </>
               )}
             </div>
