@@ -8,6 +8,7 @@ interface RoomPricingRule {
   hotel_id: string
   standard_checkin_time: string
   standard_checkout_time: string
+  early_checkin_before_5: number
   early_checkin_5_9: number
   early_checkin_9_14: number
   late_checkout_12_15: number
@@ -46,11 +47,14 @@ export function usePricingRules(hotelId?: string) {
     ? {
         standardCheckinTime: data.standard_checkin_time || DEFAULT_PRICING_RULES.standardCheckinTime,
         standardCheckoutTime: data.standard_checkout_time || DEFAULT_PRICING_RULES.standardCheckoutTime,
+        earlyCheckinBefore5: data.early_checkin_before_5 ?? DEFAULT_PRICING_RULES.earlyCheckinBefore5,
         earlyCheckin5_9: data.early_checkin_5_9 ?? DEFAULT_PRICING_RULES.earlyCheckin5_9,
         earlyCheckin9_14: data.early_checkin_9_14 ?? DEFAULT_PRICING_RULES.earlyCheckin9_14,
         lateCheckout12_15: data.late_checkout_12_15 ?? DEFAULT_PRICING_RULES.lateCheckout12_15,
         lateCheckout15_18: data.late_checkout_15_18 ?? DEFAULT_PRICING_RULES.lateCheckout15_18,
         lateCheckoutAfter18: data.late_checkout_after_18 ?? DEFAULT_PRICING_RULES.lateCheckoutAfter18,
+        weekendSurcharge: data.weekend_surcharge ?? DEFAULT_PRICING_RULES.weekendSurcharge,
+        highSeasonSurcharge: data.high_season_surcharge ?? DEFAULT_PRICING_RULES.highSeasonSurcharge,
         vatRate: data.default_vat_rate ?? DEFAULT_PRICING_RULES.vatRate,
         serviceFeeRate: data.default_service_fee_rate ?? DEFAULT_PRICING_RULES.serviceFeeRate,
       }

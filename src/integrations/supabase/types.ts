@@ -4135,6 +4135,7 @@ export type Database = {
           default_vat_rate: number | null
           early_checkin_5_9: number | null
           early_checkin_9_14: number | null
+          early_checkin_before_5: number | null
           high_season_surcharge: number | null
           hotel_id: string | null
           id: string
@@ -4153,6 +4154,7 @@ export type Database = {
           default_vat_rate?: number | null
           early_checkin_5_9?: number | null
           early_checkin_9_14?: number | null
+          early_checkin_before_5?: number | null
           high_season_surcharge?: number | null
           hotel_id?: string | null
           id?: string
@@ -4171,6 +4173,7 @@ export type Database = {
           default_vat_rate?: number | null
           early_checkin_5_9?: number | null
           early_checkin_9_14?: number | null
+          early_checkin_before_5?: number | null
           high_season_surcharge?: number | null
           hotel_id?: string | null
           id?: string

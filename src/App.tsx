@@ -98,6 +98,7 @@ import NotFound from "./pages/NotFound";
 import UsersPage from "./pages/users/UsersPage";
 import ProfilePage from "./pages/profile/ProfilePage";
 import IntegrationsPage from "./pages/settings/IntegrationsPage";
+import PricingRulesPage from "./pages/settings/PricingRulesPage";
 import { SuperAdminDashboard } from "./pages/admin/SuperAdminDashboard";
 import { TenantsPage } from "./pages/admin/TenantsPage";
 import { PromoCodesPage } from "./pages/admin/PromoCodesPage";
@@ -637,6 +638,14 @@ const router = createBrowserRouter([
           <RoleGuard allowedRoles={['super_admin', 'owner']}>
             <SystemTestPage />
           </RoleGuard>
+        )
+      },
+      {
+        path: "settings/pricing-rules",
+        element: (
+          <PermissionRoute module="settings">
+            <PricingRulesPage />
+          </PermissionRoute>
         )
       },
 

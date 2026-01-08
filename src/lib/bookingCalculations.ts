@@ -9,6 +9,7 @@ export interface PricingRules {
   standardCheckoutTime: string // "12:00"
   
   // Early check-in surcharge (% of room price)
+  earlyCheckinBefore5: number // 100% (counts as extra night)
   earlyCheckin5_9: number // 50%
   earlyCheckin9_14: number // 30%
   
@@ -16,6 +17,10 @@ export interface PricingRules {
   lateCheckout12_15: number // 30%
   lateCheckout15_18: number // 50%
   lateCheckoutAfter18: number // 100%
+  
+  // Special surcharges
+  weekendSurcharge: number // % for weekend nights
+  highSeasonSurcharge: number // % for high season
   
   // Tax and fees
   vatRate: number // 8%
@@ -25,11 +30,14 @@ export interface PricingRules {
 export const DEFAULT_PRICING_RULES: PricingRules = {
   standardCheckinTime: '14:00',
   standardCheckoutTime: '12:00',
+  earlyCheckinBefore5: 100,
   earlyCheckin5_9: 50,
   earlyCheckin9_14: 30,
   lateCheckout12_15: 30,
   lateCheckout15_18: 50,
   lateCheckoutAfter18: 100,
+  weekendSurcharge: 0,
+  highSeasonSurcharge: 0,
   vatRate: 8,
   serviceFeeRate: 5,
 }
@@ -94,6 +102,11 @@ export function calculateEarlyCheckinCharge(
     return 0
   }
   
+  // Check-in before 5h: 100% surcharge (counts as extra night)
+  if (hours < 5) {
+    return Math.round(roomPrice * rules.earlyCheckinBefore5 / 100)
+  }
+  
   // Check-in from 5h-9h: 50% surcharge
   if (hours >= 5 && hours < 9) {
     return Math.round(roomPrice * rules.earlyCheckin5_9 / 100)
@@ -105,6 +118,32 @@ export function calculateEarlyCheckinCharge(
   }
   
   return 0
+}
+
+/**
+ * Calculate weekend surcharge based on nights falling on Saturday/Sunday
+ */
+export function calculateWeekendSurcharge(
+  checkInDate: Date,
+  checkOutDate: Date,
+  roomPrice: number,
+  rules: PricingRules = DEFAULT_PRICING_RULES
+): number {
+  if (rules.weekendSurcharge <= 0) return 0
+  
+  let weekendNights = 0
+  const currentDate = new Date(checkInDate)
+  
+  while (currentDate < checkOutDate) {
+    const dayOfWeek = currentDate.getDay()
+    // Saturday = 6, Sunday = 0
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      weekendNights++
+    }
+    currentDate.setDate(currentDate.getDate() + 1)
+  }
+  
+  return Math.round(weekendNights * roomPrice * rules.weekendSurcharge / 100)
 }
 
 /**
@@ -227,6 +266,10 @@ export function getEarlyCheckinDescription(timeStr: string, rules: PricingRules 
   const standardHours = parseTimeToHours(rules.standardCheckinTime)
   
   if (hours >= standardHours) return null
+  
+  if (hours < 5) {
+    return `Check-in sớm (${timeStr} - ${rules.earlyCheckinBefore5}% = 1 đêm)`
+  }
   
   if (hours >= 5 && hours < 9) {
     return `Check-in sớm (${timeStr} - ${rules.earlyCheckin5_9}%)`
