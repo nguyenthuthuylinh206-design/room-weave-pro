@@ -109,7 +109,28 @@
       "enabled": "Đã bật",
       "preview": "Preview",
       "turnOff": "Tắt",
-      "turnOn": "Bật ngay"
+      "turnOn": "Bật ngay",
+      "manageDevices": "Quản lý thiết bị"
+    },
+    "devices": {
+      "title": "Quản lý thiết bị Push",
+      "description": "Xem và quản lý các thiết bị đã đăng ký nhận thông báo đẩy",
+      "active": "Thiết bị đang hoạt động",
+      "activeDesc": "Các thiết bị đang nhận thông báo đẩy",
+      "inactive": "Thiết bị không hoạt động",
+      "inactiveDesc": "Các thiết bị đã ngừng nhận thông báo hoặc gặp lỗi",
+      "noDevices": "Chưa có thiết bị nào",
+      "noDevicesDesc": "Bạn chưa đăng ký thiết bị nào để nhận thông báo đẩy",
+      "register": "Đăng ký thiết bị",
+      "deleteAll": "Xóa thiết bị không hoạt động",
+      "deleteConfirm": "Xóa thiết bị?",
+      "deleteConfirmDesc": "Thiết bị này sẽ không còn nhận được thông báo đẩy. Bạn có thể đăng ký lại thiết bị này sau.",
+      "currentDevice": "Thiết bị này",
+      "notActive": "Không hoạt động",
+      "errorCount": "Lỗi",
+      "registeredAt": "Đăng ký",
+      "lastUsed": "Dùng lần cuối",
+      "refresh": "Làm mới"
     },
     "emailNotifications": {
       "title": "Thông báo Email",

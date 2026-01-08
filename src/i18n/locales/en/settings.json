@@ -109,7 +109,28 @@
       "enabled": "Enabled",
       "preview": "Preview",
       "turnOff": "Turn Off",
-      "turnOn": "Turn On"
+      "turnOn": "Turn On",
+      "manageDevices": "Manage Devices"
+    },
+    "devices": {
+      "title": "Manage Push Devices",
+      "description": "View and manage devices registered for push notifications",
+      "active": "Active Devices",
+      "activeDesc": "Devices currently receiving push notifications",
+      "inactive": "Inactive Devices",
+      "inactiveDesc": "Devices that have stopped receiving notifications or encountered errors",
+      "noDevices": "No devices found",
+      "noDevicesDesc": "You have not registered any devices for push notifications",
+      "register": "Register Device",
+      "deleteAll": "Delete Inactive Devices",
+      "deleteConfirm": "Delete device?",
+      "deleteConfirmDesc": "This device will no longer receive push notifications. You can re-register this device later.",
+      "currentDevice": "This device",
+      "notActive": "Not active",
+      "errorCount": "Errors",
+      "registeredAt": "Registered",
+      "lastUsed": "Last used",
+      "refresh": "Refresh"
     },
     "emailNotifications": {
       "title": "Email Notifications",
