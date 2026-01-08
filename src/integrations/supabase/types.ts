@@ -3775,6 +3775,7 @@ export type Database = {
           actual_check_in: string | null
           actual_check_out: string | null
           amount_paid: number | null
+          booking_group_id: string | null
           booking_reference: string | null
           booking_source: string | null
           check_in_date: string
@@ -3813,6 +3814,7 @@ export type Database = {
           actual_check_in?: string | null
           actual_check_out?: string | null
           amount_paid?: number | null
+          booking_group_id?: string | null
           booking_reference?: string | null
           booking_source?: string | null
           check_in_date: string
@@ -3851,6 +3853,7 @@ export type Database = {
           actual_check_in?: string | null
           actual_check_out?: string | null
           amount_paid?: number | null
+          booking_group_id?: string | null
           booking_reference?: string | null
           booking_source?: string | null
           check_in_date?: string
