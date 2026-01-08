@@ -377,31 +377,19 @@ export function RoomBookingDialog({
     setShowCheckoutSummary(false)
     
     try {
-      const now = new Date()
+      // Use RPC for atomic checkout operation with auto payment_status calculation
+      const { data, error } = await supabase.rpc('perform_checkout', {
+        p_booking_id: booking.id,
+        p_room_id: roomId,
+        p_late_checkout_charge: lateCheckoutCharge,
+        p_service_charges: serviceCharges,
+        p_subtotal: costBreakdown.subtotal,
+        p_vat_amount: costBreakdown.vatAmount,
+        p_service_fee_amount: costBreakdown.serviceFeeAmount,
+        p_total_amount: costBreakdown.totalAmount,
+      })
       
-      // Update booking with final calculations
-      const { error: bookingError } = await supabase
-        .from('room_bookings')
-        .update({
-          status: 'checked_out',
-          actual_check_out: now.toISOString(),
-          late_checkout_charge: lateCheckoutCharge,
-          subtotal: costBreakdown.subtotal,
-          vat_amount: costBreakdown.vatAmount,
-          service_fee_amount: costBreakdown.serviceFeeAmount,
-          total_amount: costBreakdown.totalAmount,
-        })
-        .eq('id', booking.id)
-        
-      if (bookingError) throw bookingError
-
-      // Update room status to 'check_out' (needs inspection/cleaning)
-      const { error: roomError } = await supabase
-        .from('rooms')
-        .update({ status: 'check_out' })
-        .eq('id', roomId)
-        
-      if (roomError) throw roomError
+      if (error) throw error
       
       // Send checkout notification to staff
       if (tenantId && hotelId) {
@@ -475,33 +463,29 @@ export function RoomBookingDialog({
     setShowCheckoutSummary(false)
     
     try {
-      const now = new Date()
       const newAmountPaid = costBreakdown.totalAmount - depositAmount
       
-      // Update booking with payment and checkout
-      const { error: bookingError } = await supabase
+      // First update amount_paid
+      const { error: paymentError } = await supabase
         .from('room_bookings')
-        .update({
-          status: 'checked_out',
-          actual_check_out: now.toISOString(),
-          amount_paid: newAmountPaid,
-          late_checkout_charge: lateCheckoutCharge,
-          subtotal: costBreakdown.subtotal,
-          vat_amount: costBreakdown.vatAmount,
-          service_fee_amount: costBreakdown.serviceFeeAmount,
-          total_amount: costBreakdown.totalAmount,
-        })
+        .update({ amount_paid: newAmountPaid })
         .eq('id', booking.id)
         
-      if (bookingError) throw bookingError
-
-      // Update room status
-      const { error: roomError } = await supabase
-        .from('rooms')
-        .update({ status: 'check_out' })
-        .eq('id', roomId)
-        
-      if (roomError) throw roomError
+      if (paymentError) throw paymentError
+      
+      // Then use RPC for atomic checkout with auto payment_status calculation
+      const { data, error } = await supabase.rpc('perform_checkout', {
+        p_booking_id: booking.id,
+        p_room_id: roomId,
+        p_late_checkout_charge: lateCheckoutCharge,
+        p_service_charges: serviceCharges,
+        p_subtotal: costBreakdown.subtotal,
+        p_vat_amount: costBreakdown.vatAmount,
+        p_service_fee_amount: costBreakdown.serviceFeeAmount,
+        p_total_amount: costBreakdown.totalAmount,
+      })
+      
+      if (error) throw error
       
       // Send checkout notification to staff
       if (tenantId && hotelId) {
