@@ -311,22 +311,22 @@ export function AddBookingDialog({
           ? Math.round(roomTotal * otaCommissionRate / 100)
           : 0
         const roomNetRevenue = roomTotal - roomOtaCommission
-        const roomOtaPaidAmount = isOtaSource && otaPaymentType !== 'pay_at_hotel'
-          ? Math.round(otaPaidAmount / selectedRooms.length)
-          : 0
         
-        // Determine payment status based on OTA payment type
+        // Determine payment status and amounts based on payment type
         let finalPaymentStatus = 'pending'
         let finalAmountPaid = roomDeposit
         let finalDepositAmount = roomDeposit
+        let roomOtaPaidAmount = 0
         
         if (isOtaSource && otaPaymentType === 'prepaid') {
-          // OTA collected full payment
+          // OTA collected full payment - auto-set to room total
+          roomOtaPaidAmount = roomTotal
           finalPaymentStatus = 'paid'
           finalAmountPaid = roomTotal
           finalDepositAmount = roomTotal
-        } else if (isOtaSource && otaPaymentType === 'partial_prepaid' && roomOtaPaidAmount > 0) {
-          // OTA collected partial payment
+        } else if (isOtaSource && otaPaymentType === 'partial_prepaid' && otaPaidAmount > 0) {
+          // OTA collected partial payment - distribute across rooms
+          roomOtaPaidAmount = Math.round(otaPaidAmount / selectedRooms.length)
           finalDepositAmount = roomOtaPaidAmount
           finalAmountPaid = roomOtaPaidAmount
           finalPaymentStatus = roomOtaPaidAmount >= roomTotal ? 'paid' : 'partial'
@@ -747,96 +747,6 @@ export function AddBookingDialog({
                 </div>
               </div>
               
-              {/* OTA Payment Section - shown when OTA source selected */}
-              {isOtaSource && (
-                <div className="p-3 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20 space-y-3">
-                  <h4 className="text-sm font-medium flex items-center gap-2 text-blue-700 dark:text-blue-400">
-                    <Globe className="h-4 w-4" />
-                    Thanh toán OTA
-                  </h4>
-                  
-                  {/* OTA Payment Type */}
-                  <div className="space-y-2">
-                    <Label className="text-xs">Hình thức thanh toán</Label>
-                    <Select value={otaPaymentType} onValueChange={setOtaPaymentType}>
-                      <SelectTrigger className="h-8">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {OTA_PAYMENT_TYPES.map(type => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  {/* OTA Paid Amount - shown for prepaid or partial */}
-                  {otaPaymentType !== 'pay_at_hotel' && (
-                    <div className="space-y-2">
-                      <Label className="text-xs">Số tiền OTA đã thu</Label>
-                      <Input
-                        type="text"
-                        inputMode="numeric"
-                        value={otaPaidAmount > 0 ? otaPaidAmount.toString() : ''}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/[^0-9]/g, '')
-                          setOtaPaidAmount(parseInt(value) || 0)
-                        }}
-                        placeholder={otaPaymentType === 'prepaid' ? String(estimatedTotal) : '0'}
-                        className="h-8"
-                      />
-                      {otaPaymentType === 'prepaid' && otaPaidAmount === 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          Để trống = OTA thu toàn bộ ({formatCurrency(estimatedTotal)})
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* OTA Commission */}
-                  <div className="flex items-center justify-between gap-3">
-                    <Label className="text-xs">Hoa hồng OTA</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="text"
-                        inputMode="numeric"
-                        value={otaCommissionRate > 0 ? otaCommissionRate.toString() : ''}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/[^0-9]/g, '')
-                          setOtaCommissionRate(Math.min(100, parseInt(value) || 0))
-                        }}
-                        className="w-16 h-8 text-center"
-                        placeholder="15"
-                      />
-                      <Percent className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </div>
-                  
-                  {/* OTA Summary */}
-                  {otaCommissionAmount > 0 && (
-                    <div className="pt-2 border-t border-blue-200 dark:border-blue-800 space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Tiền hoa hồng:</span>
-                        <span className="text-red-600">-{formatCurrency(otaCommissionAmount)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm font-medium">
-                        <span>Doanh thu thực:</span>
-                        <span className="text-green-600">{formatCurrency(netRevenue)}</span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Partial prepaid info */}
-                  {otaPaymentType === 'partial_prepaid' && otaPaidAmount > 0 && (
-                    <div className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/30 p-2 rounded">
-                      Khách còn phải trả tại KS: {formatCurrency(Math.max(0, estimatedTotal - otaPaidAmount))}
-                    </div>
-                  )}
-                </div>
-              )}
-              
               {/* Booking Reference & Notes */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
@@ -861,11 +771,13 @@ export function AddBookingDialog({
             </div>
           </div>
           
-          {/* Step 4: Pricing & Deposit */}
+          {/* Step 4: Pricing & Payment */}
           <div className="space-y-3">
             <h3 className="font-medium flex items-center gap-2">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm">4</span>
-              Báo giá & Đặt cọc
+              {isOtaSource && otaPaymentType === 'prepaid' 
+                ? 'Báo giá (OTA đã thu toàn bộ)' 
+                : 'Báo giá & Thanh toán'}
             </h3>
             
             <div className="grid gap-3 p-4 border rounded-lg bg-muted/30">
@@ -972,39 +884,134 @@ export function AddBookingDialog({
                 (chưa bao gồm phụ thu check-in sớm/trả phòng muộn)
               </p>
               
-              {/* Deposit */}
-              <div className="grid grid-cols-2 gap-3 pt-2 border-t">
-                <div className="space-y-2">
-                  <Label htmlFor="depositAmount" className="flex items-center gap-2">
-                    Đặt cọc trước
-                  </Label>
-                  <Input
-                    id="depositAmount"
-                    type="text"
-                    inputMode="numeric"
-                    value={depositAmount > 0 ? depositAmount.toString() : ''}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9]/g, '')
-                      setDepositAmount(parseInt(value) || 0)
-                    }}
-                    placeholder="0"
-                  />
-                  {depositAmount > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      = {formatCurrency(depositAmount)}
-                    </span>
+              {/* OTA Payment Section - when OTA source selected */}
+              {isOtaSource && (
+                <div className="pt-3 border-t space-y-3">
+                  <h4 className="text-sm font-medium flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                    <Globe className="h-4 w-4" />
+                    Thanh toán OTA
+                  </h4>
+                  
+                  {/* OTA Payment Type */}
+                  <div className="space-y-2">
+                    <Label className="text-xs">Hình thức thanh toán</Label>
+                    <Select value={otaPaymentType} onValueChange={setOtaPaymentType}>
+                      <SelectTrigger className="h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {OTA_PAYMENT_TYPES.map(type => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* OTA Paid Amount - only for partial_prepaid */}
+                  {otaPaymentType === 'partial_prepaid' && (
+                    <div className="space-y-2">
+                      <Label className="text-xs">Số tiền OTA đã thu</Label>
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        value={otaPaidAmount > 0 ? otaPaidAmount.toString() : ''}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, '')
+                          setOtaPaidAmount(parseInt(value) || 0)
+                        }}
+                        placeholder="0"
+                        className="h-8"
+                      />
+                    </div>
+                  )}
+                  
+                  {/* OTA Prepaid confirmation */}
+                  {otaPaymentType === 'prepaid' && (
+                    <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 rounded text-green-700 dark:text-green-400 text-sm">
+                      <CheckCircle2 className="h-4 w-4" />
+                      OTA đã thu: {formatCurrency(estimatedTotal)}
+                    </div>
+                  )}
+                  
+                  {/* OTA Commission */}
+                  <div className="flex items-center justify-between gap-3">
+                    <Label className="text-xs">Hoa hồng OTA</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        value={otaCommissionRate > 0 ? otaCommissionRate.toString() : ''}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, '')
+                          setOtaCommissionRate(Math.min(100, parseInt(value) || 0))
+                        }}
+                        className="w-16 h-8 text-center"
+                        placeholder="15"
+                      />
+                      <Percent className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                  
+                  {/* OTA Summary */}
+                  {otaCommissionAmount > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Tiền hoa hồng:</span>
+                        <span className="text-red-600">-{formatCurrency(otaCommissionAmount)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm font-medium">
+                        <span>Doanh thu thực:</span>
+                        <span className="text-green-600">{formatCurrency(netRevenue)}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Partial prepaid remaining */}
+                  {otaPaymentType === 'partial_prepaid' && otaPaidAmount > 0 && (
+                    <div className="text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/30 p-2 rounded font-medium">
+                      ⚠ Khách còn phải trả tại KS: {formatCurrency(Math.max(0, estimatedTotal - otaPaidAmount))}
+                    </div>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground">Còn lại (khi checkout)</Label>
-                  <div className={cn(
-                    "h-9 flex items-center px-3 border rounded-md font-medium",
-                    remainingAmount === 0 ? "bg-green-50 text-green-600 border-green-200" : "bg-muted"
-                  )}>
-                    {formatCurrency(remainingAmount)}
+              )}
+              
+              {/* Deposit - only show for non-OTA or OTA pay_at_hotel */}
+              {(!isOtaSource || otaPaymentType === 'pay_at_hotel') && (
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+                  <div className="space-y-2">
+                    <Label htmlFor="depositAmount" className="flex items-center gap-2">
+                      Đặt cọc trước
+                    </Label>
+                    <Input
+                      id="depositAmount"
+                      type="text"
+                      inputMode="numeric"
+                      value={depositAmount > 0 ? depositAmount.toString() : ''}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '')
+                        setDepositAmount(parseInt(value) || 0)
+                      }}
+                      placeholder="0"
+                    />
+                    {depositAmount > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        = {formatCurrency(depositAmount)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Còn lại (khi checkout)</Label>
+                    <div className={cn(
+                      "h-9 flex items-center px-3 border rounded-md font-medium",
+                      remainingAmount === 0 ? "bg-green-50 text-green-600 border-green-200" : "bg-muted"
+                    )}>
+                      {formatCurrency(remainingAmount)}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
           
