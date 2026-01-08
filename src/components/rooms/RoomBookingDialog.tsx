@@ -431,6 +431,8 @@ export function RoomBookingDialog({
         .from('room_bookings')
         .update({
           amount_paid: newAmountPaid,
+          payment_status: 'paid',
+          paid_at: new Date().toISOString(),
           subtotal: costBreakdown.subtotal,
           vat_amount: costBreakdown.vatAmount,
           service_fee_amount: costBreakdown.serviceFeeAmount,
@@ -465,15 +467,19 @@ export function RoomBookingDialog({
     try {
       const newAmountPaid = costBreakdown.totalAmount - depositAmount
       
-      // First update amount_paid
+      // Update payment first with status and paid_at
       const { error: paymentError } = await supabase
         .from('room_bookings')
-        .update({ amount_paid: newAmountPaid })
+        .update({ 
+          amount_paid: newAmountPaid,
+          payment_status: 'paid',
+          paid_at: new Date().toISOString(),
+        })
         .eq('id', booking.id)
         
       if (paymentError) throw paymentError
       
-      // Then use RPC for atomic checkout with auto payment_status calculation
+      // Then use RPC for atomic checkout
       const { data, error } = await supabase.rpc('perform_checkout', {
         p_booking_id: booking.id,
         p_room_id: roomId,
@@ -725,25 +731,33 @@ export function RoomBookingDialog({
                   <Label htmlFor="roomPrice" className="text-xs text-muted-foreground">Giá phòng/đêm</Label>
                   <Input
                     id="roomPrice"
-                    type="number"
-                    min={0}
+                    type="text"
+                    inputMode="numeric"
                     className="h-8"
-                    value={roomPrice}
-                    onChange={(e) => setRoomPrice(parseInt(e.target.value) || 0)}
+                    value={roomPrice > 0 ? roomPrice.toString() : ''}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, '')
+                      setRoomPrice(parseInt(value) || 0)
+                    }}
                     placeholder="0"
                   />
+                  {roomPrice > 0 && <span className="text-xs text-muted-foreground">{formatCurrency(roomPrice)}</span>}
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="depositAmount" className="text-xs text-muted-foreground">Tiền đặt cọc</Label>
                   <Input
                     id="depositAmount"
-                    type="number"
-                    min={0}
+                    type="text"
+                    inputMode="numeric"
                     className="h-8"
-                    value={depositAmount}
-                    onChange={(e) => setDepositAmount(parseInt(e.target.value) || 0)}
+                    value={depositAmount > 0 ? depositAmount.toString() : ''}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, '')
+                      setDepositAmount(parseInt(value) || 0)
+                    }}
                     placeholder="0"
                   />
+                  {depositAmount > 0 && <span className="text-xs text-muted-foreground">{formatCurrency(depositAmount)}</span>}
                 </div>
               </div>
               
@@ -783,11 +797,14 @@ export function RoomBookingDialog({
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">+ Chi phí khác</span>
                       <Input
-                        type="number"
-                        min={0}
+                        type="text"
+                        inputMode="numeric"
                         className="h-7 w-28 text-right"
-                        value={extraCharges}
-                        onChange={(e) => setExtraCharges(parseInt(e.target.value) || 0)}
+                        value={extraCharges > 0 ? extraCharges.toString() : ''}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, '')
+                          setExtraCharges(parseInt(value) || 0)
+                        }}
                         placeholder="0"
                       />
                     </div>
@@ -838,11 +855,14 @@ export function RoomBookingDialog({
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Đã thanh toán</span>
                   <Input
-                    type="number"
-                    min={0}
+                    type="text"
+                    inputMode="numeric"
                     className="h-7 w-28 text-right"
-                    value={amountPaid}
-                    onChange={(e) => setAmountPaid(parseInt(e.target.value) || 0)}
+                    value={amountPaid > 0 ? amountPaid.toString() : ''}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, '')
+                      setAmountPaid(parseInt(value) || 0)
+                    }}
                     placeholder="0"
                   />
                 </div>

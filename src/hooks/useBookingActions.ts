@@ -200,6 +200,7 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
         .from('room_bookings')
         .update({
           amount_paid: amountToPay,
+          payment_status: 'paid',
           paid_at: new Date().toISOString(),
         })
         .eq('id', bookingId)
