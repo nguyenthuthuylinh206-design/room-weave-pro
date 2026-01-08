@@ -47,6 +47,10 @@ import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
 import { cn, formatCurrency } from '@/lib/utils'
 import { useAvailableRooms, AvailableRoom } from '@/hooks/useAvailableRooms'
+
+interface SelectedRoomWithPrice extends AvailableRoom {
+  customPrice: number
+}
 import { useTenant } from '@/hooks/useTenant'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { BOOKING_SOURCES, TIME_OPTIONS } from '@/lib/constants'
@@ -69,7 +73,7 @@ export function AddBookingDialog({
   const { isAllHotelsMode } = useHotelContext()
   
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [selectedRooms, setSelectedRooms] = useState<AvailableRoom[]>([])
+  const [selectedRooms, setSelectedRooms] = useState<SelectedRoomWithPrice[]>([])
   
   // Form state - Step 1: Dates & Times
   const [checkInDate, setCheckInDate] = useState<Date | undefined>(new Date())
@@ -86,8 +90,7 @@ export function AddBookingDialog({
   const [bookingReference, setBookingReference] = useState('')
   const [notes, setNotes] = useState('')
   
-  // Form state - Step 4: Pricing
-  const [roomPrice, setRoomPrice] = useState<number>(0)
+  // Form state - Step 4: Pricing (roomPrice state removed - now per-room)
   const [depositAmount, setDepositAmount] = useState<number>(0)
   const [includeVat, setIncludeVat] = useState(true)
   const [vatRate, setVatRate] = useState(8)
@@ -106,10 +109,10 @@ export function AddBookingDialog({
     return Math.max(1, differenceInDays(checkOutDate, checkInDate))
   }, [checkInDate, checkOutDate])
   
-  // Calculate total room price for all selected rooms
+  // Calculate total room price for all selected rooms (using customPrice)
   const totalRoomPrice = useMemo(() => 
-    selectedRooms.reduce((sum, room) => sum + (room.base_price || roomPrice), 0),
-    [selectedRooms, roomPrice]
+    selectedRooms.reduce((sum, room) => sum + (room.customPrice || 0), 0),
+    [selectedRooms]
   )
   
   // Calculate subtotal (total room price x nights)
@@ -151,7 +154,6 @@ export function AddBookingDialog({
       setBookingSource('walk_in')
       setBookingReference('')
       setNotes('')
-      setRoomPrice(0)
       setDepositAmount(0)
       setIncludeVat(true)
       setVatRate(8)
@@ -160,31 +162,37 @@ export function AddBookingDialog({
     }
   }, [open])
   
-  // Clear room selection and pricing when dates change
+  // Clear room selection when dates change
   useEffect(() => {
     setSelectedRooms([])
-    setRoomPrice(0)
     setDepositAmount(0)
   }, [checkInDate, checkOutDate])
   
-  // Auto-fill room price when single room is selected
-  useEffect(() => {
-    if (selectedRooms.length === 1 && selectedRooms[0]?.base_price) {
-      setRoomPrice(selectedRooms[0].base_price)
-    }
-  }, [selectedRooms])
-  
-  // Toggle room selection
+  // Toggle room selection with customPrice
   const toggleRoomSelection = (room: AvailableRoom) => {
     setSelectedRooms(prev => {
       const exists = prev.find(r => r.id === room.id)
       if (exists) {
         return prev.filter(r => r.id !== room.id)
       } else {
-        return [...prev, room]
+        // Add room with customPrice initialized from base_price
+        return [...prev, { 
+          ...room, 
+          customPrice: room.base_price || 0 
+        }]
       }
     })
   }
+  
+  // Update price for a specific room
+  const updateRoomPrice = (roomId: string, newPrice: number) => {
+    setSelectedRooms(prev => prev.map(room => 
+      room.id === roomId 
+        ? { ...room, customPrice: newPrice }
+        : room
+    ))
+  }
+  
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -221,12 +229,12 @@ export function AddBookingDialog({
       return
     }
     
-    // Validate room prices
-    const hasInvalidPrice = selectedRooms.some(room => (room.base_price || 0) <= 0) && roomPrice <= 0
+    // Validate room prices - each room must have a valid price
+    const hasInvalidPrice = selectedRooms.some(room => (room.customPrice || 0) <= 0)
     if (hasInvalidPrice) {
       toast({
         variant: 'destructive',
-        title: 'Vui lòng nhập giá phòng',
+        title: 'Vui lòng nhập giá cho tất cả các phòng',
       })
       return
     }
@@ -246,19 +254,15 @@ export function AddBookingDialog({
       
       // Create booking data for each room
       const bookingsData = selectedRooms.map((room, index) => {
-        const roomPriceValue = room.base_price || roomPrice
+        const roomPriceValue = room.customPrice
         const isLastRoom = index === selectedRooms.length - 1
         
         // For last room, use remaining amount to avoid rounding errors
         const roomDeposit = isLastRoom 
           ? depositAmount - (depositPerRoom * (selectedRooms.length - 1))
           : depositPerRoom
-        const roomVat = isLastRoom
-          ? vatAmount - (vatPerRoom * (selectedRooms.length - 1))
-          : vatPerRoom
-        const roomServiceFee = isLastRoom
-          ? serviceFeeAmount - (serviceFeePerRoom * (selectedRooms.length - 1))
-          : serviceFeePerRoom
+        const roomVat = includeVat ? Math.round(roomPriceValue * nights * vatRate / 100) : 0
+        const roomServiceFee = includeServiceFee ? Math.round(roomPriceValue * nights * serviceFeeRate / 100) : 0
         const roomSubtotal = roomPriceValue * nights
         const roomTotal = roomSubtotal + roomVat + roomServiceFee
         
@@ -521,29 +525,60 @@ export function AddBookingDialog({
             )}
             
             {selectedRooms.length > 0 && (
-              <div className="p-3 bg-primary/5 rounded-lg space-y-2">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span className="text-sm font-medium">
-                    Đã chọn {selectedRooms.length} phòng:
-                  </span>
+              <div className="p-3 bg-primary/5 rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
+                    <span className="text-sm font-medium">
+                      Đã chọn {selectedRooms.length} phòng - Nhập giá mỗi phòng:
+                    </span>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                
+                {/* Per-room price inputs */}
+                <div className="space-y-2">
                   {selectedRooms.map(room => (
-                    <Badge 
-                      key={room.id} 
-                      variant="secondary" 
-                      className="cursor-pointer hover:bg-destructive/10"
-                      onClick={() => toggleRoomSelection(room)}
-                    >
-                      {room.room_number} - {getRoomTypeLabel(room.room_type)}
-                      {room.base_price ? ` (${formatCurrency(room.base_price)})` : ''}
-                      <X className="h-3 w-3 ml-1" />
-                    </Badge>
+                    <div key={room.id} className="flex items-center gap-2 p-2 bg-background rounded border">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="font-medium text-sm">{room.room_number}</span>
+                          <span className="text-xs text-muted-foreground">
+                            T{room.floor} • {getRoomTypeLabel(room.room_type)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          value={room.customPrice > 0 ? room.customPrice.toString() : ''}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^0-9]/g, '')
+                            updateRoomPrice(room.id, parseInt(value) || 0)
+                          }}
+                          placeholder="Giá/đêm"
+                          className="w-28 h-8 text-right"
+                        />
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">đ/đêm</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => toggleRoomSelection(room)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
                   ))}
                 </div>
-                <div className="text-sm text-primary font-medium pt-1 border-t">
-                  Tổng giá phòng/đêm: {formatCurrency(totalRoomPrice)}
+                
+                {/* Room total summary */}
+                <div className="flex justify-between items-center pt-2 border-t text-sm">
+                  <span className="text-muted-foreground">Tổng giá phòng/đêm:</span>
+                  <span className="font-medium text-primary">{formatCurrency(totalRoomPrice)}</span>
                 </div>
               </div>
             )}
@@ -669,43 +704,25 @@ export function AddBookingDialog({
             </h3>
             
             <div className="grid gap-3 p-4 border rounded-lg bg-muted/30">
-              {/* Room Price */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="roomPrice" className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4" />
-                    Giá phòng/đêm *
-                  </Label>
-                  <Input
-                    id="roomPrice"
-                    type="text"
-                    inputMode="numeric"
-                    value={roomPrice > 0 ? roomPrice.toString() : ''}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9]/g, '')
-                      setRoomPrice(parseInt(value) || 0)
-                    }}
-                    placeholder="500000"
-                  />
-                  {roomPrice > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      = {formatCurrency(roomPrice)}
+              {/* Room Price Summary (prices are set in Step 2) */}
+              {selectedRooms.length > 0 ? (
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground flex items-center gap-2">
+                      <CreditCard className="h-4 w-4" />
+                      Giá phòng × {nights} đêm:
                     </span>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground">Số đêm</Label>
-                  <div className="h-9 flex items-center px-3 border rounded-md bg-muted">
-                    {nights} đêm
+                    <span className="font-medium">{formatCurrency(subtotal)}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {selectedRooms.map(r => `${r.room_number}: ${formatCurrency(r.customPrice)}`).join(' • ')}
                   </div>
                 </div>
-              </div>
-              
-              {/* Subtotal */}
-              <div className="flex justify-between items-center py-2 border-t">
-                <span className="text-sm text-muted-foreground">Tiền phòng ({nights} đêm)</span>
-                <span className="font-medium">{formatCurrency(subtotal)}</span>
-              </div>
+              ) : (
+                <div className="text-sm text-muted-foreground text-center py-2">
+                  Vui lòng chọn phòng ở bước 2
+                </div>
+              )}
               
               {/* VAT Toggle & Input */}
               <div className="flex items-center justify-between gap-3">
