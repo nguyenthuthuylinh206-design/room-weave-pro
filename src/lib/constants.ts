@@ -103,6 +103,24 @@ export const BOOKING_SOURCES = [
   { value: 'other', label: 'Khác' },
 ]
 
+// OTA sources that require payment handling
+export const OTA_SOURCES = ['booking_com', 'agoda', 'traveloka', 'expedia']
+
+// Default OTA commission rates (%)
+export const OTA_DEFAULT_COMMISSION: Record<string, number> = {
+  booking_com: 15,
+  agoda: 18,
+  traveloka: 12,
+  expedia: 15,
+}
+
+// OTA payment types
+export const OTA_PAYMENT_TYPES = [
+  { value: 'prepaid', label: 'OTA thu toàn bộ (Prepaid)' },
+  { value: 'pay_at_hotel', label: 'Khách trả tại KS' },
+  { value: 'partial_prepaid', label: 'OTA thu một phần' },
+]
+
 // Check-in/out time options
 export const TIME_OPTIONS = [
   '05:00', '06:00', '07:00', '08:00', '09:00', '10:00',

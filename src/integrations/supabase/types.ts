@@ -3794,7 +3794,12 @@ export type Database = {
           hotel_id: string
           id: string
           late_checkout_charge: number | null
+          net_revenue: number | null
           notes: string | null
+          ota_commission_amount: number | null
+          ota_commission_rate: number | null
+          ota_paid_amount: number | null
+          ota_payment_type: string | null
           paid_at: string | null
           payment_status: string | null
           room_id: string
@@ -3833,7 +3838,12 @@ export type Database = {
           hotel_id: string
           id?: string
           late_checkout_charge?: number | null
+          net_revenue?: number | null
           notes?: string | null
+          ota_commission_amount?: number | null
+          ota_commission_rate?: number | null
+          ota_paid_amount?: number | null
+          ota_payment_type?: string | null
           paid_at?: string | null
           payment_status?: string | null
           room_id: string
@@ -3872,7 +3882,12 @@ export type Database = {
           hotel_id?: string
           id?: string
           late_checkout_charge?: number | null
+          net_revenue?: number | null
           notes?: string | null
+          ota_commission_amount?: number | null
+          ota_commission_rate?: number | null
+          ota_paid_amount?: number | null
+          ota_payment_type?: string | null
           paid_at?: string | null
           payment_status?: string | null
           room_id?: string

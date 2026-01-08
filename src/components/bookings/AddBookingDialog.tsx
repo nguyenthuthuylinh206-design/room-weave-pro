@@ -53,7 +53,7 @@ interface SelectedRoomWithPrice extends AvailableRoom {
 }
 import { useTenant } from '@/hooks/useTenant'
 import { useHotelContext } from '@/contexts/HotelContext'
-import { BOOKING_SOURCES, TIME_OPTIONS } from '@/lib/constants'
+import { BOOKING_SOURCES, TIME_OPTIONS, OTA_SOURCES, OTA_DEFAULT_COMMISSION, OTA_PAYMENT_TYPES } from '@/lib/constants'
 
 interface AddBookingDialogProps {
   open: boolean
@@ -97,6 +97,14 @@ export function AddBookingDialog({
   const [includeServiceFee, setIncludeServiceFee] = useState(true)
   const [serviceFeeRate, setServiceFeeRate] = useState(5)
   
+  // OTA payment state
+  const [otaPaymentType, setOtaPaymentType] = useState<string>('pay_at_hotel')
+  const [otaPaidAmount, setOtaPaidAmount] = useState<number>(0)
+  const [otaCommissionRate, setOtaCommissionRate] = useState<number>(0)
+  
+  // Check if booking source is OTA
+  const isOtaSource = OTA_SOURCES.includes(bookingSource)
+  
   // Fetch available rooms based on selected dates
   const { data: availableRooms, isLoading: isLoadingRooms } = useAvailableRooms(
     checkInDate,
@@ -133,6 +141,20 @@ export function AddBookingDialog({
   // Calculate estimated total (subtotal + VAT + Service Fee)
   const estimatedTotal = useMemo(() => subtotal + vatAmount + serviceFeeAmount, [subtotal, vatAmount, serviceFeeAmount])
   
+  // Calculate OTA commission amount (must be after estimatedTotal)
+  const otaCommissionAmount = useMemo(() => 
+    isOtaSource && otaCommissionRate > 0 
+      ? Math.round(estimatedTotal * otaCommissionRate / 100) 
+      : 0,
+    [isOtaSource, estimatedTotal, otaCommissionRate]
+  )
+  
+  // Calculate net revenue after OTA commission
+  const netRevenue = useMemo(() => 
+    estimatedTotal - otaCommissionAmount,
+    [estimatedTotal, otaCommissionAmount]
+  )
+  
   // Remaining amount after deposit
   const remainingAmount = useMemo(() => 
     Math.max(0, estimatedTotal - depositAmount), 
@@ -159,8 +181,26 @@ export function AddBookingDialog({
       setVatRate(8)
       setIncludeServiceFee(true)
       setServiceFeeRate(5)
+      // Reset OTA state
+      setOtaPaymentType('pay_at_hotel')
+      setOtaPaidAmount(0)
+      setOtaCommissionRate(0)
     }
   }, [open])
+  
+  // Auto-fill OTA commission rate when booking source changes
+  useEffect(() => {
+    if (isOtaSource) {
+      const defaultRate = OTA_DEFAULT_COMMISSION[bookingSource] || 15
+      setOtaCommissionRate(defaultRate)
+      setOtaPaymentType('pay_at_hotel')
+      setOtaPaidAmount(0)
+    } else {
+      setOtaCommissionRate(0)
+      setOtaPaymentType('pay_at_hotel')
+      setOtaPaidAmount(0)
+    }
+  }, [bookingSource, isOtaSource])
   
   // Clear room selection when dates change
   useEffect(() => {
@@ -266,6 +306,35 @@ export function AddBookingDialog({
         const roomSubtotal = roomPriceValue * nights
         const roomTotal = roomSubtotal + roomVat + roomServiceFee
         
+        // Calculate OTA values per room
+        const roomOtaCommission = isOtaSource && otaCommissionRate > 0
+          ? Math.round(roomTotal * otaCommissionRate / 100)
+          : 0
+        const roomNetRevenue = roomTotal - roomOtaCommission
+        const roomOtaPaidAmount = isOtaSource && otaPaymentType !== 'pay_at_hotel'
+          ? Math.round(otaPaidAmount / selectedRooms.length)
+          : 0
+        
+        // Determine payment status based on OTA payment type
+        let finalPaymentStatus = 'pending'
+        let finalAmountPaid = roomDeposit
+        let finalDepositAmount = roomDeposit
+        
+        if (isOtaSource && otaPaymentType === 'prepaid') {
+          // OTA collected full payment
+          finalPaymentStatus = 'paid'
+          finalAmountPaid = roomTotal
+          finalDepositAmount = roomTotal
+        } else if (isOtaSource && otaPaymentType === 'partial_prepaid' && roomOtaPaidAmount > 0) {
+          // OTA collected partial payment
+          finalDepositAmount = roomOtaPaidAmount
+          finalAmountPaid = roomOtaPaidAmount
+          finalPaymentStatus = roomOtaPaidAmount >= roomTotal ? 'paid' : 'partial'
+        } else {
+          // Normal payment logic (walk-in or OTA pay_at_hotel)
+          finalPaymentStatus = roomDeposit >= roomTotal ? 'paid' : roomDeposit > 0 ? 'partial' : 'pending'
+        }
+        
         return {
           room_id: room.id,
           hotel_id: room.hotel_id,
@@ -281,9 +350,9 @@ export function AddBookingDialog({
           status: 'confirmed',
           notes: notes.trim() || null,
           room_price: roomPriceValue,
-          deposit_amount: roomDeposit,
-          amount_paid: roomDeposit,
-          payment_status: roomDeposit >= roomTotal ? 'paid' : roomDeposit > 0 ? 'partial' : 'pending',
+          deposit_amount: finalDepositAmount,
+          amount_paid: finalAmountPaid,
+          payment_status: finalPaymentStatus,
           booking_source: bookingSource,
           booking_reference: bookingReference.trim() || null,
           subtotal: roomSubtotal,
@@ -293,6 +362,12 @@ export function AddBookingDialog({
           service_fee_amount: roomServiceFee,
           total_amount: roomTotal,
           booking_group_id: bookingGroupId,
+          // OTA fields
+          ota_payment_type: isOtaSource ? otaPaymentType : null,
+          ota_paid_amount: isOtaSource && otaPaymentType !== 'pay_at_hotel' ? roomOtaPaidAmount : 0,
+          ota_commission_rate: isOtaSource ? otaCommissionRate : null,
+          ota_commission_amount: roomOtaCommission,
+          net_revenue: roomNetRevenue,
         }
       })
       
@@ -671,6 +746,96 @@ export function AddBookingDialog({
                   </Select>
                 </div>
               </div>
+              
+              {/* OTA Payment Section - shown when OTA source selected */}
+              {isOtaSource && (
+                <div className="p-3 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20 space-y-3">
+                  <h4 className="text-sm font-medium flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                    <Globe className="h-4 w-4" />
+                    Thanh toán OTA
+                  </h4>
+                  
+                  {/* OTA Payment Type */}
+                  <div className="space-y-2">
+                    <Label className="text-xs">Hình thức thanh toán</Label>
+                    <Select value={otaPaymentType} onValueChange={setOtaPaymentType}>
+                      <SelectTrigger className="h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {OTA_PAYMENT_TYPES.map(type => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* OTA Paid Amount - shown for prepaid or partial */}
+                  {otaPaymentType !== 'pay_at_hotel' && (
+                    <div className="space-y-2">
+                      <Label className="text-xs">Số tiền OTA đã thu</Label>
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        value={otaPaidAmount > 0 ? otaPaidAmount.toString() : ''}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, '')
+                          setOtaPaidAmount(parseInt(value) || 0)
+                        }}
+                        placeholder={otaPaymentType === 'prepaid' ? String(estimatedTotal) : '0'}
+                        className="h-8"
+                      />
+                      {otaPaymentType === 'prepaid' && otaPaidAmount === 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Để trống = OTA thu toàn bộ ({formatCurrency(estimatedTotal)})
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* OTA Commission */}
+                  <div className="flex items-center justify-between gap-3">
+                    <Label className="text-xs">Hoa hồng OTA</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        value={otaCommissionRate > 0 ? otaCommissionRate.toString() : ''}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, '')
+                          setOtaCommissionRate(Math.min(100, parseInt(value) || 0))
+                        }}
+                        className="w-16 h-8 text-center"
+                        placeholder="15"
+                      />
+                      <Percent className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                  
+                  {/* OTA Summary */}
+                  {otaCommissionAmount > 0 && (
+                    <div className="pt-2 border-t border-blue-200 dark:border-blue-800 space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Tiền hoa hồng:</span>
+                        <span className="text-red-600">-{formatCurrency(otaCommissionAmount)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm font-medium">
+                        <span>Doanh thu thực:</span>
+                        <span className="text-green-600">{formatCurrency(netRevenue)}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Partial prepaid info */}
+                  {otaPaymentType === 'partial_prepaid' && otaPaidAmount > 0 && (
+                    <div className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/30 p-2 rounded">
+                      Khách còn phải trả tại KS: {formatCurrency(Math.max(0, estimatedTotal - otaPaidAmount))}
+                    </div>
+                  )}
+                </div>
+              )}
               
               {/* Booking Reference & Notes */}
               <div className="grid grid-cols-2 gap-3">
