@@ -50,6 +50,7 @@ import { AddBookingDialog } from '@/components/bookings/AddBookingDialog'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
 import { useBookingActions } from '@/hooks/useBookingActions'
 import { formatCurrency } from '@/lib/utils'
+import { BOOKING_SOURCES, OTA_SOURCES } from '@/lib/constants'
 import type { RoomStatus } from '@/types/rooms.types'
 
 type BookingStatus = 'all' | 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show'
@@ -73,6 +74,9 @@ interface BookingWithRoom {
   deposit_amount?: number
   amount_paid?: number
   payment_status?: string
+  booking_source?: string
+  ota_payment_type?: string | null
+  ota_paid_amount?: number
   room: {
     room_number: string
     room_type: string
@@ -391,22 +395,45 @@ export function BookingsPage() {
                       </TableCell>
                       <TableCell>
                         {(() => {
-                          const remaining = (booking.total_amount || 0) - (booking.deposit_amount || 0) - (booking.amount_paid || 0)
+                          const remaining = (booking.total_amount || 0) - (booking.amount_paid || 0)
                           const paymentStatus = booking.payment_status || 'pending'
+                          const isOta = booking.booking_source && OTA_SOURCES.includes(booking.booking_source)
+                          const otaLabel = BOOKING_SOURCES.find(s => s.value === booking.booking_source)?.label || ''
+                          
+                          // OTA Prepaid - show special badge
+                          if (isOta && booking.ota_payment_type === 'prepaid') {
+                            return (
+                              <div>
+                                <span className="text-xs font-medium text-green-600">Đã TT</span>
+                                <p className="text-xs text-blue-600">{otaLabel}</p>
+                              </div>
+                            )
+                          }
                           
                           if (paymentStatus === 'paid' || remaining <= 0) {
-                            return <span className="text-xs font-medium text-green-600">Đã TT</span>
-                          } else if ((booking.deposit_amount || 0) + (booking.amount_paid || 0) > 0) {
+                            return (
+                              <div>
+                                <span className="text-xs font-medium text-green-600">Đã TT</span>
+                                {isOta && <p className="text-xs text-blue-600">{otaLabel}</p>}
+                              </div>
+                            )
+                          } else if ((booking.amount_paid || 0) > 0) {
                             return (
                               <div>
                                 <span className="text-xs font-medium text-amber-600">1 phần</span>
                                 <p className="text-xs text-muted-foreground font-mono">
                                   Còn: {new Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(remaining)}
                                 </p>
+                                {isOta && <p className="text-xs text-blue-600">{otaLabel}</p>}
                               </div>
                             )
                           } else {
-                            return <span className="text-xs text-muted-foreground">Chờ TT</span>
+                            return (
+                              <div>
+                                <span className="text-xs text-muted-foreground">Chờ TT</span>
+                                {isOta && <p className="text-xs text-blue-600">{otaLabel}</p>}
+                              </div>
+                            )
                           }
                         })()}
                       </TableCell>
