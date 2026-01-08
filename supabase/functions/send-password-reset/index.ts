@@ -7,6 +7,8 @@ type ResendSendEmailParams = {
   to: string[]
   subject: string
   html: string
+  text?: string
+  reply_to?: string
 }
 
 async function sendEmailViaResend(params: ResendSendEmailParams): Promise<{ id?: string }> {
@@ -37,6 +39,7 @@ async function sendEmailViaResend(params: ResendSendEmailParams): Promise<{ id?:
   const id = json?.id ?? json?.data?.id
   return { id }
 }
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -60,7 +63,7 @@ async function hashOTP(otp: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
-function generateOTPEmail(otp: string): { subject: string; html: string } {
+function generateOTPEmail(otp: string): { subject: string; html: string; text: string } {
   const otpDigits = otp.split('')
   return {
     subject: '🔐 [RoomQc] Mã xác nhận đặt lại mật khẩu',
@@ -127,12 +130,28 @@ function generateOTPEmail(otp: string): { subject: string; html: string } {
               Email này được gửi tự động từ hệ thống <strong>RoomQc</strong>.
             </p>
             <p style="color: #a0aec0; font-size: 12px; text-align: center; margin: 4px 0 0 0;">
-              Vui lòng không trả lời email này.
+              Cần hỗ trợ? Liên hệ support@roomqc.com
             </p>
           </div>
         </body>
       </html>
     `,
+    text: `
+MÃ XÁC NHẬN ĐẶT LẠI MẬT KHẨU - RoomQc
+
+Mã xác nhận của bạn: ${otp}
+
+Nhập mã này để tiếp tục đặt lại mật khẩu của bạn.
+
+⏱️ Lưu ý: Mã này sẽ hết hạn sau 5 phút.
+
+Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.
+
+Cần hỗ trợ? Liên hệ support@roomqc.com
+
+Trân trọng,
+Đội ngũ RoomQc
+    `.trim(),
   }
 }
 
@@ -239,10 +258,12 @@ Deno.serve(async (req) => {
     // Send email via Resend (direct API call to reduce bundle size)
     try {
       await sendEmailViaResend({
-        from: 'RoomQc <noreply@roomqc.com>',
+        from: 'RoomQc <notifications@roomqc.com>',
         to: [normalizedEmail],
         subject: emailContent.subject,
         html: emailContent.html,
+        text: emailContent.text,
+        reply_to: 'support@roomqc.com',
       })
     } catch (err: any) {
       console.error('Resend API error:', err?.message || String(err))

@@ -5,6 +5,8 @@ type ResendSendEmailParams = {
   to: string[]
   subject: string
   html: string
+  text?: string
+  reply_to?: string
 }
 
 async function sendEmailViaResend(params: ResendSendEmailParams): Promise<{ id?: string }> {
@@ -52,7 +54,7 @@ interface WelcomeEmailRequest {
   tempPassword?: string
 }
 
-function generateOwnerWelcomeEmail(fullName: string): { subject: string; html: string } {
+function generateOwnerWelcomeEmail(fullName: string): { subject: string; html: string; text: string } {
   return {
     subject: '🎉 [RoomQc] Chào mừng bạn đến với RoomQc!',
     html: `
@@ -103,15 +105,14 @@ function generateOwnerWelcomeEmail(fullName: string): { subject: string; html: s
             <!-- Help section -->
             <div style="text-align: center; padding-top: 24px; border-top: 1px solid #e2e8f0;">
               <p style="font-size: 14px; color: #718096; margin: 0 0 8px 0;">
-                Cần hỗ trợ? Liên hệ với chúng tôi qua email hoặc Telegram.
+                Cần hỗ trợ? Liên hệ với chúng tôi qua email: support@roomqc.com
               </p>
             </div>
 
             <!-- Footer -->
             <div style="text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
               <p style="font-size: 12px; color: #a0aec0; margin: 0;">
-                Email này được gửi tự động từ hệ thống RoomQc.<br>
-                Vui lòng không trả lời email này.
+                Email này được gửi tự động từ hệ thống RoomQc.
               </p>
               <p style="font-size: 12px; color: #cbd5e0; margin: 16px 0 0 0;">
                 © ${new Date().getFullYear()} RoomQc. All rights reserved.
@@ -121,6 +122,26 @@ function generateOwnerWelcomeEmail(fullName: string): { subject: string; html: s
         </body>
       </html>
     `,
+    text: `
+Chào mừng đến với RoomQc!
+
+Xin chào ${fullName},
+
+Tài khoản RoomQc của bạn đã được tạo thành công.
+
+Bạn có thể bắt đầu với:
+- Quản lý phòng và tài sản khách sạn
+- Theo dõi tồn kho và giặt ủi
+- Quản lý nhân viên và phân quyền
+- Báo cáo và thống kê chi tiết
+
+Đăng nhập tại: ${Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.lovable.app') || 'https://roomqc.lovable.app'}/auth/login
+
+Cần hỗ trợ? Liên hệ: support@roomqc.com
+
+Trân trọng,
+Đội ngũ RoomQc
+    `.trim(),
   }
 }
 
@@ -131,7 +152,7 @@ function generateStaffWelcomeEmail(
   roleName: string,
   hotelName: string | undefined,
   tempPassword: string
-): { subject: string; html: string } {
+): { subject: string; html: string; text: string } {
   return {
     subject: '🔑 [RoomQc] Tài khoản của bạn đã được tạo',
     html: `
@@ -205,15 +226,14 @@ function generateStaffWelcomeEmail(
             <!-- Help section -->
             <div style="text-align: center; padding-top: 24px; border-top: 1px solid #e2e8f0;">
               <p style="font-size: 14px; color: #718096; margin: 0 0 8px 0;">
-                Nếu bạn không yêu cầu tạo tài khoản này, vui lòng liên hệ quản lý của bạn.
+                Nếu bạn không yêu cầu tạo tài khoản này, vui lòng liên hệ quản lý của bạn hoặc email support@roomqc.com
               </p>
             </div>
 
             <!-- Footer -->
             <div style="text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
               <p style="font-size: 12px; color: #a0aec0; margin: 0;">
-                Email này được gửi tự động từ hệ thống RoomQc.<br>
-                Vui lòng không trả lời email này.
+                Email này được gửi tự động từ hệ thống RoomQc.
               </p>
               <p style="font-size: 12px; color: #cbd5e0; margin: 16px 0 0 0;">
                 © ${new Date().getFullYear()} RoomQc. All rights reserved.
@@ -223,6 +243,28 @@ function generateStaffWelcomeEmail(
         </body>
       </html>
     `,
+    text: `
+Tài khoản RoomQc của bạn đã được tạo
+
+Xin chào ${fullName},
+
+Tài khoản của bạn đã được tạo bởi ${createdByName}.
+
+THÔNG TIN TÀI KHOẢN:
+- Vai trò: ${roleName}
+${hotelName ? `- Khách sạn: ${hotelName}` : ''}
+- Email: ${email}
+- Mật khẩu tạm thời: ${tempPassword}
+
+⚠️ LƯU Ý BẢO MẬT: Vui lòng đổi mật khẩu ngay khi đăng nhập lần đầu tiên.
+
+Đăng nhập tại: ${Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.lovable.app') || 'https://roomqc.lovable.app'}/auth/login
+
+Nếu bạn không yêu cầu tạo tài khoản này, vui lòng liên hệ quản lý hoặc email support@roomqc.com
+
+Trân trọng,
+Đội ngũ RoomQc
+    `.trim(),
   }
 }
 
@@ -254,6 +296,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     let subject: string
     let html: string
+    let text: string
 
     if (isCreatedByAdmin && createdByName && roleName && tempPassword) {
       // Staff/Manager welcome email
@@ -267,20 +310,24 @@ Deno.serve(async (req: Request): Promise<Response> => {
       )
       subject = emailContent.subject
       html = emailContent.html
+      text = emailContent.text
     } else {
       // Owner welcome email (self-registration)
       const emailContent = generateOwnerWelcomeEmail(fullName)
       subject = emailContent.subject
       html = emailContent.html
+      text = emailContent.text
     }
 
     let providerMessageId: string | undefined
     try {
       const res = await sendEmailViaResend({
-        from: 'RoomQc <noreply@roomqc.com>',
+        from: 'RoomQc <notifications@roomqc.com>',
         to: [email],
         subject,
         html,
+        text,
+        reply_to: 'support@roomqc.com',
       })
       providerMessageId = res.id
     } catch (err: any) {
