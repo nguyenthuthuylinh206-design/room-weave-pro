@@ -11,6 +11,9 @@ import {
 } from '@/lib/bookingCalculations'
 import { formatCurrency } from '@/lib/utils'
 import { calculateServiceChargesFromConsumables } from '@/hooks/usePricingRules'
+import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
+import { useUser } from '@/hooks/useUser'
+import { useTenant } from '@/hooks/useTenant'
 
 interface UseBookingActionsOptions {
   onSuccess?: () => void
@@ -20,6 +23,8 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [isLoading, setIsLoading] = useState(false)
+  const { user } = useUser()
+  const { tenant } = useTenant()
 
   const invalidateQueries = (roomId?: string) => {
     queryClient.invalidateQueries({ queryKey: ['rooms'] })
@@ -167,6 +172,26 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
           ? `Phụ thu check-out trễ: ${formatCurrency(lateCheckoutCharge)}`
           : undefined,
       })
+      
+      // Send checkout notification realtime
+      if (tenant?.id) {
+        const { data: roomData } = await supabase
+          .from('rooms')
+          .select('room_number, hotel_id')
+          .eq('id', roomId)
+          .single()
+        
+        if (roomData?.hotel_id) {
+          triggerRoomCheckoutNotification({
+            tenantId: tenant.id,
+            hotelId: roomData.hotel_id,
+            roomId,
+            roomNumber: roomData.room_number || '',
+            changedByUserId: user?.id,
+          }).catch(err => console.error('Failed to send checkout notification:', err))
+        }
+      }
+      
       invalidateQueries(roomId)
       options?.onSuccess?.()
       return true
