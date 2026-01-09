@@ -1,4 +1,5 @@
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
 import { ArrowLeft, Plus, X } from 'lucide-react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -26,6 +27,15 @@ import { useCreateInboundTransaction } from '@/hooks/useInventoryTransactions'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileInboundForm } from '@/components/inventory/MobileInboundForm'
 
+// Type for prefill data from adjustment
+interface PrefillFromAdjustment {
+  adjustmentId: string
+  adjustmentCode: string
+  hotelId: string
+  items: Array<{ item_id: string; quantity: number }>
+  notes: string
+}
+
 const inboundSchema = z.object({
   transaction_category: z.enum(['purchase', 'return', 'laundry', 'other']),
   from_location: z.string().min(1, 'Vui lòng nhập vị trí'),
@@ -38,6 +48,9 @@ const inboundSchema = z.object({
   documents: z.array(z.string()).optional(),
   photos: z.array(z.string()).optional(),
   notes: z.string().optional(),
+  // Hidden fields for linking to adjustment
+  related_type: z.string().optional(),
+  related_id: z.string().optional(),
 })
 
 type InboundFormData = z.infer<typeof inboundSchema>
@@ -45,9 +58,13 @@ type InboundFormData = z.infer<typeof inboundSchema>
 export function InboundPage() {
   const { t } = useTranslation(['inventory', 'common'])
   const navigate = useNavigate()
+  const location = useLocation()
   const { isMobile } = useBreakpoint()
   const [searchParams] = useSearchParams()
   const poId = searchParams.get('po_id')
+  
+  // Get prefill data from navigation state (from adjustment)
+  const prefillFromAdjustment = (location.state as any)?.prefillFromAdjustment as PrefillFromAdjustment | undefined
   
   // ALL hooks MUST be declared BEFORE any conditional returns
   const { mutate: createInbound, isPending: isLoading } = useCreateInboundTransaction()
@@ -56,12 +73,16 @@ export function InboundPage() {
     resolver: zodResolver(inboundSchema),
     defaultValues: {
       transaction_category: 'purchase',
-      from_location: '',
+      from_location: prefillFromAdjustment ? 'Bổ sung kiểm kê' : '',
       to_location: 'Kho tầng 1',
-      items: [{ item_id: '', quantity: 1, notes: '' }],
+      items: prefillFromAdjustment?.items?.length 
+        ? prefillFromAdjustment.items.map(i => ({ item_id: i.item_id, quantity: i.quantity, notes: '' }))
+        : [{ item_id: '', quantity: 1, notes: '' }],
       documents: [],
       photos: [],
-      notes: '',
+      notes: prefillFromAdjustment?.notes || '',
+      related_type: prefillFromAdjustment ? 'stock_adjustment' : undefined,
+      related_id: prefillFromAdjustment?.adjustmentId,
     },
   })
   
@@ -82,8 +103,8 @@ export function InboundPage() {
     createInbound(
       {
         ...data,
-        related_type: poId ? 'purchase_order' : undefined,
-        related_id: poId || undefined,
+        related_type: data.related_type || (poId ? 'purchase_order' : undefined),
+        related_id: data.related_id || poId || undefined,
       } as any,
       {
         onSuccess: () => {

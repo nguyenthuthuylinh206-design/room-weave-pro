@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileAdjustmentDetail } from '@/components/inventory/MobileAdjustmentDetail'
+import { PostApprovalActions } from '@/components/inventory/adjustments/PostApprovalActions'
 import { 
   ArrowLeft, 
   CheckCircle, 
@@ -253,6 +254,15 @@ export function AdjustmentDetailPage() {
               </Tabs>
             </CardContent>
           </Card>
+          
+          {/* Post Approval Actions */}
+          <PostApprovalActions
+            adjustmentId={id!}
+            adjustmentCode={adjustment.adjustment_code}
+            hotelId={adjustment.hotel_id}
+            items={items}
+            status={adjustment.status}
+          />
           
           {/* Approval Section */}
           {canApprove && (

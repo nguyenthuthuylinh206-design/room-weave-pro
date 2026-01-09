@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ShoppingCart, RotateCcw, Shirt, PackagePlus, Search, Plus, Minus, X, Save, Check, Tag, Package, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -22,6 +22,15 @@ import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFoo
 
 const DRAFT_KEY = 'inbound_form_draft';
 
+// Type for prefill data from adjustment
+interface PrefillFromAdjustment {
+  adjustmentId: string
+  adjustmentCode: string
+  hotelId: string
+  items: Array<{ item_id: string; quantity: number }>
+  notes: string
+}
+
 const createInboundSchema = (t: (key: string) => string) => z.object({
   transaction_category: z.enum(['purchase', 'return', 'laundry', 'other']),
   from_location: z.string().min(1, t('inventory:mobileForm.validation.fromLocationRequired')),
@@ -33,7 +42,9 @@ const createInboundSchema = (t: (key: string) => string) => z.object({
   })).min(1, t('inventory:mobileForm.validation.minOneItem')),
   documents: z.array(z.string()).optional(),
   photos: z.array(z.string()).optional(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
+  related_type: z.string().optional(),
+  related_id: z.string().optional(),
 });
 
 type InboundFormData = z.infer<ReturnType<typeof createInboundSchema>>;
@@ -41,6 +52,7 @@ type InboundFormData = z.infer<ReturnType<typeof createInboundSchema>>;
 export function MobileInboundForm() {
   const { t } = useTranslation(['inventory', 'common']);
   const navigate = useNavigate();
+  const location = useLocation();
   const [step, setStep] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [showItemSelector, setShowItemSelector] = useState(false);
@@ -48,6 +60,10 @@ export function MobileInboundForm() {
   const [shake, setShake] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const totalSteps = 3;
+
+  // Get prefill data from navigation state (from adjustment)
+  const prefillFromAdjustment = (location.state as any)?.prefillFromAdjustment as PrefillFromAdjustment | undefined;
+  const hasPrefill = !!prefillFromAdjustment;
 
   const categories = [
     { value: 'purchase', label: t('inventory:inbound.categories.purchase'), icon: ShoppingCart, description: t('inventory:inbound.categories.purchaseDesc') },
@@ -71,12 +87,16 @@ export function MobileInboundForm() {
     resolver: zodResolver(inboundSchema),
     defaultValues: {
       transaction_category: 'purchase',
-      from_location: '',
+      from_location: hasPrefill ? 'Bổ sung kiểm kê' : '',
       to_location: t('inventory:mobileForm.inbound.toPlaceholder'),
-      items: [],
+      items: hasPrefill && prefillFromAdjustment?.items?.length 
+        ? prefillFromAdjustment.items.map(i => ({ item_id: i.item_id, quantity: i.quantity, notes: '' }))
+        : [],
       documents: [],
       photos: [],
-      notes: ''
+      notes: prefillFromAdjustment?.notes || '',
+      related_type: hasPrefill ? 'stock_adjustment' : undefined,
+      related_id: prefillFromAdjustment?.adjustmentId,
     }
   });
 
@@ -91,8 +111,14 @@ export function MobileInboundForm() {
   const to_location = form.watch('to_location');
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Load draft on mount
+  // Load draft on mount (skip if prefill data exists)
   useEffect(() => {
+    if (hasPrefill) {
+      // Skip loading draft when prefilled from adjustment
+      setDraftLoaded(true);
+      return;
+    }
+    
     const draft = localStorage.getItem(DRAFT_KEY);
     if (draft && !draftLoaded) {
       try {
@@ -114,14 +140,16 @@ export function MobileInboundForm() {
                 items: [],
                 documents: [],
                 photos: [],
-                notes: ''
+                notes: '',
+                related_type: undefined,
+                related_id: undefined,
               });
             }
           }
         });
       } catch {}
     }
-  }, []);
+  }, [hasPrefill]);
 
   // Auto-save draft (debounced)
   useEffect(() => {
