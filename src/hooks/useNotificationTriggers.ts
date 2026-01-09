@@ -1414,3 +1414,75 @@ export async function triggerPOApprovedNotificationLegacy(
     }),
   ]);
 }
+
+// ==================== ADJUSTMENT PENDING APPROVAL NOTIFICATION ====================
+
+// Trigger when stock adjustment status becomes 'completed' - notify managers/owner
+export async function triggerAdjustmentPendingApproval({
+  tenantId,
+  hotelId,
+  adjustmentId,
+  adjustmentCode,
+  triggeredByUserId,
+}: {
+  tenantId: string;
+  hotelId: string;
+  adjustmentId: string;
+  adjustmentCode: string;
+  triggeredByUserId?: string;
+}) {
+  const title = '📋 Phiếu kiểm kê cần duyệt';
+  const body = `Phiếu ${adjustmentCode} đã hoàn thành và đang chờ duyệt`;
+  const actionUrl = `/inventory/adjustments/${adjustmentId}`;
+
+  // Get managers and owner
+  const recipients = await getNotificationRecipients({
+    tenantId,
+    hotelId,
+    targetRoles: ['manager', 'owner'],
+    excludeUserId: triggeredByUserId,
+  });
+
+  const recipientIds = recipients.map(r => r.id);
+
+  if (recipientIds.length === 0) {
+    console.warn('[triggerAdjustmentPendingApproval] No recipients found for tenant:', tenantId);
+    return;
+  }
+
+  // Send all notifications in PARALLEL for speed
+  await Promise.allSettled([
+    createMultipleNotifications({
+      recipientIds,
+      tenantId,
+      title,
+      body,
+      type: 'approval_request',
+      actionUrl,
+      icon: 'clipboard-check',
+      metadata: { adjustmentId, adjustmentCode, hotelId } as Json,
+    }),
+    sendMultiplePushNotifications({
+      recipientIds,
+      tenantId,
+      title,
+      body,
+      actionUrl,
+      tag: `adj-pending-${adjustmentId}`,
+      notificationType: 'approval_request',
+    }),
+    sendTelegramNotification({
+      tenantId,
+      hotelId,
+      department: 'inventory',
+      notificationTypeFilter: 'inventory_adjustment',
+      sendToManagementGroups: true,
+      title,
+      message: body,
+      notificationType: 'inventory',
+      actionUrl,
+    }),
+  ]);
+
+  console.log('[triggerAdjustmentPendingApproval] Notifications sent to', recipientIds.length, 'recipients');
+}

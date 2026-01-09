@@ -5,6 +5,7 @@ import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
 import { useToast } from '@/components/ui/use-toast'
+import { triggerAdjustmentPendingApproval } from '@/hooks/useNotificationTriggers'
 import type { 
   AdjustmentWithDetails,
   AdjustmentFilters,
@@ -162,6 +163,7 @@ export function useCreateStockAdjustment() {
 export function useUpdateAdjustmentStatus() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const { user } = useUser()
   
   return useMutation({
     mutationFn: async ({
@@ -185,10 +187,36 @@ export function useUpdateAdjustmentStatus() {
         .eq('id', adjustmentId)
       
       if (error) throw error
+      
+      // Return status and adjustmentId for onSuccess
+      return { status, adjustmentId }
     },
-    onSuccess: (_, variables) => {
+    onSuccess: async (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['stock-adjustments'] })
       queryClient.invalidateQueries({ queryKey: ['stock-adjustment', variables.adjustmentId] })
+      
+      // Send notification when status becomes 'completed'
+      if (result?.status === 'completed') {
+        try {
+          const { data: adj } = await supabase
+            .from('stock_adjustments')
+            .select('adjustment_code, hotel_id, tenant_id')
+            .eq('id', variables.adjustmentId)
+            .single()
+          
+          if (adj) {
+            triggerAdjustmentPendingApproval({
+              tenantId: adj.tenant_id,
+              hotelId: adj.hotel_id,
+              adjustmentId: variables.adjustmentId,
+              adjustmentCode: adj.adjustment_code,
+              triggeredByUserId: user?.id,
+            })
+          }
+        } catch (e) {
+          console.error('[Adjustment] Failed to send pending approval notification:', e)
+        }
+      }
       
       toast({
         title: 'Thành công',

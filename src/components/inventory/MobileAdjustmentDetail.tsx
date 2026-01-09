@@ -37,6 +37,7 @@ import {
   useRejectAdjustment,
 } from '@/hooks/useStockAdjustments'
 import { useAuth } from '@/contexts/AuthContext'
+import { isAdminUser, isManager } from '@/lib/userAccess'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { format } from 'date-fns'
@@ -111,7 +112,7 @@ export function MobileAdjustmentDetail() {
   
   const canContinue = adj.status === 'draft' || adj.status === 'in_progress'
   const canApprove = adj.status === 'completed' && 
-    (user?.role === 'hotel_manager' || user?.role === 'owner' || (user as any)?.user_level_code === 'owner' || (user as any)?.user_level_code === 'manager')
+    (isAdminUser(user as any) || isManager(user as any))
   
   const pendingItems = items.filter((i: any) => i.status === 'pending')
   
