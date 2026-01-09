@@ -19,20 +19,30 @@ import {
 import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
 import { useCreateItem, useUpdateItem, useItem } from '@/hooks/useItems'
 import { useItemCategories } from '@/hooks/useItemCategories'
-import { ChevronLeft, ChevronRight, Check, Camera } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, Camera, Shirt, Droplets, Tv, Armchair } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { compressImage } from '@/lib/imageCompression'
+import type { ItemType } from '@/types/items.types'
+import { ITEM_TYPE_OPTIONS } from '@/types/items.types'
 
 type ItemFormData = {
   code: string
   name: string
   name_en?: string
   category_id: string
+  item_type: ItemType
   unit: string
   unit_price: number
   minimum_stock: number
   description?: string
   images?: string[]
+}
+
+const ITEM_TYPE_ICONS: Record<ItemType, React.ReactNode> = {
+  linen: <Shirt className="h-4 w-4" />,
+  consumable: <Droplets className="h-4 w-4" />,
+  equipment: <Tv className="h-4 w-4" />,
+  furniture: <Armchair className="h-4 w-4" />,
 }
 
 export const MobileItemFormPage = () => {
@@ -52,6 +62,7 @@ export const MobileItemFormPage = () => {
     name: z.string().min(1, t('items:validation.nameRequired')),
     name_en: z.string().optional(),
     category_id: z.string().min(1, t('items:validation.categoryRequired')),
+    item_type: z.enum(['linen', 'consumable', 'equipment', 'furniture']),
     unit: z.string().min(1, t('items:validation.unitRequired')),
     unit_price: z.number().min(0, t('items:validation.priceMin')),
     minimum_stock: z.number().min(0, t('items:validation.stockMin')),
@@ -72,6 +83,7 @@ export const MobileItemFormPage = () => {
       name: '',
       name_en: '',
       category_id: '',
+      item_type: 'equipment',
       unit: 'cái',
       unit_price: 0,
       minimum_stock: 0,
@@ -88,6 +100,7 @@ export const MobileItemFormPage = () => {
         name: item.name,
         name_en: item.name_en || '',
         category_id: item.category_id || '',
+        item_type: item.item_type || 'equipment',
         unit: item.unit,
         unit_price: item.unit_price || 0,
         minimum_stock: item.minimum_stock || 0,
@@ -101,7 +114,7 @@ export const MobileItemFormPage = () => {
 
   const onSubmit = async (data: ItemFormData) => {
     try {
-      const payload = { ...data, images: uploadedImages }
+      const payload = { ...data, images: uploadedImages, item_type: data.item_type }
       if (id) {
         await updateItem.mutateAsync({ id, data: payload })
       } else {
@@ -259,6 +272,36 @@ export const MobileItemFormPage = () => {
                   {form.formState.errors.category_id && (
                     <p className="text-sm text-destructive">
                       {form.formState.errors.category_id.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t('items:fields.itemType')} *</Label>
+                  <Select
+                    value={form.watch('item_type')}
+                    onValueChange={(value) => form.setValue('item_type', value as ItemType)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn loại" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ITEM_TYPE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          <div className="flex items-center gap-2">
+                            {ITEM_TYPE_ICONS[option.value]}
+                            <div>
+                              <span className="font-medium">{option.label}</span>
+                              <span className="text-xs text-muted-foreground ml-2">{option.description}</span>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {form.formState.errors.item_type && (
+                    <p className="text-sm text-destructive">
+                      Vui lòng chọn loại sản phẩm
                     </p>
                   )}
                 </div>

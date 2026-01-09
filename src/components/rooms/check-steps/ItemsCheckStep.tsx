@@ -58,7 +58,8 @@ export function ItemsCheckStep({
   onQuantitiesChange
 }: ItemsCheckStepProps) {
   const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState('linen');
+  const [activeTab, setActiveTab] = useState<string>('');
+  const [hasInitializedTab, setHasInitializedTab] = useState(false);
   const { toast } = useToast();
 
   // Track checked items
@@ -118,6 +119,24 @@ export function ItemsCheckStep({
     itemsWithType.filter(i => i.item_type === 'equipment'), [itemsWithType]);
   const furnitureItems = useMemo(() => 
     itemsWithType.filter(i => i.item_type === 'furniture'), [itemsWithType]);
+
+  // Smart tab selection: auto-select first tab with items
+  useEffect(() => {
+    if (hasInitializedTab || itemsWithType.length === 0) return;
+    
+    const tabPriority: ItemType[] = ['linen', 'consumable', 'equipment', 'furniture'];
+    for (const tab of tabPriority) {
+      const count = itemsWithType.filter(i => i.item_type === tab).length;
+      if (count > 0) {
+        setActiveTab(tab);
+        setHasInitializedTab(true);
+        return;
+      }
+    }
+    // Fallback to linen if no items
+    setActiveTab('linen');
+    setHasInitializedTab(true);
+  }, [itemsWithType, hasInitializedTab]);
 
   // Apply search filter
   const filterBySearch = (items: ExtendedRoomItem[]) => {
@@ -435,31 +454,55 @@ export function ItemsCheckStep({
       {/* Tabs by Item Type */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="linen" className="flex items-center gap-1 text-xs sm:text-sm">
+          <TabsTrigger 
+            value="linen" 
+            className={`flex items-center gap-1 text-xs sm:text-sm ${getTabCount('linen') === 0 ? 'opacity-50' : ''}`}
+          >
             <Shirt className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Đồ vải</span>
-            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+            <Badge 
+              variant={getTabCount('linen') === 0 ? 'outline' : 'secondary'} 
+              className={`ml-1 h-5 px-1.5 text-xs ${getTabCount('linen') === 0 ? 'text-muted-foreground' : ''}`}
+            >
               {getTabCount('linen')}
             </Badge>
           </TabsTrigger>
-          <TabsTrigger value="consumable" className="flex items-center gap-1 text-xs sm:text-sm">
+          <TabsTrigger 
+            value="consumable" 
+            className={`flex items-center gap-1 text-xs sm:text-sm ${getTabCount('consumable') === 0 ? 'opacity-50' : ''}`}
+          >
             <Droplets className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Tiêu hao</span>
-            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+            <Badge 
+              variant={getTabCount('consumable') === 0 ? 'outline' : 'secondary'} 
+              className={`ml-1 h-5 px-1.5 text-xs ${getTabCount('consumable') === 0 ? 'text-muted-foreground' : ''}`}
+            >
               {getTabCount('consumable')}
             </Badge>
           </TabsTrigger>
-          <TabsTrigger value="equipment" className="flex items-center gap-1 text-xs sm:text-sm">
+          <TabsTrigger 
+            value="equipment" 
+            className={`flex items-center gap-1 text-xs sm:text-sm ${getTabCount('equipment') === 0 ? 'opacity-50' : ''}`}
+          >
             <Tv className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Thiết bị</span>
-            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+            <Badge 
+              variant={getTabCount('equipment') === 0 ? 'outline' : 'secondary'} 
+              className={`ml-1 h-5 px-1.5 text-xs ${getTabCount('equipment') === 0 ? 'text-muted-foreground' : ''}`}
+            >
               {getTabCount('equipment')}
             </Badge>
           </TabsTrigger>
-          <TabsTrigger value="furniture" className="flex items-center gap-1 text-xs sm:text-sm">
+          <TabsTrigger 
+            value="furniture" 
+            className={`flex items-center gap-1 text-xs sm:text-sm ${getTabCount('furniture') === 0 ? 'opacity-50' : ''}`}
+          >
             <Armchair className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Nội thất</span>
-            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+            <Badge 
+              variant={getTabCount('furniture') === 0 ? 'outline' : 'secondary'} 
+              className={`ml-1 h-5 px-1.5 text-xs ${getTabCount('furniture') === 0 ? 'text-muted-foreground' : ''}`}
+            >
               {getTabCount('furniture')}
             </Badge>
           </TabsTrigger>
