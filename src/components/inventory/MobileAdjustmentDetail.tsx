@@ -43,6 +43,7 @@ import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { PostApprovalActions } from '@/components/inventory/adjustments/PostApprovalActions'
 
 export function MobileAdjustmentDetail() {
   const { id } = useParams<{ id: string }>()
@@ -363,6 +364,16 @@ export function MobileAdjustmentDetail() {
               </div>
             </Card>
           )}
+          
+          {/* Post Approval Actions - Show after approved */}
+          <PostApprovalActions
+            adjustmentId={id!}
+            adjustmentCode={adj.adjustment_code}
+            hotelId={adj.hotel_id}
+            items={items}
+            status={adj.status}
+            variant="mobile"
+          />
 
           {/* Items Tabs */}
           <Tabs defaultValue="all" className="w-full">
