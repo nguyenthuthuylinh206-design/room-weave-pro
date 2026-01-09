@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { addDays, differenceInDays, format } from 'date-fns'
+import { addDays, differenceInCalendarDays, format } from 'date-fns'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
@@ -78,7 +78,7 @@ export function useBookingForm() {
   // Computed values
   const computed: BookingFormComputed = useMemo(() => {
     const nights = state.checkInDate && state.checkOutDate 
-      ? Math.max(1, differenceInDays(state.checkOutDate, state.checkInDate))
+      ? Math.max(1, differenceInCalendarDays(state.checkOutDate, state.checkInDate))
       : 0
     
     const totalRoomPrice = state.selectedRooms.reduce(
