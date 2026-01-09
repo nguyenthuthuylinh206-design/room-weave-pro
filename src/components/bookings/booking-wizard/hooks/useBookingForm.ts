@@ -193,6 +193,34 @@ export function useBookingForm() {
       toast({ variant: 'destructive', title: 'Vui lòng nhập giá cho tất cả các phòng' })
       return false
     }
+
+    // Validate no overlap for each room
+    const checkIn = format(state.checkInDate, 'yyyy-MM-dd')
+    const checkOut = format(state.checkOutDate, 'yyyy-MM-dd')
+
+    for (const room of state.selectedRooms) {
+      const { data, error } = await supabase.rpc('validate_booking_dates', {
+        p_room_id: room.id,
+        p_check_in: checkIn,
+        p_check_out: checkOut,
+        p_exclude_booking_id: null,
+      })
+
+      if (error) {
+        toast({ variant: 'destructive', title: 'Lỗi kiểm tra lịch đặt', description: error.message })
+        return false
+      }
+
+      const result = data as { valid: boolean; message?: string; conflicts?: any[] }
+      if (!result.valid) {
+        toast({ 
+          variant: 'destructive', 
+          title: `Phòng ${room.room_number} đã có lịch đặt`, 
+          description: result.message || 'Vui lòng chọn ngày khác' 
+        })
+        return false
+      }
+    }
     
     setIsSubmitting(true)
     

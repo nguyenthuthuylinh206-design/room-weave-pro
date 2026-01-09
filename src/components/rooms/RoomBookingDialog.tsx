@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { format, addDays, differenceInDays } from 'date-fns'
+import { format, addDays, differenceInDays, startOfDay, isBefore, isAfter } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { Calendar as CalendarIcon, User, Phone, Mail, Users, Save, X, Loader2, DollarSign, CreditCard, Clock, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
 import {
@@ -38,6 +38,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { cn, formatCurrency } from '@/lib/utils'
 import { CheckoutSummaryDialog } from '@/components/bookings/CheckoutSummaryDialog'
 import { CheckInConfirmDialog } from '@/components/bookings/CheckInConfirmDialog'
+import { ExtendBookingDialog } from '@/components/bookings/ExtendBookingDialog'
 import { 
   calculateBookingCost, 
   calculateEarlyCheckinCharge, 
@@ -121,6 +122,9 @@ export function RoomBookingDialog({
   
   // Service charges from consumables
   const [serviceCharges, setServiceCharges] = useState<number>((booking as any)?.service_charges || 0)
+
+  // State for extend booking dialog
+  const [showExtendDialog, setShowExtendDialog] = useState(false)
   
   // Tax rates
   const [vatRate, setVatRate] = useState<number>((booking as any)?.vat_rate || DEFAULT_PRICING_RULES.vatRate)
@@ -303,9 +307,22 @@ export function RoomBookingDialog({
   
   const handleCheckInClick = () => {
     if (!booking) return
+
+    const now = new Date()
+    const today = startOfDay(now)
+    const bookingCheckInDate = startOfDay(new Date(booking.check_in_date))
+
+    // Block check-in if today is before check_in_date
+    if (isBefore(today, bookingCheckInDate)) {
+      toast({
+        variant: 'destructive',
+        title: 'Chưa đến ngày nhận phòng',
+        description: `Lịch nhận phòng: ${format(bookingCheckInDate, 'dd/MM/yyyy', { locale: vi })}. Vui lòng thay đổi lịch đặt nếu muốn nhận sớm.`,
+      })
+      return
+    }
     
     // Calculate early check-in surcharge based on current time
-    const now = new Date()
     const actualTime = format(now, 'HH:mm')
     const hours = parseInt(actualTime.split(':')[0])
     
@@ -391,8 +408,19 @@ export function RoomBookingDialog({
   }
   
   const handleCheckOutClick = () => {
-    // Calculate late checkout charge based on current time
+    if (!booking) return
+
     const now = new Date()
+    const today = startOfDay(now)
+    const bookingCheckOutDate = startOfDay(new Date(booking.check_out_date))
+
+    // Block checkout if today is after check_out_date (overdue)
+    if (isAfter(today, bookingCheckOutDate)) {
+      setShowExtendDialog(true)
+      return
+    }
+
+    // Calculate late checkout charge based on current time
     const actualTime = format(now, 'HH:mm')
     const calculatedLateCharge = calculateLateCheckoutCharge(actualTime, roomPrice)
     setLateCheckoutCharge(calculatedLateCharge)
@@ -1100,6 +1128,26 @@ export function RoomBookingDialog({
         onPayAndCheckout={handlePayAndCheckout}
         isLoading={isSubmitting}
       />
+
+      {/* Extend Booking Dialog - for overdue checkout */}
+      {booking && (
+        <ExtendBookingDialog
+          open={showExtendDialog}
+          onOpenChange={setShowExtendDialog}
+          booking={{
+            id: booking.id,
+            guest_name: booking.guest_name,
+            room_id: roomId,
+            check_in_date: booking.check_in_date,
+            check_out_date: booking.check_out_date,
+            room_price: roomPrice,
+            room: { room_number: roomNumber },
+          }}
+          onSuccess={() => {
+            invalidateQueries()
+          }}
+        />
+      )}
     </>
   )
 }

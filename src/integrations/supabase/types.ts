@@ -7259,6 +7259,15 @@ export type Database = {
         Returns: boolean
       }
       user_has_subordinates: { Args: { p_user_id: string }; Returns: boolean }
+      validate_booking_dates: {
+        Args: {
+          p_check_in: string
+          p_check_out: string
+          p_exclude_booking_id?: string
+          p_room_id: string
+        }
+        Returns: Json
+      }
       validate_plan_change: {
         Args: { p_new_plan_id: string; p_tenant_id: string }
         Returns: Json
