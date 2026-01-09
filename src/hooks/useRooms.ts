@@ -132,7 +132,7 @@ export function useRoom(roomId: string | undefined) {
         console.error('Error fetching room checks:', checksError)
       }
       
-      // Transform items data
+      // Transform items data - Fix mapping: RPC returns 'quantity' and 'id', compute missing fields
       const items = (itemsWithStandards || []).map((item: any) => ({
         item_id: item.item_id,
         item_code: item.item_code,
@@ -140,15 +140,15 @@ export function useRoom(roomId: string | undefined) {
         item_type: item.item_type,
         item_thumbnail: item.item_thumbnail,
         category_name: item.category_name,
-        standard_quantity: item.standard_quantity,
-        current_quantity: item.current_quantity,
-        missing_quantity: item.missing_quantity,
-        condition: item.condition,
-        is_verified: item.is_verified,
+        standard_quantity: item.standard_quantity || 0,
+        current_quantity: item.quantity || 0,
+        missing_quantity: Math.max(0, (item.standard_quantity || 0) - (item.quantity || 0)),
+        condition: item.condition || 'good',
+        is_verified: item.is_verified || false,
         verified_at: item.verified_at,
         verified_by: item.verified_by,
-        room_item_id: item.room_item_id,
-        has_standard: item.has_standard,
+        room_item_id: item.id || null,
+        has_standard: (item.standard_quantity || 0) > 0,
       }))
       
       // Transform checks data
