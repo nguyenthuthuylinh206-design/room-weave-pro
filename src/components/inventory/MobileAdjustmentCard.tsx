@@ -22,7 +22,7 @@ interface MobileAdjustmentCardProps {
 const statusConfig = {
   draft: { icon: Clock, label: 'Nháp', color: 'text-muted-foreground' },
   in_progress: { icon: ClipboardCheck, label: 'Đang kiểm', color: 'text-blue-600' },
-  completed: { icon: Clock, label: 'Hoàn thành', color: 'text-yellow-600' },
+  completed: { icon: Clock, label: 'Chờ duyệt', color: 'text-yellow-600' },
   approved: { icon: CheckCircle, label: 'Đã duyệt', color: 'text-green-600' },
   rejected: { icon: XCircle, label: 'Từ chối', color: 'text-red-600' },
 }
@@ -47,6 +47,7 @@ export function MobileAdjustmentCard({
     <div 
       className={cn(
         'border rounded-lg p-3 active:scale-[0.98] transition-transform cursor-pointer space-y-2',
+        adjustment.status === 'completed' && 'border-yellow-400 bg-yellow-50/50 dark:bg-yellow-950/20',
         className
       )}
       onClick={onClick}
