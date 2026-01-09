@@ -109,9 +109,16 @@ export function BookingsPage() {
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState<BookingWithRoom | null>(null)
   
+  // States for check-in/check-out dialogs
+  const [showCheckinConfirm, setShowCheckinConfirm] = useState(false)
+  const [showCheckoutSummary, setShowCheckoutSummary] = useState(false)
+  const [actionBooking, setActionBooking] = useState<BookingWithRoom | null>(null)
+  const [suggestedEarlyCharge, setSuggestedEarlyCharge] = useState(0)
+  const [checkoutCostBreakdown, setCheckoutCostBreakdown] = useState<BookingCostBreakdown | null>(null)
+  const [isActionLoading, setIsActionLoading] = useState(false)
+  
+  const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { handleCheckIn, handleCheckOut, isLoading: isActionLoading } = useBookingActions()
-  const [actioningBookingId, setActioningBookingId] = useState<string | null>(null)
 
   // Realtime subscription for bookings and rooms
   useEffect(() => {
@@ -206,6 +213,285 @@ export function BookingsPage() {
         return <Badge variant="destructive">Không đến</Badge>
       default:
         return null
+    }
+  }
+
+  // Handle Check-in click - show dialog if early check-in
+  const handleCheckInClick = (booking: BookingWithRoom) => {
+    const now = new Date()
+    const actualTime = format(now, 'HH:mm')
+    const hours = parseInt(actualTime.split(':')[0])
+    const roomPrice = (booking as any).room_price || 0
+
+    setActionBooking(booking)
+
+    // If check-in is after standard time (14:00), no surcharge - check-in directly
+    if (hours >= 14) {
+      performCheckIn(booking, 0)
+    } else {
+      // Show confirmation dialog with editable surcharge
+      const suggestedCharge = calculateEarlyCheckinCharge(actualTime, roomPrice)
+      setSuggestedEarlyCharge(suggestedCharge)
+      setShowCheckinConfirm(true)
+    }
+  }
+
+  // Perform check-in with optional adjusted charge
+  const performCheckIn = async (booking: BookingWithRoom, finalEarlyCharge: number, adjustmentNote?: string) => {
+    setIsActionLoading(true)
+    setShowCheckinConfirm(false)
+
+    try {
+      const now = new Date()
+
+      // Update booking status with the (possibly adjusted) early checkin charge
+      const updateData: any = {
+        status: 'checked_in',
+        actual_check_in: now.toISOString(),
+        early_checkin_charge: finalEarlyCharge,
+      }
+
+      // Add adjustment note if provided
+      if (adjustmentNote) {
+        const existingNotes = (booking as any).notes || ''
+        updateData.notes = existingNotes
+          ? `${existingNotes}\n[Điều chỉnh phụ thu check-in sớm: ${adjustmentNote}]`
+          : `[Điều chỉnh phụ thu check-in sớm: ${adjustmentNote}]`
+      }
+
+      const { error: bookingError } = await supabase
+        .from('room_bookings')
+        .update(updateData)
+        .eq('id', booking.id)
+
+      if (bookingError) throw bookingError
+
+      // Update room status to 'occupied'
+      const { error: roomError } = await supabase
+        .from('rooms')
+        .update({ status: 'occupied' })
+        .eq('id', booking.room_id)
+
+      if (roomError) throw roomError
+
+      toast({
+        title: 'Check-in thành công',
+        description: finalEarlyCharge > 0
+          ? `Phụ thu check-in sớm: ${formatCurrency(finalEarlyCharge)}`
+          : undefined,
+      })
+
+      queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi check-in',
+        description: error.message,
+      })
+    } finally {
+      setIsActionLoading(false)
+      setActionBooking(null)
+    }
+  }
+
+  // Handle Check-out click - show summary dialog
+  const handleCheckOutClick = async (booking: BookingWithRoom) => {
+    setActionBooking(booking)
+    setIsActionLoading(true)
+
+    try {
+      const now = new Date()
+      const actualTime = format(now, 'HH:mm')
+      const roomPrice = (booking as any).room_price || 0
+      const calculatedLateCharge = calculateLateCheckoutCharge(actualTime, roomPrice)
+
+      // Calculate nights
+      const checkIn = new Date(booking.check_in_date)
+      const checkOut = new Date(booking.check_out_date)
+      const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
+
+      // Get consumables service charges
+      const consumablesTotal = await calculateServiceChargesFromConsumables(booking.id)
+      const serviceCharges = consumablesTotal > 0 ? consumablesTotal : ((booking as any).service_charges || 0)
+
+      // Calculate cost breakdown
+      const costBreakdown = calculateBookingCost({
+        roomPrice,
+        nights,
+        earlyCheckinCharge: (booking as any).early_checkin_charge || 0,
+        lateCheckoutCharge: calculatedLateCharge,
+        serviceCharges,
+        extraCharges: (booking as any).extra_charges || 0,
+        vatRate: (booking as any).vat_rate || DEFAULT_PRICING_RULES.vatRate,
+        serviceFeeRate: (booking as any).service_fee_rate || DEFAULT_PRICING_RULES.serviceFeeRate,
+        depositAmount: (booking as any).deposit_amount || 0,
+        amountPaid: (booking as any).amount_paid || 0,
+      })
+
+      setCheckoutCostBreakdown(costBreakdown)
+      setShowCheckoutSummary(true)
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi tính toán',
+        description: error.message,
+      })
+      setActionBooking(null)
+    } finally {
+      setIsActionLoading(false)
+    }
+  }
+
+  // Perform checkout
+  const performCheckOut = async (adjustedLateCharge: number, adjustmentNote?: string) => {
+    if (!actionBooking || !checkoutCostBreakdown) return
+
+    setIsActionLoading(true)
+    setShowCheckoutSummary(false)
+
+    try {
+      const roomPrice = (actionBooking as any).room_price || 0
+      const checkIn = new Date(actionBooking.check_in_date)
+      const checkOut = new Date(actionBooking.check_out_date)
+      const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
+
+      // Recalculate with adjusted late charge
+      const adjustedCostBreakdown = calculateBookingCost({
+        roomPrice,
+        nights,
+        earlyCheckinCharge: checkoutCostBreakdown.earlyCheckinCharge,
+        lateCheckoutCharge: adjustedLateCharge,
+        serviceCharges: checkoutCostBreakdown.serviceCharges,
+        extraCharges: checkoutCostBreakdown.extraCharges,
+        vatRate: checkoutCostBreakdown.vatRate,
+        serviceFeeRate: checkoutCostBreakdown.serviceFeeRate,
+        depositAmount: checkoutCostBreakdown.depositAmount,
+        amountPaid: checkoutCostBreakdown.amountPaid,
+      })
+
+      // Use RPC for atomic checkout
+      const { error } = await supabase.rpc('perform_checkout', {
+        p_booking_id: actionBooking.id,
+        p_room_id: actionBooking.room_id,
+        p_late_checkout_charge: adjustedLateCharge,
+        p_service_charges: checkoutCostBreakdown.serviceCharges,
+        p_subtotal: adjustedCostBreakdown.subtotal,
+        p_vat_amount: adjustedCostBreakdown.vatAmount,
+        p_service_fee_amount: adjustedCostBreakdown.serviceFeeAmount,
+        p_total_amount: adjustedCostBreakdown.totalAmount,
+      })
+
+      if (error) throw error
+
+      // Update notes if adjusted
+      if (adjustmentNote) {
+        const existingNotes = (actionBooking as any).notes || ''
+        const updateNotes = existingNotes
+          ? `${existingNotes}\n[Điều chỉnh phụ thu checkout: ${adjustmentNote}]`
+          : `[Điều chỉnh phụ thu checkout: ${adjustmentNote}]`
+        await supabase
+          .from('room_bookings')
+          .update({ notes: updateNotes })
+          .eq('id', actionBooking.id)
+      }
+
+      toast({ title: 'Check-out thành công' })
+      queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi check-out',
+        description: error.message,
+      })
+    } finally {
+      setIsActionLoading(false)
+      setActionBooking(null)
+      setCheckoutCostBreakdown(null)
+    }
+  }
+
+  // Handle pay and checkout
+  const handlePayAndCheckout = async (adjustedLateCharge: number, adjustmentNote?: string) => {
+    if (!actionBooking || !checkoutCostBreakdown) return
+
+    setIsActionLoading(true)
+    setShowCheckoutSummary(false)
+
+    try {
+      const roomPrice = (actionBooking as any).room_price || 0
+      const checkIn = new Date(actionBooking.check_in_date)
+      const checkOut = new Date(actionBooking.check_out_date)
+      const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
+
+      // Recalculate with adjusted late charge
+      const adjustedCostBreakdown = calculateBookingCost({
+        roomPrice,
+        nights,
+        earlyCheckinCharge: checkoutCostBreakdown.earlyCheckinCharge,
+        lateCheckoutCharge: adjustedLateCharge,
+        serviceCharges: checkoutCostBreakdown.serviceCharges,
+        extraCharges: checkoutCostBreakdown.extraCharges,
+        vatRate: checkoutCostBreakdown.vatRate,
+        serviceFeeRate: checkoutCostBreakdown.serviceFeeRate,
+        depositAmount: checkoutCostBreakdown.depositAmount,
+        amountPaid: checkoutCostBreakdown.amountPaid,
+      })
+
+      const newAmountPaid = adjustedCostBreakdown.totalAmount - checkoutCostBreakdown.depositAmount
+
+      // Update payment first
+      const { error: paymentError } = await supabase
+        .from('room_bookings')
+        .update({
+          amount_paid: newAmountPaid,
+          payment_status: 'paid',
+          paid_at: new Date().toISOString(),
+        })
+        .eq('id', actionBooking.id)
+
+      if (paymentError) throw paymentError
+
+      // Use RPC for atomic checkout
+      const { error } = await supabase.rpc('perform_checkout', {
+        p_booking_id: actionBooking.id,
+        p_room_id: actionBooking.room_id,
+        p_late_checkout_charge: adjustedLateCharge,
+        p_service_charges: checkoutCostBreakdown.serviceCharges,
+        p_subtotal: adjustedCostBreakdown.subtotal,
+        p_vat_amount: adjustedCostBreakdown.vatAmount,
+        p_service_fee_amount: adjustedCostBreakdown.serviceFeeAmount,
+        p_total_amount: adjustedCostBreakdown.totalAmount,
+      })
+
+      if (error) throw error
+
+      // Update notes if adjusted
+      if (adjustmentNote) {
+        const existingNotes = (actionBooking as any).notes || ''
+        const updateNotes = existingNotes
+          ? `${existingNotes}\n[Điều chỉnh phụ thu checkout: ${adjustmentNote}]`
+          : `[Điều chỉnh phụ thu checkout: ${adjustmentNote}]`
+        await supabase
+          .from('room_bookings')
+          .update({ notes: updateNotes })
+          .eq('id', actionBooking.id)
+      }
+
+      toast({ title: 'Đã thanh toán và check-out thành công' })
+      queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi',
+        description: error.message,
+      })
+    } finally {
+      setIsActionLoading(false)
+      setActionBooking(null)
+      setCheckoutCostBreakdown(null)
     }
   }
   
@@ -458,14 +744,10 @@ export function BookingsPage() {
                               size="sm"
                               variant="outline"
                               className="h-7 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
-                              disabled={isActionLoading && actioningBookingId === booking.id}
-                              onClick={async () => {
-                                setActioningBookingId(booking.id)
-                                await handleCheckIn(booking.id, booking.room_id)
-                                setActioningBookingId(null)
-                              }}
+                              disabled={isActionLoading && actionBooking?.id === booking.id}
+                              onClick={() => handleCheckInClick(booking)}
                             >
-                              {isActionLoading && actioningBookingId === booking.id ? (
+                              {isActionLoading && actionBooking?.id === booking.id ? (
                                 <Loader2 className="h-3 w-3 animate-spin" />
                               ) : (
                                 <>
@@ -481,14 +763,10 @@ export function BookingsPage() {
                               size="sm"
                               variant="outline"
                               className="h-7 text-xs text-orange-600 border-orange-200 hover:bg-orange-50"
-                              disabled={isActionLoading && actioningBookingId === booking.id}
-                              onClick={async () => {
-                                setActioningBookingId(booking.id)
-                                await handleCheckOut(booking.id, booking.room_id)
-                                setActioningBookingId(null)
-                              }}
+                              disabled={isActionLoading && actionBooking?.id === booking.id}
+                              onClick={() => handleCheckOutClick(booking)}
                             >
-                              {isActionLoading && actioningBookingId === booking.id ? (
+                              {isActionLoading && actionBooking?.id === booking.id ? (
                                 <Loader2 className="h-3 w-3 animate-spin" />
                               ) : (
                                 <>
@@ -529,6 +807,45 @@ export function BookingsPage() {
           hotelId={selectedBooking.hotel_id}
           tenantId={selectedBooking.tenant_id}
           booking={selectedBooking}
+        />
+      )}
+
+      {/* Check-in Confirmation Dialog */}
+      {actionBooking && (
+        <CheckInConfirmDialog
+          open={showCheckinConfirm}
+          onOpenChange={(open) => {
+            setShowCheckinConfirm(open)
+            if (!open) setActionBooking(null)
+          }}
+          guestName={actionBooking.guest_name}
+          roomNumber={actionBooking.room?.room_number || ''}
+          actualCheckInTime={format(new Date(), 'HH:mm')}
+          roomPrice={(actionBooking as any).room_price || 0}
+          suggestedCharge={suggestedEarlyCharge}
+          onConfirm={(finalCharge, adjustmentNote) => performCheckIn(actionBooking, finalCharge, adjustmentNote)}
+          isLoading={isActionLoading}
+        />
+      )}
+
+      {/* Checkout Summary Dialog */}
+      {actionBooking && checkoutCostBreakdown && (
+        <CheckoutSummaryDialog
+          open={showCheckoutSummary}
+          onOpenChange={(open) => {
+            setShowCheckoutSummary(open)
+            if (!open) {
+              setActionBooking(null)
+              setCheckoutCostBreakdown(null)
+            }
+          }}
+          guestName={actionBooking.guest_name}
+          roomNumber={actionBooking.room?.room_number || ''}
+          actualCheckoutTime={format(new Date(), 'HH:mm')}
+          costBreakdown={checkoutCostBreakdown}
+          onConfirmCheckout={performCheckOut}
+          onPayAndCheckout={handlePayAndCheckout}
+          isLoading={isActionLoading}
         />
       )}
     </div>
