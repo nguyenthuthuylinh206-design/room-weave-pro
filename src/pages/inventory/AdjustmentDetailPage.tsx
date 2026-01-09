@@ -147,7 +147,7 @@ export function AdjustmentDetailPage() {
                 <Badge>
                   {adjustment.status === 'draft' && 'Nháp'}
                   {adjustment.status === 'in_progress' && 'Đang kiểm'}
-                  {adjustment.status === 'completed' && 'Hoàn thành'}
+                  {adjustment.status === 'completed' && 'Chờ duyệt'}
                   {adjustment.status === 'approved' && 'Đã duyệt'}
                   {adjustment.status === 'rejected' && 'Từ chối'}
                 </Badge>
@@ -235,9 +235,6 @@ export function AdjustmentDetailPage() {
                   <TabsTrigger value="all">Tất cả ({allItems.length})</TabsTrigger>
                   <TabsTrigger value="matched">Khớp ({matchedItems.length})</TabsTrigger>
                   <TabsTrigger value="discrepancy">Chênh lệch ({discrepancyItems.length})</TabsTrigger>
-                  {adjustment.status === 'completed' && (
-                    <TabsTrigger value="pending">Chờ duyệt ({pendingItems.length})</TabsTrigger>
-                  )}
                 </TabsList>
                 
                 <TabsContent value="all" className="mt-4">
@@ -248,9 +245,6 @@ export function AdjustmentDetailPage() {
                 </TabsContent>
                 <TabsContent value="discrepancy" className="mt-4">
                   <ItemsTable items={discrepancyItems} highlightDiscrepancy />
-                </TabsContent>
-                <TabsContent value="pending" className="mt-4">
-                  <ItemsTable items={pendingItems} />
                 </TabsContent>
               </Tabs>
             </CardContent>

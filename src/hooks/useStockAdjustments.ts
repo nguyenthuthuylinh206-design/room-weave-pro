@@ -6,6 +6,7 @@ import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
 import { useToast } from '@/components/ui/use-toast'
 import { triggerAdjustmentPendingApproval } from '@/hooks/useNotificationTriggers'
+import { isAdminUser, isManager } from '@/lib/userAccess'
 import type { 
   AdjustmentWithDetails,
   AdjustmentFilters,
@@ -458,5 +459,44 @@ export function useRejectAdjustment() {
         variant: 'destructive',
       })
     },
+  })
+}
+
+// Hook to get count of pending adjustments (status = 'completed')
+export function usePendingAdjustmentsCount() {
+  const { tenant } = useTenant()
+  const { user } = useUser()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
+  
+  const canSee = isAdminUser(user as any) || isManager(user as any)
+  
+  return useQuery({
+    queryKey: ['pending-adjustments-count', tenant?.id, isAllHotelsMode ? 'all' : selectedHotel?.id],
+    queryFn: async () => {
+      if (!tenant?.id) return 0
+      
+      let query = supabase
+        .from('stock_adjustments')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'completed')
+        .eq('tenant_id', tenant.id)
+      
+      // Non-admin/non-all-hotels mode: filter by selected hotel
+      if (!isAllHotelsMode && selectedHotel?.id) {
+        query = query.eq('hotel_id', selectedHotel.id)
+      }
+      
+      const { count, error } = await query
+      
+      if (error) {
+        console.error('[usePendingAdjustmentsCount] Error:', error)
+        return 0
+      }
+      
+      return count || 0
+    },
+    enabled: !!tenant?.id && canSee,
+    staleTime: 30 * 1000, // 30 seconds
+    refetchInterval: 60 * 1000, // Refetch every minute
   })
 }
