@@ -7138,19 +7138,36 @@ export type Database = {
         }
         Returns: Json
       }
-      perform_checkout: {
-        Args: {
-          p_booking_id: string
-          p_late_checkout_charge?: number
-          p_room_id: string
-          p_service_charges?: number
-          p_service_fee_amount?: number
-          p_subtotal?: number
-          p_total_amount?: number
-          p_vat_amount?: number
-        }
-        Returns: Json
-      }
+      perform_checkout:
+        | {
+            Args: {
+              p_booking_id: string
+              p_late_checkout_charge?: number
+              p_room_id: string
+              p_service_charges?: number
+              p_service_fee_amount?: number
+              p_subtotal?: number
+              p_total_amount?: number
+              p_vat_amount?: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_booking_id: string
+              p_damage_charges?: number
+              p_damage_items?: Json
+              p_damage_notes?: string
+              p_late_checkout_charge?: number
+              p_room_id: string
+              p_service_charges?: number
+              p_service_fee_amount?: number
+              p_subtotal?: number
+              p_total_amount?: number
+              p_vat_amount?: number
+            }
+            Returns: Json
+          }
       process_expired_subscriptions: { Args: never; Returns: undefined }
       queue_email_notification: {
         Args: {
