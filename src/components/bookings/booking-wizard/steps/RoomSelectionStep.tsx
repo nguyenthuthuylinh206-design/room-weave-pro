@@ -1,10 +1,34 @@
-import { Building2, CheckCircle2, Loader2, X } from 'lucide-react'
+import { Building2, CheckCircle2, Loader2, Sparkles, Wrench, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn, formatCurrency } from '@/lib/utils'
 import { useAvailableRooms, AvailableRoom } from '@/hooks/useAvailableRooms'
+
+// Helper to get status badge for rooms
+const getRoomStatusBadge = (status: string) => {
+  switch (status) {
+    case 'cleaning':
+      return (
+        <span className="absolute bottom-1 left-1 flex items-center gap-0.5 px-1 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-medium">
+          <Sparkles className="h-2.5 w-2.5" />
+          Dọn
+        </span>
+      )
+    case 'maintenance':
+      return (
+        <span className="absolute bottom-1 left-1 flex items-center gap-0.5 px-1 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-medium">
+          <Wrench className="h-2.5 w-2.5" />
+          Bảo trì
+        </span>
+      )
+    case 'occupied':
+      return null // Room passed overlap check, will be free by booking date
+    default:
+      return null
+  }
+}
 import { useHotelContext } from '@/contexts/HotelContext'
 import { BookingFormState, BookingFormComputed, SelectedRoomWithPrice } from '../types'
 
@@ -100,6 +124,8 @@ export function RoomSelectionStep({
                       {room.hotel_name}
                     </span>
                   )}
+                  {/* Status indicator for cleaning/maintenance rooms */}
+                  {getRoomStatusBadge(room.currentStatus)}
                 </button>
               )
             })}
