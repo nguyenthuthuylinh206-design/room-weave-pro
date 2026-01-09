@@ -88,7 +88,7 @@ export function MobileAdjustmentDetail() {
     const variants: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
       draft: { label: 'Nháp', variant: 'secondary' },
       in_progress: { label: 'Đang kiểm', variant: 'default' },
-      completed: { label: 'Hoàn thành', variant: 'outline' },
+      completed: { label: 'Chờ duyệt', variant: 'outline' },
       approved: { label: 'Đã duyệt', variant: 'default' },
       rejected: { label: 'Từ chối', variant: 'destructive' }
     }
@@ -378,23 +378,10 @@ export function MobileAdjustmentDetail() {
 
           {/* Items Tabs */}
           <Tabs defaultValue="all" className="w-full">
-            <TabsList className={cn(
-              "w-full grid",
-              adj.status === 'completed' ? "grid-cols-4" : "grid-cols-3"
-            )}>
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="all" className="text-xs">Tất cả</TabsTrigger>
               <TabsTrigger value="matched" className="text-xs">Khớp</TabsTrigger>
               <TabsTrigger value="discrepancy" className="text-xs">Lệch</TabsTrigger>
-              {adj.status === 'completed' && (
-                <TabsTrigger value="pending" className="text-xs">
-                  Chờ duyệt
-                  {stats.pending > 0 && (
-                    <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 text-xs">
-                      {stats.pending}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-              )}
             </TabsList>
             
             <TabsContent value="all" className="space-y-2 mt-4">
@@ -432,20 +419,6 @@ export function MobileAdjustmentDetail() {
                 ))
               )}
             </TabsContent>
-            
-            {adj.status === 'completed' && (
-              <TabsContent value="pending" className="space-y-2 mt-4">
-                {pendingItems.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Không có items chờ duyệt
-                  </div>
-                ) : (
-                  pendingItems.map((item: any) => (
-                    <ItemCard key={item.id} item={item} showStatus />
-                  ))
-                )}
-              </TabsContent>
-            )}
           </Tabs>
         </div>
       </ScrollArea>

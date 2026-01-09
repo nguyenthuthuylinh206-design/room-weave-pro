@@ -28,6 +28,7 @@ import {
   useApproveAdjustment,
 } from '@/hooks/useStockAdjustments'
 import { useUser } from '@/hooks/useUser'
+import { isAdminUser, isManager } from '@/lib/userAccess'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
@@ -48,7 +49,7 @@ export function CheckAdjustmentPage() {
   const items = data?.items || []
   const currentItem = items[currentIndex]
   
-  const canApprove = user?.role === 'hotel_manager' || user?.role === 'owner'
+  const canApprove = isAdminUser(user as any) || isManager(user as any)
   const isCompleted = adjustment?.status === 'completed'
   const isApproved = adjustment?.status === 'approved'
   
