@@ -63,6 +63,7 @@ import {
   type BookingCostBreakdown,
 } from '@/lib/bookingCalculations'
 import { calculateServiceChargesFromConsumables } from '@/hooks/usePricingRules'
+import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
 
 type BookingStatus = 'all' | 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show'
 
@@ -423,6 +424,17 @@ export function BookingsPage() {
       }
 
       toast({ title: 'Check-out thành công' })
+      
+      // Send checkout notification realtime
+      if (tenantId && actionBooking.hotel_id) {
+        triggerRoomCheckoutNotification({
+          tenantId,
+          hotelId: actionBooking.hotel_id,
+          roomId: actionBooking.room_id,
+          roomNumber: actionBooking.room?.room_number || '',
+        }).catch(err => console.error('Failed to send checkout notification:', err))
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
     } catch (error: any) {
@@ -506,6 +518,17 @@ export function BookingsPage() {
       }
 
       toast({ title: 'Đã thanh toán và check-out thành công' })
+      
+      // Send checkout notification realtime
+      if (tenantId && actionBooking.hotel_id) {
+        triggerRoomCheckoutNotification({
+          tenantId,
+          hotelId: actionBooking.hotel_id,
+          roomId: actionBooking.room_id,
+          roomNumber: actionBooking.room?.room_number || '',
+        }).catch(err => console.error('Failed to send checkout notification:', err))
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
     } catch (error: any) {
