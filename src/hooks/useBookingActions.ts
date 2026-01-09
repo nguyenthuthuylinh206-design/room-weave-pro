@@ -108,10 +108,18 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
 
       if (fetchError) throw fetchError
 
-      // Calculate late check-out surcharge based on actual time
+      // Calculate late check-out surcharge based on actual time AND date
       const now = new Date()
       const actualTime = format(now, 'HH:mm')
-      const lateCheckoutCharge = calculateLateCheckoutCharge(actualTime, booking.room_price || 0)
+      const scheduledCheckoutDate = new Date(booking.check_out_date)
+      
+      // Only charge late fee if checking out ON or AFTER scheduled date
+      const lateCheckoutCharge = calculateLateCheckoutCharge(
+        actualTime, 
+        booking.room_price || 0,
+        now,
+        scheduledCheckoutDate
+      )
 
       // Calculate nights
       const checkIn = new Date(booking.check_in_date)

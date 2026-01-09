@@ -22,6 +22,7 @@ import {
   getLateCheckoutDescription,
   calculateBookingCost,
   parseTimeToHours,
+  isEarlyCheckout,
   DEFAULT_PRICING_RULES
 } from '@/lib/bookingCalculations'
 import { cn } from '@/lib/utils'
@@ -40,6 +41,8 @@ interface CheckoutSummaryDialogProps {
   guestName: string
   roomNumber: string
   actualCheckoutTime: string
+  actualCheckoutDate: Date
+  scheduledCheckoutDate: Date
   costBreakdown: BookingCostBreakdown
   onConfirmCheckout: (adjustedLateCharge: number, adjustmentNote?: string) => void
   onPayAndCheckout: (adjustedLateCharge: number, adjustmentNote?: string) => void
@@ -52,6 +55,8 @@ export function CheckoutSummaryDialog({
   guestName,
   roomNumber,
   actualCheckoutTime,
+  actualCheckoutDate,
+  scheduledCheckoutDate,
   costBreakdown,
   onConfirmCheckout,
   onPayAndCheckout,
@@ -84,13 +89,16 @@ export function CheckoutSummaryDialog({
     })
   }, [costBreakdown, adjustedLateCharge])
 
-  // Determine which tier applies
-  const currentHour = parseTimeToHours(actualCheckoutTime)
-  const activeTier = LATE_CHECKOUT_TIERS.find(
-    tier => currentHour >= tier.minHour && currentHour < tier.maxHour
-  )
+  // Check if this is an early checkout (before scheduled date)
+  const isEarlyCheckoutCase = isEarlyCheckout(actualCheckoutDate, scheduledCheckoutDate)
   
-  const lateCheckoutDesc = getLateCheckoutDescription(actualCheckoutTime)
+  // Determine which tier applies (only relevant if NOT early checkout)
+  const currentHour = parseTimeToHours(actualCheckoutTime)
+  const activeTier = !isEarlyCheckoutCase 
+    ? LATE_CHECKOUT_TIERS.find(tier => currentHour >= tier.minHour && currentHour < tier.maxHour)
+    : null
+  
+  const lateCheckoutDesc = getLateCheckoutDescription(actualCheckoutTime, actualCheckoutDate, scheduledCheckoutDate)
   const hasOutstandingBalance = adjustedCostBreakdown.remainingAmount > 0
 
   // Check if charge was adjusted
@@ -139,46 +147,61 @@ export function CheckoutSummaryDialog({
                 )}
               </div>
 
-              {/* Late Checkout Surcharge Tiers */}
-              <>
-                <Separator />
-                <div className="border rounded-lg overflow-hidden">
-                  <div className="bg-muted/50 px-3 py-2 text-xs font-medium">
-                    PHỤ THU CHECK-OUT TRỄ (tiêu chuẩn: 12:00)
-                  </div>
-                  <div className="divide-y">
-                    {LATE_CHECKOUT_TIERS.map((tier) => {
-                      const isActive = tier.id === activeTier?.id
-                      const tierAmount = Math.round(costBreakdown.roomPricePerNight * tier.percent / 100)
-                      return (
-                        <div
-                          key={tier.id}
-                          className={cn(
-                            "flex items-center justify-between px-3 py-2 text-sm",
-                            isActive && "bg-amber-50 border-l-2 border-l-amber-500"
-                          )}
-                        >
-                          <div className="flex items-center gap-2">
-                            {isActive && <Check className="h-4 w-4 text-amber-600" />}
-                            <span className={cn(isActive && "font-medium")}>{tier.label}</span>
-                            {tier.description && (
-                              <span className="text-xs text-muted-foreground">({tier.description})</span>
-                            )}
-                          </div>
-                          <span className={cn("font-mono text-xs", isActive && "font-medium text-amber-600")}>
-                            {tier.percent}% = {formatCurrency(tierAmount)}
-                          </span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                  {currentHour <= 12 && (
-                    <div className="px-3 py-2 text-xs text-muted-foreground">
-                      Checkout trước/đúng giờ tiêu chuẩn → không phụ thu.
+              {/* Late Checkout Surcharge Tiers - Only show if NOT early checkout */}
+              {isEarlyCheckoutCase ? (
+                <>
+                  <Separator />
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <Check className="h-4 w-4" />
+                      <span className="font-medium">Checkout sớm - Không phụ thu</span>
                     </div>
-                  )}
-                </div>
-              </>
+                    <p className="text-xs text-green-600 mt-1">
+                      Khách trả phòng trước ngày checkout dự kiến ({format(scheduledCheckoutDate, 'dd/MM/yyyy')})
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Separator />
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="bg-muted/50 px-3 py-2 text-xs font-medium">
+                      PHỤ THU CHECK-OUT TRỄ (tiêu chuẩn: 12:00)
+                    </div>
+                    <div className="divide-y">
+                      {LATE_CHECKOUT_TIERS.map((tier) => {
+                        const isActive = tier.id === activeTier?.id
+                        const tierAmount = Math.round(costBreakdown.roomPricePerNight * tier.percent / 100)
+                        return (
+                          <div
+                            key={tier.id}
+                            className={cn(
+                              "flex items-center justify-between px-3 py-2 text-sm",
+                              isActive && "bg-amber-50 border-l-2 border-l-amber-500"
+                            )}
+                          >
+                            <div className="flex items-center gap-2">
+                              {isActive && <Check className="h-4 w-4 text-amber-600" />}
+                              <span className={cn(isActive && "font-medium")}>{tier.label}</span>
+                              {tier.description && (
+                                <span className="text-xs text-muted-foreground">({tier.description})</span>
+                              )}
+                            </div>
+                            <span className={cn("font-mono text-xs", isActive && "font-medium text-amber-600")}>
+                              {tier.percent}% = {formatCurrency(tierAmount)}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    {currentHour <= 12 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">
+                        Checkout trước/đúng giờ tiêu chuẩn → không phụ thu.
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
 
               <Separator />
 
@@ -202,8 +225,8 @@ export function CheckoutSummaryDialog({
                   </div>
                 )}
                 
-                {/* Late Checkout Surcharge - Editable */}
-                {currentHour > 12 && (
+                {/* Late Checkout Surcharge - Editable (only if NOT early checkout and late) */}
+                {!isEarlyCheckoutCase && currentHour > 12 && (
                   <div className="space-y-2 p-2 border rounded-lg bg-amber-50/50">
                     <div className="flex items-center justify-between gap-2">
                       <Label className="text-sm text-amber-700">

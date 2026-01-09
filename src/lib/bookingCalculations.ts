@@ -3,6 +3,8 @@
  * Handles all pricing logic including surcharges, VAT, and service fees
  */
 
+import { startOfDay, isBefore } from 'date-fns'
+
 export interface PricingRules {
   // Standard times
   standardCheckinTime: string // "14:00"
@@ -148,12 +150,24 @@ export function calculateWeekendSurcharge(
 
 /**
  * Calculate late check-out surcharge based on actual check-out time
+ * Only applies if checking out ON or AFTER the scheduled checkout date
  */
 export function calculateLateCheckoutCharge(
   actualCheckoutTime: string,
   roomPrice: number,
+  actualCheckoutDate?: Date,
+  scheduledCheckoutDate?: Date,
   rules: PricingRules = DEFAULT_PRICING_RULES
 ): number {
+  // Early checkout: If checking out BEFORE the scheduled date, no late surcharge
+  if (actualCheckoutDate && scheduledCheckoutDate) {
+    const actualDay = startOfDay(actualCheckoutDate)
+    const scheduledDay = startOfDay(scheduledCheckoutDate)
+    if (isBefore(actualDay, scheduledDay)) {
+      return 0
+    }
+  }
+
   const hours = parseTimeToHours(actualCheckoutTime)
   const standardHours = parseTimeToHours(rules.standardCheckoutTime)
   
@@ -178,6 +192,13 @@ export function calculateLateCheckoutCharge(
   }
   
   return 0
+}
+
+/**
+ * Check if checkout is early (before scheduled date)
+ */
+export function isEarlyCheckout(actualDate: Date, scheduledDate: Date): boolean {
+  return isBefore(startOfDay(actualDate), startOfDay(scheduledDate))
 }
 
 /**
@@ -285,7 +306,17 @@ export function getEarlyCheckinDescription(timeStr: string, rules: PricingRules 
 /**
  * Get late check-out surcharge description
  */
-export function getLateCheckoutDescription(timeStr: string, rules: PricingRules = DEFAULT_PRICING_RULES): string | null {
+export function getLateCheckoutDescription(
+  timeStr: string, 
+  actualDate?: Date,
+  scheduledDate?: Date,
+  rules: PricingRules = DEFAULT_PRICING_RULES
+): string | null {
+  // Early checkout - no late surcharge
+  if (actualDate && scheduledDate && isEarlyCheckout(actualDate, scheduledDate)) {
+    return null
+  }
+
   const hours = parseTimeToHours(timeStr)
   const standardHours = parseTimeToHours(rules.standardCheckoutTime)
   

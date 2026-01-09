@@ -868,6 +868,8 @@ export function BookingsPage() {
           guestName={actionBooking.guest_name}
           roomNumber={actionBooking.room?.room_number || ''}
           actualCheckoutTime={format(new Date(), 'HH:mm')}
+          actualCheckoutDate={new Date()}
+          scheduledCheckoutDate={actionBooking.check_out_date ? new Date(actionBooking.check_out_date) : new Date()}
           costBreakdown={checkoutCostBreakdown}
           onConfirmCheckout={performCheckOut}
           onPayAndCheckout={handlePayAndCheckout}
