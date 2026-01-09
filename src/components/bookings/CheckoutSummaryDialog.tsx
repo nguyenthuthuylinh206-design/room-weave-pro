@@ -139,43 +139,46 @@ export function CheckoutSummaryDialog({
                 )}
               </div>
 
-              {/* Late Checkout Surcharge Tiers (only show if late) */}
-              {currentHour > 12 && (
-                <>
-                  <Separator />
-                  <div className="border rounded-lg overflow-hidden">
-                    <div className="bg-muted/50 px-3 py-2 text-xs font-medium">
-                      PHỤ THU CHECK-OUT TRỄ (tiêu chuẩn: 12:00)
-                    </div>
-                    <div className="divide-y">
-                      {LATE_CHECKOUT_TIERS.filter(t => t.minHour >= 12).map((tier) => {
-                        const isActive = tier.id === activeTier?.id
-                        const tierAmount = Math.round(costBreakdown.roomPricePerNight * tier.percent / 100)
-                        return (
-                          <div
-                            key={tier.id}
-                            className={cn(
-                              "flex items-center justify-between px-3 py-2 text-sm",
-                              isActive && "bg-amber-50 border-l-2 border-l-amber-500"
-                            )}
-                          >
-                            <div className="flex items-center gap-2">
-                              {isActive && <Check className="h-4 w-4 text-amber-600" />}
-                              <span className={cn(isActive && "font-medium")}>{tier.label}</span>
-                              {tier.description && (
-                                <span className="text-xs text-muted-foreground">({tier.description})</span>
-                              )}
-                            </div>
-                            <span className={cn("font-mono text-xs", isActive && "font-medium text-amber-600")}>
-                              {tier.percent}% = {formatCurrency(tierAmount)}
-                            </span>
-                          </div>
-                        )
-                      })}
-                    </div>
+              {/* Late Checkout Surcharge Tiers */}
+              <>
+                <Separator />
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="bg-muted/50 px-3 py-2 text-xs font-medium">
+                    PHỤ THU CHECK-OUT TRỄ (tiêu chuẩn: 12:00)
                   </div>
-                </>
-              )}
+                  <div className="divide-y">
+                    {LATE_CHECKOUT_TIERS.map((tier) => {
+                      const isActive = tier.id === activeTier?.id
+                      const tierAmount = Math.round(costBreakdown.roomPricePerNight * tier.percent / 100)
+                      return (
+                        <div
+                          key={tier.id}
+                          className={cn(
+                            "flex items-center justify-between px-3 py-2 text-sm",
+                            isActive && "bg-amber-50 border-l-2 border-l-amber-500"
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            {isActive && <Check className="h-4 w-4 text-amber-600" />}
+                            <span className={cn(isActive && "font-medium")}>{tier.label}</span>
+                            {tier.description && (
+                              <span className="text-xs text-muted-foreground">({tier.description})</span>
+                            )}
+                          </div>
+                          <span className={cn("font-mono text-xs", isActive && "font-medium text-amber-600")}>
+                            {tier.percent}% = {formatCurrency(tierAmount)}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {currentHour <= 12 && (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">
+                      Checkout trước/đúng giờ tiêu chuẩn → không phụ thu.
+                    </div>
+                  )}
+                </div>
+              </>
 
               <Separator />
 
