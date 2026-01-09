@@ -1484,5 +1484,74 @@ export async function triggerAdjustmentPendingApproval({
     }),
   ]);
 
-  console.log('[triggerAdjustmentPendingApproval] Notifications sent to', recipientIds.length, 'recipients');
+console.log('[triggerAdjustmentPendingApproval] Notifications sent to', recipientIds.length, 'recipients');
+}
+
+// ==================== ADJUSTMENT ASSIGNED NOTIFICATION ====================
+
+// Trigger when stock adjustment is created - notify assigned users
+export async function triggerAdjustmentAssigned({
+  tenantId,
+  hotelId,
+  adjustmentId,
+  adjustmentCode,
+  scheduledDate,
+  assignedToUserIds,
+  createdByUserId,
+}: {
+  tenantId: string;
+  hotelId: string;
+  adjustmentId: string;
+  adjustmentCode: string;
+  scheduledDate: string;
+  assignedToUserIds: string[];
+  createdByUserId: string;
+}) {
+  if (!assignedToUserIds || assignedToUserIds.length === 0) return;
+  
+  const title = '📋 Bạn được phân công kiểm kê';
+  const body = `Phiếu ${adjustmentCode} - Ngày kiểm: ${scheduledDate}`;
+  const actionUrl = `/inventory/adjustments/${adjustmentId}/check`;
+
+  // Filter out the creator from recipients
+  const recipientIds = assignedToUserIds.filter(id => id !== createdByUserId);
+
+  if (recipientIds.length === 0) return;
+
+  // Send all notifications in PARALLEL for speed
+  await Promise.allSettled([
+    createMultipleNotifications({
+      recipientIds,
+      tenantId,
+      title,
+      body,
+      type: 'task_assigned',
+      actionUrl,
+      icon: 'clipboard-list',
+      metadata: { adjustmentId, adjustmentCode, hotelId, scheduledDate } as Json,
+    }),
+    sendMultiplePushNotifications({
+      recipientIds,
+      tenantId,
+      title,
+      body,
+      actionUrl,
+      tag: `adj-assigned-${adjustmentId}`,
+      notificationType: 'task_assigned',
+    }),
+    sendTelegramNotification({
+      tenantId,
+      hotelId,
+      userIds: recipientIds,
+      department: 'inventory',
+      notificationTypeFilter: 'inventory_assignment',
+      sendToStaffGroups: true,
+      title,
+      message: body,
+      notificationType: 'inventory',
+      actionUrl,
+    }),
+  ]);
+
+  console.log('[triggerAdjustmentAssigned] Notifications sent to', recipientIds.length, 'staff members');
 }
