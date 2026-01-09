@@ -15,7 +15,8 @@ import type {
   LaundryItem, 
   ConsumedItem, 
   LostItem, 
-  ReplacedItem 
+  ReplacedItem,
+  DamagedItem
 } from '@/types/rooms.types';
 import type { ItemType } from '@/types/items.types';
 import { LinenTab, ConsumableTabBooking, EquipmentTab, FurnitureTab } from './item-type-tabs';
@@ -30,12 +31,7 @@ interface ItemsCheckStepProps {
   onQuantitiesChange?: (quantities: Record<string, number>) => void;
 }
 
-interface DamagedItem {
-  item_id: string;
-  item_name: string;
-  item_code?: string;
-  notes?: string;
-}
+// DamagedItem now imported from types
 
 interface MissingItem {
   item_id: string;
@@ -294,7 +290,7 @@ export function ItemsCheckStep({
   };
 
   // Handlers for Equipment/Furniture
-  const handleEquipmentLost = (item: RoomItemWithDetails, quantity: number) => {
+  const handleEquipmentLost = (item: RoomItemWithDetails, quantity: number, estimatedValue?: number) => {
     const extendedItem = itemsWithType.find(i => i.item_id === item.item_id);
     setLostItems(prev => [...prev, {
       item_id: item.item_id,
@@ -302,18 +298,22 @@ export function ItemsCheckStep({
       item_code: item.item_code,
       item_type: extendedItem?.item_type || 'equipment',
       quantity,
+      estimated_value: estimatedValue,
     }]);
     toast({ title: 'Đã đánh dấu mất', description: item.item_name, variant: 'destructive' });
   };
 
-  const handleMarkDamaged = (item: RoomItemWithDetails, notes?: string) => {
+  const handleMarkDamaged = (item: RoomItemWithDetails, damageInfo: { damage_type: 'repairable' | 'replacement_needed'; damage_cost: number; notes?: string }) => {
     setDamagedItems(prev => [...prev, {
       item_id: item.item_id,
       item_name: item.item_name,
       item_code: item.item_code,
-      notes,
+      quantity: 1,
+      damage_type: damageInfo.damage_type,
+      damage_cost: damageInfo.damage_cost,
+      notes: damageInfo.notes,
     }]);
-    toast({ title: 'Đã đánh dấu hỏng', description: item.item_name });
+    toast({ title: 'Đã đánh dấu hỏng', description: `${item.item_name} - ${damageInfo.damage_type === 'repairable' ? 'Cần sửa' : 'Cần thay'}` });
   };
 
   // Remove handlers

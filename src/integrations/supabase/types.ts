@@ -3782,6 +3782,9 @@ export type Database = {
           check_out_date: string
           created_at: string | null
           created_by: string | null
+          damage_charges: number | null
+          damage_items: Json | null
+          damage_notes: string | null
           deposit_amount: number | null
           early_checkin_charge: number | null
           expected_check_in_time: string | null
@@ -3826,6 +3829,9 @@ export type Database = {
           check_out_date: string
           created_at?: string | null
           created_by?: string | null
+          damage_charges?: number | null
+          damage_items?: Json | null
+          damage_notes?: string | null
           deposit_amount?: number | null
           early_checkin_charge?: number | null
           expected_check_in_time?: string | null
@@ -3870,6 +3876,9 @@ export type Database = {
           check_out_date?: string
           created_at?: string | null
           created_by?: string | null
+          damage_charges?: number | null
+          damage_items?: Json | null
+          damage_notes?: string | null
           deposit_amount?: number | null
           early_checkin_charge?: number | null
           expected_check_in_time?: string | null

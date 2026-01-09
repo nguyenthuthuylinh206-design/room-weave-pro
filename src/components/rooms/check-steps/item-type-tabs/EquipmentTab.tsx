@@ -1,16 +1,14 @@
-import { useState, useMemo } from 'react'
-import { Tv, Check, AlertTriangle, Wrench, X } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { Tv, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import type { RoomItemWithDetails, LostItem } from '@/types/rooms.types'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { supabase } from '@/integrations/supabase/client'
+import { formatCurrency } from '@/lib/utils'
+import type { RoomItemWithDetails, LostItem, DamagedItem } from '@/types/rooms.types'
 import { CategoryGroup, groupItemsByCategory } from './CategoryGroup'
-
-interface DamagedItem {
-  item_id: string
-  item_name: string
-  item_code?: string
-  notes?: string
-}
 
 interface ExtendedRoomItem extends RoomItemWithDetails {
   category_name?: string | null
@@ -20,8 +18,8 @@ interface EquipmentTabProps {
   items: ExtendedRoomItem[]
   lostItems: LostItem[]
   damagedItems: DamagedItem[]
-  onMarkLost: (item: RoomItemWithDetails, quantity: number) => void
-  onMarkDamaged: (item: RoomItemWithDetails, notes?: string) => void
+  onMarkLost: (item: RoomItemWithDetails, quantity: number, estimatedValue?: number) => void
+  onMarkDamaged: (item: RoomItemWithDetails, damageInfo: { damage_type: 'repairable' | 'replacement_needed'; damage_cost: number; notes?: string }) => void
   onRemoveFromLost: (itemId: string) => void
   onRemoveFromDamaged: (itemId: string) => void
 }
@@ -43,6 +41,31 @@ export function EquipmentTab({
   const [checkedOk, setCheckedOk] = useState<Set<string>>(new Set())
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
   const [actionNotes, setActionNotes] = useState('')
+  const [damageType, setDamageType] = useState<'repairable' | 'replacement_needed'>('repairable')
+  const [damageCost, setDamageCost] = useState<number>(0)
+  const [itemPrices, setItemPrices] = useState<Record<string, number>>({})
+  
+  // Fetch unit prices for items
+  useEffect(() => {
+    const fetchPrices = async () => {
+      const itemIds = items.map(i => i.item_id)
+      if (itemIds.length === 0) return
+      
+      const { data } = await supabase
+        .from('items')
+        .select('id, unit_price')
+        .in('id', itemIds)
+      
+      if (data) {
+        const priceMap: Record<string, number> = {}
+        data.forEach(item => {
+          priceMap[item.id] = item.unit_price || 0
+        })
+        setItemPrices(priceMap)
+      }
+    }
+    fetchPrices()
+  }, [items])
 
   const isLost = (itemId: string) => lostItems.some(i => i.item_id === itemId)
   const isDamaged = (itemId: string) => damagedItems.some(i => i.item_id === itemId)
@@ -86,24 +109,40 @@ export function EquipmentTab({
   const handleStartAction = (itemId: string, type: 'lost' | 'damaged') => {
     setPendingAction({ itemId, type })
     setActionNotes('')
+    setDamageType('repairable')
+    const itemPrice = itemPrices[itemId] || 0
+    setDamageCost(type === 'damaged' ? Math.round(itemPrice * 0.5) : itemPrice)
   }
 
   const handleConfirmAction = (item: RoomItemWithDetails) => {
     if (!pendingAction) return
+    const itemPrice = itemPrices[item.item_id] || 0
 
     if (pendingAction.type === 'lost') {
-      onMarkLost(item, 1)
+      onMarkLost(item, 1, itemPrice)
     } else {
-      onMarkDamaged(item, actionNotes || undefined)
+      onMarkDamaged(item, {
+        damage_type: damageType,
+        damage_cost: damageCost,
+        notes: actionNotes || undefined
+      })
     }
     
     setPendingAction(null)
     setActionNotes('')
+    setDamageCost(0)
   }
 
   const handleCancelAction = () => {
     setPendingAction(null)
     setActionNotes('')
+    setDamageCost(0)
+  }
+  
+  const handleDamageTypeChange = (value: 'repairable' | 'replacement_needed') => {
+    setDamageType(value)
+    const itemPrice = itemPrices[pendingAction?.itemId || ''] || 0
+    setDamageCost(value === 'repairable' ? Math.round(itemPrice * 0.5) : itemPrice)
   }
 
   const handleResetItem = (item: RoomItemWithDetails) => {
@@ -260,25 +299,104 @@ export function EquipmentTab({
                       )}
                     </div>
 
-                    {/* Pending Action - Notes Input */}
-                    {isPending && (
-                      <div className="mt-2 space-y-2">
+                    {/* Pending Action - Lost */}
+                    {isPending && pendingAction.type === 'lost' && (
+                      <div className="mt-2 space-y-2 p-2 bg-red-50 rounded-lg border border-red-200">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-red-700">Giá đền bù</span>
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {formatCurrency(itemPrices[item.item_id] || 0)}
+                          </span>
+                        </div>
                         <Textarea
                           value={actionNotes}
                           onChange={(e) => setActionNotes(e.target.value)}
-                          placeholder={pendingAction.type === 'lost' ? 'Lý do mất...' : 'Mô tả hỏng...'}
-                          className="h-14 text-sm"
-                          autoFocus
+                          placeholder="Lý do mất..."
+                          className="h-12 text-sm"
                         />
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="h-8"
+                            onClick={() => handleConfirmAction(item)}
+                          >
+                            Xác nhận mất
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8"
+                            onClick={handleCancelAction}
+                          >
+                            Hủy
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Pending Action - Damaged */}
+                    {isPending && pendingAction.type === 'damaged' && (
+                      <div className="mt-2 space-y-3 p-2 bg-amber-50 rounded-lg border border-amber-200">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-medium text-amber-700">Loại hư hỏng</Label>
+                          <RadioGroup 
+                            value={damageType} 
+                            onValueChange={(v) => handleDamageTypeChange(v as 'repairable' | 'replacement_needed')}
+                            className="flex gap-3"
+                          >
+                            <div className="flex items-center space-x-1.5">
+                              <RadioGroupItem value="repairable" id={`eq-repairable-${item.item_id}`} />
+                              <Label htmlFor={`eq-repairable-${item.item_id}`} className="text-xs cursor-pointer">Cần sửa (50%)</Label>
+                            </div>
+                            <div className="flex items-center space-x-1.5">
+                              <RadioGroupItem value="replacement_needed" id={`eq-replacement-${item.item_id}`} />
+                              <Label htmlFor={`eq-replacement-${item.item_id}`} className="text-xs cursor-pointer">Cần thay (100%)</Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+                        
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs font-medium text-amber-700">Chi phí đền bù</Label>
+                            <span className="text-xs text-muted-foreground">
+                              Giá gốc: {formatCurrency(itemPrices[item.item_id] || 0)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              className="h-8 text-right font-mono text-sm"
+                              value={damageCost > 0 ? damageCost.toString() : ''}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/[^0-9]/g, '')
+                                setDamageCost(parseInt(value) || 0)
+                              }}
+                              placeholder="0"
+                            />
+                            <span className="text-xs text-muted-foreground">đ</span>
+                          </div>
+                        </div>
+                        
+                        <Textarea
+                          value={actionNotes}
+                          onChange={(e) => setActionNotes(e.target.value)}
+                          placeholder="Mô tả hư hỏng..."
+                          className="h-12 text-sm"
+                        />
+                        
                         <div className="flex gap-2">
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-8"
+                            className="h-8 border-amber-300 text-amber-700 hover:bg-amber-100"
                             onClick={() => handleConfirmAction(item)}
                           >
-                            Xác nhận
+                            Xác nhận hỏng
                           </Button>
                           <Button
                             type="button"
@@ -293,10 +411,14 @@ export function EquipmentTab({
                       </div>
                     )}
 
-                    {/* Show notes for damaged items */}
-                    {status === 'damaged' && damagedInfo?.notes && (
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {damagedInfo.notes}
+                    {/* Show info for damaged items */}
+                    {status === 'damaged' && damagedInfo && (
+                      <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
+                        <div className="flex justify-between">
+                          <span>{damagedInfo.damage_type === 'repairable' ? 'Cần sửa' : 'Cần thay thế'}</span>
+                          <span className="font-mono text-amber-600">{formatCurrency(damagedInfo.damage_cost)}</span>
+                        </div>
+                        {damagedInfo.notes && <div>{damagedInfo.notes}</div>}
                       </div>
                     )}
                   </div>
