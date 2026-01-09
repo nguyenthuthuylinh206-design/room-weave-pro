@@ -162,6 +162,57 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         }
       }
     ]
+  },
+  {
+    id: 'room-check-completed-notify',
+    name: 'Kiểm tra phòng xong → Thông báo Manager',
+    description: 'Thông báo cho quản lý khi nhân viên hoàn thành kiểm tra phòng có vấn đề',
+    icon: <ClipboardCheck className="h-5 w-5" />,
+    category: 'housekeeping',
+    trigger: {
+      type: 'room_check_completed',
+      conditions: { has_issues: true }
+    },
+    actions: [
+      {
+        type: 'send_notification',
+        config: {
+          notification_type: 'telegram',
+          telegram_config: {
+            routing_mode: 'level',
+            group_levels: ['management'],
+            hotel_filter: 'dynamic',
+            title: '🔍 Kiểm tra phòng {{room_number}}',
+            message: 'Nhân viên {{staff_name}} đã kiểm tra.\n{{check_type_label}}\n\n⚠️ Vấn đề phát hiện:\n{{issue_summary}}'
+          }
+        }
+      }
+    ]
+  },
+  {
+    id: 'room-setup-completed',
+    name: 'Setup phòng hoàn tất → Log tài sản',
+    description: 'Ghi log khi setup phòng mới/reset phòng hoàn tất',
+    icon: <Package className="h-5 w-5" />,
+    category: 'housekeeping',
+    trigger: {
+      type: 'room_standards_applied',
+      conditions: {}
+    },
+    actions: [
+      {
+        type: 'send_notification',
+        config: {
+          notification_type: 'in_app',
+          in_app_config: {
+            recipient_mode: 'roles',
+            role_ids: ['manager'],
+            title: '✅ Setup phòng {{room_number}}',
+            body: 'Đã thiết lập {{items_count}} items theo tiêu chuẩn {{room_type}}'
+          }
+        }
+      }
+    ]
   }
 ]
 
