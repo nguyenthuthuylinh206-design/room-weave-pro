@@ -68,28 +68,34 @@ export function useRoomSupplements(roomId: string | undefined) {
           .eq('id', item.item_id)
           .single()
 
+        // Calculate derived fields from RPC response
+        const currentQuantity = item.quantity || 0
+        const standardQuantity = item.standard_quantity || 0
+        const missingQuantity = Math.max(0, standardQuantity - currentQuantity)
+        const hasStandard = standardQuantity > 0
+
         const supplementItem: SupplementItem = {
           item_id: item.item_id,
           item_name: item.item_name,
           item_code: item.item_code,
-          item_thumbnail: item.item_thumbnail,
+          item_thumbnail: undefined, // Not returned by RPC
           category_name: item.category_name,
-          standard_quantity: item.standard_quantity || 0,
-          current_quantity: item.current_quantity || 0,
-          missing_quantity: item.missing_quantity || 0,
+          standard_quantity: standardQuantity,
+          current_quantity: currentQuantity,
+          missing_quantity: missingQuantity,
           quantity_in_stock: stockItem?.quantity_in_stock || 0,
           unit_price: stockItem?.unit_price || 0,
-          selected_quantity: item.missing_quantity || 0, // Default to missing qty
+          selected_quantity: missingQuantity, // Default to missing qty
           item_type: item.item_type || stockItem?.item_type || 'equipment',
         }
 
         // Add to missing if has standard and missing > 0
-        if (item.has_standard && (item.missing_quantity || 0) > 0) {
+        if (hasStandard && missingQuantity > 0) {
           missingItems.push(supplementItem)
         }
 
         // Add consumables that might need refill (even if not missing)
-        if ((item.item_type || stockItem?.item_type) === 'consumable' && item.has_standard) {
+        if ((item.item_type || stockItem?.item_type) === 'consumable' && hasStandard) {
           consumableItems.push({
             ...supplementItem,
             selected_quantity: 0, // Default to 0 for extra consumables
