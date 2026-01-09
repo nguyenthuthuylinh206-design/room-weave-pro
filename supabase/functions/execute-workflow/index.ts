@@ -21,7 +21,6 @@ interface Workflow {
   id: string
   name: string
   trigger_type: string
-  trigger_config: Record<string, any>
   conditions: Record<string, any>[]
   status: string
 }
@@ -56,14 +55,13 @@ Deno.serve(async (req) => {
         id,
         name,
         trigger_type,
-        trigger_config,
         conditions,
         status,
         workflow_actions (
           id,
           action_type,
           action_config,
-          execution_order
+          order_index
         )
       `)
       .eq('tenant_id', tenant_id)
@@ -100,9 +98,9 @@ Deno.serve(async (req) => {
 
         console.log(`[execute-workflow] Executing workflow: ${workflow.name}`)
 
-        // Sort actions by execution_order
+        // Sort actions by order_index
         const actions = (workflow.workflow_actions || []).sort(
-          (a: any, b: any) => (a.execution_order || 0) - (b.execution_order || 0)
+          (a: any, b: any) => (a.order_index || 0) - (b.order_index || 0)
         )
 
         const actionResults: any[] = []
@@ -128,9 +126,9 @@ Deno.serve(async (req) => {
         await supabase.from('workflow_executions').insert({
           workflow_id: workflow.id,
           trigger_data: event_data,
-          executed_at: new Date().toISOString(),
+          started_at: new Date().toISOString(),
           status: actionResults.every(r => r.success) ? 'success' : 'partial',
-          result: { actions: actionResults },
+          execution_log: { actions: actionResults },
         })
 
         // Update workflow statistics
@@ -154,9 +152,9 @@ Deno.serve(async (req) => {
         await supabase.from('workflow_executions').insert({
           workflow_id: workflow.id,
           trigger_data: event_data,
-          executed_at: new Date().toISOString(),
+          started_at: new Date().toISOString(),
           status: 'failed',
-          result: { error: String(workflowError) },
+          execution_log: { error: String(workflowError) },
         })
 
         results.push({

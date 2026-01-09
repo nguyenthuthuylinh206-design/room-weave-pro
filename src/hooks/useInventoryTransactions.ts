@@ -5,6 +5,7 @@ import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
 import { useToast } from '@/components/ui/use-toast'
+import { triggerWorkflow, WorkflowTriggerTypes } from '@/lib/triggerWorkflow'
 import type { 
   TransactionWithDetails, 
   InventoryFilters,
@@ -194,11 +195,26 @@ export function useCreateOutboundTransaction() {
       
       return response
     },
-    onSuccess: (result: any) => {
+    onSuccess: (result: any, variables) => {
       queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
       queryClient.invalidateQueries({ queryKey: ['inventory-dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
       queryClient.invalidateQueries({ queryKey: ['low-stock-items'] })
+      
+      // Trigger workflow for low stock items
+      if (result.low_stock_items && result.low_stock_items.length > 0 && tenant?.id) {
+        for (const itemName of result.low_stock_items) {
+          triggerWorkflow({
+            triggerType: WorkflowTriggerTypes.INVENTORY_LOW_STOCK,
+            eventData: {
+              item_name: itemName,
+              alert_type: 'below_minimum',
+            },
+            tenantId: tenant.id,
+            hotelId: selectedHotel?.id,
+          }).catch(err => console.error('[triggerWorkflow] inventory_low_stock error:', err))
+        }
+      }
       
       let description = `Đã xuất ${result.total_items} loại hàng`
       

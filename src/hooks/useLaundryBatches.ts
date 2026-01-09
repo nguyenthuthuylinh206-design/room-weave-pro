@@ -5,6 +5,7 @@ import { useHotelContext } from '@/contexts/HotelContext'
 import { useTenant } from './useTenant'
 import { toast } from './use-toast'
 import { isAdminUser } from '@/lib/userAccess'
+import { triggerWorkflow, WorkflowTriggerTypes } from '@/lib/triggerWorkflow'
 import type { 
   LaundryBatchWithVendor, 
   LaundryBatchFilters,
@@ -285,6 +286,8 @@ export function useReceiveLaundryBatch() {
 
 export function useUpdateBatchStatus() {
   const queryClient = useQueryClient()
+  const { tenant } = useTenant()
+  const { selectedHotel } = useHotelContext()
   
   const ALLOWED_TRANSITIONS: Record<string, string[]> = {
     delivered: ['ready'],
@@ -339,6 +342,19 @@ export function useUpdateBatchStatus() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['laundry-batch', variables.batchId] })
       queryClient.invalidateQueries({ queryKey: ['laundry-batches'] })
+      
+      // Trigger workflow for laundry batch status change
+      if (tenant?.id) {
+        triggerWorkflow({
+          triggerType: WorkflowTriggerTypes.LAUNDRY_BATCH_STATUS_CHANGE,
+          eventData: {
+            batch_id: variables.batchId,
+            new_status: variables.status,
+          },
+          tenantId: tenant.id,
+          hotelId: selectedHotel?.id,
+        }).catch(err => console.error('[triggerWorkflow] laundry_batch_status_change error:', err))
+      }
       
       toast({
         title: 'Thành công',
