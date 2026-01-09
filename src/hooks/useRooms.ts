@@ -5,6 +5,7 @@ import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
 import { triggerRoomCheckoutNotification, triggerRoomCheckinNotification } from '@/hooks/useNotificationTriggers'
+import { triggerWorkflow, WorkflowTriggerTypes } from '@/lib/triggerWorkflow'
 import type { RoomWithStats, RoomFilters } from '@/types/rooms.types'
 import { isAdminUser } from '@/lib/userAccess'
 
@@ -260,6 +261,21 @@ export function useUpdateRoom() {
         .single()
       
       if (error) throw error
+      
+      // Trigger workflow for room status change
+      if (previousStatus && data.status !== previousStatus && tenantId) {
+        triggerWorkflow({
+          triggerType: WorkflowTriggerTypes.ROOM_STATUS_CHANGE,
+          eventData: {
+            room_id: id,
+            room_number: room.room_number,
+            old_status: previousStatus,
+            new_status: data.status,
+          },
+          tenantId,
+          hotelId: room.hotel_id,
+        }).catch(err => console.error('[triggerWorkflow] room_status_change error:', err))
+      }
       
       // Send notification when status changes to check_out
       if (data.status === 'check_out' && previousStatus !== 'check_out' && tenantId && room.hotel_id) {

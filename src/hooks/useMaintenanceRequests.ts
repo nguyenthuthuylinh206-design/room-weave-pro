@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { isAdminUser } from '@/lib/userAccess'
+import { triggerWorkflow, WorkflowTriggerTypes } from '@/lib/triggerWorkflow'
 
 export interface MaintenanceRequest {
   id: string
@@ -197,6 +198,24 @@ export function useCreateMaintenanceRequest() {
     },
     onSuccess: async (request) => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] })
+      
+      // Trigger workflow for new maintenance request
+      if (tenantId && selectedHotel?.id) {
+        triggerWorkflow({
+          triggerType: WorkflowTriggerTypes.MAINTENANCE_REQUEST_CREATED,
+          eventData: {
+            request_id: request.id,
+            request_code: request.request_code,
+            title: request.title,
+            description: request.description,
+            priority: request.priority,
+            issue_type: request.issue_type,
+            location: request.location,
+          },
+          tenantId,
+          hotelId: selectedHotel.id,
+        }).catch(err => console.error('[triggerWorkflow] maintenance_request_created error:', err))
+      }
       
       // Trigger notification for new maintenance request - notify managers
       if (user?.id && tenantId && selectedHotel?.id) {

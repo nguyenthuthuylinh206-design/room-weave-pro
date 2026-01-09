@@ -1,11 +1,38 @@
 import { useState } from 'react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Plus, Workflow, Bell, Package, Wrench, Shirt } from 'lucide-react'
 import { useWorkflows } from '@/hooks/useWorkflows'
 import { WorkflowsList } from '@/components/settings/workflows/WorkflowsList'
 import { CreateWorkflowDialog } from '@/components/settings/workflows/CreateWorkflowDialog'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+
+const WORKFLOW_SUGGESTIONS = [
+  {
+    icon: Bell,
+    title: 'Thông báo checkout',
+    description: 'Gửi thông báo Telegram cho bộ phận buồng phòng khi có phòng checkout',
+    trigger: 'room_status_change',
+  },
+  {
+    icon: Package,
+    title: 'Cảnh báo hết hàng',
+    description: 'Thông báo khi tồn kho xuống dưới mức tối thiểu',
+    trigger: 'inventory_low_stock',
+  },
+  {
+    icon: Wrench,
+    title: 'Bảo trì khẩn cấp',
+    description: 'Thông báo ngay cho quản lý khi có yêu cầu bảo trì urgent',
+    trigger: 'maintenance_request_created',
+  },
+  {
+    icon: Shirt,
+    title: 'Nhận đồ giặt',
+    description: 'Thông báo khi lô giặt sẵn sàng để nhận',
+    trigger: 'laundry_batch_status_change',
+  },
+]
 
 export default function WorkflowsPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
@@ -17,12 +44,12 @@ export default function WorkflowsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Workflow Automation"
-        description="Automate repetitive tasks with custom workflows"
+        title="Quy trình tự động"
+        description="Tự động hóa các tác vụ lặp lại với workflow"
       >
         <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Create Workflow
+          Tạo workflow
         </Button>
       </PageHeader>
 
@@ -33,7 +60,7 @@ export default function WorkflowsPage() {
           {activeWorkflows.length > 0 && (
             <div>
               <h3 className="text-lg font-semibold mb-4">
-                Active Workflows ({activeWorkflows.length})
+                Đang hoạt động ({activeWorkflows.length})
               </h3>
               <WorkflowsList workflows={activeWorkflows} />
             </div>
@@ -42,21 +69,52 @@ export default function WorkflowsPage() {
           {inactiveWorkflows.length > 0 && (
             <div>
               <h3 className="text-lg font-semibold mb-4">
-                Inactive Workflows ({inactiveWorkflows.length})
+                Tạm dừng ({inactiveWorkflows.length})
               </h3>
               <WorkflowsList workflows={inactiveWorkflows} />
             </div>
           )}
 
           {workflows && workflows.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              <p className="text-lg mb-4">No workflows yet</p>
-              <p className="text-sm mb-6">
-                Create your first workflow to automate repetitive tasks
-              </p>
-              <Button onClick={() => setCreateDialogOpen(true)}>
+            <div className="text-center py-12 space-y-6">
+              <div className="flex justify-center">
+                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                  <Workflow className="h-8 w-8 text-muted-foreground" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-medium">Chưa có quy trình tự động</h3>
+                <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+                  Tạo workflow để tự động hóa các tác vụ như thông báo khi checkout, 
+                  cảnh báo hết hàng, hoặc gửi báo cáo định kỳ.
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
+                {WORKFLOW_SUGGESTIONS.map((suggestion, idx) => (
+                  <div 
+                    key={idx}
+                    className="border rounded-lg p-4 text-left hover:bg-muted/50 transition-colors cursor-pointer"
+                    onClick={() => setCreateDialogOpen(true)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <suggestion.icon className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm">{suggestion.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                          {suggestion.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <Button onClick={() => setCreateDialogOpen(true)} className="mt-4">
                 <Plus className="h-4 w-4 mr-2" />
-                Create Your First Workflow
+                Tạo workflow đầu tiên
               </Button>
             </div>
           )}
