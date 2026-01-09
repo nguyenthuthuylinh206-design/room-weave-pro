@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileAdjustmentDetail } from '@/components/inventory/MobileAdjustmentDetail'
 import { PostApprovalActions } from '@/components/inventory/adjustments/PostApprovalActions'
+import { isAdminUser, isManager } from '@/lib/userAccess'
 import { 
   ArrowLeft, 
   CheckCircle, 
@@ -88,7 +89,7 @@ export function AdjustmentDetailPage() {
   
   const canApprove = 
     adjustment.status === 'completed' && 
-    (user?.role === 'hotel_manager' || user?.role === 'owner')
+    (isAdminUser(user as any) || isManager(user as any))
   
   const handleApprove = () => {
     if (!id) return
