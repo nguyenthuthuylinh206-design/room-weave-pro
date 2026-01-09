@@ -3,8 +3,13 @@ import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
 import { useToast } from '@/hooks/use-toast'
 import { useImageUpload } from './useImageUpload'
-import { sendNotificationByRole } from '@/lib/notifications'
 import { triggerWorkflow } from '@/lib/triggerWorkflow'
+import { 
+  createMultipleNotifications, 
+  sendMultiplePushNotifications,
+  sendTelegramNotification
+} from '@/hooks/useNotificationTriggers'
+import { getNotificationRecipients } from '@/utils/notificationRecipients'
 import type { RoomCheckFormData } from '@/types/rooms.types'
 
 export function useRoomChecks(roomId: string | undefined) {
@@ -381,20 +386,58 @@ export function useCreateRoomCheck() {
           ? summaryParts.join(', ')
           : 'Không có vấn đề'
         
-        // Send checkout report to hotel manager using in_app_notifications
-        await sendNotificationByRole({
+        // Send checkout report to hotel managers using new notification system
+        const checkoutRecipients = await getNotificationRecipients({
           tenantId: tenantId!,
-          role: 'hotel_manager',
-          title: `Báo cáo checkout phòng ${roomNumber}`,
-          body: summaryMessage,
-          type: hasIssues ? 'warning' : 'success',
-          actionUrl: `/rooms/${roomId}?tab=history`,
-          metadata: {
-            room_id: roomId,
-            check_id: check.id,
-            check_type: 'checkout',
-          },
+          hotelId,
+          targetRoles: ['manager'],
+          excludeUserId: user?.id,
         })
+        
+        // If user is the only staff, include them in recipients
+        const recipientIds = checkoutRecipients.length > 0 
+          ? checkoutRecipients.map(r => r.id)
+          : user?.id ? [user.id] : []
+        
+        if (recipientIds.length > 0) {
+          const notificationTitle = `Báo cáo checkout phòng ${roomNumber}`
+          const notificationType = hasIssues ? 'warning' : 'success'
+          const actionUrl = `/rooms/${roomId}?tab=history`
+          
+          await Promise.allSettled([
+            createMultipleNotifications({
+              recipientIds,
+              tenantId: tenantId!,
+              title: notificationTitle,
+              body: summaryMessage,
+              type: notificationType,
+              actionUrl,
+              metadata: {
+                room_id: roomId,
+                check_id: check.id,
+                check_type: 'checkout',
+              },
+            }),
+            sendMultiplePushNotifications({
+              recipientIds,
+              tenantId: tenantId!,
+              title: notificationTitle,
+              body: summaryMessage,
+              actionUrl,
+              notificationType,
+            }),
+            sendTelegramNotification({
+              tenantId: tenantId!,
+              hotelId,
+              notificationTypeFilter: 'checkout',
+              sendToManagementGroups: true,
+              title: notificationTitle,
+              message: summaryMessage,
+              notificationType: 'checkout',
+              actionUrl,
+            }),
+          ])
+        }
         
         // Auto-change room status to cleaning after checkout
         await supabase
@@ -406,18 +449,44 @@ export function useCreateRoomCheck() {
       // Create notification for managers about check completion (non-checkout)
       const totalIssues = (data.items_missing?.length || 0) + (data.items_damaged?.length || 0)
       if (totalIssues > 0 && data.check_type !== 'checkout') {
-        await sendNotificationByRole({
+        const issueRecipients = await getNotificationRecipients({
           tenantId: tenantId!,
-          role: 'hotel_manager',
-          title: `Kiểm tra phòng ${roomNumber} phát hiện vấn đề`,
-          body: `Phòng có ${totalIssues} vấn đề cần xử lý`,
-          type: 'warning',
-          actionUrl: `/rooms/${roomId}`,
-          metadata: {
-            room_id: roomId,
-            check_type: data.check_type,
-          },
+          hotelId,
+          targetRoles: ['manager'],
+          excludeUserId: user?.id,
         })
+        
+        const issueRecipientIds = issueRecipients.length > 0 
+          ? issueRecipients.map(r => r.id)
+          : user?.id ? [user.id] : []
+        
+        if (issueRecipientIds.length > 0) {
+          const issueTitle = `Kiểm tra phòng ${roomNumber} phát hiện vấn đề`
+          const issueBody = `Phòng có ${totalIssues} vấn đề cần xử lý`
+          
+          await Promise.allSettled([
+            createMultipleNotifications({
+              recipientIds: issueRecipientIds,
+              tenantId: tenantId!,
+              title: issueTitle,
+              body: issueBody,
+              type: 'warning',
+              actionUrl: `/rooms/${roomId}`,
+              metadata: {
+                room_id: roomId,
+                check_type: data.check_type,
+              },
+            }),
+            sendMultiplePushNotifications({
+              recipientIds: issueRecipientIds,
+              tenantId: tenantId!,
+              title: issueTitle,
+              body: issueBody,
+              actionUrl: `/rooms/${roomId}`,
+              notificationType: 'warning',
+            }),
+          ])
+        }
       }
       
       // Trigger workflow for room check completed
