@@ -1123,6 +1123,8 @@ export function RoomBookingDialog({
         guestName={guestName}
         roomNumber={roomNumber}
         actualCheckoutTime={format(new Date(), 'HH:mm')}
+        actualCheckoutDate={new Date()}
+        scheduledCheckoutDate={booking?.check_out_date ? new Date(booking.check_out_date) : new Date()}
         costBreakdown={costBreakdown}
         onConfirmCheckout={performCheckOut}
         onPayAndCheckout={handlePayAndCheckout}
