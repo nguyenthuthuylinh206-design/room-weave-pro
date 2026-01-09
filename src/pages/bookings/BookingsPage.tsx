@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { format, isToday, isTomorrow, isPast, differenceInDays } from 'date-fns'
+import { format, isToday, isTomorrow, isPast, differenceInDays, startOfDay, isBefore, isAfter } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -50,6 +50,7 @@ import { RoomBookingDialog } from '@/components/rooms/RoomBookingDialog'
 import { AddBookingDialog } from '@/components/bookings/AddBookingDialog'
 import { CheckoutSummaryDialog } from '@/components/bookings/CheckoutSummaryDialog'
 import { CheckInConfirmDialog } from '@/components/bookings/CheckInConfirmDialog'
+import { ExtendBookingDialog } from '@/components/bookings/ExtendBookingDialog'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
 import { formatCurrency } from '@/lib/utils'
 import { BOOKING_SOURCES, OTA_SOURCES } from '@/lib/constants'
@@ -112,6 +113,7 @@ export function BookingsPage() {
   // States for check-in/check-out dialogs
   const [showCheckinConfirm, setShowCheckinConfirm] = useState(false)
   const [showCheckoutSummary, setShowCheckoutSummary] = useState(false)
+  const [showExtendDialog, setShowExtendDialog] = useState(false)
   const [actionBooking, setActionBooking] = useState<BookingWithRoom | null>(null)
   const [suggestedEarlyCharge, setSuggestedEarlyCharge] = useState(0)
   const [checkoutCostBreakdown, setCheckoutCostBreakdown] = useState<BookingCostBreakdown | null>(null)
@@ -216,9 +218,22 @@ export function BookingsPage() {
     }
   }
 
-  // Handle Check-in click - show dialog if early check-in
+  // Handle Check-in click - validate date first, then show dialog if early check-in
   const handleCheckInClick = (booking: BookingWithRoom) => {
     const now = new Date()
+    const today = startOfDay(now)
+    const checkInDate = startOfDay(new Date(booking.check_in_date))
+
+    // Block check-in if today is before check_in_date (not same day)
+    if (isBefore(today, checkInDate)) {
+      toast({
+        variant: 'destructive',
+        title: 'Chưa đến ngày nhận phòng',
+        description: `Lịch nhận phòng: ${format(checkInDate, 'dd/MM/yyyy', { locale: vi })}. Vui lòng thay đổi lịch đặt nếu muốn nhận sớm.`,
+      })
+      return
+    }
+
     const actualTime = format(now, 'HH:mm')
     const hours = parseInt(actualTime.split(':')[0])
     const roomPrice = (booking as any).room_price || 0
@@ -295,13 +310,24 @@ export function BookingsPage() {
     }
   }
 
-  // Handle Check-out click - show summary dialog
+  // Handle Check-out click - validate date first, then show summary dialog
   const handleCheckOutClick = async (booking: BookingWithRoom) => {
+    const now = new Date()
+    const today = startOfDay(now)
+    const checkOutDate = startOfDay(new Date(booking.check_out_date))
+
+    // Block checkout if today is after check_out_date (overdue)
+    if (isAfter(today, checkOutDate)) {
+      // Show extend booking dialog
+      setActionBooking(booking)
+      setShowExtendDialog(true)
+      return
+    }
+
     setActionBooking(booking)
     setIsActionLoading(true)
 
     try {
-      const now = new Date()
       const actualTime = format(now, 'HH:mm')
       const roomPrice = (booking as any).room_price || 0
       const calculatedLateCharge = calculateLateCheckoutCharge(actualTime, roomPrice)
@@ -846,6 +872,21 @@ export function BookingsPage() {
           onConfirmCheckout={performCheckOut}
           onPayAndCheckout={handlePayAndCheckout}
           isLoading={isActionLoading}
+        />
+      )}
+
+      {/* Extend Booking Dialog - for overdue checkout */}
+      {actionBooking && (
+        <ExtendBookingDialog
+          open={showExtendDialog}
+          onOpenChange={(open) => {
+            setShowExtendDialog(open)
+            if (!open) setActionBooking(null)
+          }}
+          booking={actionBooking}
+          onSuccess={() => {
+            setActionBooking(null)
+          }}
         />
       )}
     </div>
