@@ -1,9 +1,8 @@
-import { useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Package, DollarSign, AlertTriangle, XCircle, SlidersHorizontal, X } from 'lucide-react'
+import { useState, useCallback, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Plus, Search, Package, DollarSign, AlertTriangle, XCircle, SlidersHorizontal, X, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PermissionGate } from '@/components/auth/PermissionGate'
-import { useHasPermission } from '@/hooks/usePermission'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
@@ -17,8 +16,14 @@ import { formatCurrency } from '@/lib/utils'
 
 export function MobileItemsPage() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  
+  // Get category filter from URL
+  const categoryIdFromUrl = searchParams.get('categoryId')
+  
   const [filters, setFilters] = useState<ItemFilters>({
     status: 'active',
+    categoryId: categoryIdFromUrl || undefined,
   })
   const [page, setPage] = useState(1)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
@@ -26,6 +31,19 @@ export function MobileItemsPage() {
   
   const { data, isLoading, refetch } = useItems(filters, page, 25)
   const { data: categories } = useCategories()
+  
+  // Sync URL params to filters
+  useEffect(() => {
+    if (categoryIdFromUrl && categoryIdFromUrl !== filters.categoryId) {
+      setFilters(prev => ({ ...prev, categoryId: categoryIdFromUrl }))
+      setPage(1)
+    }
+  }, [categoryIdFromUrl])
+  
+  // Get current category name for header
+  const currentCategoryName = categoryIdFromUrl 
+    ? categories?.find(c => c.id === categoryIdFromUrl)?.name 
+    : null
   
   const handleRefresh = useCallback(async () => {
     await refetch()
@@ -48,6 +66,11 @@ export function MobileItemsPage() {
     handleFilterChange({ search: '' })
   }
   
+  const clearCategoryFilter = () => {
+    setSearchParams({})
+    handleFilterChange({ categoryId: undefined })
+  }
+  
   const activeStockStatus = filters.stockStatus || 'all'
   const activeFiltersCount = [filters.categoryId, filters.stockStatus].filter(Boolean).length
   
@@ -58,19 +81,40 @@ export function MobileItemsPage() {
   ) || 0
   const lowStockCount = data?.items.filter(item => item.stock_status === 'low_stock').length || 0
   const outOfStockCount = data?.items.filter(item => item.stock_status === 'out_of_stock').length || 0
-  const categoriesCount = categories?.length || 0
-  
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-background border-b">
         <div className="p-3 space-y-2">
           {/* Title & Add Button */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-lg font-semibold">Tài sản</h1>
+          <div className="flex items-center gap-3">
+            {currentCategoryName && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={clearCategoryFilter}
+                className="shrink-0 h-9 w-9"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            )}
+            <div className="flex-1">
+              <h1 className="text-lg font-semibold">
+                {currentCategoryName || 'Tài sản'}
+              </h1>
               <p className="text-xs text-muted-foreground">{totalItems} sản phẩm</p>
             </div>
+            {currentCategoryName && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearCategoryFilter}
+                className="h-8 text-xs"
+              >
+                <X className="h-3 w-3 mr-1" />
+                Xóa lọc
+              </Button>
+            )}
             <PermissionGate module="items" action="create">
               <Button
                 size="sm"
