@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { 
@@ -12,8 +12,8 @@ import {
   CheckCircle2,
   XCircle,
   Package,
+  RotateCcw,
 } from 'lucide-react'
-import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
@@ -25,10 +25,21 @@ import { GuestInfoCard } from '@/components/rooms/GuestInfoCard'
 import { MobileRoomDetailPage } from '@/components/rooms/MobileRoomDetailPage'
 import { useRoom } from '@/hooks/useRooms'
 import { useApplyStandards } from '@/hooks/useRoomStandards'
+import { useSetupRoom } from '@/hooks/useSetupRoom'
 import { useRoomDistributionHistory } from '@/hooks/useRoomDistributionHistory'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { formatCurrency } from '@/lib/utils'
 import { PermissionGate } from '@/components/auth/PermissionGate'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 export function RoomDetailPage() {
   const { t } = useTranslation(['rooms', 'common', 'distribution'])
@@ -37,8 +48,10 @@ export function RoomDetailPage() {
   const navigate = useNavigate()
   const { data, isLoading } = useRoom(id)
   const applyStandards = useApplyStandards()
+  const setupRoom = useSetupRoom()
   const { data: deliveryHistory } = useRoomDistributionHistory(id)
   const deliveryRef = useRef<HTMLDivElement>(null)
+  const [showResetDialog, setShowResetDialog] = useState(false)
   
   // Count pending deliveries
   const pendingDeliveryCount = deliveryHistory?.filter(
@@ -352,6 +365,16 @@ export function RoomDetailPage() {
               {standardItems.length === 0 ? 'Áp dụng tiêu chuẩn' : 'Đồng bộ tiêu chuẩn'}
             </Button>
             <Button 
+              variant="outline"
+              size="sm"
+              className="w-full justify-start h-8 text-xs text-amber-600 hover:text-amber-700"
+              onClick={() => setShowResetDialog(true)}
+              disabled={setupRoom.isPending}
+            >
+              <RotateCcw className={`mr-2 h-3.5 w-3.5 ${setupRoom.isPending ? 'animate-spin' : ''}`} />
+              Reset phòng
+            </Button>
+            <Button 
               variant="outline" 
               size="sm"
               className="w-full justify-start h-8 text-xs"
@@ -363,6 +386,36 @@ export function RoomDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Reset Room Confirmation Dialog */}
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset phòng {room.room_number}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Thao tác này sẽ:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Xóa tất cả đồ dùng không có trong tiêu chuẩn</li>
+                <li>Đặt lại số lượng theo tiêu chuẩn phòng {room.room_type}</li>
+              </ul>
+              <p className="mt-2 font-medium text-amber-600">Hành động này không thể hoàn tác.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setupRoom.mutate({ roomId: id!, reset: true })
+                setShowResetDialog(false)
+              }}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Reset phòng
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

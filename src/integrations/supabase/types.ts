@@ -6009,7 +6009,7 @@ export type Database = {
       }
       apply_room_standards:
         | { Args: { p_room_id: string }; Returns: Json }
-        | { Args: { p_room_id: string; p_user_id: string }; Returns: Json }
+        | { Args: { p_room_id: string; p_user_id?: string }; Returns: Json }
       approve_tenant: {
         Args: { p_admin_id: string; p_tenant_id: string }
         Returns: Json
@@ -7211,6 +7211,14 @@ export type Database = {
             }
             Returns: Json
           }
+      setup_room_initial: {
+        Args: {
+          p_reset_quantities?: boolean
+          p_room_id: string
+          p_user_id?: string
+        }
+        Returns: Json
+      }
       sync_categories_for_hotel: {
         Args: { p_hotel_id: string; p_tenant_id: string }
         Returns: Json
