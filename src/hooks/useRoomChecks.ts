@@ -4,6 +4,7 @@ import { useUser } from './useUser'
 import { useToast } from '@/hooks/use-toast'
 import { useImageUpload } from './useImageUpload'
 import { sendNotificationByRole } from '@/lib/notifications'
+import { triggerWorkflow } from '@/lib/triggerWorkflow'
 import type { RoomCheckFormData } from '@/types/rooms.types'
 
 export function useRoomChecks(roomId: string | undefined) {
@@ -417,6 +418,37 @@ export function useCreateRoomCheck() {
             check_type: data.check_type,
           },
         })
+      }
+      
+      // Trigger workflow for room check completed
+      if (tenantId) {
+        const hasIssues = 
+          (data.items_missing?.length || 0) > 0 ||
+          (data.items_damaged?.length || 0) > 0 ||
+          (data.items_lost?.length || 0) > 0
+        
+        await triggerWorkflow({
+          triggerType: 'room_check_completed',
+          eventData: {
+            room_id: roomId,
+            room_number: roomNumber,
+            check_type: data.check_type,
+            check_id: check.id,
+            has_issues: hasIssues,
+            missing_count: data.items_missing?.length || 0,
+            damaged_count: data.items_damaged?.length || 0,
+            lost_count: data.items_lost?.length || 0,
+            laundry_count: data.items_sent_to_laundry?.length || 0,
+            consumed_count: data.items_consumed?.length || 0,
+            cleanliness_score: data.cleanliness_score,
+            staff_name: user?.full_name || 'Nhân viên',
+            issue_summary: hasIssues 
+              ? `Thiếu ${data.items_missing?.length || 0}, Hỏng ${data.items_damaged?.length || 0}, Mất ${data.items_lost?.length || 0}`
+              : 'Không có vấn đề',
+          },
+          tenantId,
+          hotelId,
+        }).catch(err => console.error('Workflow trigger failed:', err))
       }
       
       return check

@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.expire-pending-payments]
 verify_jwt = false
+
+[functions.execute-workflow]
+verify_jwt = false

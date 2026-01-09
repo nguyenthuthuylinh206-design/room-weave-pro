@@ -6820,24 +6820,19 @@ export type Database = {
       get_room_items_with_standards: {
         Args: { p_room_id: string }
         Returns: {
-          category_color: string
           category_id: string
           category_name: string
-          current_quantity: number
-          has_standard: boolean
-          is_verified: boolean
+          condition: string
+          id: string
           item_code: string
-          item_condition: string
           item_id: string
           item_name: string
-          item_thumbnail: string
           item_type: string
-          item_unit: string
-          missing_quantity: number
-          room_item_id: string
+          notes: string
+          quantity: number
+          room_id: string
           standard_quantity: number
-          verified_at: string
-          verified_by: string
+          unit: string
         }[]
       }
       get_room_standards: {
@@ -7086,6 +7081,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      increment_workflow_stats: {
+        Args: { p_success: boolean; p_workflow_id: string }
+        Returns: undefined
+      }
       is_distribution_leader: { Args: { _user_id: string }; Returns: boolean }
       is_level_higher_or_equal: {
         Args: { _min_level_code: string; _user_id: string }
@@ -7211,14 +7210,19 @@ export type Database = {
             }
             Returns: Json
           }
-      setup_room_initial: {
-        Args: {
-          p_reset_quantities?: boolean
-          p_room_id: string
-          p_user_id?: string
-        }
-        Returns: Json
-      }
+      setup_room_initial:
+        | {
+            Args: { p_reset_quantities?: boolean; p_room_id: string }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_reset_quantities?: boolean
+              p_room_id: string
+              p_user_id?: string
+            }
+            Returns: Json
+          }
       sync_categories_for_hotel: {
         Args: { p_hotel_id: string; p_tenant_id: string }
         Returns: Json
