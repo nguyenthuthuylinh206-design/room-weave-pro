@@ -45,13 +45,23 @@ import {
 import { supabase } from '@/integrations/supabase/client'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useTenant } from '@/hooks/useTenant'
+import { useToast } from '@/hooks/use-toast'
 import { RoomBookingDialog } from '@/components/rooms/RoomBookingDialog'
 import { AddBookingDialog } from '@/components/bookings/AddBookingDialog'
+import { CheckoutSummaryDialog } from '@/components/bookings/CheckoutSummaryDialog'
+import { CheckInConfirmDialog } from '@/components/bookings/CheckInConfirmDialog'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
-import { useBookingActions } from '@/hooks/useBookingActions'
 import { formatCurrency } from '@/lib/utils'
 import { BOOKING_SOURCES, OTA_SOURCES } from '@/lib/constants'
 import type { RoomStatus } from '@/types/rooms.types'
+import {
+  calculateBookingCost,
+  calculateEarlyCheckinCharge,
+  calculateLateCheckoutCharge,
+  DEFAULT_PRICING_RULES,
+  type BookingCostBreakdown,
+} from '@/lib/bookingCalculations'
+import { calculateServiceChargesFromConsumables } from '@/hooks/usePricingRules'
 
 type BookingStatus = 'all' | 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show'
 
