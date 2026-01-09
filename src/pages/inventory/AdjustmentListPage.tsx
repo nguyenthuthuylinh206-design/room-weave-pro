@@ -37,7 +37,7 @@ import { MobileAdjustmentCard } from '@/components/inventory/MobileAdjustmentCar
 const statusConfig = {
   draft: { icon: Clock, color: 'text-muted-foreground', label: 'Nháp' },
   in_progress: { icon: ClipboardCheck, color: 'text-blue-600', label: 'Đang kiểm' },
-  completed: { icon: Clock, color: 'text-yellow-600', label: 'Hoàn thành' },
+  completed: { icon: Clock, color: 'text-yellow-600', label: 'Chờ duyệt' },
   approved: { icon: CheckCircle, color: 'text-green-600', label: 'Đã duyệt' },
   rejected: { icon: XCircle, color: 'text-red-600', label: 'Từ chối' },
 }
@@ -220,7 +220,10 @@ export function AdjustmentListPage() {
                 return (
                   <TableRow
                     key={adjustment.id}
-                    className="cursor-pointer hover:bg-muted/50"
+                    className={cn(
+                      "cursor-pointer hover:bg-muted/50",
+                      adjustment.status === 'completed' && "bg-yellow-50 dark:bg-yellow-950/20"
+                    )}
                     onClick={() => navigate(`/inventory/adjustments/${adjustment.id}`)}
                   >
                     <TableCell className="font-medium text-sm py-2">
