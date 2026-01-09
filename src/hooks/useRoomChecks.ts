@@ -33,6 +33,14 @@ export function useRoomChecks(roomId: string | undefined) {
   })
 }
 
+// Helper to generate transaction code for inventory tracking
+function generateTransactionCode(prefix: string): string {
+  const now = new Date()
+  const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`
+  const random = Math.floor(1000 + Math.random() * 9000)
+  return `${prefix}-${timestamp}-${random}`
+}
+
 export function useCreateRoomCheck() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -49,8 +57,19 @@ export function useCreateRoomCheck() {
       data: RoomCheckFormData
       itemQuantities?: Record<string, number>
     }) => {
-      // Create room check record
+      // Get room info first for transaction records
+      const { data: room, error: roomError } = await supabase
+        .from('rooms')
+        .select('hotel_id, room_number')
+        .eq('id', roomId)
+        .single()
+      
+      if (roomError) throw roomError
+      
+      const hotelId = room.hotel_id
+      const roomNumber = room.room_number
 
+      // Create room check record
       const insertData = {
         room_id: roomId,
         checked_by: user?.id,
@@ -112,7 +131,6 @@ export function useCreateRoomCheck() {
             for (const photoUrl of oldCheck.photos) {
               try {
                 // Extract path from URL
-                // URL format: https://xxx.supabase.co/storage/v1/object/public/item-images/tenantId/filename.jpg
                 const urlParts = photoUrl.split('/item-images/')
                 if (urlParts.length > 1) {
                   const path = urlParts[1]
@@ -120,7 +138,6 @@ export function useCreateRoomCheck() {
                 }
               } catch (error) {
                 console.error('Error deleting old photo:', error)
-                // Don't throw error, continue deleting other photos
               }
             }
 
@@ -144,21 +161,29 @@ export function useCreateRoomCheck() {
       }
       
       // Update quantity_in_laundry in items table for laundry items
+      // With stock validation to prevent negative values
       if (laundryItems.length > 0) {
         for (const item of laundryItems) {
-          // Use direct update instead of RPC to avoid type issues
           const { data: currentItem } = await supabase
             .from('items')
-            .select('quantity_in_laundry, quantity_in_stock')
+            .select('quantity_in_laundry, quantity_in_stock, name')
             .eq('id', item.item_id)
             .single()
           
           if (currentItem) {
+            const currentStock = currentItem.quantity_in_stock || 0
+            // Don't deduct more than available stock
+            const actualDeduct = Math.min(item.quantity, currentStock)
+            
+            if (actualDeduct < item.quantity) {
+              console.warn(`Stock mismatch for ${currentItem.name}: requested ${item.quantity} for laundry, only ${actualDeduct} in stock`)
+            }
+            
             const { error: updateError } = await supabase
               .from('items')
               .update({
                 quantity_in_laundry: (currentItem.quantity_in_laundry || 0) + item.quantity,
-                quantity_in_stock: Math.max(0, (currentItem.quantity_in_stock || 0) - item.quantity),
+                quantity_in_stock: Math.max(0, currentStock - actualDeduct),
               })
               .eq('id', item.item_id)
             
@@ -169,14 +194,97 @@ export function useCreateRoomCheck() {
         }
       }
       
-      // 2. Đồ mất → Giảm quantity
-      for (const item of data.items_lost || []) {
+      // 2. Đồ mất → Giảm quantity, tạo inventory transaction
+      const lostItems = data.items_lost || []
+      for (const item of lostItems) {
         quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) - item.quantity
+        
+        // Create inventory transaction for lost items
+        if (tenantId && user?.id) {
+          const { data: currentItem } = await supabase
+            .from('items')
+            .select('quantity_in_stock, quantity_lost, unit_price')
+            .eq('id', item.item_id)
+            .single()
+          
+          if (currentItem) {
+            const quantityBefore = currentItem.quantity_in_stock || 0
+            const quantityAfter = Math.max(0, quantityBefore - item.quantity)
+            
+            // Create outbound transaction for lost items
+            await supabase.from('inventory_transactions').insert({
+              tenant_id: tenantId,
+              hotel_id: hotelId,
+              transaction_code: generateTransactionCode('LOST'),
+              transaction_type: 'out',
+              transaction_category: 'lost',
+              item_id: item.item_id,
+              quantity: item.quantity,
+              quantity_before: quantityBefore,
+              quantity_after: quantityAfter,
+              unit_price: currentItem.unit_price || 0,
+              total_value: (currentItem.unit_price || 0) * item.quantity,
+              from_location: `Phòng ${roomNumber}`,
+              to_location: 'Mất/Thất lạc',
+              related_type: 'room_check',
+              related_id: check.id,
+              notes: `Mất trong khi kiểm tra phòng ${roomNumber}`,
+              created_by: user.id,
+            })
+            
+            // Update quantity_lost in items table
+            await supabase.from('items').update({
+              quantity_lost: (currentItem.quantity_lost || 0) + item.quantity,
+              quantity_in_stock: quantityAfter,
+            }).eq('id', item.item_id)
+          }
+        }
       }
       
-      // 3. Đồ tiêu hao → Giảm quantity
-      for (const item of data.items_consumed || []) {
+      // 3. Đồ tiêu hao → Giảm quantity, tạo inventory transaction
+      const consumedItems = data.items_consumed || []
+      for (const item of consumedItems) {
         quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) - item.quantity
+        
+        // Create inventory transaction for consumed items
+        if (tenantId && user?.id) {
+          const { data: currentItem } = await supabase
+            .from('items')
+            .select('quantity_in_stock, unit_price')
+            .eq('id', item.item_id)
+            .single()
+          
+          if (currentItem) {
+            const quantityBefore = currentItem.quantity_in_stock || 0
+            const quantityAfter = Math.max(0, quantityBefore - item.quantity)
+            
+            // Create outbound transaction for consumed items
+            await supabase.from('inventory_transactions').insert({
+              tenant_id: tenantId,
+              hotel_id: hotelId,
+              transaction_code: generateTransactionCode('CONS'),
+              transaction_type: 'out',
+              transaction_category: 'consumed',
+              item_id: item.item_id,
+              quantity: item.quantity,
+              quantity_before: quantityBefore,
+              quantity_after: quantityAfter,
+              unit_price: currentItem.unit_price || 0,
+              total_value: (currentItem.unit_price || 0) * item.quantity,
+              from_location: `Phòng ${roomNumber}`,
+              to_location: 'Khách sử dụng',
+              related_type: 'room_check',
+              related_id: check.id,
+              notes: `Khách sử dụng trong phòng ${roomNumber}`,
+              created_by: user.id,
+            })
+            
+            // Update items table
+            await supabase.from('items').update({
+              quantity_in_stock: quantityAfter,
+            }).eq('id', item.item_id)
+          }
+        }
       }
       
       // 4. Đồ thay thế → Tăng quantity (bù lại vào phòng)
@@ -255,15 +363,6 @@ export function useCreateRoomCheck() {
         .eq('room_id', roomId)
 
       
-      // Get room info for notifications
-      const { data: roomInfo } = await supabase
-        .from('rooms')
-        .select('room_number')
-        .eq('id', roomId)
-        .single()
-      
-      const roomNumber = roomInfo?.room_number || 'N/A'
-      
       // Handle checkout check type - send summary report to manager
       if (data.check_type === 'checkout') {
         const consumedCount = data.items_consumed?.length || 0
@@ -327,6 +426,8 @@ export function useCreateRoomCheck() {
       queryClient.invalidateQueries({ queryKey: ['room', variables.roomId] })
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory-dashboard'] })
 
       const isDuplicate = !!check?.__duplicate
 

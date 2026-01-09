@@ -6825,14 +6825,19 @@ export type Database = {
           category_name: string
           current_quantity: number
           has_standard: boolean
+          is_verified: boolean
           item_code: string
           item_condition: string
           item_id: string
           item_name: string
           item_thumbnail: string
+          item_type: string
           item_unit: string
           missing_quantity: number
+          room_item_id: string
           standard_quantity: number
+          verified_at: string
+          verified_by: string
         }[]
       }
       get_room_standards: {
