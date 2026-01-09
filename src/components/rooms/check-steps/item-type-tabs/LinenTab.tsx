@@ -35,7 +35,8 @@ export function LinenTab({
     const initial: Record<string, number> = {}
     items.forEach(item => {
       if (quantities[item.item_id] === undefined) {
-        initial[item.item_id] = item.standard_quantity
+        // Fallback: standard_quantity -> current_quantity -> 1
+        initial[item.item_id] = item.standard_quantity || item.current_quantity || 1
       }
     })
     if (Object.keys(initial).length > 0) {

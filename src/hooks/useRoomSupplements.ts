@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
+import { useTenant } from './useTenant'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
 import type { RoomItemWithDetails } from '@/types/rooms.types'
@@ -73,22 +74,22 @@ export function useRoomSupplements(roomId: string | undefined) {
           item_code: item.item_code,
           item_thumbnail: item.item_thumbnail,
           category_name: item.category_name,
-          standard_quantity: item.standard_quantity,
-          current_quantity: item.current_quantity,
-          missing_quantity: item.missing_quantity,
+          standard_quantity: item.standard_quantity || 0,
+          current_quantity: item.current_quantity || 0,
+          missing_quantity: item.missing_quantity || 0,
           quantity_in_stock: stockItem?.quantity_in_stock || 0,
           unit_price: stockItem?.unit_price || 0,
-          selected_quantity: item.missing_quantity, // Default to missing qty
-          item_type: stockItem?.item_type || 'equipment',
+          selected_quantity: item.missing_quantity || 0, // Default to missing qty
+          item_type: item.item_type || stockItem?.item_type || 'equipment',
         }
 
         // Add to missing if has standard and missing > 0
-        if (item.has_standard && item.missing_quantity > 0) {
+        if (item.has_standard && (item.missing_quantity || 0) > 0) {
           missingItems.push(supplementItem)
         }
 
         // Add consumables that might need refill (even if not missing)
-        if (stockItem?.item_type === 'consumable' && item.has_standard) {
+        if ((item.item_type || stockItem?.item_type) === 'consumable' && item.has_standard) {
           consumableItems.push({
             ...supplementItem,
             selected_quantity: 0, // Default to 0 for extra consumables
@@ -119,9 +120,11 @@ export function useRoomSupplements(roomId: string | undefined) {
 
 /**
  * Mutation to create supplement outbound transaction for a room
+ * Uses the standard create_outbound_transaction RPC for consistency
  */
 export function useCreateRoomSupplement() {
   const { tenantId, user } = useUser()
+  const { tenant } = useTenant()
   const { selectedHotel } = useHotelContext()
   const queryClient = useQueryClient()
 
@@ -129,75 +132,77 @@ export function useCreateRoomSupplement() {
     mutationFn: async (data: {
       room_id: string
       room_number: string
-      items: { item_id: string; quantity: number }[]
+      items: { item_id: string; quantity: number; unit_price?: number }[]
       notes?: string
     }) => {
       if (!tenantId || !user?.id || !selectedHotel?.id) {
         throw new Error('Missing required context')
       }
 
-      // Generate transaction code
-      const timestamp = Date.now().toString(36).toUpperCase()
-      const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase()
-      const transactionCode = `XK-${timestamp}-${randomPart}`
+      // Filter out items with 0 quantity
+      const validItems = data.items.filter(item => item.quantity > 0)
+      
+      if (validItems.length === 0) {
+        throw new Error('Không có item nào để bổ sung')
+      }
 
-      // Create transactions for each item
-      const transactions = []
-      for (const item of data.items) {
-        if (item.quantity <= 0) continue
-
-        // Get current stock
+      // Validate stock availability before proceeding
+      for (const item of validItems) {
         const { data: stockItem, error: stockError } = await supabase
           .from('items')
-          .select('quantity_in_stock, unit_price')
+          .select('quantity_in_stock, name')
           .eq('id', item.item_id)
           .single()
+        
+        if (stockError) {
+          console.error('Error checking stock:', stockError)
+          continue
+        }
+        
+        const availableStock = stockItem?.quantity_in_stock || 0
+        if (item.quantity > availableStock) {
+          throw new Error(`${stockItem?.name || 'Item'} chỉ còn ${availableStock} trong kho, không đủ ${item.quantity}`)
+        }
+      }
 
-        if (stockError) throw stockError
+      // Format items for RPC
+      const rpcItems = validItems.map(item => ({
+        item_id: item.item_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price || 0,
+      }))
 
-        const quantityBefore = stockItem?.quantity_in_stock || 0
-        const quantityAfter = Math.max(0, quantityBefore - item.quantity)
+      // Use the standard create_outbound_transaction RPC
+      const { data: result, error } = await supabase.rpc('create_outbound_transaction', {
+        p_tenant_id: tenantId,
+        p_hotel_id: selectedHotel.id,
+        p_transaction_category: 'room_assign',
+        p_from_location: 'Kho',
+        p_to_location: `Phòng ${data.room_number}`,
+        p_created_by: user.id,
+        p_items: rpcItems as any,
+        p_related_type: 'room',
+        p_related_id: data.room_id,
+        p_notes: data.notes || `Bổ sung đồ dùng cho phòng ${data.room_number}`,
+      })
 
-        // Create transaction
-        const { data: txn, error: txnError } = await supabase
-          .from('inventory_transactions')
-          .insert({
-            tenant_id: tenantId,
-            hotel_id: selectedHotel.id,
-            transaction_code: `${transactionCode}-${transactions.length + 1}`,
-            transaction_type: 'out',
-            transaction_category: 'room_assign',
-            item_id: item.item_id,
-            quantity: item.quantity,
-            quantity_before: quantityBefore,
-            quantity_after: quantityAfter,
-            unit_price: stockItem?.unit_price || 0,
-            total_value: (stockItem?.unit_price || 0) * item.quantity,
-            from_location: 'Kho',
-            to_location: `Phòng ${data.room_number}`,
-            related_type: 'room',
-            related_id: data.room_id,
-            notes: data.notes,
-            created_by: user.id,
-          })
-          .select()
-          .single()
+      if (error) throw error
 
-        if (txnError) throw txnError
-        transactions.push(txn)
+      const response = result as unknown as {
+        success: boolean
+        error?: string
+        total_items?: number
+        total_value?: number
+        low_stock_items?: string[]
+        transaction_code?: string
+      }
 
-        // Update stock
-        const { error: updateError } = await supabase
-          .from('items')
-          .update({ 
-            quantity_in_stock: quantityAfter,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', item.item_id)
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create transaction')
+      }
 
-        if (updateError) throw updateError
-
-        // Update or create room_item
+      // After successful transaction, update room_items
+      for (const item of validItems) {
         const { data: existingRoomItem } = await supabase
           .from('room_items')
           .select('id, quantity')
@@ -209,7 +214,7 @@ export function useCreateRoomSupplement() {
           await supabase
             .from('room_items')
             .update({
-              quantity: existingRoomItem.quantity + item.quantity,
+              quantity: (existingRoomItem.quantity || 0) + item.quantity,
               updated_at: new Date().toISOString(),
             })
             .eq('id', existingRoomItem.id)
@@ -226,9 +231,9 @@ export function useCreateRoomSupplement() {
       }
 
       return {
-        transactions,
-        total_items: data.items.filter(i => i.quantity > 0).length,
-        total_quantity: data.items.reduce((sum, i) => sum + i.quantity, 0),
+        ...response,
+        total_items: validItems.length,
+        total_quantity: validItems.reduce((sum, i) => sum + i.quantity, 0),
       }
     },
     onSuccess: (result, variables) => {
@@ -237,8 +242,16 @@ export function useCreateRoomSupplement() {
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
       queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory-dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['low-stock-items'] })
       
-      toast.success(`Đã bổ sung ${result.total_quantity} đồ dùng cho phòng ${variables.room_number}`)
+      let description = `Đã bổ sung ${result.total_quantity} đồ dùng cho phòng ${variables.room_number}`
+      
+      if (result.low_stock_items && result.low_stock_items.length > 0) {
+        toast.warning(`Cảnh báo: ${result.low_stock_items.join(', ')} đã xuống dưới mức tối thiểu`)
+      }
+      
+      toast.success(description)
     },
     onError: (error: Error) => {
       toast.error(`Lỗi: ${error.message}`)
