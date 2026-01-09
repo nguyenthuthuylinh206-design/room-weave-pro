@@ -1,7 +1,7 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { AlertTriangle, CreditCard, Receipt, Clock, Check } from 'lucide-react'
+import { AlertTriangle, CreditCard, Receipt, Clock, Check, Printer } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -23,9 +23,12 @@ import {
   calculateBookingCost,
   parseTimeToHours,
   isEarlyCheckout,
-  DEFAULT_PRICING_RULES
+  DEFAULT_PRICING_RULES,
+  DamageChargeItem
 } from '@/lib/bookingCalculations'
 import { cn } from '@/lib/utils'
+import { DamageChargesSection } from './DamageChargesSection'
+import { DamageReportDocument } from './DamageReportDocument'
 
 // Late checkout surcharge tiers
 const LATE_CHECKOUT_TIERS = [
@@ -44,9 +47,28 @@ interface CheckoutSummaryDialogProps {
   actualCheckoutDate: Date
   scheduledCheckoutDate: Date
   costBreakdown: BookingCostBreakdown
-  onConfirmCheckout: (adjustedLateCharge: number, adjustmentNote?: string) => void
-  onPayAndCheckout: (adjustedLateCharge: number, adjustmentNote?: string) => void
+  // Damage charges
+  damageItems?: DamageChargeItem[]
+  onConfirmCheckout: (
+    adjustedLateCharge: number, 
+    adjustmentNote?: string,
+    damageCharges?: number,
+    damageAdjustmentNote?: string,
+    adjustedDamageItems?: DamageChargeItem[]
+  ) => void
+  onPayAndCheckout: (
+    adjustedLateCharge: number, 
+    adjustmentNote?: string,
+    damageCharges?: number,
+    damageAdjustmentNote?: string,
+    adjustedDamageItems?: DamageChargeItem[]
+  ) => void
   isLoading?: boolean
+  hotelInfo?: {
+    name: string
+    address?: string
+    phone?: string
+  }
 }
 
 export function CheckoutSummaryDialog({
@@ -58,22 +80,51 @@ export function CheckoutSummaryDialog({
   actualCheckoutDate,
   scheduledCheckoutDate,
   costBreakdown,
+  damageItems: initialDamageItems = [],
   onConfirmCheckout,
   onPayAndCheckout,
   isLoading = false,
+  hotelInfo,
 }: CheckoutSummaryDialogProps) {
   const [adjustedLateCharge, setAdjustedLateCharge] = useState(costBreakdown.lateCheckoutCharge)
   const [adjustmentNote, setAdjustmentNote] = useState('')
+  
+  // Damage charge states
+  const [adjustedDamageItems, setAdjustedDamageItems] = useState<DamageChargeItem[]>(initialDamageItems)
+  const [damageAdjustmentNote, setDamageAdjustmentNote] = useState('')
+  const [showDamageReport, setShowDamageReport] = useState(false)
+  const reportRef = useRef<HTMLDivElement>(null)
 
   // Reset when dialog opens or costBreakdown changes
   useEffect(() => {
     if (open) {
       setAdjustedLateCharge(costBreakdown.lateCheckoutCharge)
       setAdjustmentNote('')
+      setAdjustedDamageItems(initialDamageItems)
+      setDamageAdjustmentNote('')
+      setShowDamageReport(false)
     }
-  }, [open, costBreakdown.lateCheckoutCharge])
+  }, [open, costBreakdown.lateCheckoutCharge, initialDamageItems])
 
-  // Recalculate cost breakdown with adjusted late charge
+  // Calculate total damage charge
+  const totalDamageCharge = useMemo(() => {
+    return adjustedDamageItems.reduce((sum, item) => sum + item.charge_amount * item.quantity, 0)
+  }, [adjustedDamageItems])
+
+  // Check if damage charges were adjusted
+  const isDamageAdjusted = useMemo(() => {
+    if (adjustedDamageItems.length !== initialDamageItems.length) return true
+    return adjustedDamageItems.some(item => {
+      const original = initialDamageItems.find(i => i.item_id === item.item_id)
+      return !original || original.charge_amount !== item.charge_amount
+    })
+  }, [adjustedDamageItems, initialDamageItems])
+
+  const needsDamageNote = isDamageAdjusted && totalDamageCharge < 
+    initialDamageItems.reduce((sum, i) => sum + i.charge_amount * i.quantity, 0) && 
+    !damageAdjustmentNote.trim()
+
+  // Recalculate cost breakdown with adjusted late charge AND damage charges
   const adjustedCostBreakdown = useMemo(() => {
     return calculateBookingCost({
       roomPrice: costBreakdown.roomPricePerNight,
@@ -82,12 +133,14 @@ export function CheckoutSummaryDialog({
       lateCheckoutCharge: adjustedLateCharge,
       serviceCharges: costBreakdown.serviceCharges,
       extraCharges: costBreakdown.extraCharges,
+      damageCharges: totalDamageCharge,
+      damageItems: adjustedDamageItems,
       vatRate: costBreakdown.vatRate,
       serviceFeeRate: costBreakdown.serviceFeeRate,
       depositAmount: costBreakdown.depositAmount,
       amountPaid: costBreakdown.amountPaid,
     })
-  }, [costBreakdown, adjustedLateCharge])
+  }, [costBreakdown, adjustedLateCharge, totalDamageCharge, adjustedDamageItems])
 
   // Check if this is an early checkout (before scheduled date)
   const isEarlyCheckoutCase = isEarlyCheckout(actualCheckoutDate, scheduledCheckoutDate)
@@ -114,13 +167,73 @@ export function CheckoutSummaryDialog({
     setAdjustmentNote('')
   }
 
+  // Damage item handlers
+  const handleAdjustDamageCharge = (itemId: string, newCharge: number) => {
+    setAdjustedDamageItems(prev => 
+      prev.map(item => item.item_id === itemId ? { ...item, charge_amount: newCharge } : item)
+    )
+  }
+
+  const handleWaiveDamageItem = (itemId: string) => {
+    setAdjustedDamageItems(prev => 
+      prev.map(item => item.item_id === itemId ? { ...item, charge_amount: 0 } : item)
+    )
+  }
+
+  const handleResetDamageItem = (itemId: string) => {
+    const original = initialDamageItems.find(i => i.item_id === itemId)
+    if (original) {
+      setAdjustedDamageItems(prev => 
+        prev.map(item => item.item_id === itemId ? { ...item, charge_amount: original.charge_amount } : item)
+      )
+    }
+  }
+
+  const handlePrintReport = () => {
+    setShowDamageReport(true)
+    setTimeout(() => {
+      if (reportRef.current) {
+        const printWindow = window.open('', '_blank')
+        if (printWindow) {
+          printWindow.document.write('<html><head><title>Biên bản thiệt hại</title>')
+          printWindow.document.write('<style>body { font-family: Arial, sans-serif; } table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #ccc; padding: 8px; }</style>')
+          printWindow.document.write('</head><body>')
+          printWindow.document.write(reportRef.current.innerHTML)
+          printWindow.document.write('</body></html>')
+          printWindow.document.close()
+          printWindow.print()
+        }
+      }
+      setShowDamageReport(false)
+    }, 100)
+  }
+
   const handleConfirm = () => {
-    onConfirmCheckout(adjustedLateCharge, isAdjusted ? adjustmentNote : undefined)
+    const combinedNote = [
+      isAdjusted ? adjustmentNote : '',
+      isDamageAdjusted ? damageAdjustmentNote : ''
+    ].filter(Boolean).join(' | ')
+    
+    onConfirmCheckout(
+      adjustedLateCharge, 
+      isAdjusted ? adjustmentNote : undefined,
+      totalDamageCharge,
+      isDamageAdjusted ? damageAdjustmentNote : undefined,
+      adjustedDamageItems
+    )
   }
 
   const handlePayAndCheckout = () => {
-    onPayAndCheckout(adjustedLateCharge, isAdjusted ? adjustmentNote : undefined)
+    onPayAndCheckout(
+      adjustedLateCharge, 
+      isAdjusted ? adjustmentNote : undefined,
+      totalDamageCharge,
+      isDamageAdjusted ? damageAdjustmentNote : undefined,
+      adjustedDamageItems
+    )
   }
+
+  const canProceed = !needsNote && !needsDamageNote
   
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -312,6 +425,45 @@ export function CheckoutSummaryDialog({
                     <span>{formatCurrency(adjustedCostBreakdown.extraCharges)}</span>
                   </div>
                 )}
+
+                {/* Damage Charges Section */}
+                {adjustedDamageItems.length > 0 && (
+                  <>
+                    <Separator />
+                    <DamageChargesSection
+                      damageItems={adjustedDamageItems}
+                      originalItems={initialDamageItems}
+                      onAdjustCharge={handleAdjustDamageCharge}
+                      onWaiveItem={handleWaiveDamageItem}
+                      onResetItem={handleResetDamageItem}
+                    />
+                    {/* Damage Adjustment Note */}
+                    {isDamageAdjusted && totalDamageCharge < initialDamageItems.reduce((s, i) => s + i.charge_amount * i.quantity, 0) && (
+                      <div className="space-y-1">
+                        <Textarea
+                          placeholder="Lý do điều chỉnh phí đền bù..."
+                          className="h-12 text-xs"
+                          value={damageAdjustmentNote}
+                          onChange={(e) => setDamageAdjustmentNote(e.target.value)}
+                        />
+                        {needsDamageNote && (
+                          <p className="text-xs text-red-500">Vui lòng nhập lý do điều chỉnh phí đền bù</p>
+                        )}
+                      </div>
+                    )}
+                    {/* Print Button */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePrintReport}
+                      className="w-full gap-2 h-8"
+                    >
+                      <Printer className="h-4 w-4" />
+                      In biên bản xác nhận
+                    </Button>
+                  </>
+                )}
                 
                 <Separator />
                 
@@ -389,13 +541,13 @@ export function CheckoutSummaryDialog({
               <Button
                 variant="outline"
                 onClick={handleConfirm}
-                disabled={isLoading || needsNote}
+                disabled={isLoading || !canProceed}
               >
                 Cho trả phòng (nợ {formatCurrency(adjustedCostBreakdown.remainingAmount)})
               </Button>
               <Button
                 onClick={handlePayAndCheckout}
-                disabled={isLoading || needsNote}
+                disabled={isLoading || !canProceed}
                 className="gap-2"
               >
                 <CreditCard className="h-4 w-4" />
@@ -403,11 +555,27 @@ export function CheckoutSummaryDialog({
               </Button>
             </>
           ) : (
-            <Button onClick={handleConfirm} disabled={isLoading || needsNote}>
+            <Button onClick={handleConfirm} disabled={isLoading || !canProceed}>
               Xác nhận Check-out
             </Button>
           )}
         </AlertDialogFooter>
+
+        {/* Hidden Damage Report for Printing */}
+        {showDamageReport && adjustedDamageItems.length > 0 && (
+          <div className="hidden">
+            <DamageReportDocument
+              ref={reportRef}
+              guestName={guestName}
+              roomNumber={roomNumber}
+              checkoutDate={actualCheckoutDate}
+              damageItems={adjustedDamageItems}
+              totalCharge={totalDamageCharge}
+              adjustmentNote={damageAdjustmentNote}
+              hotelInfo={hotelInfo}
+            />
+          </div>
+        )}
       </AlertDialogContent>
     </AlertDialog>
   )
