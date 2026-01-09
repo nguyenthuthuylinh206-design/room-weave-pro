@@ -13,6 +13,7 @@ export interface AvailableRoom {
   hotel_id: string
   hotel_name?: string
   base_price?: number
+  currentStatus: string // Current room status for UI indicators
 }
 
 export function useAvailableRooms(checkInDate?: Date, checkOutDate?: Date) {
@@ -54,7 +55,8 @@ export function useAvailableRooms(checkInDate?: Date, checkOutDate?: Date) {
     queryFn: async () => {
       if (!tenantId) return []
 
-      // Get rooms with status available, vacant, or clean
+      // Get ALL rooms except out_of_order - rely on booking overlap logic for availability
+      // This allows booking rooms in advance even if currently occupied
       let query = supabase
         .from('rooms')
         .select(`
@@ -68,7 +70,7 @@ export function useAvailableRooms(checkInDate?: Date, checkOutDate?: Date) {
           hotels(name)
         `)
         .eq('tenant_id', tenantId)
-        .in('status', ['vacant', 'available', 'clean'])
+        .neq('status', 'out_of_order')
         .order('floor', { ascending: true })
         .order('room_number', { ascending: true })
 
@@ -111,6 +113,7 @@ export function useAvailableRooms(checkInDate?: Date, checkOutDate?: Date) {
             ...room,
             hotel_name: (room.hotels as any)?.name,
             base_price: room.base_price ?? 0,
+            currentStatus: room.status,
           })) as AvailableRoom[]
       }
 
@@ -118,6 +121,7 @@ export function useAvailableRooms(checkInDate?: Date, checkOutDate?: Date) {
         ...room,
         hotel_name: (room.hotels as any)?.name,
         base_price: room.base_price ?? 0,
+        currentStatus: room.status,
       })) as AvailableRoom[]
     },
     enabled: !!tenantId,
