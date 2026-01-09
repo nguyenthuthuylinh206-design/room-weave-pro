@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { ArrowLeft, Plus, Edit, Trash2, Package, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Plus, Edit, Trash2, Package, AlertTriangle, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { PermissionGate } from '@/components/auth/PermissionGate'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
@@ -30,7 +29,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
 import { MobileCategoriesPage } from '@/components/items/MobileCategoriesPage'
 import {
   useCategories,
@@ -265,67 +263,80 @@ export function CategoriesPage() {
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {categories?.map((category) => (
-          <Card key={category.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div
-                  className="w-12 h-12 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: `${category.color}20` }}
-                >
-                  <Package
-                    className="w-6 h-6"
-                    style={{ color: category.color }}
-                  />
-                </div>
-                <div className="flex gap-1">
-                  <PermissionGate module="items" action="update">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleOpenDialog(category)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </PermissionGate>
-                  <PermissionGate module="items" action="delete">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => {
-                        setDeletingCategoryId(category.id)
-                        setDeleteDialogOpen(true)
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </PermissionGate>
-                </div>
+          <div
+            key={category.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate(`/items?categoryId=${category.id}`)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                navigate(`/items?categoryId=${category.id}`)
+              }
+            }}
+            className="border rounded-lg p-4 hover:bg-accent/50 transition-colors cursor-pointer"
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                style={{ backgroundColor: `${category.color}20` }}
+              >
+                <Package className="w-5 h-5" style={{ color: category.color }} />
               </div>
 
-              <h3 className="font-semibold text-lg mb-1">{category.name}</h3>
-              {category.name_en && (
-                <p className="text-sm text-muted-foreground mb-2">{category.name_en}</p>
-              )}
-              {category.description && (
-                <p className="text-sm text-muted-foreground mb-3">
-                  {category.description}
-                </p>
-              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="font-medium truncate">{category.name}</h3>
+                    {category.name_en && (
+                      <p className="text-xs text-muted-foreground truncate">{category.name_en}</p>
+                    )}
+                  </div>
 
-              <div className="flex items-center justify-between pt-3 border-t">
-                <Badge variant="secondary">
-                  {category.items_count || 0} {t('categoriesPage.items')}
-                </Badge>
-                <span className="text-xs text-muted-foreground">
-                  {t('categoriesPage.sortOrder')}: {category.sort_order}
-                </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {category.items_count || 0} {t('categoriesPage.items')}
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
+
+                {category.description && (
+                  <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                    {category.description}
+                  </p>
+                )}
               </div>
-            </CardContent>
-          </Card>
+
+              <div className="flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                <PermissionGate module="items" action="update">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleOpenDialog(category)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </PermissionGate>
+                <PermissionGate module="items" action="delete">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => {
+                      setDeletingCategoryId(category.id)
+                      setDeleteDialogOpen(true)
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </PermissionGate>
+              </div>
+            </div>
+          </div>
         ))}
       </div>
 
