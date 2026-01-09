@@ -54,6 +54,17 @@ export interface LostItem {
   notes?: string
 }
 
+export interface DamagedItem {
+  item_id: string
+  item_name: string
+  item_code?: string
+  quantity: number
+  damage_type: 'repairable' | 'replacement_needed'
+  damage_cost: number
+  notes?: string
+  photos?: string[]
+}
+
 export interface ReplacedItem {
   item_id: string
   item_name: string

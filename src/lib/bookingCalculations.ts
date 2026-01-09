@@ -59,6 +59,10 @@ export interface BookingCostBreakdown {
   serviceCharges: number
   extraCharges: number
   
+  // Damage charges (NEW)
+  damageCharges: number
+  damageItems?: DamageChargeItem[]
+  
   // Subtotal (before tax)
   subtotal: number
   
@@ -78,6 +82,16 @@ export interface BookingCostBreakdown {
   
   // Status
   paymentStatus: 'pending' | 'partial' | 'paid'
+}
+
+export interface DamageChargeItem {
+  item_id: string
+  item_name: string
+  item_type: 'lost' | 'damaged'
+  quantity: number
+  charge_amount: number
+  damage_type?: 'repairable' | 'replacement_needed'
+  notes?: string
 }
 
 /**
@@ -211,6 +225,8 @@ export function calculateBookingCost(params: {
   lateCheckoutCharge?: number
   serviceCharges?: number
   extraCharges?: number
+  damageCharges?: number
+  damageItems?: DamageChargeItem[]
   vatRate?: number
   serviceFeeRate?: number
   depositAmount?: number
@@ -223,6 +239,8 @@ export function calculateBookingCost(params: {
     lateCheckoutCharge = 0,
     serviceCharges = 0,
     extraCharges = 0,
+    damageCharges = 0,
+    damageItems = [],
     vatRate = DEFAULT_PRICING_RULES.vatRate,
     serviceFeeRate = DEFAULT_PRICING_RULES.serviceFeeRate,
     depositAmount = 0,
@@ -235,8 +253,8 @@ export function calculateBookingCost(params: {
   // Total surcharges
   const totalSurcharges = earlyCheckinCharge + lateCheckoutCharge
   
-  // Subtotal before tax
-  const subtotal = roomTotal + totalSurcharges + serviceCharges + extraCharges
+  // Subtotal before tax (including damage charges)
+  const subtotal = roomTotal + totalSurcharges + serviceCharges + extraCharges + damageCharges
   
   // Calculate VAT and service fee
   const vatAmount = Math.round(subtotal * vatRate / 100)
@@ -266,6 +284,8 @@ export function calculateBookingCost(params: {
     totalSurcharges,
     serviceCharges,
     extraCharges,
+    damageCharges,
+    damageItems,
     subtotal,
     vatRate,
     vatAmount,
