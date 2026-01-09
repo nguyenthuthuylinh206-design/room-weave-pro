@@ -1,77 +1,66 @@
-import { Edit2, Trash2 } from 'lucide-react'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { ChevronRight, Edit2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { CategoryWithStats } from '@/types/items.types'
-import { formatCurrency } from '@/lib/utils'
 
 interface MobileCategoryCardProps {
   category: CategoryWithStats
-  onEdit: (category: CategoryWithStats) => void
-  onDelete: (categoryId: string) => void
+  onClick?: () => void
+  onEdit?: (category: CategoryWithStats) => void
+  onDelete?: (categoryId: string) => void
+  showActions?: boolean
 }
 
-export function MobileCategoryCard({ category, onEdit, onDelete }: MobileCategoryCardProps) {
+export function MobileCategoryCard({ 
+  category, 
+  onClick, 
+  onEdit, 
+  onDelete,
+  showActions = false 
+}: MobileCategoryCardProps) {
   return (
-    <Card className="p-4">
-      <div className="space-y-3">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div
-              className="h-10 w-10 rounded-lg flex items-center justify-center shrink-0"
-              style={{ backgroundColor: `${category.color}20` }}
-            >
-              <span className="text-xl">{category.icon}</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold truncate">{category.name}</h3>
-              {category.name_en && (
-                <p className="text-xs text-muted-foreground truncate">{category.name_en}</p>
-              )}
-            </div>
-          </div>
-          
-          <Badge variant="secondary" className="shrink-0">
-            {category.items_count} items
-          </Badge>
-        </div>
-        
-        {/* Description */}
-        {category.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {category.description}
-          </p>
-        )}
-        
-        {/* Stats */}
-        <div className="flex items-center justify-between pt-2 border-t">
-          <div>
-            <p className="text-xs text-muted-foreground">Tổng giá trị</p>
-            <p className="font-semibold">{formatCurrency(category.total_value || 0)}</p>
-          </div>
-          
-          {/* Actions */}
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onEdit(category)}
-              className="h-9 w-9 p-0"
-            >
-              <Edit2 className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onDelete(category.id)}
-              className="h-9 w-9 p-0 text-destructive hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+    <div 
+      className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
+      onClick={onClick}
+    >
+      {/* Icon */}
+      <div
+        className="h-10 w-10 rounded-lg flex items-center justify-center shrink-0"
+        style={{ backgroundColor: `${category.color}20` }}
+      >
+        <span className="text-lg">{category.icon || '📦'}</span>
       </div>
-    </Card>
+      
+      {/* Name & count */}
+      <div className="flex-1 min-w-0">
+        <p className="font-medium truncate">{category.name}</p>
+        <p className="text-xs text-muted-foreground">
+          {category.items_count} sản phẩm
+        </p>
+      </div>
+      
+      {/* Actions or Arrow */}
+      {showActions && onEdit && onDelete ? (
+        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onEdit(category)}
+            className="h-8 w-8 p-0"
+          >
+            <Edit2 className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onDelete(category.id)}
+            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : (
+        <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+      )}
+    </div>
   )
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, ArrowLeft, PackageX } from 'lucide-react'
+import { Plus, ArrowLeft, PackageX, Settings2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PermissionGate } from '@/components/auth/PermissionGate'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -16,11 +16,17 @@ export function MobileCategoriesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<CategoryWithStats | null>(null)
   const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null)
+  const [isEditMode, setIsEditMode] = useState(false)
   
   const { data: categories, isLoading, refetch } = useCategories()
   const createMutation = useCreateCategory()
   const updateMutation = useUpdateCategory()
   const deleteMutation = useDeleteCategory()
+  
+  const handleCategoryClick = (category: CategoryWithStats) => {
+    if (isEditMode) return
+    navigate(`/items?categoryId=${category.id}`)
+  }
   
   const handleOpenForm = (category?: CategoryWithStats) => {
     setEditingCategory(category || null)
@@ -64,24 +70,39 @@ export function MobileCategoriesPage() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-background border-b">
-        <div className="p-4">
-          <div className="flex items-center justify-between gap-4">
+        <div className="p-3">
+          <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate('/items')}
-              className="shrink-0"
+              className="shrink-0 h-9 w-9"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-xl font-bold flex-1">Danh mục tài sản</h1>
+            <div className="flex-1">
+              <h1 className="text-lg font-semibold">Danh mục tài sản</h1>
+              <p className="text-xs text-muted-foreground">{categories?.length || 0} danh mục</p>
+            </div>
+            <PermissionGate module="items" action="update">
+              <Button
+                variant={isEditMode ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setIsEditMode(!isEditMode)}
+                className="h-8"
+              >
+                <Settings2 className="h-4 w-4 mr-1" />
+                {isEditMode ? 'Xong' : 'Sửa'}
+              </Button>
+            </PermissionGate>
             <PermissionGate module="items" action="create">
               <Button
-                size="icon"
+                size="sm"
                 onClick={() => handleOpenForm()}
-                className="rounded-full h-12 w-12 shrink-0"
+                className="h-8"
               >
-                <Plus className="h-5 w-5" />
+                <Plus className="h-4 w-4 mr-1" />
+                Thêm
               </Button>
             </PermissionGate>
           </div>
@@ -89,41 +110,41 @@ export function MobileCategoriesPage() {
       </div>
       
       {/* Content */}
-      <div className="flex-1">
+      <div className="flex-1 overflow-auto">
         <PullToRefresh onRefresh={handleRefresh}>
-          <div className="p-4">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <LoadingSpinner />
-            </div>
-          ) : !categories || categories.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                <PackageX className="h-8 w-8 text-muted-foreground" />
+          <div className="p-3 space-y-2 pb-20">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <LoadingSpinner />
               </div>
-              <h3 className="font-semibold text-lg mb-2">Chưa có danh mục</h3>
-              <p className="text-sm text-muted-foreground mb-6 max-w-sm">
-                Tạo danh mục đầu tiên để bắt đầu phân loại tài sản
-              </p>
-              <PermissionGate module="items" action="create">
-                <Button onClick={() => handleOpenForm()} className="h-12 gap-2">
-                  <Plus className="h-4 w-4" />
-                  Thêm danh mục đầu tiên
-                </Button>
-              </PermissionGate>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {categories.map((category) => (
+            ) : !categories || categories.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                  <PackageX className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="font-medium mb-1">Chưa có danh mục</h3>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Tạo danh mục để phân loại tài sản
+                </p>
+                <PermissionGate module="items" action="create">
+                  <Button size="sm" onClick={() => handleOpenForm()}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Thêm danh mục
+                  </Button>
+                </PermissionGate>
+              </div>
+            ) : (
+              categories.map((category) => (
                 <MobileCategoryCard
                   key={category.id}
                   category={category}
+                  onClick={() => handleCategoryClick(category)}
                   onEdit={handleOpenForm}
                   onDelete={setDeletingCategoryId}
+                  showActions={isEditMode}
                 />
-              ))}
-            </div>
-          )}
+              ))
+            )}
           </div>
         </PullToRefresh>
       </div>
