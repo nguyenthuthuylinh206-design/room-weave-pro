@@ -5,7 +5,7 @@ import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
 import { useToast } from '@/components/ui/use-toast'
-import { triggerAdjustmentPendingApproval } from '@/hooks/useNotificationTriggers'
+import { triggerAdjustmentPendingApproval, triggerAdjustmentAssigned } from '@/hooks/useNotificationTriggers'
 import { isAdminUser, isManager } from '@/lib/userAccess'
 import type { 
   AdjustmentWithDetails,
@@ -143,8 +143,21 @@ export function useCreateStockAdjustment() {
       
       return response
     },
-    onSuccess: (result: any) => {
+    onSuccess: async (result: any, variables: CreateAdjustmentData) => {
       queryClient.invalidateQueries({ queryKey: ['stock-adjustments'] })
+      
+      // Send notification to assigned staff
+      if (variables.assigned_to && variables.assigned_to.length > 0 && selectedHotel?.id && tenant?.id && user?.id) {
+        triggerAdjustmentAssigned({
+          tenantId: tenant.id,
+          hotelId: selectedHotel.id,
+          adjustmentId: result.adjustment_id,
+          adjustmentCode: result.adjustment_code,
+          scheduledDate: variables.scheduled_date.toLocaleDateString('vi-VN'),
+          assignedToUserIds: variables.assigned_to,
+          createdByUserId: user.id,
+        })
+      }
       
       toast({
         title: 'Thành công',
