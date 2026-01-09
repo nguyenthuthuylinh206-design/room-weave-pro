@@ -37,6 +37,7 @@ import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
 import { cn, formatCurrency } from '@/lib/utils'
 import { CheckoutSummaryDialog } from '@/components/bookings/CheckoutSummaryDialog'
+import { CheckInConfirmDialog } from '@/components/bookings/CheckInConfirmDialog'
 import { 
   calculateBookingCost, 
   calculateEarlyCheckinCharge, 
@@ -85,6 +86,8 @@ export function RoomBookingDialog({
   
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCheckoutSummary, setShowCheckoutSummary] = useState(false)
+  const [showCheckinConfirm, setShowCheckinConfirm] = useState(false)
+  const [suggestedEarlyCharge, setSuggestedEarlyCharge] = useState(0)
   const [showPaymentDetails, setShowPaymentDetails] = useState(false)
   
   // Guest info
@@ -298,24 +301,52 @@ export function RoomBookingDialog({
     }
   }
   
-  const handleCheckIn = async () => {
+  const handleCheckInClick = () => {
+    if (!booking) return
+    
+    // Calculate early check-in surcharge based on current time
+    const now = new Date()
+    const actualTime = format(now, 'HH:mm')
+    const hours = parseInt(actualTime.split(':')[0])
+    
+    // If check-in is after standard time (14:00), no surcharge - check-in directly
+    if (hours >= 14) {
+      performCheckIn(0)
+    } else {
+      // Show confirmation dialog with editable surcharge
+      const suggestedCharge = calculateEarlyCheckinCharge(actualTime, roomPrice)
+      setSuggestedEarlyCharge(suggestedCharge)
+      setShowCheckinConfirm(true)
+    }
+  }
+
+  const performCheckIn = async (finalEarlyCharge: number, adjustmentNote?: string) => {
     if (!booking) return
     
     setIsSubmitting(true)
+    setShowCheckinConfirm(false)
+    
     try {
-      // Calculate early check-in surcharge based on actual time
       const now = new Date()
-      const actualTime = format(now, 'HH:mm')
-      const calculatedEarlyCharge = calculateEarlyCheckinCharge(actualTime, roomPrice)
       
-      // Update booking status
+      // Update booking status with the (possibly adjusted) early checkin charge
+      const updateData: any = {
+        status: 'checked_in',
+        actual_check_in: now.toISOString(),
+        early_checkin_charge: finalEarlyCharge,
+      }
+      
+      // Add adjustment note if provided
+      if (adjustmentNote) {
+        const existingNotes = notes || ''
+        updateData.notes = existingNotes 
+          ? `${existingNotes}\n[Điều chỉnh phụ thu check-in sớm: ${adjustmentNote}]`
+          : `[Điều chỉnh phụ thu check-in sớm: ${adjustmentNote}]`
+      }
+      
       const { error: bookingError } = await supabase
         .from('room_bookings')
-        .update({
-          status: 'checked_in',
-          actual_check_in: now.toISOString(),
-          early_checkin_charge: calculatedEarlyCharge,
-        })
+        .update(updateData)
         .eq('id', booking.id)
         
       if (bookingError) throw bookingError
@@ -341,8 +372,8 @@ export function RoomBookingDialog({
       
       toast({
         title: t('booking.checkInSuccess'),
-        description: calculatedEarlyCharge > 0 
-          ? `Phụ thu check-in sớm: ${formatCurrency(calculatedEarlyCharge)}`
+        description: finalEarlyCharge > 0 
+          ? `Phụ thu check-in sớm: ${formatCurrency(finalEarlyCharge)}`
           : undefined,
       })
       
@@ -370,26 +401,53 @@ export function RoomBookingDialog({
     setShowCheckoutSummary(true)
   }
   
-  const performCheckOut = async () => {
+  const performCheckOut = async (adjustedLateCharge: number, adjustmentNote?: string) => {
     if (!booking) return
     
     setIsSubmitting(true)
     setShowCheckoutSummary(false)
     
     try {
+      // Recalculate cost breakdown with adjusted late charge
+      const adjustedCostBreakdown = calculateBookingCost({
+        roomPrice,
+        nights,
+        earlyCheckinCharge,
+        lateCheckoutCharge: adjustedLateCharge,
+        serviceCharges,
+        extraCharges,
+        vatRate,
+        serviceFeeRate,
+        depositAmount,
+        amountPaid,
+      })
+
+      // Prepare update data
+      const updateNotes = adjustmentNote 
+        ? (notes ? `${notes}\n[Điều chỉnh phụ thu checkout: ${adjustmentNote}]` : `[Điều chỉnh phụ thu checkout: ${adjustmentNote}]`)
+        : notes
+
       // Use RPC for atomic checkout operation with auto payment_status calculation
       const { data, error } = await supabase.rpc('perform_checkout', {
         p_booking_id: booking.id,
         p_room_id: roomId,
-        p_late_checkout_charge: lateCheckoutCharge,
+        p_late_checkout_charge: adjustedLateCharge,
         p_service_charges: serviceCharges,
-        p_subtotal: costBreakdown.subtotal,
-        p_vat_amount: costBreakdown.vatAmount,
-        p_service_fee_amount: costBreakdown.serviceFeeAmount,
-        p_total_amount: costBreakdown.totalAmount,
+        p_subtotal: adjustedCostBreakdown.subtotal,
+        p_vat_amount: adjustedCostBreakdown.vatAmount,
+        p_service_fee_amount: adjustedCostBreakdown.serviceFeeAmount,
+        p_total_amount: adjustedCostBreakdown.totalAmount,
       })
       
       if (error) throw error
+
+      // Update notes if there was an adjustment
+      if (adjustmentNote) {
+        await supabase
+          .from('room_bookings')
+          .update({ notes: updateNotes })
+          .eq('id', booking.id)
+      }
       
       // Send checkout notification to staff
       if (tenantId && hotelId) {
@@ -458,14 +516,28 @@ export function RoomBookingDialog({
     }
   }
 
-  const handlePayAndCheckout = async () => {
+  const handlePayAndCheckout = async (adjustedLateCharge: number, adjustmentNote?: string) => {
     if (!booking) return
     
     setIsSubmitting(true)
     setShowCheckoutSummary(false)
     
     try {
-      const newAmountPaid = costBreakdown.totalAmount - depositAmount
+      // Recalculate cost breakdown with adjusted late charge
+      const adjustedCostBreakdown = calculateBookingCost({
+        roomPrice,
+        nights,
+        earlyCheckinCharge,
+        lateCheckoutCharge: adjustedLateCharge,
+        serviceCharges,
+        extraCharges,
+        vatRate,
+        serviceFeeRate,
+        depositAmount,
+        amountPaid,
+      })
+
+      const newAmountPaid = adjustedCostBreakdown.totalAmount - depositAmount
       
       // Update payment first with status and paid_at
       const { error: paymentError } = await supabase
@@ -483,15 +555,26 @@ export function RoomBookingDialog({
       const { data, error } = await supabase.rpc('perform_checkout', {
         p_booking_id: booking.id,
         p_room_id: roomId,
-        p_late_checkout_charge: lateCheckoutCharge,
+        p_late_checkout_charge: adjustedLateCharge,
         p_service_charges: serviceCharges,
-        p_subtotal: costBreakdown.subtotal,
-        p_vat_amount: costBreakdown.vatAmount,
-        p_service_fee_amount: costBreakdown.serviceFeeAmount,
-        p_total_amount: costBreakdown.totalAmount,
+        p_subtotal: adjustedCostBreakdown.subtotal,
+        p_vat_amount: adjustedCostBreakdown.vatAmount,
+        p_service_fee_amount: adjustedCostBreakdown.serviceFeeAmount,
+        p_total_amount: adjustedCostBreakdown.totalAmount,
       })
       
       if (error) throw error
+
+      // Update notes if there was an adjustment
+      if (adjustmentNote) {
+        const updateNotes = notes 
+          ? `${notes}\n[Điều chỉnh phụ thu checkout: ${adjustmentNote}]` 
+          : `[Điều chỉnh phụ thu checkout: ${adjustmentNote}]`
+        await supabase
+          .from('room_bookings')
+          .update({ notes: updateNotes })
+          .eq('id', booking.id)
+      }
       
       // Send checkout notification to staff
       if (tenantId && hotelId) {
@@ -947,7 +1030,7 @@ export function RoomBookingDialog({
                     type="button"
                     variant="outline"
                     className="flex-1"
-                    onClick={handleCheckIn}
+                    onClick={handleCheckInClick}
                     disabled={isSubmitting}
                   >
                     {t('booking.doCheckIn')}
@@ -991,6 +1074,19 @@ export function RoomBookingDialog({
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Check-in Confirmation Dialog */}
+      <CheckInConfirmDialog
+        open={showCheckinConfirm}
+        onOpenChange={setShowCheckinConfirm}
+        guestName={guestName}
+        roomNumber={roomNumber}
+        actualCheckInTime={format(new Date(), 'HH:mm')}
+        roomPrice={roomPrice}
+        suggestedCharge={suggestedEarlyCharge}
+        onConfirm={performCheckIn}
+        isLoading={isSubmitting}
+      />
 
       {/* Checkout Summary Dialog */}
       <CheckoutSummaryDialog
