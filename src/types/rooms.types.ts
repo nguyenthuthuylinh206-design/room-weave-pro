@@ -65,6 +65,9 @@ export interface DamagedItem {
   photos?: string[]
 }
 
+// Re-export DamageChargeItem from bookingCalculations for convenience
+export type { DamageChargeItem } from '@/lib/bookingCalculations'
+
 export interface ReplacedItem {
   item_id: string
   item_name: string

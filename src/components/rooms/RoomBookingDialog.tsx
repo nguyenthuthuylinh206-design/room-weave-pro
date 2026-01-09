@@ -46,7 +46,8 @@ import {
   getEarlyCheckinDescription,
   getLateCheckoutDescription,
   DEFAULT_PRICING_RULES,
-  BookingCostBreakdown
+  BookingCostBreakdown,
+  DamageChargeItem,
 } from '@/lib/bookingCalculations'
 import { triggerRoomCheckoutNotification, triggerRoomCheckinNotification, triggerNewBookingNotification } from '@/hooks/useNotificationTriggers'
 import type { RoomBooking } from '@/hooks/useRoomBooking'
@@ -90,6 +91,7 @@ export function RoomBookingDialog({
   const [showCheckinConfirm, setShowCheckinConfirm] = useState(false)
   const [suggestedEarlyCharge, setSuggestedEarlyCharge] = useState(0)
   const [showPaymentDetails, setShowPaymentDetails] = useState(false)
+  const [checkoutDamageItems, setCheckoutDamageItems] = useState<DamageChargeItem[]>([])
   
   // Guest info
   const [guestName, setGuestName] = useState(booking?.guest_name || '')
@@ -407,7 +409,7 @@ export function RoomBookingDialog({
     }
   }
   
-  const handleCheckOutClick = () => {
+  const handleCheckOutClick = async () => {
     if (!booking) return
 
     const now = new Date()
@@ -425,18 +427,60 @@ export function RoomBookingDialog({
     const calculatedLateCharge = calculateLateCheckoutCharge(actualTime, roomPrice)
     setLateCheckoutCharge(calculatedLateCharge)
     
+    // Fetch latest room check for damage info
+    try {
+      const { data: latestCheck } = await supabase
+        .from('room_checks')
+        .select('items_lost, items_damaged')
+        .eq('room_id', roomId)
+        .in('check_type', ['checkout', 'daily'])
+        .order('checked_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      // Convert to DamageChargeItem[]
+      const damageItems: DamageChargeItem[] = [
+        ...((latestCheck?.items_lost as any[]) || []).map(item => ({
+          item_id: item.item_id,
+          item_name: item.item_name,
+          item_type: 'lost' as const,
+          quantity: item.quantity,
+          charge_amount: item.estimated_value || 0,
+        })),
+        ...((latestCheck?.items_damaged as any[]) || []).map(item => ({
+          item_id: item.item_id,
+          item_name: item.item_name,
+          item_type: 'damaged' as const,
+          quantity: item.quantity,
+          charge_amount: item.damage_cost || 0,
+          damage_type: item.damage_type,
+        })),
+      ]
+      
+      setCheckoutDamageItems(damageItems)
+    } catch (error) {
+      console.error('Failed to fetch damage items:', error)
+      setCheckoutDamageItems([])
+    }
+    
     // Show checkout summary dialog
     setShowCheckoutSummary(true)
   }
   
-  const performCheckOut = async (adjustedLateCharge: number, adjustmentNote?: string) => {
+  const performCheckOut = async (
+    adjustedLateCharge: number, 
+    adjustmentNote?: string,
+    damageCharges?: number,
+    damageAdjustmentNote?: string,
+    adjustedDamageItems?: DamageChargeItem[]
+  ) => {
     if (!booking) return
     
     setIsSubmitting(true)
     setShowCheckoutSummary(false)
     
     try {
-      // Recalculate cost breakdown with adjusted late charge
+      // Recalculate cost breakdown with adjusted late charge and damage
       const adjustedCostBreakdown = calculateBookingCost({
         roomPrice,
         nights,
@@ -444,18 +488,15 @@ export function RoomBookingDialog({
         lateCheckoutCharge: adjustedLateCharge,
         serviceCharges,
         extraCharges,
+        damageCharges: damageCharges || 0,
+        damageItems: adjustedDamageItems,
         vatRate,
         serviceFeeRate,
         depositAmount,
         amountPaid,
       })
 
-      // Prepare update data
-      const updateNotes = adjustmentNote 
-        ? (notes ? `${notes}\n[Điều chỉnh phụ thu checkout: ${adjustmentNote}]` : `[Điều chỉnh phụ thu checkout: ${adjustmentNote}]`)
-        : notes
-
-      // Use RPC for atomic checkout operation with auto payment_status calculation
+      // Use RPC for atomic checkout operation with damage params
       const { data, error } = await supabase.rpc('perform_checkout', {
         p_booking_id: booking.id,
         p_room_id: roomId,
@@ -465,12 +506,22 @@ export function RoomBookingDialog({
         p_vat_amount: adjustedCostBreakdown.vatAmount,
         p_service_fee_amount: adjustedCostBreakdown.serviceFeeAmount,
         p_total_amount: adjustedCostBreakdown.totalAmount,
+        p_damage_charges: damageCharges || 0,
+        p_damage_notes: damageAdjustmentNote || null,
+        p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
       })
       
       if (error) throw error
 
       // Update notes if there was an adjustment
-      if (adjustmentNote) {
+      const allNotes: string[] = []
+      if (adjustmentNote) allNotes.push(`[Điều chỉnh phụ thu checkout: ${adjustmentNote}]`)
+      if (damageAdjustmentNote) allNotes.push(`[Điều chỉnh phí đền bù: ${damageAdjustmentNote}]`)
+      
+      if (allNotes.length > 0) {
+        const updateNotes = notes 
+          ? `${notes}\n${allNotes.join('\n')}` 
+          : allNotes.join('\n')
         await supabase
           .from('room_bookings')
           .update({ notes: updateNotes })
@@ -501,6 +552,7 @@ export function RoomBookingDialog({
       })
     } finally {
       setIsSubmitting(false)
+      setCheckoutDamageItems([])
     }
   }
 
@@ -544,14 +596,20 @@ export function RoomBookingDialog({
     }
   }
 
-  const handlePayAndCheckout = async (adjustedLateCharge: number, adjustmentNote?: string) => {
+  const handlePayAndCheckout = async (
+    adjustedLateCharge: number, 
+    adjustmentNote?: string,
+    damageCharges?: number,
+    damageAdjustmentNote?: string,
+    adjustedDamageItems?: DamageChargeItem[]
+  ) => {
     if (!booking) return
     
     setIsSubmitting(true)
     setShowCheckoutSummary(false)
     
     try {
-      // Recalculate cost breakdown with adjusted late charge
+      // Recalculate cost breakdown with adjusted late charge and damage
       const adjustedCostBreakdown = calculateBookingCost({
         roomPrice,
         nights,
@@ -559,6 +617,8 @@ export function RoomBookingDialog({
         lateCheckoutCharge: adjustedLateCharge,
         serviceCharges,
         extraCharges,
+        damageCharges: damageCharges || 0,
+        damageItems: adjustedDamageItems,
         vatRate,
         serviceFeeRate,
         depositAmount,
@@ -579,7 +639,7 @@ export function RoomBookingDialog({
         
       if (paymentError) throw paymentError
       
-      // Then use RPC for atomic checkout
+      // Then use RPC for atomic checkout with damage params
       const { data, error } = await supabase.rpc('perform_checkout', {
         p_booking_id: booking.id,
         p_room_id: roomId,
@@ -589,15 +649,22 @@ export function RoomBookingDialog({
         p_vat_amount: adjustedCostBreakdown.vatAmount,
         p_service_fee_amount: adjustedCostBreakdown.serviceFeeAmount,
         p_total_amount: adjustedCostBreakdown.totalAmount,
+        p_damage_charges: damageCharges || 0,
+        p_damage_notes: damageAdjustmentNote || null,
+        p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
       })
       
       if (error) throw error
 
       // Update notes if there was an adjustment
-      if (adjustmentNote) {
+      const allNotes: string[] = []
+      if (adjustmentNote) allNotes.push(`[Điều chỉnh phụ thu checkout: ${adjustmentNote}]`)
+      if (damageAdjustmentNote) allNotes.push(`[Điều chỉnh phí đền bù: ${damageAdjustmentNote}]`)
+      
+      if (allNotes.length > 0) {
         const updateNotes = notes 
-          ? `${notes}\n[Điều chỉnh phụ thu checkout: ${adjustmentNote}]` 
-          : `[Điều chỉnh phụ thu checkout: ${adjustmentNote}]`
+          ? `${notes}\n${allNotes.join('\n')}` 
+          : allNotes.join('\n')
         await supabase
           .from('room_bookings')
           .update({ notes: updateNotes })
@@ -628,6 +695,7 @@ export function RoomBookingDialog({
       })
     } finally {
       setIsSubmitting(false)
+      setCheckoutDamageItems([])
     }
   }
 
@@ -1126,6 +1194,7 @@ export function RoomBookingDialog({
         actualCheckoutDate={new Date()}
         scheduledCheckoutDate={booking?.check_out_date ? new Date(booking.check_out_date) : new Date()}
         costBreakdown={costBreakdown}
+        damageItems={checkoutDamageItems}
         onConfirmCheckout={performCheckOut}
         onPayAndCheckout={handlePayAndCheckout}
         isLoading={isSubmitting}

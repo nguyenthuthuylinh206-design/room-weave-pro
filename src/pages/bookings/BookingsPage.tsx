@@ -61,6 +61,7 @@ import {
   calculateLateCheckoutCharge,
   DEFAULT_PRICING_RULES,
   type BookingCostBreakdown,
+  type DamageChargeItem,
 } from '@/lib/bookingCalculations'
 import { calculateServiceChargesFromConsumables } from '@/hooks/usePricingRules'
 import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
@@ -118,6 +119,7 @@ export function BookingsPage() {
   const [actionBooking, setActionBooking] = useState<BookingWithRoom | null>(null)
   const [suggestedEarlyCharge, setSuggestedEarlyCharge] = useState(0)
   const [checkoutCostBreakdown, setCheckoutCostBreakdown] = useState<BookingCostBreakdown | null>(null)
+  const [checkoutDamageItems, setCheckoutDamageItems] = useState<DamageChargeItem[]>([])
   const [isActionLoading, setIsActionLoading] = useState(false)
   
   const { toast } = useToast()
@@ -342,7 +344,40 @@ export function BookingsPage() {
       const consumablesTotal = await calculateServiceChargesFromConsumables(booking.id)
       const serviceCharges = consumablesTotal > 0 ? consumablesTotal : ((booking as any).service_charges || 0)
 
-      // Calculate cost breakdown
+      // Fetch latest room check for damage info
+      const { data: latestCheck } = await supabase
+        .from('room_checks')
+        .select('items_lost, items_damaged')
+        .eq('room_id', booking.room_id)
+        .in('check_type', ['checkout', 'daily'])
+        .order('checked_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      // Convert to DamageChargeItem[]
+      const damageItems: DamageChargeItem[] = [
+        ...((latestCheck?.items_lost as any[]) || []).map(item => ({
+          item_id: item.item_id,
+          item_name: item.item_name,
+          item_type: 'lost' as const,
+          quantity: item.quantity,
+          charge_amount: item.estimated_value || 0,
+        })),
+        ...((latestCheck?.items_damaged as any[]) || []).map(item => ({
+          item_id: item.item_id,
+          item_name: item.item_name,
+          item_type: 'damaged' as const,
+          quantity: item.quantity,
+          charge_amount: item.damage_cost || 0,
+          damage_type: item.damage_type,
+        })),
+      ]
+
+      const totalDamageCharge = damageItems.reduce(
+        (sum, item) => sum + item.charge_amount * item.quantity, 0
+      )
+
+      // Calculate cost breakdown with damage
       const costBreakdown = calculateBookingCost({
         roomPrice,
         nights,
@@ -350,12 +385,15 @@ export function BookingsPage() {
         lateCheckoutCharge: calculatedLateCharge,
         serviceCharges,
         extraCharges: (booking as any).extra_charges || 0,
+        damageCharges: totalDamageCharge,
+        damageItems,
         vatRate: (booking as any).vat_rate || DEFAULT_PRICING_RULES.vatRate,
         serviceFeeRate: (booking as any).service_fee_rate || DEFAULT_PRICING_RULES.serviceFeeRate,
         depositAmount: (booking as any).deposit_amount || 0,
         amountPaid: (booking as any).amount_paid || 0,
       })
 
+      setCheckoutDamageItems(damageItems)
       setCheckoutCostBreakdown(costBreakdown)
       setShowCheckoutSummary(true)
     } catch (error: any) {
@@ -371,7 +409,13 @@ export function BookingsPage() {
   }
 
   // Perform checkout
-  const performCheckOut = async (adjustedLateCharge: number, adjustmentNote?: string) => {
+  const performCheckOut = async (
+    adjustedLateCharge: number, 
+    adjustmentNote?: string,
+    damageCharges?: number,
+    damageAdjustmentNote?: string,
+    adjustedDamageItems?: DamageChargeItem[]
+  ) => {
     if (!actionBooking || !checkoutCostBreakdown) return
 
     setIsActionLoading(true)
@@ -383,7 +427,7 @@ export function BookingsPage() {
       const checkOut = new Date(actionBooking.check_out_date)
       const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
 
-      // Recalculate with adjusted late charge
+      // Recalculate with adjusted late charge and damage
       const adjustedCostBreakdown = calculateBookingCost({
         roomPrice,
         nights,
@@ -391,13 +435,15 @@ export function BookingsPage() {
         lateCheckoutCharge: adjustedLateCharge,
         serviceCharges: checkoutCostBreakdown.serviceCharges,
         extraCharges: checkoutCostBreakdown.extraCharges,
+        damageCharges: damageCharges || 0,
+        damageItems: adjustedDamageItems,
         vatRate: checkoutCostBreakdown.vatRate,
         serviceFeeRate: checkoutCostBreakdown.serviceFeeRate,
         depositAmount: checkoutCostBreakdown.depositAmount,
         amountPaid: checkoutCostBreakdown.amountPaid,
       })
 
-      // Use RPC for atomic checkout
+      // Use RPC for atomic checkout with damage params
       const { error } = await supabase.rpc('perform_checkout', {
         p_booking_id: actionBooking.id,
         p_room_id: actionBooking.room_id,
@@ -407,16 +453,23 @@ export function BookingsPage() {
         p_vat_amount: adjustedCostBreakdown.vatAmount,
         p_service_fee_amount: adjustedCostBreakdown.serviceFeeAmount,
         p_total_amount: adjustedCostBreakdown.totalAmount,
+        p_damage_charges: damageCharges || 0,
+        p_damage_notes: damageAdjustmentNote || null,
+        p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
       })
 
       if (error) throw error
 
       // Update notes if adjusted
-      if (adjustmentNote) {
+      const allNotes: string[] = []
+      if (adjustmentNote) allNotes.push(`[Điều chỉnh phụ thu checkout: ${adjustmentNote}]`)
+      if (damageAdjustmentNote) allNotes.push(`[Điều chỉnh phí đền bù: ${damageAdjustmentNote}]`)
+      
+      if (allNotes.length > 0) {
         const existingNotes = (actionBooking as any).notes || ''
         const updateNotes = existingNotes
-          ? `${existingNotes}\n[Điều chỉnh phụ thu checkout: ${adjustmentNote}]`
-          : `[Điều chỉnh phụ thu checkout: ${adjustmentNote}]`
+          ? `${existingNotes}\n${allNotes.join('\n')}`
+          : allNotes.join('\n')
         await supabase
           .from('room_bookings')
           .update({ notes: updateNotes })
@@ -447,11 +500,18 @@ export function BookingsPage() {
       setIsActionLoading(false)
       setActionBooking(null)
       setCheckoutCostBreakdown(null)
+      setCheckoutDamageItems([])
     }
   }
 
   // Handle pay and checkout
-  const handlePayAndCheckout = async (adjustedLateCharge: number, adjustmentNote?: string) => {
+  const handlePayAndCheckout = async (
+    adjustedLateCharge: number, 
+    adjustmentNote?: string,
+    damageCharges?: number,
+    damageAdjustmentNote?: string,
+    adjustedDamageItems?: DamageChargeItem[]
+  ) => {
     if (!actionBooking || !checkoutCostBreakdown) return
 
     setIsActionLoading(true)
@@ -463,7 +523,7 @@ export function BookingsPage() {
       const checkOut = new Date(actionBooking.check_out_date)
       const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
 
-      // Recalculate with adjusted late charge
+      // Recalculate with adjusted late charge and damage
       const adjustedCostBreakdown = calculateBookingCost({
         roomPrice,
         nights,
@@ -471,6 +531,8 @@ export function BookingsPage() {
         lateCheckoutCharge: adjustedLateCharge,
         serviceCharges: checkoutCostBreakdown.serviceCharges,
         extraCharges: checkoutCostBreakdown.extraCharges,
+        damageCharges: damageCharges || 0,
+        damageItems: adjustedDamageItems,
         vatRate: checkoutCostBreakdown.vatRate,
         serviceFeeRate: checkoutCostBreakdown.serviceFeeRate,
         depositAmount: checkoutCostBreakdown.depositAmount,
@@ -491,7 +553,7 @@ export function BookingsPage() {
 
       if (paymentError) throw paymentError
 
-      // Use RPC for atomic checkout
+      // Use RPC for atomic checkout with damage params
       const { error } = await supabase.rpc('perform_checkout', {
         p_booking_id: actionBooking.id,
         p_room_id: actionBooking.room_id,
@@ -501,16 +563,23 @@ export function BookingsPage() {
         p_vat_amount: adjustedCostBreakdown.vatAmount,
         p_service_fee_amount: adjustedCostBreakdown.serviceFeeAmount,
         p_total_amount: adjustedCostBreakdown.totalAmount,
+        p_damage_charges: damageCharges || 0,
+        p_damage_notes: damageAdjustmentNote || null,
+        p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
       })
 
       if (error) throw error
 
       // Update notes if adjusted
-      if (adjustmentNote) {
+      const allNotes: string[] = []
+      if (adjustmentNote) allNotes.push(`[Điều chỉnh phụ thu checkout: ${adjustmentNote}]`)
+      if (damageAdjustmentNote) allNotes.push(`[Điều chỉnh phí đền bù: ${damageAdjustmentNote}]`)
+      
+      if (allNotes.length > 0) {
         const existingNotes = (actionBooking as any).notes || ''
         const updateNotes = existingNotes
-          ? `${existingNotes}\n[Điều chỉnh phụ thu checkout: ${adjustmentNote}]`
-          : `[Điều chỉnh phụ thu checkout: ${adjustmentNote}]`
+          ? `${existingNotes}\n${allNotes.join('\n')}`
+          : allNotes.join('\n')
         await supabase
           .from('room_bookings')
           .update({ notes: updateNotes })
@@ -541,6 +610,7 @@ export function BookingsPage() {
       setIsActionLoading(false)
       setActionBooking(null)
       setCheckoutCostBreakdown(null)
+      setCheckoutDamageItems([])
     }
   }
   
@@ -894,6 +964,7 @@ export function BookingsPage() {
           actualCheckoutDate={new Date()}
           scheduledCheckoutDate={actionBooking.check_out_date ? new Date(actionBooking.check_out_date) : new Date()}
           costBreakdown={checkoutCostBreakdown}
+          damageItems={checkoutDamageItems}
           onConfirmCheckout={performCheckOut}
           onPayAndCheckout={handlePayAndCheckout}
           isLoading={isActionLoading}
