@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { useToast } from '@/components/ui/use-toast'
 import { triggerAdjustmentPendingApproval, triggerAdjustmentAssigned } from '@/hooks/useNotificationTriggers'
 import { isAdminUser, isManager } from '@/lib/userAccess'
+import { triggerWorkflow, WorkflowTriggerTypes } from '@/lib/triggerWorkflow'
 import type { 
   AdjustmentWithDetails,
   AdjustmentFilters,
@@ -157,6 +158,22 @@ export function useCreateStockAdjustment() {
           assignedToUserIds: variables.assigned_to,
           createdByUserId: user.id,
         })
+        
+        // Trigger workflow for adjustment created
+        triggerWorkflow({
+          triggerType: WorkflowTriggerTypes.ADJUSTMENT_CREATED,
+          eventData: {
+            adjustment_id: result.adjustment_id,
+            adjustment_code: result.adjustment_code,
+            scheduled_date: variables.scheduled_date.toLocaleDateString('vi-VN'),
+            assigned_to: variables.assigned_to,
+            total_items: result.total_items,
+            created_by: user.id,
+            created_by_name: user.full_name,
+          },
+          tenantId: tenant.id,
+          hotelId: selectedHotel.id,
+        })
       }
       
       toast({
@@ -209,16 +226,31 @@ export function useUpdateAdjustmentStatus() {
       queryClient.invalidateQueries({ queryKey: ['stock-adjustments'] })
       queryClient.invalidateQueries({ queryKey: ['stock-adjustment', variables.adjustmentId] })
       
-      // Send notification when status becomes 'completed'
-      if (result?.status === 'completed') {
-        try {
-          const { data: adj } = await supabase
-            .from('stock_adjustments')
-            .select('adjustment_code, hotel_id, tenant_id')
-            .eq('id', variables.adjustmentId)
-            .single()
+      try {
+        const { data: adj } = await supabase
+          .from('stock_adjustments')
+          .select('adjustment_code, hotel_id, tenant_id, stock_adjustment_items(id)')
+          .eq('id', variables.adjustmentId)
+          .single()
+        
+        if (adj) {
+          // Trigger workflow for status changes
+          if (result?.status === 'in_progress') {
+            triggerWorkflow({
+              triggerType: WorkflowTriggerTypes.ADJUSTMENT_STARTED,
+              eventData: {
+                adjustment_id: variables.adjustmentId,
+                adjustment_code: adj.adjustment_code,
+                started_by: user?.id,
+                started_by_name: user?.full_name,
+              },
+              tenantId: adj.tenant_id,
+              hotelId: adj.hotel_id,
+            })
+          }
           
-          if (adj) {
+          // Send notification when status becomes 'completed'
+          if (result?.status === 'completed') {
             triggerAdjustmentPendingApproval({
               tenantId: adj.tenant_id,
               hotelId: adj.hotel_id,
@@ -226,10 +258,24 @@ export function useUpdateAdjustmentStatus() {
               adjustmentCode: adj.adjustment_code,
               triggeredByUserId: user?.id,
             })
+            
+            // Trigger workflow for completed adjustment
+            triggerWorkflow({
+              triggerType: WorkflowTriggerTypes.ADJUSTMENT_COMPLETED,
+              eventData: {
+                adjustment_id: variables.adjustmentId,
+                adjustment_code: adj.adjustment_code,
+                completed_by: user?.id,
+                completed_by_name: user?.full_name,
+                total_items: adj.stock_adjustment_items?.length || 0,
+              },
+              tenantId: adj.tenant_id,
+              hotelId: adj.hotel_id,
+            })
           }
-        } catch (e) {
-          console.error('[Adjustment] Failed to send pending approval notification:', e)
         }
+      } catch (e) {
+        console.error('[Adjustment] Failed to trigger workflow:', e)
       }
       
       toast({
@@ -409,11 +455,43 @@ export function useApproveAdjustment() {
         if (adjustmentError) throw adjustmentError
       }
     },
-    onSuccess: (_, variables) => {
+    onSuccess: async (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['stock-adjustments'] })
       queryClient.invalidateQueries({ queryKey: ['stock-adjustment', variables.adjustmentId] })
       queryClient.invalidateQueries({ queryKey: ['inventory-dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
+      
+      // Trigger workflow for approved adjustment
+      try {
+        const { data: adj } = await supabase
+          .from('stock_adjustments')
+          .select('adjustment_code, hotel_id, tenant_id, created_by, stock_adjustment_items(id, actual_quantity, system_quantity)')
+          .eq('id', variables.adjustmentId)
+          .single()
+        
+        if (adj) {
+          const discrepancyCount = adj.stock_adjustment_items?.filter(
+            (item: any) => item.actual_quantity !== item.system_quantity
+          ).length || 0
+          
+          triggerWorkflow({
+            triggerType: WorkflowTriggerTypes.ADJUSTMENT_APPROVED,
+            eventData: {
+              adjustment_id: variables.adjustmentId,
+              adjustment_code: adj.adjustment_code,
+              approved_by: user?.id,
+              approved_by_name: user?.full_name,
+              total_items: adj.stock_adjustment_items?.length || 0,
+              discrepancy_count: discrepancyCount,
+              created_by: adj.created_by,
+            },
+            tenantId: adj.tenant_id,
+            hotelId: adj.hotel_id,
+          })
+        }
+      } catch (e) {
+        console.error('[Adjustment] Failed to trigger approval workflow:', e)
+      }
       
       toast({
         title: 'Thành công',
@@ -456,9 +534,37 @@ export function useRejectAdjustment() {
       
       if (error) throw error
     },
-    onSuccess: (_, variables) => {
+    onSuccess: async (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['stock-adjustments'] })
       queryClient.invalidateQueries({ queryKey: ['stock-adjustment', variables.adjustmentId] })
+      
+      // Trigger workflow for rejected adjustment
+      try {
+        const { data: adj } = await supabase
+          .from('stock_adjustments')
+          .select('adjustment_code, hotel_id, tenant_id, created_by, assigned_to')
+          .eq('id', variables.adjustmentId)
+          .single()
+        
+        if (adj) {
+          triggerWorkflow({
+            triggerType: WorkflowTriggerTypes.ADJUSTMENT_REJECTED,
+            eventData: {
+              adjustment_id: variables.adjustmentId,
+              adjustment_code: adj.adjustment_code,
+              rejected_by: user?.id,
+              rejected_by_name: user?.full_name,
+              rejection_reason: variables.rejectionReason,
+              created_by: adj.created_by,
+              assigned_to: adj.assigned_to,
+            },
+            tenantId: adj.tenant_id,
+            hotelId: adj.hotel_id,
+          })
+        }
+      } catch (e) {
+        console.error('[Adjustment] Failed to trigger rejection workflow:', e)
+      }
       
       toast({
         title: 'Đã từ chối',

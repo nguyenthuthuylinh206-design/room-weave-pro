@@ -7,7 +7,10 @@ import {
   Wrench, 
   ClipboardCheck,
   Bell,
-  Zap
+  Zap,
+  CheckCircle,
+  XCircle,
+  FileCheck
 } from 'lucide-react'
 
 interface WorkflowTemplate {
@@ -27,6 +30,133 @@ interface WorkflowTemplate {
 }
 
 const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
+  // ===== STOCK ADJUSTMENT WORKFLOWS =====
+  {
+    id: 'adjustment-created-notify-staff',
+    name: 'Phiếu kiểm kê tạo mới → Thông báo Staff',
+    description: 'Tự động thông báo cho nhân viên được giao khi có phiếu kiểm kê mới',
+    icon: <FileCheck className="h-5 w-5" />,
+    category: 'inventory',
+    trigger: {
+      type: 'adjustment_created',
+      conditions: {}
+    },
+    actions: [
+      {
+        type: 'send_notification',
+        config: {
+          notification_type: 'all',
+          telegram_config: {
+            routing_mode: 'department',
+            department: 'inventory',
+            hotel_filter: 'dynamic',
+            title: '📋 Phiếu kiểm kê mới - {{adjustment_code}}',
+            message: 'Bạn được giao kiểm kê {{total_items}} sản phẩm.\nNgày dự kiến: {{scheduled_date}}\n\nVui lòng thực hiện kiểm tra.'
+          },
+          in_app_config: {
+            recipient_mode: 'dynamic',
+            title: 'Phiếu kiểm kê {{adjustment_code}}',
+            body: 'Bạn được giao kiểm kê {{total_items}} sản phẩm'
+          }
+        }
+      }
+    ]
+  },
+  {
+    id: 'adjustment-completed-notify-manager',
+    name: 'Kiểm kê hoàn thành → Chờ duyệt',
+    description: 'Thông báo cho Manager/Owner khi nhân viên hoàn thành kiểm kê, chờ duyệt',
+    icon: <ClipboardCheck className="h-5 w-5" />,
+    category: 'inventory',
+    trigger: {
+      type: 'adjustment_completed',
+      conditions: {}
+    },
+    actions: [
+      {
+        type: 'send_notification',
+        config: {
+          notification_type: 'all',
+          telegram_config: {
+            routing_mode: 'level',
+            group_levels: ['owner', 'management'],
+            hotel_filter: 'dynamic',
+            title: '📋 Kiểm kê chờ duyệt - {{adjustment_code}}',
+            message: 'Nhân viên {{completed_by_name}} đã hoàn thành kiểm kê.\nTổng: {{total_items}} sản phẩm\n\nVui lòng duyệt phiếu.'
+          },
+          in_app_config: {
+            recipient_mode: 'roles',
+            role_ids: ['manager', 'owner'],
+            title: 'Phiếu {{adjustment_code}} chờ duyệt',
+            body: 'Kiểm kê hoàn thành - chờ duyệt'
+          }
+        }
+      }
+    ]
+  },
+  {
+    id: 'adjustment-approved-notify-staff',
+    name: 'Phiếu được duyệt → Thông báo Staff',
+    description: 'Thông báo cho nhân viên khi phiếu kiểm kê được duyệt và cập nhật kho',
+    icon: <CheckCircle className="h-5 w-5" />,
+    category: 'inventory',
+    trigger: {
+      type: 'adjustment_approved',
+      conditions: {}
+    },
+    actions: [
+      {
+        type: 'send_notification',
+        config: {
+          notification_type: 'all',
+          telegram_config: {
+            routing_mode: 'department',
+            department: 'inventory',
+            hotel_filter: 'dynamic',
+            title: '✅ Phiếu {{adjustment_code}} đã duyệt',
+            message: 'Người duyệt: {{approved_by_name}}\nTổng items: {{total_items}}\nChênh lệch: {{discrepancy_count}}\n\nKho đã được cập nhật.'
+          },
+          in_app_config: {
+            recipient_mode: 'dynamic',
+            title: 'Phiếu {{adjustment_code}} đã duyệt',
+            body: 'Kho đã được cập nhật với {{discrepancy_count}} chênh lệch'
+          }
+        }
+      }
+    ]
+  },
+  {
+    id: 'adjustment-rejected-notify-staff',
+    name: 'Phiếu bị từ chối → Yêu cầu kiểm lại',
+    description: 'Thông báo cho nhân viên khi phiếu kiểm kê bị từ chối kèm lý do',
+    icon: <XCircle className="h-5 w-5" />,
+    category: 'inventory',
+    trigger: {
+      type: 'adjustment_rejected',
+      conditions: {}
+    },
+    actions: [
+      {
+        type: 'send_notification',
+        config: {
+          notification_type: 'all',
+          telegram_config: {
+            routing_mode: 'department',
+            department: 'inventory',
+            hotel_filter: 'dynamic',
+            title: '❌ Phiếu {{adjustment_code}} bị từ chối',
+            message: 'Người từ chối: {{rejected_by_name}}\nLý do: {{rejection_reason}}\n\nVui lòng kiểm tra và cập nhật lại.'
+          },
+          in_app_config: {
+            recipient_mode: 'dynamic',
+            title: 'Phiếu {{adjustment_code}} bị từ chối',
+            body: 'Lý do: {{rejection_reason}}'
+          }
+        }
+      }
+    ]
+  },
+  // ===== HOUSEKEEPING WORKFLOWS =====
   {
     id: 'checkout-notify-housekeeping',
     name: 'Checkout → Thông báo Housekeeping',

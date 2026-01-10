@@ -63,6 +63,13 @@ export const WorkflowTriggerTypes = {
   INVENTORY_LOW_STOCK: 'inventory_low_stock',
   INVENTORY_TRANSACTION: 'inventory_transaction',
   
+  // Stock Adjustment events
+  ADJUSTMENT_CREATED: 'adjustment_created',
+  ADJUSTMENT_STARTED: 'adjustment_started',
+  ADJUSTMENT_COMPLETED: 'adjustment_completed',
+  ADJUSTMENT_APPROVED: 'adjustment_approved',
+  ADJUSTMENT_REJECTED: 'adjustment_rejected',
+  
   // Maintenance events
   MAINTENANCE_REQUEST_CREATED: 'maintenance_request_created',
   MAINTENANCE_STATUS_CHANGE: 'maintenance_status_change',
