@@ -7245,6 +7245,15 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_stock_audit_report: {
+        Args: {
+          p_end_date?: string
+          p_hotel_id?: string
+          p_start_date?: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       get_super_admin_dashboard_stats: { Args: never; Returns: Json }
       get_tenant_billing_summary: {
         Args: { p_tenant_id: string }
