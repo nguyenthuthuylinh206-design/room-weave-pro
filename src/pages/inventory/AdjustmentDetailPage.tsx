@@ -42,7 +42,7 @@ import {
   useApproveAdjustment,
   useRejectAdjustment,
 } from '@/hooks/useStockAdjustments'
-import { useAuth } from '@/contexts/AuthContext'
+import { useUser } from '@/hooks/useUser'
 import { formatCurrency } from '@/lib/utils'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
@@ -52,7 +52,7 @@ export function AdjustmentDetailPage() {
   const { isMobile } = useBreakpoint()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user } = useUser()
   const [showApproveDialog, setShowApproveDialog] = useState(false)
   const [showRejectDialog, setShowRejectDialog] = useState(false)
   const [approvalNotes, setApprovalNotes] = useState('')
