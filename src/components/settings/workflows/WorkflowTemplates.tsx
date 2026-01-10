@@ -353,7 +353,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   laundry: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
+export const CATEGORY_LABELS: Record<string, string> = {
   housekeeping: 'Buồng phòng',
   inventory: 'Kho',
   maintenance: 'Bảo trì',
