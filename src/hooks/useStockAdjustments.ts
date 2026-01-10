@@ -840,6 +840,64 @@ export function useResolveInvestigation() {
         
         linkedDocId = transaction?.id || null
         linkedDocType = 'inventory_transaction'
+      } else if (resolutionType === 'compensation' && responsiblePersonId) {
+        // Create compensation request
+        const quantity = Math.abs(itemData.actual_quantity - itemData.system_quantity)
+        const totalAmount = quantity * (itemData.unit_price || 0)
+        
+        // Get item info for display
+        const { data: itemInfo } = await supabase
+          .from('items')
+          .select('name, code')
+          .eq('id', itemData.item_id)
+          .single()
+        
+        // Get responsible person name
+        const { data: personInfo } = await supabase
+          .from('users')
+          .select('full_name')
+          .eq('id', responsiblePersonId)
+          .single()
+        
+        // Generate request code
+        const requestCode = `COMP-${adjustment.adjustment_code}-${Date.now().toString(36).toUpperCase()}`
+        
+        const { data: compensationRequest, error: compError } = await supabase
+          .from('compensation_requests')
+          .insert({
+            tenant_id: adjustment.tenant_id,
+            hotel_id: adjustment.hotel_id,
+            request_code: requestCode,
+            request_type: 'inventory_shortage',
+            status: 'pending',
+            source_type: 'stock_adjustment_item',
+            source_id: itemId,
+            responsible_person_id: responsiblePersonId,
+            responsible_person_name: personInfo?.full_name || null,
+            item_id: itemData.item_id,
+            item_name: itemInfo?.name || null,
+            item_code: itemInfo?.code || null,
+            quantity: quantity,
+            unit_price: itemData.unit_price || 0,
+            total_amount: totalAmount,
+            resolution_notes: resolutionNotes,
+            created_by: user.id,
+          })
+          .select('id')
+          .single()
+        
+        if (compError) throw compError
+        
+        linkedDocId = compensationRequest?.id || null
+        linkedDocType = 'compensation_request'
+        
+        // Also update stock since shortage is confirmed
+        const { error: stockError } = await supabase
+          .from('items')
+          .update({ quantity_in_stock: itemData.actual_quantity })
+          .eq('id', itemData.item_id)
+        
+        if (stockError) throw stockError
       }
       
       // Update item with resolution

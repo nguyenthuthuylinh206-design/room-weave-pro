@@ -321,6 +321,161 @@ export type Database = {
           },
         ]
       }
+      compensation_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string
+          hotel_id: string
+          id: string
+          item_code: string | null
+          item_id: string | null
+          item_name: string | null
+          paid_at: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          quantity: number
+          request_code: string
+          request_type: string
+          resolution_notes: string | null
+          responsible_person_id: string | null
+          responsible_person_name: string | null
+          source_id: string | null
+          source_type: string | null
+          status: string
+          tenant_id: string
+          total_amount: number
+          unit_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by: string
+          hotel_id: string
+          id?: string
+          item_code?: string | null
+          item_id?: string | null
+          item_name?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          quantity?: number
+          request_code: string
+          request_type?: string
+          resolution_notes?: string | null
+          responsible_person_id?: string | null
+          responsible_person_name?: string | null
+          source_id?: string | null
+          source_type?: string | null
+          status?: string
+          tenant_id: string
+          total_amount?: number
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string
+          hotel_id?: string
+          id?: string
+          item_code?: string | null
+          item_id?: string | null
+          item_name?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          quantity?: number
+          request_code?: string
+          request_type?: string
+          resolution_notes?: string | null
+          responsible_person_id?: string | null
+          responsible_person_name?: string | null
+          source_id?: string | null
+          source_type?: string | null
+          status?: string
+          tenant_id?: string
+          total_amount?: number
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compensation_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensation_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensation_requests_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensation_requests_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensation_requests_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "compensation_requests_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensation_requests_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensation_requests_responsible_person_id_fkey"
+            columns: ["responsible_person_id"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensation_requests_responsible_person_id_fkey"
+            columns: ["responsible_person_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensation_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_field_values: {
         Row: {
           entity_id: string
