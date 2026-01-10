@@ -64,6 +64,22 @@ export function CheckAdjustmentPage() {
   const isCompleted = adjustment?.status === 'completed'
   const isApproved = adjustment?.status === 'approved'
   
+  // Staff chỉ được kiểm tra phiếu được gán, Manager/Owner được kiểm tra tất cả
+  const isAssignedToMe = adjustment?.assigned_to?.includes(user?.id)
+  const canCheck = isAssignedToMe || isAdminUser(user as any)
+  
+  // Redirect nếu không có quyền check
+  useEffect(() => {
+    if (adjustment && !isLoading && !canCheck) {
+      toast({
+        title: 'Không có quyền truy cập',
+        description: 'Bạn không được gán kiểm tra phiếu này',
+        variant: 'destructive',
+      })
+      navigate(`/inventory/adjustments/${id}`)
+    }
+  }, [adjustment, isLoading, canCheck, id, navigate, toast])
+  
   // Auto-save debounce refs
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout>()
   const lastSavedDataRef = useRef<string>('')

@@ -110,7 +110,10 @@ export function MobileAdjustmentDetail() {
     return sum + diff
   }, 0)
   
-  const canContinue = adj.status === 'draft' || adj.status === 'in_progress'
+  // Staff chỉ được kiểm tra phiếu được gán, Manager/Owner được kiểm tra tất cả
+  const isAssignedToMe = adj.assigned_to?.includes(user?.id)
+  const canContinue = (adj.status === 'draft' || adj.status === 'in_progress') &&
+    (isAssignedToMe || isAdminUser(user as any))
   const canApprove = adj.status === 'completed' && 
     (isAdminUser(user as any) || isManager(user as any))
   

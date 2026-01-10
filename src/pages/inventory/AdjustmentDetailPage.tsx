@@ -91,6 +91,10 @@ export function AdjustmentDetailPage() {
     adjustment.status === 'completed' && 
     (isAdminUser(user as any) || isManager(user as any))
   
+  // Staff chỉ được kiểm tra phiếu được gán, Manager/Owner được kiểm tra tất cả
+  const isAssignedToMe = adjustment.assigned_to?.includes(user?.id)
+  const canCheck = isAssignedToMe || isAdminUser(user as any)
+  
   const handleApprove = () => {
     if (!id) return
     approve(
@@ -128,7 +132,7 @@ export function AdjustmentDetailPage() {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Quay lại
           </Button>
-          {(adjustment.status === 'draft' || adjustment.status === 'in_progress') && (
+          {(adjustment.status === 'draft' || adjustment.status === 'in_progress') && canCheck && (
             <Button onClick={() => navigate(`/inventory/adjustments/${id}/check`)}>
               Tiếp tục kiểm kê
             </Button>
