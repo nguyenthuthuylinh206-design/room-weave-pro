@@ -14,6 +14,12 @@ import type {
   CreateAdjustmentData,
   CheckAdjustmentItemData
 } from '@/types/inventory.types'
+import type {
+  StartInvestigationDto,
+  ResolveInvestigationDto,
+  ApproveItemDto,
+  ResolutionType,
+} from '@/types/adjustment-investigation.types'
 
 export function useStockAdjustments(
   filters: AdjustmentFilters = {},
@@ -88,7 +94,9 @@ export function useStockAdjustment(adjustmentId: string | undefined) {
             category:item_categories(name, color),
             item_images(id, url, is_primary, display_order)
           ),
-          checked_by_user:users(id, full_name, avatar_url)
+          checked_by_user:users!stock_adjustment_items_checked_by_fkey(id, full_name, avatar_url),
+          approved_by_user:users!stock_adjustment_items_approved_by_fkey(id, full_name, avatar_url),
+          responsible_person:users!stock_adjustment_items_responsible_person_id_fkey(id, full_name, avatar_url)
         `)
         .eq('adjustment_id', adjustmentId)
         .order('created_at')
@@ -618,4 +626,430 @@ export function usePendingAdjustmentsCount() {
     staleTime: 30 * 1000, // 30 seconds
     refetchInterval: 60 * 1000, // Refetch every minute
   })
+}
+
+// ============================================
+// PER-ITEM APPROVAL & INVESTIGATION WORKFLOW
+// ============================================
+
+/**
+ * Hook to approve a single item (for matched items without discrepancy)
+ */
+export function useApproveItem() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const { user } = useUser()
+  
+  return useMutation({
+    mutationFn: async ({ itemId, adjustmentId, notes }: ApproveItemDto) => {
+      if (!user?.id) throw new Error('No user')
+      
+      // Get item details first
+      const { data: itemData, error: fetchError } = await supabase
+        .from('stock_adjustment_items')
+        .select('item_id, system_quantity, actual_quantity, unit_price')
+        .eq('id', itemId)
+        .single()
+      
+      if (fetchError) throw fetchError
+      
+      // Update item status to approved
+      const { error: updateError } = await supabase
+        .from('stock_adjustment_items')
+        .update({
+          status: 'approved',
+          approved_by: user.id,
+          approved_at: new Date().toISOString(),
+          notes: notes || null,
+        })
+        .eq('id', itemId)
+      
+      if (updateError) throw updateError
+      
+      // Update stock quantity if there's a difference
+      if (itemData.system_quantity !== itemData.actual_quantity) {
+        const { error: stockError } = await supabase
+          .from('items')
+          .update({ quantity_in_stock: itemData.actual_quantity })
+          .eq('id', itemData.item_id)
+        
+        if (stockError) throw stockError
+        
+        // Get adjustment info for transaction
+        const { data: adjustment } = await supabase
+          .from('stock_adjustments')
+          .select('adjustment_code, hotel_id, tenant_id')
+          .eq('id', adjustmentId)
+          .single()
+        
+        if (adjustment) {
+          const quantity = itemData.actual_quantity - itemData.system_quantity
+          const transactionType = quantity > 0 ? 'in' : 'out'
+          
+          await supabase
+            .from('inventory_transactions')
+            .insert({
+              hotel_id: adjustment.hotel_id,
+              tenant_id: adjustment.tenant_id,
+              item_id: itemData.item_id,
+              transaction_type: transactionType,
+              transaction_category: 'adjustment',
+              quantity: Math.abs(quantity),
+              quantity_before: itemData.system_quantity,
+              quantity_after: itemData.actual_quantity,
+              transaction_code: `ADJ-${adjustment.adjustment_code}`,
+              related_type: 'stock_adjustment',
+              related_id: adjustmentId,
+              created_by: user.id,
+              unit_price: itemData.unit_price,
+              total_value: Math.abs(quantity) * (itemData.unit_price || 0),
+            })
+        }
+      }
+      
+      // Check if all items are now approved, then update adjustment status
+      await checkAndUpdateAdjustmentStatus(adjustmentId, user.id)
+      
+      return { itemId, adjustmentId }
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['stock-adjustment', variables.adjustmentId] })
+      queryClient.invalidateQueries({ queryKey: ['stock-adjustments'] })
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+      toast({ title: 'Đã duyệt item' })
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' })
+    },
+  })
+}
+
+/**
+ * Hook to start investigation for a discrepancy item
+ */
+export function useStartInvestigation() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const { user } = useUser()
+  
+  return useMutation({
+    mutationFn: async ({ itemId, adjustmentId, notes }: StartInvestigationDto) => {
+      if (!user?.id) throw new Error('No user')
+      
+      const { error } = await supabase
+        .from('stock_adjustment_items')
+        .update({
+          status: 'investigating',
+          investigation_status: 'investigating',
+          investigation_notes: notes || null,
+          investigation_started_at: new Date().toISOString(),
+        })
+        .eq('id', itemId)
+      
+      if (error) throw error
+      return { itemId, adjustmentId }
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['stock-adjustment', variables.adjustmentId] })
+      toast({ title: 'Đã bắt đầu điều tra' })
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' })
+    },
+  })
+}
+
+/**
+ * Hook to resolve investigation and apply the resolution
+ */
+export function useResolveInvestigation() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const { user } = useUser()
+  
+  return useMutation({
+    mutationFn: async ({ 
+      itemId, 
+      adjustmentId, 
+      resolutionType, 
+      resolutionNotes,
+      responsiblePersonId 
+    }: ResolveInvestigationDto) => {
+      if (!user?.id) throw new Error('No user')
+      
+      // Get item details
+      const { data: itemData, error: fetchError } = await supabase
+        .from('stock_adjustment_items')
+        .select('item_id, system_quantity, actual_quantity, unit_price')
+        .eq('id', itemId)
+        .single()
+      
+      if (fetchError) throw fetchError
+      
+      // Get adjustment info
+      const { data: adjustment } = await supabase
+        .from('stock_adjustments')
+        .select('adjustment_code, hotel_id, tenant_id')
+        .eq('id', adjustmentId)
+        .single()
+      
+      if (!adjustment) throw new Error('Không tìm thấy phiếu kiểm kê')
+      
+      let linkedDocId: string | null = null
+      let linkedDocType: string | null = null
+      
+      // Apply resolution based on type
+      if (resolutionType === 'adjust_stock' || 
+          resolutionType === 'supplementary_in' || 
+          resolutionType === 'supplementary_out') {
+        // Update stock and create transaction
+        const { error: stockError } = await supabase
+          .from('items')
+          .update({ quantity_in_stock: itemData.actual_quantity })
+          .eq('id', itemData.item_id)
+        
+        if (stockError) throw stockError
+        
+        const quantity = itemData.actual_quantity - itemData.system_quantity
+        const transactionType = quantity > 0 ? 'in' : 'out'
+        
+        // Create transaction
+        const { data: transaction, error: transactionError } = await supabase
+          .from('inventory_transactions')
+          .insert({
+            hotel_id: adjustment.hotel_id,
+            tenant_id: adjustment.tenant_id,
+            item_id: itemData.item_id,
+            transaction_type: transactionType,
+            transaction_category: resolutionType === 'adjust_stock' ? 'adjustment' : 'other',
+            quantity: Math.abs(quantity),
+            quantity_before: itemData.system_quantity,
+            quantity_after: itemData.actual_quantity,
+            transaction_code: `ADJ-${adjustment.adjustment_code}`,
+            related_type: 'stock_adjustment',
+            related_id: adjustmentId,
+            created_by: user.id,
+            unit_price: itemData.unit_price,
+            total_value: Math.abs(quantity) * (itemData.unit_price || 0),
+            notes: resolutionNotes,
+          })
+          .select('id')
+          .single()
+        
+        if (transactionError) throw transactionError
+        
+        linkedDocId = transaction?.id || null
+        linkedDocType = 'inventory_transaction'
+      }
+      
+      // Update item with resolution
+      const { error: updateError } = await supabase
+        .from('stock_adjustment_items')
+        .update({
+          status: 'approved',
+          investigation_status: 'resolved',
+          investigation_completed_at: new Date().toISOString(),
+          resolution_type: resolutionType,
+          resolution_notes: resolutionNotes || null,
+          responsible_person_id: responsiblePersonId || null,
+          linked_document_type: linkedDocType,
+          linked_document_id: linkedDocId,
+          approved_by: user.id,
+          approved_at: new Date().toISOString(),
+        })
+        .eq('id', itemId)
+      
+      if (updateError) throw updateError
+      
+      // Check if all items are now approved
+      await checkAndUpdateAdjustmentStatus(adjustmentId, user.id)
+      
+      return { itemId, adjustmentId, resolutionType }
+    },
+    onSuccess: (result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['stock-adjustment', variables.adjustmentId] })
+      queryClient.invalidateQueries({ queryKey: ['stock-adjustments'] })
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+      
+      const resolutionLabels: Record<ResolutionType, string> = {
+        adjust_stock: 'Đã điều chỉnh tồn kho',
+        compensation: 'Đã tạo yêu cầu bồi thường',
+        supplementary_in: 'Đã ghi nhận nhập bổ sung',
+        supplementary_out: 'Đã ghi nhận xuất bổ sung',
+      }
+      
+      toast({ 
+        title: 'Đã xử lý xong',
+        description: resolutionLabels[result.resolutionType],
+      })
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' })
+    },
+  })
+}
+
+/**
+ * Hook to approve all items at once (bulk approval)
+ */
+export function useBulkApproveItems() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const { user } = useUser()
+  
+  return useMutation({
+    mutationFn: async ({ 
+      adjustmentId, 
+      approvalNotes 
+    }: { 
+      adjustmentId: string
+      approvalNotes?: string 
+    }) => {
+      if (!user?.id) throw new Error('No user')
+      
+      // Get all pending items
+      const { data: pendingItems, error: fetchError } = await supabase
+        .from('stock_adjustment_items')
+        .select('id, item_id, system_quantity, actual_quantity, unit_price, status, investigation_status')
+        .eq('adjustment_id', adjustmentId)
+        .eq('status', 'pending')
+      
+      if (fetchError) throw fetchError
+      
+      // Check if there are items under investigation
+      const { data: investigatingItems } = await supabase
+        .from('stock_adjustment_items')
+        .select('id')
+        .eq('adjustment_id', adjustmentId)
+        .eq('status', 'investigating')
+      
+      if (investigatingItems && investigatingItems.length > 0) {
+        throw new Error(`Còn ${investigatingItems.length} items đang điều tra. Vui lòng xử lý xong trước khi duyệt tất cả.`)
+      }
+      
+      // Get adjustment info
+      const { data: adjustment } = await supabase
+        .from('stock_adjustments')
+        .select('adjustment_code, hotel_id, tenant_id')
+        .eq('id', adjustmentId)
+        .single()
+      
+      if (!adjustment) throw new Error('Không tìm thấy phiếu kiểm kê')
+      
+      // Approve all pending items and update stock
+      for (const item of pendingItems || []) {
+        // Update item status
+        await supabase
+          .from('stock_adjustment_items')
+          .update({
+            status: 'approved',
+            approved_by: user.id,
+            approved_at: new Date().toISOString(),
+          })
+          .eq('id', item.id)
+        
+        // Update stock if there's difference
+        if (item.system_quantity !== item.actual_quantity) {
+          await supabase
+            .from('items')
+            .update({ quantity_in_stock: item.actual_quantity })
+            .eq('id', item.item_id)
+          
+          // Create transaction
+          const quantity = item.actual_quantity - item.system_quantity
+          await supabase
+            .from('inventory_transactions')
+            .insert({
+              hotel_id: adjustment.hotel_id,
+              tenant_id: adjustment.tenant_id,
+              item_id: item.item_id,
+              transaction_type: quantity > 0 ? 'in' : 'out',
+              transaction_category: 'adjustment',
+              quantity: Math.abs(quantity),
+              quantity_before: item.system_quantity,
+              quantity_after: item.actual_quantity,
+              transaction_code: `ADJ-${adjustment.adjustment_code}`,
+              related_type: 'stock_adjustment',
+              related_id: adjustmentId,
+              created_by: user.id,
+              unit_price: item.unit_price,
+              total_value: Math.abs(quantity) * (item.unit_price || 0),
+            })
+        }
+      }
+      
+      // Update adjustment status
+      await supabase
+        .from('stock_adjustments')
+        .update({
+          status: 'approved',
+          approved_by: user.id,
+          approved_at: new Date().toISOString(),
+          approval_notes: approvalNotes || null,
+        })
+        .eq('id', adjustmentId)
+      
+      return { adjustmentId, approvedCount: pendingItems?.length || 0 }
+    },
+    onSuccess: async (result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['stock-adjustment', variables.adjustmentId] })
+      queryClient.invalidateQueries({ queryKey: ['stock-adjustments'] })
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory-dashboard'] })
+      
+      // Trigger workflow
+      try {
+        const { data: adj } = await supabase
+          .from('stock_adjustments')
+          .select('adjustment_code, hotel_id, tenant_id, created_by')
+          .eq('id', variables.adjustmentId)
+          .single()
+        
+        if (adj) {
+          triggerWorkflow({
+            triggerType: WorkflowTriggerTypes.ADJUSTMENT_APPROVED,
+            eventData: {
+              adjustment_id: variables.adjustmentId,
+              adjustment_code: adj.adjustment_code,
+              approved_by: user?.id,
+              approved_by_name: user?.full_name,
+              total_approved: result.approvedCount,
+            },
+            tenantId: adj.tenant_id,
+            hotelId: adj.hotel_id,
+          })
+        }
+      } catch (e) {
+        console.error('[Adjustment] Failed to trigger workflow:', e)
+      }
+      
+      toast({ 
+        title: 'Đã duyệt tất cả',
+        description: `Đã duyệt ${result.approvedCount} items`,
+      })
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' })
+    },
+  })
+}
+
+// Helper function to check and update adjustment status
+async function checkAndUpdateAdjustmentStatus(adjustmentId: string, userId: string) {
+  const { data: pendingItems } = await supabase
+    .from('stock_adjustment_items')
+    .select('id')
+    .eq('adjustment_id', adjustmentId)
+    .in('status', ['pending', 'investigating'])
+  
+  if (!pendingItems || pendingItems.length === 0) {
+    await supabase
+      .from('stock_adjustments')
+      .update({
+        status: 'approved',
+        approved_by: userId,
+        approved_at: new Date().toISOString(),
+      })
+      .eq('id', adjustmentId)
+  }
 }

@@ -4553,15 +4553,26 @@ export type Database = {
         Row: {
           actual_quantity: number
           adjustment_id: string
+          approved_at: string | null
+          approved_by: string | null
           checked_at: string | null
           checked_by: string | null
           created_at: string | null
           difference: number | null
           discrepancy_reason: string | null
           id: string
+          investigation_completed_at: string | null
+          investigation_notes: string | null
+          investigation_started_at: string | null
+          investigation_status: string | null
           item_id: string
+          linked_document_id: string | null
+          linked_document_type: string | null
           notes: string | null
           photos: string[] | null
+          resolution_notes: string | null
+          resolution_type: string | null
+          responsible_person_id: string | null
           status: string | null
           system_quantity: number
           unit_price: number | null
@@ -4570,15 +4581,26 @@ export type Database = {
         Insert: {
           actual_quantity: number
           adjustment_id: string
+          approved_at?: string | null
+          approved_by?: string | null
           checked_at?: string | null
           checked_by?: string | null
           created_at?: string | null
           difference?: number | null
           discrepancy_reason?: string | null
           id?: string
+          investigation_completed_at?: string | null
+          investigation_notes?: string | null
+          investigation_started_at?: string | null
+          investigation_status?: string | null
           item_id: string
+          linked_document_id?: string | null
+          linked_document_type?: string | null
           notes?: string | null
           photos?: string[] | null
+          resolution_notes?: string | null
+          resolution_type?: string | null
+          responsible_person_id?: string | null
           status?: string | null
           system_quantity: number
           unit_price?: number | null
@@ -4587,15 +4609,26 @@ export type Database = {
         Update: {
           actual_quantity?: number
           adjustment_id?: string
+          approved_at?: string | null
+          approved_by?: string | null
           checked_at?: string | null
           checked_by?: string | null
           created_at?: string | null
           difference?: number | null
           discrepancy_reason?: string | null
           id?: string
+          investigation_completed_at?: string | null
+          investigation_notes?: string | null
+          investigation_started_at?: string | null
+          investigation_status?: string | null
           item_id?: string
+          linked_document_id?: string | null
+          linked_document_type?: string | null
           notes?: string | null
           photos?: string[] | null
+          resolution_notes?: string | null
+          resolution_type?: string | null
+          responsible_person_id?: string | null
           status?: string | null
           system_quantity?: number
           unit_price?: number | null
@@ -4607,6 +4640,20 @@ export type Database = {
             columns: ["adjustment_id"]
             isOneToOne: false
             referencedRelation: "stock_adjustments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustment_items_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustment_items_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -4628,6 +4675,20 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustment_items_responsible_person_id_fkey"
+            columns: ["responsible_person_id"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustment_items_responsible_person_id_fkey"
+            columns: ["responsible_person_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]

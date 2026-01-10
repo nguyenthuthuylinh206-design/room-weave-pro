@@ -41,12 +41,15 @@ import {
   useStockAdjustment,
   useApproveAdjustment,
   useRejectAdjustment,
+  useApproveItem,
+  useStartInvestigation,
+  useBulkApproveItems,
 } from '@/hooks/useStockAdjustments'
 import { useUser } from '@/hooks/useUser'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { cn } from '@/lib/utils'
+import { InvestigationDialog } from '@/components/inventory/adjustments/InvestigationDialog'
 
 export function AdjustmentDetailPage() {
   const { isMobile } = useBreakpoint()
@@ -435,14 +438,24 @@ export function AdjustmentDetailPage() {
   )
 }
 
-// Helper component for items table
+// Helper component for items table with per-item actions
 function ItemsTable({ 
   items, 
-  highlightDiscrepancy = false 
+  highlightDiscrepancy = false,
+  adjustmentId,
+  adjustmentStatus,
+  canApprove,
 }: { 
   items: any[]
   highlightDiscrepancy?: boolean
+  adjustmentId: string
+  adjustmentStatus: string
+  canApprove: boolean
 }) {
+  const [selectedItem, setSelectedItem] = useState<any>(null)
+  const [showInvestigationDialog, setShowInvestigationDialog] = useState(false)
+  const { mutate: approveItem, isPending: isApproving } = useApproveItem()
+  
   if (items.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -451,82 +464,141 @@ function ItemsTable({
     )
   }
   
+  const handleApproveItem = (item: any) => {
+    approveItem({ itemId: item.id, adjustmentId })
+  }
+  
+  const handleInvestigate = (item: any) => {
+    setSelectedItem(item)
+    setShowInvestigationDialog(true)
+  }
+  
+  const showActions = canApprove && adjustmentStatus === 'completed'
+  
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Đồ dùng</TableHead>
-            <TableHead className="text-center">Hệ thống</TableHead>
-            <TableHead className="text-center">Thực tế</TableHead>
-            <TableHead className="text-center">Chênh lệch</TableHead>
-            <TableHead>Lý do</TableHead>
-            <TableHead>Trạng thái</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.map((item: any) => {
-            const discrepancy = item.actual_quantity - item.system_quantity
-            const hasDiscrepancy = discrepancy !== 0
-            
-            return (
-              <TableRow
-                key={item.id}
-                className={cn(
-                  highlightDiscrepancy && hasDiscrepancy && 'bg-orange-50'
-                )}
-              >
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    {item.item?.images?.[0] && (
-                      <img
-                        src={item.item.images[0]}
-                        alt={item.item.name}
-                        className="h-8 w-8 rounded object-cover"
-                      />
-                    )}
-                    <div>
-                      <p className="font-medium">{item.item?.name}</p>
-                      <p className="text-xs text-muted-foreground">{item.item?.code}</p>
+    <>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Đồ dùng</TableHead>
+              <TableHead className="text-center">Hệ thống</TableHead>
+              <TableHead className="text-center">Thực tế</TableHead>
+              <TableHead className="text-center">Chênh lệch</TableHead>
+              <TableHead>Lý do</TableHead>
+              <TableHead>Trạng thái</TableHead>
+              {showActions && <TableHead className="text-right">Thao tác</TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((item: any) => {
+              const discrepancy = item.actual_quantity - item.system_quantity
+              const hasDiscrepancy = discrepancy !== 0
+              const isInvestigating = item.status === 'investigating'
+              const isApproved = item.status === 'approved'
+              const isPending = item.status === 'pending'
+              
+              return (
+                <TableRow
+                  key={item.id}
+                  className={cn(
+                    highlightDiscrepancy && hasDiscrepancy && 'bg-orange-50',
+                    isInvestigating && 'bg-amber-50'
+                  )}
+                >
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {item.item?.item_images?.[0] && (
+                        <img
+                          src={item.item.item_images[0].url}
+                          alt={item.item.name}
+                          className="h-8 w-8 rounded object-cover"
+                        />
+                      )}
+                      <div>
+                        <p className="font-medium">{item.item?.name}</p>
+                        <p className="text-xs text-muted-foreground">{item.item?.code}</p>
+                      </div>
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell className="text-center font-medium">
-                  {item.system_quantity}
-                </TableCell>
-                <TableCell className="text-center font-medium">
-                  {item.actual_quantity}
-                </TableCell>
-                <TableCell className="text-center">
-                  {hasDiscrepancy ? (
-                    <span className={cn(
-                      'font-bold',
-                      discrepancy > 0 ? 'text-green-600' : 'text-red-600'
-                    )}>
-                      {discrepancy > 0 ? '+' : ''}{discrepancy}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
+                  </TableCell>
+                  <TableCell className="text-center font-medium">
+                    {item.system_quantity}
+                  </TableCell>
+                  <TableCell className="text-center font-medium">
+                    {item.actual_quantity}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {hasDiscrepancy ? (
+                      <span className={cn(
+                        'font-bold',
+                        discrepancy > 0 ? 'text-green-600' : 'text-red-600'
+                      )}>
+                        {discrepancy > 0 ? '+' : ''}{discrepancy}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {item.discrepancy_reason ? (
+                      <p className="text-sm line-clamp-2">{item.discrepancy_reason}</p>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={
+                      isApproved ? 'default' : 
+                      isInvestigating ? 'outline' : 
+                      'secondary'
+                    }>
+                      {isPending && 'Chờ duyệt'}
+                      {isInvestigating && '🔍 Đang điều tra'}
+                      {isApproved && '✓ Đã duyệt'}
+                    </Badge>
+                  </TableCell>
+                  {showActions && (
+                    <TableCell className="text-right">
+                      {isPending && !hasDiscrepancy && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleApproveItem(item)}
+                          disabled={isApproving}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Duyệt
+                        </Button>
+                      )}
+                      {(isPending || isInvestigating) && hasDiscrepancy && (
+                        <Button
+                          size="sm"
+                          variant={isInvestigating ? 'default' : 'outline'}
+                          onClick={() => handleInvestigate(item)}
+                        >
+                          {isInvestigating ? 'Xử lý' : 'Điều tra'}
+                        </Button>
+                      )}
+                      {isApproved && (
+                        <span className="text-xs text-muted-foreground">Đã xong</span>
+                      )}
+                    </TableCell>
                   )}
-                </TableCell>
-                <TableCell>
-                  {item.discrepancy_reason ? (
-                    <p className="text-sm line-clamp-2">{item.discrepancy_reason}</p>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={item.status === 'approved' ? 'default' : 'secondary'}>
-                    {item.status === 'pending' && 'Chờ duyệt'}
-                    {item.status === 'approved' && 'Đã duyệt'}
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
-    </div>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </div>
+      
+      {selectedItem && (
+        <InvestigationDialog
+          open={showInvestigationDialog}
+          onOpenChange={setShowInvestigationDialog}
+          item={selectedItem}
+          adjustmentId={adjustmentId}
+        />
+      )}
+    </>
   )
 }
