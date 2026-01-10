@@ -36,7 +36,7 @@ import {
   useApproveAdjustment,
   useRejectAdjustment,
 } from '@/hooks/useStockAdjustments'
-import { useAuth } from '@/contexts/AuthContext'
+import { useUser } from '@/hooks/useUser'
 import { isAdminUser, isManager } from '@/lib/userAccess'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -49,7 +49,7 @@ import { PostApprovalActions } from '@/components/inventory/adjustments/PostAppr
 export function MobileAdjustmentDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user } = useUser()
   const { data: adjustment, isLoading } = useStockAdjustment(id!)
   const { mutate: approve, isPending: isApproving } = useApproveAdjustment()
   const { mutate: reject, isPending: isRejecting } = useRejectAdjustment()
