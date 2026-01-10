@@ -1,25 +1,36 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Package, TrendingUp, AlertCircle, Download } from 'lucide-react'
+import { Package, TrendingUp, AlertCircle, Download, ClipboardCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const REPORT_TYPES = [
   { id: 'current', label: 'Tồn kho hiện tại' },
   { id: 'abc', label: 'Phân tích ABC' },
   { id: 'turnover', label: 'Vòng quay kho' },
+  { id: 'stock-audit', label: 'Kiểm kê' },
 ]
 
 export const MobileInventoryReportPage = () => {
+  const navigate = useNavigate()
   const [reportType, setReportType] = useState('current')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
 
   const handleExport = () => {
     console.log('Export inventory report')
+  }
+
+  const handleReportTypeChange = (typeId: string) => {
+    if (typeId === 'stock-audit') {
+      navigate('/reports/stock-audit')
+    } else {
+      setReportType(typeId)
+    }
   }
 
   return (
@@ -57,7 +68,7 @@ export const MobileInventoryReportPage = () => {
           {REPORT_TYPES.map((type) => (
             <button
               key={type.id}
-              onClick={() => setReportType(type.id)}
+              onClick={() => handleReportTypeChange(type.id)}
               className={cn(
                 'px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
                 reportType === type.id

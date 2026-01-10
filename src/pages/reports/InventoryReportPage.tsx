@@ -12,6 +12,7 @@ import { InventoryDetailTab } from '@/components/reports/inventory/InventoryDeta
 import { ABCAnalysisTab } from '@/components/reports/inventory/ABCAnalysisTab'
 import { TurnoverAnalysisTab } from '@/components/reports/inventory/TurnoverAnalysisTab'
 import { InventoryAlertsTab } from '@/components/reports/inventory/InventoryAlertsTab'
+import { StockAuditTab } from '@/components/reports/inventory/StockAuditTab'
 import { useInventoryReport } from '@/hooks/useReports'
 import { useReportExport } from '@/hooks/useReportExport'
 import { useBreakpoint } from '@/lib/breakpoints'
@@ -159,9 +160,7 @@ export function InventoryReportPage() {
           <TabsTrigger value="abc">ABC Phân tích</TabsTrigger>
           <TabsTrigger value="turnover">Vòng quay</TabsTrigger>
           <TabsTrigger value="alerts">Cảnh báo</TabsTrigger>
-          <TabsTrigger value="stock-audit" onClick={() => navigate('/reports/stock-audit')}>
-            Kiểm kê
-          </TabsTrigger>
+          <TabsTrigger value="stock-audit">Kiểm kê</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview">
@@ -186,6 +185,10 @@ export function InventoryReportPage() {
         
         <TabsContent value="alerts">
           <InventoryAlertsTab />
+        </TabsContent>
+        
+        <TabsContent value="stock-audit">
+          <StockAuditTab dateRange={dateRange} />
         </TabsContent>
       </Tabs>
     </div>
