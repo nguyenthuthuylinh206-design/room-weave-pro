@@ -812,7 +812,6 @@ export function useStartInvestigation() {
       const { error } = await supabase
         .from('stock_adjustment_items')
         .update({
-          status: 'investigating',
           investigation_status: 'investigating',
           investigation_notes: notes || null,
           investigation_started_at: new Date().toISOString(),
