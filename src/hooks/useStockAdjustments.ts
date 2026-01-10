@@ -889,10 +889,34 @@ export function useResolveInvestigation() {
       if (resolutionType === 'adjust_stock' || 
           resolutionType === 'supplementary_in' || 
           resolutionType === 'supplementary_out') {
-        // Update stock and create transaction
+        // Get current item quantities to calculate proper update
+        const { data: currentItem } = await supabase
+          .from('items')
+          .select('quantity_in_stock, quantity_lost, quantity_total')
+          .eq('id', itemData.item_id)
+          .single()
+        
+        if (!currentItem) throw new Error('Không tìm thấy item')
+        
+        const difference = itemData.actual_quantity - itemData.system_quantity
+        
+        // Build update object maintaining quantity_total constraint
+        const updateData: Record<string, number> = {
+          quantity_in_stock: itemData.actual_quantity,
+        }
+        
+        // If shortage (actual < system), increase quantity_lost to maintain total
+        if (difference < 0) {
+          updateData.quantity_lost = (currentItem.quantity_lost || 0) + Math.abs(difference)
+        }
+        // If surplus (actual > system), increase quantity_total
+        else if (difference > 0) {
+          updateData.quantity_total = (currentItem.quantity_total || 0) + difference
+        }
+        
         const { error: stockError } = await supabase
           .from('items')
-          .update({ quantity_in_stock: itemData.actual_quantity })
+          .update(updateData)
           .eq('id', itemData.item_id)
         
         if (stockError) throw stockError
@@ -979,12 +1003,30 @@ export function useResolveInvestigation() {
         linkedDocType = 'compensation_request'
         
         // Also update stock since shortage is confirmed
-        const { error: stockError } = await supabase
+        // Get current item quantities to calculate proper update
+        const { data: currentItem } = await supabase
           .from('items')
-          .update({ quantity_in_stock: itemData.actual_quantity })
+          .select('quantity_in_stock, quantity_lost')
           .eq('id', itemData.item_id)
+          .single()
         
-        if (stockError) throw stockError
+        if (currentItem) {
+          const difference = itemData.actual_quantity - itemData.system_quantity
+          const updateData: Record<string, number> = {
+            quantity_in_stock: itemData.actual_quantity,
+          }
+          // Shortage - increase quantity_lost to maintain total
+          if (difference < 0) {
+            updateData.quantity_lost = (currentItem.quantity_lost || 0) + Math.abs(difference)
+          }
+          
+          const { error: stockError } = await supabase
+            .from('items')
+            .update(updateData)
+            .eq('id', itemData.item_id)
+          
+          if (stockError) throw stockError
+        }
       }
       
       // Update item with resolution
