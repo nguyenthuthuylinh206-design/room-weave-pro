@@ -14,7 +14,9 @@ import {
   Download,
   User,
   Calendar,
-  FileText
+  FileText,
+  Search,
+  Shield,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -35,6 +37,7 @@ import {
   useStockAdjustment,
   useApproveAdjustment,
   useRejectAdjustment,
+  useApproveItem,
 } from '@/hooks/useStockAdjustments'
 import { useUser } from '@/hooks/useUser'
 import { isAdminUser, isManager } from '@/lib/userAccess'
@@ -45,6 +48,7 @@ import { vi } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { PostApprovalActions } from '@/components/inventory/adjustments/PostApprovalActions'
+import { InvestigationDialog } from '@/components/inventory/adjustments/InvestigationDialog'
 
 export function MobileAdjustmentDetail() {
   const { id } = useParams<{ id: string }>()
@@ -53,11 +57,14 @@ export function MobileAdjustmentDetail() {
   const { data: adjustment, isLoading } = useStockAdjustment(id!)
   const { mutate: approve, isPending: isApproving } = useApproveAdjustment()
   const { mutate: reject, isPending: isRejecting } = useRejectAdjustment()
+  const { mutate: approveItem, isPending: isApprovingItem } = useApproveItem()
   
   const [showApproveSheet, setShowApproveSheet] = useState(false)
   const [showRejectSheet, setShowRejectSheet] = useState(false)
   const [approvalNotes, setApprovalNotes] = useState('')
   const [rejectionReason, setRejectionReason] = useState('')
+  const [selectedItem, setSelectedItem] = useState<any>(null)
+  const [showInvestigationDialog, setShowInvestigationDialog] = useState(false)
 
   if (isLoading) {
     return (
@@ -103,6 +110,7 @@ export function MobileAdjustmentDetail() {
     matched: items.filter((i: any) => i.actual_quantity === i.system_quantity).length,
     discrepancy: items.filter((i: any) => i.actual_quantity !== null && i.actual_quantity !== i.system_quantity).length,
     pending: items.filter((i: any) => i.status === 'pending').length,
+    investigating: items.filter((i: any) => i.status === 'investigating').length,
   }
   
   const totalValueDifference = items.reduce((sum: number, item: any) => {
@@ -116,6 +124,34 @@ export function MobileAdjustmentDetail() {
     (isAssignedToMe || isAdminUser(user as any))
   const canApprove = adj.status === 'completed' && 
     (isAdminUser(user as any) || isManager(user as any))
+  
+  // Filter items by status
+  const matchedItems = items.filter((i: any) => i.actual_quantity === i.system_quantity)
+  const discrepancyItems = items.filter((i: any) => i.actual_quantity !== null && i.actual_quantity !== i.system_quantity)
+  const investigatingItems = items.filter((i: any) => i.status === 'investigating')
+  
+  const handleApproveItem = (item: any) => {
+    if (!id) return
+    approveItem(
+      { itemId: item.id, adjustmentId: id },
+      {
+        onSuccess: () => {
+          toast.success('Đã duyệt item')
+        },
+      }
+    )
+  }
+  
+  const handleInvestigateItem = (item: any) => {
+    setSelectedItem({
+      ...item,
+      item: {
+        name: item.item_name,
+        code: item.item_code,
+      }
+    })
+    setShowInvestigationDialog(true)
+  }
   
   const pendingItems = items.filter((i: any) => i.status === 'pending')
   
@@ -381,10 +417,13 @@ export function MobileAdjustmentDetail() {
 
           {/* Items Tabs */}
           <Tabs defaultValue="all" className="w-full">
-            <TabsList className="w-full grid grid-cols-3">
+            <TabsList className="w-full grid grid-cols-4">
               <TabsTrigger value="all" className="text-xs">Tất cả</TabsTrigger>
               <TabsTrigger value="matched" className="text-xs">Khớp</TabsTrigger>
               <TabsTrigger value="discrepancy" className="text-xs">Lệch</TabsTrigger>
+              <TabsTrigger value="investigating" className="text-xs">
+                Điều tra {stats.investigating > 0 && `(${stats.investigating})`}
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="all" className="space-y-2 mt-4">
@@ -394,31 +433,78 @@ export function MobileAdjustmentDetail() {
                 </div>
               ) : (
                 items.map((item: any) => (
-                  <ItemCard key={item.id} item={item} />
+                  <ItemCard 
+                    key={item.id} 
+                    item={item}
+                    adjustmentStatus={adj.status}
+                    canApprove={canApprove}
+                    onApprove={handleApproveItem}
+                    onInvestigate={handleInvestigateItem}
+                    isApprovingItem={isApprovingItem}
+                  />
                 ))
               )}
             </TabsContent>
             
             <TabsContent value="matched" className="space-y-2 mt-4">
-              {items.filter((i: any) => i.actual_quantity === i.system_quantity).length === 0 ? (
+              {matchedItems.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   Không có items khớp
                 </div>
               ) : (
-                items.filter((i: any) => i.actual_quantity === i.system_quantity).map((item: any) => (
-                  <ItemCard key={item.id} item={item} />
+                matchedItems.map((item: any) => (
+                  <ItemCard 
+                    key={item.id} 
+                    item={item}
+                    adjustmentStatus={adj.status}
+                    canApprove={canApprove}
+                    onApprove={handleApproveItem}
+                    onInvestigate={handleInvestigateItem}
+                    isApprovingItem={isApprovingItem}
+                  />
                 ))
               )}
             </TabsContent>
             
             <TabsContent value="discrepancy" className="space-y-2 mt-4">
-              {items.filter((i: any) => i.actual_quantity !== null && i.actual_quantity !== i.system_quantity).length === 0 ? (
+              {discrepancyItems.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   Không có items lệch
                 </div>
               ) : (
-                items.filter((i: any) => i.actual_quantity !== null && i.actual_quantity !== i.system_quantity).map((item: any) => (
-                  <ItemCard key={item.id} item={item} showDiscrepancy />
+                discrepancyItems.map((item: any) => (
+                  <ItemCard 
+                    key={item.id} 
+                    item={item} 
+                    showDiscrepancy
+                    adjustmentStatus={adj.status}
+                    canApprove={canApprove}
+                    onApprove={handleApproveItem}
+                    onInvestigate={handleInvestigateItem}
+                    isApprovingItem={isApprovingItem}
+                  />
+                ))
+              )}
+            </TabsContent>
+            
+            <TabsContent value="investigating" className="space-y-2 mt-4">
+              {investigatingItems.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Search className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
+                  <p>Không có items đang điều tra</p>
+                </div>
+              ) : (
+                investigatingItems.map((item: any) => (
+                  <ItemCard 
+                    key={item.id} 
+                    item={item} 
+                    showDiscrepancy
+                    adjustmentStatus={adj.status}
+                    canApprove={canApprove}
+                    onApprove={handleApproveItem}
+                    onInvestigate={handleInvestigateItem}
+                    isApprovingItem={isApprovingItem}
+                  />
                 ))
               )}
             </TabsContent>
@@ -502,6 +588,16 @@ export function MobileAdjustmentDetail() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+      
+      {/* Investigation Dialog */}
+      {selectedItem && (
+        <InvestigationDialog
+          open={showInvestigationDialog}
+          onOpenChange={setShowInvestigationDialog}
+          item={selectedItem}
+          adjustmentId={id!}
+        />
+      )}
     </div>
   )
 }
@@ -510,14 +606,37 @@ export function MobileAdjustmentDetail() {
 function ItemCard({ 
   item, 
   showDiscrepancy = false,
-  showStatus = false 
+  adjustmentStatus,
+  canApprove,
+  onApprove,
+  onInvestigate,
+  isApprovingItem,
 }: { 
   item: any
   showDiscrepancy?: boolean
-  showStatus?: boolean
+  adjustmentStatus?: string
+  canApprove?: boolean
+  onApprove?: (item: any) => void
+  onInvestigate?: (item: any) => void
+  isApprovingItem?: boolean
 }) {
   const discrepancy = (item.actual_quantity ?? 0) - item.system_quantity
   const hasDiscrepancy = item.actual_quantity !== null && item.actual_quantity !== item.system_quantity
+  
+  // Item status badge config
+  const getItemStatusBadge = (status: string) => {
+    switch (status) {
+      case 'investigating':
+        return { label: 'Đang điều tra', variant: 'secondary' as const, className: 'bg-amber-100 text-amber-800' }
+      case 'approved':
+        return { label: 'Đã duyệt', variant: 'default' as const, className: 'bg-green-100 text-green-800' }
+      default:
+        return { label: 'Chờ duyệt', variant: 'outline' as const, className: '' }
+    }
+  }
+  
+  const itemStatusBadge = getItemStatusBadge(item.status || 'pending')
+  const showActions = canApprove && adjustmentStatus === 'completed' && item.status !== 'approved'
   
   return (
     <Card className="p-3">
@@ -526,18 +645,18 @@ function ItemCard({
           <p className="font-medium">{item.item_name}</p>
           <p className="text-sm text-muted-foreground">{item.item_code}</p>
         </div>
-        {item.actual_quantity !== null && (
-          <Badge variant={hasDiscrepancy ? 'destructive' : 'default'}>
-            {hasDiscrepancy ? 'Lệch' : 'Khớp'}
-          </Badge>
-        )}
-        {showStatus && item.status && (
-          <Badge variant="secondary" className="ml-2">
-            {item.status === 'pending' && 'Chờ duyệt'}
-            {item.status === 'approved' && 'Đã duyệt'}
-            {item.status === 'rejected' && 'Từ chối'}
-          </Badge>
-        )}
+        <div className="flex items-center gap-1">
+          {item.actual_quantity !== null && (
+            <Badge variant={hasDiscrepancy ? 'destructive' : 'default'}>
+              {hasDiscrepancy ? 'Lệch' : 'Khớp'}
+            </Badge>
+          )}
+          {adjustmentStatus === 'completed' && (
+            <Badge variant={itemStatusBadge.variant} className={itemStatusBadge.className}>
+              {itemStatusBadge.label}
+            </Badge>
+          )}
+        </div>
       </div>
       <div className="grid grid-cols-3 gap-2 text-sm">
         <div>
@@ -576,6 +695,59 @@ function ItemCard({
         <p className="text-xs text-muted-foreground mt-2 border-t pt-2">
           Lý do: {item.discrepancy_reason}
         </p>
+      )}
+      
+      {/* Per-item Actions */}
+      {showActions && (
+        <div className="mt-3 pt-3 border-t flex gap-2">
+          {item.status === 'investigating' ? (
+            // Item is investigating - show resolve button
+            <Button 
+              size="sm" 
+              variant="outline"
+              className="flex-1"
+              onClick={() => onInvestigate?.(item)}
+            >
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Xử lý
+            </Button>
+          ) : hasDiscrepancy ? (
+            // Item has discrepancy - show investigate button
+            <>
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="flex-1"
+                onClick={() => onInvestigate?.(item)}
+              >
+                <Search className="h-3 w-3 mr-1" />
+                Điều tra
+              </Button>
+              <Button 
+                size="sm" 
+                variant="default"
+                className="flex-1"
+                onClick={() => onApprove?.(item)}
+                disabled={isApprovingItem}
+              >
+                <Shield className="h-3 w-3 mr-1" />
+                Duyệt
+              </Button>
+            </>
+          ) : (
+            // Item matches - show approve button
+            <Button 
+              size="sm" 
+              variant="default"
+              className="flex-1"
+              onClick={() => onApprove?.(item)}
+              disabled={isApprovingItem}
+            >
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Duyệt
+            </Button>
+          )}
+        </div>
       )}
     </Card>
   )
