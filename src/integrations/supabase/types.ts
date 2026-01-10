@@ -1656,6 +1656,92 @@ export type Database = {
           },
         ]
       }
+      investigation_logs: {
+        Row: {
+          action: string
+          adjustment_id: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          new_status: string | null
+          notes: string | null
+          performed_at: string
+          performed_by: string
+          performed_by_name: string | null
+          previous_status: string | null
+          reason_code: string | null
+          resolution_type: string | null
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          adjustment_id?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          new_status?: string | null
+          notes?: string | null
+          performed_at?: string
+          performed_by: string
+          performed_by_name?: string | null
+          previous_status?: string | null
+          reason_code?: string | null
+          resolution_type?: string | null
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          adjustment_id?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          new_status?: string | null
+          notes?: string | null
+          performed_at?: string
+          performed_by?: string
+          performed_by_name?: string | null
+          previous_status?: string | null
+          reason_code?: string | null
+          resolution_type?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investigation_logs_adjustment_id_fkey"
+            columns: ["adjustment_id"]
+            isOneToOne: false
+            referencedRelation: "stock_adjustments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investigation_logs_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investigation_logs_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investigation_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           created_at: string | null
