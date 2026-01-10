@@ -4939,6 +4939,7 @@ export type Database = {
           adjustment_code: string
           adjustment_type: string
           approval_notes: string | null
+          approved_at: string | null
           approved_by: string | null
           assigned_to: string[] | null
           completed_at: string | null
@@ -4960,6 +4961,7 @@ export type Database = {
           adjustment_code: string
           adjustment_type: string
           approval_notes?: string | null
+          approved_at?: string | null
           approved_by?: string | null
           assigned_to?: string[] | null
           completed_at?: string | null
@@ -4981,6 +4983,7 @@ export type Database = {
           adjustment_code?: string
           adjustment_type?: string
           approval_notes?: string | null
+          approved_at?: string | null
           approved_by?: string | null
           assigned_to?: string[] | null
           completed_at?: string | null
