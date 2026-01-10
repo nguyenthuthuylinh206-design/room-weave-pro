@@ -8,10 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import { HotelFilterCard } from '@/components/reports/HotelFilterCard'
 import { InventoryOverviewTab } from '@/components/reports/inventory/InventoryOverviewTab'
-import { InventoryDetailTab } from '@/components/reports/inventory/InventoryDetailTab'
 import { ABCAnalysisTab } from '@/components/reports/inventory/ABCAnalysisTab'
-import { TurnoverAnalysisTab } from '@/components/reports/inventory/TurnoverAnalysisTab'
-import { InventoryAlertsTab } from '@/components/reports/inventory/InventoryAlertsTab'
 import { StockAuditTab } from '@/components/reports/inventory/StockAuditTab'
 import { useInventoryReport } from '@/hooks/useReports'
 import { useReportExport } from '@/hooks/useReportExport'
@@ -156,10 +153,7 @@ export function InventoryReportPage() {
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Tổng quan</TabsTrigger>
-          <TabsTrigger value="detail">Chi tiết</TabsTrigger>
           <TabsTrigger value="abc">ABC Phân tích</TabsTrigger>
-          <TabsTrigger value="turnover">Vòng quay</TabsTrigger>
-          <TabsTrigger value="alerts">Cảnh báo</TabsTrigger>
           <TabsTrigger value="stock-audit">Kiểm kê</TabsTrigger>
         </TabsList>
         
@@ -171,20 +165,8 @@ export function InventoryReportPage() {
           />
         </TabsContent>
         
-        <TabsContent value="detail">
-          <InventoryDetailTab dateRange={dateRange} />
-        </TabsContent>
-        
         <TabsContent value="abc">
           <ABCAnalysisTab />
-        </TabsContent>
-        
-        <TabsContent value="turnover">
-          <TurnoverAnalysisTab />
-        </TabsContent>
-        
-        <TabsContent value="alerts">
-          <InventoryAlertsTab />
         </TabsContent>
         
         <TabsContent value="stock-audit">

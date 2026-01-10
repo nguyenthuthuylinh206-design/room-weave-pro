@@ -11,7 +11,6 @@ import { cn } from '@/lib/utils'
 const REPORT_TYPES = [
   { id: 'current', label: 'Tồn kho hiện tại' },
   { id: 'abc', label: 'Phân tích ABC' },
-  { id: 'turnover', label: 'Vòng quay kho' },
   { id: 'stock-audit', label: 'Kiểm kê' },
 ]
 
@@ -160,27 +159,6 @@ export const MobileInventoryReportPage = () => {
           </Card>
         )}
 
-        {reportType === 'turnover' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Vòng quay kho</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0 space-y-3">
-              <div className="flex justify-between items-center py-2 border-b">
-                <span>Vòng quay trung bình</span>
-                <span className="text-primary font-semibold">4.2 lần/năm</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b">
-                <span>Thời gian tồn kho TB</span>
-                <span className="font-semibold">87 ngày</span>
-              </div>
-              <div className="flex justify-between items-center py-2">
-                <span>Hiệu suất sử dụng</span>
-                <span className="text-green-500 font-semibold">85%</span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Export Button */}
         <Button
