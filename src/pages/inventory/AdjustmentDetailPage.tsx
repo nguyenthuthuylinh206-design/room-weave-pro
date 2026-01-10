@@ -11,6 +11,7 @@ import {
   Clock,
   Printer,
   Download,
+  Search,
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -79,6 +80,7 @@ export function AdjustmentDetailPage() {
   const allItems = items
   const matchedItems = items.filter((i: any) => i.system_quantity === i.actual_quantity)
   const discrepancyItems = items.filter((i: any) => i.system_quantity !== i.actual_quantity)
+  const investigatingItems = items.filter((i: any) => i.status === 'investigating')
   const pendingItems = items.filter((i: any) => i.status === 'pending')
   
   // Calculate stats from items
@@ -242,9 +244,17 @@ export function AdjustmentDetailPage() {
                   <TabsTrigger value="all">Tất cả ({allItems.length})</TabsTrigger>
                   <TabsTrigger value="matched">Khớp ({matchedItems.length})</TabsTrigger>
                   <TabsTrigger value="discrepancy">Chênh lệch ({discrepancyItems.length})</TabsTrigger>
+                  <TabsTrigger value="investigating" className="flex items-center gap-1">
+                    🔍 Điều tra 
+                    {investigatingItems.length > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-5 px-1.5">
+                        {investigatingItems.length}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
                 </TabsList>
                 
-              <TabsContent value="all" className="mt-4">
+                <TabsContent value="all" className="mt-4">
                   <ItemsTable 
                     items={allItems} 
                     adjustmentId={id!}
@@ -268,6 +278,22 @@ export function AdjustmentDetailPage() {
                     adjustmentStatus={adjustment.status}
                     canApprove={canApprove}
                   />
+                </TabsContent>
+                <TabsContent value="investigating" className="mt-4">
+                  {investigatingItems.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Search className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p>Không có items đang điều tra</p>
+                    </div>
+                  ) : (
+                    <ItemsTable 
+                      items={investigatingItems} 
+                      highlightDiscrepancy 
+                      adjustmentId={id!}
+                      adjustmentStatus={adjustment.status}
+                      canApprove={canApprove}
+                    />
+                  )}
                 </TabsContent>
               </Tabs>
             </CardContent>
