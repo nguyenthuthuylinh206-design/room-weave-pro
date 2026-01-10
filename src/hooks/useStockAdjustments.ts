@@ -886,72 +886,11 @@ export function useResolveInvestigation() {
       let linkedDocType: string | null = null
       
       // Apply resolution based on type
-      if (resolutionType === 'adjust_stock' || 
-          resolutionType === 'supplementary_in' || 
-          resolutionType === 'supplementary_out') {
-        // Get current item quantities to calculate proper update
-        const { data: currentItem } = await supabase
-          .from('items')
-          .select('quantity_in_stock, quantity_lost, quantity_total')
-          .eq('id', itemData.item_id)
-          .single()
-        
-        if (!currentItem) throw new Error('Không tìm thấy item')
-        
-        const difference = itemData.actual_quantity - itemData.system_quantity
-        
-        // Build update object maintaining quantity_total constraint
-        const updateData: Record<string, number> = {
-          quantity_in_stock: itemData.actual_quantity,
-        }
-        
-        // If shortage (actual < system), increase quantity_lost to maintain total
-        if (difference < 0) {
-          updateData.quantity_lost = (currentItem.quantity_lost || 0) + Math.abs(difference)
-        }
-        // If surplus (actual > system), increase quantity_total
-        else if (difference > 0) {
-          updateData.quantity_total = (currentItem.quantity_total || 0) + difference
-        }
-        
-        const { error: stockError } = await supabase
-          .from('items')
-          .update(updateData)
-          .eq('id', itemData.item_id)
-        
-        if (stockError) throw stockError
-        
-        const quantity = itemData.actual_quantity - itemData.system_quantity
-        const transactionType = quantity > 0 ? 'in' : 'out'
-        
-        // Create transaction
-        const { data: transaction, error: transactionError } = await supabase
-          .from('inventory_transactions')
-          .insert({
-            hotel_id: adjustment.hotel_id,
-            tenant_id: adjustment.tenant_id,
-            item_id: itemData.item_id,
-            transaction_type: transactionType,
-            transaction_category: resolutionType === 'adjust_stock' ? 'adjustment' : 'other',
-            quantity: Math.abs(quantity),
-            quantity_before: itemData.system_quantity,
-            quantity_after: itemData.actual_quantity,
-            transaction_code: `ADJ-${adjustment.adjustment_code}`,
-            related_type: 'stock_adjustment',
-            related_id: adjustmentId,
-            created_by: user.id,
-            unit_price: itemData.unit_price,
-            total_value: Math.abs(quantity) * (itemData.unit_price || 0),
-            notes: resolutionNotes,
-          })
-          .select('id')
-          .single()
-        
-        if (transactionError) throw transactionError
-        
-        linkedDocId = transaction?.id || null
-        linkedDocType = 'inventory_transaction'
-      } else if (resolutionType === 'compensation' && responsiblePersonId) {
+      // NOTE: We do NOT manually update items or create inventory_transactions here
+      // The DB trigger `stock_adjustment_items_apply_trigger` will handle that
+      // when we update the status to 'approved' below
+      
+      if (resolutionType === 'compensation' && responsiblePersonId) {
         // Create compensation request
         const quantity = Math.abs(itemData.actual_quantity - itemData.system_quantity)
         const totalAmount = quantity * (itemData.unit_price || 0)
@@ -1002,31 +941,7 @@ export function useResolveInvestigation() {
         linkedDocId = compensationRequest?.id || null
         linkedDocType = 'compensation_request'
         
-        // Also update stock since shortage is confirmed
-        // Get current item quantities to calculate proper update
-        const { data: currentItem } = await supabase
-          .from('items')
-          .select('quantity_in_stock, quantity_lost')
-          .eq('id', itemData.item_id)
-          .single()
-        
-        if (currentItem) {
-          const difference = itemData.actual_quantity - itemData.system_quantity
-          const updateData: Record<string, number> = {
-            quantity_in_stock: itemData.actual_quantity,
-          }
-          // Shortage - increase quantity_lost to maintain total
-          if (difference < 0) {
-            updateData.quantity_lost = (currentItem.quantity_lost || 0) + Math.abs(difference)
-          }
-          
-          const { error: stockError } = await supabase
-            .from('items')
-            .update(updateData)
-            .eq('id', itemData.item_id)
-          
-          if (stockError) throw stockError
-        }
+        // NOTE: Stock update will be handled by DB trigger when status changes to 'approved'
       }
       
       // Update item with resolution
@@ -1143,9 +1058,12 @@ export function useBulkApproveItems() {
       
       if (!adjustment) throw new Error('Không tìm thấy phiếu kiểm kê')
       
-      // Approve all pending items and update stock
+      // Approve all pending items
+      // NOTE: We only update status to 'approved' - the DB trigger 
+      // `stock_adjustment_items_apply_trigger` will automatically:
+      // 1. Update items quantities (quantity_in_stock, quantity_total)
+      // 2. Create inventory_transactions
       for (const item of pendingItems || []) {
-        // Update item status
         await supabase
           .from('stock_adjustment_items')
           .update({
@@ -1154,35 +1072,6 @@ export function useBulkApproveItems() {
             approved_at: new Date().toISOString(),
           })
           .eq('id', item.id)
-        
-        // Update stock if there's difference
-        if (item.system_quantity !== item.actual_quantity) {
-          await supabase
-            .from('items')
-            .update({ quantity_in_stock: item.actual_quantity })
-            .eq('id', item.item_id)
-          
-          // Create transaction
-          const quantity = item.actual_quantity - item.system_quantity
-          await supabase
-            .from('inventory_transactions')
-            .insert({
-              hotel_id: adjustment.hotel_id,
-              tenant_id: adjustment.tenant_id,
-              item_id: item.item_id,
-              transaction_type: quantity > 0 ? 'in' : 'out',
-              transaction_category: 'adjustment',
-              quantity: Math.abs(quantity),
-              quantity_before: item.system_quantity,
-              quantity_after: item.actual_quantity,
-              transaction_code: `ADJ-${adjustment.adjustment_code}`,
-              related_type: 'stock_adjustment',
-              related_id: adjustmentId,
-              created_by: user.id,
-              unit_price: item.unit_price,
-              total_value: Math.abs(quantity) * (item.unit_price || 0),
-            })
-        }
       }
       
       // Update adjustment status
