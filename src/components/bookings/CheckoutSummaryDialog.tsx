@@ -473,17 +473,21 @@ export function CheckoutSummaryDialog({
                   <span>{formatCurrency(adjustedCostBreakdown.subtotal)}</span>
                 </div>
                 
-                {/* VAT */}
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">VAT ({adjustedCostBreakdown.vatRate}%)</span>
-                  <span>{formatCurrency(adjustedCostBreakdown.vatAmount)}</span>
-                </div>
+                {/* VAT - Chỉ hiện khi rate > 0 */}
+                {adjustedCostBreakdown.vatRate > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">VAT ({adjustedCostBreakdown.vatRate}%)</span>
+                    <span>{formatCurrency(adjustedCostBreakdown.vatAmount)}</span>
+                  </div>
+                )}
                 
-                {/* Service Fee */}
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Phí dịch vụ ({adjustedCostBreakdown.serviceFeeRate}%)</span>
-                  <span>{formatCurrency(adjustedCostBreakdown.serviceFeeAmount)}</span>
-                </div>
+                {/* Service Fee - Chỉ hiện khi rate > 0 */}
+                {adjustedCostBreakdown.serviceFeeRate > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Phí dịch vụ ({adjustedCostBreakdown.serviceFeeRate}%)</span>
+                    <span>{formatCurrency(adjustedCostBreakdown.serviceFeeAmount)}</span>
+                  </div>
+                )}
                 
                 <Separator />
                 
