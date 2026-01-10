@@ -159,6 +159,9 @@ export function InventoryReportPage() {
           <TabsTrigger value="abc">ABC Phân tích</TabsTrigger>
           <TabsTrigger value="turnover">Vòng quay</TabsTrigger>
           <TabsTrigger value="alerts">Cảnh báo</TabsTrigger>
+          <TabsTrigger value="stock-audit" onClick={() => navigate('/reports/stock-audit')}>
+            Kiểm kê
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview">
