@@ -244,14 +244,30 @@ export function AdjustmentDetailPage() {
                   <TabsTrigger value="discrepancy">Chênh lệch ({discrepancyItems.length})</TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="all" className="mt-4">
-                  <ItemsTable items={allItems} />
+              <TabsContent value="all" className="mt-4">
+                  <ItemsTable 
+                    items={allItems} 
+                    adjustmentId={id!}
+                    adjustmentStatus={adjustment.status}
+                    canApprove={canApprove}
+                  />
                 </TabsContent>
                 <TabsContent value="matched" className="mt-4">
-                  <ItemsTable items={matchedItems} />
+                  <ItemsTable 
+                    items={matchedItems} 
+                    adjustmentId={id!}
+                    adjustmentStatus={adjustment.status}
+                    canApprove={canApprove}
+                  />
                 </TabsContent>
                 <TabsContent value="discrepancy" className="mt-4">
-                  <ItemsTable items={discrepancyItems} highlightDiscrepancy />
+                  <ItemsTable 
+                    items={discrepancyItems} 
+                    highlightDiscrepancy 
+                    adjustmentId={id!}
+                    adjustmentStatus={adjustment.status}
+                    canApprove={canApprove}
+                  />
                 </TabsContent>
               </Tabs>
             </CardContent>
