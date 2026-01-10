@@ -639,19 +639,23 @@ export function useApproveItem() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const { user } = useUser()
+  const { tenant } = useTenant()
   
   return useMutation({
     mutationFn: async ({ itemId, adjustmentId, notes }: ApproveItemDto) => {
       if (!user?.id) throw new Error('No user')
+      if (!tenant?.id) throw new Error('No tenant')
       
       // Get item details first
       const { data: itemData, error: fetchError } = await supabase
         .from('stock_adjustment_items')
-        .select('item_id, system_quantity, actual_quantity, unit_price')
+        .select('item_id, system_quantity, actual_quantity, unit_price, status')
         .eq('id', itemId)
         .single()
       
       if (fetchError) throw fetchError
+      
+      const previousStatus = itemData.status
       
       // Update item status to approved
       const { error: updateError } = await supabase
@@ -707,6 +711,20 @@ export function useApproveItem() {
         }
       }
       
+      // Log action for audit
+      await logInvestigationAction({
+        tenantId: tenant.id,
+        entityType: 'stock_adjustment_item',
+        entityId: itemId,
+        adjustmentId,
+        action: 'approved',
+        previousStatus,
+        newStatus: 'approved',
+        notes,
+        performedBy: user.id,
+        performedByName: user.full_name,
+      })
+      
       // Check if all items are now approved, then update adjustment status
       await checkAndUpdateAdjustmentStatus(adjustmentId, user.id)
       
@@ -725,16 +743,71 @@ export function useApproveItem() {
 }
 
 /**
+ * Helper function to log investigation actions for audit
+ */
+async function logInvestigationAction({
+  tenantId,
+  entityType,
+  entityId,
+  adjustmentId,
+  action,
+  previousStatus,
+  newStatus,
+  resolutionType,
+  reasonCode,
+  notes,
+  performedBy,
+  performedByName,
+  metadata = {},
+}: {
+  tenantId: string
+  entityType: string
+  entityId: string
+  adjustmentId: string
+  action: string
+  previousStatus?: string
+  newStatus?: string
+  resolutionType?: string
+  reasonCode?: string
+  notes?: string
+  performedBy: string
+  performedByName?: string
+  metadata?: Record<string, any>
+}) {
+  try {
+    await supabase.from('investigation_logs').insert({
+      tenant_id: tenantId,
+      entity_type: entityType,
+      entity_id: entityId,
+      adjustment_id: adjustmentId,
+      action,
+      previous_status: previousStatus,
+      new_status: newStatus,
+      resolution_type: resolutionType,
+      reason_code: reasonCode,
+      notes,
+      performed_by: performedBy,
+      performed_by_name: performedByName,
+      metadata,
+    })
+  } catch (error) {
+    console.error('Failed to log investigation action:', error)
+  }
+}
+
+/**
  * Hook to start investigation for a discrepancy item
  */
 export function useStartInvestigation() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const { user } = useUser()
+  const { tenant } = useTenant()
   
   return useMutation({
     mutationFn: async ({ itemId, adjustmentId, notes }: StartInvestigationDto) => {
       if (!user?.id) throw new Error('No user')
+      if (!tenant?.id) throw new Error('No tenant')
       
       const { error } = await supabase
         .from('stock_adjustment_items')
@@ -747,6 +820,21 @@ export function useStartInvestigation() {
         .eq('id', itemId)
       
       if (error) throw error
+      
+      // Log action for audit
+      await logInvestigationAction({
+        tenantId: tenant.id,
+        entityType: 'stock_adjustment_item',
+        entityId: itemId,
+        adjustmentId,
+        action: 'started',
+        previousStatus: 'pending',
+        newStatus: 'investigating',
+        notes,
+        performedBy: user.id,
+        performedByName: user.full_name,
+      })
+      
       return { itemId, adjustmentId }
     },
     onSuccess: (_, variables) => {
@@ -918,6 +1006,26 @@ export function useResolveInvestigation() {
         .eq('id', itemId)
       
       if (updateError) throw updateError
+      
+      // Log action for audit
+      await logInvestigationAction({
+        tenantId: adjustment.tenant_id,
+        entityType: 'stock_adjustment_item',
+        entityId: itemId,
+        adjustmentId,
+        action: 'resolved',
+        previousStatus: 'investigating',
+        newStatus: 'approved',
+        resolutionType,
+        notes: resolutionNotes,
+        performedBy: user.id,
+        performedByName: user.full_name,
+        metadata: {
+          responsible_person_id: responsiblePersonId,
+          linked_document_type: linkedDocType,
+          linked_document_id: linkedDocId,
+        },
+      })
       
       // Check if all items are now approved
       await checkAndUpdateAdjustmentStatus(adjustmentId, user.id)
