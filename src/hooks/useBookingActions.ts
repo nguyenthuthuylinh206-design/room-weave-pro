@@ -143,8 +143,8 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
         lateCheckoutCharge,
         serviceCharges,
         extraCharges: booking.extra_charges || 0,
-        vatRate: booking.vat_rate || DEFAULT_PRICING_RULES.vatRate,
-        serviceFeeRate: booking.service_fee_rate || DEFAULT_PRICING_RULES.serviceFeeRate,
+        vatRate: booking.vat_rate ?? DEFAULT_PRICING_RULES.vatRate,
+        serviceFeeRate: booking.service_fee_rate ?? DEFAULT_PRICING_RULES.serviceFeeRate,
         depositAmount: booking.deposit_amount || 0,
         amountPaid: booking.amount_paid || 0,
       })
