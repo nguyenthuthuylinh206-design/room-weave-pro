@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
-import { Plus, Workflow, Bell, Package, Wrench, Shirt } from 'lucide-react'
+import { Plus, Workflow, Bell, Package, Wrench, Shirt, ClipboardCheck, CheckCircle } from 'lucide-react'
 import { useWorkflows } from '@/hooks/useWorkflows'
 import { WorkflowsList } from '@/components/settings/workflows/WorkflowsList'
 import { CreateWorkflowDialog } from '@/components/settings/workflows/CreateWorkflowDialog'
@@ -19,6 +19,18 @@ const WORKFLOW_SUGGESTIONS = [
     title: 'Cảnh báo hết hàng',
     description: 'Thông báo khi tồn kho xuống dưới mức tối thiểu',
     trigger: 'inventory_low_stock',
+  },
+  {
+    icon: ClipboardCheck,
+    title: 'Kiểm kê chờ duyệt',
+    description: 'Thông báo Manager khi phiếu kiểm kê hoàn thành chờ duyệt',
+    trigger: 'adjustment_completed',
+  },
+  {
+    icon: CheckCircle,
+    title: 'Kết quả duyệt phiếu',
+    description: 'Thông báo Staff khi phiếu được duyệt hoặc từ chối',
+    trigger: 'adjustment_approved',
   },
   {
     icon: Wrench,
@@ -59,7 +71,7 @@ export default function WorkflowsPage() {
         <div className="space-y-6">
           {activeWorkflows.length > 0 && (
             <div>
-              <h3 className="text-lg font-semibold mb-4">
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">
                 Đang hoạt động ({activeWorkflows.length})
               </h3>
               <WorkflowsList workflows={activeWorkflows} />
@@ -68,7 +80,7 @@ export default function WorkflowsPage() {
 
           {inactiveWorkflows.length > 0 && (
             <div>
-              <h3 className="text-lg font-semibold mb-4">
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">
                 Tạm dừng ({inactiveWorkflows.length})
               </h3>
               <WorkflowsList workflows={inactiveWorkflows} />
@@ -86,19 +98,19 @@ export default function WorkflowsPage() {
                 <h3 className="text-lg font-medium">Chưa có quy trình tự động</h3>
                 <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
                   Tạo workflow để tự động hóa các tác vụ như thông báo khi checkout, 
-                  cảnh báo hết hàng, hoặc gửi báo cáo định kỳ.
+                  cảnh báo hết hàng, hoặc theo dõi quy trình kiểm kê.
                 </p>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-w-3xl mx-auto">
                 {WORKFLOW_SUGGESTIONS.map((suggestion, idx) => (
                   <div 
                     key={idx}
-                    className="border rounded-lg p-4 text-left hover:bg-muted/50 transition-colors cursor-pointer"
+                    className="border rounded-lg p-4 text-left hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer"
                     onClick={() => setCreateDialogOpen(true)}
                   >
                     <div className="flex items-start gap-3">
-                      <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                         <suggestion.icon className="h-4 w-4 text-primary" />
                       </div>
                       <div className="min-w-0">
