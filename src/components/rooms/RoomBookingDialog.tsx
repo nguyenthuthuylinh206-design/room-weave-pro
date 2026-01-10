@@ -129,8 +129,8 @@ export function RoomBookingDialog({
   const [showExtendDialog, setShowExtendDialog] = useState(false)
   
   // Tax rates
-  const [vatRate, setVatRate] = useState<number>((booking as any)?.vat_rate || DEFAULT_PRICING_RULES.vatRate)
-  const [serviceFeeRate, setServiceFeeRate] = useState<number>((booking as any)?.service_fee_rate || DEFAULT_PRICING_RULES.serviceFeeRate)
+  const [vatRate, setVatRate] = useState<number>((booking as any)?.vat_rate ?? DEFAULT_PRICING_RULES.vatRate)
+  const [serviceFeeRate, setServiceFeeRate] = useState<number>((booking as any)?.service_fee_rate ?? DEFAULT_PRICING_RULES.serviceFeeRate)
   
   // Calculate nights
   const nights = checkInDate && checkOutDate ? Math.max(1, differenceInDays(checkOutDate, checkInDate)) : 1

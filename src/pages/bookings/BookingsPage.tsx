@@ -387,8 +387,8 @@ export function BookingsPage() {
         extraCharges: (booking as any).extra_charges || 0,
         damageCharges: totalDamageCharge,
         damageItems,
-        vatRate: (booking as any).vat_rate || DEFAULT_PRICING_RULES.vatRate,
-        serviceFeeRate: (booking as any).service_fee_rate || DEFAULT_PRICING_RULES.serviceFeeRate,
+        vatRate: (booking as any).vat_rate ?? DEFAULT_PRICING_RULES.vatRate,
+        serviceFeeRate: (booking as any).service_fee_rate ?? DEFAULT_PRICING_RULES.serviceFeeRate,
         depositAmount: (booking as any).deposit_amount || 0,
         amountPaid: (booking as any).amount_paid || 0,
       })
