@@ -368,14 +368,18 @@ export function BookingDetailPage() {
                     <span className="text-sm font-medium">Subtotal</span>
                     <span className="font-mono text-sm font-medium">{formatCurrency(booking.subtotal || 0)}</span>
                   </div>
-                  <div className="flex items-center justify-between px-3 py-2">
-                    <span className="text-sm">VAT ({booking.vat_rate || 8}%)</span>
-                    <span className="font-mono text-sm">{formatCurrency(booking.vat_amount || 0)}</span>
-                  </div>
-                  <div className="flex items-center justify-between px-3 py-2">
-                    <span className="text-sm">Phí dịch vụ ({booking.service_fee_rate || 5}%)</span>
-                    <span className="font-mono text-sm">{formatCurrency(booking.service_fee_amount || 0)}</span>
-                  </div>
+                  {(booking.vat_rate ?? 0) > 0 && (
+                    <div className="flex items-center justify-between px-3 py-2">
+                      <span className="text-sm">VAT ({booking.vat_rate}%)</span>
+                      <span className="font-mono text-sm">{formatCurrency(booking.vat_amount || 0)}</span>
+                    </div>
+                  )}
+                  {(booking.service_fee_rate ?? 0) > 0 && (
+                    <div className="flex items-center justify-between px-3 py-2">
+                      <span className="text-sm">Phí dịch vụ ({booking.service_fee_rate}%)</span>
+                      <span className="font-mono text-sm">{formatCurrency(booking.service_fee_amount || 0)}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
