@@ -137,6 +137,35 @@
     "summary": {
       "title": "Báo cáo tổng hợp",
       "description": "Tổng quan toàn bộ hoạt động"
+    },
+    "stockAudit": {
+      "title": "Báo cáo Kiểm kê",
+      "description": "Kết quả kiểm kê định kỳ, phân tích chênh lệch"
+    }
+  },
+  "stockAudit": {
+    "pageTitle": "Báo cáo Kiểm kê Kho",
+    "pageDescription": "Phân tích kết quả kiểm kê, chênh lệch và điều tra",
+    "stats": {
+      "totalAudits": "Tổng phiếu kiểm kê",
+      "accuracyRate": "Tỷ lệ chính xác",
+      "discrepancyValue": "Giá trị chênh lệch",
+      "investigation": "Điều tra"
+    },
+    "tabs": {
+      "overview": "Tổng quan",
+      "audits": "Phiếu kiểm kê",
+      "discrepancy": "Phân tích chênh lệch",
+      "investigation": "Điều tra & Bồi thường"
+    },
+    "charts": {
+      "accuracyDistribution": "Phân bổ kết quả kiểm kê",
+      "monthlyTrend": "Xu hướng theo tháng",
+      "discrepancyByCategory": "Chênh lệch theo danh mục"
+    },
+    "tables": {
+      "auditsList": "Danh sách phiếu kiểm kê",
+      "discrepancyByCategory": "Chênh lệch theo danh mục"
     }
   },
   "custom": {

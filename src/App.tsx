@@ -71,6 +71,7 @@ import { MaintenanceReportPage } from "./pages/reports/MaintenanceReportPage";
 import { OutboundReportPage } from "./pages/reports/OutboundReportPage";
 import { RevenueReportPage } from "./pages/reports/RevenueReportPage";
 import { DamagesReportPage } from "./pages/reports/DamagesReportPage";
+import { StockAuditReportPage } from "./pages/reports/StockAuditReportPage";
 import { HotelsPage } from "./pages/hotels/HotelsPage";
 import HotelPerformancePage from "./pages/hotels/HotelPerformancePage";
 import { VendorListPage as VendorManagementListPage } from "./pages/vendors/VendorListPage";
@@ -685,6 +686,14 @@ const router = createBrowserRouter([
         element: (
           <PermissionRoute module="reports">
             <LaundryReportPage />
+          </PermissionRoute>
+        ),
+      },
+      {
+        path: "reports/stock-audit",
+        element: (
+          <PermissionRoute module="reports">
+            <StockAuditReportPage />
           </PermissionRoute>
         ),
       },

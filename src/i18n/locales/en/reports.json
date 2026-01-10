@@ -137,6 +137,35 @@
     "summary": {
       "title": "Summary Report",
       "description": "Overall operations overview"
+    },
+    "stockAudit": {
+      "title": "Stock Audit Report",
+      "description": "Periodic audit results, discrepancy analysis"
+    }
+  },
+  "stockAudit": {
+    "pageTitle": "Stock Audit Report",
+    "pageDescription": "Analyze audit results, discrepancies and investigations",
+    "stats": {
+      "totalAudits": "Total Audits",
+      "accuracyRate": "Accuracy Rate",
+      "discrepancyValue": "Discrepancy Value",
+      "investigation": "Investigation"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "audits": "Audit List",
+      "discrepancy": "Discrepancy Analysis",
+      "investigation": "Investigation & Compensation"
+    },
+    "charts": {
+      "accuracyDistribution": "Audit Results Distribution",
+      "monthlyTrend": "Monthly Trend",
+      "discrepancyByCategory": "Discrepancy by Category"
+    },
+    "tables": {
+      "auditsList": "Audit List",
+      "discrepancyByCategory": "Discrepancy by Category"
     }
   },
   "custom": {

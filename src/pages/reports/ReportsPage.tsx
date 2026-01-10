@@ -36,6 +36,14 @@ export function ReportsPage() {
       path: '/reports/inventory',
     },
     {
+      id: 'stock-audit',
+      title: t('types.stockAudit.title'),
+      description: t('types.stockAudit.description'),
+      icon: FileText,
+      color: 'text-teal-500',
+      path: '/reports/stock-audit',
+    },
+    {
       id: 'outbound',
       title: 'Báo cáo Xuất kho',
       description: 'Phân tích chi tiết giao dịch xuất kho theo từng loại',
