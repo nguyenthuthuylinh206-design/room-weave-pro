@@ -80,7 +80,7 @@ export function AdjustmentDetailPage() {
   const allItems = items
   const matchedItems = items.filter((i: any) => i.system_quantity === i.actual_quantity)
   const discrepancyItems = items.filter((i: any) => i.system_quantity !== i.actual_quantity)
-  const investigatingItems = items.filter((i: any) => i.status === 'investigating')
+  const investigatingItems = items.filter((i: any) => i.investigation_status === 'investigating')
   const pendingItems = items.filter((i: any) => i.status === 'pending')
   
   // Calculate stats from items
@@ -536,9 +536,9 @@ function ItemsTable({
             {items.map((item: any) => {
               const discrepancy = item.actual_quantity - item.system_quantity
               const hasDiscrepancy = discrepancy !== 0
-              const isInvestigating = item.status === 'investigating'
+              const isInvestigating = item.investigation_status === 'investigating'
               const isApproved = item.status === 'approved'
-              const isPending = item.status === 'pending'
+              const isPending = item.status === 'pending' && item.investigation_status !== 'investigating'
               
               return (
                 <TableRow

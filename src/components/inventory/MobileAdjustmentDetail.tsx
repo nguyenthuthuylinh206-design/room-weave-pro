@@ -110,7 +110,7 @@ export function MobileAdjustmentDetail() {
     matched: items.filter((i: any) => i.actual_quantity === i.system_quantity).length,
     discrepancy: items.filter((i: any) => i.actual_quantity !== null && i.actual_quantity !== i.system_quantity).length,
     pending: items.filter((i: any) => i.status === 'pending').length,
-    investigating: items.filter((i: any) => i.status === 'investigating').length,
+    investigating: items.filter((i: any) => i.investigation_status === 'investigating').length,
   }
   
   const totalValueDifference = items.reduce((sum: number, item: any) => {
@@ -128,7 +128,7 @@ export function MobileAdjustmentDetail() {
   // Filter items by status
   const matchedItems = items.filter((i: any) => i.actual_quantity === i.system_quantity)
   const discrepancyItems = items.filter((i: any) => i.actual_quantity !== null && i.actual_quantity !== i.system_quantity)
-  const investigatingItems = items.filter((i: any) => i.status === 'investigating')
+  const investigatingItems = items.filter((i: any) => i.investigation_status === 'investigating')
   
   const handleApproveItem = (item: any) => {
     if (!id) return
@@ -624,10 +624,14 @@ function ItemCard({
   const hasDiscrepancy = item.actual_quantity !== null && item.actual_quantity !== item.system_quantity
   
   // Item status badge config
-  const getItemStatusBadge = (status: string) => {
+  const getItemStatusBadge = (status: string, investigationStatus: string | null) => {
+    if (investigationStatus === 'investigating') {
+      return { label: 'Đang điều tra', variant: 'secondary' as const, className: 'bg-amber-100 text-amber-800' }
+    }
+    if (investigationStatus === 'resolved') {
+      return { label: 'Đã xử lý', variant: 'default' as const, className: 'bg-blue-100 text-blue-800' }
+    }
     switch (status) {
-      case 'investigating':
-        return { label: 'Đang điều tra', variant: 'secondary' as const, className: 'bg-amber-100 text-amber-800' }
       case 'approved':
         return { label: 'Đã duyệt', variant: 'default' as const, className: 'bg-green-100 text-green-800' }
       default:
@@ -635,7 +639,8 @@ function ItemCard({
     }
   }
   
-  const itemStatusBadge = getItemStatusBadge(item.status || 'pending')
+  const itemStatusBadge = getItemStatusBadge(item.status || 'pending', item.investigation_status)
+  const isInvestigating = item.investigation_status === 'investigating'
   const showActions = canApprove && adjustmentStatus === 'completed' && item.status !== 'approved'
   
   return (
@@ -700,7 +705,7 @@ function ItemCard({
       {/* Per-item Actions */}
       {showActions && (
         <div className="mt-3 pt-3 border-t flex gap-2">
-          {item.status === 'investigating' ? (
+          {isInvestigating ? (
             // Item is investigating - show resolve button
             <Button 
               size="sm" 
