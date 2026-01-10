@@ -15,22 +15,56 @@ interface WorkflowTriggerProps {
 }
 
 const TRIGGER_EVENTS = [
-  { value: 'inventory.low_stock', label: 'Inventory Low Stock' },
-  { value: 'inventory.critical_stock', label: 'Inventory Critical Stock' },
-  { value: 'inventory.item_created', label: 'Item Created' },
-  { value: 'laundry.batch_overdue', label: 'Laundry Batch Overdue' },
-  { value: 'laundry.batch_received', label: 'Laundry Batch Received' },
-  { value: 'maintenance.request_created', label: 'Maintenance Request Created' },
-  { value: 'maintenance.request_overdue', label: 'Maintenance Request Overdue' },
-  { value: 'purchase_order.approved', label: 'Purchase Order Approved' },
-  { value: 'room.checkout', label: 'Room Checkout' },
+  // Room events
+  { value: 'room_status_change', label: 'Thay đổi trạng thái phòng' },
+  { value: 'room_check_completed', label: 'Kiểm tra phòng hoàn thành' },
+  { value: 'room_standards_applied', label: 'Setup phòng hoàn thành' },
+  { value: 'room.checkout', label: 'Checkout phòng' },
+  
+  // Stock Adjustment events
+  { value: 'adjustment_created', label: 'Phiếu kiểm kê được tạo' },
+  { value: 'adjustment_started', label: 'Bắt đầu kiểm kê' },
+  { value: 'adjustment_completed', label: 'Hoàn thành kiểm kê (Chờ duyệt)' },
+  { value: 'adjustment_approved', label: 'Phiếu kiểm kê được duyệt' },
+  { value: 'adjustment_rejected', label: 'Phiếu kiểm kê bị từ chối' },
+  
+  // Inventory events
+  { value: 'inventory_low_stock', label: 'Tồn kho thấp' },
+  { value: 'inventory_transaction', label: 'Giao dịch kho' },
+  
+  // Laundry events
+  { value: 'laundry_batch_status_change', label: 'Thay đổi trạng thái giặt' },
+  
+  // Maintenance events
+  { value: 'maintenance_request_created', label: 'Yêu cầu bảo trì mới' },
+  { value: 'maintenance_status_change', label: 'Thay đổi trạng thái bảo trì' },
 ]
 
+// Template variables for each trigger type
+const TRIGGER_VARIABLES: Record<string, string[]> = {
+  room_status_change: ['room_id', 'room_number', 'floor', 'old_status', 'new_status'],
+  room_check_completed: ['room_id', 'room_number', 'check_type', 'staff_name', 'issue_summary'],
+  room_standards_applied: ['room_id', 'room_number', 'room_type', 'items_count'],
+  adjustment_created: ['adjustment_id', 'adjustment_code', 'scheduled_date', 'total_items', 'created_by_name'],
+  adjustment_started: ['adjustment_id', 'adjustment_code', 'started_by_name'],
+  adjustment_completed: ['adjustment_id', 'adjustment_code', 'total_items', 'completed_by_name'],
+  adjustment_approved: ['adjustment_id', 'adjustment_code', 'total_items', 'discrepancy_count', 'approved_by_name'],
+  adjustment_rejected: ['adjustment_id', 'adjustment_code', 'rejection_reason', 'rejected_by_name'],
+  inventory_low_stock: ['item_id', 'item_name', 'item_code', 'current_stock', 'minimum_stock'],
+  inventory_transaction: ['item_id', 'item_name', 'transaction_type', 'quantity'],
+  laundry_batch_status_change: ['batch_id', 'batch_code', 'old_status', 'new_status', 'vendor_name', 'total_items'],
+  maintenance_request_created: ['request_id', 'room_number', 'issue_type', 'priority', 'description'],
+  maintenance_status_change: ['request_id', 'room_number', 'old_status', 'new_status'],
+}
+
 export const WorkflowTrigger = ({ form, onChange }: WorkflowTriggerProps) => {
+  const selectedEvent = form.trigger_event
+  const availableVariables = selectedEvent ? TRIGGER_VARIABLES[selectedEvent] || [] : []
+  
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-4">When should this workflow run?</h3>
+        <h3 className="text-lg font-semibold mb-4">Workflow này chạy khi nào?</h3>
       </div>
 
       <div>
@@ -62,45 +96,63 @@ export const WorkflowTrigger = ({ form, onChange }: WorkflowTriggerProps) => {
       </div>
 
       {form.trigger_type === 'event' && (
-        <div>
-          <Label htmlFor="event-type">Event Type *</Label>
-          <Select
-            value={form.trigger_event}
-            onValueChange={(value) => onChange({ trigger_event: value })}
-          >
-            <SelectTrigger id="event-type" className="mt-1.5">
-              <SelectValue placeholder="Select an event" />
-            </SelectTrigger>
-            <SelectContent>
-              {TRIGGER_EVENTS.map((event) => (
-                <SelectItem key={event.value} value={event.value}>
-                  {event.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="event-type">Loại sự kiện *</Label>
+            <Select
+              value={form.trigger_event}
+              onValueChange={(value) => onChange({ trigger_event: value })}
+            >
+              <SelectTrigger id="event-type" className="mt-1.5">
+                <SelectValue placeholder="Chọn sự kiện" />
+              </SelectTrigger>
+              <SelectContent>
+                {TRIGGER_EVENTS.map((event) => (
+                  <SelectItem key={event.value} value={event.value}>
+                    {event.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {availableVariables.length > 0 && (
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <Label className="text-xs text-muted-foreground">Biến có thể dùng trong Actions:</Label>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {availableVariables.map(variable => (
+                  <code 
+                    key={variable} 
+                    className="text-xs px-1.5 py-0.5 bg-background rounded border font-mono"
+                  >
+                    {`{{${variable}}}`}
+                  </code>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {form.trigger_type === 'schedule' && (
         <div>
-          <Label htmlFor="schedule">Schedule (Cron Expression) *</Label>
+          <Label htmlFor="schedule">Lịch chạy (Cron Expression) *</Label>
           <Input
             id="schedule"
             value={form.trigger_schedule || ''}
             onChange={(e) => onChange({ trigger_schedule: e.target.value })}
-            placeholder="0 9 * * * (Every day at 9:00 AM)"
+            placeholder="0 9 * * * (Mỗi ngày lúc 9:00 sáng)"
             className="mt-1.5"
           />
           <p className="text-xs text-muted-foreground mt-2">
-            Examples: "0 9 * * *" = Daily at 9 AM | "0 9 * * 1" = Every Monday at 9 AM
+            Ví dụ: "0 9 * * *" = Mỗi ngày lúc 9h | "0 9 * * 1" = Thứ 2 hàng tuần lúc 9h
           </p>
         </div>
       )}
 
       {form.trigger_type === 'manual' && (
         <div className="text-sm text-muted-foreground">
-          This workflow can only be triggered manually by a user.
+          Workflow này chỉ có thể kích hoạt thủ công bởi người dùng.
         </div>
       )}
     </div>
