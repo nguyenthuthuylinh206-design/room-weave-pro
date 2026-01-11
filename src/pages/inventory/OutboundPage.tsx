@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarUI } from '@/components/ui/calendar';
 import { ItemSelect } from '@/components/shared/ItemSelect';
+import { WarehouseSelect } from '@/components/warehouse/WarehouseSelect';
 import { ImageUpload } from '@/components/shared/ImageUpload';
 import { LaundryVendorSelect } from '@/components/shared/LaundryVendorSelect';
 import { MaintenanceRequestSelect } from '@/components/shared/MaintenanceRequestSelect';
@@ -29,13 +30,14 @@ import { useCreateLaundryBatch } from '@/hooks/useLaundryBatches';
 import { useLaundryVendors } from '@/hooks/useLaundryVendors';
 import { useUsers } from '@/hooks/useUsers';
 import { useItems } from '@/hooks/useItems';
+import { useDefaultWarehouse } from '@/hooks/useWarehouses';
 import { useBreakpoint } from '@/lib/breakpoints';
 import { MobileOutboundForm } from '@/components/inventory/MobileOutboundForm';
 import { cn } from '@/lib/utils';
 
 const createOutboundSchema = (t: (key: string) => string) => z.object({
   transaction_category: z.enum(['room_assign', 'laundry', 'maintenance', 'disposal', 'other']),
-  from_location: z.string().min(1, t('inventory:validation.fromRequired')),
+  from_warehouse_id: z.string().uuid(t('inventory:validation.fromRequired')),
   to_location: z.string().optional(),
   vendor_id: z.string().uuid().optional(),
   maintenance_request_id: z.string().uuid().optional(),
@@ -92,7 +94,7 @@ const createOutboundSchema = (t: (key: string) => string) => z.object({
 
 type OutboundFormData = {
   transaction_category: 'room_assign' | 'laundry' | 'maintenance' | 'disposal' | 'other';
-  from_location: string;
+  from_warehouse_id: string;
   to_location?: string;
   vendor_id?: string;
   maintenance_request_id?: string;
@@ -131,7 +133,7 @@ export function OutboundPage() {
     resolver: zodResolver(outboundSchema),
     defaultValues: {
       transaction_category: 'room_assign',
-      from_location: t('inventory:outbound.placeholders.defaultWarehouse'),
+      from_warehouse_id: '',
       to_location: '',
       vendor_id: undefined,
       maintenance_request_id: undefined,
@@ -225,10 +227,16 @@ export function OutboundPage() {
             )} />
             
             <div className="grid gap-3 md:grid-cols-2">
-              <FormField control={form.control} name="from_location" render={({ field }) => (
+              <FormField control={form.control} name="from_warehouse_id" render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-xs">{t('inventory:outbound.fromLocation')} *</FormLabel>
-                  <FormControl><Input {...field} placeholder={t('inventory:outbound.placeholders.fromLocation')} className="h-9" /></FormControl>
+                  <FormControl>
+                    <WarehouseSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      placeholder={t('inventory:outbound.placeholders.fromLocation')}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
