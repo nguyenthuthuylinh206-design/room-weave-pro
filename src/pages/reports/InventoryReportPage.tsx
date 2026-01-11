@@ -10,6 +10,7 @@ import { HotelFilterCard } from '@/components/reports/HotelFilterCard'
 import { InventoryOverviewTab } from '@/components/reports/inventory/InventoryOverviewTab'
 import { ABCAnalysisTab } from '@/components/reports/inventory/ABCAnalysisTab'
 import { StockAuditTab } from '@/components/reports/inventory/StockAuditTab'
+import { WarehouseStockTab } from '@/components/reports/inventory/WarehouseStockTab'
 import { useInventoryReport } from '@/hooks/useReports'
 import { useReportExport } from '@/hooks/useReportExport'
 import { useBreakpoint } from '@/lib/breakpoints'
@@ -153,6 +154,7 @@ export function InventoryReportPage() {
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Tổng quan</TabsTrigger>
+          <TabsTrigger value="warehouse">Theo kho</TabsTrigger>
           <TabsTrigger value="abc">ABC Phân tích</TabsTrigger>
           <TabsTrigger value="stock-audit">Kiểm kê</TabsTrigger>
         </TabsList>
@@ -163,6 +165,10 @@ export function InventoryReportPage() {
             isLoading={isLoading}
             chartRefs={chartRefs}
           />
+        </TabsContent>
+        
+        <TabsContent value="warehouse">
+          <WarehouseStockTab />
         </TabsContent>
         
         <TabsContent value="abc">
