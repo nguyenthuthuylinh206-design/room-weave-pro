@@ -1,5 +1,4 @@
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
-import { useEffect } from 'react'
 import { ArrowLeft, Plus, X } from 'lucide-react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -7,7 +6,6 @@ import { z } from 'zod'
 import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Form,
   FormControl,
@@ -15,15 +13,16 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { ItemSelect } from '@/components/shared/ItemSelect'
+import { WarehouseSelect } from '@/components/warehouse/WarehouseSelect'
 import { ImageUpload } from '@/components/shared/ImageUpload'
 import { FileUpload } from '@/components/shared/FileUpload'
 import { useCreateInboundTransaction } from '@/hooks/useInventoryTransactions'
+import { useDefaultWarehouse } from '@/hooks/useWarehouses'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileInboundForm } from '@/components/inventory/MobileInboundForm'
 
@@ -38,8 +37,8 @@ interface PrefillFromAdjustment {
 
 const inboundSchema = z.object({
   transaction_category: z.enum(['purchase', 'return', 'laundry', 'other']),
-  from_location: z.string().min(1, 'Vui lòng nhập vị trí'),
-  to_location: z.string().min(1, 'Vui lòng nhập vị trí'),
+  from_location: z.string().min(1, 'Vui lòng nhập nguồn'),
+  to_warehouse_id: z.string().uuid('Vui lòng chọn kho'),
   items: z.array(z.object({
     item_id: z.string().uuid('Vui lòng chọn đồ dùng'),
     quantity: z.number().min(1, 'Số lượng phải > 0'),
@@ -48,7 +47,6 @@ const inboundSchema = z.object({
   documents: z.array(z.string()).optional(),
   photos: z.array(z.string()).optional(),
   notes: z.string().optional(),
-  // Hidden fields for linking to adjustment
   related_type: z.string().optional(),
   related_id: z.string().optional(),
 })
@@ -66,15 +64,15 @@ export function InboundPage() {
   // Get prefill data from navigation state (from adjustment)
   const prefillFromAdjustment = (location.state as any)?.prefillFromAdjustment as PrefillFromAdjustment | undefined
   
-  // ALL hooks MUST be declared BEFORE any conditional returns
   const { mutate: createInbound, isPending: isLoading } = useCreateInboundTransaction()
+  const { data: defaultWarehouse } = useDefaultWarehouse()
   
   const form = useForm<InboundFormData>({
     resolver: zodResolver(inboundSchema),
     defaultValues: {
       transaction_category: 'purchase',
       from_location: prefillFromAdjustment ? 'Bổ sung kiểm kê' : '',
-      to_location: 'Kho tầng 1',
+      to_warehouse_id: '',
       items: prefillFromAdjustment?.items?.length 
         ? prefillFromAdjustment.items.map(i => ({ item_id: i.item_id, quantity: i.quantity, notes: '' }))
         : [{ item_id: '', quantity: 1, notes: '' }],
@@ -85,6 +83,12 @@ export function InboundPage() {
       related_id: prefillFromAdjustment?.adjustmentId,
     },
   })
+
+  // Set default warehouse when loaded
+  const toWarehouseId = form.watch('to_warehouse_id')
+  if (defaultWarehouse && !toWarehouseId) {
+    form.setValue('to_warehouse_id', defaultWarehouse.id)
+  }
   
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -103,6 +107,7 @@ export function InboundPage() {
     createInbound(
       {
         ...data,
+        to_location: '', // Will be filled by warehouse
         related_type: data.related_type || (poId ? 'purchase_order' : undefined),
         related_id: data.related_id || poId || undefined,
       } as any,
@@ -192,12 +197,16 @@ export function InboundPage() {
               
               <FormField
                 control={form.control}
-                name="to_location"
+                name="to_warehouse_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-xs">{t('inventory:inbound.toLocation')} *</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="VD: Kho tầng 1" className="h-9" />
+                      <WarehouseSelect
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="Chọn kho nhập"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

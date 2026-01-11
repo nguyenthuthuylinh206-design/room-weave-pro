@@ -16,15 +16,17 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { TouchButton } from '@/components/mobile/TouchOptimized'
 import { ItemSelect } from '@/components/shared/ItemSelect'
+import { WarehouseSelect } from '@/components/warehouse/WarehouseSelect'
 import { useCreateInboundTransaction } from '@/hooks/useInventoryTransactions'
+import { useDefaultWarehouse } from '@/hooks/useWarehouses'
 import { formatCurrency } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { useBreakpoint } from '@/lib/breakpoints'
 
 const quickInboundSchema = z.object({
   transaction_category: z.enum(['purchase', 'return', 'other']),
-  from_location: z.string().min(1, 'Vui lòng nhập vị trí'),
-  to_location: z.string().min(1, 'Vui lòng nhập vị trí'),
+  from_location: z.string().min(1, 'Vui lòng nhập nguồn'),
+  to_warehouse_id: z.string().uuid('Vui lòng chọn kho'),
   items: z.array(z.object({
     item_id: z.string().uuid('Vui lòng chọn đồ dùng'),
     quantity: z.number().min(1, 'Số lượng phải > 0'),
@@ -49,16 +51,23 @@ export function QuickInboundDialog({ open, onOpenChange }: QuickInboundDialogPro
   const navigate = useNavigate()
   const { isMobile } = useBreakpoint()
   const { mutate: createInbound, isPending: isLoading } = useCreateInboundTransaction()
+  const { data: defaultWarehouse } = useDefaultWarehouse()
   
   const form = useForm<QuickInboundFormData>({
     resolver: zodResolver(quickInboundSchema),
     defaultValues: {
       transaction_category: 'purchase',
       from_location: '',
-      to_location: 'Kho tầng 1',
+      to_warehouse_id: '',
       items: [{ item_id: '', quantity: 1, unit_price: 0 }],
     },
   })
+
+  // Set default warehouse when loaded
+  const toWarehouseId = form.watch('to_warehouse_id')
+  if (defaultWarehouse && !toWarehouseId) {
+    form.setValue('to_warehouse_id', defaultWarehouse.id)
+  }
   
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -66,7 +75,12 @@ export function QuickInboundDialog({ open, onOpenChange }: QuickInboundDialogPro
   })
   
   const onSubmit = (data: QuickInboundFormData) => {
-    createInbound(data as any, {
+    // Transform to match expected API format
+    const submitData = {
+      ...data,
+      to_location: '', // Will be set by warehouse name in backend
+    }
+    createInbound(submitData as any, {
       onSuccess: () => {
         form.reset()
         onOpenChange(false)
@@ -151,14 +165,15 @@ export function QuickInboundDialog({ open, onOpenChange }: QuickInboundDialogPro
             
             <FormField
               control={form.control}
-              name="to_location"
+              name="to_warehouse_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Đến đâu *</FormLabel>
+                  <FormLabel>Nhập vào kho *</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
-                      placeholder="Kho tầng 1"
+                    <WarehouseSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      placeholder="Chọn kho"
                       className={isMobile ? 'min-h-[48px]' : ''}
                     />
                   </FormControl>

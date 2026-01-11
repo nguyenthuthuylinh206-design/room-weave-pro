@@ -23,6 +23,7 @@ import { AdjustmentDetailPage } from "./pages/inventory/AdjustmentDetailPage";
 import DistributionOrdersPage from "./pages/inventory/DistributionOrdersPage";
 import DistributionOrderDetailPage from "./pages/inventory/DistributionOrderDetailPage";
 import CreateDistributionPage from "./pages/inventory/CreateDistributionPage";
+import TransferPage from "./pages/inventory/TransferPage";
 import { ItemsPage } from "./pages/items/ItemsPage";
 import ItemDetailPage from "./pages/items/ItemDetailPage";
 import { ItemFormPage } from "./pages/items/ItemFormPage";
@@ -316,6 +317,14 @@ const router = createBrowserRouter([
         element: (
           <PermissionRoute module="inventory">
             <DistributionOrdersPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "inventory/transfer/new", 
+        element: (
+          <PermissionRoute module="inventory" action="create">
+            <TransferPage />
           </PermissionRoute>
         )
       },

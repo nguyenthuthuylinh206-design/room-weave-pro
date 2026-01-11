@@ -17,14 +17,16 @@ import { Button } from '@/components/ui/button'
 import { TouchButton } from '@/components/mobile/TouchOptimized'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ItemSelect } from '@/components/shared/ItemSelect'
+import { WarehouseSelect } from '@/components/warehouse/WarehouseSelect'
 import { useCreateOutboundTransaction } from '@/hooks/useInventoryTransactions'
+import { useDefaultWarehouse } from '@/hooks/useWarehouses'
 import { cn } from '@/lib/utils'
 import { useBreakpoint } from '@/lib/breakpoints'
 
 const quickOutboundSchema = z.object({
   transaction_category: z.enum(['room_assign', 'laundry', 'maintenance', 'other']),
-  from_location: z.string().min(1, 'Vui lòng nhập vị trí'),
-  to_location: z.string().min(1, 'Vui lòng nhập vị trí'),
+  from_warehouse_id: z.string().uuid('Vui lòng chọn kho'),
+  to_location: z.string().min(1, 'Vui lòng nhập đích đến'),
   items: z.array(z.object({
     item_id: z.string().uuid('Vui lòng chọn đồ dùng'),
     quantity: z.number().min(1, 'Số lượng phải > 0'),
@@ -56,16 +58,23 @@ export function QuickOutboundDialog({ open, onOpenChange }: QuickOutboundDialogP
   const navigate = useNavigate()
   const { isMobile } = useBreakpoint()
   const { mutate: createOutbound, isPending: isLoading } = useCreateOutboundTransaction()
+  const { data: defaultWarehouse } = useDefaultWarehouse()
   
   const form = useForm<QuickOutboundFormData>({
     resolver: zodResolver(quickOutboundSchema),
     defaultValues: {
       transaction_category: 'room_assign',
-      from_location: 'Kho tầng 1',
+      from_warehouse_id: '',
       to_location: '',
       items: [{ item_id: '', quantity: 1, available_quantity: 0 }],
     },
   })
+
+  // Set default warehouse when loaded
+  const fromWarehouseId = form.watch('from_warehouse_id')
+  if (defaultWarehouse && !fromWarehouseId) {
+    form.setValue('from_warehouse_id', defaultWarehouse.id)
+  }
   
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -73,7 +82,11 @@ export function QuickOutboundDialog({ open, onOpenChange }: QuickOutboundDialogP
   })
   
   const onSubmit = (data: QuickOutboundFormData) => {
-    createOutbound(data as any, {
+    const submitData = {
+      ...data,
+      from_location: '', // Will be set by warehouse name
+    }
+    createOutbound(submitData as any, {
       onSuccess: () => {
         form.reset()
         onOpenChange(false)
@@ -143,14 +156,15 @@ export function QuickOutboundDialog({ open, onOpenChange }: QuickOutboundDialogP
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
-              name="from_location"
+              name="from_warehouse_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Từ đâu *</FormLabel>
+                  <FormLabel>Xuất từ kho *</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
-                      placeholder="Kho tầng 1"
+                    <WarehouseSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      placeholder="Chọn kho"
                       className={isMobile ? 'min-h-[48px]' : ''}
                     />
                   </FormControl>
