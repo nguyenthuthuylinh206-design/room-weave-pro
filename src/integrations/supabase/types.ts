@@ -1528,6 +1528,7 @@ export type Database = {
           created_by: string
           documents: string[] | null
           from_location: string | null
+          from_warehouse_id: string | null
           hotel_id: string
           id: string
           item_id: string
@@ -1540,6 +1541,7 @@ export type Database = {
           related_type: string | null
           tenant_id: string
           to_location: string | null
+          to_warehouse_id: string | null
           total_value: number | null
           transaction_category: string | null
           transaction_code: string
@@ -1553,6 +1555,7 @@ export type Database = {
           created_by: string
           documents?: string[] | null
           from_location?: string | null
+          from_warehouse_id?: string | null
           hotel_id: string
           id?: string
           item_id: string
@@ -1565,6 +1568,7 @@ export type Database = {
           related_type?: string | null
           tenant_id: string
           to_location?: string | null
+          to_warehouse_id?: string | null
           total_value?: number | null
           transaction_category?: string | null
           transaction_code: string
@@ -1578,6 +1582,7 @@ export type Database = {
           created_by?: string
           documents?: string[] | null
           from_location?: string | null
+          from_warehouse_id?: string | null
           hotel_id?: string
           id?: string
           item_id?: string
@@ -1590,6 +1595,7 @@ export type Database = {
           related_type?: string | null
           tenant_id?: string
           to_location?: string | null
+          to_warehouse_id?: string | null
           total_value?: number | null
           transaction_category?: string | null
           transaction_code?: string
@@ -1627,6 +1633,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inventory_transactions_from_warehouse_id_fkey"
+            columns: ["from_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "inventory_transactions_hotel_id_fkey"
             columns: ["hotel_id"]
             isOneToOne: false
@@ -1652,6 +1665,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_to_warehouse_id_fkey"
+            columns: ["to_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
             referencedColumns: ["id"]
           },
         ]
@@ -6025,6 +6045,137 @@ export type Database = {
           },
         ]
       }
+      warehouse_stock: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          last_transaction_id: string | null
+          last_updated: string
+          maximum_stock: number | null
+          minimum_stock: number | null
+          quantity: number
+          tenant_id: string
+          warehouse_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          last_transaction_id?: string | null
+          last_updated?: string
+          maximum_stock?: number | null
+          minimum_stock?: number | null
+          quantity?: number
+          tenant_id: string
+          warehouse_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          last_transaction_id?: string | null
+          last_updated?: string
+          maximum_stock?: number | null
+          minimum_stock?: number | null
+          quantity?: number
+          tenant_id?: string
+          warehouse_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warehouse_stock_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_stock_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_stock_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      warehouses: {
+        Row: {
+          address: string | null
+          code: string
+          created_at: string
+          description: string | null
+          hotel_id: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          location_type: Database["public"]["Enums"]["warehouse_location_type"]
+          name: string
+          sort_order: number | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          code: string
+          created_at?: string
+          description?: string | null
+          hotel_id: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          location_type?: Database["public"]["Enums"]["warehouse_location_type"]
+          name: string
+          sort_order?: number | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          code?: string
+          created_at?: string
+          description?: string | null
+          hotel_id?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          location_type?: Database["public"]["Enums"]["warehouse_location_type"]
+          name?: string
+          sort_order?: number | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warehouses_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "warehouses_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_actions: {
         Row: {
           action_config: Json
@@ -6458,6 +6609,10 @@ export type Database = {
         Args: { p_tenant_id: string }
         Returns: undefined
       }
+      create_default_warehouse_for_hotel: {
+        Args: { p_hotel_id: string; p_tenant_id: string }
+        Returns: string
+      }
       create_distribution_order: {
         Args: {
           p_assigned_to: string
@@ -6615,6 +6770,18 @@ export type Database = {
       create_super_admin: {
         Args: { p_email: string; p_full_name?: string }
         Returns: Json
+      }
+      create_warehouse_transfer: {
+        Args: {
+          p_created_by?: string
+          p_from_warehouse_id: string
+          p_hotel_id: string
+          p_items: Json
+          p_notes?: string
+          p_tenant_id: string
+          p_to_warehouse_id: string
+        }
+        Returns: string
       }
       delete_inventory_transaction: {
         Args: { p_transaction_id: string }
@@ -7351,6 +7518,18 @@ export type Database = {
         Args: { p_days?: number; p_vendor_id: string }
         Returns: Json
       }
+      get_warehouse_stock_summary: {
+        Args: { p_warehouse_id: string }
+        Returns: {
+          category_name: string
+          item_code: string
+          item_id: string
+          item_name: string
+          minimum_stock: number
+          quantity: number
+          stock_status: string
+        }[]
+      }
       get_workflow_analytics: {
         Args: { p_period?: string; p_workflow_id: string }
         Returns: Json
@@ -7407,6 +7586,14 @@ export type Database = {
       increment_workflow_stats: {
         Args: { p_success: boolean; p_workflow_id: string }
         Returns: undefined
+      }
+      initialize_warehouse_stock: {
+        Args: {
+          p_hotel_id: string
+          p_tenant_id: string
+          p_warehouse_id: string
+        }
+        Returns: number
       }
       is_distribution_leader: { Args: { _user_id: string }; Returns: boolean }
       is_level_higher_or_equal: {
@@ -7625,6 +7812,7 @@ export type Database = {
         | "department_manager"
         | "staff"
       item_type: "linen" | "consumable" | "equipment" | "furniture"
+      warehouse_location_type: "warehouse" | "room" | "floor" | "external"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -7760,6 +7948,7 @@ export const Constants = {
         "staff",
       ],
       item_type: ["linen", "consumable", "equipment", "furniture"],
+      warehouse_location_type: ["warehouse", "room", "floor", "external"],
     },
   },
 } as const

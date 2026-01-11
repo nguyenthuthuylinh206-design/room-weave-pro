@@ -59,6 +59,7 @@ import { BusinessConfigurationPage } from "./pages/settings/BusinessConfiguratio
 import CategoryManagementPage from "./pages/settings/CategoryManagementPage";
 import WorkflowsPage from "./pages/settings/WorkflowsPage";
 import { SystemTestPage } from "./pages/settings/SystemTestPage";
+import WarehouseListPage from "./pages/settings/WarehouseListPage";
 import ChangePasswordPage from "./pages/settings/ChangePasswordPage";
 import { ReportsPage } from "./pages/reports/ReportsPage";
 import { ReportsDashboardPage } from "./pages/reports/ReportsDashboardPage";
@@ -553,6 +554,14 @@ const router = createBrowserRouter([
         )
       },
       { path: "settings/change-password", element: <ChangePasswordPage /> },
+      { 
+        path: "settings/warehouses", 
+        element: (
+          <PermissionRoute module="inventory">
+            <WarehouseListPage />
+          </PermissionRoute>
+        )
+      },
       { 
         path: "settings/subscription", 
         element: (
