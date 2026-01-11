@@ -144,8 +144,10 @@ const navigation: NavItem[] = [
       { titleKey: 'transactions', href: '/inventory/transactions', icon: List },
       { titleKey: 'inbound', href: '/inventory/inbound/new', icon: ArrowDownToLine },
       { titleKey: 'outbound', href: '/inventory/outbound/new', icon: ArrowUpFromLine },
+      { titleKey: 'transfer', href: '/inventory/transfer/new', icon: GitCompare },
       { titleKey: 'adjustment', href: '/inventory/adjustments', icon: ClipboardCheck },
       { titleKey: 'distribution', href: '/inventory/distributions', icon: Truck },
+      { titleKey: 'warehouses', href: '/settings/warehouses', icon: Warehouse },
     ],
   },
   {
