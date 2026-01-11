@@ -175,6 +175,25 @@
     "comingSoon": "Tạo báo cáo tùy chỉnh sẽ sớm được cung cấp"
   },
   "tip": "Mẹo",
+  "warehouse": {
+    "noData": "Chưa có dữ liệu kho",
+    "totalWarehouses": "Tổng số kho",
+    "totalItems": "Tổng loại đồ",
+    "totalValue": "Tổng giá trị",
+    "lowStockItems": "Tồn kho thấp",
+    "comparisonChart": "So sánh giữa các kho",
+    "stockByWarehouse": "Tồn kho theo vị trí",
+    "lowStockAlerts": "Cảnh báo tồn kho thấp",
+    "quantity": "Số lượng",
+    "value": "Giá trị",
+    "name": "Tên kho",
+    "items": "Loại",
+    "qty": "SL",
+    "low": "Thấp",
+    "default": "Mặc định",
+    "noLowStock": "Không có items tồn thấp",
+    "moreItems": "items khác"
+  },
   "operations": {
     "pageTitle": "Báo cáo Hoạt động",
     "pageDescription": "Phân tích giao dịch nhập xuất và kiểm kê",

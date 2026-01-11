@@ -175,6 +175,25 @@
     "comingSoon": "Custom report creation will be available soon"
   },
   "tip": "Tip",
+  "warehouse": {
+    "noData": "No warehouse data",
+    "totalWarehouses": "Total Warehouses",
+    "totalItems": "Total Item Types",
+    "totalValue": "Total Value",
+    "lowStockItems": "Low Stock Items",
+    "comparisonChart": "Warehouse Comparison",
+    "stockByWarehouse": "Stock by Location",
+    "lowStockAlerts": "Low Stock Alerts",
+    "quantity": "Quantity",
+    "value": "Value",
+    "name": "Warehouse Name",
+    "items": "Types",
+    "qty": "Qty",
+    "low": "Low",
+    "default": "Default",
+    "noLowStock": "No low stock items",
+    "moreItems": "more items"
+  },
   "operations": {
     "pageTitle": "Operations Report",
     "pageDescription": "Analyze inbound/outbound transactions and stocktakes",

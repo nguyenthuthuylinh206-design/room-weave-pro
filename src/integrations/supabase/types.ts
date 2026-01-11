@@ -6816,6 +6816,19 @@ export type Database = {
           total_value: number
         }[]
       }
+      get_all_warehouse_stock_summary: {
+        Args: { p_hotel_id?: string; p_tenant_id: string }
+        Returns: {
+          is_default: boolean
+          low_stock_count: number
+          total_items: number
+          total_quantity: number
+          total_value: number
+          warehouse_code: string
+          warehouse_id: string
+          warehouse_name: string
+        }[]
+      }
       get_categories_with_stats:
         | {
             Args: { p_tenant_id: string }
@@ -7155,6 +7168,22 @@ export type Database = {
             }
             Returns: Json
           }
+      get_low_stock_by_warehouses: {
+        Args: { p_hotel_id?: string; p_limit?: number; p_tenant_id: string }
+        Returns: {
+          category_name: string
+          item_code: string
+          item_id: string
+          item_name: string
+          minimum_stock: number
+          quantity: number
+          shortage: number
+          unit_price: number
+          warehouse_code: string
+          warehouse_id: string
+          warehouse_name: string
+        }[]
+      }
       get_low_stock_items: {
         Args: { p_hotel_id: string; p_limit?: number; p_tenant_id: string }
         Returns: {
