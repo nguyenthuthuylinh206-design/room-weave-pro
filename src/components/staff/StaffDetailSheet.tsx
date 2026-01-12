@@ -59,11 +59,17 @@ export function StaffDetailSheet({ staff, open, onOpenChange }: StaffDetailSheet
 
           {/* Quick actions */}
           <div className="px-4 pb-4 flex gap-2">
-            {staff.telegram_username && (
+            {(staff.telegram_username || staff.telegram_chat_id) && (
               <Button 
                 className="flex-1" 
                 variant="default"
-                onClick={() => window.open(`https://t.me/${staff.telegram_username}`, '_blank')}
+                onClick={() => {
+                  if (staff.telegram_username) {
+                    window.open(`https://t.me/${staff.telegram_username}`, '_blank')
+                  } else if (staff.telegram_chat_id) {
+                    window.location.href = `tg://user?id=${staff.telegram_chat_id}`
+                  }
+                }}
               >
                 <Send className="h-4 w-4 mr-2" />
                 Telegram
@@ -72,7 +78,7 @@ export function StaffDetailSheet({ staff, open, onOpenChange }: StaffDetailSheet
             {staff.phone && (
               <Button 
                 className="flex-1" 
-                variant={staff.telegram_username ? "outline" : "default"}
+                variant={(staff.telegram_username || staff.telegram_chat_id) ? "outline" : "default"}
                 onClick={() => window.location.href = `tel:${staff.phone}`}
               >
                 <Phone className="h-4 w-4 mr-2" />
@@ -127,17 +133,23 @@ export function StaffDetailSheet({ staff, open, onOpenChange }: StaffDetailSheet
                   <span>{staff.phone}</span>
                 </div>
               )}
-              {staff.telegram_username && (
+              {(staff.telegram_username || staff.telegram_chat_id) && (
                 <div className="flex items-center gap-2">
                   <Send className="h-4 w-4 flex-shrink-0 text-blue-500" />
-                  <a 
-                    href={`https://t.me/${staff.telegram_username}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    @{staff.telegram_username}
-                  </a>
+                  {staff.telegram_username ? (
+                    <a 
+                      href={`https://t.me/${staff.telegram_username}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      @{staff.telegram_username}
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">
+                      ID: {staff.telegram_chat_id} <span className="opacity-70">(cần đã từng chat)</span>
+                    </span>
+                  )}
                 </div>
               )}
               {staff.hotel_name && (
