@@ -659,6 +659,92 @@ export function BookingsPage() {
       setCheckoutDamageItems([])
     }
   }
+
+  // Handle when inspection is completed - refetch damage items from room check
+  const handleInspectionCompleted = async (roomCheckId: string) => {
+    console.log('[BookingsPage] Inspection completed, refetching damage items. room_check_id:', roomCheckId)
+    
+    try {
+      const { data: latestCheck, error } = await supabase
+        .from('room_checks')
+        .select('items_lost, items_damaged')
+        .eq('id', roomCheckId)
+        .maybeSingle()
+      
+      if (error) {
+        console.error('[BookingsPage] Error fetching room check:', error)
+        return
+      }
+      
+      if (latestCheck) {
+        // Convert to DamageChargeItem[]
+        const damageItems: DamageChargeItem[] = [
+          ...((latestCheck?.items_lost as any[]) || []).map(item => ({
+            item_id: item.item_id,
+            item_name: item.item_name,
+            item_type: 'lost' as const,
+            quantity: item.quantity,
+            charge_amount: item.estimated_value || 0,
+          })),
+          ...((latestCheck?.items_damaged as any[]) || []).map(item => ({
+            item_id: item.item_id,
+            item_name: item.item_name,
+            item_type: 'damaged' as const,
+            quantity: item.quantity,
+            charge_amount: item.damage_cost || 0,
+            damage_type: item.damage_type,
+          })),
+        ]
+        
+        console.log('[BookingsPage] Fetched damage items:', damageItems.length)
+        setCheckoutDamageItems(damageItems)
+        
+        // Recalculate cost breakdown with new damage items
+        if (checkoutCostBreakdown && actionBooking) {
+          const totalDamageCharge = damageItems.reduce(
+            (sum, item) => sum + item.charge_amount * item.quantity, 0
+          )
+          
+          const roomPrice = (actionBooking as any).room_price || 0
+          const checkIn = new Date(actionBooking.check_in_date)
+          const checkOut = new Date(actionBooking.check_out_date)
+          const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
+          
+          const newCostBreakdown = calculateBookingCost({
+            roomPrice,
+            nights,
+            earlyCheckinCharge: checkoutCostBreakdown.earlyCheckinCharge,
+            lateCheckoutCharge: checkoutCostBreakdown.lateCheckoutCharge,
+            serviceCharges: checkoutCostBreakdown.serviceCharges,
+            extraCharges: checkoutCostBreakdown.extraCharges,
+            damageCharges: totalDamageCharge,
+            damageItems,
+            vatRate: checkoutCostBreakdown.vatRate,
+            serviceFeeRate: checkoutCostBreakdown.serviceFeeRate,
+            depositAmount: checkoutCostBreakdown.depositAmount,
+            amountPaid: checkoutCostBreakdown.amountPaid,
+          })
+          
+          setCheckoutCostBreakdown(newCostBreakdown)
+          console.log('[BookingsPage] Updated cost breakdown with damage charges:', totalDamageCharge)
+        }
+        
+        if (damageItems.length > 0) {
+          toast({
+            title: 'Đã cập nhật kết quả kiểm tra',
+            description: `Phát hiện ${damageItems.length} vật phẩm cần xử lý`,
+          })
+        } else {
+          toast({
+            title: 'Kiểm tra hoàn tất',
+            description: 'Không có vật phẩm hỏng/mất',
+          })
+        }
+      }
+    } catch (error: any) {
+      console.error('[BookingsPage] Error in handleInspectionCompleted:', error)
+    }
+  }
   
   return (
     <div className="space-y-6">
@@ -1018,6 +1104,7 @@ export function BookingsPage() {
           roomId={actionBooking.room_id}
           hotelId={actionBooking.hotel_id}
           tenantId={actionBooking.tenant_id}
+          onInspectionCompleted={handleInspectionCompleted}
         />
       )}
 

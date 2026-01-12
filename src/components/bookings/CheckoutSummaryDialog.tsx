@@ -77,6 +77,8 @@ interface CheckoutSummaryDialogProps {
   roomId?: string
   hotelId?: string
   tenantId?: string
+  // Callback when inspection is completed - parent can refetch damage items
+  onInspectionCompleted?: (roomCheckId: string) => void
 }
 
 export function CheckoutSummaryDialog({
@@ -98,6 +100,7 @@ export function CheckoutSummaryDialog({
   roomId,
   hotelId,
   tenantId,
+  onInspectionCompleted,
 }: CheckoutSummaryDialogProps) {
   const [adjustedLateCharge, setAdjustedLateCharge] = useState(costBreakdown.lateCheckoutCharge)
   const [adjustmentNote, setAdjustmentNote] = useState('')
@@ -145,6 +148,22 @@ export function CheckoutSummaryDialog({
     
     return () => clearInterval(interval)
   }, [open, inspection?.id, inspection?.status, refetchInspection])
+
+  // Track when inspection is completed and notify parent to refetch damage items
+  const lastNotifiedCheckId = useRef<string | null>(null)
+  
+  useEffect(() => {
+    if (!inspection) return
+    if (inspection.status !== 'completed') return
+    if (!inspection.room_check_id) return
+    
+    // Only notify once per room_check_id
+    if (lastNotifiedCheckId.current === inspection.room_check_id) return
+    
+    console.log('[CheckoutSummaryDialog] Inspection completed, notifying parent. room_check_id:', inspection.room_check_id)
+    lastNotifiedCheckId.current = inspection.room_check_id
+    onInspectionCompleted?.(inspection.room_check_id)
+  }, [inspection?.status, inspection?.room_check_id, onInspectionCompleted])
 
   // Calculate total damage charge
   const totalDamageCharge = useMemo(() => {
