@@ -5868,6 +5868,7 @@ export type Database = {
           reports_to: string | null
           role: string
           status: string | null
+          telegram_username: string | null
           tenant_id: string | null
           updated_at: string | null
           user_level_code: string | null
@@ -5899,6 +5900,7 @@ export type Database = {
           reports_to?: string | null
           role?: string
           status?: string | null
+          telegram_username?: string | null
           tenant_id?: string | null
           updated_at?: string | null
           user_level_code?: string | null
@@ -5930,6 +5932,7 @@ export type Database = {
           reports_to?: string | null
           role?: string
           status?: string | null
+          telegram_username?: string | null
           tenant_id?: string | null
           updated_at?: string | null
           user_level_code?: string | null
