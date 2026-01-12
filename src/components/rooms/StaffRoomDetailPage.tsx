@@ -567,10 +567,27 @@ export function StaffRoomDetailPage() {
             )}
             <Button 
               className={`h-12 text-base font-semibold gap-2 ${missingCount > 0 ? 'flex-1' : 'w-full'}`}
-              onClick={() => navigate(`/rooms/${id}/check`)}
+              disabled={startInspection.isPending}
+              onClick={async () => {
+                // Nếu có pending checkout inspection, start trước rồi navigate với inspection ID
+                if (pendingInspection && pendingInspection.status === 'pending') {
+                  await startInspection.mutateAsync(pendingInspection.id)
+                  navigate(`/rooms/${id}/check?type=checkout&inspection=${pendingInspection.id}`)
+                } else if (pendingInspection && pendingInspection.status === 'in_progress') {
+                  // Đã start rồi, chỉ navigate tiếp tục
+                  navigate(`/rooms/${id}/check?type=checkout&inspection=${pendingInspection.id}`)
+                } else {
+                  // Không có checkout inspection, kiểm tra thường
+                  navigate(`/rooms/${id}/check`)
+                }
+              }}
             >
-              <ClipboardCheck className="h-5 w-5" />
-              {t('detail.checkRoom')}
+              {startInspection.isPending ? (
+                <span className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <ClipboardCheck className="h-5 w-5" />
+              )}
+              {pendingInspection ? 'Kiểm tra checkout' : t('detail.checkRoom')}
             </Button>
           </div>
         </div>
