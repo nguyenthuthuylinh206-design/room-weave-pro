@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
@@ -24,6 +24,7 @@ import { useCreateRoomCheck } from '@/hooks/useRoomChecks'
 import { useUser } from '@/hooks/useUser'
 import { useRoomCheckSession } from '@/hooks/useRoomCheckSession'
 import { useRoomBooking } from '@/hooks/useRoomBooking'
+import { usePendingInspections } from '@/hooks/useCheckoutInspection'
 import { toast } from '@/hooks/use-toast'
 import { CheckTypeStep } from '@/components/rooms/check-steps/CheckTypeStep'
 import { ItemsCheckStep } from '@/components/rooms/check-steps/ItemsCheckStep'
@@ -37,9 +38,22 @@ export function RoomCheckPage() {
   const [searchParams] = useSearchParams()
   const prefilledType = searchParams.get('type') as 'daily' | 'checkin' | 'checkout' | 'maintenance' | null
   const shouldAutoResume = searchParams.get('resume') === 'true'
-  const inspectionId = searchParams.get('inspection') // Lấy checkout inspection ID từ URL
+  const inspectionIdFromUrl = searchParams.get('inspection') // Lấy checkout inspection ID từ URL
   
   const { user, hasAnyRole } = useUser()
+  
+  // Hook để lấy pending inspection và auto-start
+  const { 
+    pendingInspection, 
+    isLoading: isInspectionLoading,
+    startInspection 
+  } = usePendingInspections(id)
+  
+  // Flag để tránh gọi startInspection nhiều lần
+  const hasAutoStartedInspection = useRef(false)
+  
+  // Tính toán effective inspection ID (từ URL hoặc từ pending inspection)
+  const effectiveInspectionId = inspectionIdFromUrl || pendingInspection?.id
   const isManager = hasAnyRole(['super_admin', 'owner', 'hotel_manager', 'department_manager'])
   const { data: roomData, isLoading } = useRoom(id)
   const { data: currentBooking } = useRoomBooking(id)
@@ -85,6 +99,26 @@ export function RoomCheckPage() {
       navigate('/rooms')
     }
   }, [room, isLoading, navigate])
+  
+  // Auto-start inspection khi nhân viên vào trang checkout
+  // Điều này đảm bảo status được cập nhật dù nhân viên vào bằng đường nào
+  useEffect(() => {
+    // Chỉ auto-start khi:
+    // 1. Đang là checkout type
+    // 2. Có pending inspection với status = 'pending'
+    // 3. Chưa auto-start trước đó
+    // 4. Không có inspection ID từ URL (nghĩa là nhân viên không vào qua banner)
+    if (
+      prefilledType === 'checkout' &&
+      pendingInspection?.status === 'pending' &&
+      !hasAutoStartedInspection.current &&
+      !inspectionIdFromUrl &&
+      !startInspection.isPending
+    ) {
+      hasAutoStartedInspection.current = true
+      startInspection.mutate(pendingInspection.id)
+    }
+  }, [prefilledType, pendingInspection?.id, pendingInspection?.status, inspectionIdFromUrl, startInspection])
   
   // Create check session on mount
   useEffect(() => {
@@ -330,7 +364,7 @@ export function RoomCheckPage() {
         roomId: id,
         data,
         itemQuantities: Object.keys(itemQuantities).length > 0 ? itemQuantities : undefined,
-        inspectionId: inspectionId || undefined, // Pass checkout inspection ID
+        inspectionId: effectiveInspectionId || undefined, // Pass checkout inspection ID
       })
       
       // Đóng dialog khi thành công
