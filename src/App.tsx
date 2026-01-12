@@ -678,8 +678,9 @@ const router = createBrowserRouter([
         )
       },
 
-      // Profile - Always accessible
+      // Profile - Always accessible (both paths for desktop and mobile)
       { path: "profile", element: <ProfilePage /> },
+      { path: "settings/profile", element: <ProfilePage /> },
       
       // Notifications History
       { path: "notifications", element: <NotificationHistoryPage /> },
