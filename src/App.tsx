@@ -110,6 +110,7 @@ import { RenewalRemindersPage } from "./pages/admin/RenewalRemindersPage";
 import { PricingPlansPage } from "./pages/admin/PricingPlansPage";
 import { PaymentSettingsPage } from "./pages/admin/PaymentSettingsPage";
 import NotificationHistoryPage from "./pages/NotificationHistoryPage";
+import StaffManagementPage from "./pages/staff/StaffManagementPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -563,6 +564,15 @@ const router = createBrowserRouter([
         )
       },
       { path: "settings/change-password", element: <ChangePasswordPage /> },
+      // Staff Management
+      {
+        path: "staff",
+        element: (
+          <PermissionRoute module="users">
+            <StaffManagementPage />
+          </PermissionRoute>
+        )
+      },
       { 
         path: "settings/warehouses", 
         element: (

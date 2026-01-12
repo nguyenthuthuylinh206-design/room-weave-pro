@@ -196,6 +196,12 @@ const navigation: NavItem[] = [
     ],
   },
   {
+    titleKey: 'staffManagement',
+    href: '/staff',
+    icon: Users,
+    roles: ['owner', 'hotel_manager', 'department_manager'],
+  },
+  {
     titleKey: 'reports',
     icon: BarChart3,
     roles: ['owner', 'hotel_manager', 'department_manager'],
