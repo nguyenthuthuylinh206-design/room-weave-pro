@@ -38,6 +38,7 @@ export function TelegramConnectionCard({ compact = false }: TelegramConnectionCa
   const queryClient = useQueryClient()
   const [telegramUsername, setTelegramUsername] = useState('')
   const [isEditing, setIsEditing] = useState(false)
+  const [showSuggestion, setShowSuggestion] = useState(true)
   
   const BOT_USERNAME = 'roomqc_bot'
   const connectLink = user?.id 
@@ -227,6 +228,45 @@ export function TelegramConnectionCard({ compact = false }: TelegramConnectionCa
           Username Telegram (để đồng nghiệp liên lạc)
         </div>
         
+        {/* Suggestion: Use username from bot connection */}
+        {!currentUsername && myConnection?.username && showSuggestion && !isEditing && (
+          <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800">
+            <AlertDescription className="flex items-center justify-between gap-2">
+              <p className="text-xs">
+                💡 Bạn đã liên kết với <strong>@{myConnection.username}</strong>. Dùng username này?
+              </p>
+              <div className="flex gap-2 shrink-0">
+                <Button 
+                  size="sm" 
+                  variant="default"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    saveUsernameMutation.mutate(myConnection.username!)
+                    setShowSuggestion(false)
+                  }}
+                  disabled={saveUsernameMutation.isPending}
+                  type="button"
+                >
+                  {saveUsernameMutation.isPending ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    `Sử dụng @${myConnection.username}`
+                  )}
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="ghost"
+                  className="h-7 text-xs"
+                  onClick={() => setShowSuggestion(false)}
+                  type="button"
+                >
+                  Để sau
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {!isEditing && currentUsername ? (
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -245,7 +285,7 @@ export function TelegramConnectionCard({ compact = false }: TelegramConnectionCa
               Sửa
             </Button>
           </div>
-        ) : (
+        ) : !showSuggestion || !myConnection?.username ? (
           <div className="space-y-3">
             <div className="space-y-2">
               <Label htmlFor="telegram-username" className="text-xs">
@@ -298,7 +338,7 @@ export function TelegramConnectionCard({ compact = false }: TelegramConnectionCa
               Nhập username để đồng nghiệp có thể chat trực tiếp với bạn trên Telegram
             </p>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   )

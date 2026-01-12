@@ -217,6 +217,21 @@ Deno.serve(async (req) => {
           )
         } else {
           console.log(`Successfully connected user ${user.id} to chat ${chatId}`)
+          
+          // ✅ AUTO-SYNC: Cập nhật telegram_username vào users table
+          if (fromUser.username) {
+            const { error: updateUserError } = await supabase
+              .from('users')
+              .update({ telegram_username: fromUser.username })
+              .eq('id', user.id)
+            
+            if (updateUserError) {
+              console.error('Error auto-syncing telegram_username:', updateUserError)
+            } else {
+              console.log(`Auto-synced telegram_username: @${fromUser.username} for user ${user.id}`)
+            }
+          }
+          
           await delay(500) // Small delay before sending welcome message
           const result = await sendTelegramMessage(botToken, chatId,
             `✅ <b>Kết nối thành công!</b>\n\n` +
@@ -227,6 +242,10 @@ Deno.serve(async (req) => {
             `• 🔧 Yêu cầu bảo trì\n` +
             `• 📦 Cảnh báo kho\n` +
             `• 🧺 Cập nhật giặt ủi\n\n` +
+            (fromUser.username 
+              ? `📞 Username của bạn (@${fromUser.username}) đã được lưu để đồng nghiệp liên lạc.\n\n`
+              : ''
+            ) +
             `Để ngừng nhận thông báo, gõ /stop`
           )
           if (!result.ok) {
