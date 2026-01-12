@@ -9,6 +9,7 @@ import {
   X,
   CheckCircle2,
   AlertCircle,
+  MessageCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -20,10 +21,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { useHotelStaffList } from '@/hooks/useHotelStaffList'
+import { useHotelStaffList, HotelStaffMember } from '@/hooks/useHotelStaffList'
 import { useCheckoutInspection } from '@/hooks/useCheckoutInspection'
 import type { CheckoutInspectionRequestWithDetails } from '@/types/checkout-inspection.types'
 import { cn } from '@/lib/utils'
+import { 
+  formatPhoneForTelegram, 
+  openTelegramWithFallback, 
+  getTelegramDownloadLink 
+} from '@/lib/phone-utils'
+import { toast } from 'sonner'
 
 interface CheckoutInspectionSectionProps {
   bookingId: string
@@ -32,8 +39,45 @@ interface CheckoutInspectionSectionProps {
   tenantId: string
   inspection: CheckoutInspectionRequestWithDetails | null
   isLoadingInspection: boolean
-  onCreateInspection: (assignedTo: string) => Promise<void>
+  onCreateInspection: (assignedTo: string, staffName: string) => Promise<void>
   onCancelInspection: (inspectionId: string) => Promise<void>
+}
+
+// Helper to open Telegram chat with staff
+function openTelegramChat(staff: HotelStaffMember) {
+  let telegramUrl: string | null = null
+  
+  // Priority: username > phone > chat_id
+  if (staff.telegram_username) {
+    // Remove @ if present
+    const username = staff.telegram_username.replace(/^@/, '')
+    telegramUrl = `tg://resolve?domain=${username}`
+  } else if (staff.phone) {
+    const formattedPhone = formatPhoneForTelegram(staff.phone)
+    if (formattedPhone) {
+      telegramUrl = `tg://resolve?phone=${formattedPhone.replace('+', '')}`
+    }
+  } else if (staff.telegram_chat_id) {
+    telegramUrl = `tg://user?id=${staff.telegram_chat_id}`
+  }
+  
+  if (!telegramUrl) {
+    toast.error('Không thể liên hệ qua Telegram', {
+      description: 'Nhân viên chưa kết nối Telegram hoặc chưa có thông tin liên hệ.'
+    })
+    return
+  }
+  
+  openTelegramWithFallback(telegramUrl, () => {
+    const downloadLink = getTelegramDownloadLink()
+    toast.error('Chưa cài đặt Telegram', {
+      description: 'Vui lòng cài đặt Telegram để liên hệ nhân viên.',
+      action: {
+        label: 'Tải Telegram',
+        onClick: () => window.open(downloadLink, '_blank'),
+      },
+    })
+  })
 }
 
 export function CheckoutInspectionSection({
@@ -51,11 +95,19 @@ export function CheckoutInspectionSection({
   
   const { data: staffList = [], isLoading: isLoadingStaff } = useHotelStaffList(hotelId)
   
+  // Get assigned staff info from staffList
+  const getAssignedStaff = (): HotelStaffMember | undefined => {
+    if (!inspection?.assigned_to) return undefined
+    return staffList.find(s => s.id === inspection.assigned_to)
+  }
+  
   const handleRequestInspection = async () => {
     if (!selectedStaffId) return
     setIsSubmitting(true)
     try {
-      await onCreateInspection(selectedStaffId)
+      const staff = staffList.find(s => s.id === selectedStaffId)
+      const staffName = staff?.full_name || 'Nhân viên'
+      await onCreateInspection(selectedStaffId, staffName)
       setSelectedStaffId('')
     } finally {
       setIsSubmitting(false)
@@ -69,6 +121,15 @@ export function CheckoutInspectionSection({
       await onCancelInspection(inspection.id)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+  
+  const handleCallTelegram = () => {
+    const assignedStaff = getAssignedStaff()
+    if (assignedStaff) {
+      openTelegramChat(assignedStaff)
+    } else {
+      toast.error('Không tìm thấy thông tin nhân viên')
     }
   }
   
@@ -102,6 +163,7 @@ export function CheckoutInspectionSection({
   
   // Show in-progress status
   if (inspection?.status === 'in_progress') {
+    const assignedStaff = getAssignedStaff()
     return (
       <div className="p-3 border border-blue-500/50 rounded-lg bg-blue-50 dark:bg-blue-950/30">
         <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
@@ -120,23 +182,38 @@ export function CheckoutInspectionSection({
             </div>
           )}
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleCancelInspection}
-          disabled={isSubmitting}
-          className="mt-2 h-7 text-xs gap-1"
-        >
-          {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
-          Hủy yêu cầu
-        </Button>
+        <div className="mt-2 flex gap-2">
+          {assignedStaff && (assignedStaff.telegram_username || assignedStaff.phone || assignedStaff.telegram_chat_id) && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleCallTelegram}
+              className="h-7 text-xs gap-1 text-blue-600 border-blue-300 hover:bg-blue-100"
+            >
+              <MessageCircle className="h-3 w-3" />
+              Gọi Telegram
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleCancelInspection}
+            disabled={isSubmitting}
+            className="h-7 text-xs gap-1"
+          >
+            {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+            Hủy yêu cầu
+          </Button>
+        </div>
       </div>
     )
   }
   
   // Show pending status
   if (inspection?.status === 'pending') {
+    const assignedStaff = getAssignedStaff()
     return (
       <div className="p-3 border border-amber-500/50 rounded-lg bg-amber-50 dark:bg-amber-950/30">
         <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
@@ -153,17 +230,31 @@ export function CheckoutInspectionSection({
             <span>Yêu cầu lúc: {format(new Date(inspection.created_at), 'HH:mm dd/MM', { locale: vi })}</span>
           </div>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleCancelInspection}
-          disabled={isSubmitting}
-          className="mt-2 h-7 text-xs gap-1"
-        >
-          {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
-          Hủy yêu cầu
-        </Button>
+        <div className="mt-2 flex gap-2">
+          {assignedStaff && (assignedStaff.telegram_username || assignedStaff.phone || assignedStaff.telegram_chat_id) && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleCallTelegram}
+              className="h-7 text-xs gap-1 text-amber-600 border-amber-300 hover:bg-amber-100"
+            >
+              <MessageCircle className="h-3 w-3" />
+              Gọi Telegram
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleCancelInspection}
+            disabled={isSubmitting}
+            className="h-7 text-xs gap-1"
+          >
+            {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+            Hủy yêu cầu
+          </Button>
+        </div>
       </div>
     )
   }

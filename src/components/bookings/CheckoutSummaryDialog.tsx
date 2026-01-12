@@ -255,7 +255,7 @@ export function CheckoutSummaryDialog({
   }
 
   // Inspection handlers
-  const handleCreateInspection = async (assignedTo: string) => {
+  const handleCreateInspection = async (assignedTo: string, staffName: string) => {
     if (!tenantId || !hotelId || !roomId) return
     await createInspection.mutateAsync({
       tenantId,
@@ -263,8 +263,9 @@ export function CheckoutSummaryDialog({
       roomId,
       assignedTo,
     })
-    // Send notification to assigned staff
+    // Send notifications to assigned staff
     await Promise.all([
+      // 1. Push notification to individual staff
       sendPushNotification({
         userId: assignedTo,
         tenantId,
@@ -273,6 +274,7 @@ export function CheckoutSummaryDialog({
         actionUrl: `/rooms/${roomId}`,
         notificationType: 'room_checkout',
       }),
+      // 2. In-app notification to individual staff
       createInAppNotification({
         userId: assignedTo,
         tenantId,
@@ -281,12 +283,23 @@ export function CheckoutSummaryDialog({
         type: 'room_checkout',
         actionUrl: `/rooms/${roomId}`,
       }),
+      // 3. Telegram to individual staff
       sendTelegramNotification({
         tenantId,
         hotelId,
         userIds: [assignedTo],
         title: `🔍 Yêu cầu kiểm tra phòng ${roomNumber}`,
         message: `Khách: ${guestName}\nVui lòng kiểm tra phòng trước khi checkout.`,
+        notificationType: 'checkout',
+        actionUrl: `/rooms/${roomId}`,
+      }),
+      // 4. Telegram to staff groups of this hotel
+      sendTelegramNotification({
+        tenantId,
+        hotelId,
+        sendToStaffGroups: true,
+        title: `🔍 Yêu cầu kiểm tra phòng ${roomNumber}`,
+        message: `Khách: ${guestName}\n👤 Giao cho: ${staffName}\nVui lòng kiểm tra phòng trước khi checkout.`,
         notificationType: 'checkout',
         actionUrl: `/rooms/${roomId}`,
       }),
