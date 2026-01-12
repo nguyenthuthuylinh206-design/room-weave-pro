@@ -1,4 +1,4 @@
-import { Phone, Mail, MapPin, Building2, Clock, User } from 'lucide-react'
+import { Phone, Mail, MapPin, Building2, Clock, User, Send } from 'lucide-react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import {
@@ -59,10 +59,20 @@ export function StaffDetailSheet({ staff, open, onOpenChange }: StaffDetailSheet
 
           {/* Quick actions */}
           <div className="px-4 pb-4 flex gap-2">
-            {staff.phone && (
+            {staff.telegram_username && (
               <Button 
                 className="flex-1" 
                 variant="default"
+                onClick={() => window.open(`https://t.me/${staff.telegram_username}`, '_blank')}
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Telegram
+              </Button>
+            )}
+            {staff.phone && (
+              <Button 
+                className="flex-1" 
+                variant={staff.telegram_username ? "outline" : "default"}
                 onClick={() => window.location.href = `tel:${staff.phone}`}
               >
                 <Phone className="h-4 w-4 mr-2" />
@@ -115,6 +125,19 @@ export function StaffDetailSheet({ staff, open, onOpenChange }: StaffDetailSheet
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Phone className="h-4 w-4 flex-shrink-0" />
                   <span>{staff.phone}</span>
+                </div>
+              )}
+              {staff.telegram_username && (
+                <div className="flex items-center gap-2">
+                  <Send className="h-4 w-4 flex-shrink-0 text-blue-500" />
+                  <a 
+                    href={`https://t.me/${staff.telegram_username}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    @{staff.telegram_username}
+                  </a>
                 </div>
               )}
               {staff.hotel_name && (
