@@ -38,15 +38,15 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
   const handleTelegram = (e: React.MouseEvent) => {
     e.stopPropagation()
     
-    // Priority 1: Use Telegram User ID from bot connection
+    // Priority 1: Use Telegram User ID from bot connection - direct app open
     if (staff.telegram_chat_id) {
-      window.open(`tg://user?id=${staff.telegram_chat_id}`, '_blank')
+      window.location.href = `tg://user?id=${staff.telegram_chat_id}`
       return
     }
     
-    // Priority 2: Fallback to username if available
+    // Priority 2: Fallback to username if available - also direct app open
     if (staff.telegram_username) {
-      window.open(`https://t.me/${staff.telegram_username}`, '_blank')
+      window.location.href = `tg://resolve?domain=${staff.telegram_username}`
       return
     }
     
