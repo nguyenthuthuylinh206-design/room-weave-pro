@@ -7,6 +7,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { useNavigate } from 'react-router-dom'
 
 interface StaffCardProps {
   staff: StaffWithStatus
@@ -14,6 +15,8 @@ interface StaffCardProps {
 }
 
 export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
+  const navigate = useNavigate()
+  
   const initials = staff.full_name
     .split(' ')
     .map(n => n[0])
@@ -37,9 +40,8 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
     if (staff.telegram_username) {
       window.open(`https://t.me/${staff.telegram_username}`, '_blank')
     } else {
-      toast.info(`${staff.full_name} chưa thiết lập Telegram`, {
-        description: 'Nhân viên cần vào Hồ sơ → Liên kết để thiết lập username Telegram'
-      })
+      toast.info(`${staff.full_name} chưa thiết lập Telegram`)
+      navigate(`/settings/users?edit=${staff.id}`)
     }
   }
 
