@@ -129,16 +129,19 @@ export function CheckoutSummaryDialog({
   }, [open, costBreakdown.lateCheckoutCharge, initialDamageItems])
   
   // Polling fallback: khi dialog mở và inspection đang pending/in_progress
-  // Mỗi 3s refetch để đảm bảo UI cập nhật nếu realtime miss event
+  // Polling nhanh hơn (2s) khi đang in_progress để cập nhật timer chính xác
   useEffect(() => {
     if (!open) return
     if (!inspection) return
     if (inspection.status === 'completed' || inspection.status === 'cancelled') return
     
+    // Polling nhanh hơn khi đang in_progress
+    const intervalMs = inspection.status === 'in_progress' ? 2000 : 3000
+    
     const interval = setInterval(() => {
       console.log('[CheckoutSummaryDialog] Polling inspection status...')
       refetchInspection()
-    }, 3000)
+    }, intervalMs)
     
     return () => clearInterval(interval)
   }, [open, inspection?.id, inspection?.status, refetchInspection])

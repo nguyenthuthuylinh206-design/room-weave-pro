@@ -574,6 +574,11 @@ export function useCreateRoomCheck() {
       queryClient.invalidateQueries({ queryKey: ['items'] })
       queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
       queryClient.invalidateQueries({ queryKey: ['inventory-dashboard'] })
+      
+      // Invalidate checkout inspection queries để UI cập nhật tức thời
+      queryClient.invalidateQueries({ queryKey: ['checkout-inspection'] })
+      queryClient.invalidateQueries({ queryKey: ['pending-inspection'] })
+      queryClient.invalidateQueries({ queryKey: ['room-has-pending-inspection'] })
 
       const isDuplicate = !!check?.__duplicate
 

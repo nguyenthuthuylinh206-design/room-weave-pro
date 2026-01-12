@@ -54,11 +54,14 @@ export function useCheckoutInspection(bookingId: string | undefined) {
           table: 'checkout_inspection_requests',
           filter: `booking_id=eq.${bookingId}`,
         },
-        () => {
+        (payload) => {
+          console.log('[CheckoutInspection Realtime] Received event:', payload)
           refetch()
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('[CheckoutInspection Realtime] Channel status:', status)
+      })
     
     return () => {
       supabase.removeChannel(channel)
