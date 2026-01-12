@@ -15,7 +15,8 @@ import { StaffStatusBadge } from './StaffStatusBadge'
 import { StaffActivityTimeline } from './StaffActivityTimeline'
 import { useStaffActivities } from '@/hooks/useStaffActivity'
 import type { StaffWithStatus } from '@/hooks/useStaffStatus'
-import { getTelegramPhoneLink, formatPhoneForTelegram } from '@/lib/phone-utils'
+import { getTelegramPhoneLink, formatPhoneForTelegram, openTelegramWithFallback, getTelegramDownloadLink } from '@/lib/phone-utils'
+import { toast } from 'sonner'
 
 interface StaffDetailSheetProps {
   staff: StaffWithStatus | null
@@ -65,22 +66,34 @@ export function StaffDetailSheet({ staff, open, onOpenChange }: StaffDetailSheet
                 className="flex-1" 
                 variant="default"
                 onClick={() => {
-                  // Priority 1: Username - mở app trực tiếp
+                  let telegramUrl: string | null = null
+                  
                   if (staff.telegram_username) {
-                    window.location.href = `tg://resolve?domain=${staff.telegram_username}`
-                    return
+                    telegramUrl = `tg://resolve?domain=${staff.telegram_username}`
+                  } else if (staff.phone) {
+                    telegramUrl = getTelegramPhoneLink(staff.phone)
+                  } else if (staff.telegram_chat_id) {
+                    telegramUrl = `tg://user?id=${staff.telegram_chat_id}`
                   }
-                  // Priority 2: Phone number - mở app với số điện thoại
-                  if (staff.phone) {
-                    const phoneLink = getTelegramPhoneLink(staff.phone)
-                    if (phoneLink) {
-                      window.location.href = phoneLink
-                      return
-                    }
-                  }
-                  // Priority 3: Chat ID
-                  if (staff.telegram_chat_id) {
-                    window.location.href = `tg://user?id=${staff.telegram_chat_id}`
+                  
+                  if (telegramUrl) {
+                    openTelegramWithFallback(telegramUrl, () => {
+                      const downloadLink = getTelegramDownloadLink()
+                      toast.info(
+                        <div className="flex flex-col gap-2">
+                          <span>Chưa cài Telegram trên máy</span>
+                          <a 
+                            href={downloadLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 underline font-medium"
+                          >
+                            Tải Telegram ngay
+                          </a>
+                        </div>,
+                        { duration: 8000 }
+                      )
+                    })
                   }
                 }}
               >
@@ -151,7 +164,18 @@ export function StaffDetailSheet({ staff, open, onOpenChange }: StaffDetailSheet
                   <Send className="h-4 w-4 flex-shrink-0 text-blue-500" />
                   {staff.telegram_username ? (
                     <button 
-                      onClick={() => window.location.href = `tg://resolve?domain=${staff.telegram_username}`}
+                      onClick={() => {
+                        const url = `tg://resolve?domain=${staff.telegram_username}`
+                        openTelegramWithFallback(url, () => {
+                          toast.info(
+                            <div className="flex flex-col gap-2">
+                              <span>Chưa cài Telegram</span>
+                              <a href={getTelegramDownloadLink()} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-medium">Tải ngay</a>
+                            </div>,
+                            { duration: 8000 }
+                          )
+                        })
+                      }}
                       className="text-blue-600 hover:underline"
                     >
                       @{staff.telegram_username}
@@ -160,7 +184,17 @@ export function StaffDetailSheet({ staff, open, onOpenChange }: StaffDetailSheet
                     <button 
                       onClick={() => {
                         const link = getTelegramPhoneLink(staff.phone!)
-                        if (link) window.location.href = link
+                        if (link) {
+                          openTelegramWithFallback(link, () => {
+                            toast.info(
+                              <div className="flex flex-col gap-2">
+                                <span>Chưa cài Telegram</span>
+                                <a href={getTelegramDownloadLink()} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-medium">Tải ngay</a>
+                              </div>,
+                              { duration: 8000 }
+                            )
+                          })
+                        }
                       }}
                       className="text-blue-600 hover:underline"
                     >

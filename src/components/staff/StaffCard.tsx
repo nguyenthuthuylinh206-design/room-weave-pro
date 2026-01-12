@@ -8,7 +8,7 @@ import { vi } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useNavigate } from 'react-router-dom'
-import { getTelegramPhoneLink, formatPhoneForTelegram } from '@/lib/phone-utils'
+import { getTelegramPhoneLink, formatPhoneForTelegram, openTelegramWithFallback, getTelegramDownloadLink } from '@/lib/phone-utils'
 
 interface StaffCardProps {
   staff: StaffWithStatus
@@ -39,30 +39,41 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
   const handleTelegram = (e: React.MouseEvent) => {
     e.stopPropagation()
     
-    // Priority 1: Username - mở app trực tiếp
+    let telegramUrl: string | null = null
+    
+    // Xác định URL để mở
     if (staff.telegram_username) {
-      window.location.href = `tg://resolve?domain=${staff.telegram_username}`
+      telegramUrl = `tg://resolve?domain=${staff.telegram_username}`
+    } else if (staff.phone) {
+      telegramUrl = getTelegramPhoneLink(staff.phone)
+    } else if (staff.telegram_chat_id) {
+      telegramUrl = `tg://user?id=${staff.telegram_chat_id}`
+    }
+    
+    if (!telegramUrl) {
+      toast.info(`${staff.full_name} chưa có SĐT - cần cập nhật trong Hồ sơ`)
+      navigate(`/settings/users?edit=${staff.id}`)
       return
     }
     
-    // Priority 2: Phone number - mở app với số điện thoại
-    if (staff.phone) {
-      const phoneLink = getTelegramPhoneLink(staff.phone)
-      if (phoneLink) {
-        window.location.href = phoneLink
-        return
-      }
-    }
-    
-    // Priority 3: Telegram ID
-    if (staff.telegram_chat_id) {
-      window.location.href = `tg://user?id=${staff.telegram_chat_id}`
-      return
-    }
-    
-    // Không có thông tin liên lạc - báo cập nhật hồ sơ
-    toast.info(`${staff.full_name} chưa có SĐT - cần cập nhật trong Hồ sơ`)
-    navigate(`/settings/users?edit=${staff.id}`)
+    // Thử mở với fallback
+    openTelegramWithFallback(telegramUrl, () => {
+      const downloadLink = getTelegramDownloadLink()
+      toast.info(
+        <div className="flex flex-col gap-2">
+          <span>Chưa cài Telegram trên máy</span>
+          <a 
+            href={downloadLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 underline font-medium"
+          >
+            Tải Telegram ngay
+          </a>
+        </div>,
+        { duration: 8000 }
+      )
+    })
   }
 
   const hasTelegramConnection = staff.telegram_username || staff.phone || staff.telegram_chat_id
