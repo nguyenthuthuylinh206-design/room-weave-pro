@@ -59,8 +59,8 @@ export function ExtendBookingDialog({
   
   const roomPrice = (booking as any).room_price || 0
   
-  // Calculate minimum new checkout date (must be at least tomorrow)
-  const minNewCheckout = addDays(today, 1)
+  // Minimum checkout: today if overdue (to formalize and checkout immediately), otherwise tomorrow
+  const minNewCheckout = nightsOverdue > 0 ? today : addDays(today, 1)
   
   // Calculate additional nights from old checkout to new checkout
   const additionalNights = newCheckOutDate 
