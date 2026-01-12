@@ -4810,6 +4810,73 @@ export type Database = {
           },
         ]
       }
+      staff_status: {
+        Row: {
+          created_at: string | null
+          current_activity: string | null
+          current_activity_type: string | null
+          current_location: string | null
+          id: string
+          last_seen_at: string | null
+          shift_end_at: string | null
+          shift_start_at: string | null
+          status: string
+          tenant_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_activity?: string | null
+          current_activity_type?: string | null
+          current_location?: string | null
+          id?: string
+          last_seen_at?: string | null
+          shift_end_at?: string | null
+          shift_start_at?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_activity?: string | null
+          current_activity_type?: string | null
+          current_location?: string | null
+          id?: string
+          last_seen_at?: string | null
+          shift_end_at?: string | null
+          shift_start_at?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_status_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_status_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_status_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_adjustment_items: {
         Row: {
           actual_quantity: number

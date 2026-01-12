@@ -25,8 +25,8 @@ const navigation = [
   { title: 'Kho & Tài sản', href: '/inventory', icon: Warehouse },
   { title: 'Phòng', href: '/rooms', icon: Hotel },
   { title: 'Giặt là', href: '/laundry', icon: Wind },
+  { title: 'Nhân sự', href: '/staff', icon: Users },
   { title: 'Báo cáo', href: '/reports', icon: FileText },
-  { title: 'Người dùng', href: '/users', icon: Users },
   { title: 'Khách sạn', href: '/hotels', icon: Building2 },
   { title: 'Cài đặt', href: '/settings', icon: Settings },
 ]
