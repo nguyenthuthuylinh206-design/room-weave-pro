@@ -1198,6 +1198,10 @@ export function RoomBookingDialog({
         onConfirmCheckout={performCheckOut}
         onPayAndCheckout={handlePayAndCheckout}
         isLoading={isSubmitting}
+        bookingId={booking?.id}
+        roomId={roomId}
+        hotelId={hotelId}
+        tenantId={tenantId}
       />
 
       {/* Extend Booking Dialog - for overdue checkout */}
