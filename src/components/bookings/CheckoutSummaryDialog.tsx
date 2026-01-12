@@ -29,6 +29,9 @@ import {
 import { cn } from '@/lib/utils'
 import { DamageChargesSection } from './DamageChargesSection'
 import { DamageReportDocument } from './DamageReportDocument'
+import { CheckoutInspectionSection } from './CheckoutInspectionSection'
+import { useCheckoutInspection } from '@/hooks/useCheckoutInspection'
+import { sendPushNotification, createInAppNotification, sendTelegramNotification } from '@/hooks/useNotificationTriggers'
 
 // Late checkout surcharge tiers
 const LATE_CHECKOUT_TIERS = [
@@ -69,6 +72,11 @@ interface CheckoutSummaryDialogProps {
     address?: string
     phone?: string
   }
+  // Checkout inspection props
+  bookingId?: string
+  roomId?: string
+  hotelId?: string
+  tenantId?: string
 }
 
 export function CheckoutSummaryDialog({
@@ -85,6 +93,11 @@ export function CheckoutSummaryDialog({
   onPayAndCheckout,
   isLoading = false,
   hotelInfo,
+  // Checkout inspection props
+  bookingId,
+  roomId,
+  hotelId,
+  tenantId,
 }: CheckoutSummaryDialogProps) {
   const [adjustedLateCharge, setAdjustedLateCharge] = useState(costBreakdown.lateCheckoutCharge)
   const [adjustmentNote, setAdjustmentNote] = useState('')
@@ -94,6 +107,14 @@ export function CheckoutSummaryDialog({
   const [damageAdjustmentNote, setDamageAdjustmentNote] = useState('')
   const [showDamageReport, setShowDamageReport] = useState(false)
   const reportRef = useRef<HTMLDivElement>(null)
+  
+  // Checkout inspection hook
+  const {
+    inspection,
+    isLoading: isLoadingInspection,
+    createInspection,
+    cancelInspection,
+  } = useCheckoutInspection(bookingId)
 
   // Reset when dialog opens or costBreakdown changes
   useEffect(() => {
@@ -233,6 +254,49 @@ export function CheckoutSummaryDialog({
     )
   }
 
+  // Inspection handlers
+  const handleCreateInspection = async (assignedTo: string) => {
+    if (!tenantId || !hotelId || !roomId) return
+    await createInspection.mutateAsync({
+      tenantId,
+      hotelId,
+      roomId,
+      assignedTo,
+    })
+    // Send notification to assigned staff
+    await Promise.all([
+      sendPushNotification({
+        userId: assignedTo,
+        tenantId,
+        title: `Yêu cầu kiểm tra phòng ${roomNumber}`,
+        body: `Khách ${guestName} sắp checkout. Vui lòng kiểm tra phòng.`,
+        actionUrl: `/rooms/${roomId}`,
+        notificationType: 'room_checkout',
+      }),
+      createInAppNotification({
+        userId: assignedTo,
+        tenantId,
+        title: `Yêu cầu kiểm tra phòng ${roomNumber}`,
+        body: `Khách ${guestName} sắp checkout. Vui lòng kiểm tra phòng.`,
+        type: 'room_checkout',
+        actionUrl: `/rooms/${roomId}`,
+      }),
+      sendTelegramNotification({
+        tenantId,
+        hotelId,
+        userIds: [assignedTo],
+        title: `🔍 Yêu cầu kiểm tra phòng ${roomNumber}`,
+        message: `Khách: ${guestName}\nVui lòng kiểm tra phòng trước khi checkout.`,
+        notificationType: 'checkout',
+        actionUrl: `/rooms/${roomId}`,
+      }),
+    ])
+  }
+
+  const handleCancelInspection = async (inspectionId: string) => {
+    await cancelInspection.mutateAsync(inspectionId)
+  }
+
   const canProceed = !needsNote && !needsDamageNote
   
   return (
@@ -259,6 +323,23 @@ export function CheckoutSummaryDialog({
                   <span className="text-amber-600 text-xs">({lateCheckoutDesc})</span>
                 )}
               </div>
+
+              {/* Checkout Inspection Section */}
+              {bookingId && roomId && hotelId && tenantId && (
+                <>
+                  <Separator />
+                  <CheckoutInspectionSection
+                    bookingId={bookingId}
+                    roomId={roomId}
+                    hotelId={hotelId}
+                    tenantId={tenantId}
+                    inspection={inspection || null}
+                    isLoadingInspection={isLoadingInspection}
+                    onCreateInspection={handleCreateInspection}
+                    onCancelInspection={handleCancelInspection}
+                  />
+                </>
+              )}
 
               {/* Late Checkout Surcharge Tiers - Only show if NOT early checkout */}
               {isEarlyCheckoutCase ? (

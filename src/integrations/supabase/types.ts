@@ -321,6 +321,125 @@ export type Database = {
           },
         ]
       }
+      checkout_inspection_requests: {
+        Row: {
+          assigned_to: string
+          booking_id: string
+          completed_at: string | null
+          created_at: string
+          hotel_id: string
+          id: string
+          notes: string | null
+          requested_by: string | null
+          room_check_id: string | null
+          room_id: string
+          started_at: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          assigned_to: string
+          booking_id: string
+          completed_at?: string | null
+          created_at?: string
+          hotel_id: string
+          id?: string
+          notes?: string | null
+          requested_by?: string | null
+          room_check_id?: string | null
+          room_id: string
+          started_at?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          assigned_to?: string
+          booking_id?: string
+          completed_at?: string | null
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          notes?: string | null
+          requested_by?: string | null
+          room_check_id?: string | null
+          room_id?: string
+          started_at?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_inspection_requests_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_inspection_requests_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_inspection_requests_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "room_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_inspection_requests_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "checkout_inspection_requests_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_inspection_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_inspection_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_inspection_requests_room_check_id_fkey"
+            columns: ["room_check_id"]
+            isOneToOne: false
+            referencedRelation: "room_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_inspection_requests_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_inspection_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compensation_requests: {
         Row: {
           approved_at: string | null
