@@ -94,31 +94,50 @@ export function RoomCheckPage() {
   const items = roomData?.items || []
   const recentChecks = roomData?.recent_checks || []
   
+  // Watch check_type từ form để detect khi user chọn checkout
+  const watchedCheckType = form.watch('check_type')
+  
   useEffect(() => {
     if (!isLoading && !room) {
       navigate('/rooms')
     }
   }, [room, isLoading, navigate])
   
-  // Auto-start inspection khi nhân viên vào trang checkout
+  // Normalize URL: nếu có pendingInspection mà URL chưa có type=checkout thì thêm vào
+  useEffect(() => {
+    if (
+      !isInspectionLoading &&
+      pendingInspection &&
+      !prefilledType &&
+      !inspectionIdFromUrl
+    ) {
+      // Navigate với replace để không tạo history mới
+      navigate(`/rooms/${id}/check?type=checkout&inspection=${pendingInspection.id}`, { replace: true })
+    }
+  }, [isInspectionLoading, pendingInspection, prefilledType, inspectionIdFromUrl, id, navigate])
+  
+  // Auto-start inspection khi nhân viên vào trang checkout hoặc chọn check_type = checkout
   // Điều này đảm bảo status được cập nhật dù nhân viên vào bằng đường nào
   useEffect(() => {
+    // Derive checkout mode từ URL HOẶC từ form selection
+    const isCheckoutMode = prefilledType === 'checkout' || watchedCheckType === 'checkout'
+    
     // Chỉ auto-start khi:
-    // 1. Đang là checkout type
+    // 1. Đang là checkout type (từ URL hoặc form)
     // 2. Có pending inspection với status = 'pending'
     // 3. Chưa auto-start trước đó
-    // 4. Không có inspection ID từ URL (nghĩa là nhân viên không vào qua banner)
+    // 4. Không đang pending mutation
     if (
-      prefilledType === 'checkout' &&
+      isCheckoutMode &&
       pendingInspection?.status === 'pending' &&
       !hasAutoStartedInspection.current &&
-      !inspectionIdFromUrl &&
       !startInspection.isPending
     ) {
+      console.log('[RoomCheckPage] Auto-starting inspection:', pendingInspection.id)
       hasAutoStartedInspection.current = true
       startInspection.mutate(pendingInspection.id)
     }
-  }, [prefilledType, pendingInspection?.id, pendingInspection?.status, inspectionIdFromUrl, startInspection])
+  }, [prefilledType, watchedCheckType, pendingInspection?.id, pendingInspection?.status, startInspection])
   
   // Create check session on mount
   useEffect(() => {
