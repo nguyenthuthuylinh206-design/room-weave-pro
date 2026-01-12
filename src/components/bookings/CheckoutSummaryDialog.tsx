@@ -114,6 +114,7 @@ export function CheckoutSummaryDialog({
     isLoading: isLoadingInspection,
     createInspection,
     cancelInspection,
+    refetch: refetchInspection,
   } = useCheckoutInspection(bookingId)
 
   // Reset when dialog opens or costBreakdown changes
@@ -126,6 +127,21 @@ export function CheckoutSummaryDialog({
       setShowDamageReport(false)
     }
   }, [open, costBreakdown.lateCheckoutCharge, initialDamageItems])
+  
+  // Polling fallback: khi dialog mở và inspection đang pending/in_progress
+  // Mỗi 3s refetch để đảm bảo UI cập nhật nếu realtime miss event
+  useEffect(() => {
+    if (!open) return
+    if (!inspection) return
+    if (inspection.status === 'completed' || inspection.status === 'cancelled') return
+    
+    const interval = setInterval(() => {
+      console.log('[CheckoutSummaryDialog] Polling inspection status...')
+      refetchInspection()
+    }, 3000)
+    
+    return () => clearInterval(interval)
+  }, [open, inspection?.id, inspection?.status, refetchInspection])
 
   // Calculate total damage charge
   const totalDamageCharge = useMemo(() => {
