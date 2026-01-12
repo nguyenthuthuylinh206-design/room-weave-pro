@@ -176,7 +176,7 @@ export function BookingsPage() {
     enabled: !!tenantId,
   })
   
-  const filteredBookings = bookings?.filter(booking => {
+  const filteredBookings = (bookings?.filter(booking => {
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()
     return (
@@ -184,7 +184,53 @@ export function BookingsPage() {
       booking.guest_phone?.toLowerCase().includes(query) ||
       booking.room?.room_number?.toLowerCase().includes(query)
     )
-  }) || []
+  }) || []).sort((a, b) => {
+    const now = new Date()
+    const todayStart = startOfDay(now)
+    
+    // Priority 1: checked_out luôn xuống cuối
+    if (a.status === 'checked_out' && b.status !== 'checked_out') return 1
+    if (b.status === 'checked_out' && a.status !== 'checked_out') return -1
+    if (a.status === 'checked_out' && b.status === 'checked_out') {
+      // Trong checked_out, mới nhất lên trước
+      return new Date(b.actual_check_out || b.check_out_date).getTime() - 
+             new Date(a.actual_check_out || a.check_out_date).getTime()
+    }
+    
+    // Priority 2: cancelled và no_show xuống gần cuối (trên checked_out)
+    const isCancelledA = a.status === 'cancelled' || a.status === 'no_show'
+    const isCancelledB = b.status === 'cancelled' || b.status === 'no_show'
+    if (isCancelledA && !isCancelledB) return 1
+    if (isCancelledB && !isCancelledA) return -1
+    
+    // Priority 3: Đang ở + checkout hôm nay lên đầu
+    const isCheckingOutTodayA = a.status === 'checked_in' && isToday(new Date(a.check_out_date))
+    const isCheckingOutTodayB = b.status === 'checked_in' && isToday(new Date(b.check_out_date))
+    if (isCheckingOutTodayA && !isCheckingOutTodayB) return -1
+    if (isCheckingOutTodayB && !isCheckingOutTodayA) return 1
+    
+    // Priority 4: Checkin hôm nay lên đầu
+    const isCheckingInTodayA = a.status === 'confirmed' && isToday(new Date(a.check_in_date))
+    const isCheckingInTodayB = b.status === 'confirmed' && isToday(new Date(b.check_in_date))
+    if (isCheckingInTodayA && !isCheckingInTodayB) return -1
+    if (isCheckingInTodayB && !isCheckingInTodayA) return 1
+    
+    // Priority 5: Đang ở (checked_in) lên trước confirmed
+    if (a.status === 'checked_in' && b.status === 'confirmed') return -1
+    if (b.status === 'checked_in' && a.status === 'confirmed') return 1
+    
+    // Priority 6: Trong cùng status, sắp theo thời gian gần nhất
+    // Đang ở: checkout sớm nhất lên trước
+    if (a.status === 'checked_in' && b.status === 'checked_in') {
+      return new Date(a.check_out_date).getTime() - new Date(b.check_out_date).getTime()
+    }
+    // Đã đặt: checkin sớm nhất lên trước  
+    if (a.status === 'confirmed' && b.status === 'confirmed') {
+      return new Date(a.check_in_date).getTime() - new Date(b.check_in_date).getTime()
+    }
+    
+    return 0
+  })
   
   // Stats
   const stats = {
