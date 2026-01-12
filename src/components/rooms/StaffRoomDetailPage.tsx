@@ -28,9 +28,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
 import { RoomSupplementSheet } from '@/components/rooms/RoomSupplementSheet'
+import { CheckoutInspectionBanner } from '@/components/rooms/CheckoutInspectionBanner'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { useRoom } from '@/hooks/useRooms'
 import { useRoomBooking } from '@/hooks/useRoomBooking'
+import { usePendingInspections } from '@/hooks/useCheckoutInspection'
 import type { RoomStatus, RoomItemWithDetails } from '@/types/rooms.types'
 import type { ItemType } from '@/types/items.types'
 import { ITEM_TYPE_LABELS } from '@/types/items.types'
@@ -57,6 +59,13 @@ export function StaffRoomDetailPage() {
   const navigate = useNavigate()
   const { data, isLoading, refetch } = useRoom(id)
   const { data: booking } = useRoomBooking(id)
+  
+  // Checkout inspection
+  const { 
+    pendingInspection, 
+    startInspection,
+    isLoading: isLoadingInspection,
+  } = usePendingInspections(id)
   
   const [activeTab, setActiveTab] = useState<'overview' | 'items'>('overview')
   const [supplementSheetOpen, setSupplementSheetOpen] = useState(false)
@@ -259,6 +268,16 @@ export function StaffRoomDetailPage() {
             </button>
           </div>
         </div>
+
+        {/* Checkout Inspection Banner */}
+        {pendingInspection && id && (
+          <CheckoutInspectionBanner
+            inspection={pendingInspection}
+            roomId={id}
+            onStartInspection={() => startInspection.mutate(pendingInspection.id)}
+            isLoading={startInspection.isPending}
+          />
+        )}
 
         {/* Main Content */}
         <div className="flex-1 p-4 space-y-4 pb-24">
