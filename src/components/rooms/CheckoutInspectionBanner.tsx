@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { 
@@ -14,7 +15,7 @@ import type { CheckoutInspectionRequestWithDetails } from '@/types/checkout-insp
 interface CheckoutInspectionBannerProps {
   inspection: CheckoutInspectionRequestWithDetails
   roomId: string
-  onStartInspection: () => void
+  onStartInspection: () => Promise<void>
   isLoading?: boolean
 }
 
@@ -25,16 +26,27 @@ export function CheckoutInspectionBanner({
   isLoading,
 }: CheckoutInspectionBannerProps) {
   const navigate = useNavigate()
+  const [isStarting, setIsStarting] = useState(false)
   
-  const handleStartAndNavigate = () => {
+  const handleStartAndNavigate = async () => {
+    // Nếu pending, đợi mutation hoàn thành trước khi navigate
     if (inspection.status === 'pending') {
-      onStartInspection()
+      setIsStarting(true)
+      try {
+        await onStartInspection()
+      } catch (error) {
+        console.error('Error starting inspection:', error)
+        setIsStarting(false)
+        return // Không navigate nếu lỗi
+      }
     }
-    // Navigate to room check page with checkout type
+    // Navigate sau khi mutation thành công
     navigate(`/rooms/${roomId}/check?type=checkout&inspection=${inspection.id}`)
   }
   
   const booking = inspection.booking as { id: string; guest_name: string; check_out_date: string } | undefined
+  
+  const buttonLoading = isLoading || isStarting
   
   return (
     <div className="mx-4 mb-4 p-4 rounded-lg border-2 border-orange-500 bg-orange-50 dark:bg-orange-950/30">
@@ -75,10 +87,10 @@ export function CheckoutInspectionBanner({
       
       <Button
         onClick={handleStartAndNavigate}
-        disabled={isLoading}
+        disabled={buttonLoading}
         className="w-full h-11 gap-2 bg-orange-600 hover:bg-orange-700 text-white"
       >
-        {isLoading ? (
+        {buttonLoading ? (
           <Loader2 className="h-5 w-5 animate-spin" />
         ) : (
           <ClipboardCheck className="h-5 w-5" />

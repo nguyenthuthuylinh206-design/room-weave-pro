@@ -274,7 +274,7 @@ export function StaffRoomDetailPage() {
           <CheckoutInspectionBanner
             inspection={pendingInspection}
             roomId={id}
-            onStartInspection={() => startInspection.mutate(pendingInspection.id)}
+            onStartInspection={() => startInspection.mutateAsync(pendingInspection.id)}
             isLoading={startInspection.isPending}
           />
         )}
