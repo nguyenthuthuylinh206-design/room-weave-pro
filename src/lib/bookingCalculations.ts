@@ -87,7 +87,7 @@ export interface BookingCostBreakdown {
 export interface DamageChargeItem {
   item_id: string
   item_name: string
-  item_type: 'lost' | 'damaged'
+  item_type: 'lost' | 'damaged' | 'consumed'
   quantity: number
   charge_amount: number
   damage_type?: 'repairable' | 'replacement_needed'

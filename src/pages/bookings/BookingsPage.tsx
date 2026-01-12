@@ -664,10 +664,16 @@ export function BookingsPage() {
   const handleInspectionCompleted = async (roomCheckId: string) => {
     console.log('[BookingsPage] Inspection completed, refetching damage items. room_check_id:', roomCheckId)
     
+    // Hiển thị toast ngay khi inspection completed
+    toast({
+      title: '✅ Kiểm tra phòng hoàn tất',
+      description: 'Đang tải kết quả kiểm tra...',
+    })
+    
     try {
       const { data: latestCheck, error } = await supabase
         .from('room_checks')
-        .select('items_lost, items_damaged')
+        .select('items_lost, items_damaged, items_consumed')
         .eq('id', roomCheckId)
         .maybeSingle()
       
@@ -677,8 +683,9 @@ export function BookingsPage() {
       }
       
       if (latestCheck) {
-        // Convert to DamageChargeItem[]
+        // Convert to DamageChargeItem[] - include consumed items
         const damageItems: DamageChargeItem[] = [
+          // Đồ mất
           ...((latestCheck?.items_lost as any[]) || []).map(item => ({
             item_id: item.item_id,
             item_name: item.item_name,
@@ -686,6 +693,7 @@ export function BookingsPage() {
             quantity: item.quantity,
             charge_amount: item.estimated_value || 0,
           })),
+          // Đồ hỏng
           ...((latestCheck?.items_damaged as any[]) || []).map(item => ({
             item_id: item.item_id,
             item_name: item.item_name,
@@ -693,6 +701,14 @@ export function BookingsPage() {
             quantity: item.quantity,
             charge_amount: item.damage_cost || 0,
             damage_type: item.damage_type,
+          })),
+          // Đồ đã dùng (consumed)
+          ...((latestCheck?.items_consumed as any[]) || []).map(item => ({
+            item_id: item.item_id,
+            item_name: item.item_name,
+            item_type: 'consumed' as const,
+            quantity: item.quantity,
+            charge_amount: item.unit_price || 0,
           })),
         ]
         

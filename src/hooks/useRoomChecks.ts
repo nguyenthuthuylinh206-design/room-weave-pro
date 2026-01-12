@@ -77,6 +77,22 @@ export function useCreateRoomCheck() {
       const hotelId = room.hotel_id
       const roomNumber = room.room_number
 
+      // Enrich items_consumed with unit_price before saving
+      const consumedItemsWithPrice = await Promise.all(
+        (data.items_consumed || []).map(async (item) => {
+          const { data: itemData } = await supabase
+            .from('items')
+            .select('unit_price')
+            .eq('id', item.item_id)
+            .maybeSingle()
+          
+          return {
+            ...item,
+            unit_price: itemData?.unit_price || 0,
+          }
+        })
+      )
+
       // Create room check record
       const insertData = {
         room_id: roomId,
@@ -87,7 +103,7 @@ export function useCreateRoomCheck() {
         items_missing: data.items_missing || [],
         items_damaged: data.items_damaged || [],
         items_sent_to_laundry: data.items_sent_to_laundry || [],
-        items_consumed: data.items_consumed || [],
+        items_consumed: consumedItemsWithPrice,
         items_lost: data.items_lost || [],
         items_replaced: data.items_replaced || [],
         notes: data.notes,

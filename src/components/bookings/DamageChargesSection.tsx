@@ -27,6 +27,7 @@ export function DamageChargesSection({
 
   const lostItems = damageItems.filter(item => item.item_type === 'lost')
   const damagedItems = damageItems.filter(item => item.item_type === 'damaged')
+  const consumedItems = damageItems.filter(item => item.item_type === 'consumed')
 
   const totalDamageCharge = damageItems.reduce(
     (sum, item) => sum + item.charge_amount * item.quantity,
@@ -173,15 +174,15 @@ export function DamageChargesSection({
   }
 
   return (
-    <div className="space-y-2 p-3 border border-red-200 rounded-lg bg-red-50/30">
-      <div className="flex items-center gap-2 text-sm font-medium text-red-700">
+    <div className="space-y-2 p-3 border border-amber-200 rounded-lg bg-amber-50/30">
+      <div className="flex items-center gap-2 text-sm font-medium text-amber-700">
         <AlertTriangle className="h-4 w-4" />
-        PHÍ ĐỀN BÙ THIỆT HẠI
+        PHÍ PHỤ THU (Hỏng/Mất/Đã dùng)
       </div>
 
       {lostItems.length > 0 && (
         <div>
-          <div className="text-xs text-muted-foreground font-medium mb-1">
+          <div className="text-xs text-red-600 font-medium mb-1">
             Đồ mất ({lostItems.length})
           </div>
           {lostItems.map(renderItem)}
@@ -190,18 +191,27 @@ export function DamageChargesSection({
 
       {damagedItems.length > 0 && (
         <div className={lostItems.length > 0 ? 'mt-2' : ''}>
-          <div className="text-xs text-muted-foreground font-medium mb-1">
+          <div className="text-xs text-orange-600 font-medium mb-1">
             Đồ hỏng ({damagedItems.length})
           </div>
           {damagedItems.map(renderItem)}
         </div>
       )}
 
+      {consumedItems.length > 0 && (
+        <div className={(lostItems.length > 0 || damagedItems.length > 0) ? 'mt-2' : ''}>
+          <div className="text-xs text-blue-600 font-medium mb-1">
+            Đồ đã dùng ({consumedItems.length})
+          </div>
+          {consumedItems.map(renderItem)}
+        </div>
+      )}
+
       <Separator className="my-2" />
 
       <div className="flex justify-between font-medium">
-        <span className="text-red-700">Tổng phí đền bù</span>
-        <span className="text-red-700 font-mono">{formatCurrency(totalDamageCharge)}</span>
+        <span className="text-amber-700">Tổng phí phụ thu</span>
+        <span className="text-amber-700 font-mono">{formatCurrency(totalDamageCharge)}</span>
       </div>
     </div>
   )

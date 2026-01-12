@@ -162,6 +162,8 @@ export function CheckoutSummaryDialog({
     
     console.log('[CheckoutSummaryDialog] Inspection completed, notifying parent. room_check_id:', inspection.room_check_id)
     lastNotifiedCheckId.current = inspection.room_check_id
+    
+    // Notify parent to refetch damage items
     onInspectionCompleted?.(inspection.room_check_id)
   }, [inspection?.status, inspection?.room_check_id, onInspectionCompleted])
 
