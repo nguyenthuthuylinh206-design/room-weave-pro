@@ -11,12 +11,17 @@ export type RoomType = 'standard' | 'deluxe' | 'suite' | 'vip'
 export type RoomStatus = 'vacant' | 'occupied' | 'cleaning' | 'maintenance' | 'out_of_order' | 'check_in' | 'check_out'
 export type CheckType = 'daily' | 'checkout' | 'checkin' | 'maintenance'
 
-export interface RoomWithStats extends Room {
+export interface RoomWithStats extends Omit<Room, 'hourly_price' | 'monthly_price' | 'min_hours' | 'max_hours'> {
   total_items: number
   missing_items: number
   items_in_laundry: number
   last_check_at: string | null
   last_check_score: number | null
+  // Pricing fields (may not come from RPC, use default if missing)
+  hourly_price: number | null
+  monthly_price: number | null
+  min_hours: number | null
+  max_hours: number | null
 }
 
 export interface RoomFilters {
