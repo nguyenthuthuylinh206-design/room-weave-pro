@@ -58,6 +58,11 @@ export function RoomCheckPage() {
   // Flag để tránh gọi startInspection nhiều lần
   const hasAutoStartedInspection = useRef(false)
   
+  // Stable inspection ID để tránh race condition khi submit
+  const [stableInspectionId, setStableInspectionId] = useState<string | undefined>(
+    inspectionIdFromUrl || undefined
+  )
+  
   // Tính toán effective inspection ID (từ URL hoặc từ pending inspection)
   const effectiveInspectionId = inspectionIdFromUrl || pendingInspection?.id
   const isManager = hasAnyRole(['super_admin', 'owner', 'hotel_manager', 'department_manager'])
@@ -133,6 +138,14 @@ export function RoomCheckPage() {
       navigate(`/rooms/${id}/check?type=checkout&inspection=${pendingInspection.id}`, { replace: true })
     }
   }, [isInspectionLoading, pendingInspection, prefilledType, inspectionIdFromUrl, id, navigate])
+  
+  // Cập nhật stableInspectionId khi pendingInspection load xong
+  useEffect(() => {
+    if (pendingInspection?.id && !stableInspectionId) {
+      console.log('[RoomCheckPage] Setting stableInspectionId from pendingInspection:', pendingInspection.id)
+      setStableInspectionId(pendingInspection.id)
+    }
+  }, [pendingInspection?.id, stableInspectionId])
   
   // Auto-start inspection khi nhân viên vào trang checkout hoặc chọn check_type = checkout
   // Điều này đảm bảo status được cập nhật dù nhân viên vào bằng đường nào
@@ -396,12 +409,24 @@ export function RoomCheckPage() {
   const onSubmit = async (data: RoomCheckFormData) => {
     if (!id || !user?.id) return
     
+    // Ưu tiên: stableInspectionId > URL > pendingInspection
+    const finalInspectionId = stableInspectionId || inspectionIdFromUrl || pendingInspection?.id
+    
+    console.log('[RoomCheckPage] onSubmit - check_type:', data.check_type)
+    console.log('[RoomCheckPage] onSubmit - finalInspectionId:', finalInspectionId)
+    console.log('[RoomCheckPage] onSubmit - sources: stable=', stableInspectionId, 'url=', inspectionIdFromUrl, 'pending=', pendingInspection?.id)
+    
+    // Warning nếu là checkout mà không có inspectionId
+    if (data.check_type === 'checkout' && !finalInspectionId) {
+      console.warn('[RoomCheckPage] Checkout mode without inspectionId - will use fallback query')
+    }
+    
     try {
       await createCheck.mutateAsync({
         roomId: id,
         data,
         itemQuantities: Object.keys(itemQuantities).length > 0 ? itemQuantities : undefined,
-        inspectionId: effectiveInspectionId || undefined, // Pass checkout inspection ID
+        inspectionId: finalInspectionId || undefined, // Pass checkout inspection ID
       })
       
       // Đóng dialog khi thành công

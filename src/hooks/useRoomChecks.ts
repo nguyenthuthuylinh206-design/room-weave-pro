@@ -378,8 +378,33 @@ export function useCreateRoomCheck() {
         const damagedCount = data.items_damaged?.length || 0
         const hasIssues = lostCount > 0 || damagedCount > 0
         
+        // Determine effective inspection ID - use passed ID or fallback query
+        let effectiveInspectionId = inspectionId
+        
+        // Fallback: nếu không có inspectionId, query để tìm pending/in_progress inspection cho phòng này
+        if (!effectiveInspectionId) {
+          console.log('[useRoomChecks] Checkout without inspectionId, searching for pending inspection for room:', roomId)
+          
+          const { data: foundInspection } = await supabase
+            .from('checkout_inspection_requests')
+            .select('id')
+            .eq('room_id', roomId)
+            .in('status', ['pending', 'in_progress'])
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          
+          if (foundInspection) {
+            console.log('[useRoomChecks] Found pending inspection:', foundInspection.id)
+            effectiveInspectionId = foundInspection.id
+          } else {
+            console.log('[useRoomChecks] No pending inspection found for room')
+          }
+        }
+        
         // Complete checkout inspection request if exists
-        if (inspectionId) {
+        if (effectiveInspectionId) {
+          console.log('[useRoomChecks] Completing checkout inspection:', effectiveInspectionId)
           const { error: inspectionError } = await supabase
             .from('checkout_inspection_requests')
             .update({
@@ -387,10 +412,12 @@ export function useCreateRoomCheck() {
               room_check_id: check.id,
               completed_at: new Date().toISOString(),
             })
-            .eq('id', inspectionId)
+            .eq('id', effectiveInspectionId)
           
           if (inspectionError) {
-            console.error('Error completing checkout inspection:', inspectionError)
+            console.error('[useRoomChecks] Error completing checkout inspection:', inspectionError)
+          } else {
+            console.log('[useRoomChecks] Successfully completed checkout inspection:', effectiveInspectionId)
           }
         }
         
