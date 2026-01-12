@@ -224,6 +224,8 @@ export function usePendingInspections(roomId: string | undefined) {
   // Start inspection - trả về data để xác nhận thành công
   const startInspection = useMutation({
     mutationFn: async (inspectionId: string) => {
+      console.log('[usePendingInspections.startInspection] Starting with id:', inspectionId)
+      
       const { data, error } = await supabase
         .from('checkout_inspection_requests')
         .update({ 
@@ -231,21 +233,33 @@ export function usePendingInspections(roomId: string | undefined) {
           started_at: new Date().toISOString(),
         })
         .eq('id', inspectionId)
+        .eq('status', 'pending') // Chỉ update nếu đang pending (tránh duplicate/race condition)
         .select('id, status, started_at')
         .single()
       
-      if (error) throw error
+      if (error) {
+        console.error('[usePendingInspections.startInspection] Supabase error:', error)
+        throw error
+      }
+      
+      if (!data) {
+        console.warn('[usePendingInspections.startInspection] No data returned - inspection may already be in_progress or completed')
+        throw new Error('Không thể cập nhật trạng thái - yêu cầu có thể đã được bắt đầu')
+      }
+      
+      console.log('[usePendingInspections.startInspection] Success, data:', data)
       return data
     },
     onSuccess: (data) => {
-      console.log('[startInspection] Success:', data)
+      console.log('[usePendingInspections.startInspection] onSuccess:', data)
       queryClient.invalidateQueries({ queryKey: ['pending-inspection', roomId, user?.id] })
       queryClient.invalidateQueries({ queryKey: ['checkout-inspection'] })
-      toast.success('Bắt đầu kiểm tra phòng')
+      queryClient.invalidateQueries({ queryKey: ['room-has-pending-inspection', roomId] })
+      toast.success('Đã bắt đầu kiểm tra phòng')
     },
     onError: (error: Error) => {
-      console.error('[startInspection] Error:', error)
-      toast.error('Lỗi: ' + error.message)
+      console.error('[usePendingInspections.startInspection] onError:', error)
+      toast.error('Lỗi cập nhật: ' + error.message)
     },
   })
   

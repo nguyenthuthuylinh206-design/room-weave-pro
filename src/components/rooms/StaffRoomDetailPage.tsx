@@ -591,22 +591,30 @@ export function StaffRoomDetailPage() {
               className={`h-12 text-base font-semibold gap-2 ${missingCount > 0 && !isBlockedFromInspection ? 'flex-1' : 'w-full'}`}
               disabled={isLoadingInspection || isLoadingRoomInspection || startInspection.isPending || isBlockedFromInspection}
               onClick={async () => {
-                // Refetch để đảm bảo có data mới nhất
-                const { data: latestInspection } = await refetchInspection()
+                console.log('[StaffRoomDetailPage] Button clicked, pendingInspection:', pendingInspection)
                 
-                // Nếu có pending checkout inspection, start trước rồi navigate với inspection ID
-                if (latestInspection && latestInspection.status === 'pending') {
-                  try {
-                    await startInspection.mutateAsync(latestInspection.id)
-                    navigate(`/rooms/${id}/check?type=checkout&inspection=${latestInspection.id}`)
-                  } catch (err) {
-                    console.error('Failed to start inspection:', err)
+                // Sử dụng trực tiếp pendingInspection từ state (không refetch để tránh race condition)
+                if (pendingInspection) {
+                  if (pendingInspection.status === 'pending') {
+                    try {
+                      console.log('[StaffRoomDetailPage] Starting inspection:', pendingInspection.id)
+                      const result = await startInspection.mutateAsync(pendingInspection.id)
+                      console.log('[StaffRoomDetailPage] Start result:', result)
+                      
+                      // Navigate sau khi start thành công
+                      navigate(`/rooms/${id}/check?type=checkout&inspection=${pendingInspection.id}`)
+                    } catch (err) {
+                      console.error('[StaffRoomDetailPage] Failed to start inspection:', err)
+                      // Toast lỗi đã được handle trong mutation onError
+                    }
+                  } else if (pendingInspection.status === 'in_progress') {
+                    // Đã start rồi, chỉ navigate tiếp tục
+                    console.log('[StaffRoomDetailPage] Inspection already in_progress, navigating...')
+                    navigate(`/rooms/${id}/check?type=checkout&inspection=${pendingInspection.id}`)
                   }
-                } else if (latestInspection && latestInspection.status === 'in_progress') {
-                  // Đã start rồi, chỉ navigate tiếp tục
-                  navigate(`/rooms/${id}/check?type=checkout&inspection=${latestInspection.id}`)
                 } else {
                   // Không có checkout inspection, kiểm tra thường
+                  console.log('[StaffRoomDetailPage] No pending inspection, navigating to normal check...')
                   navigate(`/rooms/${id}/check`)
                 }
               }}
