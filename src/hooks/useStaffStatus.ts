@@ -36,6 +36,7 @@ export interface StaffWithStatus {
   current_activity: string | null
   current_activity_type: string | null
   last_seen_at: string | null
+  telegram_username: string | null
 }
 
 export function useStaffStatus() {
@@ -82,8 +83,18 @@ export function useStaffStatus() {
 
       if (statusError) throw statusError
 
+      // Fetch telegram connections
+      const { data: telegramConnections } = await supabase
+        .from('telegram_connections')
+        .select('user_id, username')
+        .eq('tenant_id', tenantId)
+        .eq('is_active', true)
+
       // Combine users with their status
       const statusMap = new Map(statuses?.map(s => [s.user_id, s]) || [])
+      const telegramMap = new Map(
+        telegramConnections?.map(tc => [tc.user_id, tc.username]) || []
+      )
 
       const staffWithStatus: StaffWithStatus[] = (users || []).map(user => {
         const status = statusMap.get(user.id)
@@ -102,6 +113,7 @@ export function useStaffStatus() {
           current_activity: status?.current_activity || null,
           current_activity_type: status?.current_activity_type || null,
           last_seen_at: status?.last_seen_at || null,
+          telegram_username: telegramMap.get(user.id) || null,
         }
       })
 

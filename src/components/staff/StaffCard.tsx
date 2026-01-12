@@ -1,4 +1,4 @@
-import { Phone, MapPin, Clock } from 'lucide-react'
+import { Phone, MapPin, Clock, Send } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { StaffStatusBadge } from './StaffStatusBadge'
@@ -27,6 +27,13 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
     e.stopPropagation()
     if (staff.phone) {
       window.location.href = `tel:${staff.phone}`
+    }
+  }
+
+  const handleTelegram = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (staff.telegram_username) {
+      window.open(`https://t.me/${staff.telegram_username}`, '_blank')
     }
   }
 
@@ -76,18 +83,31 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
         )}
       </div>
 
-      {/* Call button */}
-      {staff.phone && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 flex-shrink-0"
-          onClick={handleCall}
-          title={`Gọi ${staff.phone}`}
-        >
-          <Phone className="h-4 w-4" />
-        </Button>
-      )}
+        {/* Telegram button */}
+        {staff.telegram_username && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 flex-shrink-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+            onClick={handleTelegram}
+            title={`Telegram @${staff.telegram_username}`}
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        )}
+
+        {/* Call button */}
+        {staff.phone && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 flex-shrink-0"
+            onClick={handleCall}
+            title={`Gọi ${staff.phone}`}
+          >
+            <Phone className="h-4 w-4" />
+          </Button>
+        )}
     </div>
   )
 }
