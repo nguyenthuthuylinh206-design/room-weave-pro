@@ -91,9 +91,11 @@ export function useStaffStatus() {
 
       const staffWithStatus: StaffWithStatus[] = (users || []).map(user => {
         const status = statusMap.get(user.id)
-        // Get active telegram connection's chat_id
-        const telegramConnections = (user as any).telegram_connections as Array<{ chat_id: string; is_active: boolean }> | null
-        const activeTelegramConnection = telegramConnections?.find(tc => tc.is_active)
+        // Get active telegram connection's chat_id (tolerant: fallback if is_active is null)
+        const telegramConnections = (user as any).telegram_connections as Array<{ chat_id: string; is_active: boolean | null }> | null
+        // Priority: is_active === true > first available connection with chat_id
+        const activeTelegramConnection = telegramConnections?.find(tc => tc.is_active === true) 
+          || telegramConnections?.find(tc => tc.chat_id)
         
         return {
           id: user.id,
@@ -121,7 +123,7 @@ export function useStaffStatus() {
     refetchInterval: 30000, // Refetch every 30 seconds
   })
 
-  // Subscribe to realtime changes
+  // Subscribe to realtime changes for staff_status, telegram_connections, and users
   useEffect(() => {
     if (!tenantId) return
 
@@ -136,6 +138,35 @@ export function useStaffStatus() {
           filter: `tenant_id=eq.${tenantId}`,
         },
         () => {
+          queryClient.invalidateQueries({
+            queryKey: ['staff-status', tenantId],
+          })
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'telegram_connections',
+        },
+        () => {
+          // Telegram connection changed - refresh staff list
+          queryClient.invalidateQueries({
+            queryKey: ['staff-status', tenantId],
+          })
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'users',
+          filter: `tenant_id=eq.${tenantId}`,
+        },
+        () => {
+          // User updated (e.g., telegram_username) - refresh staff list
           queryClient.invalidateQueries({
             queryKey: ['staff-status', tenantId],
           })
