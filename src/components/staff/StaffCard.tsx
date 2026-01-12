@@ -8,6 +8,7 @@ import { vi } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useNavigate } from 'react-router-dom'
+import { getTelegramPhoneLink } from '@/lib/phone-utils'
 
 interface StaffCardProps {
   staff: StaffWithStatus
@@ -44,18 +45,27 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
       return
     }
     
-    // Priority 2: Telegram ID - only works if already chatted before
+    // Priority 2: Phone number - works if user allows finding by phone
+    if (staff.phone) {
+      const phoneLink = getTelegramPhoneLink(staff.phone)
+      if (phoneLink) {
+        window.open(phoneLink, '_blank')
+        return
+      }
+    }
+    
+    // Priority 3: Telegram ID - only works if already chatted before
     if (staff.telegram_chat_id) {
       window.location.href = `tg://user?id=${staff.telegram_chat_id}`
       return
     }
     
     // No connection: Show toast and navigate to setup
-    toast.info(`${staff.full_name} chưa kết nối Telegram Bot`)
+    toast.info(`Không thể mở Telegram cho ${staff.full_name}`)
     navigate(`/settings/users?edit=${staff.id}`)
   }
 
-  const hasTelegramConnection = staff.telegram_chat_id || staff.telegram_username
+  const hasTelegramConnection = staff.telegram_username || staff.phone || staff.telegram_chat_id
 
   return (
     <div 
