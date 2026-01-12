@@ -39,29 +39,29 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
   const handleTelegram = (e: React.MouseEvent) => {
     e.stopPropagation()
     
-    // Priority 1: Username - works without prior contact (opens chat directly)
+    // Priority 1: Username - mở app trực tiếp
     if (staff.telegram_username) {
-      window.open(`https://t.me/${staff.telegram_username}`, '_blank')
+      window.location.href = `tg://resolve?domain=${staff.telegram_username}`
       return
     }
     
-    // Priority 2: Phone number - works if user allows finding by phone
+    // Priority 2: Phone number - mở app với số điện thoại
     if (staff.phone) {
       const phoneLink = getTelegramPhoneLink(staff.phone)
       if (phoneLink) {
-        window.open(phoneLink, '_blank')
+        window.location.href = phoneLink
         return
       }
     }
     
-    // Priority 3: Telegram ID - only works if already chatted before
+    // Priority 3: Telegram ID
     if (staff.telegram_chat_id) {
       window.location.href = `tg://user?id=${staff.telegram_chat_id}`
       return
     }
     
-    // No connection: Show toast and navigate to setup
-    toast.info(`Không thể mở Telegram cho ${staff.full_name}`)
+    // Không có thông tin liên lạc - báo cập nhật hồ sơ
+    toast.info(`${staff.full_name} chưa có SĐT - cần cập nhật trong Hồ sơ`)
     navigate(`/settings/users?edit=${staff.id}`)
   }
 

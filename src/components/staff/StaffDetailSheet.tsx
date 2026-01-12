@@ -65,16 +65,16 @@ export function StaffDetailSheet({ staff, open, onOpenChange }: StaffDetailSheet
                 className="flex-1" 
                 variant="default"
                 onClick={() => {
-                  // Priority 1: Username
+                  // Priority 1: Username - mở app trực tiếp
                   if (staff.telegram_username) {
-                    window.open(`https://t.me/${staff.telegram_username}`, '_blank')
+                    window.location.href = `tg://resolve?domain=${staff.telegram_username}`
                     return
                   }
-                  // Priority 2: Phone number
+                  // Priority 2: Phone number - mở app với số điện thoại
                   if (staff.phone) {
                     const phoneLink = getTelegramPhoneLink(staff.phone)
                     if (phoneLink) {
-                      window.open(phoneLink, '_blank')
+                      window.location.href = phoneLink
                       return
                     }
                   }
@@ -150,23 +150,22 @@ export function StaffDetailSheet({ staff, open, onOpenChange }: StaffDetailSheet
                 <div className="flex items-center gap-2">
                   <Send className="h-4 w-4 flex-shrink-0 text-blue-500" />
                   {staff.telegram_username ? (
-                    <a 
-                      href={`https://t.me/${staff.telegram_username}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button 
+                      onClick={() => window.location.href = `tg://resolve?domain=${staff.telegram_username}`}
                       className="text-blue-600 hover:underline"
                     >
                       @{staff.telegram_username}
-                    </a>
+                    </button>
                   ) : staff.phone ? (
-                    <a 
-                      href={getTelegramPhoneLink(staff.phone) || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button 
+                      onClick={() => {
+                        const link = getTelegramPhoneLink(staff.phone!)
+                        if (link) window.location.href = link
+                      }}
                       className="text-blue-600 hover:underline"
                     >
                       {formatPhoneForTelegram(staff.phone)}
-                    </a>
+                    </button>
                   ) : (
                     <span className="text-muted-foreground text-xs">
                       ID: {staff.telegram_chat_id} <span className="opacity-70">(cần đã từng chat)</span>

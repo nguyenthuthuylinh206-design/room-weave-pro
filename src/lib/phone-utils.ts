@@ -34,9 +34,14 @@ export function formatPhoneForTelegram(phone: string): string | null {
 }
 
 /**
- * Tạo Telegram link từ số điện thoại
+ * Tạo Telegram deep link từ số điện thoại
+ * Dùng tg:// protocol để mở app trực tiếp
  */
 export function getTelegramPhoneLink(phone: string): string | null {
   const formatted = formatPhoneForTelegram(phone)
-  return formatted ? `https://t.me/${formatted}` : null
+  if (!formatted) return null
+  
+  // Loại bỏ dấu + để dùng trong tg:// protocol
+  const phoneWithoutPlus = formatted.replace('+', '')
+  return `tg://resolve?phone=${phoneWithoutPlus}`
 }
