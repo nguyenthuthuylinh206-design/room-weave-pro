@@ -221,24 +221,30 @@ export function usePendingInspections(roomId: string | undefined) {
     }
   }, [roomId, user?.id, refetch, queryClient])
   
-  // Start inspection
+  // Start inspection - trả về data để xác nhận thành công
   const startInspection = useMutation({
     mutationFn: async (inspectionId: string) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('checkout_inspection_requests')
         .update({ 
           status: 'in_progress',
           started_at: new Date().toISOString(),
         })
         .eq('id', inspectionId)
+        .select('id, status, started_at')
+        .single()
       
       if (error) throw error
+      return data
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('[startInspection] Success:', data)
       queryClient.invalidateQueries({ queryKey: ['pending-inspection', roomId, user?.id] })
+      queryClient.invalidateQueries({ queryKey: ['checkout-inspection'] })
       toast.success('Bắt đầu kiểm tra phòng')
     },
     onError: (error: Error) => {
+      console.error('[startInspection] Error:', error)
       toast.error('Lỗi: ' + error.message)
     },
   })
