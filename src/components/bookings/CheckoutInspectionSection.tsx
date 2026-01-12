@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { 
@@ -95,6 +95,37 @@ export function CheckoutInspectionSection({
   
   const { data: staffList = [], isLoading: isLoadingStaff } = useHotelStaffList(hotelId)
   
+  // Timer for in_progress status
+  const [elapsedTime, setElapsedTime] = useState<string>('')
+  
+  useEffect(() => {
+    if (inspection?.status !== 'in_progress' || !inspection?.started_at) {
+      setElapsedTime('')
+      return
+    }
+    
+    const startTime = new Date(inspection.started_at).getTime()
+    
+    const updateTimer = () => {
+      const now = Date.now()
+      const diff = Math.floor((now - startTime) / 1000)
+      const hours = Math.floor(diff / 3600)
+      const minutes = Math.floor((diff % 3600) / 60)
+      const seconds = diff % 60
+      
+      if (hours > 0) {
+        setElapsedTime(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`)
+      } else {
+        setElapsedTime(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`)
+      }
+    }
+    
+    updateTimer() // Run immediately
+    const interval = setInterval(updateTimer, 1000)
+    
+    return () => clearInterval(interval)
+  }, [inspection?.status, inspection?.started_at])
+  
   // Get assigned staff info from staffList
   const getAssignedStaff = (): HotelStaffMember | undefined => {
     if (!inspection?.assigned_to) return undefined
@@ -163,12 +194,19 @@ export function CheckoutInspectionSection({
   
   // Show in-progress status
   if (inspection?.status === 'in_progress') {
-    const assignedStaff = getAssignedStaff()
     return (
       <div className="p-3 border border-blue-500/50 rounded-lg bg-blue-50 dark:bg-blue-950/30">
-        <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          <span className="font-medium">Đang kiểm tra phòng</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="font-medium">Đang kiểm tra phòng</span>
+          </div>
+          {elapsedTime && (
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-100 dark:bg-blue-900/50 rounded-md">
+              <Clock className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+              <span className="font-mono text-sm font-medium text-blue-700 dark:text-blue-300">{elapsedTime}</span>
+            </div>
+          )}
         </div>
         <div className="mt-2 space-y-1">
           <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-500">
@@ -183,18 +221,16 @@ export function CheckoutInspectionSection({
           )}
         </div>
         <div className="mt-2 flex gap-2">
-          {assignedStaff && (assignedStaff.telegram_username || assignedStaff.phone || assignedStaff.telegram_chat_id) && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleCallTelegram}
-              className="h-7 text-xs gap-1 text-blue-600 border-blue-300 hover:bg-blue-100"
-            >
-              <MessageCircle className="h-3 w-3" />
-              Gọi Telegram
-            </Button>
-          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleCallTelegram}
+            className="h-7 text-xs gap-1 text-blue-600 border-blue-300 hover:bg-blue-100"
+          >
+            <MessageCircle className="h-3 w-3" />
+            Gọi Telegram
+          </Button>
           <Button
             type="button"
             variant="outline"
@@ -213,7 +249,6 @@ export function CheckoutInspectionSection({
   
   // Show pending status
   if (inspection?.status === 'pending') {
-    const assignedStaff = getAssignedStaff()
     return (
       <div className="p-3 border border-amber-500/50 rounded-lg bg-amber-50 dark:bg-amber-950/30">
         <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
@@ -231,18 +266,16 @@ export function CheckoutInspectionSection({
           </div>
         </div>
         <div className="mt-2 flex gap-2">
-          {assignedStaff && (assignedStaff.telegram_username || assignedStaff.phone || assignedStaff.telegram_chat_id) && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleCallTelegram}
-              className="h-7 text-xs gap-1 text-amber-600 border-amber-300 hover:bg-amber-100"
-            >
-              <MessageCircle className="h-3 w-3" />
-              Gọi Telegram
-            </Button>
-          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleCallTelegram}
+            className="h-7 text-xs gap-1 text-amber-600 border-amber-300 hover:bg-amber-100"
+          >
+            <MessageCircle className="h-3 w-3" />
+            Gọi Telegram
+          </Button>
           <Button
             type="button"
             variant="outline"
