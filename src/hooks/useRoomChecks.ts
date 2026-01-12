@@ -57,11 +57,13 @@ export function useCreateRoomCheck() {
     mutationFn: async ({ 
       roomId, 
       data,
-      itemQuantities
+      itemQuantities,
+      inspectionId
     }: { 
       roomId: string
       data: RoomCheckFormData
       itemQuantities?: Record<string, number>
+      inspectionId?: string // Checkout inspection ID to complete
     }) => {
       // Get room info first for transaction records
       const { data: room, error: roomError } = await supabase
@@ -375,6 +377,22 @@ export function useCreateRoomCheck() {
         const lostCount = data.items_lost?.length || 0
         const damagedCount = data.items_damaged?.length || 0
         const hasIssues = lostCount > 0 || damagedCount > 0
+        
+        // Complete checkout inspection request if exists
+        if (inspectionId) {
+          const { error: inspectionError } = await supabase
+            .from('checkout_inspection_requests')
+            .update({
+              status: 'completed',
+              room_check_id: check.id,
+              completed_at: new Date().toISOString(),
+            })
+            .eq('id', inspectionId)
+          
+          if (inspectionError) {
+            console.error('Error completing checkout inspection:', inspectionError)
+          }
+        }
         
         // Build summary message
         const summaryParts = []

@@ -37,6 +37,7 @@ export function RoomCheckPage() {
   const [searchParams] = useSearchParams()
   const prefilledType = searchParams.get('type') as 'daily' | 'checkin' | 'checkout' | 'maintenance' | null
   const shouldAutoResume = searchParams.get('resume') === 'true'
+  const inspectionId = searchParams.get('inspection') // Lấy checkout inspection ID từ URL
   
   const { user, hasAnyRole } = useUser()
   const isManager = hasAnyRole(['super_admin', 'owner', 'hotel_manager', 'department_manager'])
@@ -329,6 +330,7 @@ export function RoomCheckPage() {
         roomId: id,
         data,
         itemQuantities: Object.keys(itemQuantities).length > 0 ? itemQuantities : undefined,
+        inspectionId: inspectionId || undefined, // Pass checkout inspection ID
       })
       
       // Đóng dialog khi thành công
