@@ -8,7 +8,7 @@ import { vi } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useNavigate } from 'react-router-dom'
-import { getTelegramPhoneLink } from '@/lib/phone-utils'
+import { getTelegramPhoneLink, formatPhoneForTelegram } from '@/lib/phone-utils'
 
 interface StaffCardProps {
   staff: StaffWithStatus
@@ -126,11 +126,11 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
           )}
           onClick={handleTelegram}
           title={
-            staff.telegram_chat_id 
-              ? "Mở Telegram" 
-              : staff.telegram_username 
-                ? `Telegram @${staff.telegram_username}`
-                : `${staff.full_name} chưa kết nối Telegram Bot`
+            staff.telegram_username 
+              ? `Telegram @${staff.telegram_username}`
+              : staff.phone 
+                ? `Telegram ${formatPhoneForTelegram(staff.phone)}`
+                : `${staff.full_name} chưa có SĐT - cần cập nhật trong Hồ sơ`
           }
         >
           <Send className="h-5 w-5" />
