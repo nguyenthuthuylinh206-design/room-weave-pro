@@ -302,3 +302,73 @@ export function useCompleteCheckoutInspection() {
     },
   })
 }
+
+// Hook để kiểm tra phòng có yêu cầu checkout inspection đang pending/in_progress không
+// (bất kể assigned cho ai - dùng để chặn nhân viên khác)
+export function useRoomHasPendingInspection(roomId: string | undefined) {
+  const { user } = useUser()
+  
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['room-has-pending-inspection', roomId],
+    queryFn: async () => {
+      if (!roomId) return null
+      
+      // Query ANY pending/in_progress inspection cho room này (không filter assigned_to)
+      const { data, error } = await supabase
+        .from('checkout_inspection_requests')
+        .select('id, assigned_to, status, assigned_user:users!checkout_inspection_requests_assigned_to_fkey(id, full_name)')
+        .eq('room_id', roomId)
+        .in('status', ['pending', 'in_progress'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      
+      if (error) {
+        console.error('Error checking room inspection:', error)
+        return null
+      }
+      
+      if (!data) return null
+      
+      return {
+        inspectionId: data.id,
+        assignedTo: data.assigned_to,
+        assignedUserName: (data.assigned_user as any)?.full_name || null,
+        isAssignedToMe: data.assigned_to === user?.id,
+        status: data.status as 'pending' | 'in_progress',
+      }
+    },
+    enabled: !!roomId && !!user?.id,
+  })
+  
+  // Realtime subscription
+  useEffect(() => {
+    if (!roomId) return
+    
+    const channel = supabase
+      .channel(`room-inspection-check-${roomId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'checkout_inspection_requests',
+          filter: `room_id=eq.${roomId}`,
+        },
+        () => {
+          refetch()
+        }
+      )
+      .subscribe()
+    
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [roomId, refetch])
+  
+  return {
+    roomInspection: data,
+    isLoading,
+    refetch,
+  }
+}

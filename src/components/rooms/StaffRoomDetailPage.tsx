@@ -32,7 +32,7 @@ import { CheckoutInspectionBanner } from '@/components/rooms/CheckoutInspectionB
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { useRoom } from '@/hooks/useRooms'
 import { useRoomBooking } from '@/hooks/useRoomBooking'
-import { usePendingInspections } from '@/hooks/useCheckoutInspection'
+import { usePendingInspections, useRoomHasPendingInspection } from '@/hooks/useCheckoutInspection'
 import type { RoomStatus, RoomItemWithDetails } from '@/types/rooms.types'
 import type { ItemType } from '@/types/items.types'
 import { ITEM_TYPE_LABELS } from '@/types/items.types'
@@ -60,13 +60,22 @@ export function StaffRoomDetailPage() {
   const { data, isLoading, refetch } = useRoom(id)
   const { data: booking } = useRoomBooking(id)
   
-  // Checkout inspection
+  // Checkout inspection (assigned cho tôi)
   const { 
     pendingInspection, 
     startInspection,
     isLoading: isLoadingInspection,
     refetch: refetchInspection,
   } = usePendingInspections(id)
+  
+  // Kiểm tra phòng có yêu cầu inspection nào không (bất kể assigned cho ai)
+  const { 
+    roomInspection, 
+    isLoading: isLoadingRoomInspection 
+  } = useRoomHasPendingInspection(id)
+  
+  // Nếu phòng có yêu cầu inspection mà không phải assigned cho tôi -> chặn
+  const isBlockedFromInspection = roomInspection && !roomInspection.isAssignedToMe
   
   const [activeTab, setActiveTab] = useState<'overview' | 'items'>('overview')
   const [supplementSheetOpen, setSupplementSheetOpen] = useState(false)
@@ -554,9 +563,21 @@ export function StaffRoomDetailPage() {
         </div>
 
         {/* Fixed Bottom Actions */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t safe-area-pb">
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t safe-area-pb space-y-3">
+          {/* Alert nếu phòng có yêu cầu checkout giao cho nhân viên khác */}
+          {isBlockedFromInspection && (
+            <Alert variant="destructive" className="py-2">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                Phòng đang có yêu cầu kiểm tra checkout giao cho{' '}
+                <span className="font-medium">{roomInspection.assignedUserName || 'nhân viên khác'}</span>.
+                Bạn không được phép kiểm tra phòng này.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <div className="flex gap-3">
-            {missingCount > 0 && (
+            {missingCount > 0 && !isBlockedFromInspection && (
               <Button 
                 variant="outline"
                 className="flex-1 h-12 gap-2"
@@ -567,8 +588,8 @@ export function StaffRoomDetailPage() {
               </Button>
             )}
             <Button 
-              className={`h-12 text-base font-semibold gap-2 ${missingCount > 0 ? 'flex-1' : 'w-full'}`}
-              disabled={isLoadingInspection || startInspection.isPending}
+              className={`h-12 text-base font-semibold gap-2 ${missingCount > 0 && !isBlockedFromInspection ? 'flex-1' : 'w-full'}`}
+              disabled={isLoadingInspection || isLoadingRoomInspection || startInspection.isPending || isBlockedFromInspection}
               onClick={async () => {
                 // Refetch để đảm bảo có data mới nhất
                 const { data: latestInspection } = await refetchInspection()
@@ -590,12 +611,18 @@ export function StaffRoomDetailPage() {
                 }
               }}
             >
-              {(isLoadingInspection || startInspection.isPending) ? (
+              {(isLoadingInspection || isLoadingRoomInspection || startInspection.isPending) ? (
                 <span className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              ) : isBlockedFromInspection ? (
+                <AlertTriangle className="h-5 w-5" />
               ) : (
                 <ClipboardCheck className="h-5 w-5" />
               )}
-              {pendingInspection ? 'Kiểm tra checkout' : t('detail.checkRoom')}
+              {isBlockedFromInspection 
+                ? 'Không có quyền' 
+                : pendingInspection 
+                  ? 'Kiểm tra checkout' 
+                  : t('detail.checkRoom')}
             </Button>
           </div>
         </div>
