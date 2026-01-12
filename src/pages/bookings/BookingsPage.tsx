@@ -968,6 +968,10 @@ export function BookingsPage() {
           onConfirmCheckout={performCheckOut}
           onPayAndCheckout={handlePayAndCheckout}
           isLoading={isActionLoading}
+          bookingId={actionBooking.id}
+          roomId={actionBooking.room_id}
+          hotelId={actionBooking.hotel_id}
+          tenantId={actionBooking.tenant_id}
         />
       )}
 
