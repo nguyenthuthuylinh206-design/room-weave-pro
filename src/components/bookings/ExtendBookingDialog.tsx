@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { format, addDays, startOfDay, isBefore } from 'date-fns'
+import { format, addDays, startOfDay, isBefore, parseISO, differenceInCalendarDays } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { Calendar as CalendarIcon, AlertTriangle, Loader2 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -50,17 +50,21 @@ export function ExtendBookingDialog({
 
   if (!booking) return null
 
+  // Parse dates correctly using date-fns (timezone-safe)
   const today = startOfDay(new Date())
-  const currentCheckOut = new Date(booking.check_out_date)
-  const daysOverdue = Math.ceil((today.getTime() - currentCheckOut.getTime()) / (1000 * 60 * 60 * 24))
+  const currentCheckOut = startOfDay(parseISO(booking.check_out_date))
+  
+  // Calculate overdue nights (hotel standard: count nights, not days)
+  const nightsOverdue = differenceInCalendarDays(today, currentCheckOut)
+  
   const roomPrice = (booking as any).room_price || 0
   
   // Calculate minimum new checkout date (must be at least tomorrow)
   const minNewCheckout = addDays(today, 1)
   
-  // Calculate additional cost
+  // Calculate additional nights from old checkout to new checkout
   const additionalNights = newCheckOutDate 
-    ? Math.ceil((newCheckOutDate.getTime() - currentCheckOut.getTime()) / (1000 * 60 * 60 * 24))
+    ? differenceInCalendarDays(startOfDay(newCheckOutDate), currentCheckOut)
     : 0
   const additionalCost = additionalNights * roomPrice
 
@@ -136,7 +140,7 @@ export function ExtendBookingDialog({
             Đã quá ngày trả phòng
           </DialogTitle>
           <DialogDescription>
-            Khách đã ở quá {daysOverdue} ngày so với lịch. Vui lòng gia hạn booking trước khi checkout.
+            Khách đã ở thêm {nightsOverdue} đêm so với lịch checkout ({format(currentCheckOut, 'dd/MM/yyyy')}). Vui lòng gia hạn booking trước khi checkout.
           </DialogDescription>
         </DialogHeader>
 
@@ -157,9 +161,14 @@ export function ExtendBookingDialog({
                 {format(currentCheckOut, 'dd/MM/yyyy', { locale: vi })}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Số ngày quá hạn:</span>
-              <span className="font-medium text-red-600">{daysOverdue} ngày</span>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Số đêm quá hạn:</span>
+              <div className="text-right">
+                <span className="font-medium text-red-600">{nightsOverdue} đêm</span>
+                <span className="text-xs text-muted-foreground block">
+                  (Từ {format(currentCheckOut, 'dd/MM')} đến {format(today, 'dd/MM')})
+                </span>
+              </div>
             </div>
           </div>
 
@@ -202,9 +211,16 @@ export function ExtendBookingDialog({
           {/* Cost preview */}
           {newCheckOutDate && !validationError && (
             <div className="rounded-lg bg-muted/50 p-3 space-y-2 text-sm">
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span>Số đêm gia hạn:</span>
-                <span className="font-medium">{additionalNights} đêm</span>
+                <div className="text-right">
+                  <span className="font-medium">{additionalNights} đêm</span>
+                  {nightsOverdue > 0 && additionalNights > nightsOverdue && (
+                    <span className="text-xs text-muted-foreground block">
+                      ({nightsOverdue} đêm đã ở + {additionalNights - nightsOverdue} đêm thêm)
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex justify-between">
                 <span>Giá phòng/đêm:</span>
