@@ -83,31 +83,32 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
         )}
       </div>
 
-        {/* Telegram button */}
+      {/* Contact buttons group */}
+      <div className="flex items-center gap-1 flex-shrink-0">
         {staff.telegram_username && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 flex-shrink-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+            className="h-10 w-10 min-h-[44px] min-w-[44px] text-blue-500 hover:text-blue-600 hover:bg-blue-50"
             onClick={handleTelegram}
             title={`Telegram @${staff.telegram_username}`}
           >
-            <Send className="h-4 w-4" />
+            <Send className="h-5 w-5" />
           </Button>
         )}
 
-        {/* Call button */}
         {staff.phone && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 flex-shrink-0"
+            className="h-10 w-10 min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground"
             onClick={handleCall}
             title={`Gọi ${staff.phone}`}
           >
-            <Phone className="h-4 w-4" />
+            <Phone className="h-5 w-5" />
           </Button>
         )}
+      </div>
     </div>
   )
 }
