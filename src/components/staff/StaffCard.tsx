@@ -5,6 +5,8 @@ import { StaffStatusBadge } from './StaffStatusBadge'
 import type { StaffWithStatus } from '@/hooks/useStaffStatus'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
+import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 interface StaffCardProps {
   staff: StaffWithStatus
@@ -34,6 +36,10 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
     e.stopPropagation()
     if (staff.telegram_username) {
       window.open(`https://t.me/${staff.telegram_username}`, '_blank')
+    } else {
+      toast.info(`${staff.full_name} chưa thiết lập Telegram`, {
+        description: 'Nhân viên cần vào Hồ sơ → Liên kết để thiết lập username Telegram'
+      })
     }
   }
 
@@ -85,17 +91,23 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
 
       {/* Contact buttons group */}
       <div className="flex items-center gap-1 flex-shrink-0">
-        {staff.telegram_username && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 min-h-[44px] min-w-[44px] text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-            onClick={handleTelegram}
-            title={`Telegram @${staff.telegram_username}`}
-          >
-            <Send className="h-5 w-5" />
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "h-10 w-10 min-h-[44px] min-w-[44px]",
+            staff.telegram_username 
+              ? "text-blue-500 hover:text-blue-600 hover:bg-blue-50" 
+              : "text-muted-foreground/40 hover:text-muted-foreground/60"
+          )}
+          onClick={handleTelegram}
+          title={staff.telegram_username 
+            ? `Telegram @${staff.telegram_username}` 
+            : `${staff.full_name} chưa thiết lập Telegram`
+          }
+        >
+          <Send className="h-5 w-5" />
+        </Button>
 
         {staff.phone && (
           <Button
