@@ -24,7 +24,7 @@ import { useCreateRoomCheck } from '@/hooks/useRoomChecks'
 import { useUser } from '@/hooks/useUser'
 import { useRoomCheckSession } from '@/hooks/useRoomCheckSession'
 import { useRoomBooking } from '@/hooks/useRoomBooking'
-import { usePendingInspections } from '@/hooks/useCheckoutInspection'
+import { usePendingInspections, useRoomHasPendingInspection } from '@/hooks/useCheckoutInspection'
 import { toast } from '@/hooks/use-toast'
 import { CheckTypeStep } from '@/components/rooms/check-steps/CheckTypeStep'
 import { ItemsCheckStep } from '@/components/rooms/check-steps/ItemsCheckStep'
@@ -48,6 +48,12 @@ export function RoomCheckPage() {
     isLoading: isInspectionLoading,
     startInspection 
   } = usePendingInspections(id)
+  
+  // Hook để kiểm tra phòng có yêu cầu inspection không (bất kể assigned cho ai)
+  const { 
+    roomInspection, 
+    isLoading: isLoadingRoomInspection 
+  } = useRoomHasPendingInspection(id)
   
   // Flag để tránh gọi startInspection nhiều lần
   const hasAutoStartedInspection = useRef(false)
@@ -102,6 +108,18 @@ export function RoomCheckPage() {
       navigate('/rooms')
     }
   }, [room, isLoading, navigate])
+  
+  // Chặn nếu phòng có yêu cầu inspection giao cho nhân viên khác
+  useEffect(() => {
+    if (!isLoadingRoomInspection && roomInspection && !roomInspection.isAssignedToMe) {
+      toast({
+        title: 'Không có quyền',
+        description: `Phòng này đang có yêu cầu kiểm tra checkout giao cho ${roomInspection.assignedUserName || 'nhân viên khác'}. Bạn không được phép kiểm tra phòng này.`,
+        variant: 'destructive',
+      })
+      navigate('/rooms')
+    }
+  }, [isLoadingRoomInspection, roomInspection, navigate])
   
   // Normalize URL: nếu có pendingInspection mà URL chưa có type=checkout thì thêm vào
   useEffect(() => {
