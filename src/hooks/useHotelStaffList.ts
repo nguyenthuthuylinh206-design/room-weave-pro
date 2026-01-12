@@ -9,6 +9,9 @@ export interface HotelStaffMember {
   phone: string | null
   user_level_code: string | null
   position_name: string | null
+  // Telegram info for direct contact
+  telegram_username: string | null
+  telegram_chat_id: string | null
 }
 
 export function useHotelStaffList(hotelId: string | undefined) {
@@ -29,7 +32,9 @@ export function useHotelStaffList(hotelId: string | undefined) {
             email,
             phone,
             user_level_code,
-            position:positions(name)
+            telegram_username,
+            position:positions(name),
+            telegram_connections(chat_id, is_active)
           )
         `)
         .eq('hotel_id', hotelId)
@@ -42,15 +47,23 @@ export function useHotelStaffList(hotelId: string | undefined) {
       // Transform and filter active users
       const staffList: HotelStaffMember[] = data
         .filter(item => item.user)
-        .map(item => ({
-          id: (item.user as any).id,
-          full_name: (item.user as any).full_name || 'Không tên',
-          avatar_url: (item.user as any).avatar_url,
-          email: (item.user as any).email,
-          phone: (item.user as any).phone,
-          user_level_code: (item.user as any).user_level_code,
-          position_name: (item.user as any).position?.name || null,
-        }))
+        .map(item => {
+          const user = item.user as any
+          // Get active telegram connection's chat_id
+          const activeConnection = user.telegram_connections?.find((tc: any) => tc.is_active)
+          
+          return {
+            id: user.id,
+            full_name: user.full_name || 'Không tên',
+            avatar_url: user.avatar_url,
+            email: user.email,
+            phone: user.phone,
+            user_level_code: user.user_level_code,
+            position_name: user.position?.name || null,
+            telegram_username: user.telegram_username || null,
+            telegram_chat_id: activeConnection?.chat_id || null,
+          }
+        })
       
       // Sort: managers first, then staff, alphabetically within each group
       return staffList.sort((a, b) => {
