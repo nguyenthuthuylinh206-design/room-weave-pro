@@ -4156,8 +4156,11 @@ export type Database = {
           actual_check_out: string | null
           amount_paid: number | null
           booking_group_id: string | null
+          booking_hours: number | null
+          booking_months: number | null
           booking_reference: string | null
           booking_source: string | null
+          booking_type: string
           check_in_date: string
           check_out_date: string
           created_at: string | null
@@ -4175,8 +4178,12 @@ export type Database = {
           guest_name: string
           guest_phone: string | null
           hotel_id: string
+          hourly_end_time: string | null
+          hourly_rate: number | null
+          hourly_start_time: string | null
           id: string
           late_checkout_charge: number | null
+          monthly_rate: number | null
           net_revenue: number | null
           notes: string | null
           ota_commission_amount: number | null
@@ -4203,8 +4210,11 @@ export type Database = {
           actual_check_out?: string | null
           amount_paid?: number | null
           booking_group_id?: string | null
+          booking_hours?: number | null
+          booking_months?: number | null
           booking_reference?: string | null
           booking_source?: string | null
+          booking_type?: string
           check_in_date: string
           check_out_date: string
           created_at?: string | null
@@ -4222,8 +4232,12 @@ export type Database = {
           guest_name: string
           guest_phone?: string | null
           hotel_id: string
+          hourly_end_time?: string | null
+          hourly_rate?: number | null
+          hourly_start_time?: string | null
           id?: string
           late_checkout_charge?: number | null
+          monthly_rate?: number | null
           net_revenue?: number | null
           notes?: string | null
           ota_commission_amount?: number | null
@@ -4250,8 +4264,11 @@ export type Database = {
           actual_check_out?: string | null
           amount_paid?: number | null
           booking_group_id?: string | null
+          booking_hours?: number | null
+          booking_months?: number | null
           booking_reference?: string | null
           booking_source?: string | null
+          booking_type?: string
           check_in_date?: string
           check_out_date?: string
           created_at?: string | null
@@ -4269,8 +4286,12 @@ export type Database = {
           guest_name?: string
           guest_phone?: string | null
           hotel_id?: string
+          hourly_end_time?: string | null
+          hourly_rate?: number | null
+          hourly_start_time?: string | null
           id?: string
           late_checkout_charge?: number | null
+          monthly_rate?: number | null
           net_revenue?: number | null
           notes?: string | null
           ota_commission_amount?: number | null
@@ -4781,8 +4802,12 @@ export type Database = {
           has_balcony: boolean | null
           has_window: boolean | null
           hotel_id: string
+          hourly_price: number | null
           id: string
           max_guests: number | null
+          max_hours: number | null
+          min_hours: number | null
+          monthly_price: number | null
           notes: string | null
           room_number: string
           room_type: string
@@ -4802,8 +4827,12 @@ export type Database = {
           has_balcony?: boolean | null
           has_window?: boolean | null
           hotel_id: string
+          hourly_price?: number | null
           id?: string
           max_guests?: number | null
+          max_hours?: number | null
+          min_hours?: number | null
+          monthly_price?: number | null
           notes?: string | null
           room_number: string
           room_type: string
@@ -4823,8 +4852,12 @@ export type Database = {
           has_balcony?: boolean | null
           has_window?: boolean | null
           hotel_id?: string
+          hourly_price?: number | null
           id?: string
           max_guests?: number | null
+          max_hours?: number | null
+          min_hours?: number | null
+          monthly_price?: number | null
           notes?: string | null
           room_number?: string
           room_type?: string

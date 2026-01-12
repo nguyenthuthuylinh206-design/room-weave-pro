@@ -32,7 +32,14 @@ export function useRooms(filters: RoomFilters = {}) {
       })
       
       if (error) throw error
-      return data as RoomWithStats[]
+      // Add default values for new pricing fields not returned by RPC
+      return (data || []).map(room => ({
+        ...room,
+        hourly_price: (room as any).hourly_price ?? null,
+        monthly_price: (room as any).monthly_price ?? null,
+        min_hours: (room as any).min_hours ?? null,
+        max_hours: (room as any).max_hours ?? null,
+      })) as RoomWithStats[]
     },
     enabled: !!tenantId,
   })
@@ -202,7 +209,14 @@ export function useRoomStats(tenantId: string | undefined, hotelId: string | und
       
       if (error) throw error
       
-      const rooms = data as RoomWithStats[]
+      // Add default values for new pricing fields
+      const rooms = (data || []).map(room => ({
+        ...room,
+        hourly_price: (room as any).hourly_price ?? null,
+        monthly_price: (room as any).monthly_price ?? null,
+        min_hours: (room as any).min_hours ?? null,
+        max_hours: (room as any).max_hours ?? null,
+      })) as RoomWithStats[]
       
       return {
         vacant: rooms.filter(r => r.status === 'vacant').length,

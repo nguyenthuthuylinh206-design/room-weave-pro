@@ -13,6 +13,10 @@ export interface AvailableRoom {
   hotel_id: string
   hotel_name?: string
   base_price?: number
+  hourly_price?: number | null
+  monthly_price?: number | null
+  min_hours?: number | null
+  max_hours?: number | null
   currentStatus: string // Current room status for UI indicators
 }
 
@@ -67,6 +71,10 @@ export function useAvailableRooms(checkInDate?: Date, checkOutDate?: Date) {
           status,
           hotel_id,
           base_price,
+          hourly_price,
+          monthly_price,
+          min_hours,
+          max_hours,
           hotels(name)
         `)
         .eq('tenant_id', tenantId)
@@ -113,6 +121,10 @@ export function useAvailableRooms(checkInDate?: Date, checkOutDate?: Date) {
             ...room,
             hotel_name: (room.hotels as any)?.name,
             base_price: room.base_price ?? 0,
+            hourly_price: room.hourly_price ?? null,
+            monthly_price: room.monthly_price ?? null,
+            min_hours: room.min_hours ?? null,
+            max_hours: room.max_hours ?? null,
             currentStatus: room.status,
           })) as AvailableRoom[]
       }
@@ -121,6 +133,10 @@ export function useAvailableRooms(checkInDate?: Date, checkOutDate?: Date) {
         ...room,
         hotel_name: (room.hotels as any)?.name,
         base_price: room.base_price ?? 0,
+        hourly_price: room.hourly_price ?? null,
+        monthly_price: room.monthly_price ?? null,
+        min_hours: room.min_hours ?? null,
+        max_hours: room.max_hours ?? null,
         currentStatus: room.status,
       })) as AvailableRoom[]
     },
