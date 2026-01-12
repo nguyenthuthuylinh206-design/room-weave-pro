@@ -15,7 +15,7 @@ import type { CheckoutInspectionRequestWithDetails } from '@/types/checkout-insp
 interface CheckoutInspectionBannerProps {
   inspection: CheckoutInspectionRequestWithDetails
   roomId: string
-  onStartInspection: () => Promise<void>
+  onStartInspection: () => Promise<unknown>
   isLoading?: boolean
 }
 

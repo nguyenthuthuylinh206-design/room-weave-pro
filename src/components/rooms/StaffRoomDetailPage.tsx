@@ -65,6 +65,7 @@ export function StaffRoomDetailPage() {
     pendingInspection, 
     startInspection,
     isLoading: isLoadingInspection,
+    refetch: refetchInspection,
   } = usePendingInspections(id)
   
   const [activeTab, setActiveTab] = useState<'overview' | 'items'>('overview')
@@ -567,22 +568,29 @@ export function StaffRoomDetailPage() {
             )}
             <Button 
               className={`h-12 text-base font-semibold gap-2 ${missingCount > 0 ? 'flex-1' : 'w-full'}`}
-              disabled={startInspection.isPending}
+              disabled={isLoadingInspection || startInspection.isPending}
               onClick={async () => {
+                // Refetch để đảm bảo có data mới nhất
+                const { data: latestInspection } = await refetchInspection()
+                
                 // Nếu có pending checkout inspection, start trước rồi navigate với inspection ID
-                if (pendingInspection && pendingInspection.status === 'pending') {
-                  await startInspection.mutateAsync(pendingInspection.id)
-                  navigate(`/rooms/${id}/check?type=checkout&inspection=${pendingInspection.id}`)
-                } else if (pendingInspection && pendingInspection.status === 'in_progress') {
+                if (latestInspection && latestInspection.status === 'pending') {
+                  try {
+                    await startInspection.mutateAsync(latestInspection.id)
+                    navigate(`/rooms/${id}/check?type=checkout&inspection=${latestInspection.id}`)
+                  } catch (err) {
+                    console.error('Failed to start inspection:', err)
+                  }
+                } else if (latestInspection && latestInspection.status === 'in_progress') {
                   // Đã start rồi, chỉ navigate tiếp tục
-                  navigate(`/rooms/${id}/check?type=checkout&inspection=${pendingInspection.id}`)
+                  navigate(`/rooms/${id}/check?type=checkout&inspection=${latestInspection.id}`)
                 } else {
                   // Không có checkout inspection, kiểm tra thường
                   navigate(`/rooms/${id}/check`)
                 }
               }}
             >
-              {startInspection.isPending ? (
+              {(isLoadingInspection || startInspection.isPending) ? (
                 <span className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
               ) : (
                 <ClipboardCheck className="h-5 w-5" />
