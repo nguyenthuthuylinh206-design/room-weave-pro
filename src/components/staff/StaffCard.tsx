@@ -37,13 +37,25 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
 
   const handleTelegram = (e: React.MouseEvent) => {
     e.stopPropagation()
+    
+    // Priority 1: Use Telegram User ID from bot connection
+    if (staff.telegram_chat_id) {
+      window.open(`tg://user?id=${staff.telegram_chat_id}`, '_blank')
+      return
+    }
+    
+    // Priority 2: Fallback to username if available
     if (staff.telegram_username) {
       window.open(`https://t.me/${staff.telegram_username}`, '_blank')
-    } else {
-      toast.info(`${staff.full_name} chưa thiết lập Telegram`)
-      navigate(`/settings/users?edit=${staff.id}`)
+      return
     }
+    
+    // No connection: Show toast and navigate to setup
+    toast.info(`${staff.full_name} chưa kết nối Telegram Bot`)
+    navigate(`/settings/users?edit=${staff.id}`)
   }
+
+  const hasTelegramConnection = staff.telegram_chat_id || staff.telegram_username
 
   return (
     <div 
@@ -98,14 +110,17 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
           size="icon"
           className={cn(
             "h-10 w-10 min-h-[44px] min-w-[44px]",
-            staff.telegram_username 
+            hasTelegramConnection 
               ? "text-blue-500 hover:text-blue-600 hover:bg-blue-50" 
               : "text-muted-foreground/40 hover:text-muted-foreground/60"
           )}
           onClick={handleTelegram}
-          title={staff.telegram_username 
-            ? `Telegram @${staff.telegram_username}` 
-            : `${staff.full_name} chưa thiết lập Telegram`
+          title={
+            staff.telegram_chat_id 
+              ? "Mở Telegram" 
+              : staff.telegram_username 
+                ? `Telegram @${staff.telegram_username}`
+                : `${staff.full_name} chưa kết nối Telegram Bot`
           }
         >
           <Send className="h-5 w-5" />

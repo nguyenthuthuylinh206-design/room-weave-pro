@@ -37,6 +37,7 @@ export interface StaffWithStatus {
   current_activity_type: string | null
   last_seen_at: string | null
   telegram_username: string | null
+  telegram_chat_id: string | null
 }
 
 export function useStaffStatus() {
@@ -49,7 +50,7 @@ export function useStaffStatus() {
     queryFn: async () => {
       if (!tenantId) throw new Error('No tenant')
 
-      // Fetch users with their status
+      // Fetch users with their status and telegram connection
       let usersQuery = supabase
         .from('users')
         .select(`
@@ -62,7 +63,8 @@ export function useStaffStatus() {
           user_level_code,
           hotel_id,
           telegram_username,
-          hotels!users_hotel_id_fkey(name)
+          hotels!users_hotel_id_fkey(name),
+          telegram_connections(chat_id, is_active)
         `)
         .eq('tenant_id', tenantId)
         .eq('status', 'active')
@@ -89,6 +91,10 @@ export function useStaffStatus() {
 
       const staffWithStatus: StaffWithStatus[] = (users || []).map(user => {
         const status = statusMap.get(user.id)
+        // Get active telegram connection's chat_id
+        const telegramConnections = (user as any).telegram_connections as Array<{ chat_id: string; is_active: boolean }> | null
+        const activeTelegramConnection = telegramConnections?.find(tc => tc.is_active)
+        
         return {
           id: user.id,
           full_name: user.full_name,
@@ -105,6 +111,7 @@ export function useStaffStatus() {
           current_activity_type: status?.current_activity_type || null,
           last_seen_at: status?.last_seen_at || null,
           telegram_username: (user as any).telegram_username || null,
+          telegram_chat_id: activeTelegramConnection?.chat_id || null,
         }
       })
 
