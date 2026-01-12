@@ -10,9 +10,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { User, Mail, Building2, Briefcase, Lock, Save } from 'lucide-react'
+import { User, Mail, Lock, Save, MessageCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/integrations/supabase/client'
+import { TelegramConnectionCard } from '@/components/profile/TelegramConnectionCard'
 
 const profileSchema = z.object({
   full_name: z.string().min(2, 'Tên phải có ít nhất 2 ký tự'),
@@ -239,6 +240,19 @@ export const MobileUserProfilePage = () => {
                 {isChangingPassword ? 'Đang đổi...' : 'Đổi mật khẩu'}
               </Button>
             </form>
+          </CardContent>
+        </Card>
+
+        {/* Telegram Connection */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <MessageCircle className="h-4 w-4" />
+              Kết nối Telegram
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TelegramConnectionCard compact />
           </CardContent>
         </Card>
       </div>
