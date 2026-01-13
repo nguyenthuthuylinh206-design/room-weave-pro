@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { AlertTriangle, CreditCard, Receipt, Clock, Check, Printer } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -129,7 +130,23 @@ export function CheckoutSummaryDialog({
       setDamageAdjustmentNote('')
       setShowDamageReport(false)
     }
-  }, [open, costBreakdown.lateCheckoutCharge, initialDamageItems])
+  }, [open, costBreakdown.lateCheckoutCharge])
+  
+  // Sync adjustedDamageItems when initialDamageItems changes from parent
+  // (happens when inspection completed and parent refetches damage items)
+  useEffect(() => {
+    // Only sync if there are new items from parent that we don't have locally
+    const hasNewItems = initialDamageItems.length > 0 && 
+      (adjustedDamageItems.length === 0 || 
+       initialDamageItems.some(newItem => 
+         !adjustedDamageItems.find(existingItem => existingItem.item_id === newItem.item_id)
+       ))
+    
+    if (hasNewItems) {
+      console.log('[CheckoutSummaryDialog] Syncing damage items from parent:', initialDamageItems.length)
+      setAdjustedDamageItems(initialDamageItems)
+    }
+  }, [initialDamageItems])
   
   // Polling fallback: khi dialog mở và inspection đang pending/in_progress
   // Polling nhanh hơn (2s) khi đang in_progress để cập nhật timer chính xác
@@ -162,6 +179,11 @@ export function CheckoutSummaryDialog({
     
     console.log('[CheckoutSummaryDialog] Inspection completed, notifying parent. room_check_id:', inspection.room_check_id)
     lastNotifiedCheckId.current = inspection.room_check_id
+    
+    // Show toast notification immediately
+    toast.success('Kiểm tra phòng hoàn tất', {
+      description: `Nhân viên ${inspection.assigned_user?.full_name || ''} đã hoàn thành kiểm tra. Đang tải kết quả...`,
+    })
     
     // Notify parent to refetch damage items
     onInspectionCompleted?.(inspection.room_check_id)
