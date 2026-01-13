@@ -182,11 +182,16 @@ export function CheckoutInspectionSection({
           <CheckCircle2 className="h-5 w-5" />
           <span className="font-medium">Kiểm tra hoàn thành</span>
         </div>
-        <div className="mt-2 text-sm text-green-600 dark:text-green-500">
+        <div className="mt-2 text-sm text-green-600 dark:text-green-500 space-y-1">
           <p>Nhân viên: {inspection.assigned_user?.full_name}</p>
           {inspection.completed_at && (
             <p>Hoàn thành lúc: {format(new Date(inspection.completed_at), 'HH:mm dd/MM', { locale: vi })}</p>
           )}
+        </div>
+        {/* Thông báo kết quả đã được cập nhật */}
+        <div className="mt-2 text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+          <CheckCircle2 className="h-3 w-3" />
+          <span>Kết quả kiểm tra đã được cập nhật vào hóa đơn</span>
         </div>
       </div>
     )

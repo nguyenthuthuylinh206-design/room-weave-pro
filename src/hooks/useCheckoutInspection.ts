@@ -25,7 +25,7 @@ export function useCheckoutInspection(bookingId: string | undefined) {
           booking:room_bookings!checkout_inspection_requests_booking_id_fkey(id, guest_name)
         `)
         .eq('booking_id', bookingId)
-        .in('status', ['pending', 'in_progress'])
+        .in('status', ['pending', 'in_progress', 'completed'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
