@@ -104,8 +104,7 @@ export function MinimizedCheckoutWidget({
     notifiedCompletedRef.current = true
     
     toast.success(`Kiểm tra phòng ${checkout.booking.room?.room_number || ''} hoàn tất`, {
-      description: 'Nhấn "Mở lại" để xem kết quả và tiếp tục checkout',
-      duration: 10000,
+      description: 'Nhấn "Mở lại" để xem kết quả',
     })
   }, [inspection?.status, checkout.booking.room?.room_number])
   
