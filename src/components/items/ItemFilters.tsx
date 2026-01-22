@@ -340,6 +340,7 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
             onFilterChange({ warehouseId: value || undefined })
           }
           placeholder="Tất cả kho"
+          showAllOption
           className="h-9 w-full text-sm sm:w-40"
         />
         
