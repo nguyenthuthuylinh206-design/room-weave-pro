@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { differenceInSeconds } from 'date-fns'
 import { Loader2, Clock, X, CheckCircle2, ClipboardCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -53,6 +53,9 @@ export function MinimizedCheckoutWidget({
   
   const { inspection, refetch } = useCheckoutInspection(checkout.booking.id)
   
+  // Ref to ensure we only notify once per inspection completion
+  const notifiedCompletedRef = useRef(false)
+  
   // Timer for in_progress inspection
   useEffect(() => {
     if (!inspection || inspection.status !== 'in_progress' || !inspection.started_at) {
@@ -88,14 +91,22 @@ export function MinimizedCheckoutWidget({
     return () => clearInterval(interval)
   }, [inspection?.id, inspection?.status, refetch])
   
-  // Notify when inspection completed
+  // Notify when inspection completed - only once per inspection
   useEffect(() => {
-    if (inspection?.status === 'completed') {
-      toast.success(`Kiểm tra phòng ${checkout.booking.room?.room_number || ''} hoàn tất`, {
-        description: 'Nhấn "Mở lại" để xem kết quả và tiếp tục checkout',
-        duration: 10000,
-      })
+    // Reset ref when inspection changes or is not completed
+    if (!inspection || inspection.status !== 'completed') {
+      notifiedCompletedRef.current = false
+      return
     }
+    
+    // Only notify once
+    if (notifiedCompletedRef.current) return
+    notifiedCompletedRef.current = true
+    
+    toast.success(`Kiểm tra phòng ${checkout.booking.room?.room_number || ''} hoàn tất`, {
+      description: 'Nhấn "Mở lại" để xem kết quả và tiếp tục checkout',
+      duration: 10000,
+    })
   }, [inspection?.status, checkout.booking.room?.room_number])
   
   const roomNumber = checkout.booking.room?.room_number || 'N/A'
