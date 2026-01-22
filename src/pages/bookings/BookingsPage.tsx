@@ -124,7 +124,37 @@ export function BookingsPage() {
   const [isActionLoading, setIsActionLoading] = useState(false)
   
   // Minimized checkouts state - allows processing other guests while waiting for inspection
-  const [minimizedCheckouts, setMinimizedCheckouts] = useState<MinimizedCheckout[]>([])
+  // Persist to sessionStorage so widgets survive page navigation
+  const [minimizedCheckouts, setMinimizedCheckouts] = useState<MinimizedCheckout[]>(() => {
+    try {
+      const saved = sessionStorage.getItem('minimizedCheckouts')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        // Convert date strings back to Date objects
+        return parsed.map((c: any) => ({
+          ...c,
+          actualCheckoutDate: new Date(c.actualCheckoutDate),
+          scheduledCheckoutDate: new Date(c.scheduledCheckoutDate),
+        }))
+      }
+    } catch (e) {
+      console.error('[BookingsPage] Error loading minimized checkouts:', e)
+    }
+    return []
+  })
+  
+  // Persist minimized checkouts to sessionStorage
+  useEffect(() => {
+    try {
+      if (minimizedCheckouts.length > 0) {
+        sessionStorage.setItem('minimizedCheckouts', JSON.stringify(minimizedCheckouts))
+      } else {
+        sessionStorage.removeItem('minimizedCheckouts')
+      }
+    } catch (e) {
+      console.error('[BookingsPage] Error saving minimized checkouts:', e)
+    }
+  }, [minimizedCheckouts])
   
   // Track if checkout was restored from widget (to skip duplicate toast)
   const [restoredFromWidget, setRestoredFromWidget] = useState(false)
