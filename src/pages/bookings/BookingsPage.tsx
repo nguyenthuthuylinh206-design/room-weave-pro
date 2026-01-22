@@ -770,6 +770,15 @@ export function BookingsPage() {
   const handleMinimizeCheckout = () => {
     if (!actionBooking || !checkoutCostBreakdown) return
     
+    // Prevent duplicate - if already minimized, just close the dialog
+    if (minimizedCheckouts.some(c => c.booking.id === actionBooking.id)) {
+      setShowCheckoutSummary(false)
+      setActionBooking(null)
+      setCheckoutCostBreakdown(null)
+      setCheckoutDamageItems([])
+      return
+    }
+    
     const minimizedData: MinimizedCheckout = {
       booking: {
         id: actionBooking.id,
@@ -1184,17 +1193,20 @@ export function BookingsPage() {
         />
       )}
 
-      {/* Minimized Checkout Widgets */}
-      {minimizedCheckouts.map((checkout, index) => (
-        <MinimizedCheckoutWidget
-          key={checkout.booking.id}
-          checkout={checkout}
-          index={index}
-          onRestore={handleRestoreCheckout}
-          onClose={handleCloseMinimizedCheckout}
-          tenantId={tenantId}
-        />
-      ))}
+      {/* Minimized Checkout Widgets - Fixed container */}
+      {minimizedCheckouts.length > 0 && (
+        <div className="fixed bottom-4 right-4 z-50 flex flex-col-reverse gap-2">
+          {minimizedCheckouts.map((checkout) => (
+            <MinimizedCheckoutWidget
+              key={checkout.booking.id}
+              checkout={checkout}
+              onRestore={handleRestoreCheckout}
+              onClose={handleCloseMinimizedCheckout}
+              tenantId={tenantId}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Extend Booking Dialog - for overdue checkout */}
       {actionBooking && (
