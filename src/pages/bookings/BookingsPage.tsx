@@ -49,6 +49,7 @@ import { useToast } from '@/hooks/use-toast'
 import { RoomBookingDialog } from '@/components/rooms/RoomBookingDialog'
 import { AddBookingDialog } from '@/components/bookings/AddBookingDialog'
 import { CheckoutSummaryDialog } from '@/components/bookings/CheckoutSummaryDialog'
+import { MinimizedCheckoutWidget, type MinimizedCheckout } from '@/components/bookings/MinimizedCheckoutWidget'
 import { CheckInConfirmDialog } from '@/components/bookings/CheckInConfirmDialog'
 import { ExtendBookingDialog } from '@/components/bookings/ExtendBookingDialog'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
@@ -121,6 +122,9 @@ export function BookingsPage() {
   const [checkoutCostBreakdown, setCheckoutCostBreakdown] = useState<BookingCostBreakdown | null>(null)
   const [checkoutDamageItems, setCheckoutDamageItems] = useState<DamageChargeItem[]>([])
   const [isActionLoading, setIsActionLoading] = useState(false)
+  
+  // Minimized checkouts state - allows processing other guests while waiting for inspection
+  const [minimizedCheckouts, setMinimizedCheckouts] = useState<MinimizedCheckout[]>([])
   
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -762,6 +766,61 @@ export function BookingsPage() {
     }
   }
   
+  // Handle minimize checkout dialog
+  const handleMinimizeCheckout = () => {
+    if (!actionBooking || !checkoutCostBreakdown) return
+    
+    const minimizedData: MinimizedCheckout = {
+      booking: {
+        id: actionBooking.id,
+        guest_name: actionBooking.guest_name,
+        room_id: actionBooking.room_id,
+        hotel_id: actionBooking.hotel_id,
+        check_out_date: actionBooking.check_out_date,
+        room: actionBooking.room,
+      },
+      costBreakdown: checkoutCostBreakdown,
+      damageItems: checkoutDamageItems,
+      actualCheckoutTime: format(new Date(), 'HH:mm'),
+      actualCheckoutDate: new Date(),
+      scheduledCheckoutDate: new Date(actionBooking.check_out_date),
+    }
+    
+    setMinimizedCheckouts(prev => [...prev, minimizedData])
+    setShowCheckoutSummary(false)
+    setActionBooking(null)
+    setCheckoutCostBreakdown(null)
+    setCheckoutDamageItems([])
+  }
+  
+  // Handle restore checkout from minimized widget
+  const handleRestoreCheckout = (checkout: MinimizedCheckout) => {
+    // Find the full booking data
+    const fullBooking = bookings?.find(b => b.id === checkout.booking.id)
+    if (!fullBooking) {
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi',
+        description: 'Không tìm thấy thông tin booking',
+      })
+      return
+    }
+    
+    // Remove from minimized list
+    setMinimizedCheckouts(prev => prev.filter(c => c.booking.id !== checkout.booking.id))
+    
+    // Restore state
+    setActionBooking(fullBooking)
+    setCheckoutCostBreakdown(checkout.costBreakdown)
+    setCheckoutDamageItems(checkout.damageItems)
+    setShowCheckoutSummary(true)
+  }
+  
+  // Handle close minimized checkout
+  const handleCloseMinimizedCheckout = (bookingId: string) => {
+    setMinimizedCheckouts(prev => prev.filter(c => c.booking.id !== bookingId))
+  }
+  
   return (
     <div className="space-y-6">
       <PageHeader
@@ -1121,8 +1180,21 @@ export function BookingsPage() {
           hotelId={actionBooking.hotel_id}
           tenantId={actionBooking.tenant_id}
           onInspectionCompleted={handleInspectionCompleted}
+          onMinimize={handleMinimizeCheckout}
         />
       )}
+
+      {/* Minimized Checkout Widgets */}
+      {minimizedCheckouts.map((checkout, index) => (
+        <MinimizedCheckoutWidget
+          key={checkout.booking.id}
+          checkout={checkout}
+          index={index}
+          onRestore={handleRestoreCheckout}
+          onClose={handleCloseMinimizedCheckout}
+          tenantId={tenantId}
+        />
+      ))}
 
       {/* Extend Booking Dialog - for overdue checkout */}
       {actionBooking && (

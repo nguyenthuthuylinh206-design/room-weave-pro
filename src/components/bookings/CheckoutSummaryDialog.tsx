@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { AlertTriangle, CreditCard, Receipt, Clock, Check, Printer } from 'lucide-react'
+import { AlertTriangle, CreditCard, Receipt, Clock, Check, Printer, Minimize2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -80,6 +80,8 @@ interface CheckoutSummaryDialogProps {
   tenantId?: string
   // Callback when inspection is completed - parent can refetch damage items
   onInspectionCompleted?: (roomCheckId: string) => void
+  // Minimize callback - allows minimizing dialog while waiting for inspection
+  onMinimize?: () => void
 }
 
 export function CheckoutSummaryDialog({
@@ -102,6 +104,7 @@ export function CheckoutSummaryDialog({
   hotelId,
   tenantId,
   onInspectionCompleted,
+  onMinimize,
 }: CheckoutSummaryDialogProps) {
   const [adjustedLateCharge, setAdjustedLateCharge] = useState(costBreakdown.lateCheckoutCharge)
   const [adjustmentNote, setAdjustmentNote] = useState('')
@@ -378,10 +381,24 @@ export function CheckoutSummaryDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
-            <Receipt className="h-5 w-5" />
-            Xác nhận Check-out
-          </AlertDialogTitle>
+          <div className="flex items-center justify-between">
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5" />
+              Xác nhận Check-out
+            </AlertDialogTitle>
+            {/* Minimize button - only show when inspection is pending or in_progress */}
+            {onMinimize && inspection && ['pending', 'in_progress'].includes(inspection.status) && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={onMinimize}
+                title="Thu nhỏ - tiếp tục xử lý khách khác"
+              >
+                <Minimize2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
           <AlertDialogDescription asChild>
             <div className="space-y-4">
               {/* Guest & Room Info */}
