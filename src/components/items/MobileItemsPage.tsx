@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, Search, Package, DollarSign, AlertTriangle, XCircle, SlidersHorizontal, X, ArrowLeft } from 'lucide-react'
+import { Plus, Search, Package, DollarSign, AlertTriangle, XCircle, SlidersHorizontal, X, ArrowLeft, Warehouse } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PermissionGate } from '@/components/auth/PermissionGate'
 import { Input } from '@/components/ui/input'
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MobileItemCard, PullToRefresh } from '@/components/mobile'
 import { useItems } from '@/hooks/useItems'
 import { useCategories } from '@/hooks/useCategories'
+import { useWarehouses } from '@/hooks/useWarehouses'
 import type { ItemFilters, StockStatus } from '@/types/items.types'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { formatCurrency } from '@/lib/utils'
@@ -31,6 +32,7 @@ export function MobileItemsPage() {
   
   const { data, isLoading, refetch } = useItems(filters, page, 25)
   const { data: categories } = useCategories()
+  const { data: warehouses } = useWarehouses()
   
   // Sync URL params to filters
   useEffect(() => {
@@ -72,7 +74,8 @@ export function MobileItemsPage() {
   }
   
   const activeStockStatus = filters.stockStatus || 'all'
-  const activeFiltersCount = [filters.categoryId, filters.stockStatus].filter(Boolean).length
+  const activeFiltersCount = [filters.categoryId, filters.stockStatus, filters.warehouseId].filter(Boolean).length
+  const activeWarehouse = filters.warehouseId ? warehouses?.find(w => w.id === filters.warehouseId)?.name : null
   
   // Calculate stats
   const totalItems = data?.total || 0
@@ -102,7 +105,9 @@ export function MobileItemsPage() {
               <h1 className="text-lg font-semibold">
                 {currentCategoryName || 'Tài sản'}
               </h1>
-              <p className="text-xs text-muted-foreground">{totalItems} sản phẩm</p>
+              <p className="text-xs text-muted-foreground">
+                {totalItems} sản phẩm{activeWarehouse ? ` • ${activeWarehouse}` : ''}
+              </p>
             </div>
             {currentCategoryName && (
               <Button
@@ -177,6 +182,28 @@ export function MobileItemsPage() {
                         {categories?.map((cat) => (
                           <SelectItem key={cat.id} value={cat.id}>
                             {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs font-medium mb-1.5 block">Kho</label>
+                    <Select
+                      value={filters.warehouseId || 'all'}
+                      onValueChange={(value) => 
+                        handleFilterChange({ warehouseId: value === 'all' ? undefined : value })
+                      }
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Chọn kho" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tất cả kho</SelectItem>
+                        {warehouses?.map((wh) => (
+                          <SelectItem key={wh.id} value={wh.id}>
+                            {wh.name}
                           </SelectItem>
                         ))}
                       </SelectContent>

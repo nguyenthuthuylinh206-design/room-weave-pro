@@ -7293,46 +7293,89 @@ export type Database = {
         }[]
       }
       get_item_detail: { Args: { p_item_id: string }; Returns: Json }
-      get_items_filtered: {
-        Args: {
-          p_category_id?: string
-          p_hotel_id?: string
-          p_limit?: number
-          p_offset?: number
-          p_search?: string
-          p_status?: string
-          p_stock_status?: string
-          p_tenant_id: string
-        }
-        Returns: {
-          brand: string
-          category_color: string
-          category_id: string
-          category_name: string
-          code: string
-          created_at: string
-          description: string
-          hotel_id: string
-          id: string
-          minimum_stock: number
-          model: string
-          name: string
-          name_en: string
-          quantity_damaged: number
-          quantity_in_laundry: number
-          quantity_in_stock: number
-          quantity_in_use: number
-          quantity_lost: number
-          quantity_total: number
-          reorder_point: number
-          status: string
-          stock_status: string
-          total_count: number
-          unit: string
-          unit_price: number
-          updated_at: string
-        }[]
-      }
+      get_items_filtered:
+        | {
+            Args: {
+              p_category_id?: string
+              p_hotel_id?: string
+              p_limit?: number
+              p_offset?: number
+              p_search?: string
+              p_status?: string
+              p_stock_status?: string
+              p_tenant_id: string
+            }
+            Returns: {
+              brand: string
+              category_color: string
+              category_id: string
+              category_name: string
+              code: string
+              created_at: string
+              description: string
+              hotel_id: string
+              id: string
+              minimum_stock: number
+              model: string
+              name: string
+              name_en: string
+              quantity_damaged: number
+              quantity_in_laundry: number
+              quantity_in_stock: number
+              quantity_in_use: number
+              quantity_lost: number
+              quantity_total: number
+              reorder_point: number
+              status: string
+              stock_status: string
+              total_count: number
+              unit: string
+              unit_price: number
+              updated_at: string
+            }[]
+          }
+        | {
+            Args: {
+              p_category_id?: string
+              p_hotel_id?: string
+              p_limit?: number
+              p_offset?: number
+              p_search?: string
+              p_status?: string
+              p_stock_status?: string
+              p_tenant_id: string
+              p_warehouse_id?: string
+            }
+            Returns: {
+              brand: string
+              category_color: string
+              category_id: string
+              category_name: string
+              code: string
+              created_at: string
+              description: string
+              hotel_id: string
+              id: string
+              minimum_stock: number
+              model: string
+              name: string
+              name_en: string
+              quantity_damaged: number
+              quantity_in_laundry: number
+              quantity_in_stock: number
+              quantity_in_use: number
+              quantity_lost: number
+              quantity_total: number
+              reorder_point: number
+              status: string
+              stock_status: string
+              total_count: number
+              unit: string
+              unit_price: number
+              updated_at: string
+              warehouse_breakdown: Json
+            }[]
+          }
       get_laundry_batch_detail: { Args: { p_batch_id: string }; Returns: Json }
       get_laundry_batches_filtered: {
         Args: {

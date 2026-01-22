@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  Warehouse,
 } from 'lucide-react'
 import { PermissionGate } from '@/components/auth/PermissionGate'
 import {
@@ -51,6 +52,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { cn, formatCurrency } from '@/lib/utils'
 import type { ItemWithCategory } from '@/types/items.types'
 
@@ -153,6 +159,7 @@ export function ItemTable({
             <TableHead className="py-2 text-xs">Danh mục</TableHead>
             <TableHead className="py-2 text-xs text-right">Giá</TableHead>
             <TableHead className="py-2 text-xs text-center">Kho</TableHead>
+            <TableHead className="py-2 text-xs text-center">Phân bổ</TableHead>
             <TableHead className="py-2 text-xs text-center">Dùng</TableHead>
             <TableHead className="py-2 text-xs">Trạng thái</TableHead>
             <TableHead className="w-10 py-2"></TableHead>
@@ -207,6 +214,33 @@ export function ItemTable({
               </TableCell>
               <TableCell className="py-2 text-center text-sm font-medium">
                 {item.quantity_in_stock}
+              </TableCell>
+              <TableCell className="py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                {item.warehouse_breakdown && item.warehouse_breakdown.length > 0 ? (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
+                        <Warehouse className="h-3 w-3 mr-1" />
+                        {item.warehouse_breakdown.length}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-52 p-2" align="center">
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Phân bổ theo kho</p>
+                        {item.warehouse_breakdown.map((wb) => (
+                          <div key={wb.warehouse_id} className="flex justify-between items-center text-sm py-1 border-b last:border-0">
+                            <span className="text-muted-foreground truncate max-w-[120px]" title={wb.warehouse_name}>
+                              {wb.warehouse_name}
+                            </span>
+                            <span className="font-medium">{wb.quantity}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                ) : (
+                  <span className="text-xs text-muted-foreground">-</span>
+                )}
               </TableCell>
               <TableCell className="py-2 text-center text-sm text-muted-foreground">
                 {item.quantity_in_use}
