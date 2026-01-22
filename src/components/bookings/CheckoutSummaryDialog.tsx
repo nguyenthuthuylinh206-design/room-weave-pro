@@ -82,6 +82,8 @@ interface CheckoutSummaryDialogProps {
   onInspectionCompleted?: (roomCheckId: string) => void
   // Minimize callback - allows minimizing dialog while waiting for inspection
   onMinimize?: () => void
+  // Skip completion toast - used when restoring from minimized widget (widget already showed toast)
+  skipCompletionToast?: boolean
 }
 
 export function CheckoutSummaryDialog({
@@ -105,6 +107,7 @@ export function CheckoutSummaryDialog({
   tenantId,
   onInspectionCompleted,
   onMinimize,
+  skipCompletionToast = false,
 }: CheckoutSummaryDialogProps) {
   const [adjustedLateCharge, setAdjustedLateCharge] = useState(costBreakdown.lateCheckoutCharge)
   const [adjustmentNote, setAdjustmentNote] = useState('')
@@ -183,14 +186,16 @@ export function CheckoutSummaryDialog({
     console.log('[CheckoutSummaryDialog] Inspection completed, notifying parent. room_check_id:', inspection.room_check_id)
     lastNotifiedCheckId.current = inspection.room_check_id
     
-    // Show toast notification immediately
-    toast.success('Kiểm tra phòng hoàn tất', {
-      description: `Nhân viên ${inspection.assigned_user?.full_name || ''} đã hoàn thành kiểm tra. Đang tải kết quả...`,
-    })
+    // Show toast notification immediately - unless widget already showed it
+    if (!skipCompletionToast) {
+      toast.success('Kiểm tra phòng hoàn tất', {
+        description: `Nhân viên ${inspection.assigned_user?.full_name || ''} đã hoàn thành kiểm tra. Đang tải kết quả...`,
+      })
+    }
     
     // Notify parent to refetch damage items
     onInspectionCompleted?.(inspection.room_check_id)
-  }, [inspection?.status, inspection?.room_check_id, onInspectionCompleted])
+  }, [inspection?.status, inspection?.room_check_id, onInspectionCompleted, skipCompletionToast])
 
   // Calculate total damage charge
   const totalDamageCharge = useMemo(() => {

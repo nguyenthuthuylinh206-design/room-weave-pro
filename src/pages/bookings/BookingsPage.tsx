@@ -126,6 +126,8 @@ export function BookingsPage() {
   // Minimized checkouts state - allows processing other guests while waiting for inspection
   const [minimizedCheckouts, setMinimizedCheckouts] = useState<MinimizedCheckout[]>([])
   
+  // Track if checkout was restored from widget (to skip duplicate toast)
+  const [restoredFromWidget, setRestoredFromWidget] = useState(false)
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -668,11 +670,7 @@ export function BookingsPage() {
   const handleInspectionCompleted = async (roomCheckId: string) => {
     console.log('[BookingsPage] Inspection completed, refetching damage items. room_check_id:', roomCheckId)
     
-    // Hiển thị toast ngay khi inspection completed
-    toast({
-      title: '✅ Kiểm tra phòng hoàn tất',
-      description: 'Đang tải kết quả kiểm tra...',
-    })
+    // KHÔNG hiển thị toast ở đây - CheckoutSummaryDialog đã hiển thị rồi
     
     try {
       const { data: latestCheck, error } = await supabase
@@ -817,6 +815,9 @@ export function BookingsPage() {
     
     // Remove from minimized list
     setMinimizedCheckouts(prev => prev.filter(c => c.booking.id !== checkout.booking.id))
+    
+    // Mark as restored from widget - skip completion toast since widget already showed it
+    setRestoredFromWidget(true)
     
     // Restore state
     setActionBooking(fullBooking)
@@ -1172,6 +1173,7 @@ export function BookingsPage() {
             if (!open) {
               setActionBooking(null)
               setCheckoutCostBreakdown(null)
+              setRestoredFromWidget(false) // Reset when dialog closes
             }
           }}
           guestName={actionBooking.guest_name}
@@ -1190,6 +1192,7 @@ export function BookingsPage() {
           tenantId={actionBooking.tenant_id}
           onInspectionCompleted={handleInspectionCompleted}
           onMinimize={handleMinimizeCheckout}
+          skipCompletionToast={restoredFromWidget}
         />
       )}
 
