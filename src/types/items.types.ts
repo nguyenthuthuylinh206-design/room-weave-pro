@@ -25,18 +25,27 @@ export const ITEM_TYPE_OPTIONS: { value: ItemType; label: string; description: s
   { value: 'furniture', label: 'Nội thất', description: 'Bàn, ghế, tủ - kiểm tra tình trạng' },
 ]
 
+export interface WarehouseBreakdownItem {
+  warehouse_id: string
+  warehouse_name: string
+  warehouse_code: string
+  quantity: number
+}
+
 export interface ItemWithCategory extends Item {
   category_name: string | null
   category_color: string | null
   stock_status: StockStatus
   total_count?: number
   item_images?: ItemImage[]
+  warehouse_breakdown?: WarehouseBreakdownItem[]
 }
 
 export interface ItemFilters {
   search?: string
   categoryId?: string
   hotelId?: string
+  warehouseId?: string
   stockStatus?: StockStatus
   status?: ItemStatus
 }

@@ -21,6 +21,7 @@ import { useHotelContext } from '@/contexts/HotelContext'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { useQueryClient } from '@tanstack/react-query'
 import { useSyncCategories } from '@/hooks/useSyncCategories'
+import { WarehouseSelect } from '@/components/warehouse/WarehouseSelect'
 
 interface ItemFiltersProps {
   filters: IItemFilters
@@ -331,6 +332,16 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
             <SelectItem value="out_of_stock">Hết hàng</SelectItem>
           </SelectContent>
         </Select>
+        
+        {/* Warehouse Filter */}
+        <WarehouseSelect
+          value={filters.warehouseId || ''}
+          onValueChange={(value) => 
+            onFilterChange({ warehouseId: value || undefined })
+          }
+          placeholder="Tất cả kho"
+          className="h-9 w-full text-sm sm:w-40"
+        />
         
         {/* Item Status Filter */}
         <Select

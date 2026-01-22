@@ -56,6 +56,7 @@ export function useItems(
         p_stock_status: filters.stockStatus || null,
         p_status: filters.status || 'active',
         p_search: filters.search || null,
+        p_warehouse_id: filters.warehouseId || null,
         p_limit: pageSize,
         p_offset: (page - 1) * pageSize,
       })
