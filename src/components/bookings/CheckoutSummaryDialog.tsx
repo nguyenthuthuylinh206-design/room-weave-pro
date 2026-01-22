@@ -189,7 +189,7 @@ export function CheckoutSummaryDialog({
     // Show toast notification immediately - unless widget already showed it
     if (!skipCompletionToast) {
       toast.success('Kiểm tra phòng hoàn tất', {
-        description: `Nhân viên ${inspection.assigned_user?.full_name || ''} đã hoàn thành kiểm tra. Đang tải kết quả...`,
+        description: `Nhân viên ${inspection.assigned_user?.full_name || ''} đã hoàn thành. Kết quả đã cập nhật.`,
       })
     }
     

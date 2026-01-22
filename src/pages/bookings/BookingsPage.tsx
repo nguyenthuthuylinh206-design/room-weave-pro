@@ -747,17 +747,8 @@ export function BookingsPage() {
           console.log('[BookingsPage] Updated cost breakdown with damage charges:', totalDamageCharge)
         }
         
-        if (damageItems.length > 0) {
-          toast({
-            title: 'Đã cập nhật kết quả kiểm tra',
-            description: `Phát hiện ${damageItems.length} vật phẩm cần xử lý`,
-          })
-        } else {
-          toast({
-            title: 'Kiểm tra hoàn tất',
-            description: 'Không có vật phẩm hỏng/mất',
-          })
-        }
+        // KHÔNG hiển thị toast ở đây - CheckoutSummaryDialog đã hiển thị toast gộp rồi
+        // UI sẽ tự cập nhật qua state setCheckoutDamageItems
       }
     } catch (error: any) {
       console.error('[BookingsPage] Error in handleInspectionCompleted:', error)
