@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import { format, differenceInSeconds } from 'date-fns'
-import { vi } from 'date-fns/locale'
-import { ClipboardList, Loader2, Clock, X, Maximize2, CheckCircle2 } from 'lucide-react'
+import { differenceInSeconds } from 'date-fns'
+import { Loader2, Clock, X, CheckCircle2, ClipboardCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useCheckoutInspection } from '@/hooks/useCheckoutInspection'
@@ -38,7 +37,6 @@ export interface MinimizedCheckout {
 
 interface MinimizedCheckoutWidgetProps {
   checkout: MinimizedCheckout
-  index: number
   onRestore: (checkout: MinimizedCheckout) => void
   onClose: (bookingId: string) => void
   tenantId?: string
@@ -46,7 +44,6 @@ interface MinimizedCheckoutWidgetProps {
 
 export function MinimizedCheckoutWidget({
   checkout,
-  index,
   onRestore,
   onClose,
   tenantId,
@@ -104,19 +101,21 @@ export function MinimizedCheckoutWidget({
   const roomNumber = checkout.booking.room?.room_number || 'N/A'
   const guestName = checkout.booking.guest_name
   
-  // Calculate stack position
-  const bottomOffset = 16 + (index * 72) // 72px per widget (height + gap)
-  
   const getStatusDisplay = () => {
     if (!inspection || inspection.status === 'cancelled') {
-      return null
+      return (
+        <div className="flex items-center gap-1 text-muted-foreground">
+          <Clock className="h-3 w-3" />
+          <span className="text-xs">Chờ checkout</span>
+        </div>
+      )
     }
     
     if (inspection.status === 'completed') {
       return (
-        <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-500">
+        <div className="flex items-center gap-1 text-green-600">
           <CheckCircle2 className="h-3 w-3" />
-          <span className="text-xs">Đã kiểm tra xong</span>
+          <span className="text-xs">Đã kiểm tra</span>
         </div>
       )
     }
@@ -125,16 +124,16 @@ export function MinimizedCheckoutWidget({
       return (
         <div className="flex items-center gap-1 text-primary">
           <Loader2 className="h-3 w-3 animate-spin" />
-          <span className="text-xs">Đang kiểm tra: {elapsedTime}</span>
+          <span className="text-xs font-mono">{elapsedTime || '00:00'}</span>
         </div>
       )
     }
     
     // pending
     return (
-      <div className="flex items-center gap-1 text-orange-600 dark:text-orange-500">
-        <Clock className="h-3 w-3" />
-        <span className="text-xs">Chờ kiểm tra...</span>
+      <div className="flex items-center gap-1 text-amber-600">
+        <ClipboardCheck className="h-3 w-3" />
+        <span className="text-xs">Chờ kiểm tra</span>
       </div>
     )
   }
@@ -152,46 +151,39 @@ export function MinimizedCheckoutWidget({
     <>
       <div
         className={cn(
-          "fixed right-4 z-50 w-64 rounded-lg border bg-background shadow-lg p-3",
+          "w-56 rounded-lg border bg-background shadow-md p-2",
           "animate-in slide-in-from-right-5 duration-200",
-          inspection?.status === 'completed' && "border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/30"
+          inspection?.status === 'completed' && "border-green-500/50 bg-green-50/30 dark:bg-green-950/20"
         )}
-        style={{ bottom: `${bottomOffset}px` }}
       >
-        {/* Header */}
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <ClipboardList className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <div className="min-w-0">
-              <div className="font-medium text-sm truncate">P.{roomNumber}</div>
-              <div className="text-xs text-muted-foreground truncate">{guestName}</div>
-            </div>
+        {/* Header - compact */}
+        <div className="flex items-center justify-between gap-2 mb-1.5">
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <span className="font-medium text-sm">P.{roomNumber}</span>
+            <span className="text-xs text-muted-foreground truncate">{guestName}</span>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 flex-shrink-0"
+            className="h-5 w-5 -mr-1"
             onClick={handleClose}
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-3 w-3" />
           </Button>
         </div>
         
-        {/* Status */}
-        <div className="mb-2">
+        {/* Status + Action same row */}
+        <div className="flex items-center justify-between">
           {getStatusDisplay()}
+          <Button
+            variant={inspection?.status === 'completed' ? 'default' : 'ghost'}
+            size="sm"
+            className="h-6 text-xs px-2"
+            onClick={() => onRestore(checkout)}
+          >
+            Mở lại
+          </Button>
         </div>
-        
-        {/* Action */}
-        <Button
-          variant={inspection?.status === 'completed' ? 'default' : 'outline'}
-          size="sm"
-          className="w-full h-7 text-xs"
-          onClick={() => onRestore(checkout)}
-        >
-          <Maximize2 className="h-3 w-3 mr-1" />
-          Mở lại
-        </Button>
       </div>
       
       {/* Confirm close dialog */}

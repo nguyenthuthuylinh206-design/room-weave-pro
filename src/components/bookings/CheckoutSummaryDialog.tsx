@@ -386,8 +386,8 @@ export function CheckoutSummaryDialog({
               <Receipt className="h-5 w-5" />
               Xác nhận Check-out
             </AlertDialogTitle>
-            {/* Minimize button - only show when inspection is pending or in_progress */}
-            {onMinimize && inspection && ['pending', 'in_progress'].includes(inspection.status) && (
+            {/* Minimize button - always available */}
+            {onMinimize && (
               <Button
                 variant="ghost"
                 size="icon"
