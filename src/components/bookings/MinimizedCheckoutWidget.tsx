@@ -161,9 +161,9 @@ export function MinimizedCheckoutWidget({
     <>
       <div
         className={cn(
-          "w-56 rounded-lg border bg-background shadow-md p-2",
+          "w-56 rounded-lg border bg-card shadow-lg p-2",
           "animate-in slide-in-from-right-5 duration-200",
-          inspection?.status === 'completed' && "border-green-500/50 bg-green-50/30 dark:bg-green-950/20"
+          inspection?.status === 'completed' && "border-green-500 bg-green-50 dark:bg-green-950"
         )}
       >
         {/* Header - compact */}
