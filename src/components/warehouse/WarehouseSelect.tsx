@@ -17,19 +17,28 @@ interface WarehouseSelectProps {
   disabled?: boolean
   excludeId?: string // Exclude a specific warehouse (e.g., for transfer)
   showStock?: boolean // Show stock info if available
+  showAllOption?: boolean // Show "Tất cả" option for filtering
   className?: string
   error?: boolean
 }
 
 export const WarehouseSelect = forwardRef<HTMLButtonElement, WarehouseSelectProps>(
-  ({ value, onValueChange, placeholder = 'Chọn kho', disabled, excludeId, className, error }, ref) => {
+  ({ value, onValueChange, placeholder = 'Chọn kho', disabled, excludeId, showAllOption, className, error }, ref) => {
     const { data: warehouses, isLoading } = useWarehouses()
 
     const filteredWarehouses = warehouses?.filter(w => w.id !== excludeId) || []
     const selectedWarehouse = warehouses?.find(w => w.id === value)
 
+    // Handle value change - convert 'all' back to empty string for parent
+    const handleChange = (newValue: string) => {
+      onValueChange(newValue === 'all' ? '' : newValue)
+    }
+
+    // Display value - show 'all' when value is empty and showAllOption is true
+    const displayValue = showAllOption && !value ? 'all' : value
+
     return (
-      <Select value={value} onValueChange={onValueChange} disabled={disabled || isLoading}>
+      <Select value={displayValue} onValueChange={handleChange} disabled={disabled || isLoading}>
         <SelectTrigger 
           ref={ref} 
           className={cn(
@@ -39,7 +48,12 @@ export const WarehouseSelect = forwardRef<HTMLButtonElement, WarehouseSelectProp
           )}
         >
           <SelectValue placeholder={isLoading ? 'Đang tải...' : placeholder}>
-            {selectedWarehouse && (
+            {displayValue === 'all' ? (
+              <div className="flex items-center gap-2">
+                <Warehouse className="h-4 w-4 text-muted-foreground" />
+                <span>Tất cả kho</span>
+              </div>
+            ) : selectedWarehouse ? (
               <div className="flex items-center gap-2">
                 <Warehouse className="h-4 w-4 text-muted-foreground" />
                 <span>{selectedWarehouse.name}</span>
@@ -47,11 +61,19 @@ export const WarehouseSelect = forwardRef<HTMLButtonElement, WarehouseSelectProp
                   <span className="text-xs text-muted-foreground">(Mặc định)</span>
                 )}
               </div>
-            )}
+            ) : null}
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {filteredWarehouses.length === 0 ? (
+          {showAllOption && (
+            <SelectItem value="all">
+              <div className="flex items-center gap-2">
+                <Warehouse className="h-4 w-4 text-muted-foreground" />
+                <span>Tất cả kho</span>
+              </div>
+            </SelectItem>
+          )}
+          {filteredWarehouses.length === 0 && !showAllOption ? (
             <div className="py-6 text-center text-sm text-muted-foreground">
               <Package className="mx-auto h-8 w-8 mb-2 opacity-50" />
               <p>Chưa có kho nào</p>
