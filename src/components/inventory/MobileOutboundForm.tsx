@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { 
@@ -19,7 +19,10 @@ import {
   Package,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  ChevronRight,
+  Building2,
+  Star
 } from 'lucide-react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -29,15 +32,23 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { ImageUpload } from '@/components/shared/ImageUpload'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { WarehouseSelect } from '@/components/warehouse/WarehouseSelect'
+import { MobileRoomSelectSheet } from './outbound/MobileRoomSelectSheet'
+import { MobileMaintenanceSelectSheet } from './outbound/MobileMaintenanceSelectSheet'
+import { MobileLaundryVendorStep, MobileLaundryDeliveryStep, validateLaundryData } from './outbound/MobileLaundrySteps'
 import { useCreateOutboundTransaction } from '@/hooks/useInventoryTransactions'
+import { useCreateLaundryBatch } from '@/hooks/useLaundryBatches'
+import { useCreateDistributionOrder } from '@/hooks/useDistributionOrders'
 import { useItems } from '@/hooks/useItems'
 import { useDefaultWarehouse } from '@/hooks/useWarehouses'
 import { useMultipleWarehouseStock } from '@/hooks/useWarehouseStock'
+import { useRooms } from '@/hooks/useRooms'
+import { useLaundryVendors } from '@/hooks/useLaundryVendors'
 import { cn } from '@/lib/utils'
 import { AnimatePresence, motion } from 'framer-motion'
 import { toast } from 'sonner'
@@ -45,15 +56,33 @@ import { triggerHaptic } from '@/lib/haptics'
 
 const DRAFT_KEY = 'outbound_form_draft'
 
+type OutboundCategory = 'room_assign' | 'laundry' | 'maintenance' | 'disposal' | 'other'
+
+interface LaundryFormData {
+  vendor_id: string
+  delivery_date: Date
+  expected_return_date: Date
+  delivery_staff_id: string
+  receiver_name: string
+  notes?: string
+}
+
+interface MaintenanceRequestRef {
+  id: string
+  title: string
+  room_number?: string
+}
+
 const createOutboundSchema = (t: (key: string) => string) => z.object({
   transaction_category: z.enum(['room_assign', 'laundry', 'maintenance', 'disposal', 'other']),
   from_warehouse_id: z.string().uuid(t('inventory:mobileForm.validation.fromLocationRequired')),
-  to_location: z.string().min(1, t('inventory:mobileForm.validation.toLocationRequired')),
+  to_location: z.string().optional(),
   items: z.array(z.object({
     item_id: z.string().uuid(t('inventory:mobileForm.validation.itemRequired')),
     quantity: z.number().min(1, t('inventory:mobileForm.validation.quantityMin')),
     available_quantity: z.number(),
     notes: z.string().optional(),
+    weight_kg: z.number().optional(),
   })).min(1, t('inventory:mobileForm.validation.minOneItem')),
   recipient_name: z.string().optional(),
   photos: z.array(z.string()).optional(),
@@ -62,16 +91,56 @@ const createOutboundSchema = (t: (key: string) => string) => z.object({
 
 type OutboundFormData = z.infer<ReturnType<typeof createOutboundSchema>>
 
+// Helper to get steps based on category
+function getStepsForCategory(category: OutboundCategory, t: (key: string) => string) {
+  switch (category) {
+    case 'room_assign':
+      return [
+        { key: 'category', icon: Tag, label: t('inventory:mobileForm.steps.categoryLocation') },
+        { key: 'rooms', icon: DoorOpen, label: t('inventory:outbound.step.selectRooms') },
+        { key: 'items', icon: Package, label: t('inventory:mobileForm.steps.items') },
+        { key: 'confirm', icon: CheckCircle, label: t('inventory:mobileForm.steps.confirm') },
+      ]
+    case 'laundry':
+      return [
+        { key: 'category', icon: Tag, label: t('inventory:mobileForm.steps.categoryLocation') },
+        { key: 'vendor', icon: Building2, label: t('inventory:outbound.step.selectVendor') },
+        { key: 'delivery', icon: Shirt, label: t('inventory:outbound.step.deliveryInfo') },
+        { key: 'items', icon: Package, label: t('inventory:mobileForm.steps.items') },
+        { key: 'confirm', icon: CheckCircle, label: t('inventory:mobileForm.steps.confirm') },
+      ]
+    case 'maintenance':
+      return [
+        { key: 'category', icon: Tag, label: t('inventory:mobileForm.steps.categoryLocation') },
+        { key: 'request', icon: Wrench, label: t('inventory:outbound.step.selectRequest') },
+        { key: 'items', icon: Package, label: t('inventory:mobileForm.steps.items') },
+        { key: 'confirm', icon: CheckCircle, label: t('inventory:mobileForm.steps.confirm') },
+      ]
+    default: // disposal, other
+      return [
+        { key: 'category', icon: Tag, label: t('inventory:mobileForm.steps.categoryLocation') },
+        { key: 'items', icon: Package, label: t('inventory:mobileForm.steps.items') },
+        { key: 'confirm', icon: CheckCircle, label: t('inventory:mobileForm.steps.confirm') },
+      ]
+  }
+}
+
 export function MobileOutboundForm() {
-  const { t } = useTranslation(['inventory', 'common'])
+  const { t } = useTranslation(['inventory', 'common', 'laundry', 'rooms', 'maintenance'])
   const navigate = useNavigate()
-  const [step, setStep] = useState(1)
+  const [stepIndex, setStepIndex] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
   const [showItemSelector, setShowItemSelector] = useState(false)
   const [showExitDialog, setShowExitDialog] = useState(false)
+  const [showRoomSelector, setShowRoomSelector] = useState(false)
+  const [showMaintenanceSelector, setShowMaintenanceSelector] = useState(false)
   const [shake, setShake] = useState(false)
   const [draftLoaded, setDraftLoaded] = useState(false)
-  const totalSteps = 3
+  
+  // Category-specific state
+  const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>([])
+  const [selectedMaintenanceRequest, setSelectedMaintenanceRequest] = useState<MaintenanceRequestRef | null>(null)
+  const [laundryData, setLaundryData] = useState<LaundryFormData | null>(null)
 
   const categories = [
     { value: 'room_assign', label: t('inventory:outbound.categories.room_assign'), icon: DoorOpen, description: t('inventory:outbound.categories.room_assignDesc') },
@@ -80,16 +149,16 @@ export function MobileOutboundForm() {
     { value: 'disposal', label: t('inventory:outbound.categories.disposal'), icon: Trash2, description: t('inventory:outbound.categories.disposalDesc') },
     { value: 'other', label: t('inventory:outbound.categories.other'), icon: PackageMinus, description: t('inventory:outbound.categories.otherDesc') },
   ]
-
-  const steps = [
-    { icon: Tag, label: t('inventory:mobileForm.steps.categoryLocation') },
-    { icon: Package, label: t('inventory:mobileForm.steps.items') },
-    { icon: CheckCircle, label: t('inventory:mobileForm.steps.confirm') }
-  ]
   
-  const { mutate: createOutbound, isPending: isLoading } = useCreateOutboundTransaction()
+  const { mutate: createOutbound, isPending: isLoadingOutbound } = useCreateOutboundTransaction()
+  const { mutate: createLaundryBatch, isPending: isLoadingLaundry } = useCreateLaundryBatch()
+  const { mutate: createDistribution, isPending: isLoadingDistribution } = useCreateDistributionOrder()
   const { data: itemsData, isLoading: isLoadingItems } = useItems({ search: searchQuery }, 1, 50)
   const { data: defaultWarehouse } = useDefaultWarehouse()
+  const { data: rooms = [] } = useRooms({})
+  const { data: vendors = [] } = useLaundryVendors({ status: 'active' })
+  
+  const isLoading = isLoadingOutbound || isLoadingLaundry || isLoadingDistribution
   
   const outboundSchema = createOutboundSchema(t)
 
@@ -106,6 +175,11 @@ export function MobileOutboundForm() {
     },
   })
   
+  const category = form.watch('transaction_category') as OutboundCategory
+  const steps = useMemo(() => getStepsForCategory(category, t), [category, t])
+  const currentStep = steps[stepIndex]
+  const totalSteps = steps.length
+  
   // Set default warehouse when loaded
   const fromWarehouseId = form.watch('from_warehouse_id')
   useEffect(() => {
@@ -120,7 +194,6 @@ export function MobileOutboundForm() {
   })
   
   const watchedItems = form.watch('items') || []
-  const category = form.watch('transaction_category')
   const to_location = form.watch('to_location')
   const totalQuantity = watchedItems.reduce((sum, item) => sum + (item.quantity || 0), 0)
   
@@ -138,6 +211,14 @@ export function MobileOutboundForm() {
       return warehouseQty > 0 && (warehouseQty - item.quantity) < 10
     }
   )
+  
+  // Reset step when category changes
+  useEffect(() => {
+    setStepIndex(0)
+    setSelectedRoomIds([])
+    setSelectedMaintenanceRequest(null)
+    setLaundryData(null)
+  }, [category])
   
   // Load draft on mount
   useEffect(() => {
@@ -182,46 +263,70 @@ export function MobileOutboundForm() {
   }, [form.watch, form.formState.isDirty])
   
   // Validation for each step
-  const validateStep = useCallback((stepNumber: number) => {
-    if (stepNumber === 1) {
-      const errors: Record<string, string | null> = {}
-      if (!fromWarehouseId) errors.from_warehouse_id = t('inventory:mobileForm.validation.fromLocationRequired')
-      if (!to_location?.trim()) errors.to_location = t('inventory:mobileForm.validation.toLocationRequired')
-      return { isValid: !errors.from_warehouse_id && !errors.to_location, errors }
-    }
-    if (stepNumber === 2) {
-      if (hasStockError) {
-        return { isValid: false, errors: { items: t('inventory:mobileForm.validation.exceededStock') } }
+  const validateCurrentStep = useCallback(() => {
+    const stepKey = currentStep?.key
+    
+    if (stepKey === 'category') {
+      if (!fromWarehouseId) return { isValid: false, error: t('inventory:mobileForm.validation.fromLocationRequired') }
+      // For disposal/other, require to_location
+      if ((category === 'disposal' || category === 'other') && !to_location?.trim()) {
+        return { isValid: false, error: t('inventory:mobileForm.validation.toLocationRequired') }
       }
-      return { 
-        isValid: watchedItems.length > 0 && watchedItems.every(item => item.item_id && item.quantity > 0), 
-        errors: watchedItems.length === 0 ? { items: t('inventory:mobileForm.validation.addAtLeastOneItem') } : {} 
-      }
+      return { isValid: true }
     }
-    return { isValid: true, errors: {} }
-  }, [fromWarehouseId, to_location, watchedItems, hasStockError, t])
+    
+    if (stepKey === 'rooms') {
+      if (selectedRoomIds.length === 0) return { isValid: false, error: t('inventory:outbound.noRoomSelected') }
+      return { isValid: true }
+    }
+    
+    if (stepKey === 'vendor') {
+      if (!laundryData?.vendor_id) return { isValid: false, error: t('laundry:createBatch.validation.selectVendor') }
+      return { isValid: true }
+    }
+    
+    if (stepKey === 'delivery') {
+      const validation = validateLaundryData(laundryData)
+      if (!validation.isValid) return { isValid: false, error: validation.error }
+      return { isValid: true }
+    }
+    
+    if (stepKey === 'request') {
+      // Maintenance request is optional
+      return { isValid: true }
+    }
+    
+    if (stepKey === 'items') {
+      if (hasStockError) return { isValid: false, error: t('inventory:mobileForm.validation.exceededStock') }
+      if (watchedItems.length === 0) return { isValid: false, error: t('inventory:mobileForm.validation.addAtLeastOneItem') }
+      if (!watchedItems.every(item => item.item_id && item.quantity > 0)) {
+        return { isValid: false, error: t('inventory:mobileForm.validation.checkInfo') }
+      }
+      return { isValid: true }
+    }
+    
+    return { isValid: true }
+  }, [currentStep, fromWarehouseId, to_location, category, selectedRoomIds, laundryData, hasStockError, watchedItems, t])
   
-  const canProceedStep1 = Boolean(category && fromWarehouseId && to_location?.trim())
-  const canProceedStep2 = watchedItems.length > 0 && 
-    watchedItems.every(item => item.item_id && item.quantity > 0) &&
-    !hasStockError
+  const canProceed = useMemo(() => {
+    return validateCurrentStep().isValid
+  }, [validateCurrentStep])
   
   const handleNext = () => {
-    const { isValid, errors } = validateStep(step)
-    if (!isValid) {
+    const validation = validateCurrentStep()
+    if (!validation.isValid) {
       setShake(true)
       triggerHaptic('error')
       setTimeout(() => setShake(false), 500)
-      const firstError = Object.values(errors).find(e => e)
-      if (firstError) toast.error(firstError as string)
+      if (validation.error) toast.error(validation.error)
       return
     }
     triggerHaptic('light')
-    setStep(step + 1)
+    setStepIndex(stepIndex + 1)
   }
   
   const handleBack = () => {
-    if (step === 1) {
+    if (stepIndex === 0) {
       if (form.formState.isDirty) {
         setShowExitDialog(true)
       } else {
@@ -229,7 +334,7 @@ export function MobileOutboundForm() {
       }
     } else {
       triggerHaptic('light')
-      setStep(step - 1)
+      setStepIndex(stepIndex - 1)
     }
   }
   
@@ -245,26 +350,95 @@ export function MobileOutboundForm() {
     navigate(-1)
   }
   
-  const handleSubmit = form.handleSubmit((data) => {
+  const handleSubmit = async () => {
+    const validation = validateCurrentStep()
+    if (!validation.isValid) {
+      toast.error(validation.error || t('inventory:mobileForm.validation.checkInfo'))
+      return
+    }
+    
     if (hasStockError) {
       toast.error(t('inventory:mobileForm.validation.exceededStock'))
       return
     }
     
-    createOutbound(data as any, {
-      onSuccess: () => {
-        localStorage.removeItem(DRAFT_KEY)
-        triggerHaptic('success')
-        toast.success(t('inventory:mobileForm.outbound.successMessage'))
-        navigate('/inventory/transactions')
-      },
-    })
-  }, (errors) => {
-    const firstError = Object.values(errors).flat().find(e => e?.message)
-    if (firstError) {
-      toast.error((firstError as any).message || t('inventory:mobileForm.validation.checkInfo'))
+    const formData = form.getValues()
+    
+    try {
+      if (category === 'room_assign' && selectedRoomIds.length > 0) {
+        // Use distribution order for room assignment
+        const roomsData = selectedRoomIds.map(roomId => ({
+          room_id: roomId,
+          items: watchedItems.map(item => ({
+            item_id: item.item_id,
+            quantity: item.quantity,
+          }))
+        }))
+        
+        createDistribution({
+          rooms: roomsData,
+          notes: formData.notes,
+        }, {
+          onSuccess: () => {
+            localStorage.removeItem(DRAFT_KEY)
+            triggerHaptic('success')
+            toast.success(t('inventory:mobileForm.outbound.successMessage'))
+            navigate('/inventory/distribution')
+          }
+        })
+      } else if (category === 'laundry' && laundryData) {
+        // Use laundry batch creation
+        createLaundryBatch({
+          step1: {
+            vendor_id: laundryData.vendor_id,
+            delivery_date: laundryData.delivery_date,
+            expected_return_date: laundryData.expected_return_date,
+            delivery_staff_id: laundryData.delivery_staff_id,
+            receiver_name: laundryData.receiver_name,
+            notes: laundryData.notes,
+          },
+          step2: {
+            items: watchedItems.map(item => ({
+              item_id: item.item_id,
+              quantity: item.quantity,
+              weight_kg: item.weight_kg || 0,
+              condition_note: item.notes,
+            }))
+          },
+          step3: { confirmed: true }
+        }, {
+          onSuccess: () => {
+            localStorage.removeItem(DRAFT_KEY)
+            triggerHaptic('success')
+            toast.success(t('laundry:messages.createSuccess'))
+            navigate('/laundry/batches')
+          }
+        })
+      } else {
+        // Standard outbound transaction
+        const toLocation = category === 'maintenance' && selectedMaintenanceRequest
+          ? `${t('maintenance:requests.title')}: ${selectedMaintenanceRequest.title}${selectedMaintenanceRequest.room_number ? ` (${t('rooms:room')} ${selectedMaintenanceRequest.room_number})` : ''}`
+          : formData.to_location || ''
+        
+        createOutbound({
+          ...formData,
+          to_location: toLocation,
+          from_location: '', // Will be set from warehouse
+          related_type: selectedMaintenanceRequest ? 'maintenance_request' : undefined,
+          related_id: selectedMaintenanceRequest?.id,
+        } as any, {
+          onSuccess: () => {
+            localStorage.removeItem(DRAFT_KEY)
+            triggerHaptic('success')
+            toast.success(t('inventory:mobileForm.outbound.successMessage'))
+            navigate('/inventory/transactions')
+          }
+        })
+      }
+    } catch (error) {
+      console.error('Submit error:', error)
     }
-  })
+  }
   
   const addItem = (itemId: string, availableQty: number) => {
     const existing = watchedItems.find(i => i.item_id === itemId)
@@ -279,6 +453,7 @@ export function MobileOutboundForm() {
       quantity: 1,
       available_quantity: availableQty,
       notes: '',
+      weight_kg: 0,
     })
     
     setShowItemSelector(false)
@@ -299,6 +474,544 @@ export function MobileOutboundForm() {
   }
   
   const selectedCategory = categories.find(c => c.value === category)
+  const selectedVendor = vendors.find(v => v.id === laundryData?.vendor_id)
+  const selectedRooms = rooms.filter(r => selectedRoomIds.includes(r.id))
+  
+  // Render step content
+  const renderStepContent = () => {
+    const stepKey = currentStep?.key
+    
+    // Step: Category Selection & Warehouse
+    if (stepKey === 'category') {
+      return (
+        <motion.div
+          key="step-category"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          className={cn("p-4 space-y-6", shake && "animate-shake")}
+        >
+          <div>
+            <h2 className="text-lg font-semibold mb-1">{t('inventory:mobileForm.outbound.categoryTitle')}</h2>
+            <p className="text-sm text-muted-foreground mb-4">{t('inventory:mobileForm.outbound.categoryDescription')}</p>
+            
+            <div className="grid grid-cols-2 gap-3">
+              {categories.map((cat) => {
+                const Icon = cat.icon
+                const isSelected = category === cat.value
+                return (
+                  <TouchButton
+                    key={cat.value}
+                    variant={isSelected ? 'default' : 'outline'}
+                    className="h-28 flex-col gap-2 justify-center"
+                    onClick={() => {
+                      form.setValue('transaction_category', cat.value as any)
+                      triggerHaptic('light')
+                    }}
+                  >
+                    <Icon className="h-8 w-8" />
+                    <div className="text-center">
+                      <div className="text-sm font-medium">{cat.label}</div>
+                      <div className="text-xs opacity-70">{cat.description}</div>
+                    </div>
+                  </TouchButton>
+                )
+              })}
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            <h2 className="text-lg font-semibold">{t('inventory:mobileForm.outbound.locationTitle')}</h2>
+            
+            <div className="space-y-3">
+              <div>
+                <Label>{t('inventory:mobileForm.outbound.fromLocation')} *</Label>
+                <WarehouseSelect
+                  value={fromWarehouseId}
+                  onValueChange={(value) => form.setValue('from_warehouse_id', value)}
+                  placeholder={t('inventory:mobileForm.outbound.fromPlaceholder')}
+                  error={!!form.formState.errors.from_warehouse_id}
+                  className="mt-1"
+                />
+              </div>
+              
+              {/* Only show to_location for disposal/other */}
+              {(category === 'disposal' || category === 'other') && (
+                <div>
+                  <Label htmlFor="to_location">{t('inventory:mobileForm.outbound.toLocation')} *</Label>
+                  <Input 
+                    id="to_location"
+                    placeholder={t('inventory:mobileForm.outbound.toPlaceholder')}
+                    className={cn(
+                      "min-h-[48px] mt-1",
+                      form.formState.errors.to_location && "border-destructive"
+                    )}
+                    {...form.register('to_location')}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      )
+    }
+    
+    // Step: Room Selection (for room_assign)
+    if (stepKey === 'rooms') {
+      return (
+        <motion.div
+          key="step-rooms"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          className={cn("p-4 space-y-4", shake && "animate-shake")}
+        >
+          <div>
+            <h2 className="text-lg font-semibold mb-1">{t('inventory:outbound.selectRooms')}</h2>
+            <p className="text-sm text-muted-foreground mb-4">{t('inventory:outbound.roomAssignDescription')}</p>
+          </div>
+          
+          {/* Selected Rooms Display */}
+          {selectedRoomIds.length > 0 && (
+            <div className="space-y-2">
+              <Label>{t('inventory:mobileForm.selected')} ({selectedRoomIds.length})</Label>
+              <div className="flex flex-wrap gap-2">
+                {selectedRooms.map(room => (
+                  <Badge key={room.id} variant="secondary" className="h-8 gap-1">
+                    <DoorOpen className="h-3 w-3" />
+                    {room.room_number}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRoomIds(prev => prev.filter(id => id !== room.id))}
+                      className="ml-1 hover:text-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          <TouchButton
+            variant="outline"
+            className="w-full h-14 justify-between"
+            onClick={() => setShowRoomSelector(true)}
+          >
+            <div className="flex items-center gap-2">
+              <DoorOpen className="h-5 w-5 text-muted-foreground" />
+              <span>
+                {selectedRoomIds.length > 0
+                  ? t('inventory:outbound.roomSelected', { count: selectedRoomIds.length })
+                  : t('inventory:outbound.placeholders.selectRoom')
+                }
+              </span>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </TouchButton>
+        </motion.div>
+      )
+    }
+    
+    // Step: Vendor Selection (for laundry)
+    if (stepKey === 'vendor') {
+      return (
+        <MobileLaundryVendorStep
+          form={form}
+          laundryData={laundryData}
+          onUpdateLaundryData={(data) => setLaundryData(prev => prev ? { ...prev, ...data } : {
+            vendor_id: '',
+            delivery_date: new Date(),
+            expected_return_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+            delivery_staff_id: '',
+            receiver_name: '',
+            ...data
+          })}
+        />
+      )
+    }
+    
+    // Step: Delivery Info (for laundry)
+    if (stepKey === 'delivery') {
+      return (
+        <MobileLaundryDeliveryStep
+          form={form}
+          laundryData={laundryData}
+          onUpdateLaundryData={(data) => setLaundryData(prev => prev ? { ...prev, ...data } : null)}
+        />
+      )
+    }
+    
+    // Step: Maintenance Request Selection
+    if (stepKey === 'request') {
+      return (
+        <motion.div
+          key="step-request"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          className={cn("p-4 space-y-4", shake && "animate-shake")}
+        >
+          <div>
+            <h2 className="text-lg font-semibold mb-1">{t('inventory:outbound.selectMaintenanceRequest')}</h2>
+            <p className="text-sm text-muted-foreground mb-4">{t('inventory:outbound.maintenanceDescription')}</p>
+          </div>
+          
+          {/* Selected Request Display */}
+          {selectedMaintenanceRequest && (
+            <Card className="p-3 border-primary bg-primary/5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Wrench className="h-4 w-4 text-primary" />
+                  <div>
+                    <p className="font-medium text-sm">{selectedMaintenanceRequest.title}</p>
+                    {selectedMaintenanceRequest.room_number && (
+                      <p className="text-xs text-muted-foreground">
+                        {t('rooms:room')} {selectedMaintenanceRequest.room_number}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <TouchButton
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setSelectedMaintenanceRequest(null)}
+                >
+                  <X className="h-4 w-4" />
+                </TouchButton>
+              </div>
+            </Card>
+          )}
+          
+          <TouchButton
+            variant="outline"
+            className="w-full h-14 justify-between"
+            onClick={() => setShowMaintenanceSelector(true)}
+          >
+            <div className="flex items-center gap-2">
+              <Wrench className="h-5 w-5 text-muted-foreground" />
+              <span>
+                {selectedMaintenanceRequest
+                  ? t('inventory:outbound.maintenanceLinked')
+                  : t('inventory:outbound.noMaintenanceLink')
+                }
+              </span>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </TouchButton>
+          
+          {/* Manual Location Input */}
+          {!selectedMaintenanceRequest && (
+            <div className="space-y-2 pt-4 border-t">
+              <Label>{t('inventory:mobileForm.outbound.toLocation')}</Label>
+              <Input
+                placeholder={t('inventory:mobileForm.outbound.toPlaceholder')}
+                value={form.watch('to_location') || ''}
+                onChange={(e) => form.setValue('to_location', e.target.value)}
+                className="h-12"
+              />
+            </div>
+          )}
+        </motion.div>
+      )
+    }
+    
+    // Step: Items Selection
+    if (stepKey === 'items') {
+      return (
+        <motion.div
+          key="step-items"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          className={cn("space-y-4", shake && "animate-shake")}
+        >
+          {/* Stock Errors */}
+          {hasStockError && (
+            <div className="px-4">
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  {t('inventory:mobileForm.outbound.stockError')}
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+          
+          {/* Low Stock Warnings */}
+          {lowStockWarnings.length > 0 && !hasStockError && (
+            <div className="px-4">
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  {t('inventory:mobileForm.outbound.lowStockWarning', { count: lowStockWarnings.length })}
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+          
+          {/* Empty State */}
+          {fields.length === 0 ? (
+            <motion.div 
+              className="text-center py-12 px-4"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <div className="w-20 h-20 rounded-full bg-muted mx-auto flex items-center justify-center mb-4">
+                <Package className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <h3 className="font-semibold text-lg mb-2">{t('inventory:mobileForm.noItems')}</h3>
+              <p className="text-muted-foreground mb-6">
+                {t('inventory:mobileForm.outbound.noItemsDescription')}
+              </p>
+              <TouchButton 
+                onClick={() => setShowItemSelector(true)}
+                className="h-12 px-6"
+              >
+                <Plus className="mr-2 h-5 w-5" />
+                {t('inventory:mobileForm.addItem')}
+              </TouchButton>
+            </motion.div>
+          ) : (
+            <>
+              {/* Selected Items */}
+              <div className="px-4 space-y-2">
+                <h3 className="font-semibold">{t('inventory:mobileForm.selected')} ({fields.length})</h3>
+                {fields.map((field, index) => {
+                  const item = itemsData?.items.find(i => i.id === field.item_id)
+                  const primaryImage = item?.item_images?.[0]?.url
+                  const currentQuantity = watchedItems[index]?.quantity || field.quantity
+                  const warehouseQty = warehouseStockMap?.[field.item_id]?.quantity || 0
+                  const hasError = currentQuantity > warehouseQty
+                  const isLowStock = warehouseQty - currentQuantity < 10
+                  
+                  return (
+                    <Card key={field.id} className={cn("p-4", hasError && "border-destructive")}>
+                      {/* Header: Image + Name + Remove button */}
+                      <div className="flex items-start gap-3 mb-3">
+                        {primaryImage ? (
+                          <img 
+                            src={primaryImage} 
+                            alt={item?.name}
+                            className="w-14 h-14 rounded-lg object-cover shrink-0" 
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                            <Package className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium leading-tight">{item?.name || t('inventory:mobileForm.itemDefault')}</p>
+                          <p className="text-sm text-muted-foreground">{item?.code}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {t('inventory:mobileForm.stock')}: <span className={hasError ? 'text-destructive font-semibold' : ''}>
+                              {warehouseQty} {item?.unit}
+                            </span>
+                          </p>
+                        </div>
+                        <TouchButton 
+                          variant="ghost" 
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
+                          onClick={() => handleRemoveItem(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </TouchButton>
+                      </div>
+                      
+                      {/* Quantity Row with +/- buttons */}
+                      <div className="flex items-center justify-between gap-3">
+                        <Label className="text-sm text-muted-foreground shrink-0">{t('inventory:mobileForm.quantity')}:</Label>
+                        <div className="flex items-center gap-2">
+                          <TouchButton 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-9 w-9"
+                            onClick={() => updateQuantity(index, currentQuantity - 1)}
+                            disabled={currentQuantity <= 1}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </TouchButton>
+                          <Input
+                            type="number"
+                            value={currentQuantity}
+                            onChange={(e) => updateQuantity(index, parseInt(e.target.value) || 1)}
+                            className={cn(
+                              "h-9 w-16 text-center",
+                              hasError && "border-destructive"
+                            )}
+                            min={1}
+                            max={warehouseQty}
+                          />
+                          <TouchButton 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-9 w-9"
+                            onClick={() => updateQuantity(index, currentQuantity + 1)}
+                            disabled={currentQuantity >= warehouseQty}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </TouchButton>
+                        </div>
+                      </div>
+                      
+                      {/* Weight input for laundry */}
+                      {category === 'laundry' && (
+                        <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t">
+                          <Label className="text-sm text-muted-foreground shrink-0">{t('laundry:batch.weightKg')}:</Label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            value={watchedItems[index]?.weight_kg || 0}
+                            onChange={(e) => form.setValue(`items.${index}.weight_kg`, parseFloat(e.target.value) || 0)}
+                            className="h-9 w-24 text-center"
+                            min={0}
+                          />
+                        </div>
+                      )}
+                      
+                      {hasError && (
+                        <p className="text-xs text-destructive mt-2 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {t('inventory:mobileForm.outbound.exceededStock')} ({warehouseQty})
+                        </p>
+                      )}
+                      {!hasError && isLowStock && (
+                        <p className="text-xs text-amber-600 mt-2">
+                          {t('inventory:mobileForm.outbound.remainingAfterExport')}: {warehouseQty - currentQuantity}
+                        </p>
+                      )}
+                    </Card>
+                  )
+                })}
+              </div>
+              
+              {/* Add More Button */}
+              <div className="px-4">
+                <TouchButton 
+                  variant="outline" 
+                  className="w-full h-12"
+                  onClick={() => setShowItemSelector(true)}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  {t('inventory:mobileForm.addItem')}
+                </TouchButton>
+              </div>
+              
+              {/* Summary */}
+              {watchedItems.length > 0 && (
+                <div className="px-4">
+                  <Card className="p-4 bg-muted/50">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">{t('inventory:mobileForm.outbound.totalExportQuantity')}:</span>
+                      <span className="font-medium text-lg">{totalQuantity}</span>
+                    </div>
+                  </Card>
+                </div>
+              )}
+            </>
+          )}
+        </motion.div>
+      )
+    }
+    
+    // Step: Confirm
+    if (stepKey === 'confirm') {
+      return (
+        <motion.div
+          key="step-confirm"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          className="p-4 space-y-6"
+        >
+          <div>
+            <h2 className="text-lg font-semibold mb-4">{t('inventory:mobileForm.outbound.recipientInfo')}</h2>
+            
+            <div className="space-y-4">
+              {(category === 'disposal' || category === 'other' || category === 'maintenance') && (
+                <div>
+                  <Label htmlFor="recipient_name">{t('inventory:mobileForm.outbound.recipientName')}</Label>
+                  <Input 
+                    id="recipient_name"
+                    placeholder={t('inventory:mobileForm.outbound.recipientPlaceholder')}
+                    className="min-h-[48px] mt-2"
+                    {...form.register('recipient_name')}
+                  />
+                </div>
+              )}
+              
+              <div>
+                <Label>{t('inventory:mobileForm.uploadPhotos')}</Label>
+                <ImageUpload 
+                  images={form.watch('photos') || []}
+                  onChange={(urls) => form.setValue('photos', urls)}
+                  maxImages={10}
+                  className="mt-2"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="notes">{t('inventory:mobileForm.notes')}</Label>
+                <Textarea 
+                  id="notes"
+                  placeholder={t('inventory:mobileForm.notesPlaceholder')}
+                  rows={4}
+                  className="resize-none mt-2"
+                  {...form.register('notes')}
+                />
+              </div>
+            </div>
+          </div>
+          
+          {/* Review Summary */}
+          <div className="space-y-3 p-4 bg-muted rounded-lg">
+            <h3 className="font-semibold">{t('inventory:mobileForm.confirmInfo')}</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">{t('inventory:mobileForm.type')}:</span>
+                <span className="font-medium">{selectedCategory?.label}</span>
+              </div>
+              
+              {category === 'room_assign' && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t('rooms:rooms')}:</span>
+                  <span className="font-medium">{selectedRoomIds.length} {t('rooms:rooms')}</span>
+                </div>
+              )}
+              
+              {category === 'laundry' && selectedVendor && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t('laundry:batch.vendor')}:</span>
+                  <span className="font-medium">{selectedVendor.name}</span>
+                </div>
+              )}
+              
+              {category === 'maintenance' && selectedMaintenanceRequest && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t('maintenance:requests.title')}:</span>
+                  <span className="font-medium truncate max-w-[180px]">{selectedMaintenanceRequest.title}</span>
+                </div>
+              )}
+              
+              <div className="h-px bg-border my-2" />
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">{t('inventory:mobileForm.outbound.itemCount')}:</span>
+                <span className="font-medium">{watchedItems.length}</span>
+              </div>
+              <div className="flex justify-between text-lg">
+                <span className="font-semibold">{t('inventory:mobileForm.outbound.totalExportQuantity')}:</span>
+                <span className="font-bold text-primary">{totalQuantity}</span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )
+    }
+    
+    return null
+  }
   
   return (
     <div className="min-h-screen bg-background pb-40">
@@ -316,11 +1029,10 @@ export function MobileOutboundForm() {
           </div>
           
           {/* Visual Step Indicator */}
-          <div className="flex items-center justify-center gap-1">
+          <div className="flex items-center justify-center gap-1 overflow-x-auto">
             {steps.map((s, i) => {
-              const stepNum = i + 1
-              const isCompleted = step > stepNum
-              const isCurrent = step === stepNum
+              const isCompleted = stepIndex > i
+              const isCurrent = stepIndex === i
               const Icon = s.icon
               return (
                 <div key={i} className="flex items-center">
@@ -334,7 +1046,7 @@ export function MobileOutboundForm() {
                       {isCompleted ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
                     </div>
                     <span className={cn(
-                      "text-[10px] mt-1 text-center w-16",
+                      "text-[10px] mt-1 text-center w-16 truncate",
                       isCurrent ? "text-primary font-medium" : "text-muted-foreground"
                     )}>
                       {s.label}
@@ -342,8 +1054,8 @@ export function MobileOutboundForm() {
                   </div>
                   {i < steps.length - 1 && (
                     <div className={cn(
-                      "w-8 h-0.5 mb-5 mx-1",
-                      step > stepNum ? "bg-primary" : "bg-muted"
+                      "w-6 h-0.5 mb-5 mx-0.5",
+                      stepIndex > i ? "bg-primary" : "bg-muted"
                     )} />
                   )}
                 </div>
@@ -355,371 +1067,46 @@ export function MobileOutboundForm() {
       
       {/* Step Content */}
       <AnimatePresence mode="wait">
-        {step === 1 && (
-          <motion.div
-            key="step1"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className={cn("p-4 space-y-6", shake && "animate-shake")}
-          >
-            <div>
-              <h2 className="text-lg font-semibold mb-1">{t('inventory:mobileForm.outbound.categoryTitle')}</h2>
-              <p className="text-sm text-muted-foreground mb-4">{t('inventory:mobileForm.outbound.categoryDescription')}</p>
-              
-              <div className="grid grid-cols-2 gap-3">
-                {categories.map((cat) => {
-                  const Icon = cat.icon
-                  const isSelected = category === cat.value
-                  return (
-                    <TouchButton
-                      key={cat.value}
-                      variant={isSelected ? 'default' : 'outline'}
-                      className="h-28 flex-col gap-2 justify-center"
-                      onClick={() => {
-                        form.setValue('transaction_category', cat.value as any)
-                        triggerHaptic('light')
-                      }}
-                    >
-                      <Icon className="h-8 w-8" />
-                      <div className="text-center">
-                        <div className="text-sm font-medium">{cat.label}</div>
-                        <div className="text-xs opacity-70">{cat.description}</div>
-                      </div>
-                    </TouchButton>
-                  )
-                })}
-              </div>
-            </div>
-            
-            <div className="space-y-3">
-              <h2 className="text-lg font-semibold">{t('inventory:mobileForm.outbound.locationTitle')}</h2>
-              
-              <div className="space-y-3">
-                <div>
-                  <Label>{t('inventory:mobileForm.outbound.fromLocation')} *</Label>
-                  <WarehouseSelect
-                    value={fromWarehouseId}
-                    onValueChange={(value) => form.setValue('from_warehouse_id', value)}
-                    placeholder={t('inventory:mobileForm.outbound.fromPlaceholder')}
-                    error={!!form.formState.errors.from_warehouse_id}
-                    className="mt-1"
-                  />
-                  {form.formState.errors.from_warehouse_id && (
-                    <p className="text-sm text-destructive mt-1 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {form.formState.errors.from_warehouse_id.message}
-                    </p>
-                  )}
-                </div>
-                
-                <div>
-                  <Label htmlFor="to_location">{t('inventory:mobileForm.outbound.toLocation')} *</Label>
-                  <Input 
-                    id="to_location"
-                    placeholder={t('inventory:mobileForm.outbound.toPlaceholder')}
-                    className={cn(
-                      "min-h-[48px] mt-1",
-                      form.formState.errors.to_location && "border-destructive"
-                    )}
-                    {...form.register('to_location')}
-                  />
-                  {form.formState.errors.to_location && (
-                    <p className="text-sm text-destructive mt-1 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {form.formState.errors.to_location.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-        
-        {step === 2 && (
-          <motion.div
-            key="step2"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className={cn("space-y-4", shake && "animate-shake")}
-          >
-            {/* Stock Errors */}
-            {hasStockError && (
-              <div className="px-4">
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    {t('inventory:mobileForm.outbound.stockError')}
-                  </AlertDescription>
-                </Alert>
-              </div>
-            )}
-            
-            {/* Low Stock Warnings */}
-            {lowStockWarnings.length > 0 && !hasStockError && (
-              <div className="px-4">
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    {t('inventory:mobileForm.outbound.lowStockWarning', { count: lowStockWarnings.length })}
-                  </AlertDescription>
-                </Alert>
-              </div>
-            )}
-            
-            {/* Empty State */}
-            {fields.length === 0 ? (
-              <motion.div 
-                className="text-center py-12 px-4"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-              >
-                <div className="w-20 h-20 rounded-full bg-muted mx-auto flex items-center justify-center mb-4">
-                  <Package className="h-10 w-10 text-muted-foreground" />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">{t('inventory:mobileForm.noItems')}</h3>
-                <p className="text-muted-foreground mb-6">
-                  {t('inventory:mobileForm.outbound.noItemsDescription')}
-                </p>
-                <TouchButton 
-                  onClick={() => setShowItemSelector(true)}
-                  className="h-12 px-6"
-                >
-                  <Plus className="mr-2 h-5 w-5" />
-                  {t('inventory:mobileForm.addItem')}
-                </TouchButton>
-              </motion.div>
-            ) : (
-              <>
-                {/* Selected Items */}
-                <div className="px-4 space-y-2">
-                  <h3 className="font-semibold">{t('inventory:mobileForm.selected')} ({fields.length})</h3>
-                {fields.map((field, index) => {
-                    const item = itemsData?.items.find(i => i.id === field.item_id)
-                    const primaryImage = item?.item_images?.[0]?.url
-                    const currentQuantity = watchedItems[index]?.quantity || field.quantity
-                    const warehouseQty = warehouseStockMap?.[field.item_id]?.quantity || 0
-                    const hasError = currentQuantity > warehouseQty
-                    const isLowStock = warehouseQty - currentQuantity < 10
-                    
-                    return (
-                      <Card key={field.id} className={cn("p-4", hasError && "border-destructive")}>
-                        {/* Header: Image + Name + Remove button */}
-                        <div className="flex items-start gap-3 mb-3">
-                          {primaryImage ? (
-                            <img 
-                              src={primaryImage} 
-                              alt={item?.name}
-                              className="w-14 h-14 rounded-lg object-cover shrink-0" 
-                            />
-                          ) : (
-                            <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                              <Package className="h-6 w-6 text-muted-foreground" />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium leading-tight">{item?.name || t('inventory:mobileForm.itemDefault')}</p>
-                            <p className="text-sm text-muted-foreground">{item?.code}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {t('inventory:mobileForm.stock')}: <span className={hasError ? 'text-destructive font-semibold' : ''}>
-                                {warehouseQty} {item?.unit}
-                              </span>
-                            </p>
-                          </div>
-                          <TouchButton 
-                            variant="ghost" 
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
-                            onClick={() => handleRemoveItem(index)}
-                          >
-                            <X className="h-4 w-4" />
-                          </TouchButton>
-                        </div>
-                        
-                        {/* Quantity Row with +/- buttons */}
-                        <div className="flex items-center justify-between gap-3">
-                          <Label className="text-sm text-muted-foreground shrink-0">{t('inventory:mobileForm.quantity')}:</Label>
-                          <div className="flex items-center gap-2">
-                            <TouchButton 
-                              variant="outline" 
-                              size="icon" 
-                              className="h-9 w-9"
-                              onClick={() => updateQuantity(index, currentQuantity - 1)}
-                              disabled={currentQuantity <= 1}
-                            >
-                              <Minus className="h-4 w-4" />
-                            </TouchButton>
-                            <Input
-                              type="number"
-                              value={currentQuantity}
-                              onChange={(e) => updateQuantity(index, parseInt(e.target.value) || 1)}
-                              className={cn(
-                                "h-9 w-16 text-center",
-                                hasError && "border-destructive"
-                              )}
-                              min={1}
-                              max={warehouseQty}
-                            />
-                            <TouchButton 
-                              variant="outline" 
-                              size="icon" 
-                              className="h-9 w-9"
-                              onClick={() => updateQuantity(index, currentQuantity + 1)}
-                              disabled={currentQuantity >= warehouseQty}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </TouchButton>
-                          </div>
-                        </div>
-                        
-                        {hasError && (
-                          <p className="text-xs text-destructive mt-2 flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
-                            {t('inventory:mobileForm.outbound.exceededStock')} ({warehouseQty})
-                          </p>
-                        )}
-                        {!hasError && isLowStock && (
-                          <p className="text-xs text-yellow-600 mt-2">
-                            {t('inventory:mobileForm.outbound.remainingAfterExport')}: {warehouseQty - currentQuantity}
-                          </p>
-                        )}
-                      </Card>
-                    )
-                  })}
-                </div>
-                
-                {/* Add More Button */}
-                <div className="px-4">
-                  <TouchButton 
-                    variant="outline" 
-                    className="w-full h-12"
-                    onClick={() => setShowItemSelector(true)}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    {t('inventory:mobileForm.addItem')}
-                  </TouchButton>
-                </div>
-                
-                {/* Summary */}
-                {watchedItems.length > 0 && (
-                  <div className="px-4">
-                    <Card className="p-4 bg-muted/50">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">{t('inventory:mobileForm.outbound.totalExportQuantity')}:</span>
-                        <span className="font-medium text-lg">{totalQuantity}</span>
-                      </div>
-                    </Card>
-                  </div>
-                )}
-              </>
-            )}
-          </motion.div>
-        )}
-        
-        {step === 3 && (
-          <motion.div
-            key="step3"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="p-4 space-y-6"
-          >
-            <div>
-              <h2 className="text-lg font-semibold mb-4">{t('inventory:mobileForm.outbound.recipientInfo')}</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="recipient_name">{t('inventory:mobileForm.outbound.recipientName')}</Label>
-                  <Input 
-                    id="recipient_name"
-                    placeholder={t('inventory:mobileForm.outbound.recipientPlaceholder')}
-                    className="min-h-[48px] mt-2"
-                    {...form.register('recipient_name')}
-                  />
-                </div>
-                
-                <div>
-                  <Label>{t('inventory:mobileForm.uploadPhotos')}</Label>
-                  <ImageUpload 
-                    images={form.watch('photos') || []}
-                    onChange={(urls) => form.setValue('photos', urls)}
-                    maxImages={10}
-                    className="mt-2"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="notes">{t('inventory:mobileForm.notes')}</Label>
-                  <Textarea 
-                    id="notes"
-                    placeholder={t('inventory:mobileForm.notesPlaceholder')}
-                    rows={4}
-                    className="resize-none mt-2"
-                    {...form.register('notes')}
-                  />
-                </div>
-              </div>
-            </div>
-            
-            {/* Review Summary */}
-            <div className="space-y-3 p-4 bg-muted rounded-lg">
-              <h3 className="font-semibold">{t('inventory:mobileForm.confirmInfo')}</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t('inventory:mobileForm.type')}:</span>
-                  <span className="font-medium">{selectedCategory?.label}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t('inventory:mobileForm.from')}:</span>
-                  <span className="font-medium">{form.watch('from_warehouse_id') ? t('inventory:mobileForm.outbound.warehouseSelected') : '-'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t('inventory:mobileForm.to')}:</span>
-                  <span className="font-medium">{form.watch('to_location')}</span>
-                </div>
-                {form.watch('recipient_name') && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t('inventory:mobileForm.outbound.recipientName')}:</span>
-                    <span className="font-medium">{form.watch('recipient_name')}</span>
-                  </div>
-                )}
-                <div className="h-px bg-border my-2" />
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t('inventory:mobileForm.outbound.itemCount')}:</span>
-                  <span className="font-medium">{watchedItems.length}</span>
-                </div>
-                <div className="flex justify-between text-lg">
-                  <span className="font-semibold">{t('inventory:mobileForm.outbound.totalExportQuantity')}:</span>
-                  <span className="font-bold text-primary">{totalQuantity}</span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
+        {renderStepContent()}
       </AnimatePresence>
       
-      {/* Navigation Footer - above bottom nav */}
+      {/* Navigation Footer */}
       <div className="fixed bottom-16 left-0 right-0 p-4 bg-background border-t space-y-2 z-40">
         <div className="flex gap-2">
-          {step > 1 && (
-            <TouchButton variant="outline" onClick={() => setStep(step - 1)} className="flex-1">
+          {stepIndex > 0 && (
+            <TouchButton variant="outline" onClick={handleBack} className="flex-1">
               {t('inventory:mobileForm.back')}
             </TouchButton>
           )}
           <TouchButton 
-            onClick={step === totalSteps ? handleSubmit : handleNext}
+            onClick={stepIndex === totalSteps - 1 ? handleSubmit : handleNext}
             className="flex-1"
-            disabled={
-              (step === 1 && !canProceedStep1) ||
-              (step === 2 && !canProceedStep2) ||
-              (step === 3 && isLoading)
-            }
+            disabled={!canProceed || isLoading}
           >
-            {step === totalSteps ? (isLoading ? t('inventory:mobileForm.processing') : t('inventory:mobileForm.complete')) : t('inventory:mobileForm.continue')}
+            {stepIndex === totalSteps - 1 
+              ? (isLoading ? t('inventory:mobileForm.processing') : t('inventory:mobileForm.complete')) 
+              : t('inventory:mobileForm.continue')
+            }
           </TouchButton>
         </div>
       </div>
+      
+      {/* Room Selector Sheet */}
+      <MobileRoomSelectSheet
+        open={showRoomSelector}
+        onOpenChange={setShowRoomSelector}
+        selectedRoomIds={selectedRoomIds}
+        onSelect={setSelectedRoomIds}
+        multiSelect={true}
+      />
+      
+      {/* Maintenance Selector Sheet */}
+      <MobileMaintenanceSelectSheet
+        open={showMaintenanceSelector}
+        onOpenChange={setShowMaintenanceSelector}
+        selectedRequest={selectedMaintenanceRequest}
+        onSelect={setSelectedMaintenanceRequest}
+      />
       
       {/* Item Selector Sheet */}
       <Sheet open={showItemSelector} onOpenChange={setShowItemSelector}>
