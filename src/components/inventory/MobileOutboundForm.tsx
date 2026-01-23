@@ -559,14 +559,14 @@ export function MobileOutboundForm() {
                                 hasError && "border-destructive"
                               )}
                               min={1}
-                              max={availableQty}
+                              max={warehouseQty}
                             />
                             <TouchButton 
                               variant="outline" 
                               size="icon" 
                               className="h-9 w-9"
                               onClick={() => updateQuantity(index, currentQuantity + 1)}
-                              disabled={currentQuantity >= availableQty}
+                              disabled={currentQuantity >= warehouseQty}
                             >
                               <Plus className="h-4 w-4" />
                             </TouchButton>
@@ -576,12 +576,12 @@ export function MobileOutboundForm() {
                         {hasError && (
                           <p className="text-xs text-destructive mt-2 flex items-center gap-1">
                             <AlertCircle className="h-3 w-3" />
-                            {t('inventory:mobileForm.outbound.exceededStock')} ({availableQty})
+                            {t('inventory:mobileForm.outbound.exceededStock')} ({warehouseQty})
                           </p>
                         )}
                         {!hasError && isLowStock && (
                           <p className="text-xs text-yellow-600 mt-2">
-                            {t('inventory:mobileForm.outbound.remainingAfterExport')}: {availableQty - currentQuantity}
+                            {t('inventory:mobileForm.outbound.remainingAfterExport')}: {warehouseQty - currentQuantity}
                           </p>
                         )}
                       </Card>
