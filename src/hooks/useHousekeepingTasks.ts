@@ -397,11 +397,111 @@ export function useCancelTask() {
       queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
+      queryClient.invalidateQueries({ queryKey: ['unassigned-housekeeping-tasks'] })
       toast.success('Đã hủy công việc')
     },
     onError: (error) => {
       console.error('Cancel task error:', error)
       toast.error('Không thể hủy công việc')
+    }
+  })
+}
+
+// Fetch unassigned tasks (tasks without assigned_to)
+export function useUnassignedTasks() {
+  const { user } = useUser()
+  const tenantId = user?.tenant_id
+  const { selectedHotel } = useHotelContext()
+  const queryClient = useQueryClient()
+
+  const query = useQuery({
+    queryKey: ['unassigned-housekeeping-tasks', selectedHotel?.id],
+    queryFn: async () => {
+      if (!tenantId) return []
+
+      let q = supabase
+        .from('housekeeping_tasks')
+        .select(`
+          *,
+          room:rooms(id, room_number, floor, room_type),
+          requested_user:users!housekeeping_tasks_requested_by_fkey(id, full_name, avatar_url),
+          booking:room_bookings(id, guest_name, check_out_date)
+        `)
+        .is('assigned_to', null)
+        .eq('status', 'pending')
+        .eq('tenant_id', tenantId)
+        .order('priority', { ascending: false })
+        .order('created_at', { ascending: true })
+
+      if (selectedHotel?.id) {
+        q = q.eq('hotel_id', selectedHotel.id)
+      }
+
+      const { data, error } = await q
+
+      if (error) throw error
+      return data as unknown as HousekeepingTaskWithDetails[]
+    },
+    enabled: !!tenantId
+  })
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!tenantId) return
+
+    const channel = supabase
+      .channel('unassigned-tasks-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'housekeeping_tasks'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['unassigned-housekeeping-tasks'] })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [tenantId, queryClient])
+
+  return query
+}
+
+// Claim an unassigned task
+export function useClaimTask() {
+  const queryClient = useQueryClient()
+  const { user } = useUser()
+  const userId = user?.id
+
+  return useMutation({
+    mutationFn: async (taskId: string) => {
+      if (!userId) throw new Error('User not found')
+
+      const { data, error } = await supabase
+        .from('housekeeping_tasks')
+        .update({ assigned_to: userId })
+        .eq('id', taskId)
+        .is('assigned_to', null) // Only claim if still unassigned
+        .select('*')
+        .single()
+
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['unassigned-housekeeping-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
+      toast.success('Đã nhận công việc')
+    },
+    onError: (error) => {
+      console.error('Claim task error:', error)
+      toast.error('Không thể nhận công việc. Có thể đã có người khác nhận.')
     }
   })
 }

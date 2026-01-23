@@ -12,12 +12,13 @@ import {
   User,
   Play,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Hand
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import { useUpdateTaskStatus } from '@/hooks/useHousekeepingTasks'
+import { useUpdateTaskStatus, useClaimTask } from '@/hooks/useHousekeepingTasks'
 import type { HousekeepingTaskWithDetails, TaskType, TaskPriority } from '@/types/housekeeping.types'
 import { TASK_TYPE_LABELS, PRIORITY_LABELS, PRIORITY_COLORS } from '@/types/housekeeping.types'
 
@@ -39,12 +40,14 @@ const PRIORITY_BADGE_STYLES: Record<TaskPriority, string> = {
 interface TaskCardProps {
   task: HousekeepingTaskWithDetails
   showActions?: boolean
+  showClaimButton?: boolean
 }
 
-export function TaskCard({ task, showActions = true }: TaskCardProps) {
+export function TaskCard({ task, showActions = true, showClaimButton = false }: TaskCardProps) {
   const navigate = useNavigate()
   const [isUpdating, setIsUpdating] = useState(false)
   const { mutateAsync: updateStatus } = useUpdateTaskStatus()
+  const { mutateAsync: claimTask, isPending: isClaiming } = useClaimTask()
 
   const Icon = TASK_ICONS[task.task_type]
   const isInProgress = task.status === 'in_progress'
@@ -172,7 +175,24 @@ export function TaskCard({ task, showActions = true }: TaskCardProps) {
       </div>
 
       {/* Actions */}
-      {showActions && (
+      {showClaimButton ? (
+        <Button 
+          size="sm" 
+          variant="outline"
+          className="w-full h-8"
+          onClick={async () => {
+            try {
+              await claimTask(task.id)
+            } catch (e) {
+              // Error handled in hook
+            }
+          }}
+          disabled={isClaiming}
+        >
+          <Hand className="h-3.5 w-3.5 mr-1" />
+          Nhận việc
+        </Button>
+      ) : showActions && (
         <div className="flex gap-2">
           {task.status === 'pending' && (
             <Button 
