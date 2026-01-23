@@ -7,19 +7,22 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { useRooms } from '@/hooks/useRooms'
 import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
 import { usePendingRoomDistributions } from '@/hooks/usePendingRoomDistributions'
+import { usePendingTaskCount } from '@/hooks/useHousekeepingTasks'
 import { useAuth } from '@/contexts/AuthContext'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { RoomStatusBadge } from './RoomStatusBadge'
 import { RoomStatusSelector } from './RoomStatusSelector'
 import { MobileRoomFilters } from './MobileRoomFilters'
 import { MobileRoomBulkActionsBar } from './MobileRoomBulkActionsBar'
+import { StaffTasksTab } from '@/components/housekeeping/StaffTasksTab'
 import { 
   Bed, CheckCircle, Wrench, Plus, Search, 
   Users, Square, LogIn, LogOut, Sparkles, XCircle,
-  Package, AlertTriangle, Loader2, Truck
+  Package, AlertTriangle, Loader2, Truck, ClipboardList
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { RoomFilters as IRoomFilters, RoomStatus, RoomType, RoomWithStats } from '@/types/rooms.types'
@@ -42,6 +45,7 @@ export const MobileRoomsPage = () => {
   const { t } = useTranslation(['rooms', 'common', 'distribution'])
   const navigate = useNavigate()
   const { user } = useAuth()
+  const [activeTab, setActiveTab] = useState<'rooms' | 'tasks'>('rooms')
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all')
   const [search, setSearch] = useState('')
   
@@ -59,6 +63,7 @@ export const MobileRoomsPage = () => {
   const { data: rooms = [], isLoading, refetch } = useRooms(filters)
   const checkSessions = useAllRoomCheckSessions()
   const { data: pendingDistributions } = usePendingRoomDistributions()
+  const { data: pendingTaskCount = 0 } = usePendingTaskCount()
 
   // Get unique floors for filter
   const availableFloors = useMemo(() => {
@@ -190,28 +195,60 @@ export const MobileRoomsPage = () => {
         title={t('pageTitle')}
         showBack
         rightContent={
-          selectionMode ? (
-            <Button variant="ghost" size="sm" onClick={handleClearSelection}>
-              {t('selection.cancel')}
-            </Button>
-          ) : (
-            <Button variant="ghost" size="sm" onClick={() => setSelectionMode(true)}>
-              {t('selection.select')}
-            </Button>
-          )
+          activeTab === 'rooms' ? (
+            selectionMode ? (
+              <Button variant="ghost" size="sm" onClick={handleClearSelection}>
+                {t('selection.cancel')}
+              </Button>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={() => setSelectionMode(true)}>
+                {t('selection.select')}
+              </Button>
+            )
+          ) : null
         }
       />
 
-      {/* Add Button */}
-      <div className="p-4">
-        <Button
-          className="w-full"
-          onClick={() => navigate('/rooms/new')}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          {t('addNewRoom')}
-        </Button>
+      {/* Tabs: Rooms vs Tasks */}
+      <div className="px-4 pt-2 pb-3">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'rooms' | 'tasks')}>
+          <TabsList className="w-full">
+            <TabsTrigger value="rooms" className="flex-1">
+              <Bed className="h-4 w-4 mr-2" />
+              Danh sách phòng
+            </TabsTrigger>
+            <TabsTrigger value="tasks" className="flex-1 relative">
+              <ClipboardList className="h-4 w-4 mr-2" />
+              Công việc
+              {pendingTaskCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-1 -right-1 h-5 min-w-5 px-1 text-[10px]"
+                >
+                  {pendingTaskCount > 9 ? '9+' : pendingTaskCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
+
+      {/* Tasks Tab Content */}
+      {activeTab === 'tasks' && <StaffTasksTab />}
+
+      {/* Rooms Tab Content */}
+      {activeTab === 'rooms' && (
+        <>
+          {/* Add Button */}
+          <div className="px-4 pb-3">
+            <Button
+              className="w-full"
+              onClick={() => navigate('/rooms/new')}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {t('addNewRoom')}
+            </Button>
+          </div>
 
       {/* Stats Cards */}
       <div className="px-4 pb-3 overflow-x-auto">
@@ -516,11 +553,13 @@ export const MobileRoomsPage = () => {
         </div>
       </PullToRefresh>
 
-      {/* Bulk Actions Bar */}
-      <MobileRoomBulkActionsBar 
-        selectedIds={selectedIds}
-        onClearSelection={handleClearSelection}
-      />
+          {/* Bulk Actions Bar */}
+          <MobileRoomBulkActionsBar 
+            selectedIds={selectedIds}
+            onClearSelection={handleClearSelection}
+          />
+        </>
+      )}
     </div>
   )
 }
