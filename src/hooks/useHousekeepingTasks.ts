@@ -4,6 +4,11 @@ import { supabase } from '@/integrations/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
+import { triggerWorkflow, WorkflowTriggerTypes } from '@/lib/triggerWorkflow'
+import { 
+  TASK_TYPE_LABELS,
+  PRIORITY_LABELS
+} from '@/types/housekeeping.types'
 import type { 
   HousekeepingTask, 
   HousekeepingTaskWithDetails, 
@@ -154,17 +159,48 @@ export function useCreateTask() {
           requested_by: userId,
           priority: input.priority || 'medium'
         })
-        .select()
+        .select(`
+          *,
+          room:rooms(id, room_number, floor, room_type),
+          assigned_user:users!housekeeping_tasks_assigned_to_fkey(id, full_name)
+        `)
         .single()
 
       if (error) throw error
-      return data as HousekeepingTask
+      return data as HousekeepingTask & { 
+        room?: { room_number: string; floor: number }
+        assigned_user?: { full_name: string }
+      }
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
       toast.success('Đã tạo yêu cầu công việc')
+
+      // Trigger workflow for task created
+      if (tenantId) {
+        triggerWorkflow({
+          triggerType: WorkflowTriggerTypes.HOUSEKEEPING_TASK_CREATED,
+          eventData: {
+            task_id: data.id,
+            task_type: data.task_type,
+            task_type_label: TASK_TYPE_LABELS[data.task_type] || data.task_type,
+            priority: data.priority,
+            priority_label: PRIORITY_LABELS[data.priority] || data.priority,
+            room_id: data.room_id,
+            room_number: (data as any).room?.room_number,
+            floor: (data as any).room?.floor,
+            hotel_id: data.hotel_id,
+            assigned_to: data.assigned_to,
+            assigned_to_name: (data as any).assigned_user?.full_name,
+            title: data.title,
+            description: data.description,
+          },
+          tenantId,
+          hotelId: data.hotel_id,
+        }).catch(err => console.error('Workflow trigger failed:', err))
+      }
     },
     onError: (error) => {
       console.error('Create task error:', error)
@@ -176,6 +212,8 @@ export function useCreateTask() {
 // Update task status
 export function useUpdateTaskStatus() {
   const queryClient = useQueryClient()
+  const { user } = useUser()
+  const tenantId = user?.tenant_id
 
   return useMutation({
     mutationFn: async ({ 
@@ -204,21 +242,74 @@ export function useUpdateTaskStatus() {
         .from('housekeeping_tasks')
         .update(updates)
         .eq('id', taskId)
-        .select()
+        .select(`
+          *,
+          room:rooms(id, room_number, floor, room_type),
+          assigned_user:users!housekeeping_tasks_assigned_to_fkey(id, full_name)
+        `)
         .single()
 
       if (error) throw error
-      return data as HousekeepingTask
+      return data as HousekeepingTask & {
+        room?: { room_number: string; floor: number }
+        assigned_user?: { full_name: string }
+      }
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
       
       if (data.status === 'in_progress') {
         toast.success('Đã bắt đầu công việc')
+        
+        // Trigger workflow for task started
+        if (tenantId) {
+          triggerWorkflow({
+            triggerType: WorkflowTriggerTypes.HOUSEKEEPING_TASK_STARTED,
+            eventData: {
+              task_id: data.id,
+              task_type: data.task_type,
+              task_type_label: TASK_TYPE_LABELS[data.task_type] || data.task_type,
+              room_id: data.room_id,
+              room_number: (data as any).room?.room_number,
+              floor: (data as any).room?.floor,
+              hotel_id: data.hotel_id,
+              started_by_name: user?.full_name,
+            },
+            tenantId,
+            hotelId: data.hotel_id,
+          }).catch(err => console.error('Workflow trigger failed:', err))
+        }
       } else if (data.status === 'completed') {
         toast.success('Đã hoàn thành công việc')
+        
+        // Calculate duration
+        const startedAt = data.started_at ? new Date(data.started_at) : null
+        const completedAt = data.completed_at ? new Date(data.completed_at) : new Date()
+        const durationMinutes = startedAt 
+          ? Math.round((completedAt.getTime() - startedAt.getTime()) / 60000)
+          : null
+        
+        // Trigger workflow for task completed
+        if (tenantId) {
+          triggerWorkflow({
+            triggerType: WorkflowTriggerTypes.HOUSEKEEPING_TASK_COMPLETED,
+            eventData: {
+              task_id: data.id,
+              task_type: data.task_type,
+              task_type_label: TASK_TYPE_LABELS[data.task_type] || data.task_type,
+              room_id: data.room_id,
+              room_number: (data as any).room?.room_number,
+              floor: (data as any).room?.floor,
+              hotel_id: data.hotel_id,
+              completed_by_name: user?.full_name,
+              duration_minutes: durationMinutes,
+            },
+            tenantId,
+            hotelId: data.hotel_id,
+          }).catch(err => console.error('Workflow trigger failed:', err))
+        }
       }
     },
     onError: (error) => {

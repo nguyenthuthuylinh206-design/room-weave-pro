@@ -77,6 +77,12 @@ export const WorkflowTriggerTypes = {
   // Laundry events
   LAUNDRY_BATCH_STATUS_CHANGE: 'laundry_batch_status_change',
   
+  // Housekeeping Task events
+  HOUSEKEEPING_TASK_CREATED: 'housekeeping_task_created',
+  HOUSEKEEPING_TASK_STARTED: 'housekeeping_task_started',
+  HOUSEKEEPING_TASK_COMPLETED: 'housekeeping_task_completed',
+  HOUSEKEEPING_TASK_OVERDUE: 'housekeeping_task_overdue',
+  
   // Scheduled events
   DAILY_INVENTORY_REPORT: 'daily_inventory_report',
   DAILY_ROOM_STATUS_REPORT: 'daily_room_status_report',

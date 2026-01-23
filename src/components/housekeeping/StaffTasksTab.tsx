@@ -32,13 +32,14 @@ export function StaffTasksTab() {
 
   if (!tasks?.length) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-          <CheckCircle2 className="h-8 w-8 text-green-600" />
+      <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+        <div className="w-20 h-20 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center mb-4">
+          <CheckCircle2 className="h-10 w-10 text-green-500" />
         </div>
-        <h3 className="font-medium text-lg mb-1">Không có công việc</h3>
-        <p className="text-sm text-muted-foreground">
-          Bạn đã hoàn thành tất cả công việc được giao
+        <h3 className="font-semibold text-lg mb-1">Tuyệt vời!</h3>
+        <p className="text-sm text-muted-foreground max-w-xs">
+          Bạn đã hoàn thành tất cả công việc được giao. 
+          Nghỉ ngơi hoặc kiểm tra phòng mới nhé!
         </p>
       </div>
     )

@@ -158,6 +158,82 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   },
   // ===== HOUSEKEEPING WORKFLOWS =====
   {
+    id: 'checkout-create-inspection-task',
+    name: 'Checkout → Tạo công việc kiểm tra',
+    description: 'Tự động tạo task kiểm tra checkout và giao cho nhân viên khi khách trả phòng',
+    icon: <ClipboardCheck className="h-5 w-5" />,
+    category: 'housekeeping',
+    trigger: {
+      type: 'room_status_change',
+      conditions: { new_status: 'check_out' }
+    },
+    actions: [
+      {
+        type: 'create_housekeeping_task',
+        config: {
+          task_type: 'checkout_inspection',
+          priority_mode: 'fixed',
+          priority: 'high',
+          assignment_mode: 'by_floor',
+          due_at_offset: 30,
+          title_template: 'Kiểm tra checkout - P.{{room_number}}',
+          send_notification: true
+        }
+      }
+    ]
+  },
+  {
+    id: 'task-created-notify-staff',
+    name: 'Công việc mới → Thông báo Staff',
+    description: 'Gửi push notification cho nhân viên khi có công việc mới được giao',
+    icon: <Bell className="h-5 w-5" />,
+    category: 'housekeeping',
+    trigger: {
+      type: 'housekeeping_task_created',
+      conditions: {}
+    },
+    actions: [
+      {
+        type: 'send_notification',
+        config: {
+          notification_type: 'telegram',
+          telegram_config: {
+            routing_mode: 'department',
+            department: 'housekeeping',
+            hotel_filter: 'dynamic',
+            title: '🧹 Công việc mới - P.{{room_number}}',
+            message: '{{task_type_label}}\nƯu tiên: {{priority_label}}\n\nVui lòng xử lý.'
+          }
+        }
+      }
+    ]
+  },
+  {
+    id: 'task-completed-notify-manager',
+    name: 'Hoàn thành → Thông báo Manager',
+    description: 'Thông báo quản lý khi nhân viên hoàn thành công việc',
+    icon: <CheckCircle className="h-5 w-5" />,
+    category: 'housekeeping',
+    trigger: {
+      type: 'housekeeping_task_completed',
+      conditions: {}
+    },
+    actions: [
+      {
+        type: 'send_notification',
+        config: {
+          notification_type: 'in_app',
+          in_app_config: {
+            recipient_mode: 'roles',
+            role_ids: ['manager'],
+            title: '✅ P.{{room_number}} hoàn thành {{task_type_label}}',
+            body: 'Nhân viên {{completed_by_name}} - {{duration_minutes}} phút'
+          }
+        }
+      }
+    ]
+  },
+  {
     id: 'checkout-notify-housekeeping',
     name: 'Checkout → Thông báo Housekeeping',
     description: 'Tự động gửi thông báo Telegram đến bộ phận buồng phòng khi khách checkout',
