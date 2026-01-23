@@ -6,6 +6,8 @@ import { TaskCard } from './TaskCard'
 import { RoomSelectDialog } from './RoomSelectDialog'
 import { CreateTaskDialog } from './CreateTaskDialog'
 import { useMyTasks, useUnassignedTasks } from '@/hooks/useHousekeepingTasks'
+import { useUser } from '@/hooks/useUser'
+import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import { cn } from '@/lib/utils'
 
 type FilterType = 'all' | 'pending' | 'in_progress'
@@ -13,6 +15,8 @@ type FilterType = 'all' | 'pending' | 'in_progress'
 export function StaffTasksTab() {
   const { data: myTasks, isLoading: isLoadingMyTasks } = useMyTasks()
   const { data: unassignedTasks, isLoading: isLoadingUnassigned } = useUnassignedTasks()
+  const { user } = useUser()
+  const canCreateTask = canCreateHousekeepingTask(user)
   const [activeFilter, setActiveFilter] = useState<FilterType>('all')
   
   // Dialog states
@@ -67,13 +71,17 @@ export function StaffTasksTab() {
         </div>
         <h3 className="font-semibold text-lg mb-1">Tuyệt vời!</h3>
         <p className="text-sm text-muted-foreground max-w-xs mb-6">
-          Không có công việc nào cần xử lý.
-          Bạn có thể tạo yêu cầu mới nếu cần.
+          {canCreateTask 
+            ? 'Không có công việc nào cần xử lý. Bạn có thể tạo yêu cầu mới nếu cần.'
+            : 'Không có công việc nào cần xử lý. Chờ công việc mới được giao.'
+          }
         </p>
-        <Button onClick={() => setShowRoomSelect(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Tạo yêu cầu công việc
-        </Button>
+        {canCreateTask && (
+          <Button onClick={() => setShowRoomSelect(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Tạo yêu cầu công việc
+          </Button>
+        )}
 
         <RoomSelectDialog
           open={showRoomSelect}
@@ -215,17 +223,19 @@ export function StaffTasksTab() {
           </div>
         )}
 
-        {/* Create Task Button */}
-        <div className="pt-4">
-          <Button 
-            variant="outline" 
-            className="w-full"
-            onClick={() => setShowRoomSelect(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Tạo yêu cầu công việc mới
-          </Button>
-        </div>
+        {/* Create Task Button - Only for managers */}
+        {canCreateTask && (
+          <div className="pt-4">
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => setShowRoomSelect(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Tạo yêu cầu công việc mới
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Dialogs */}
