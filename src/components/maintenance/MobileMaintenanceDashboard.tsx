@@ -1,6 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { MobileHeader } from '@/components/layout/MobileHeader'
 import { MobileStatCard, StatScrollContainer } from '@/components/mobile/MobileDashboardStats'
 import { SwipeableCard } from '@/components/mobile/TouchOptimized'
 import { useMaintenanceDashboard } from '@/hooks/useMaintenanceDashboard'
@@ -64,9 +63,7 @@ export const MobileMaintenanceDashboard = () => {
   ].slice(0, 5)
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <MobileHeader showHotelSelector showSearch={false} />
-
+    <div className="pb-20">
       <div className="space-y-4">
         {/* Stats */}
         <StatScrollContainer>
