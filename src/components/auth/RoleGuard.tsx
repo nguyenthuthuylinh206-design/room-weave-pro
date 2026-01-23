@@ -2,6 +2,7 @@ import { Navigate } from 'react-router-dom'
 import { useUser } from '@/hooks/useUser'
 import { AppRole } from '@/types/database.types'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { AccessDenied } from './AccessDenied'
 
 interface RoleGuardProps {
   children: React.ReactNode
@@ -20,7 +21,7 @@ export const RoleGuard = ({ children, allowedRoles }: RoleGuardProps) => {
   }
 
   if (!hasAnyRole(allowedRoles)) {
-    return <Navigate to="/unauthorized" replace />
+    return <AccessDenied requiredRoles={allowedRoles} />
   }
 
   return <>{children}</>

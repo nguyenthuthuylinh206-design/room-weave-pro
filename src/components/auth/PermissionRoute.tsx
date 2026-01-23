@@ -5,6 +5,7 @@ import { useQuery, useQueries } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { Loader2 } from 'lucide-react'
 import { isAdminUser } from '@/lib/userAccess'
+import { AccessDenied } from './AccessDenied'
 
 export type PermissionModule = 
   | 'dashboard'
@@ -122,7 +123,7 @@ function NonAdminPermissionCheck({
   }
   
   if (!hasPermission) {
-    return fallback ? <>{fallback}</> : <Navigate to="/unauthorized" replace />
+    return fallback ? <>{fallback}</> : <AccessDenied module={module} action={action} />
   }
   
   return <>{children}</>
