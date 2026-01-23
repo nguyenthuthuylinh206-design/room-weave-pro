@@ -23,6 +23,12 @@ const TRIGGER_EVENTS = [
   { value: 'room_standards_applied', label: 'Setup phòng hoàn thành', group: 'Phòng' },
   { value: 'room.checkout', label: 'Checkout phòng', group: 'Phòng' },
   
+  // Housekeeping Task events
+  { value: 'housekeeping_task_created', label: 'Công việc mới được tạo', group: 'Công việc' },
+  { value: 'housekeeping_task_started', label: 'Nhân viên bắt đầu công việc', group: 'Công việc' },
+  { value: 'housekeeping_task_completed', label: 'Công việc hoàn thành', group: 'Công việc' },
+  { value: 'housekeeping_task_overdue', label: 'Công việc quá hạn', group: 'Công việc' },
+  
   // Stock Adjustment events
   { value: 'adjustment_created', label: 'Phiếu kiểm kê được tạo', group: 'Kiểm kê' },
   { value: 'adjustment_started', label: 'Bắt đầu kiểm kê', group: 'Kiểm kê' },
@@ -47,6 +53,12 @@ const TRIGGER_VARIABLES: Record<string, string[]> = {
   room_status_change: ['room_id', 'room_number', 'floor', 'old_status', 'new_status'],
   room_check_completed: ['room_id', 'room_number', 'check_type', 'staff_name', 'issue_summary'],
   room_standards_applied: ['room_id', 'room_number', 'room_type', 'items_count'],
+  // Housekeeping task variables
+  housekeeping_task_created: ['task_id', 'room_number', 'floor', 'task_type', 'task_type_label', 'priority', 'priority_label', 'assigned_to_name', 'requested_by_name', 'title', 'description'],
+  housekeeping_task_started: ['task_id', 'room_number', 'floor', 'task_type', 'task_type_label', 'started_by_name'],
+  housekeeping_task_completed: ['task_id', 'room_number', 'floor', 'task_type', 'task_type_label', 'duration_minutes', 'completed_by_name'],
+  housekeeping_task_overdue: ['task_id', 'room_number', 'floor', 'task_type', 'task_type_label', 'priority', 'priority_label', 'assigned_to_name', 'overdue_minutes'],
+  // Stock adjustment variables
   adjustment_created: ['adjustment_id', 'adjustment_code', 'scheduled_date', 'total_items', 'created_by_name'],
   adjustment_started: ['adjustment_id', 'adjustment_code', 'started_by_name'],
   adjustment_completed: ['adjustment_id', 'adjustment_code', 'total_items', 'completed_by_name'],

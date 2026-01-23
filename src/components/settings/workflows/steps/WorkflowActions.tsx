@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Plus, ChevronUp, ChevronDown, Trash2, ArrowDown } from 'lucide-react'
 import { CreateMaintenanceAction } from '../actions/CreateMaintenanceAction'
+import { CreateHousekeepingTaskAction } from '../actions/CreateHousekeepingTaskAction'
 import { SendNotificationAction } from '../actions/SendNotificationAction'
 import { UpdateRecordAction } from '../actions/UpdateRecordAction'
 import { CallWebhookAction } from '../actions/CallWebhookAction'
@@ -17,6 +18,7 @@ interface LocalWorkflowAction {
 const ACTION_TYPES = [
   { value: 'send_notification', label: 'Gửi thông báo', description: 'Telegram, Push, In-app' },
   { value: 'send_email', label: 'Gửi email', description: 'Email thông báo' },
+  { value: 'create_housekeeping_task', label: 'Tạo công việc buồng phòng', description: 'Dọn phòng, kiểm tra...' },
   { value: 'create_maintenance', label: 'Tạo yêu cầu bảo trì', description: 'Phiếu bảo trì tự động' },
   { value: 'update_record', label: 'Cập nhật dữ liệu', description: 'Thay đổi trạng thái, giá trị' },
   { value: 'call_webhook', label: 'Gọi Webhook', description: 'Tích hợp hệ thống ngoài' },
@@ -64,6 +66,14 @@ export const WorkflowActions = ({ actions, onChange, triggerType, triggerEvent }
 
   const renderActionConfig = (action: LocalWorkflowAction, index: number) => {
     switch (action.type) {
+      case 'create_housekeeping_task':
+        return (
+          <CreateHousekeepingTaskAction
+            config={action.config}
+            onChange={(config) => updateAction(index, config)}
+            triggerEvent={triggerEvent}
+          />
+        )
       case 'create_maintenance':
         return (
           <CreateMaintenanceAction

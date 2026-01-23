@@ -318,6 +318,136 @@ async function executeAction(
         return { success: true }
       }
 
+      case 'create_housekeeping_task': {
+        // Validate required data
+        const roomId = eventData.room_id
+        const taskHotelId = hotelId || eventData.hotel_id
+        
+        if (!roomId) {
+          console.log('[execute-workflow] create_housekeeping_task: No room_id in event data, skipping')
+          return { success: false, error: 'No room_id in event data' }
+        }
+        
+        if (!taskHotelId) {
+          console.log('[execute-workflow] create_housekeeping_task: No hotel_id available, skipping')
+          return { success: false, error: 'No hotel_id available' }
+        }
+        
+        // Determine priority
+        let priority = config.priority || 'medium'
+        if (config.priority_mode === 'auto' && eventData.priority) {
+          priority = eventData.priority
+        }
+        
+        // Build title
+        let title = config.title_template 
+          ? replaceVariables(config.title_template, eventData)
+          : `${getTaskTypeLabel(config.task_type || 'cleaning')} - P.${eventData.room_number || 'N/A'}`
+        
+        // Build description
+        const description = config.description_template
+          ? replaceVariables(config.description_template, eventData)
+          : null
+        
+        // Calculate due_at
+        const dueAtOffset = config.due_at_offset || 30 // minutes
+        const dueAt = new Date(Date.now() + dueAtOffset * 60 * 1000).toISOString()
+        
+        // Determine assignment (auto_rotate, by_floor, or specific)
+        let assignedTo: string | null = null
+        
+        if (config.assignment_mode === 'specific' && eventData.assigned_to) {
+          assignedTo = eventData.assigned_to
+        } else if (config.assignment_mode === 'by_floor' || config.assignment_mode === 'auto_rotate') {
+          // Try to find an available staff member
+          const floor = eventData.floor
+          
+          // Get housekeeping staff for this hotel
+          const { data: staffList } = await supabase
+            .from('user_hotels')
+            .select('user_id, users!inner(id, full_name, user_level_code)')
+            .eq('hotel_id', taskHotelId)
+            .eq('users.user_level_code', 'staff')
+          
+          if (staffList && staffList.length > 0) {
+            if (config.assignment_mode === 'by_floor' && floor) {
+              // Try to find staff assigned to this floor (could add floor assignment logic later)
+              // For now, use round-robin
+            }
+            
+            // Round-robin: Get the staff with least pending tasks
+            const staffIds = staffList.map((s: any) => s.user_id)
+            
+            const { data: taskCounts } = await supabase
+              .from('housekeeping_tasks')
+              .select('assigned_to')
+              .in('assigned_to', staffIds)
+              .in('status', ['pending', 'in_progress'])
+            
+            // Count tasks per staff
+            const counts: Record<string, number> = {}
+            staffIds.forEach((id: string) => counts[id] = 0)
+            taskCounts?.forEach((t: any) => {
+              if (t.assigned_to) counts[t.assigned_to] = (counts[t.assigned_to] || 0) + 1
+            })
+            
+            // Find staff with minimum tasks
+            let minTasks = Infinity
+            staffIds.forEach((id: string) => {
+              if (counts[id] < minTasks) {
+                minTasks = counts[id]
+                assignedTo = id
+              }
+            })
+          }
+        }
+        
+        // Insert the task
+        const { data: newTask, error: insertError } = await supabase
+          .from('housekeeping_tasks')
+          .insert({
+            tenant_id: tenantId,
+            hotel_id: taskHotelId,
+            room_id: roomId,
+            booking_id: eventData.booking_id || null,
+            task_type: config.task_type || 'cleaning',
+            title,
+            description,
+            priority,
+            assigned_to: assignedTo,
+            due_at: dueAt,
+            status: 'pending',
+          })
+          .select()
+          .single()
+        
+        if (insertError) {
+          console.error('[execute-workflow] Failed to create housekeeping task:', insertError)
+          throw insertError
+        }
+        
+        console.log(`[execute-workflow] Created housekeeping task: ${newTask.id}`)
+        
+        // Optionally send notification to assigned staff
+        if (config.send_notification && assignedTo) {
+          await supabase.functions.invoke('send-push-notification', {
+            body: {
+              tenant_id: tenantId,
+              user_id: assignedTo,
+              title: `🧹 Công việc mới - P.${eventData.room_number || 'N/A'}`,
+              body: title,
+              data: {
+                type: 'housekeeping_task',
+                task_id: newTask.id,
+                room_id: roomId,
+              },
+            },
+          })
+        }
+        
+        return { success: true }
+      }
+
       case 'create_maintenance': {
         const title = replaceVariables(config.title || 'Yêu cầu bảo trì', eventData)
         const description = replaceVariables(config.description || '', eventData)
@@ -385,4 +515,18 @@ async function executeAction(
     console.error(`[execute-workflow] Action ${actionType} failed:`, error)
     return { success: false, error: String(error) }
   }
+}
+
+/**
+ * Helper function to get task type label
+ */
+function getTaskTypeLabel(taskType: string): string {
+  const labels: Record<string, string> = {
+    checkout_inspection: 'Kiểm tra checkout',
+    cleaning: 'Dọn phòng',
+    checkin_prep: 'Chuẩn bị check-in',
+    amenity_request: 'Bổ sung đồ dùng',
+    other: 'Công việc khác',
+  }
+  return labels[taskType] || taskType
 }
