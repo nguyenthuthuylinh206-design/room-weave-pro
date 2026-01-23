@@ -33,8 +33,11 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { ImageUpload } from '@/components/shared/ImageUpload'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { WarehouseSelect } from '@/components/warehouse/WarehouseSelect'
 import { useCreateOutboundTransaction } from '@/hooks/useInventoryTransactions'
 import { useItems } from '@/hooks/useItems'
+import { useDefaultWarehouse } from '@/hooks/useWarehouses'
+import { useMultipleWarehouseStock } from '@/hooks/useWarehouseStock'
 import { cn } from '@/lib/utils'
 import { AnimatePresence, motion } from 'framer-motion'
 import { toast } from 'sonner'
@@ -44,7 +47,7 @@ const DRAFT_KEY = 'outbound_form_draft'
 
 const createOutboundSchema = (t: (key: string) => string) => z.object({
   transaction_category: z.enum(['room_assign', 'laundry', 'maintenance', 'disposal', 'other']),
-  from_location: z.string().min(1, t('inventory:mobileForm.validation.fromLocationRequired')),
+  from_warehouse_id: z.string().uuid(t('inventory:mobileForm.validation.fromLocationRequired')),
   to_location: z.string().min(1, t('inventory:mobileForm.validation.toLocationRequired')),
   items: z.array(z.object({
     item_id: z.string().uuid(t('inventory:mobileForm.validation.itemRequired')),
@@ -86,6 +89,7 @@ export function MobileOutboundForm() {
   
   const { mutate: createOutbound, isPending: isLoading } = useCreateOutboundTransaction()
   const { data: itemsData, isLoading: isLoadingItems } = useItems({ search: searchQuery }, 1, 50)
+  const { data: defaultWarehouse } = useDefaultWarehouse()
   
   const outboundSchema = createOutboundSchema(t)
 
@@ -93,7 +97,7 @@ export function MobileOutboundForm() {
     resolver: zodResolver(outboundSchema),
     defaultValues: {
       transaction_category: 'room_assign',
-      from_location: t('inventory:mobileForm.outbound.fromPlaceholder'),
+      from_warehouse_id: '',
       to_location: '',
       items: [],
       recipient_name: '',
@@ -102,21 +106,37 @@ export function MobileOutboundForm() {
     },
   })
   
+  // Set default warehouse when loaded
+  const fromWarehouseId = form.watch('from_warehouse_id')
+  useEffect(() => {
+    if (defaultWarehouse && !fromWarehouseId) {
+      form.setValue('from_warehouse_id', defaultWarehouse.id)
+    }
+  }, [defaultWarehouse, fromWarehouseId, form])
+  
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'items',
   })
   
-  const items = form.watch('items')
+  const watchedItems = form.watch('items') || []
   const category = form.watch('transaction_category')
-  const from_location = form.watch('from_location')
   const to_location = form.watch('to_location')
-  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
+  const totalQuantity = watchedItems.reduce((sum, item) => sum + (item.quantity || 0), 0)
   
-  const hasStockError = items.some(item => item.quantity > item.available_quantity)
-  const lowStockWarnings = items.filter(
-    item => item.available_quantity > 0 && 
-    (item.available_quantity - item.quantity) < 10
+  // Get warehouse stock for selected items
+  const itemIds = watchedItems.map(i => i.item_id).filter(Boolean)
+  const { data: warehouseStockMap } = useMultipleWarehouseStock(fromWarehouseId, itemIds)
+  
+  const hasStockError = watchedItems.some(item => {
+    const warehouseQty = warehouseStockMap?.[item.item_id]?.quantity || 0
+    return item.quantity > warehouseQty
+  })
+  const lowStockWarnings = watchedItems.filter(
+    item => {
+      const warehouseQty = warehouseStockMap?.[item.item_id]?.quantity || 0
+      return warehouseQty > 0 && (warehouseQty - item.quantity) < 10
+    }
   )
   
   // Load draft on mount
@@ -134,7 +154,7 @@ export function MobileOutboundForm() {
               localStorage.removeItem(DRAFT_KEY)
               form.reset({
                 transaction_category: 'room_assign',
-                from_location: t('inventory:mobileForm.outbound.fromPlaceholder'),
+                from_warehouse_id: defaultWarehouse?.id || '',
                 to_location: '',
                 items: [],
                 recipient_name: '',
@@ -165,25 +185,25 @@ export function MobileOutboundForm() {
   const validateStep = useCallback((stepNumber: number) => {
     if (stepNumber === 1) {
       const errors: Record<string, string | null> = {}
-      if (!from_location?.trim()) errors.from_location = t('inventory:mobileForm.validation.fromLocationRequired')
+      if (!fromWarehouseId) errors.from_warehouse_id = t('inventory:mobileForm.validation.fromLocationRequired')
       if (!to_location?.trim()) errors.to_location = t('inventory:mobileForm.validation.toLocationRequired')
-      return { isValid: !errors.from_location && !errors.to_location, errors }
+      return { isValid: !errors.from_warehouse_id && !errors.to_location, errors }
     }
     if (stepNumber === 2) {
       if (hasStockError) {
         return { isValid: false, errors: { items: t('inventory:mobileForm.validation.exceededStock') } }
       }
       return { 
-        isValid: items.length > 0 && items.every(item => item.item_id && item.quantity > 0 && item.quantity <= item.available_quantity), 
-        errors: items.length === 0 ? { items: t('inventory:mobileForm.validation.addAtLeastOneItem') } : {} 
+        isValid: watchedItems.length > 0 && watchedItems.every(item => item.item_id && item.quantity > 0), 
+        errors: watchedItems.length === 0 ? { items: t('inventory:mobileForm.validation.addAtLeastOneItem') } : {} 
       }
     }
     return { isValid: true, errors: {} }
-  }, [from_location, to_location, items, hasStockError, t])
+  }, [fromWarehouseId, to_location, watchedItems, hasStockError, t])
   
-  const canProceedStep1 = Boolean(category && from_location?.trim() && to_location?.trim())
-  const canProceedStep2 = items.length > 0 && 
-    items.every(item => item.item_id && item.quantity > 0 && item.quantity <= item.available_quantity) &&
+  const canProceedStep1 = Boolean(category && fromWarehouseId && to_location?.trim())
+  const canProceedStep2 = watchedItems.length > 0 && 
+    watchedItems.every(item => item.item_id && item.quantity > 0) &&
     !hasStockError
   
   const handleNext = () => {
@@ -247,7 +267,7 @@ export function MobileOutboundForm() {
   })
   
   const addItem = (itemId: string, availableQty: number) => {
-    const existing = items.find(i => i.item_id === itemId)
+    const existing = watchedItems.find(i => i.item_id === itemId)
     if (existing) {
       toast.info(t('inventory:mobileForm.itemAlreadyAdded'))
       return
@@ -377,20 +397,18 @@ export function MobileOutboundForm() {
               
               <div className="space-y-3">
                 <div>
-                  <Label htmlFor="from_location">{t('inventory:mobileForm.outbound.fromLocation')} *</Label>
-                  <Input 
-                    id="from_location"
+                  <Label>{t('inventory:mobileForm.outbound.fromLocation')} *</Label>
+                  <WarehouseSelect
+                    value={fromWarehouseId}
+                    onValueChange={(value) => form.setValue('from_warehouse_id', value)}
                     placeholder={t('inventory:mobileForm.outbound.fromPlaceholder')}
-                    className={cn(
-                      "min-h-[48px] mt-1",
-                      form.formState.errors.from_location && "border-destructive"
-                    )}
-                    {...form.register('from_location')}
+                    error={!!form.formState.errors.from_warehouse_id}
+                    className="mt-1"
                   />
-                  {form.formState.errors.from_location && (
+                  {form.formState.errors.from_warehouse_id && (
                     <p className="text-sm text-destructive mt-1 flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
-                      {form.formState.errors.from_location.message}
+                      {form.formState.errors.from_warehouse_id.message}
                     </p>
                   )}
                 </div>
@@ -480,10 +498,10 @@ export function MobileOutboundForm() {
                 {fields.map((field, index) => {
                     const item = itemsData?.items.find(i => i.id === field.item_id)
                     const primaryImage = item?.item_images?.[0]?.url
-                    const currentQuantity = items[index]?.quantity || field.quantity
-                    const availableQty = items[index]?.available_quantity || field.available_quantity
-                    const hasError = currentQuantity > availableQty
-                    const isLowStock = availableQty - currentQuantity < 10
+                    const currentQuantity = watchedItems[index]?.quantity || field.quantity
+                    const warehouseQty = warehouseStockMap?.[field.item_id]?.quantity || 0
+                    const hasError = currentQuantity > warehouseQty
+                    const isLowStock = warehouseQty - currentQuantity < 10
                     
                     return (
                       <Card key={field.id} className={cn("p-4", hasError && "border-destructive")}>
@@ -505,7 +523,7 @@ export function MobileOutboundForm() {
                             <p className="text-sm text-muted-foreground">{item?.code}</p>
                             <p className="text-xs text-muted-foreground mt-1">
                               {t('inventory:mobileForm.stock')}: <span className={hasError ? 'text-destructive font-semibold' : ''}>
-                                {availableQty} {item?.unit}
+                                {warehouseQty} {item?.unit}
                               </span>
                             </p>
                           </div>
@@ -584,7 +602,7 @@ export function MobileOutboundForm() {
                 </div>
                 
                 {/* Summary */}
-                {items.length > 0 && (
+                {watchedItems.length > 0 && (
                   <div className="px-4">
                     <Card className="p-4 bg-muted/50">
                       <div className="flex justify-between text-sm">
@@ -654,7 +672,7 @@ export function MobileOutboundForm() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{t('inventory:mobileForm.from')}:</span>
-                  <span className="font-medium">{form.watch('from_location')}</span>
+                  <span className="font-medium">{form.watch('from_warehouse_id') ? t('inventory:mobileForm.outbound.warehouseSelected') : '-'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{t('inventory:mobileForm.to')}:</span>
@@ -669,7 +687,7 @@ export function MobileOutboundForm() {
                 <div className="h-px bg-border my-2" />
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{t('inventory:mobileForm.outbound.itemCount')}:</span>
-                  <span className="font-medium">{items.length}</span>
+                  <span className="font-medium">{watchedItems.length}</span>
                 </div>
                 <div className="flex justify-between text-lg">
                   <span className="font-semibold">{t('inventory:mobileForm.outbound.totalExportQuantity')}:</span>
@@ -736,7 +754,7 @@ export function MobileOutboundForm() {
                 itemsData?.items.map((item) => {
                   const availableQty = item.quantity_in_stock || 0
                   const primaryImage = item.item_images?.[0]?.url
-                  const isAlreadyAdded = items.some(i => i.item_id === item.id)
+                  const isAlreadyAdded = watchedItems.some(i => i.item_id === item.id)
                   
                   return (
                     <Card 

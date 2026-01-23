@@ -111,6 +111,7 @@ export function useCreateInboundTransaction() {
         p_documents: data.documents || null,
         p_photos: data.photos || null,
         p_notes: data.notes || null,
+        p_to_warehouse_id: data.to_warehouse_id || null,
       })
       
       if (error) throw error
@@ -133,6 +134,8 @@ export function useCreateInboundTransaction() {
       queryClient.invalidateQueries({ queryKey: ['inventory-dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
       queryClient.invalidateQueries({ queryKey: ['low-stock-items'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouses-with-stats'] })
       
       toast({
         title: 'Thành công',
@@ -177,6 +180,7 @@ export function useCreateOutboundTransaction() {
         p_documents: data.documents || null,
         p_photos: data.photos || null,
         p_notes: data.notes || null,
+        p_from_warehouse_id: data.from_warehouse_id || null,
       })
       
       if (error) throw error
@@ -200,6 +204,8 @@ export function useCreateOutboundTransaction() {
       queryClient.invalidateQueries({ queryKey: ['inventory-dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
       queryClient.invalidateQueries({ queryKey: ['low-stock-items'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouses-with-stats'] })
       
       // Trigger workflow for low stock items
       if (result.low_stock_items && result.low_stock_items.length > 0 && tenant?.id) {
