@@ -71,6 +71,7 @@ export interface CreateInboundData {
   transaction_category: TransactionCategory
   from_location: string
   to_location: string
+  to_warehouse_id: string
   items: {
     item_id: string
     quantity: number
@@ -88,6 +89,7 @@ export interface CreateOutboundData {
   transaction_category: TransactionCategory
   from_location: string
   to_location: string
+  from_warehouse_id: string
   items: {
     item_id: string
     quantity: number

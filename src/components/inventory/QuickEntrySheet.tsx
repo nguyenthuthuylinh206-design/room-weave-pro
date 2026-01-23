@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { useItems } from '@/hooks/useItems'
 import { useCreateInboundTransaction, useCreateOutboundTransaction } from '@/hooks/useInventoryTransactions'
+import { useDefaultWarehouse } from '@/hooks/useWarehouses'
 import { cn } from '@/lib/utils'
 
 interface QuickEntrySheetProps {
@@ -39,6 +40,7 @@ export function QuickEntrySheet({ open, onOpenChange, type }: QuickEntrySheetPro
   const { t } = useTranslation('inventory')
   const { data: itemsData } = useItems({}, 1, 100)
   const items = itemsData?.items || []
+  const { data: defaultWarehouse } = useDefaultWarehouse()
 
   
   const createInbound = useCreateInboundTransaction()
@@ -91,6 +93,7 @@ export function QuickEntrySheet({ open, onOpenChange, type }: QuickEntrySheetPro
           transaction_category: 'other',
           from_location: fromLocation,
           to_location: toLocation,
+          to_warehouse_id: defaultWarehouse?.id || '',
           items: [{
             item_id: selectedItemId,
             quantity,
@@ -103,6 +106,7 @@ export function QuickEntrySheet({ open, onOpenChange, type }: QuickEntrySheetPro
           transaction_category: 'other',
           from_location: fromLocation,
           to_location: toLocation,
+          from_warehouse_id: defaultWarehouse?.id || '',
           items: [{
             item_id: selectedItemId,
             quantity
