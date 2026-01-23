@@ -1,9 +1,10 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Home, Package, DoorOpen, Shirt, Wrench, BarChart3, Building2, Settings, CalendarDays } from 'lucide-react'
+import { Home, Package, DoorOpen, Shirt, Wrench, BarChart3, Building2, Settings, CalendarDays, ClipboardList } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { useUser } from '@/hooks/useUser'
 import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
+import { usePendingTaskCount } from '@/hooks/useHousekeepingTasks'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 
@@ -19,8 +20,9 @@ interface NavItem {
 export const MobileBottomNav = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { role, tenantId } = useUser()
+  const { user, role, tenantId } = useUser()
   const { data: modulePermissions } = useUserModulePermissions()
+  const { data: pendingTaskCount = 0 } = usePendingTaskCount()
 
   // Get pending counts
   const { data: pendingCounts } = useQuery({
@@ -60,7 +62,7 @@ export const MobileBottomNav = () => {
   const NAV_ITEMS: NavItem[] = [
     { id: 'home', label: 'Home', icon: Home, path: '/' },
     { id: 'inventory', label: 'Kho', icon: Package, path: '/inventory', module: 'inventory,items' },
-    { id: 'rooms', label: 'Phòng', icon: DoorOpen, path: '/rooms', module: 'rooms' },
+    { id: 'rooms', label: 'Phòng', icon: DoorOpen, path: '/rooms', module: 'rooms', badge: true },
     { id: 'laundry', label: 'Giặt là', icon: Shirt, path: '/laundry', module: 'laundry', badge: true },
     { id: 'maintenance', label: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badge: true },
   ]
@@ -92,6 +94,7 @@ export const MobileBottomNav = () => {
     if (!pendingCounts) return 0
     if (itemId === 'maintenance') return pendingCounts.maintenance
     if (itemId === 'laundry') return pendingCounts.laundry
+    if (itemId === 'rooms') return pendingTaskCount
     return 0
   }
 
