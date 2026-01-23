@@ -1,24 +1,52 @@
-import { useState, useEffect } from 'react'
-import { CheckCircle2, Clock, AlertTriangle, Inbox } from 'lucide-react'
+import { useState } from 'react'
+import { CheckCircle2, Clock, AlertTriangle, Inbox, Plus, Users } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
 import { TaskCard } from './TaskCard'
-import { useMyTasks } from '@/hooks/useHousekeepingTasks'
+import { RoomSelectDialog } from './RoomSelectDialog'
+import { CreateTaskDialog } from './CreateTaskDialog'
+import { useMyTasks, useUnassignedTasks } from '@/hooks/useHousekeepingTasks'
 import { cn } from '@/lib/utils'
-import type { HousekeepingTaskWithDetails } from '@/types/housekeeping.types'
+
+type FilterType = 'all' | 'pending' | 'in_progress'
 
 export function StaffTasksTab() {
-  const { data: tasks, isLoading } = useMyTasks()
-  const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'in_progress'>('all')
+  const { data: myTasks, isLoading: isLoadingMyTasks } = useMyTasks()
+  const { data: unassignedTasks, isLoading: isLoadingUnassigned } = useUnassignedTasks()
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all')
+  
+  // Dialog states
+  const [showRoomSelect, setShowRoomSelect] = useState(false)
+  const [showCreateTask, setShowCreateTask] = useState(false)
+  const [selectedRoom, setSelectedRoom] = useState<{
+    id: string
+    room_number: string
+    floor: number
+    hotel_id: string
+  } | null>(null)
 
-  // Separate tasks by status
-  const pendingTasks = tasks?.filter(t => t.status === 'pending') || []
-  const inProgressTasks = tasks?.filter(t => t.status === 'in_progress') || []
+  // Separate my tasks by status
+  const pendingTasks = myTasks?.filter(t => t.status === 'pending') || []
+  const inProgressTasks = myTasks?.filter(t => t.status === 'in_progress') || []
   const urgentTasks = pendingTasks.filter(t => t.priority === 'urgent' || t.priority === 'high')
 
-  // Filter tasks based on active filter
-  const filteredTasks = activeFilter === 'all' 
-    ? tasks 
-    : tasks?.filter(t => t.status === activeFilter)
+  // Total count for display
+  const totalMyTasks = (myTasks?.length || 0)
+  const totalUnassigned = (unassignedTasks?.length || 0)
+
+  const isLoading = isLoadingMyTasks || isLoadingUnassigned
+
+  // Handle room selection for creating new task
+  const handleRoomSelect = (room: {
+    id: string
+    room_number: string
+    floor: number
+    hotel_id: string
+  }) => {
+    setSelectedRoom(room)
+    setShowRoomSelect(false)
+    setShowCreateTask(true)
+  }
 
   if (isLoading) {
     return (
@@ -30,17 +58,38 @@ export function StaffTasksTab() {
     )
   }
 
-  if (!tasks?.length) {
+  // Empty state - no tasks at all
+  if (!myTasks?.length && !unassignedTasks?.length) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center px-6">
         <div className="w-20 h-20 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center mb-4">
           <CheckCircle2 className="h-10 w-10 text-green-500" />
         </div>
         <h3 className="font-semibold text-lg mb-1">Tuyệt vời!</h3>
-        <p className="text-sm text-muted-foreground max-w-xs">
-          Bạn đã hoàn thành tất cả công việc được giao. 
-          Nghỉ ngơi hoặc kiểm tra phòng mới nhé!
+        <p className="text-sm text-muted-foreground max-w-xs mb-6">
+          Không có công việc nào cần xử lý.
+          Bạn có thể tạo yêu cầu mới nếu cần.
         </p>
+        <Button onClick={() => setShowRoomSelect(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Tạo yêu cầu công việc
+        </Button>
+
+        <RoomSelectDialog
+          open={showRoomSelect}
+          onOpenChange={setShowRoomSelect}
+          onSelectRoom={handleRoomSelect}
+        />
+
+        {selectedRoom && (
+          <CreateTaskDialog
+            open={showCreateTask}
+            onOpenChange={setShowCreateTask}
+            roomId={selectedRoom.id}
+            roomNumber={selectedRoom.room_number}
+            hotelId={selectedRoom.hotel_id}
+          />
+        )}
       </div>
     )
   }
@@ -50,6 +99,7 @@ export function StaffTasksTab() {
       {/* Quick Stats */}
       <div className="grid grid-cols-3 gap-2 px-4 pt-4">
         <button
+          type="button"
           onClick={() => setActiveFilter('all')}
           className={cn(
             'flex flex-col items-center p-3 rounded-lg border transition-colors',
@@ -58,11 +108,12 @@ export function StaffTasksTab() {
               : 'border-border hover:bg-muted/50'
           )}
         >
-          <span className="text-2xl font-bold">{tasks.length}</span>
-          <span className="text-xs text-muted-foreground">Tất cả</span>
+          <span className="text-2xl font-bold">{totalMyTasks}</span>
+          <span className="text-xs text-muted-foreground">Của tôi</span>
         </button>
         
         <button
+          type="button"
           onClick={() => setActiveFilter('pending')}
           className={cn(
             'flex flex-col items-center p-3 rounded-lg border transition-colors',
@@ -81,6 +132,7 @@ export function StaffTasksTab() {
         </button>
         
         <button
+          type="button"
           onClick={() => setActiveFilter('in_progress')}
           className={cn(
             'flex flex-col items-center p-3 rounded-lg border transition-colors',
@@ -109,7 +161,7 @@ export function StaffTasksTab() {
       )}
 
       {/* Task List */}
-      <div className="px-4 space-y-3 pb-24">
+      <div className="px-4 space-y-4 pb-24">
         {/* In Progress Section */}
         {inProgressTasks.length > 0 && (activeFilter === 'all' || activeFilter === 'in_progress') && (
           <div className="space-y-2">
@@ -138,13 +190,60 @@ export function StaffTasksTab() {
           </div>
         )}
 
+        {/* Unassigned Tasks Section */}
+        {totalUnassigned > 0 && activeFilter === 'all' && (
+          <div className="space-y-2 pt-4 border-t">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Users className="h-4 w-4" />
+              Công việc chờ nhận ({totalUnassigned})
+            </div>
+            <p className="text-xs text-muted-foreground mb-2">
+              Các công việc chưa được giao cho ai. Bạn có thể nhận để thực hiện.
+            </p>
+            {unassignedTasks?.map(task => (
+              <TaskCard key={task.id} task={task} showClaimButton />
+            ))}
+          </div>
+        )}
+
         {/* Empty state for filtered view */}
-        {filteredTasks?.length === 0 && (
+        {activeFilter !== 'all' && (
+          activeFilter === 'pending' ? pendingTasks.length === 0 : inProgressTasks.length === 0
+        ) && (
           <div className="text-center py-8 text-muted-foreground">
             <p>Không có công việc {activeFilter === 'pending' ? 'chờ xử lý' : 'đang thực hiện'}</p>
           </div>
         )}
+
+        {/* Create Task Button */}
+        <div className="pt-4">
+          <Button 
+            variant="outline" 
+            className="w-full"
+            onClick={() => setShowRoomSelect(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Tạo yêu cầu công việc mới
+          </Button>
+        </div>
       </div>
+
+      {/* Dialogs */}
+      <RoomSelectDialog
+        open={showRoomSelect}
+        onOpenChange={setShowRoomSelect}
+        onSelectRoom={handleRoomSelect}
+      />
+
+      {selectedRoom && (
+        <CreateTaskDialog
+          open={showCreateTask}
+          onOpenChange={setShowCreateTask}
+          roomId={selectedRoom.id}
+          roomNumber={selectedRoom.room_number}
+          hotelId={selectedRoom.hotel_id}
+        />
+      )}
     </div>
   )
 }
