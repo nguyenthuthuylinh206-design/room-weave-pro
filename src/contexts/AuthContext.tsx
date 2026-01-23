@@ -1,7 +1,9 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react'
 import { User as AuthUser, Session } from '@supabase/supabase-js'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { getAuthErrorKey } from '@/lib/auth-error-messages'
 import { useQueryClient } from '@tanstack/react-query'
 
 // Silent refresh interval: 30 minutes
@@ -26,6 +28,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
+  const { t } = useTranslation('auth')
   const queryClient = useQueryClient()
   const isManualLogout = useRef(false)
   const previousSessionRef = useRef<Session | null>(null)
@@ -113,20 +116,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error
 
       toast({
-        title: 'Đăng nhập thành công',
-        description: 'Chào mừng bạn quay trở lại!',
+        title: t('common:messages.success', 'Đăng nhập thành công'),
+        description: t('quickLogin.welcomeBack', 'Chào mừng bạn quay trở lại!'),
       })
 
       return { data, error: null }
     } catch (error: any) {
+      const errorKey = getAuthErrorKey(error.message || '')
+      
       toast({
-        title: 'Đăng nhập thất bại',
-        description: error.message || 'Vui lòng kiểm tra lại thông tin đăng nhập',
+        title: t('common:messages.loginFailed', 'Đăng nhập thất bại'),
+        description: t(errorKey),
         variant: 'destructive',
       })
       return { data: null, error }
     }
-  }, [toast])
+  }, [toast, t])
 
   const signUp = useCallback(async (email: string, password: string, fullName: string) => {
     try {
@@ -146,20 +151,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error
 
       toast({
-        title: 'Đăng ký thành công',
-        description: 'Vui lòng kiểm tra email để xác thực tài khoản.',
+        title: t('register.title', 'Đăng ký thành công'),
+        description: t('common:messages.checkEmail', 'Vui lòng kiểm tra email để xác thực tài khoản.'),
       })
 
       return { data, error: null }
     } catch (error: any) {
+      const errorKey = getAuthErrorKey(error.message || '')
+      
       toast({
-        title: 'Đăng ký thất bại',
-        description: error.message || 'Có lỗi xảy ra khi tạo tài khoản',
+        title: t('common:messages.registerFailed', 'Đăng ký thất bại'),
+        description: t(errorKey),
         variant: 'destructive',
       })
       return { data: null, error }
     }
-  }, [toast])
+  }, [toast, t])
 
   const resetPassword = useCallback(async (email: string) => {
     try {
@@ -170,20 +177,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error
 
       toast({
-        title: 'Email đã gửi',
-        description: 'Vui lòng kiểm tra email để đặt lại mật khẩu.',
+        title: t('forgotPassword.emailSent', 'Email đã gửi'),
+        description: t('forgotPassword.checkInbox', 'Vui lòng kiểm tra email để đặt lại mật khẩu.'),
       })
 
       return { error: null }
     } catch (error: any) {
+      const errorKey = getAuthErrorKey(error.message || '')
+      
       toast({
-        title: 'Lỗi',
-        description: error.message,
+        title: t('common:messages.error', 'Lỗi'),
+        description: t(errorKey),
         variant: 'destructive',
       })
       return { error }
     }
-  }, [toast])
+  }, [toast, t])
 
   const updatePassword = useCallback(async (newPassword: string) => {
     try {
@@ -194,20 +203,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error
 
       toast({
-        title: 'Cập nhật thành công',
-        description: 'Mật khẩu của bạn đã được thay đổi.',
+        title: t('resetPassword.success', 'Cập nhật thành công'),
+        description: t('resetPassword.successDescription', 'Mật khẩu của bạn đã được thay đổi.'),
       })
 
       return { error: null }
     } catch (error: any) {
+      const errorKey = getAuthErrorKey(error.message || '')
+      
       toast({
-        title: 'Lỗi',
-        description: error.message,
+        title: t('common:messages.error', 'Lỗi'),
+        description: t(errorKey),
         variant: 'destructive',
       })
       return { error }
     }
-  }, [toast])
+  }, [toast, t])
 
   const signOut = useCallback(async () => {
     try {
