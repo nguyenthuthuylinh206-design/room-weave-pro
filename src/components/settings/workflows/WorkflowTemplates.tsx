@@ -430,7 +430,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 }
 
 export const CATEGORY_LABELS: Record<string, string> = {
-  housekeeping: 'Buồng phòng',
+  housekeeping: 'Công việc',
   inventory: 'Kho',
   maintenance: 'Bảo trì',
   laundry: 'Giặt là',

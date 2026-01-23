@@ -9,28 +9,28 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 
 const WORKFLOW_SUGGESTIONS = [
   {
-    icon: Bell,
-    title: 'Thông báo checkout',
-    description: 'Gửi thông báo Telegram cho bộ phận buồng phòng khi có phòng checkout',
+    icon: ClipboardCheck,
+    title: 'Checkout → Tạo công việc',
+    description: 'Tự động tạo task kiểm tra checkout và giao cho nhân viên',
     trigger: 'room_status_change',
+  },
+  {
+    icon: Bell,
+    title: 'Công việc mới → Thông báo',
+    description: 'Gửi notification cho nhân viên khi có công việc được giao',
+    trigger: 'housekeeping_task_created',
+  },
+  {
+    icon: CheckCircle,
+    title: 'Hoàn thành → Báo Manager',
+    description: 'Thông báo quản lý khi nhân viên hoàn thành công việc',
+    trigger: 'housekeeping_task_completed',
   },
   {
     icon: Package,
     title: 'Cảnh báo hết hàng',
     description: 'Thông báo khi tồn kho xuống dưới mức tối thiểu',
     trigger: 'inventory_low_stock',
-  },
-  {
-    icon: ClipboardCheck,
-    title: 'Kiểm kê chờ duyệt',
-    description: 'Thông báo Manager khi phiếu kiểm kê hoàn thành chờ duyệt',
-    trigger: 'adjustment_completed',
-  },
-  {
-    icon: CheckCircle,
-    title: 'Kết quả duyệt phiếu',
-    description: 'Thông báo Staff khi phiếu được duyệt hoặc từ chối',
-    trigger: 'adjustment_approved',
   },
   {
     icon: Wrench,
