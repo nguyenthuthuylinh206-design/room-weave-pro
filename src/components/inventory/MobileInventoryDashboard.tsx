@@ -1,6 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { PullToRefresh } from '@/components/mobile/TouchOptimized'
-import { MobileInventoryHeader } from './MobileInventoryHeader'
 import { MobileInventoryHero } from './MobileInventoryHero'
 import { MobilePrimaryActions } from './MobilePrimaryActions'
 import { MobileInventoryFAB } from './MobileInventoryFAB'
@@ -41,11 +40,8 @@ export function MobileInventoryDashboard() {
   }
 
   return (
-    <>
-      <MobileInventoryHeader />
-      
-      <PullToRefresh onRefresh={handleRefresh}>
-        <div className="space-y-5 pb-32">
+    <PullToRefresh onRefresh={handleRefresh}>
+      <div className="space-y-5 pb-32">
           {/* Hero Card with Stock Value */}
           <MobileInventoryHero />
           
@@ -61,10 +57,6 @@ export function MobileInventoryDashboard() {
           {/* Today's Transactions */}
           <MobileRecentTransactions />
         </div>
-      </PullToRefresh>
-      
-      {/* Floating Action Button */}
-      <MobileInventoryFAB />
-    </>
+    </PullToRefresh>
   )
 }
