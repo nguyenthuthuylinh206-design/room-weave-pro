@@ -13,6 +13,7 @@ import {
   XCircle,
   Package,
   RotateCcw,
+  Wrench,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -23,12 +24,15 @@ import { RoomDistributionHistory } from '@/components/rooms/RoomDistributionHist
 import { RoomHealthScore } from '@/components/rooms/RoomHealthScore'
 import { GuestInfoCard } from '@/components/rooms/GuestInfoCard'
 import { MobileRoomDetailPage } from '@/components/rooms/MobileRoomDetailPage'
+import { CreateTaskDialog } from '@/components/housekeeping/CreateTaskDialog'
 import { useRoom } from '@/hooks/useRooms'
 import { useApplyStandards } from '@/hooks/useRoomStandards'
 import { useSetupRoom } from '@/hooks/useSetupRoom'
 import { useRoomDistributionHistory } from '@/hooks/useRoomDistributionHistory'
+import { useUser } from '@/hooks/useUser'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { formatCurrency } from '@/lib/utils'
+import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import { PermissionGate } from '@/components/auth/PermissionGate'
 import {
   AlertDialog,
@@ -50,8 +54,11 @@ export function RoomDetailPage() {
   const applyStandards = useApplyStandards()
   const setupRoom = useSetupRoom()
   const { data: deliveryHistory } = useRoomDistributionHistory(id)
+  const { user } = useUser()
   const deliveryRef = useRef<HTMLDivElement>(null)
   const [showResetDialog, setShowResetDialog] = useState(false)
+  const [showCreateTask, setShowCreateTask] = useState(false)
+  const canCreateTask = canCreateHousekeepingTask(user)
   
   // Count pending deliveries
   const pendingDeliveryCount = deliveryHistory?.filter(
@@ -364,6 +371,17 @@ export function RoomDetailPage() {
               <RefreshCw className={`mr-2 h-3.5 w-3.5 ${applyStandards.isPending ? 'animate-spin' : ''}`} />
               {standardItems.length === 0 ? 'Áp dụng tiêu chuẩn' : 'Đồng bộ tiêu chuẩn'}
             </Button>
+            {canCreateTask && (
+              <Button 
+                variant="outline"
+                size="sm"
+                className="w-full justify-start h-8 text-xs"
+                onClick={() => setShowCreateTask(true)}
+              >
+                <Wrench className="mr-2 h-3.5 w-3.5" />
+                Yêu cầu công việc
+              </Button>
+            )}
             <Button 
               variant="outline"
               size="sm"
@@ -416,6 +434,17 @@ export function RoomDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create Task Dialog */}
+      {showCreateTask && data && (
+        <CreateTaskDialog
+          open={showCreateTask}
+          onOpenChange={setShowCreateTask}
+          roomId={id!}
+          roomNumber={room.room_number}
+          hotelId={room.hotel_id}
+        />
+      )}
     </div>
   )
 }

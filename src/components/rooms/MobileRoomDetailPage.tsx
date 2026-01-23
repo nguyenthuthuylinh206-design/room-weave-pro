@@ -22,6 +22,7 @@ import {
   Gift,
   LogOut,
   MoreVertical,
+  Wrench,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -43,6 +44,7 @@ import { RoomDistributionHistory } from '@/components/rooms/RoomDistributionHist
 import { RoomSupplementSheet } from '@/components/rooms/RoomSupplementSheet'
 import { GuestInfoCard } from '@/components/rooms/GuestInfoCard'
 import { StaffRoomDetailPage } from '@/components/rooms/StaffRoomDetailPage'
+import { CreateTaskDialog } from '@/components/housekeeping/CreateTaskDialog'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { PermissionGate } from '@/components/auth/PermissionGate'
 import { useRoom } from '@/hooks/useRooms'
@@ -50,6 +52,7 @@ import { useApplyStandards } from '@/hooks/useRoomStandards'
 import { useRoomDistributionHistory } from '@/hooks/useRoomDistributionHistory'
 import { useUser } from '@/hooks/useUser'
 import { formatCurrency } from '@/lib/utils'
+import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import type { RoomStatus, CheckType } from '@/types/rooms.types'
 
 const handlePrintItemList = (roomNumber: string | undefined, items: any[], t: any) => {
@@ -114,12 +117,13 @@ export function MobileRoomDetailPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { data, isLoading, refetch } = useRoom(id)
-  const { hasAnyRole } = useUser()
+  const { user, hasAnyRole } = useUser()
   const applyStandards = useApplyStandards()
   const { data: deliveryHistory } = useRoomDistributionHistory(id)
   
   // Check if user is manager (has manager-level roles)
   const isManager = hasAnyRole(['super_admin', 'owner', 'hotel_manager', 'department_manager'])
+  const canCreateTask = canCreateHousekeepingTask(user)
   
   // Count pending deliveries
   const pendingDeliveryCount = deliveryHistory?.filter(
@@ -130,6 +134,7 @@ export function MobileRoomDetailPage() {
   const [activeTab, setActiveTab] = useState('info')
   const [showSupplementSheet, setShowSupplementSheet] = useState(false)
   const [supplementMode, setSupplementMode] = useState<'missing' | 'extra'>('missing')
+  const [showCreateTask, setShowCreateTask] = useState(false)
   
   useEffect(() => {
     if (pendingDeliveryCount > 0 && !isLoading) {
@@ -236,6 +241,12 @@ export function MobileRoomDetailPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {canCreateTask && (
+                  <DropdownMenuItem onClick={() => setShowCreateTask(true)}>
+                    <Wrench className="h-4 w-4 mr-2" />
+                    Yêu cầu công việc
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => {
                   setSupplementMode('extra')
                   setShowSupplementSheet(true)
@@ -274,6 +285,17 @@ export function MobileRoomDetailPage() {
         roomNumber={room.room_number}
         initialMode={supplementMode}
       />
+
+      {/* Create Task Dialog */}
+      {showCreateTask && (
+        <CreateTaskDialog
+          open={showCreateTask}
+          onOpenChange={setShowCreateTask}
+          roomId={id!}
+          roomNumber={room.room_number}
+          hotelId={room.hotel_id}
+        />
+      )}
 
       {/* Compact Stats Row + Health Score */}
       <div className="px-4 py-3">

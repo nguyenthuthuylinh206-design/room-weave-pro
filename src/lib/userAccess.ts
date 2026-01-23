@@ -142,3 +142,12 @@ export function getUserRoleDisplay(user: UserWithRelations | null | undefined): 
   const primaryRole = user.roles?.[0]?.role as AppRole
   return primaryRole ? roleLabels[primaryRole] || primaryRole : 'Unknown'
 }
+
+/**
+ * Check if user can create housekeeping tasks
+ * Only Admin (super_admin, tenant_owner) and Manager can create tasks
+ */
+export function canCreateHousekeepingTask(user: UserWithRelations | null | undefined): boolean {
+  if (!user) return false
+  return isAdminUser(user) || isManager(user)
+}
