@@ -11,8 +11,8 @@ interface WorkflowQuickTemplatesProps {
 
 const CATEGORY_TABS = [
   { value: 'all', label: 'Tất cả' },
+  { value: 'housekeeping', label: 'Công việc' },
   { value: 'inventory', label: 'Kho' },
-  { value: 'housekeeping', label: 'Buồng phòng' },
   { value: 'maintenance', label: 'Bảo trì' },
   { value: 'laundry', label: 'Giặt ủi' },
 ]
