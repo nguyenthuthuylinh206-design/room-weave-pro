@@ -186,11 +186,35 @@
     "notesPlaceholder": "Notes about this outbound batch...",
     "stockError": "Outbound quantity cannot exceed stock",
     "success": "Outbound successful",
+    "selectRoom": "Select Room",
+    "selectRooms": "Select Rooms",
+    "selectVendor": "Select Laundry Vendor",
+    "selectMaintenanceRequest": "Link Maintenance Request",
+    "roomAssignDescription": "Items will be assigned to room inventory",
+    "laundryDescription": "Items will be transferred to laundry status",
+    "maintenanceDescription": "Optionally link to an active maintenance request",
+    "warehouseSelected": "Warehouse selected",
+    "roomSelected": "{{count}} rooms selected",
+    "roomSelectedSingular": "1 room",
+    "noRoomSelected": "No room selected",
+    "vendorSelected": "Vendor selected",
+    "noVendorSelected": "No vendor selected",
+    "maintenanceLinked": "Request linked",
+    "noMaintenanceLink": "No link (optional)",
+    "step": {
+      "selectRooms": "Select Rooms",
+      "selectVendor": "Select Vendor",
+      "deliveryInfo": "Delivery Info",
+      "selectRequest": "Select Request"
+    },
     "placeholders": {
       "defaultWarehouse": "Floor 1 Warehouse",
       "fromLocation": "E.g.: Floor 1 Warehouse",
       "toLocation": "E.g.: Room 301, Laundry",
-      "itemNote": "E.g.: Condition, purpose..."
+      "itemNote": "E.g.: Condition, purpose...",
+      "selectRoom": "Select room(s) to deliver...",
+      "selectVendor": "Select laundry vendor...",
+      "selectMaintenanceRequest": "Select maintenance request..."
     },
     "categories": {
       "room_assign": "Room",
