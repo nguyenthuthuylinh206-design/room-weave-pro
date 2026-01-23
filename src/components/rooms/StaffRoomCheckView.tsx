@@ -1,27 +1,32 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Filter, Clock } from 'lucide-react'
+import { Search, Filter, Clock, ClipboardList, Bed } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { CheckTypeSelector } from './CheckTypeSelector'
+import { StaffTasksTab } from '@/components/housekeeping/StaffTasksTab'
 import { useRooms } from '@/hooks/useRooms'
 import { useRoomLastCheck } from '@/hooks/useRoomLastCheck'
 import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
+import { usePendingTaskCount } from '@/hooks/useHousekeepingTasks'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import type { RoomFilters, RoomStatus } from '@/types/rooms.types'
 
 export function StaffRoomCheckView() {
+  const [activeTab, setActiveTab] = useState<'rooms' | 'tasks'>('rooms')
   const [filters, setFilters] = useState<RoomFilters>({})
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null)
   const [showCheckSelector, setShowCheckSelector] = useState(false)
   
   const { data: rooms, isLoading } = useRooms(filters)
   const checkSessions = useAllRoomCheckSessions()
+  const { data: pendingTaskCount = 0 } = usePendingTaskCount()
 
   const handleStartCheck = (roomId: string) => {
     setSelectedRoomId(roomId)
@@ -54,93 +59,123 @@ export function StaffRoomCheckView() {
     <div className="space-y-6">
       <PageHeader
         title="Kiểm tra phòng"
-        description="Chọn phòng để thực hiện kiểm tra"
+        description="Chọn phòng để thực hiện kiểm tra hoặc xem công việc được giao"
       />
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Tìm số phòng..."
-                value={filters.search || ''}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                className="pl-9"
-              />
-            </div>
-            <Select
-              value={filters.floor?.toString() || 'all'}
-              onValueChange={(value) => 
-                setFilters({ ...filters, floor: value === 'all' ? undefined : Number(value) })
-              }
-            >
-              <SelectTrigger className="w-[150px]">
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Tầng" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả tầng</SelectItem>
-                {[1, 2, 3, 4, 5].map((floor) => (
-                  <SelectItem key={floor} value={floor.toString()}>
-                    Tầng {floor}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={filters.status || 'all'}
-              onValueChange={(value) => 
-                setFilters({ ...filters, status: value === 'all' ? undefined : value as RoomStatus })
-              }
-            >
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Trạng thái" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả</SelectItem>
-                <SelectItem value="vacant">Trống</SelectItem>
-                <SelectItem value="occupied">Đang ở</SelectItem>
-                <SelectItem value="cleaning">Đang dọn</SelectItem>
-                <SelectItem value="maintenance">Bảo trì</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Tabs: Rooms vs Tasks */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'rooms' | 'tasks')}>
+        <TabsList>
+          <TabsTrigger value="rooms" className="gap-2">
+            <Bed className="h-4 w-4" />
+            Danh sách phòng
+          </TabsTrigger>
+          <TabsTrigger value="tasks" className="gap-2 relative">
+            <ClipboardList className="h-4 w-4" />
+            Công việc
+            {pendingTaskCount > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="ml-2 h-5 min-w-5 px-1.5 text-xs"
+              >
+                {pendingTaskCount > 9 ? '9+' : pendingTaskCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Rooms Grid */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {[...Array(8)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader>
-                <div className="h-6 bg-muted rounded" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="h-4 bg-muted rounded" />
-                  <div className="h-4 bg-muted rounded w-2/3" />
+        {/* Tasks Tab */}
+        <TabsContent value="tasks" className="mt-6">
+          <StaffTasksTab />
+        </TabsContent>
+
+        {/* Rooms Tab */}
+        <TabsContent value="rooms" className="mt-6 space-y-6">
+          {/* Filters */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Tìm số phòng..."
+                    value={filters.search || ''}
+                    onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                    className="pl-9"
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {rooms?.map((room) => (
-            <RoomCheckCard
-              key={room.id}
-              room={room}
-              checkSession={checkSessions[room.id]}
-              onStartCheck={handleStartCheck}
-              getStatusColor={getStatusColor}
-              getStatusLabel={getStatusLabel}
-            />
-          ))}
-        </div>
-      )}
+                <Select
+                  value={filters.floor?.toString() || 'all'}
+                  onValueChange={(value) => 
+                    setFilters({ ...filters, floor: value === 'all' ? undefined : Number(value) })
+                  }
+                >
+                  <SelectTrigger className="w-[150px]">
+                    <Filter className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="Tầng" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tất cả tầng</SelectItem>
+                    {[1, 2, 3, 4, 5].map((floor) => (
+                      <SelectItem key={floor} value={floor.toString()}>
+                        Tầng {floor}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={filters.status || 'all'}
+                  onValueChange={(value) => 
+                    setFilters({ ...filters, status: value === 'all' ? undefined : value as RoomStatus })
+                  }
+                >
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Trạng thái" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tất cả</SelectItem>
+                    <SelectItem value="vacant">Trống</SelectItem>
+                    <SelectItem value="occupied">Đang ở</SelectItem>
+                    <SelectItem value="cleaning">Đang dọn</SelectItem>
+                    <SelectItem value="maintenance">Bảo trì</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Rooms Grid */}
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {[...Array(8)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader>
+                    <div className="h-6 bg-muted rounded" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="h-4 bg-muted rounded" />
+                      <div className="h-4 bg-muted rounded w-2/3" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {rooms?.map((room) => (
+                <RoomCheckCard
+                  key={room.id}
+                  room={room}
+                  checkSession={checkSessions[room.id]}
+                  onStartCheck={handleStartCheck}
+                  getStatusColor={getStatusColor}
+                  getStatusLabel={getStatusLabel}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Check Type Selector Modal */}
       {selectedRoomId && (
