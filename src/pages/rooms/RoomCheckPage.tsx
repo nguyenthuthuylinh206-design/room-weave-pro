@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { roomCheckFormSchema } from '@/lib/validations/rooms.schemas'
+import { getCheckTypeConfig, type CheckType } from '@/lib/roomCheckConfig'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -571,8 +572,35 @@ export function RoomCheckPage() {
           description={`${room.room_type} - Tầng ${room.floor}`}
         />
         
-        {/* Pending Deliveries Section */}
+      {/* Pending Deliveries Section */}
         <PendingDeliveriesSection roomId={id!} bookingId={currentBooking?.id} />
+      
+      {/* Check Type Header - Color coded */}
+      {(() => {
+        const checkTypeConfig = getCheckTypeConfig(watchedCheckType)
+        return (
+          <div className={`p-3 rounded-lg border ${checkTypeConfig.headerColor}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className={`font-medium ${checkTypeConfig.headerTextColor}`}>
+                  {checkTypeConfig.label}
+                </h3>
+                <p className="text-xs text-muted-foreground">{checkTypeConfig.description}</p>
+              </div>
+              {checkTypeConfig.showBookingInfo && currentBooking && (
+                <div className="text-right">
+                  <p className="text-sm font-medium">{currentBooking.guest_name || 'Khách'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {currentBooking.check_in_date && currentBooking.check_out_date && 
+                      `${new Date(currentBooking.check_in_date).toLocaleDateString('vi-VN')} - ${new Date(currentBooking.check_out_date).toLocaleDateString('vi-VN')}`
+                    }
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
       
       <Card>
         <CardHeader>
@@ -621,11 +649,12 @@ export function RoomCheckPage() {
                   hotelId={room.hotel_id}
                   tenantId={room.tenant_id}
                   bookingId={currentBooking?.id || null}
+                  checkType={watchedCheckType as 'daily' | 'checkin' | 'checkout' | 'maintenance'}
                   onQuantitiesChange={setItemQuantities}
                 />
               )}
               {((currentStep === 2 && quickMode) || currentStep === 3) && (
-                <ReviewStep form={form} room={room} />
+                <ReviewStep form={form} room={room} checkType={watchedCheckType as CheckType} currentBooking={currentBooking} />
               )}
               
               <div className="flex items-center justify-between pt-6 border-t">

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { RoomItemWithDetails, LaundryItem, LostItem, ReplacedItem } from '@/types/rooms.types'
 import { CategoryGroup, groupItemsByCategory } from './CategoryGroup'
+import { getCheckTypeConfig, ACTION_LABELS, ACTION_COLORS, type LinenAction, type CheckType } from '@/lib/roomCheckConfig'
 
 type LinenStatus = 'ok' | 'laundry' | 'add' | 'change' | 'lost' | 'damaged' | 'missing'
 
@@ -13,6 +14,7 @@ interface ExtendedRoomItem extends RoomItemWithDetails {
 
 interface LinenTabProps {
   items: ExtendedRoomItem[]
+  checkType: CheckType
   laundryItems: LaundryItem[]
   lostItems: LostItem[]
   replacedItems: ReplacedItem[]
@@ -22,12 +24,15 @@ interface LinenTabProps {
 
 export function LinenTab({
   items,
+  checkType,
   laundryItems,
   lostItems,
   replacedItems,
   onLinenStatusChange,
   onResetStatus,
 }: LinenTabProps) {
+  const config = getCheckTypeConfig(checkType)
+  const allowedActions = config.linenActions
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [statuses, setStatuses] = useState<Record<string, LinenStatus>>({})
 
@@ -218,33 +223,72 @@ export function LinenTab({
                           >
                             OK
                           </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs text-blue-600 hover:bg-blue-50"
-                            onClick={() => handleStatusChange(item, 'laundry')}
-                          >
-                            Giặt
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs text-green-600 hover:bg-green-50"
-                            onClick={() => handleStatusChange(item, 'add')}
-                          >
-                            Thay
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs hover:bg-primary/10"
-                            onClick={() => handleStatusChange(item, 'change')}
-                          >
-                            Đổi
-                          </Button>
+                          {allowedActions.includes('laundry') && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-blue-600 hover:bg-blue-50"
+                              onClick={() => handleStatusChange(item, 'laundry')}
+                            >
+                              Giặt
+                            </Button>
+                          )}
+                          {allowedActions.includes('add') && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-green-600 hover:bg-green-50"
+                              onClick={() => handleStatusChange(item, 'add')}
+                            >
+                              Thêm
+                            </Button>
+                          )}
+                          {allowedActions.includes('change') && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs hover:bg-primary/10"
+                              onClick={() => handleStatusChange(item, 'change')}
+                            >
+                              Đổi
+                            </Button>
+                          )}
+                          {allowedActions.includes('missing') && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-yellow-600 hover:bg-yellow-50"
+                              onClick={() => handleStatusChange(item, 'missing')}
+                            >
+                              Thiếu
+                            </Button>
+                          )}
+                          {allowedActions.includes('lost') && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10"
+                              onClick={() => handleStatusChange(item, 'lost')}
+                            >
+                              Mất
+                            </Button>
+                          )}
+                          {allowedActions.includes('damaged') && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-amber-600 hover:bg-amber-50"
+                              onClick={() => handleStatusChange(item, 'damaged')}
+                            >
+                              Hỏng
+                            </Button>
+                          )}
                         </div>
                       ) : status === 'ok' && statuses[item.item_id] === 'ok' ? (
                         <div className="flex items-center gap-1">
