@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, Loader2, ClipboardCheck, LogIn, LogOut, Settings } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { roomCheckFormSchema } from '@/lib/validations/rooms.schemas'
@@ -30,8 +30,16 @@ import { toast } from '@/hooks/use-toast'
 import { CheckTypeStep } from '@/components/rooms/check-steps/CheckTypeStep'
 import { ItemsCheckStep } from '@/components/rooms/check-steps/ItemsCheckStep'
 import { ReviewStep } from '@/components/rooms/check-steps/ReviewStep'
-// PendingDeliveriesSection removed - delivery confirmation now handled via housekeeping tasks
+import { cn } from '@/lib/utils'
 import type { RoomCheckFormData } from '@/types/rooms.types'
+
+// Icon mapping for check types
+const CHECK_TYPE_ICONS: Record<CheckType, any> = {
+  daily: ClipboardCheck,
+  checkin: LogIn,
+  checkout: LogOut,
+  maintenance: Settings,
+}
 
 export function RoomCheckPage() {
   const { id } = useParams<{ id: string }>()
@@ -617,17 +625,21 @@ export function RoomCheckPage() {
         />
         
       {/* Pending Deliveries removed - now handled via housekeeping tasks */}
-      {/* Check Type Header - Color coded */}
+      {/* Check Type Header - Color coded with icon */}
       {(() => {
         const checkTypeConfig = getCheckTypeConfig(watchedCheckType)
+        const CheckTypeIcon = CHECK_TYPE_ICONS[watchedCheckType as CheckType]
         return (
-          <div className={`p-3 rounded-lg border ${checkTypeConfig.headerColor}`}>
+          <div className={cn('p-3 rounded-lg border', checkTypeConfig.headerColor)}>
             <div className="flex items-center justify-between">
-              <div>
-                <h3 className={`font-medium ${checkTypeConfig.headerTextColor}`}>
-                  {checkTypeConfig.label}
-                </h3>
-                <p className="text-xs text-muted-foreground">{checkTypeConfig.description}</p>
+              <div className="flex items-center gap-2">
+                {CheckTypeIcon && <CheckTypeIcon className={cn('h-5 w-5', checkTypeConfig.headerTextColor)} />}
+                <div>
+                  <h3 className={cn('font-medium', checkTypeConfig.headerTextColor)}>
+                    {checkTypeConfig.label}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">{checkTypeConfig.description}</p>
+                </div>
               </div>
               {checkTypeConfig.showBookingInfo && currentBooking && (
                 <div className="text-right">
