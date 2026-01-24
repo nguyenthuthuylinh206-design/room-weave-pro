@@ -1490,6 +1490,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           description: string | null
+          distribution_order_room_id: string | null
           due_at: string | null
           hotel_id: string
           id: string
@@ -1512,6 +1513,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           description?: string | null
+          distribution_order_room_id?: string | null
           due_at?: string | null
           hotel_id: string
           id?: string
@@ -1534,6 +1536,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           description?: string | null
+          distribution_order_room_id?: string | null
           due_at?: string | null
           hotel_id?: string
           id?: string
@@ -1569,6 +1572,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "room_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "housekeeping_tasks_distribution_order_room_id_fkey"
+            columns: ["distribution_order_room_id"]
+            isOneToOne: false
+            referencedRelation: "distribution_order_rooms"
             referencedColumns: ["id"]
           },
           {

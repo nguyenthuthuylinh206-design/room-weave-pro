@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { toast } from 'sonner'
+import { triggerWorkflow, WorkflowTriggerTypes } from '@/lib/triggerWorkflow'
 import type {
   DistributionBatch,
   RouteDetail,
@@ -219,9 +220,18 @@ export function useDeliverStop() {
     mutationFn: async ({
       roomOrderId,
       itemsConfirmed,
+      roomInfo,
     }: {
       roomOrderId: string
       itemsConfirmed?: { item_id: string; quantity_confirmed: number }[]
+      roomInfo?: {
+        room_id: string
+        room_number: string
+        hotel_id: string
+        tenant_id: string
+        order_code: string
+        items: { item_name: string; quantity: number }[]
+      }
     }) => {
       if (!user?.id) throw new Error('User not authenticated')
 
@@ -232,9 +242,15 @@ export function useDeliverStop() {
       })
 
       if (error) throw error
-      return data as unknown as DeliverStopResponse
+      // Return an object combining the RPC result with roomInfo
+      const rpcResult = data as unknown as DeliverStopResponse
+      return { 
+        success: rpcResult?.success ?? true,
+        roomOrderId,
+        roomInfo 
+      }
     },
-    onSuccess: () => {
+    onSuccess: async (result) => {
       queryClient.invalidateQueries({ queryKey: ['route-batches'] })
       queryClient.invalidateQueries({ queryKey: ['route-detail'] })
       queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
@@ -243,6 +259,23 @@ export function useDeliverStop() {
       queryClient.invalidateQueries({ queryKey: ['room-distribution-history'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
       toast.success('Đã giao hàng đến phòng')
+
+      // Trigger workflow to auto-create delivery confirmation task
+      if (result.roomInfo?.tenant_id) {
+        triggerWorkflow({
+          triggerType: WorkflowTriggerTypes.DELIVERY_STOP_COMPLETED,
+          eventData: {
+            room_order_id: result.roomOrderId,
+            room_id: result.roomInfo.room_id,
+            room_number: result.roomInfo.room_number,
+            order_code: result.roomInfo.order_code,
+            items: result.roomInfo.items,
+            item_count: result.roomInfo.items?.length || 0,
+          },
+          tenantId: result.roomInfo.tenant_id,
+          hotelId: result.roomInfo.hotel_id,
+        }).catch(err => console.error('Workflow trigger failed:', err))
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Không thể giao hàng')
