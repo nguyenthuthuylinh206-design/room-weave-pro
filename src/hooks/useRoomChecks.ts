@@ -10,7 +10,7 @@ import {
   sendTelegramNotification
 } from '@/hooks/useNotificationTriggers'
 import { getNotificationRecipients } from '@/utils/notificationRecipients'
-import type { RoomCheckFormData } from '@/types/rooms.types'
+import type { RoomCheckFormData, LaundryItem, LostItem, ConsumedItem, DamagedItem } from '@/types/rooms.types'
 
 export function useRoomChecks(roomId: string | undefined) {
   return useQuery({
@@ -47,6 +47,426 @@ function generateTransactionCode(prefix: string): string {
   return `${prefix}-${timestamp}-${random}`
 }
 
+// ===== DAILY CHECK LOGIC =====
+// Chỉ update room_items (laundry, change), không tạo inventory transaction
+async function processDailyCheck(params: {
+  roomId: string
+  data: RoomCheckFormData
+  userId?: string
+  tenantId?: string
+  hotelId: string
+  roomNumber: string
+}) {
+  const { roomId, data, userId } = params
+  const quantityChanges: Record<string, number> = {}
+  
+  // 1. Đồ gửi giặt (change action) → Giảm quantity trong room_items
+  // Và cập nhật quantity_in_laundry trong items table
+  const laundryItems = data.items_sent_to_laundry || []
+  for (const item of laundryItems) {
+    quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) - item.quantity
+  }
+  
+  // Update quantity_in_laundry in items table
+  if (laundryItems.length > 0) {
+    await updateLaundryQuantities(laundryItems)
+  }
+  
+  // 2. Đồ thay thế (từ action "change") → Tăng quantity (bù lại vào phòng)
+  for (const item of data.items_replaced || []) {
+    quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) + item.quantity
+  }
+  
+  // Apply quantity changes to room_items
+  await applyRoomItemChanges(roomId, quantityChanges, userId)
+  
+  return { quantityChanges }
+}
+
+// ===== CHECK-IN VALIDATION =====
+// Validate phòng sẵn sàng, block nếu có thiết bị hỏng
+interface CheckinValidationResult {
+  isReady: boolean
+  blockedReason?: string
+  damagedEquipment: DamagedItem[]
+  missingItems: any[]
+}
+
+async function validateCheckinReadiness(params: {
+  roomId: string
+  data: RoomCheckFormData
+  hotelId: string
+  roomNumber: string
+}): Promise<CheckinValidationResult> {
+  const { data } = params
+  
+  const damagedEquipment = (data.items_damaged || []).filter(item => 
+    // Equipment/Furniture có damage_type = 'replacement_needed' thì block
+    item.damage_type === 'replacement_needed'
+  )
+  
+  const missingItems = data.items_missing || []
+  
+  // Block check-in nếu có thiết bị hỏng cần thay thế
+  if (damagedEquipment.length > 0) {
+    return {
+      isReady: false,
+      blockedReason: `Có ${damagedEquipment.length} thiết bị hỏng cần thay thế trước khi nhận khách`,
+      damagedEquipment,
+      missingItems,
+    }
+  }
+  
+  // Warning nếu có đồ thiếu nhưng không block
+  return {
+    isReady: true,
+    damagedEquipment: [],
+    missingItems,
+  }
+}
+
+async function processCheckinCheck(params: {
+  roomId: string
+  data: RoomCheckFormData
+  userId?: string
+  tenantId?: string
+  hotelId: string
+  roomNumber: string
+}) {
+  const { roomId, data, userId, hotelId, roomNumber } = params
+  const quantityChanges: Record<string, number> = {}
+  
+  // Validate trước
+  const validation = await validateCheckinReadiness({ 
+    roomId, 
+    data, 
+    hotelId, 
+    roomNumber 
+  })
+  
+  // 1. Đồ thêm (add action) → Tăng quantity
+  for (const item of data.items_replaced || []) {
+    quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) + item.quantity
+  }
+  
+  // Apply changes
+  await applyRoomItemChanges(roomId, quantityChanges, userId)
+  
+  return { quantityChanges, validation }
+}
+
+// ===== CHECKOUT FULL TRACKING =====
+// Tạo inventory transaction cho lost/consumed, complete inspection
+async function processCheckoutCheck(params: {
+  roomId: string
+  data: RoomCheckFormData
+  userId?: string
+  tenantId?: string
+  hotelId: string
+  roomNumber: string
+  checkId: string
+  inspectionId?: string
+}) {
+  const { roomId, data, userId, tenantId, hotelId, roomNumber, checkId, inspectionId } = params
+  const quantityChanges: Record<string, number> = {}
+  
+  // 1. Đồ gửi giặt → Giảm quantity trong room_items
+  const laundryItems = data.items_sent_to_laundry || []
+  for (const item of laundryItems) {
+    quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) - item.quantity
+  }
+  
+  if (laundryItems.length > 0) {
+    await updateLaundryQuantities(laundryItems)
+  }
+  
+  // 2. Đồ mất → Giảm quantity, TẠO INVENTORY TRANSACTION
+  const lostItems = data.items_lost || []
+  for (const item of lostItems) {
+    quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) - item.quantity
+    
+    if (tenantId && userId) {
+      await createLostItemTransaction({
+        item,
+        tenantId,
+        hotelId,
+        roomNumber,
+        checkId,
+        userId,
+      })
+    }
+  }
+  
+  // 3. Đồ tiêu hao → Giảm quantity, TẠO INVENTORY TRANSACTION
+  const consumedItems = data.items_consumed || []
+  for (const item of consumedItems) {
+    quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) - item.quantity
+    
+    if (tenantId && userId) {
+      await createConsumedItemTransaction({
+        item,
+        tenantId,
+        hotelId,
+        roomNumber,
+        checkId,
+        userId,
+      })
+    }
+  }
+  
+  // 4. Đồ thay thế → Tăng quantity
+  for (const item of data.items_replaced || []) {
+    quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) + item.quantity
+  }
+  
+  // Apply changes
+  await applyRoomItemChanges(roomId, quantityChanges, userId)
+  
+  // 5. Complete checkout inspection
+  await completeCheckoutInspection(roomId, checkId, inspectionId)
+  
+  // 6. Auto-change room status to cleaning
+  await supabase
+    .from('rooms')
+    .update({ status: 'cleaning' })
+    .eq('id', roomId)
+  
+  return { quantityChanges }
+}
+
+// ===== MAINTENANCE CHECK =====
+// Validate sau sửa chữa, chỉ update room_items
+async function processMaintenanceCheck(params: {
+  roomId: string
+  data: RoomCheckFormData
+  userId?: string
+}) {
+  const { roomId, data, userId } = params
+  const quantityChanges: Record<string, number> = {}
+  
+  // Đồ thêm sau bảo trì
+  for (const item of data.items_replaced || []) {
+    quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) + item.quantity
+  }
+  
+  await applyRoomItemChanges(roomId, quantityChanges, userId)
+  
+  return { quantityChanges }
+}
+
+// ===== HELPER FUNCTIONS =====
+
+async function updateLaundryQuantities(laundryItems: LaundryItem[]) {
+  for (const item of laundryItems) {
+    const { data: currentItem } = await supabase
+      .from('items')
+      .select('quantity_in_laundry, quantity_in_stock, name')
+      .eq('id', item.item_id)
+      .single()
+    
+    if (currentItem) {
+      const currentStock = currentItem.quantity_in_stock || 0
+      const actualDeduct = Math.min(item.quantity, currentStock)
+      
+      if (actualDeduct < item.quantity) {
+        console.warn(`Stock mismatch for ${currentItem.name}: requested ${item.quantity} for laundry, only ${actualDeduct} in stock`)
+      }
+      
+      const { error: updateError } = await supabase
+        .from('items')
+        .update({
+          quantity_in_laundry: (currentItem.quantity_in_laundry || 0) + item.quantity,
+          quantity_in_stock: Math.max(0, currentStock - actualDeduct),
+        })
+        .eq('id', item.item_id)
+      
+      if (updateError) {
+        console.error('Error updating quantity_in_laundry:', updateError)
+      }
+    }
+  }
+}
+
+async function createLostItemTransaction(params: {
+  item: LostItem
+  tenantId: string
+  hotelId: string
+  roomNumber: string
+  checkId: string
+  userId: string
+}) {
+  const { item, tenantId, hotelId, roomNumber, checkId, userId } = params
+  
+  const { data: currentItem } = await supabase
+    .from('items')
+    .select('quantity_in_stock, quantity_lost, unit_price')
+    .eq('id', item.item_id)
+    .single()
+  
+  if (currentItem) {
+    const quantityBefore = currentItem.quantity_in_stock || 0
+    const quantityAfter = Math.max(0, quantityBefore - item.quantity)
+    
+    await supabase.from('inventory_transactions').insert({
+      tenant_id: tenantId,
+      hotel_id: hotelId,
+      transaction_code: generateTransactionCode('LOST'),
+      transaction_type: 'out',
+      transaction_category: 'lost',
+      item_id: item.item_id,
+      quantity: item.quantity,
+      quantity_before: quantityBefore,
+      quantity_after: quantityAfter,
+      unit_price: currentItem.unit_price || 0,
+      total_value: (currentItem.unit_price || 0) * item.quantity,
+      from_location: `Phòng ${roomNumber}`,
+      to_location: 'Mất/Thất lạc',
+      related_type: 'room_check',
+      related_id: checkId,
+      notes: `Mất trong khi kiểm tra checkout phòng ${roomNumber}`,
+      created_by: userId,
+    })
+    
+    await supabase.from('items').update({
+      quantity_lost: (currentItem.quantity_lost || 0) + item.quantity,
+      quantity_in_stock: quantityAfter,
+    }).eq('id', item.item_id)
+  }
+}
+
+async function createConsumedItemTransaction(params: {
+  item: ConsumedItem
+  tenantId: string
+  hotelId: string
+  roomNumber: string
+  checkId: string
+  userId: string
+}) {
+  const { item, tenantId, hotelId, roomNumber, checkId, userId } = params
+  
+  const { data: currentItem } = await supabase
+    .from('items')
+    .select('quantity_in_stock, unit_price')
+    .eq('id', item.item_id)
+    .single()
+  
+  if (currentItem) {
+    const quantityBefore = currentItem.quantity_in_stock || 0
+    const quantityAfter = Math.max(0, quantityBefore - item.quantity)
+    
+    await supabase.from('inventory_transactions').insert({
+      tenant_id: tenantId,
+      hotel_id: hotelId,
+      transaction_code: generateTransactionCode('CONS'),
+      transaction_type: 'out',
+      transaction_category: 'consumed',
+      item_id: item.item_id,
+      quantity: item.quantity,
+      quantity_before: quantityBefore,
+      quantity_after: quantityAfter,
+      unit_price: currentItem.unit_price || 0,
+      total_value: (currentItem.unit_price || 0) * item.quantity,
+      from_location: `Phòng ${roomNumber}`,
+      to_location: 'Khách sử dụng',
+      related_type: 'room_check',
+      related_id: checkId,
+      notes: `Khách sử dụng trong phòng ${roomNumber}`,
+      created_by: userId,
+    })
+    
+    await supabase.from('items').update({
+      quantity_in_stock: quantityAfter,
+    }).eq('id', item.item_id)
+  }
+}
+
+async function applyRoomItemChanges(
+  roomId: string, 
+  quantityChanges: Record<string, number>,
+  userId?: string
+) {
+  if (Object.keys(quantityChanges).length === 0) return
+  
+  // Get current quantities
+  const { data: currentItems } = await supabase
+    .from('room_items')
+    .select('item_id, quantity, standard_quantity')
+    .eq('room_id', roomId)
+    .in('item_id', Object.keys(quantityChanges))
+  
+  const currentQtyMap: Record<string, number> = {}
+  const standardQtyMap: Record<string, number> = {}
+  for (const item of currentItems || []) {
+    currentQtyMap[item.item_id] = item.quantity || 0
+    standardQtyMap[item.item_id] = item.standard_quantity || 0
+  }
+  
+  const updates = Object.entries(quantityChanges).map(([itemId, change]) => {
+    const currentQty = currentQtyMap[itemId] ?? standardQtyMap[itemId] ?? 0
+    const newQty = Math.max(0, currentQty + change)
+    
+    return {
+      room_id: roomId,
+      item_id: itemId,
+      quantity: newQty,
+      last_checked_at: new Date().toISOString(),
+      last_checked_by: userId,
+    }
+  })
+  
+  if (updates.length > 0) {
+    const { error: updateError } = await supabase
+      .from('room_items')
+      .upsert(updates, { onConflict: 'room_id,item_id' })
+    
+    if (updateError) throw updateError
+  }
+}
+
+async function completeCheckoutInspection(
+  roomId: string, 
+  checkId: string, 
+  inspectionId?: string
+) {
+  let effectiveInspectionId = inspectionId
+  
+  // Fallback: query for pending/in_progress inspection
+  if (!effectiveInspectionId) {
+    console.log('[useRoomChecks] Checkout without inspectionId, searching for pending inspection')
+    
+    const { data: foundInspection } = await supabase
+      .from('checkout_inspection_requests')
+      .select('id')
+      .eq('room_id', roomId)
+      .in('status', ['pending', 'in_progress'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    
+    if (foundInspection) {
+      console.log('[useRoomChecks] Found pending inspection:', foundInspection.id)
+      effectiveInspectionId = foundInspection.id
+    }
+  }
+  
+  if (effectiveInspectionId) {
+    console.log('[useRoomChecks] Completing checkout inspection:', effectiveInspectionId)
+    const { error: inspectionError } = await supabase
+      .from('checkout_inspection_requests')
+      .update({
+        status: 'completed',
+        room_check_id: checkId,
+        completed_at: new Date().toISOString(),
+      })
+      .eq('id', effectiveInspectionId)
+    
+    if (inspectionError) {
+      console.error('[useRoomChecks] Error completing checkout inspection:', inspectionError)
+    }
+  }
+}
+
+// ===== MAIN MUTATION =====
 export function useCreateRoomCheck() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -63,9 +483,9 @@ export function useCreateRoomCheck() {
       roomId: string
       data: RoomCheckFormData
       itemQuantities?: Record<string, number>
-      inspectionId?: string // Checkout inspection ID to complete
+      inspectionId?: string
     }) => {
-      // Get room info first for transaction records
+      // Get room info first
       const { data: room, error: roomError } = await supabase
         .from('rooms')
         .select('hotel_id, room_number')
@@ -77,21 +497,24 @@ export function useCreateRoomCheck() {
       const hotelId = room.hotel_id
       const roomNumber = room.room_number
 
-      // Enrich items_consumed with unit_price before saving
-      const consumedItemsWithPrice = await Promise.all(
-        (data.items_consumed || []).map(async (item) => {
-          const { data: itemData } = await supabase
-            .from('items')
-            .select('unit_price')
-            .eq('id', item.item_id)
-            .maybeSingle()
-          
-          return {
-            ...item,
-            unit_price: itemData?.unit_price || 0,
-          }
-        })
-      )
+      // Enrich items_consumed with unit_price before saving (checkout only)
+      let consumedItemsWithPrice = data.items_consumed || []
+      if (data.check_type === 'checkout' && consumedItemsWithPrice.length > 0) {
+        consumedItemsWithPrice = await Promise.all(
+          consumedItemsWithPrice.map(async (item) => {
+            const { data: itemData } = await supabase
+              .from('items')
+              .select('unit_price')
+              .eq('id', item.item_id)
+              .maybeSingle()
+            
+            return {
+              ...item,
+              unit_price: itemData?.unit_price || 0,
+            }
+          })
+        )
+      }
 
       // Create room check record
       const insertData = {
@@ -117,7 +540,7 @@ export function useCreateRoomCheck() {
         .single()
 
       if (error) {
-        // Handle duplicate check (double-submit or re-check too soon)
+        // Handle duplicate check
         const maybeCode = (error as any)?.code
         const maybeMsg = (error as any)?.message as string | undefined
         if (maybeCode === '23505' && maybeMsg?.includes('Duplicate check detected')) {
@@ -137,7 +560,7 @@ export function useCreateRoomCheck() {
         throw error
       }
 
-      // Delete old photos from previous checks (keep only the most recent)
+      // Delete old photos from previous checks
       const { data: recentChecks } = await supabase
         .from('room_checks')
         .select('id, photos')
@@ -146,26 +569,22 @@ export function useCreateRoomCheck() {
         .limit(10)
 
       if (recentChecks && recentChecks.length > 1) {
-        // Skip the first (most recent), delete photos from others
         const oldChecks = recentChecks.slice(1)
 
         for (const oldCheck of oldChecks) {
           if (oldCheck.photos && Array.isArray(oldCheck.photos) && oldCheck.photos.length > 0) {
-            // Delete each photo from storage
             for (const photoUrl of oldCheck.photos) {
               try {
-                // Extract path from URL
                 const urlParts = photoUrl.split('/item-images/')
                 if (urlParts.length > 1) {
                   const path = urlParts[1]
                   await deleteImage(path)
                 }
-              } catch (error) {
-                console.error('Error deleting old photo:', error)
+              } catch (err) {
+                console.error('Error deleting old photo:', err)
               }
             }
 
-            // Update record, clear photos array
             await supabase
               .from('room_checks')
               .update({ photos: [] })
@@ -174,192 +593,49 @@ export function useCreateRoomCheck() {
         }
       }
 
-      // Calculate quantity changes based on items marked during check
-      const quantityChanges: Record<string, number> = {}
-      
-      // 1. Đồ gửi giặt → Giảm quantity trong room_items (lấy ra khỏi phòng)
-      //    Và cập nhật quantity_in_laundry trong bảng items
-      const laundryItems = data.items_sent_to_laundry || []
-      for (const item of laundryItems) {
-        quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) - item.quantity
+      // ===== PROCESS BY CHECK TYPE =====
+      const baseParams = {
+        roomId,
+        data,
+        userId: user?.id,
+        tenantId,
+        hotelId,
+        roomNumber,
       }
-      
-      // Update quantity_in_laundry in items table for laundry items
-      // With stock validation to prevent negative values
-      if (laundryItems.length > 0) {
-        for (const item of laundryItems) {
-          const { data: currentItem } = await supabase
-            .from('items')
-            .select('quantity_in_laundry, quantity_in_stock, name')
-            .eq('id', item.item_id)
-            .single()
-          
-          if (currentItem) {
-            const currentStock = currentItem.quantity_in_stock || 0
-            // Don't deduct more than available stock
-            const actualDeduct = Math.min(item.quantity, currentStock)
-            
-            if (actualDeduct < item.quantity) {
-              console.warn(`Stock mismatch for ${currentItem.name}: requested ${item.quantity} for laundry, only ${actualDeduct} in stock`)
-            }
-            
-            const { error: updateError } = await supabase
-              .from('items')
-              .update({
-                quantity_in_laundry: (currentItem.quantity_in_laundry || 0) + item.quantity,
-                quantity_in_stock: Math.max(0, currentStock - actualDeduct),
-              })
-              .eq('id', item.item_id)
-            
-            if (updateError) {
-              console.error('Error updating quantity_in_laundry:', updateError)
-            }
+
+      switch (data.check_type) {
+        case 'daily':
+          // Daily: Chỉ update room_items (laundry/change)
+          await processDailyCheck(baseParams)
+          break
+
+        case 'checkin':
+          // Check-in: Validate + update room_items
+          const { validation } = await processCheckinCheck(baseParams)
+          if (!validation.isReady) {
+            // Store warning in check record
+            console.warn('[useRoomChecks] Check-in blocked:', validation.blockedReason)
           }
-        }
+          break
+
+        case 'checkout':
+          // Checkout: Full inventory tracking + complete inspection
+          await processCheckoutCheck({
+            ...baseParams,
+            checkId: check.id,
+            inspectionId,
+          })
+          break
+
+        case 'maintenance':
+          // Maintenance: Validate + update room_items
+          await processMaintenanceCheck(baseParams)
+          break
       }
-      
-      // 2. Đồ mất → Giảm quantity, tạo inventory transaction
-      const lostItems = data.items_lost || []
-      for (const item of lostItems) {
-        quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) - item.quantity
-        
-        // Create inventory transaction for lost items
-        if (tenantId && user?.id) {
-          const { data: currentItem } = await supabase
-            .from('items')
-            .select('quantity_in_stock, quantity_lost, unit_price')
-            .eq('id', item.item_id)
-            .single()
-          
-          if (currentItem) {
-            const quantityBefore = currentItem.quantity_in_stock || 0
-            const quantityAfter = Math.max(0, quantityBefore - item.quantity)
-            
-            // Create outbound transaction for lost items
-            await supabase.from('inventory_transactions').insert({
-              tenant_id: tenantId,
-              hotel_id: hotelId,
-              transaction_code: generateTransactionCode('LOST'),
-              transaction_type: 'out',
-              transaction_category: 'lost',
-              item_id: item.item_id,
-              quantity: item.quantity,
-              quantity_before: quantityBefore,
-              quantity_after: quantityAfter,
-              unit_price: currentItem.unit_price || 0,
-              total_value: (currentItem.unit_price || 0) * item.quantity,
-              from_location: `Phòng ${roomNumber}`,
-              to_location: 'Mất/Thất lạc',
-              related_type: 'room_check',
-              related_id: check.id,
-              notes: `Mất trong khi kiểm tra phòng ${roomNumber}`,
-              created_by: user.id,
-            })
-            
-            // Update quantity_lost in items table
-            await supabase.from('items').update({
-              quantity_lost: (currentItem.quantity_lost || 0) + item.quantity,
-              quantity_in_stock: quantityAfter,
-            }).eq('id', item.item_id)
-          }
-        }
-      }
-      
-      // 3. Đồ tiêu hao → Giảm quantity, tạo inventory transaction
-      const consumedItems = data.items_consumed || []
-      for (const item of consumedItems) {
-        quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) - item.quantity
-        
-        // Create inventory transaction for consumed items
-        if (tenantId && user?.id) {
-          const { data: currentItem } = await supabase
-            .from('items')
-            .select('quantity_in_stock, unit_price')
-            .eq('id', item.item_id)
-            .single()
-          
-          if (currentItem) {
-            const quantityBefore = currentItem.quantity_in_stock || 0
-            const quantityAfter = Math.max(0, quantityBefore - item.quantity)
-            
-            // Create outbound transaction for consumed items
-            await supabase.from('inventory_transactions').insert({
-              tenant_id: tenantId,
-              hotel_id: hotelId,
-              transaction_code: generateTransactionCode('CONS'),
-              transaction_type: 'out',
-              transaction_category: 'consumed',
-              item_id: item.item_id,
-              quantity: item.quantity,
-              quantity_before: quantityBefore,
-              quantity_after: quantityAfter,
-              unit_price: currentItem.unit_price || 0,
-              total_value: (currentItem.unit_price || 0) * item.quantity,
-              from_location: `Phòng ${roomNumber}`,
-              to_location: 'Khách sử dụng',
-              related_type: 'room_check',
-              related_id: check.id,
-              notes: `Khách sử dụng trong phòng ${roomNumber}`,
-              created_by: user.id,
-            })
-            
-            // Update items table
-            await supabase.from('items').update({
-              quantity_in_stock: quantityAfter,
-            }).eq('id', item.item_id)
-          }
-        }
-      }
-      
-      // 4. Đồ thay thế → Tăng quantity (bù lại vào phòng)
-      for (const item of data.items_replaced || []) {
-        quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) + item.quantity
-      }
-      
-      // Update room_items with calculated quantities
-      if (Object.keys(quantityChanges).length > 0) {
-        // Get current quantities for affected items
-        const { data: currentItems } = await supabase
-          .from('room_items')
-          .select('item_id, quantity, standard_quantity')
-          .eq('room_id', roomId)
-          .in('item_id', Object.keys(quantityChanges))
-        
-        const currentQtyMap: Record<string, number> = {}
-        const standardQtyMap: Record<string, number> = {}
-        for (const item of currentItems || []) {
-          currentQtyMap[item.item_id] = item.quantity || 0
-          standardQtyMap[item.item_id] = item.standard_quantity || 0
-        }
-        
-        // Calculate and upsert new quantities
-        const updates = Object.entries(quantityChanges).map(([itemId, change]) => {
-          // Use current quantity if exists, otherwise use standard quantity
-          const currentQty = currentQtyMap[itemId] ?? standardQtyMap[itemId] ?? 0
-          const newQty = Math.max(0, currentQty + change)
-          
-          return {
-            room_id: roomId,
-            item_id: itemId,
-            quantity: newQty,
-            last_checked_at: new Date().toISOString(),
-            last_checked_by: user?.id,
-          }
-        })
-        
-        if (updates.length > 0) {
-          const { error: updateError } = await supabase
-            .from('room_items')
-            .upsert(updates, { onConflict: 'room_id,item_id' })
-          
-          if (updateError) throw updateError
-        }
-      }
-      
-      // Also apply manual item quantities if provided (from quick mode or direct input)
+
+      // Apply manual item quantities if provided
       if (itemQuantities) {
         const manualUpdates = Object.entries(itemQuantities)
-          .filter(([itemId]) => !quantityChanges[itemId]) // Skip items already updated above
           .map(([itemId, quantity]) => ({
             room_id: roomId,
             item_id: itemId,
@@ -377,7 +653,7 @@ export function useCreateRoomCheck() {
         }
       }
       
-      // Update last_checked timestamp for all room items (including ones updated above)
+      // Update last_checked timestamp for all room items
       await supabase
         .from('room_items')
         .update({
@@ -386,171 +662,33 @@ export function useCreateRoomCheck() {
         })
         .eq('room_id', roomId)
 
-      
-      // Handle checkout check type - send summary report to manager
+      // ===== NOTIFICATIONS (checkout only) =====
       if (data.check_type === 'checkout') {
-        const consumedCount = data.items_consumed?.length || 0
-        const lostCount = data.items_lost?.length || 0
-        const damagedCount = data.items_damaged?.length || 0
-        const hasIssues = lostCount > 0 || damagedCount > 0
-        
-        // Determine effective inspection ID - use passed ID or fallback query
-        let effectiveInspectionId = inspectionId
-        
-        // Fallback: nếu không có inspectionId, query để tìm pending/in_progress inspection cho phòng này
-        if (!effectiveInspectionId) {
-          console.log('[useRoomChecks] Checkout without inspectionId, searching for pending inspection for room:', roomId)
-          
-          const { data: foundInspection } = await supabase
-            .from('checkout_inspection_requests')
-            .select('id')
-            .eq('room_id', roomId)
-            .in('status', ['pending', 'in_progress'])
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-          
-          if (foundInspection) {
-            console.log('[useRoomChecks] Found pending inspection:', foundInspection.id)
-            effectiveInspectionId = foundInspection.id
-          } else {
-            console.log('[useRoomChecks] No pending inspection found for room')
-          }
-        }
-        
-        // Complete checkout inspection request if exists
-        if (effectiveInspectionId) {
-          console.log('[useRoomChecks] Completing checkout inspection:', effectiveInspectionId)
-          const { error: inspectionError } = await supabase
-            .from('checkout_inspection_requests')
-            .update({
-              status: 'completed',
-              room_check_id: check.id,
-              completed_at: new Date().toISOString(),
-            })
-            .eq('id', effectiveInspectionId)
-          
-          if (inspectionError) {
-            console.error('[useRoomChecks] Error completing checkout inspection:', inspectionError)
-          } else {
-            console.log('[useRoomChecks] Successfully completed checkout inspection:', effectiveInspectionId)
-          }
-        }
-        
-        // Build summary message
-        const summaryParts = []
-        if (consumedCount > 0) summaryParts.push(`Khách dùng ${consumedCount} items`)
-        if (lostCount > 0) summaryParts.push(`Mất ${lostCount} items`)
-        if (damagedCount > 0) summaryParts.push(`Hỏng ${damagedCount} items`)
-        
-        const summaryMessage = summaryParts.length > 0 
-          ? summaryParts.join(', ')
-          : 'Không có vấn đề'
-        
-        // Send checkout report to hotel managers using new notification system
-        const checkoutRecipients = await getNotificationRecipients({
+        await sendCheckoutNotifications({
+          roomId,
+          roomNumber,
+          checkId: check.id,
+          data,
           tenantId: tenantId!,
           hotelId,
-          targetRoles: ['manager'],
-          excludeUserId: user?.id,
+          userId: user?.id,
         })
-        
-        // If user is the only staff, include them in recipients
-        const recipientIds = checkoutRecipients.length > 0 
-          ? checkoutRecipients.map(r => r.id)
-          : user?.id ? [user.id] : []
-        
-        if (recipientIds.length > 0) {
-          const notificationTitle = `Báo cáo checkout phòng ${roomNumber}`
-          const notificationType = hasIssues ? 'warning' : 'success'
-          const actionUrl = `/rooms/${roomId}?tab=history`
-          
-          await Promise.allSettled([
-            createMultipleNotifications({
-              recipientIds,
-              tenantId: tenantId!,
-              title: notificationTitle,
-              body: summaryMessage,
-              type: notificationType,
-              actionUrl,
-              metadata: {
-                room_id: roomId,
-                check_id: check.id,
-                check_type: 'checkout',
-              },
-            }),
-            sendMultiplePushNotifications({
-              recipientIds,
-              tenantId: tenantId!,
-              title: notificationTitle,
-              body: summaryMessage,
-              actionUrl,
-              notificationType,
-            }),
-            sendTelegramNotification({
-              tenantId: tenantId!,
-              hotelId,
-              notificationTypeFilter: 'checkout',
-              sendToManagementGroups: true,
-              title: notificationTitle,
-              message: summaryMessage,
-              notificationType: 'checkout',
-              actionUrl,
-            }),
-          ])
-        }
-        
-        // Auto-change room status to cleaning after checkout
-        await supabase
-          .from('rooms')
-          .update({ status: 'cleaning' })
-          .eq('id', roomId)
       }
       
-      // Create notification for managers about check completion (non-checkout)
+      // Notifications for issues (non-checkout)
       const totalIssues = (data.items_missing?.length || 0) + (data.items_damaged?.length || 0)
       if (totalIssues > 0 && data.check_type !== 'checkout') {
-        const issueRecipients = await getNotificationRecipients({
+        await sendIssueNotifications({
+          roomId,
+          roomNumber,
+          data,
           tenantId: tenantId!,
           hotelId,
-          targetRoles: ['manager'],
-          excludeUserId: user?.id,
+          userId: user?.id,
         })
-        
-        const issueRecipientIds = issueRecipients.length > 0 
-          ? issueRecipients.map(r => r.id)
-          : user?.id ? [user.id] : []
-        
-        if (issueRecipientIds.length > 0) {
-          const issueTitle = `Kiểm tra phòng ${roomNumber} phát hiện vấn đề`
-          const issueBody = `Phòng có ${totalIssues} vấn đề cần xử lý`
-          
-          await Promise.allSettled([
-            createMultipleNotifications({
-              recipientIds: issueRecipientIds,
-              tenantId: tenantId!,
-              title: issueTitle,
-              body: issueBody,
-              type: 'warning',
-              actionUrl: `/rooms/${roomId}`,
-              metadata: {
-                room_id: roomId,
-                check_type: data.check_type,
-              },
-            }),
-            sendMultiplePushNotifications({
-              recipientIds: issueRecipientIds,
-              tenantId: tenantId!,
-              title: issueTitle,
-              body: issueBody,
-              actionUrl: `/rooms/${roomId}`,
-              notificationType: 'warning',
-            }),
-          ])
-        }
       }
       
-      // Trigger workflow for room check completed
+      // Trigger workflow
       if (tenantId) {
         const hasIssues = 
           (data.items_missing?.length || 0) > 0 ||
@@ -590,8 +728,6 @@ export function useCreateRoomCheck() {
       queryClient.invalidateQueries({ queryKey: ['items'] })
       queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
       queryClient.invalidateQueries({ queryKey: ['inventory-dashboard'] })
-      
-      // Invalidate checkout inspection queries để UI cập nhật tức thời
       queryClient.invalidateQueries({ queryKey: ['checkout-inspection'] })
       queryClient.invalidateQueries({ queryKey: ['pending-inspection'] })
       queryClient.invalidateQueries({ queryKey: ['room-has-pending-inspection'] })
@@ -614,4 +750,135 @@ export function useCreateRoomCheck() {
       })
     },
   })
+}
+
+// ===== NOTIFICATION HELPERS =====
+
+async function sendCheckoutNotifications(params: {
+  roomId: string
+  roomNumber: string
+  checkId: string
+  data: RoomCheckFormData
+  tenantId: string
+  hotelId: string
+  userId?: string
+}) {
+  const { roomId, roomNumber, checkId, data, tenantId, hotelId, userId } = params
+  
+  const consumedCount = data.items_consumed?.length || 0
+  const lostCount = data.items_lost?.length || 0
+  const damagedCount = data.items_damaged?.length || 0
+  const hasIssues = lostCount > 0 || damagedCount > 0
+  
+  const summaryParts = []
+  if (consumedCount > 0) summaryParts.push(`Khách dùng ${consumedCount} items`)
+  if (lostCount > 0) summaryParts.push(`Mất ${lostCount} items`)
+  if (damagedCount > 0) summaryParts.push(`Hỏng ${damagedCount} items`)
+  
+  const summaryMessage = summaryParts.length > 0 
+    ? summaryParts.join(', ')
+    : 'Không có vấn đề'
+  
+  const checkoutRecipients = await getNotificationRecipients({
+    tenantId,
+    hotelId,
+    targetRoles: ['manager'],
+    excludeUserId: userId,
+  })
+  
+  const recipientIds = checkoutRecipients.length > 0 
+    ? checkoutRecipients.map(r => r.id)
+    : userId ? [userId] : []
+  
+  if (recipientIds.length > 0) {
+    const notificationTitle = `Báo cáo checkout phòng ${roomNumber}`
+    const notificationType = hasIssues ? 'warning' : 'success'
+    const actionUrl = `/rooms/${roomId}?tab=history`
+    
+    await Promise.allSettled([
+      createMultipleNotifications({
+        recipientIds,
+        tenantId,
+        title: notificationTitle,
+        body: summaryMessage,
+        type: notificationType,
+        actionUrl,
+        metadata: {
+          room_id: roomId,
+          check_id: checkId,
+          check_type: 'checkout',
+        },
+      }),
+      sendMultiplePushNotifications({
+        recipientIds,
+        tenantId,
+        title: notificationTitle,
+        body: summaryMessage,
+        actionUrl,
+        notificationType,
+      }),
+      sendTelegramNotification({
+        tenantId,
+        hotelId,
+        notificationTypeFilter: 'checkout',
+        sendToManagementGroups: true,
+        title: notificationTitle,
+        message: summaryMessage,
+        notificationType: 'checkout',
+        actionUrl,
+      }),
+    ])
+  }
+}
+
+async function sendIssueNotifications(params: {
+  roomId: string
+  roomNumber: string
+  data: RoomCheckFormData
+  tenantId: string
+  hotelId: string
+  userId?: string
+}) {
+  const { roomId, roomNumber, data, tenantId, hotelId, userId } = params
+  
+  const totalIssues = (data.items_missing?.length || 0) + (data.items_damaged?.length || 0)
+  
+  const issueRecipients = await getNotificationRecipients({
+    tenantId,
+    hotelId,
+    targetRoles: ['manager'],
+    excludeUserId: userId,
+  })
+  
+  const issueRecipientIds = issueRecipients.length > 0 
+    ? issueRecipients.map(r => r.id)
+    : userId ? [userId] : []
+  
+  if (issueRecipientIds.length > 0) {
+    const issueTitle = `Kiểm tra phòng ${roomNumber} phát hiện vấn đề`
+    const issueBody = `Phòng có ${totalIssues} vấn đề cần xử lý`
+    
+    await Promise.allSettled([
+      createMultipleNotifications({
+        recipientIds: issueRecipientIds,
+        tenantId,
+        title: issueTitle,
+        body: issueBody,
+        type: 'warning',
+        actionUrl: `/rooms/${roomId}`,
+        metadata: {
+          room_id: roomId,
+          check_type: data.check_type,
+        },
+      }),
+      sendMultiplePushNotifications({
+        recipientIds: issueRecipientIds,
+        tenantId,
+        title: issueTitle,
+        body: issueBody,
+        actionUrl: `/rooms/${roomId}`,
+        notificationType: 'warning',
+      }),
+    ])
+  }
 }
