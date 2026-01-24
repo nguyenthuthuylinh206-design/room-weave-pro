@@ -20,6 +20,9 @@ import { cn } from '@/lib/utils'
 
 interface BatchAccordionProps {
   orderId: string
+  orderCode?: string
+  tenantId?: string
+  hotelId?: string
   orderStatus: string
   assignedTo: string | null
   stops: RouteStop[]
@@ -31,6 +34,9 @@ interface BatchAccordionProps {
 
 export function BatchAccordion({
   orderId,
+  orderCode,
+  tenantId,
+  hotelId,
   orderStatus,
   assignedTo,
   stops,
@@ -209,6 +215,9 @@ export function BatchAccordion({
                     <StopCard
                       key={stop.id}
                       stop={stop}
+                      orderCode={orderCode}
+                      tenantId={tenantId}
+                      hotelId={hotelId}
                       canDeliver={canDeliverStops && stop.stop_status === 'pending'}
                       canMarkCannotAccess={canDeliverStops && stop.stop_status === 'pending'}
                       canRetry={canDeliverStops && stop.stop_status === 'cannot_access'}

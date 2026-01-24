@@ -233,6 +233,9 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
         <CardContent>
           <BatchAccordion
             orderId={route.id}
+            orderCode={route.order_code}
+            tenantId={(route as any).tenant_id}
+            hotelId={(route as any).hotel_id}
             orderStatus={route.status}
             assignedTo={route.assigned_to}
             stops={route.stops || []}

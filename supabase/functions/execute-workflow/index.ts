@@ -75,6 +75,25 @@ Deno.serve(async (req) => {
 
     if (!workflows || workflows.length === 0) {
       console.log(`[execute-workflow] No active workflows found for trigger: ${trigger_type}`)
+      
+      // Fallback: Auto-create delivery_confirmation task if no workflow configured
+      if (trigger_type === 'delivery_stop_completed') {
+        console.log('[execute-workflow] Auto-creating delivery confirmation task (fallback)')
+        try {
+          await createDeliveryConfirmationTask(supabase, event_data, tenant_id, hotel_id)
+          return new Response(
+            JSON.stringify({ success: true, message: 'Auto-created delivery confirmation task', executed: 1 }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        } catch (fallbackError) {
+          console.error('[execute-workflow] Fallback task creation failed:', fallbackError)
+          return new Response(
+            JSON.stringify({ success: false, error: String(fallbackError) }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+      }
+      
       return new Response(
         JSON.stringify({ success: true, message: 'No matching workflows', executed: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -526,7 +545,57 @@ function getTaskTypeLabel(taskType: string): string {
     cleaning: 'Dọn phòng',
     checkin_prep: 'Chuẩn bị check-in',
     amenity_request: 'Bổ sung đồ dùng',
+    delivery_confirmation: 'Xác nhận nhận hàng',
     other: 'Công việc khác',
   }
   return labels[taskType] || taskType
+}
+
+/**
+ * Fallback: Auto-create delivery confirmation task when no workflow is configured
+ */
+async function createDeliveryConfirmationTask(
+  supabase: any,
+  eventData: Record<string, any>,
+  tenantId: string,
+  hotelId?: string
+): Promise<void> {
+  const { room_id, room_number, order_code, items, room_order_id, item_count } = eventData
+  
+  if (!room_id) {
+    throw new Error('Missing room_id in event data')
+  }
+  
+  const effectiveHotelId = hotelId || eventData.hotel_id
+  if (!effectiveHotelId) {
+    throw new Error('Missing hotel_id')
+  }
+  
+  const itemsCount = item_count || items?.length || 0
+  const title = `Xác nhận nhận hàng - P.${room_number || 'N/A'}`
+  const description = `Phiếu ${order_code || 'N/A'} - ${itemsCount} sản phẩm`
+  
+  const { data: newTask, error } = await supabase
+    .from('housekeeping_tasks')
+    .insert({
+      tenant_id: tenantId,
+      hotel_id: effectiveHotelId,
+      room_id: room_id,
+      task_type: 'delivery_confirmation',
+      title,
+      description,
+      priority: 'high',
+      assigned_to: null, // Unassigned - staff can claim
+      status: 'pending',
+      distribution_order_room_id: room_order_id || null,
+    })
+    .select()
+    .single()
+  
+  if (error) {
+    console.error('[execute-workflow] Failed to create delivery confirmation task:', error)
+    throw error
+  }
+  
+  console.log(`[execute-workflow] Auto-created delivery confirmation task: ${newTask.id}`)
 }
