@@ -8,6 +8,7 @@ import { CategoryGroup, groupItemsByCategory } from './CategoryGroup'
 import { useBookingConsumables, useInitializeBookingConsumables, useUpdateConsumableRemaining, BookingConsumableWithItem } from '@/hooks/useBookingConsumables'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { getCheckTypeConfig, type CheckType } from '@/lib/roomCheckConfig'
 
 interface ExtendedRoomItem extends RoomItemWithDetails {
   category_name?: string | null
@@ -18,6 +19,7 @@ interface ConsumableTabBookingProps {
   bookingId: string | null
   roomId: string
   tenantId: string
+  checkType: CheckType
   consumedItems: ConsumedItem[]
   onMarkConsumed: (item: RoomItemWithDetails, quantity: number, needRefill: boolean) => void
   onRemoveConsumed: (itemId: string) => void
@@ -35,10 +37,13 @@ export function ConsumableTabBooking({
   bookingId,
   roomId,
   tenantId,
+  checkType,
   consumedItems,
   onMarkConsumed,
   onRemoveConsumed,
 }: ConsumableTabBookingProps) {
+  const config = getCheckTypeConfig(checkType)
+  const allowedActions = config.consumableActions
   
   const { data: bookingConsumables, isLoading, refetch } = useBookingConsumables(bookingId || undefined)
   const initializeConsumables = useInitializeBookingConsumables()
@@ -278,6 +283,10 @@ export function ConsumableTabBooking({
                 const isSaving = savingItems.has(item.item_id)
                 const displaySeen = seen ?? required
                 
+                // For checkout with booking: show full counter UI
+                // For other check types: show simple OK/Thiếu buttons
+                const isFullCounterMode = checkType === 'checkout' && bookingId
+                
                 return (
                   <div key={item.item_id} className="flex items-center gap-2 py-2.5 px-1">
                     {/* Item info */}
@@ -286,72 +295,143 @@ export function ConsumableTabBooking({
                       <div className="text-xs text-muted-foreground">Cần: {required}</div>
                     </div>
                     
-                    {/* Counter */}
-                    <div className="flex items-center gap-0.5">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => updateSeen(item.item_id, displaySeen - 1)}
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <Input
-                        type="number"
-                        value={displaySeen}
-                        onChange={(e) => updateSeen(item.item_id, parseInt(e.target.value) || 0)}
-                        className="w-10 h-7 text-center text-sm px-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => updateSeen(item.item_id, displaySeen + 1)}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    
-                    {/* Status */}
-                    <div className="w-12 text-right text-xs font-medium">
-                      {status === 'ok' && <Check className="h-4 w-4 text-green-600 ml-auto" />}
-                      {status === 'lacking' && <span className="text-destructive">-{diff}</span>}
-                      {status === 'excess' && <span className="text-amber-600">+{diff}</span>}
-                      {status === 'unchecked' && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 text-xs px-1.5"
-                          onClick={() => handleQuickOk(item)}
-                          disabled={isSaving}
-                        >
-                          {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Đủ'}
-                        </Button>
-                      )}
-                    </div>
-                    
-                    {/* Save */}
-                    <div className="w-7">
-                      {isDirty && status !== 'unchecked' && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => persistSeen(item)}
-                          disabled={isSaving}
-                        >
-                          {isSaving ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Save className="h-3.5 w-3.5 text-primary" />
+                    {isFullCounterMode ? (
+                      <>
+                        {/* Counter - only for checkout with booking */}
+                        <div className="flex items-center gap-0.5">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => updateSeen(item.item_id, displaySeen - 1)}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <Input
+                            type="number"
+                            value={displaySeen}
+                            onChange={(e) => updateSeen(item.item_id, parseInt(e.target.value) || 0)}
+                            className="w-10 h-7 text-center text-sm px-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => updateSeen(item.item_id, displaySeen + 1)}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        
+                        {/* Status */}
+                        <div className="w-12 text-right text-xs font-medium">
+                          {status === 'ok' && <Check className="h-4 w-4 text-success ml-auto" />}
+                          {status === 'lacking' && <span className="text-destructive">-{diff}</span>}
+                          {status === 'excess' && <span className="text-warning">+{diff}</span>}
+                          {status === 'unchecked' && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 text-xs px-1.5"
+                              onClick={() => handleQuickOk(item)}
+                              disabled={isSaving}
+                            >
+                              {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Đủ'}
+                            </Button>
                           )}
-                        </Button>
-                      )}
-                    </div>
+                        </div>
+                        
+                        {/* Save */}
+                        <div className="w-7">
+                          {isDirty && status !== 'unchecked' && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => persistSeen(item)}
+                              disabled={isSaving}
+                            >
+                              {isSaving ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Save className="h-3.5 w-3.5 text-primary" />
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      /* Simple buttons for daily/checkin/maintenance */
+                      <div className="flex items-center gap-1">
+                        {status === 'unchecked' ? (
+                          <>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-success hover:bg-success/10"
+                              onClick={() => handleQuickOk(item)}
+                              disabled={isSaving}
+                            >
+                              {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : 'OK'}
+                            </Button>
+                            {allowedActions.includes('missing') && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs text-warning hover:bg-warning/10"
+                                onClick={() => {
+                                  updateSeen(item.item_id, 0)
+                                  onMarkConsumed(item, required, true)
+                                }}
+                              >
+                                Thiếu
+                              </Button>
+                            )}
+                            {allowedActions.includes('empty') && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10"
+                                onClick={() => {
+                                  updateSeen(item.item_id, 0)
+                                  onMarkConsumed(item, required, true)
+                                }}
+                              >
+                                Hết
+                              </Button>
+                            )}
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            {status === 'ok' && <Check className="h-4 w-4 text-success" />}
+                            {status === 'lacking' && <span className="text-xs text-destructive">Thiếu {diff}</span>}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => {
+                                setItemStates(prev => {
+                                  const newState = { ...prev }
+                                  delete newState[item.item_id]
+                                  return newState
+                                })
+                                onRemoveConsumed(item.item_id)
+                              }}
+                            >
+                              <Minus className="h-3 w-3 text-muted-foreground" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )
               })}
