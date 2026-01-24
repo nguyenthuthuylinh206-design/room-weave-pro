@@ -1,6 +1,6 @@
 // Housekeeping Task Types
 
-export type TaskType = 'checkout_inspection' | 'cleaning' | 'checkin_prep' | 'amenity_request' | 'other'
+export type TaskType = 'checkout_inspection' | 'cleaning' | 'checkin_prep' | 'amenity_request' | 'delivery_confirmation' | 'other'
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
 export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled'
 
@@ -26,6 +26,7 @@ export interface HousekeepingTask {
   due_at: string | null
   
   room_check_id: string | null
+  distribution_order_room_id: string | null // Link to delivery task
   notes: string | null
   
   created_at: string
@@ -75,6 +76,7 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   cleaning: 'Dọn phòng',
   checkin_prep: 'Chuẩn bị check-in',
   amenity_request: 'Bổ sung đồ dùng',
+  delivery_confirmation: 'Xác nhận nhận hàng',
   other: 'Khác'
 }
 
@@ -83,6 +85,7 @@ export const TASK_TYPE_ICONS: Record<TaskType, string> = {
   cleaning: 'Sparkles',
   checkin_prep: 'DoorOpen',
   amenity_request: 'Package',
+  delivery_confirmation: 'PackageCheck',
   other: 'MoreHorizontal'
 }
 

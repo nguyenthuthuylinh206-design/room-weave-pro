@@ -47,8 +47,12 @@ const TASK_ICONS: Record<TaskType, typeof ClipboardCheck> = {
   cleaning: Sparkles,
   checkin_prep: DoorOpen,
   amenity_request: Package,
+  delivery_confirmation: Package, // System-created task
   other: MoreHorizontal
 }
+
+// Task types available for manual creation (excludes system-created types)
+const MANUAL_TASK_TYPES: TaskType[] = ['checkout_inspection', 'cleaning', 'checkin_prep', 'amenity_request', 'other']
 
 const formSchema = z.object({
   task_type: z.enum(['checkout_inspection', 'cleaning', 'checkin_prep', 'amenity_request', 'other']),
@@ -61,6 +65,9 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>
 
+// Task types that can be manually created
+type ManualTaskType = 'checkout_inspection' | 'cleaning' | 'checkin_prep' | 'amenity_request' | 'other'
+
 interface CreateTaskDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -68,7 +75,7 @@ interface CreateTaskDialogProps {
   roomNumber: string
   hotelId: string
   bookingId?: string
-  defaultTaskType?: TaskType
+  defaultTaskType?: ManualTaskType
 }
 
 export function CreateTaskDialog({
@@ -135,7 +142,7 @@ export function CreateTaskDialog({
                 <FormItem>
                   <FormLabel>Loại công việc</FormLabel>
                   <div className="grid grid-cols-2 gap-2">
-                    {(Object.keys(TASK_TYPE_LABELS) as TaskType[]).map((type) => {
+                    {MANUAL_TASK_TYPES.map((type) => {
                       const Icon = TASK_ICONS[type]
                       const isSelected = field.value === type
                       return (

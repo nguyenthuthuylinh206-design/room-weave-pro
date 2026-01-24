@@ -7,6 +7,7 @@ import {
   Sparkles, 
   DoorOpen, 
   Package, 
+  PackageCheck,
   MoreHorizontal,
   Clock,
   User,
@@ -19,6 +20,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { useUpdateTaskStatus, useClaimTask } from '@/hooks/useHousekeepingTasks'
+import { useDeliveryTaskItems } from '@/hooks/useDeliveryTaskItems'
+import { DeliveryConfirmationModal } from './DeliveryConfirmationModal'
 import type { HousekeepingTaskWithDetails, TaskType, TaskPriority } from '@/types/housekeeping.types'
 import { TASK_TYPE_LABELS, PRIORITY_LABELS, PRIORITY_COLORS } from '@/types/housekeeping.types'
 
@@ -27,6 +30,7 @@ const TASK_ICONS: Record<TaskType, typeof ClipboardCheck> = {
   cleaning: Sparkles,
   checkin_prep: DoorOpen,
   amenity_request: Package,
+  delivery_confirmation: PackageCheck,
   other: MoreHorizontal
 }
 
@@ -46,8 +50,15 @@ interface TaskCardProps {
 export function TaskCard({ task, showActions = true, showClaimButton = false }: TaskCardProps) {
   const navigate = useNavigate()
   const [isUpdating, setIsUpdating] = useState(false)
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false)
   const { mutateAsync: updateStatus } = useUpdateTaskStatus()
   const { mutateAsync: claimTask, isPending: isClaiming } = useClaimTask()
+
+  // Fetch delivery items if this is a delivery confirmation task
+  const isDeliveryTask = task.task_type === 'delivery_confirmation'
+  const { data: deliveryData } = useDeliveryTaskItems(
+    isDeliveryTask ? task.distribution_order_room_id : null
+  )
 
   const Icon = TASK_ICONS[task.task_type]
   const isInProgress = task.status === 'in_progress'
@@ -82,157 +93,197 @@ export function TaskCard({ task, showActions = true, showClaimButton = false }: 
     }
   }
 
+  const handleDeliveryConfirm = () => {
+    setShowDeliveryModal(true)
+  }
+
   // Calculate elapsed time for in_progress tasks
   const elapsedTime = task.started_at 
     ? formatDistanceToNow(new Date(task.started_at), { locale: vi, addSuffix: false })
     : null
 
   return (
-    <div 
-      className={cn(
-        'border rounded-lg p-3 transition-colors',
-        isUrgent && task.status === 'pending' && 'border-red-300 bg-red-50/50 dark:border-red-800 dark:bg-red-900/10',
-        isInProgress && 'border-blue-300 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/10'
-      )}
-    >
-      {/* Header */}
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className={cn(
-            'p-1.5 rounded-md',
-            isUrgent ? 'bg-red-100 dark:bg-red-900/30' : 'bg-muted'
-          )}>
-            <Icon className={cn(
-              'h-4 w-4',
-              isUrgent ? 'text-red-600' : 'text-muted-foreground'
-            )} />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-sm">
-                P.{task.room?.room_number}
-              </span>
-              <Badge 
-                variant="outline" 
-                className={cn('text-[10px] h-5', PRIORITY_BADGE_STYLES[task.priority])}
-              >
-                {task.priority === 'urgent' && <AlertTriangle className="h-3 w-3 mr-0.5" />}
-                {PRIORITY_LABELS[task.priority]}
-              </Badge>
-            </div>
-            <p className="text-xs text-muted-foreground truncate">
-              {task.title || TASK_TYPE_LABELS[task.task_type]}
-            </p>
-          </div>
-        </div>
-        
-        {isInProgress && elapsedTime && (
-          <Badge variant="secondary" className="text-[10px] h-5 shrink-0">
-            <Clock className="h-3 w-3 mr-1" />
-            {elapsedTime}
-          </Badge>
+    <>
+      <div 
+        className={cn(
+          'border rounded-lg p-3 transition-colors',
+          isUrgent && task.status === 'pending' && 'border-red-300 bg-red-50/50 dark:border-red-800 dark:bg-red-900/10',
+          isInProgress && 'border-blue-300 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/10'
         )}
-      </div>
-
-      {/* Details */}
-      {(task.description || task.booking?.guest_name || task.requested_user) && (
-        <div className="text-xs text-muted-foreground space-y-1 mb-3">
-          {task.description && (
-            <p className="line-clamp-2">{task.description}</p>
-          )}
-          {task.booking?.guest_name && (
-            <p className="flex items-center gap-1">
-              <User className="h-3 w-3" />
-              Khách: {task.booking.guest_name}
-            </p>
-          )}
-          {task.requested_user && (
-            <p className="flex items-center gap-1 opacity-70">
-              Yêu cầu bởi: {task.requested_user.full_name}
-            </p>
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={cn(
+              'p-1.5 rounded-md',
+              isUrgent ? 'bg-red-100 dark:bg-red-900/30' : 'bg-muted'
+            )}>
+              <Icon className={cn(
+                'h-4 w-4',
+                isUrgent ? 'text-red-600' : 'text-muted-foreground'
+              )} />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-sm">
+                  P.{task.room?.room_number}
+                </span>
+                <Badge 
+                  variant="outline" 
+                  className={cn('text-[10px] h-5', PRIORITY_BADGE_STYLES[task.priority])}
+                >
+                  {task.priority === 'urgent' && <AlertTriangle className="h-3 w-3 mr-0.5" />}
+                  {PRIORITY_LABELS[task.priority]}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground truncate">
+                {task.title || TASK_TYPE_LABELS[task.task_type]}
+              </p>
+            </div>
+          </div>
+          
+          {isInProgress && elapsedTime && (
+            <Badge variant="secondary" className="text-[10px] h-5 shrink-0">
+              <Clock className="h-3 w-3 mr-1" />
+              {elapsedTime}
+            </Badge>
           )}
         </div>
-      )}
 
-      {/* Time info */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
-        <span>
-          {formatDistanceToNow(new Date(task.created_at), { 
-            locale: vi, 
-            addSuffix: true 
-          })}
-        </span>
-        {task.due_at && (
-          <span className={cn(
-            new Date(task.due_at) < new Date() && 'text-red-600 font-medium'
-          )}>
-            Deadline: {new Date(task.due_at).toLocaleTimeString('vi-VN', { 
-              hour: '2-digit', 
-              minute: '2-digit' 
+        {/* Details */}
+        {(task.description || task.booking?.guest_name || task.requested_user) && (
+          <div className="text-xs text-muted-foreground space-y-1 mb-3">
+            {task.description && (
+              <p className="line-clamp-2">{task.description}</p>
+            )}
+            {task.booking?.guest_name && (
+              <p className="flex items-center gap-1">
+                <User className="h-3 w-3" />
+                Khách: {task.booking.guest_name}
+              </p>
+            )}
+            {task.requested_user && (
+              <p className="flex items-center gap-1 opacity-70">
+                Yêu cầu bởi: {task.requested_user.full_name}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Delivery items preview */}
+        {isDeliveryTask && deliveryData && deliveryData.items.length > 0 && (
+          <div className="text-xs text-muted-foreground mb-3">
+            <p className="flex items-center gap-1">
+              <Package className="h-3 w-3" />
+              {deliveryData.items.length} loại đồ dùng ({deliveryData.orderCode})
+            </p>
+          </div>
+        )}
+
+        {/* Time info */}
+        <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
+          <span>
+            {formatDistanceToNow(new Date(task.created_at), { 
+              locale: vi, 
+              addSuffix: true 
             })}
           </span>
+          {task.due_at && (
+            <span className={cn(
+              new Date(task.due_at) < new Date() && 'text-red-600 font-medium'
+            )}>
+              Deadline: {new Date(task.due_at).toLocaleTimeString('vi-VN', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })}
+            </span>
+          )}
+        </div>
+
+        {/* Actions */}
+        {showClaimButton ? (
+          <Button 
+            size="sm" 
+            variant="outline"
+            className="w-full h-8"
+            onClick={async () => {
+              try {
+                await claimTask(task.id)
+              } catch (e) {
+                // Error handled in hook
+              }
+            }}
+            disabled={isClaiming}
+          >
+            <Hand className="h-3.5 w-3.5 mr-1" />
+            Nhận việc
+          </Button>
+        ) : showActions && (
+          <div className="flex gap-2">
+            {task.status === 'pending' && (
+              <Button 
+                size="sm" 
+                className="flex-1 h-8"
+                onClick={handleStart}
+                disabled={isUpdating}
+              >
+                <Play className="h-3.5 w-3.5 mr-1" />
+                Bắt đầu
+              </Button>
+            )}
+            
+            {isInProgress && (
+              <>
+                {task.task_type === 'checkout_inspection' ? (
+                  <Button 
+                    size="sm" 
+                    className="flex-1 h-8"
+                    onClick={handleContinue}
+                    disabled={isUpdating}
+                  >
+                    <ClipboardCheck className="h-3.5 w-3.5 mr-1" />
+                    Kiểm tra phòng
+                  </Button>
+                ) : task.task_type === 'delivery_confirmation' ? (
+                  <Button 
+                    size="sm" 
+                    className="flex-1 h-8"
+                    onClick={handleDeliveryConfirm}
+                    disabled={isUpdating || !deliveryData}
+                  >
+                    <PackageCheck className="h-3.5 w-3.5 mr-1" />
+                    Xác nhận nhận hàng
+                  </Button>
+                ) : (
+                  <Button 
+                    size="sm" 
+                    className="flex-1 h-8"
+                    onClick={handleComplete}
+                    disabled={isUpdating}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                    Hoàn thành
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Actions */}
-      {showClaimButton ? (
-        <Button 
-          size="sm" 
-          variant="outline"
-          className="w-full h-8"
-          onClick={async () => {
-            try {
-              await claimTask(task.id)
-            } catch (e) {
-              // Error handled in hook
-            }
-          }}
-          disabled={isClaiming}
-        >
-          <Hand className="h-3.5 w-3.5 mr-1" />
-          Nhận việc
-        </Button>
-      ) : showActions && (
-        <div className="flex gap-2">
-          {task.status === 'pending' && (
-            <Button 
-              size="sm" 
-              className="flex-1 h-8"
-              onClick={handleStart}
-              disabled={isUpdating}
-            >
-              <Play className="h-3.5 w-3.5 mr-1" />
-              Bắt đầu
-            </Button>
-          )}
-          
-          {isInProgress && (
-            <>
-              {task.task_type === 'checkout_inspection' ? (
-                <Button 
-                  size="sm" 
-                  className="flex-1 h-8"
-                  onClick={handleContinue}
-                  disabled={isUpdating}
-                >
-                  <ClipboardCheck className="h-3.5 w-3.5 mr-1" />
-                  Kiểm tra phòng
-                </Button>
-              ) : (
-                <Button 
-                  size="sm" 
-                  className="flex-1 h-8"
-                  onClick={handleComplete}
-                  disabled={isUpdating}
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                  Hoàn thành
-                </Button>
-              )}
-            </>
-          )}
-        </div>
+      {/* Delivery Confirmation Modal */}
+      {isDeliveryTask && deliveryData && (
+        <DeliveryConfirmationModal
+          open={showDeliveryModal}
+          onOpenChange={setShowDeliveryModal}
+          taskId={task.id}
+          roomOrderId={deliveryData.roomOrderId}
+          roomNumber={task.room?.room_number || ''}
+          orderCode={deliveryData.orderCode}
+          items={deliveryData.items}
+        />
       )}
-    </div>
+    </>
   )
 }
+

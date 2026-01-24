@@ -83,6 +83,9 @@ export const WorkflowTriggerTypes = {
   HOUSEKEEPING_TASK_COMPLETED: 'housekeeping_task_completed',
   HOUSEKEEPING_TASK_OVERDUE: 'housekeeping_task_overdue',
   
+  // Delivery events
+  DELIVERY_STOP_COMPLETED: 'delivery_stop_completed',
+  
   // Scheduled events
   DAILY_INVENTORY_REPORT: 'daily_inventory_report',
   DAILY_ROOM_STATUS_REPORT: 'daily_room_status_report',
