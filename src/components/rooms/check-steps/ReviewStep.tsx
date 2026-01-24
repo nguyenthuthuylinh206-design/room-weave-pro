@@ -1,19 +1,19 @@
 import { UseFormReturn } from 'react-hook-form'
-import { Upload, X, Star, CheckCircle2, AlertCircle, XCircle, Loader2, Shirt, Droplets, Tv, Armchair, Send, RefreshCw, Package, Wrench, Minus, AlertTriangle, User, Calendar } from 'lucide-react'
+import { Upload, X, Star, CheckCircle2, AlertCircle, XCircle, Loader2, Shirt, Droplets, Tv, Armchair, Send, RefreshCw, Package, Wrench, Minus, AlertTriangle, User, Calendar, ChevronDown, ChevronUp, Camera } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useImageUpload } from '@/hooks/useImageUpload'
 import { useUser } from '@/hooks/useUser'
 import { formatCurrency } from '@/lib/utils'
 import { getCheckTypeConfig, type CheckType } from '@/lib/roomCheckConfig'
 import type { RoomCheckFormData, LaundryItem, ConsumedItem, LostItem, ReplacedItem } from '@/types/rooms.types'
+import { cn } from '@/lib/utils'
 
 interface ReviewStepProps {
   form: UseFormReturn<RoomCheckFormData>
@@ -26,6 +26,7 @@ export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStep
   const { tenantId } = useUser()
   const { uploadImages, isUploading } = useImageUpload()
   const [photos, setPhotos] = useState<string[]>([])
+  const [showDetails, setShowDetails] = useState(false)
   
   const config = getCheckTypeConfig(checkType)
   const cleanlinessScore = form.watch('cleanliness_score')
@@ -67,10 +68,6 @@ export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStep
     setPhotos(newPhotos)
     form.setValue('photos', newPhotos)
   }
-  
-  const getCheckTypeLabel = () => {
-    return config.label
-  }
 
   // Calculate totals
   const totalLaundry = itemsSentToLaundry.reduce((sum, i) => sum + i.quantity, 0)
@@ -87,375 +84,297 @@ export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStep
   // Check if room is ready (for check-in)
   const isRoomReady = !hasActions && itemsComplete
   
+  // Summary stats for collapsed view
+  const summaryItems = [
+    totalLaundry > 0 && `${totalLaundry} giặt`,
+    totalConsumed > 0 && `${totalConsumed} dùng`,
+    totalMissing > 0 && `${totalMissing} thiếu`,
+    totalLost > 0 && `${totalLost} mất`,
+    totalDamaged > 0 && `${totalDamaged} hỏng`,
+  ].filter(Boolean)
+  
   return (
-    <div className="space-y-6">
-      {/* Check-in Readiness Alert */}
+    <div className="space-y-4">
+      {/* Check-in Readiness Alert - Compact */}
       {checkType === 'checkin' && (
-        <Alert variant={isRoomReady ? 'default' : 'destructive'} className={isRoomReady ? 'border-green-500 bg-green-50' : ''}>
+        <Alert 
+          variant={isRoomReady ? 'default' : 'destructive'} 
+          className={cn('py-2', isRoomReady && 'border-green-500 bg-green-50')}
+        >
           {isRoomReady ? (
             <CheckCircle2 className="h-4 w-4 text-green-600" />
           ) : (
             <AlertTriangle className="h-4 w-4" />
           )}
-          <AlertTitle className={isRoomReady ? 'text-green-700' : ''}>
-            {isRoomReady ? 'Phòng sẵn sàng' : 'Phòng chưa sẵn sàng'}
+          <AlertTitle className={cn('text-sm', isRoomReady && 'text-green-700')}>
+            {isRoomReady ? 'Phòng sẵn sàng đón khách' : 'Phòng chưa sẵn sàng'}
           </AlertTitle>
-          <AlertDescription>
-            {isRoomReady 
-              ? 'Phòng đã được kiểm tra và sẵn sàng đón khách.'
-              : `Có ${totalMissing} đồ dùng thiếu và ${totalDamaged} thiết bị hỏng. Không nên cho khách check-in.`
-            }
-          </AlertDescription>
         </Alert>
       )}
       
-      {/* Check-out Guest Info & Charges */}
-      {checkType === 'checkout' && currentBooking && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardContent className="pt-4">
-            <div className="flex items-start gap-3">
-              <User className="h-5 w-5 text-orange-600 shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="font-medium">{currentBooking.guest_name || 'Khách'}</p>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="h-3 w-3" />
-                  <span>
-                    {currentBooking.check_in_date && new Date(currentBooking.check_in_date).toLocaleDateString('vi-VN')} 
-                    {' - '}
-                    {currentBooking.check_out_date && new Date(currentBooking.check_out_date).toLocaleDateString('vi-VN')}
-                  </span>
-                </div>
-                {totalCharge > 0 && (
-                  <div className="mt-2 p-2 bg-white rounded border border-orange-200">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-orange-700">Tổng phí charge khách:</span>
-                      <span className="font-bold text-orange-700">{formatCurrency(totalCharge)}</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {estimatedLossValue > 0 && <div>• Mất đồ: {formatCurrency(estimatedLossValue)}</div>}
-                      {damageCostTotal > 0 && <div>• Hư hỏng: {formatCurrency(damageCostTotal)}</div>}
-                    </div>
-                  </div>
-                )}
-              </div>
+      {/* Check-out Guest Info & Charges - Compact */}
+      {checkType === 'checkout' && currentBooking && totalCharge > 0 && (
+        <div className="p-3 rounded-lg border border-orange-200 bg-orange-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-orange-600" />
+              <span className="text-sm font-medium">{currentBooking.guest_name || 'Khách'}</span>
             </div>
-          </CardContent>
-        </Card>
+            <div className="text-right">
+              <span className="text-xs text-muted-foreground">Phí charge:</span>
+              <span className="ml-2 font-bold text-orange-700">{formatCurrency(totalCharge)}</span>
+            </div>
+          </div>
+        </div>
       )}
       
-      {/* Cleanliness Score */}
+      {/* Cleanliness Score - Inline compact */}
       <FormField
         control={form.control}
         name="cleanliness_score"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="text-base">Đánh giá độ sạch sẽ phòng</FormLabel>
-            <div className="pt-2">
-              <div className="flex items-center justify-center gap-3 mb-3">
+            <div className="flex items-center justify-between">
+              <FormLabel className="text-sm">Đánh giá độ sạch</FormLabel>
+              <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((score) => (
                   <button
                     key={score}
                     type="button"
                     onClick={() => field.onChange(score)}
-                    className="transition-transform hover:scale-110"
+                    className="p-1 transition-transform hover:scale-110"
                   >
                     <Star
-                      className={`h-10 w-10 ${
+                      className={cn(
+                        'h-7 w-7',
                         score <= (cleanlinessScore || 0)
                           ? 'fill-yellow-400 text-yellow-400'
                           : 'text-muted-foreground'
-                      }`}
+                      )}
                     />
                   </button>
                 ))}
               </div>
-              <p className="text-sm text-center text-muted-foreground font-medium">
-                {cleanlinessScore === 5 && '⭐ Rất tốt - Phòng sạch sẽ hoàn hảo'}
-                {cleanlinessScore === 4 && '⭐ Tốt - Phòng sạch sẽ'}
-                {cleanlinessScore === 3 && '⭐ Trung bình - Cần cải thiện'}
-                {cleanlinessScore === 2 && '⚠️ Kém - Cần dọn dẹp'}
-                {cleanlinessScore === 1 && '❌ Rất kém - Cần dọn dẹp ngay'}
-              </p>
             </div>
             <FormMessage />
           </FormItem>
         )}
       />
       
-      {/* Summary Card - Enhanced */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            📋 Tóm tắt kiểm tra phòng {room.room_number}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Basic Info */}
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">{getCheckTypeLabel()}</Badge>
-            <Badge variant={itemsComplete ? 'default' : 'destructive'}>
-              {itemsComplete ? (
-                <><CheckCircle2 className="mr-1 h-3 w-3" /> Đầy đủ</>
+      {/* Summary - Collapsible */}
+      <Collapsible open={showDetails} onOpenChange={setShowDetails}>
+        <div className="border rounded-lg">
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="w-full flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Tóm tắt</span>
+                {hasActions ? (
+                  <div className="flex flex-wrap gap-1">
+                    {summaryItems.map((item, i) => (
+                      <Badge key={i} variant="secondary" className="text-xs">
+                        {item}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <Badge variant="outline" className="text-xs text-green-600 border-green-300">
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    OK
+                  </Badge>
+                )}
+              </div>
+              {showDetails ? (
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
               ) : (
-                <><AlertCircle className="mr-1 h-3 w-3" /> Có vấn đề</>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
               )}
-            </Badge>
-          </div>
+            </button>
+          </CollapsibleTrigger>
           
-          {hasActions && (
-            <>
-              <Separator />
+          <CollapsibleContent>
+            <div className="px-3 pb-3 pt-1 space-y-3 border-t">
+              {/* Basic Info */}
+              <div className="flex flex-wrap gap-2 pt-2">
+                <Badge variant="outline">{config.label}</Badge>
+                <Badge variant={itemsComplete ? 'default' : 'destructive'}>
+                  {itemsComplete ? 'Đầy đủ' : 'Có vấn đề'}
+                </Badge>
+              </div>
               
-              {/* Linen Section */}
-              {(itemsSentToLaundry.length > 0 || itemsReplaced.length > 0 || itemsLost.filter(i => i.item_type === 'linen').length > 0 || itemsMissing.filter(i => i.reason === 'shortage').length > 0) && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <Shirt className="h-4 w-4 text-blue-600" />
-                    <span>Đồ vải</span>
-                  </div>
-                  <div className="pl-6 space-y-1 text-sm">
-                    {itemsSentToLaundry.length > 0 && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Send className="h-3 w-3" />
-                        <span>Lấy giặt: {totalLaundry} items</span>
-                        <span className="text-xs">({itemsSentToLaundry.map(i => i.item_name).join(', ')})</span>
-                      </div>
-                    )}
-                    {itemsReplaced.length > 0 && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <RefreshCw className="h-3 w-3" />
-                        <span>Đã thay mới: {totalReplaced} items</span>
-                      </div>
-                    )}
-                    {itemsLost.filter(i => i.item_type === 'linen').length > 0 && (
-                      <div className="flex items-center gap-2 text-destructive">
-                        <XCircle className="h-3 w-3" />
-                        <span>Mất: {itemsLost.filter(i => i.item_type === 'linen').reduce((s, i) => s + i.quantity, 0)} items</span>
-                      </div>
-                    )}
-                    {itemsMissing.filter(i => i.reason === 'shortage').length > 0 && (
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2 text-yellow-600">
-                          <Minus className="h-3 w-3" />
-                          <span>Thiếu đồ: {itemsMissing.filter(i => i.reason === 'shortage').reduce((s, i) => s + i.shortage, 0)} items</span>
-                        </div>
-                        <div className="pl-5 text-xs text-muted-foreground">
-                          {itemsMissing.filter(i => i.reason === 'shortage').map((item, idx) => (
-                            <span key={idx}>• {item.item_name} (thiếu {item.shortage}){idx < itemsMissing.filter(i => i.reason === 'shortage').length - 1 ? ', ' : ''}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              {/* Consumable Section */}
-              {itemsConsumed.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <Droplets className="h-4 w-4 text-cyan-600" />
-                    <span>Đồ tiêu hao</span>
-                  </div>
-                  <div className="pl-6 space-y-1 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Package className="h-3 w-3" />
-                      <span>Khách đã dùng: {totalConsumed} items</span>
-                    </div>
-                    {itemsConsumed.filter(i => i.need_refill).length > 0 && (
-                      <div className="flex items-center gap-2 text-primary">
-                        <CheckCircle2 className="h-3 w-3" />
-                        <span>Cần bổ sung: {itemsConsumed.filter(i => i.need_refill).reduce((s, i) => s + i.quantity, 0)} items</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              {/* Equipment Section */}
-              {(itemsLost.filter(i => i.item_type === 'equipment').length > 0 || itemsDamaged.length > 0) && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <Tv className="h-4 w-4 text-purple-600" />
-                    <span>Thiết bị</span>
-                  </div>
-                  <div className="pl-6 space-y-1 text-sm">
-                    {itemsLost.filter(i => i.item_type === 'equipment').length > 0 && (
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2 text-destructive">
-                          <XCircle className="h-3 w-3" />
-                          <span>Mất: {itemsLost.filter(i => i.item_type === 'equipment').length} items</span>
-                        </div>
-                        {itemsLost.filter(i => i.item_type === 'equipment' && i.estimated_value).map((item, idx) => (
-                          <div key={idx} className="pl-5 text-xs text-muted-foreground">
-                            • {item.item_name}: ~{item.estimated_value?.toLocaleString()}đ
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {itemsDamaged.length > 0 && (
-                      <div className="flex items-center gap-2 text-warning">
-                        <Wrench className="h-3 w-3" />
-                        <span>Hỏng: {itemsDamaged.length} items</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              {/* Furniture Section */}
-              {itemsLost.filter(i => i.item_type === 'furniture').length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <Armchair className="h-4 w-4 text-amber-600" />
-                    <span>Nội thất</span>
-                  </div>
-                  <div className="pl-6 space-y-1 text-sm">
-                    <div className="flex items-center gap-2 text-destructive">
-                      <XCircle className="h-3 w-3" />
-                      <span>Mất: {itemsLost.filter(i => i.item_type === 'furniture').reduce((s, i) => s + i.quantity, 0)} items</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {/* Total Loss Value */}
-              {estimatedLossValue > 0 && (
+              {hasActions && (
                 <>
-                  <Separator />
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-destructive">Tổng giá trị thiệt hại ước tính:</span>
-                    <span className="font-bold text-destructive">{estimatedLossValue.toLocaleString()}đ</span>
-                  </div>
+                  {/* Linen Section */}
+                  {(itemsSentToLaundry.length > 0 || itemsReplaced.length > 0 || itemsLost.filter(i => i.item_type === 'linen').length > 0 || itemsMissing.filter(i => i.reason === 'shortage').length > 0) && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-xs font-medium">
+                        <Shirt className="h-3 w-3 text-blue-600" />
+                        <span>Đồ vải</span>
+                      </div>
+                      <div className="pl-5 space-y-0.5 text-xs text-muted-foreground">
+                        {itemsSentToLaundry.length > 0 && (
+                          <div className="flex items-center gap-1">
+                            <Send className="h-3 w-3" />
+                            <span>Giặt: {totalLaundry}</span>
+                          </div>
+                        )}
+                        {itemsReplaced.length > 0 && (
+                          <div className="flex items-center gap-1">
+                            <RefreshCw className="h-3 w-3" />
+                            <span>Đổi: {totalReplaced}</span>
+                          </div>
+                        )}
+                        {itemsLost.filter(i => i.item_type === 'linen').length > 0 && (
+                          <div className="flex items-center gap-1 text-destructive">
+                            <XCircle className="h-3 w-3" />
+                            <span>Mất: {itemsLost.filter(i => i.item_type === 'linen').reduce((s, i) => s + i.quantity, 0)}</span>
+                          </div>
+                        )}
+                        {itemsMissing.filter(i => i.reason === 'shortage').length > 0 && (
+                          <div className="flex items-center gap-1 text-yellow-600">
+                            <Minus className="h-3 w-3" />
+                            <span>Thiếu: {itemsMissing.filter(i => i.reason === 'shortage').reduce((s, i) => s + i.shortage, 0)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Consumable Section */}
+                  {itemsConsumed.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-xs font-medium">
+                        <Droplets className="h-3 w-3 text-cyan-600" />
+                        <span>Tiêu hao</span>
+                      </div>
+                      <div className="pl-5 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Package className="h-3 w-3" />
+                          <span>Đã dùng: {totalConsumed}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Equipment/Furniture Section */}
+                  {(itemsLost.filter(i => i.item_type === 'equipment' || i.item_type === 'furniture').length > 0 || itemsDamaged.length > 0) && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-xs font-medium">
+                        <Tv className="h-3 w-3 text-purple-600" />
+                        <span>Thiết bị/Nội thất</span>
+                      </div>
+                      <div className="pl-5 space-y-0.5 text-xs">
+                        {itemsLost.filter(i => i.item_type === 'equipment' || i.item_type === 'furniture').length > 0 && (
+                          <div className="flex items-center gap-1 text-destructive">
+                            <XCircle className="h-3 w-3" />
+                            <span>Mất: {itemsLost.filter(i => i.item_type === 'equipment' || i.item_type === 'furniture').length}</span>
+                          </div>
+                        )}
+                        {itemsDamaged.length > 0 && (
+                          <div className="flex items-center gap-1 text-yellow-600">
+                            <Wrench className="h-3 w-3" />
+                            <span>Hỏng: {totalDamaged}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Total Loss Value */}
+                  {(estimatedLossValue > 0 || damageCostTotal > 0) && (
+                    <div className="pt-2 border-t flex items-center justify-between text-xs">
+                      <span className="font-medium text-destructive">Tổng thiệt hại:</span>
+                      <span className="font-bold text-destructive">{formatCurrency(estimatedLossValue + damageCostTotal)}</span>
+                    </div>
+                  )}
                 </>
               )}
-            </>
-          )}
-          
-          {!hasActions && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <span>Không có vấn đề nào được ghi nhận</span>
+              
+              {!hasActions && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+                  <CheckCircle2 className="h-3 w-3 text-green-600" />
+                  <span>Không có vấn đề</span>
+                </div>
+              )}
             </div>
-          )}
-          
-          {photos.length > 0 && (
-            <div className="flex items-center justify-between text-sm pt-2 border-t">
-              <span className="text-muted-foreground">Ảnh đính kèm</span>
-              <span className="font-medium">{photos.length} ảnh</span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Warning for issues */}
-      {(totalLost > 0 || totalDamaged > 0) && (
-        <Card className="border-destructive bg-destructive/5">
-          <CardContent className="pt-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="font-medium text-destructive">Cảnh báo</p>
-                <p className="text-sm text-muted-foreground">
-                  Khi hoàn tất kiểm tra, hệ thống sẽ:
-                </p>
-                <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
-                  {totalLost > 0 && <li>Tạo thông báo cho quản lý về {totalLost} đồ dùng bị mất</li>}
-                  {totalDamaged > 0 && <li>Tạo yêu cầu bảo trì cho {totalDamaged} thiết bị hỏng</li>}
-                  {itemsSentToLaundry.length > 0 && <li>Ghi nhận {totalLaundry} đồ vải cần giặt</li>}
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
       
-      {/* Notes */}
+      {/* Notes - Compact */}
       <FormField
         control={form.control}
         name="notes"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Ghi chú (tùy chọn)</FormLabel>
+            <FormLabel className="text-sm">Ghi chú</FormLabel>
             <FormControl>
               <Textarea
-                placeholder="Thêm ghi chú về tình trạng phòng..."
-                className="min-h-[100px]"
+                placeholder="Thêm ghi chú..."
+                className="min-h-[60px] text-sm"
                 maxLength={1000}
                 {...field}
               />
             </FormControl>
-            <p className="text-sm text-muted-foreground">
-              {field.value?.length || 0}/1000 ký tự
-            </p>
             <FormMessage />
           </FormItem>
         )}
       />
       
-      {/* Photo Upload */}
-      <div className="space-y-3">
-        <label className="text-sm font-medium">
-          Ảnh (tùy chọn, tối đa 10 ảnh)
-        </label>
+      {/* Photo Upload - Compact */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium">Ảnh</label>
+          <span className="text-xs text-muted-foreground">{photos.length}/10</span>
+        </div>
         
-        {photos.length > 0 && (
-          <div className="grid grid-cols-4 gap-3">
-            {photos.map((url, index) => (
-              <div key={index} className="relative group">
-                <img
-                  src={url}
-                  alt={`Photo ${index + 1}`}
-                  className="aspect-square w-full rounded object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => removePhoto(index)}
-                  className="absolute top-1 right-1 rounded-full bg-destructive p-1 text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-        
-        {photos.length < 10 && (
-          <div>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFileSelect}
-              disabled={isUploading}
-              className="hidden"
-              id="photo-upload"
-            />
-            <label htmlFor="photo-upload">
-              <Button
+        <div className="flex flex-wrap gap-2">
+          {photos.map((url, index) => (
+            <div key={index} className="relative group">
+              <img
+                src={url}
+                alt={`Photo ${index + 1}`}
+                className="h-16 w-16 rounded object-cover"
+              />
+              <button
                 type="button"
-                variant="outline"
-                disabled={isUploading}
-                className="w-full"
-                asChild
+                onClick={() => removePhoto(index)}
+                className="absolute -top-1 -right-1 rounded-full bg-destructive p-0.5 text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                <div>
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+          
+          {photos.length < 10 && (
+            <>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileSelect}
+                disabled={isUploading}
+                className="hidden"
+                id="photo-upload"
+              />
+              <label htmlFor="photo-upload">
+                <div className={cn(
+                  'h-16 w-16 rounded border-2 border-dashed flex items-center justify-center cursor-pointer',
+                  'hover:border-primary hover:bg-muted/50 transition-colors',
+                  isUploading && 'opacity-50 cursor-not-allowed'
+                )}>
                   {isUploading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Đang tải lên...
-                    </>
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                   ) : (
-                    <>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Thêm ảnh
-                    </>
+                    <Camera className="h-5 w-5 text-muted-foreground" />
                   )}
                 </div>
-              </Button>
-            </label>
-          </div>
-        )}
+              </label>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

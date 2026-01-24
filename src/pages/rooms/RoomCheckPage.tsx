@@ -77,7 +77,11 @@ export function RoomCheckPage() {
     deleteSession 
   } = useRoomCheckSession(id)
   
-  const [currentStep, setCurrentStep] = useState(1)
+  // Auto-skip step 1 if check type is provided via URL
+  const shouldAutoSkip = !!prefilledType
+  const initialStep = shouldAutoSkip ? 2 : 1
+  
+  const [currentStep, setCurrentStep] = useState(initialStep)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [showResumeDialog, setShowResumeDialog] = useState(false)
   const [showSubmitDialog, setShowSubmitDialog] = useState(false)
