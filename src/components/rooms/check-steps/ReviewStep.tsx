@@ -1,5 +1,5 @@
 import { UseFormReturn } from 'react-hook-form'
-import { Upload, X, Star, CheckCircle2, AlertCircle, XCircle, Loader2, Shirt, Droplets, Tv, Armchair, Send, RefreshCw, Package, Wrench, Minus, AlertTriangle, User, Calendar, ChevronDown, ChevronUp, Camera } from 'lucide-react'
+import { X, Star, CheckCircle2, XCircle, Loader2, Shirt, Droplets, Tv, Send, RefreshCw, Package, Wrench, Minus, AlertTriangle, User, Calendar, ChevronDown, ChevronUp, Camera, ClipboardCheck, LogIn, LogOut, Settings } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
@@ -14,12 +14,22 @@ import { formatCurrency } from '@/lib/utils'
 import { getCheckTypeConfig, type CheckType } from '@/lib/roomCheckConfig'
 import type { RoomCheckFormData, LaundryItem, ConsumedItem, LostItem, ReplacedItem } from '@/types/rooms.types'
 import { cn } from '@/lib/utils'
+import { format } from 'date-fns'
+import { vi } from 'date-fns/locale'
 
 interface ReviewStepProps {
   form: UseFormReturn<RoomCheckFormData>
   room: any
   checkType: CheckType
   currentBooking?: any
+}
+
+// Icon mapping for check types
+const CHECK_TYPE_ICONS: Record<CheckType, any> = {
+  daily: ClipboardCheck,
+  checkin: LogIn,
+  checkout: LogOut,
+  maintenance: Settings,
 }
 
 export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStepProps) {
@@ -29,6 +39,7 @@ export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStep
   const [showDetails, setShowDetails] = useState(false)
   
   const config = getCheckTypeConfig(checkType)
+  const CheckTypeIcon = CHECK_TYPE_ICONS[checkType]
   const cleanlinessScore = form.watch('cleanliness_score')
   const itemsComplete = form.watch('items_complete')
   const itemsMissing = form.watch('items_missing') || []
@@ -95,7 +106,18 @@ export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStep
   
   return (
     <div className="space-y-4">
-      {/* Check-in Readiness Alert - Compact */}
+      {/* Check Type Header - Styled by type */}
+      <div className={cn('p-3 rounded-lg border', config.headerColor)}>
+        <div className="flex items-center gap-2">
+          <CheckTypeIcon className={cn('h-5 w-5', config.headerTextColor)} />
+          <div>
+            <h4 className={cn('font-medium text-sm', config.headerTextColor)}>{config.label}</h4>
+            <p className="text-xs text-muted-foreground">{config.description}</p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Check-in Readiness Alert */}
       {checkType === 'checkin' && (
         <Alert 
           variant={isRoomReady ? 'default' : 'destructive'} 
@@ -109,22 +131,47 @@ export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStep
           <AlertTitle className={cn('text-sm', isRoomReady && 'text-green-700')}>
             {isRoomReady ? 'Phòng sẵn sàng đón khách' : 'Phòng chưa sẵn sàng'}
           </AlertTitle>
+          {!isRoomReady && config.blockOnDamaged && (
+            <AlertDescription className="text-xs">
+              Cần xử lý các vấn đề trước khi cho khách nhận phòng
+            </AlertDescription>
+          )}
         </Alert>
       )}
       
-      {/* Check-out Guest Info & Charges - Compact */}
-      {checkType === 'checkout' && currentBooking && totalCharge > 0 && (
-        <div className="p-3 rounded-lg border border-orange-200 bg-orange-50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-orange-600" />
-              <span className="text-sm font-medium">{currentBooking.guest_name || 'Khách'}</span>
+      {/* Booking Info Card - For checkin/checkout */}
+      {config.showBookingInfo && currentBooking && (
+        <div className={cn(
+          'p-3 rounded-lg border',
+          checkType === 'checkout' ? 'border-orange-200 bg-orange-50' : 'border-green-200 bg-green-50'
+        )}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <User className={cn('h-4 w-4 flex-shrink-0', checkType === 'checkout' ? 'text-orange-600' : 'text-green-600')} />
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{currentBooking.guest_name || 'Khách'}</p>
+                {currentBooking.guest_phone && (
+                  <p className="text-xs text-muted-foreground">{currentBooking.guest_phone}</p>
+                )}
+              </div>
             </div>
-            <div className="text-right">
-              <span className="text-xs text-muted-foreground">Phí charge:</span>
-              <span className="ml-2 font-bold text-orange-700">{formatCurrency(totalCharge)}</span>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
+              <Calendar className="h-3 w-3" />
+              <span>
+                {currentBooking.check_in_date && format(new Date(currentBooking.check_in_date), 'dd/MM', { locale: vi })}
+                {' - '}
+                {currentBooking.check_out_date && format(new Date(currentBooking.check_out_date), 'dd/MM', { locale: vi })}
+              </span>
             </div>
           </div>
+          
+          {/* Charges for checkout */}
+          {checkType === 'checkout' && totalCharge > 0 && (
+            <div className="mt-2 pt-2 border-t border-orange-200 flex items-center justify-between">
+              <span className="text-xs text-orange-700">Phí phát sinh:</span>
+              <span className="font-bold text-orange-700">{formatCurrency(totalCharge)}</span>
+            </div>
+          )}
         </div>
       )}
       
