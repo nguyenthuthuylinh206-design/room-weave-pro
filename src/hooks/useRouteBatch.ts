@@ -59,6 +59,13 @@ export function useRouteDetail(orderId: string | undefined) {
       if (orderError) throw orderError
       if (!orderData) throw new Error('Order not found')
 
+      // Fetch tenant_id and hotel_id separately (RPC might not return these)
+      const { data: orderMeta } = await supabase
+        .from('distribution_orders')
+        .select('tenant_id, hotel_id')
+        .eq('id', orderId)
+        .single()
+
       // Fetch batches with user names
       const { data: batchData, error: batchError } = await supabase
         .from('distribution_order_batches')
@@ -134,6 +141,8 @@ export function useRouteDetail(orderId: string | undefined) {
         completed_at: parsedOrder.completed_at as string | null,
         created_at: parsedOrder.created_at as string,
         notes: parsedOrder.notes as string | null,
+        tenant_id: orderMeta?.tenant_id,
+        hotel_id: orderMeta?.hotel_id,
         batches,
         stops,
       } as RouteDetail

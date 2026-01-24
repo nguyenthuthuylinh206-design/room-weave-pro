@@ -78,6 +78,8 @@ export interface RouteDetail {
   completed_at: string | null
   created_at: string
   notes: string | null
+  tenant_id?: string
+  hotel_id?: string
   batches: DistributionBatch[]
   stops: RouteStop[]
 }
