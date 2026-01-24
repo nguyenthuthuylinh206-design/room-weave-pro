@@ -30,7 +30,7 @@ import { toast } from '@/hooks/use-toast'
 import { CheckTypeStep } from '@/components/rooms/check-steps/CheckTypeStep'
 import { ItemsCheckStep } from '@/components/rooms/check-steps/ItemsCheckStep'
 import { ReviewStep } from '@/components/rooms/check-steps/ReviewStep'
-import { PendingDeliveriesSection } from '@/components/rooms/check-steps/PendingDeliveriesSection'
+// PendingDeliveriesSection removed - delivery confirmation now handled via housekeeping tasks
 import type { RoomCheckFormData } from '@/types/rooms.types'
 
 export function RoomCheckPage() {
@@ -616,9 +616,7 @@ export function RoomCheckPage() {
           description={`${room.room_type} - Tầng ${room.floor}`}
         />
         
-      {/* Pending Deliveries Section */}
-        <PendingDeliveriesSection roomId={id!} bookingId={currentBooking?.id} />
-      
+      {/* Pending Deliveries removed - now handled via housekeeping tasks */}
       {/* Check Type Header - Color coded */}
       {(() => {
         const checkTypeConfig = getCheckTypeConfig(watchedCheckType)
