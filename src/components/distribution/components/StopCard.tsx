@@ -45,6 +45,9 @@ import { cn } from '@/lib/utils'
 
 interface StopCardProps {
   stop: RouteStop
+  orderCode?: string
+  tenantId?: string
+  hotelId?: string
   canDeliver?: boolean
   canMarkCannotAccess?: boolean
   canRetry?: boolean
@@ -55,6 +58,9 @@ interface StopCardProps {
 
 export function StopCard({
   stop,
+  orderCode,
+  tenantId,
+  hotelId,
   canDeliver = false,
   canMarkCannotAccess = false,
   canRetry = false,
@@ -83,7 +89,21 @@ export function StopCard({
 
   const handleDeliver = () => {
     deliverStop.mutate(
-      { roomOrderId: stop.id },
+      { 
+        roomOrderId: stop.id,
+        roomInfo: {
+          room_id: stop.room_id,
+          room_number: stop.room_number,
+          hotel_id: hotelId,
+          tenant_id: tenantId,
+          order_code: orderCode,
+          room_order_id: stop.id,
+          items: stop.items.map(i => ({
+            item_name: i.item_name,
+            quantity: i.quantity
+          }))
+        }
+      },
       { onSuccess: () => onAction?.() }
     )
   }

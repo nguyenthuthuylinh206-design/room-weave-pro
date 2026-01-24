@@ -227,10 +227,11 @@ export function useDeliverStop() {
       roomInfo?: {
         room_id: string
         room_number: string
-        hotel_id: string
-        tenant_id: string
-        order_code: string
-        items: { item_name: string; quantity: number }[]
+        hotel_id?: string
+        tenant_id?: string
+        order_code?: string
+        room_order_id?: string
+        items?: { item_name: string; quantity: number }[]
       }
     }) => {
       if (!user?.id) throw new Error('User not authenticated')
