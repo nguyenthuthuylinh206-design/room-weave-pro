@@ -398,60 +398,46 @@ export function ItemsCheckStep({
   const progressPercent = totalItems > 0 ? Math.round((checkedCount / totalItems) * 100) : 0;
 
   return (
-    <div className="space-y-4">
-      {/* Sticky Progress Header */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur -mx-4 px-4 py-2 border-b">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-sm">
-            <CheckCircle2 className={`h-4 w-4 ${progressPercent === 100 ? 'text-success' : 'text-muted-foreground'}`} />
-            <span className="font-medium">
+    <div className="space-y-3">
+      {/* Compact Sticky Progress Header */}
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur -mx-4 px-4 py-1.5 border-b">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className={`h-4 w-4 ${progressPercent === 100 ? 'text-green-600' : 'text-muted-foreground'}`} />
+            <span className="text-sm font-medium tabular-nums">
               {checkedCount}/{totalItems}
             </span>
-            <span className="text-muted-foreground text-xs">items đã kiểm tra</span>
+            <Progress value={progressPercent} className="w-16 h-1.5" />
           </div>
-          <Progress value={progressPercent} className="w-24 h-2" />
-          {progressPercent === 100 && (
-            <Badge variant="outline" className="border-success text-success bg-success/10 text-xs">
-              Hoàn thành
-            </Badge>
-          )}
+          
+          {/* Compact summary badges */}
+          <div className="flex items-center gap-1 text-xs">
+            {laundryItems.length > 0 && (
+              <span className="text-blue-600">{laundryItems.length} giặt</span>
+            )}
+            {lostItems.length > 0 && (
+              <span className="text-destructive">{lostItems.length} mất</span>
+            )}
+            {damagedItems.length > 0 && (
+              <span className="text-amber-600">{damagedItems.length} hỏng</span>
+            )}
+            {progressPercent === 100 && (
+              <Badge variant="outline" className="h-5 px-1.5 text-xs border-green-500 text-green-600 bg-green-50">
+                ✓
+              </Badge>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Summary Alert */}
-      {(getIssueCount() > 0 || getActionCount() > 0) && (
-        <Alert variant={getIssueCount() > 0 ? 'destructive' : 'default'}>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="flex flex-wrap gap-2">
-            {laundryItems.length > 0 && (
-              <Badge variant="secondary">{laundryItems.length} lấy giặt</Badge>
-            )}
-            {consumedItems.length > 0 && (
-              <Badge variant="secondary">{consumedItems.length} đã dùng</Badge>
-            )}
-            {replacedItems.length > 0 && (
-              <Badge variant="secondary">{replacedItems.length} đã thay</Badge>
-            )}
-            {lostItems.length > 0 && (
-              <Badge variant="destructive">{lostItems.length} mất</Badge>
-            )}
-            {damagedItems.length > 0 && (
-              <Badge variant="outline" className="border-warning text-warning">
-                {damagedItems.length} hỏng
-              </Badge>
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Search */}
+      {/* Compact Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Tìm kiếm đồ dùng..."
+          placeholder="Tìm..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
+          className="pl-8 h-8 text-sm"
         />
       </div>
 
