@@ -530,6 +530,7 @@ export function ItemsCheckStep({
             bookingId={bookingId || null}
             roomId={roomId}
             tenantId={tenantId}
+            checkType={checkType}
             consumedItems={consumedItems}
             onMarkConsumed={handleMarkConsumed}
             onRemoveConsumed={removeFromConsumed}

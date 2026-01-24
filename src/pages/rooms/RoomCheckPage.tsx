@@ -81,6 +81,7 @@ export function RoomCheckPage() {
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [showResumeDialog, setShowResumeDialog] = useState(false)
   const [showSubmitDialog, setShowSubmitDialog] = useState(false)
+  const [showCheckinBlockDialog, setShowCheckinBlockDialog] = useState(false)
   const [quickMode, setQuickMode] = useState(false)
   const [itemQuantities, setItemQuantities] = useState<Record<string, number>>({})
   const [sessionCompleted, setSessionCompleted] = useState(false)
@@ -565,6 +566,45 @@ export function RoomCheckPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Check-in Block Dialog - Warning when room not ready */}
+      <AlertDialog open={showCheckinBlockDialog} onOpenChange={setShowCheckinBlockDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-warning">⚠️ Phòng chưa sẵn sàng</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <div>Phòng này có vấn đề cần giải quyết trước khi cho khách check-in:</div>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                {(form.watch('items_damaged')?.length || 0) > 0 && (
+                  <li className="text-destructive font-medium">
+                    {form.watch('items_damaged').length} thiết bị/đồ dùng bị hỏng
+                  </li>
+                )}
+                {(form.watch('items_missing')?.length || 0) > 0 && (
+                  <li className="text-warning font-medium">
+                    {form.watch('items_missing').length} vật phẩm thiếu
+                  </li>
+                )}
+              </ul>
+              <div className="mt-3 p-2 bg-muted rounded text-sm">
+                <strong>Khuyến nghị:</strong> Quay lại sửa các vấn đề trước khi hoàn tất kiểm tra check-in.
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Quay lại sửa</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                setShowCheckinBlockDialog(false)
+                setShowSubmitDialog(true)
+              }}
+            >
+              Vẫn hoàn tất
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       
       <div className="space-y-6">
         <PageHeader
@@ -692,7 +732,17 @@ export function RoomCheckPage() {
                       // Validate form trước khi mở dialog
                       form.trigger().then((isValid) => {
                         if (isValid) {
-                          setShowSubmitDialog(true)
+                          const checkTypeVal = form.getValues('check_type')
+                          const damagedCount = form.getValues('items_damaged')?.length || 0
+                          const missingCount = form.getValues('items_missing')?.length || 0
+                          const checkTypeConf = getCheckTypeConfig(checkTypeVal)
+                          
+                          // Check-in: Cảnh báo nếu phòng chưa sẵn sàng
+                          if (checkTypeConf.blockOnDamaged && (damagedCount > 0 || missingCount > 0)) {
+                            setShowCheckinBlockDialog(true)
+                          } else {
+                            setShowSubmitDialog(true)
+                          }
                         }
                       })
                     }}
