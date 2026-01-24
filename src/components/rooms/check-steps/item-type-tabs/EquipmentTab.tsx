@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { formatCurrency } from '@/lib/utils'
 import type { RoomItemWithDetails, LostItem, DamagedItem } from '@/types/rooms.types'
 import { CategoryGroup, groupItemsByCategory } from './CategoryGroup'
+import { getCheckTypeConfig, type CheckType } from '@/lib/roomCheckConfig'
 
 interface ExtendedRoomItem extends RoomItemWithDetails {
   category_name?: string | null
@@ -16,6 +17,7 @@ interface ExtendedRoomItem extends RoomItemWithDetails {
 
 interface EquipmentTabProps {
   items: ExtendedRoomItem[]
+  checkType: CheckType
   lostItems: LostItem[]
   damagedItems: DamagedItem[]
   onMarkLost: (item: RoomItemWithDetails, quantity: number, estimatedValue?: number) => void
@@ -31,6 +33,7 @@ type PendingAction = {
 
 export function EquipmentTab({
   items,
+  checkType,
   lostItems,
   damagedItems,
   onMarkLost,
@@ -38,6 +41,8 @@ export function EquipmentTab({
   onRemoveFromLost,
   onRemoveFromDamaged,
 }: EquipmentTabProps) {
+  const config = getCheckTypeConfig(checkType)
+  const allowedActions = config.equipmentActions
   const [checkedOk, setCheckedOk] = useState<Set<string>>(new Set())
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
   const [actionNotes, setActionNotes] = useState('')
@@ -232,24 +237,28 @@ export function EquipmentTab({
                           >
                             OK
                           </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10"
-                            onClick={() => handleStartAction(item.item_id, 'lost')}
-                          >
-                            Mất
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs text-amber-600 hover:bg-amber-50"
-                            onClick={() => handleStartAction(item.item_id, 'damaged')}
-                          >
-                            Hỏng
-                          </Button>
+                          {allowedActions.includes('lost') && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10"
+                              onClick={() => handleStartAction(item.item_id, 'lost')}
+                            >
+                              Mất
+                            </Button>
+                          )}
+                          {allowedActions.includes('damaged') && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-amber-600 hover:bg-amber-50"
+                              onClick={() => handleStartAction(item.item_id, 'damaged')}
+                            >
+                              Hỏng
+                            </Button>
+                          )}
                         </div>
                       )}
                       

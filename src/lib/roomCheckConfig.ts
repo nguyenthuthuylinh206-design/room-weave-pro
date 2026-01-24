@@ -1,0 +1,133 @@
+/**
+ * Room Check Configuration by Check Type
+ * 
+ * This config defines which actions are available for each check type
+ * to optimize the workflow for different scenarios:
+ * - Daily: Focus on cleanliness and restocking
+ * - Check-in: Ensure room readiness before guest arrives
+ * - Check-out: Full inventory check with damage/loss tracking
+ * - Maintenance: Post-repair verification
+ */
+
+export type CheckType = 'daily' | 'checkin' | 'checkout' | 'maintenance'
+
+// Linen actions
+export type LinenAction = 'ok' | 'laundry' | 'add' | 'change' | 'lost' | 'missing' | 'damaged'
+
+// Consumable actions
+export type ConsumableAction = 'ok' | 'empty' | 'consumed' | 'missing' | 'lost'
+
+// Equipment/Furniture actions
+export type EquipmentAction = 'ok' | 'lost' | 'damaged'
+export type FurnitureAction = 'ok' | 'lost' | 'damaged'
+
+export interface CheckTypeConfig {
+  label: string
+  description: string
+  headerColor: string
+  headerTextColor: string
+  linenActions: LinenAction[]
+  consumableActions: ConsumableAction[]
+  equipmentActions: EquipmentAction[]
+  furnitureActions: FurnitureAction[]
+  showBookingInfo: boolean
+  allowDamageCharges: boolean
+  blockOnDamaged: boolean
+  requireInspection: boolean
+}
+
+export const CHECK_TYPE_CONFIG: Record<CheckType, CheckTypeConfig> = {
+  daily: {
+    label: 'Kiểm tra hàng ngày',
+    description: 'Kiểm tra vệ sinh và đồ dùng thường ngày',
+    headerColor: 'bg-blue-50 border-blue-200',
+    headerTextColor: 'text-blue-700',
+    linenActions: ['ok', 'change'],           // Chỉ OK hoặc Đổi (giặt + thay)
+    consumableActions: ['ok', 'empty'],       // Chỉ OK hoặc Hết
+    equipmentActions: ['ok', 'damaged'],      // Chỉ OK hoặc Hỏng
+    furnitureActions: ['ok', 'damaged'],
+    showBookingInfo: false,
+    allowDamageCharges: false,
+    blockOnDamaged: false,
+    requireInspection: false,
+  },
+  checkin: {
+    label: 'Kiểm tra trước check-in',
+    description: 'Đảm bảo phòng sẵn sàng cho khách',
+    headerColor: 'bg-green-50 border-green-200',
+    headerTextColor: 'text-green-700',
+    linenActions: ['ok', 'missing', 'add'],   // OK, Thiếu, Thêm
+    consumableActions: ['ok', 'missing'],     // OK hoặc Thiếu
+    equipmentActions: ['ok', 'damaged'],      // OK hoặc Hỏng (block check-in)
+    furnitureActions: ['ok', 'damaged'],
+    showBookingInfo: true,
+    allowDamageCharges: false,
+    blockOnDamaged: true,                     // Cảnh báo nếu có đồ hỏng
+    requireInspection: false,
+  },
+  checkout: {
+    label: 'Kiểm tra sau check-out',
+    description: 'Kiểm kê sau khi khách rời đi',
+    headerColor: 'bg-orange-50 border-orange-200',
+    headerTextColor: 'text-orange-700',
+    linenActions: ['ok', 'laundry', 'change', 'lost', 'damaged'], // Full actions
+    consumableActions: ['ok', 'consumed', 'lost'],                 // Đã dùng, Mất
+    equipmentActions: ['ok', 'lost', 'damaged'],                   // Full + charge
+    furnitureActions: ['ok', 'lost', 'damaged'],
+    showBookingInfo: true,
+    allowDamageCharges: true,
+    blockOnDamaged: false,
+    requireInspection: true,
+  },
+  maintenance: {
+    label: 'Kiểm tra bảo trì',
+    description: 'Kiểm tra sau sửa chữa',
+    headerColor: 'bg-purple-50 border-purple-200',
+    headerTextColor: 'text-purple-700',
+    linenActions: ['ok', 'missing'],
+    consumableActions: ['ok', 'missing'],
+    equipmentActions: ['ok', 'damaged'],
+    furnitureActions: ['ok', 'damaged'],
+    showBookingInfo: false,
+    allowDamageCharges: false,
+    blockOnDamaged: false,
+    requireInspection: false,
+  },
+}
+
+/**
+ * Get action labels for UI display
+ */
+export const ACTION_LABELS: Record<string, string> = {
+  ok: 'OK',
+  laundry: 'Giặt',
+  add: 'Thêm',
+  change: 'Đổi',
+  lost: 'Mất',
+  damaged: 'Hỏng',
+  missing: 'Thiếu',
+  empty: 'Hết',
+  consumed: 'Đã dùng',
+}
+
+/**
+ * Get action colors for UI display
+ */
+export const ACTION_COLORS: Record<string, string> = {
+  ok: 'text-green-600 hover:bg-green-50',
+  laundry: 'text-blue-600 hover:bg-blue-50',
+  add: 'text-green-600 hover:bg-green-50',
+  change: 'text-primary hover:bg-primary/10',
+  lost: 'text-destructive hover:bg-destructive/10',
+  damaged: 'text-amber-600 hover:bg-amber-50',
+  missing: 'text-yellow-600 hover:bg-yellow-50',
+  empty: 'text-yellow-600 hover:bg-yellow-50',
+  consumed: 'text-cyan-600 hover:bg-cyan-50',
+}
+
+/**
+ * Get check type config with fallback
+ */
+export function getCheckTypeConfig(checkType: string): CheckTypeConfig {
+  return CHECK_TYPE_CONFIG[checkType as CheckType] || CHECK_TYPE_CONFIG.daily
+}

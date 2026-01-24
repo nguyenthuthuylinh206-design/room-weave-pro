@@ -21,6 +21,8 @@ import type {
 import type { ItemType } from '@/types/items.types';
 import { LinenTab, ConsumableTabBooking, EquipmentTab, FurnitureTab } from './item-type-tabs';
 
+import { type CheckType } from '@/lib/roomCheckConfig'
+
 interface ItemsCheckStepProps {
   form: UseFormReturn<RoomCheckFormData>;
   items: RoomItemWithDetails[];
@@ -28,6 +30,7 @@ interface ItemsCheckStepProps {
   hotelId: string;
   tenantId: string;
   bookingId?: string | null;
+  checkType: CheckType;
   onQuantitiesChange?: (quantities: Record<string, number>) => void;
 }
 
@@ -55,6 +58,7 @@ export function ItemsCheckStep({
   hotelId,
   tenantId,
   bookingId,
+  checkType,
   onQuantitiesChange
 }: ItemsCheckStepProps) {
   const [search, setSearch] = useState('');
@@ -511,6 +515,7 @@ export function ItemsCheckStep({
         <TabsContent value="linen" className="mt-4">
           <LinenTab
             items={filterBySearch(linenItems)}
+            checkType={checkType}
             laundryItems={laundryItems}
             lostItems={lostItems.filter(i => i.item_type === 'linen')}
             replacedItems={replacedItems}
@@ -534,6 +539,7 @@ export function ItemsCheckStep({
         <TabsContent value="equipment" className="mt-4">
           <EquipmentTab
             items={filterBySearch(equipmentItems)}
+            checkType={checkType}
             lostItems={lostItems.filter(i => i.item_type === 'equipment')}
             damagedItems={damagedItems}
             onMarkLost={handleEquipmentLost}
@@ -546,6 +552,7 @@ export function ItemsCheckStep({
         <TabsContent value="furniture" className="mt-4">
           <FurnitureTab
             items={filterBySearch(furnitureItems)}
+            checkType={checkType}
             lostItems={lostItems.filter(i => i.item_type === 'furniture')}
             damagedItems={damagedItems}
             onMarkLost={(item, qty) => handleEquipmentLost(item, qty)}

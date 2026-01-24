@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Droplets, Check, Package } from 'lucide-react'
+import { Droplets, Check, Package, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import type { RoomItemWithDetails, ConsumedItem } from '@/types/rooms.types'
 import { CategoryGroup, groupItemsByCategory } from './CategoryGroup'
+import { getCheckTypeConfig, type CheckType } from '@/lib/roomCheckConfig'
 
 interface ExtendedRoomItem extends RoomItemWithDetails {
   category_name?: string | null
@@ -15,6 +16,7 @@ interface ExtendedRoomItem extends RoomItemWithDetails {
 
 interface ConsumableTabProps {
   items: ExtendedRoomItem[]
+  checkType: CheckType
   consumedItems: ConsumedItem[]
   onMarkConsumed: (item: RoomItemWithDetails, quantity: number, needRefill: boolean) => void
   onRemoveConsumed: (itemId: string) => void
@@ -22,10 +24,13 @@ interface ConsumableTabProps {
 
 export function ConsumableTab({
   items,
+  checkType,
   consumedItems,
   onMarkConsumed,
   onRemoveConsumed,
 }: ConsumableTabProps) {
+  const config = getCheckTypeConfig(checkType)
+  const allowedActions = config.consumableActions
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [needRefill, setNeedRefill] = useState<Record<string, boolean>>({})
   const [okItems, setOkItems] = useState<Set<string>>(new Set())
@@ -195,17 +200,43 @@ export function ConsumableTab({
                   onClick={() => handleMarkOk(item.item_id)}
                 >
                   <Check className="h-4 w-4 mr-1" />
-                  Đủ
+                  {allowedActions.includes('missing') ? 'Đủ' : 'OK'}
                 </Button>
-                <Button
-                  type="button"
-                  variant={isExpanded ? "default" : "outline"}
-                  className="flex-1 h-10"
-                  onClick={() => toggleExpand(item.item_id)}
-                >
-                  <Package className="h-4 w-4 mr-1" />
-                  Khách đã dùng
-                </Button>
+                {allowedActions.includes('consumed') && (
+                  <Button
+                    type="button"
+                    variant={isExpanded ? "default" : "outline"}
+                    className="flex-1 h-10"
+                    onClick={() => toggleExpand(item.item_id)}
+                  >
+                    <Package className="h-4 w-4 mr-1" />
+                    Đã dùng
+                  </Button>
+                )}
+                {allowedActions.includes('empty') && !allowedActions.includes('consumed') && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 h-10 text-yellow-600 border-yellow-300 hover:bg-yellow-50"
+                    onClick={() => {
+                      onMarkConsumed(item, item.standard_quantity, true)
+                    }}
+                  >
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    Hết
+                  </Button>
+                )}
+                {allowedActions.includes('missing') && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 h-10 text-yellow-600 border-yellow-300 hover:bg-yellow-50"
+                    onClick={() => toggleExpand(item.item_id)}
+                  >
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    Thiếu
+                  </Button>
+                )}
               </div>
 
               {/* Row 3: Expandable Details */}

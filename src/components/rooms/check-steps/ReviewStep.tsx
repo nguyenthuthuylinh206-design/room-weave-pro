@@ -1,5 +1,5 @@
 import { UseFormReturn } from 'react-hook-form'
-import { Upload, X, Star, CheckCircle2, AlertCircle, XCircle, Loader2, Shirt, Droplets, Tv, Armchair, Send, RefreshCw, Package, Wrench, Minus } from 'lucide-react'
+import { Upload, X, Star, CheckCircle2, AlertCircle, XCircle, Loader2, Shirt, Droplets, Tv, Armchair, Send, RefreshCw, Package, Wrench, Minus, AlertTriangle, User, Calendar } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
@@ -8,21 +8,26 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useImageUpload } from '@/hooks/useImageUpload'
 import { useUser } from '@/hooks/useUser'
+import { formatCurrency } from '@/lib/utils'
+import { getCheckTypeConfig, type CheckType } from '@/lib/roomCheckConfig'
 import type { RoomCheckFormData, LaundryItem, ConsumedItem, LostItem, ReplacedItem } from '@/types/rooms.types'
 
 interface ReviewStepProps {
   form: UseFormReturn<RoomCheckFormData>
   room: any
+  checkType: CheckType
+  currentBooking?: any
 }
 
-export function ReviewStep({ form, room }: ReviewStepProps) {
+export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStepProps) {
   const { tenantId } = useUser()
   const { uploadImages, isUploading } = useImageUpload()
   const [photos, setPhotos] = useState<string[]>([])
   
-  const checkType = form.watch('check_type')
+  const config = getCheckTypeConfig(checkType)
   const cleanlinessScore = form.watch('cleanliness_score')
   const itemsComplete = form.watch('items_complete')
   const itemsMissing = form.watch('items_missing') || []
@@ -64,13 +69,7 @@ export function ReviewStep({ form, room }: ReviewStepProps) {
   }
   
   const getCheckTypeLabel = () => {
-    switch (checkType) {
-      case 'daily': return 'Kiểm tra hàng ngày'
-      case 'checkin': return 'Kiểm tra check-in'
-      case 'checkout': return 'Kiểm tra check-out'
-      case 'maintenance': return 'Kiểm tra bảo trì'
-      default: return checkType
-    }
+    return config.label
   }
 
   // Calculate totals
@@ -80,11 +79,70 @@ export function ReviewStep({ form, room }: ReviewStepProps) {
   const totalReplaced = itemsReplaced.reduce((sum, i) => sum + i.quantity, 0)
   const totalDamaged = itemsDamaged.length
   const estimatedLossValue = itemsLost.reduce((sum, i) => sum + (i.estimated_value || 0), 0)
+  const damageCostTotal = itemsDamaged.reduce((sum: number, i: any) => sum + (i.damage_cost || 0), 0)
+  const totalCharge = estimatedLossValue + damageCostTotal
+  const totalMissing = itemsMissing.reduce((sum, i) => sum + (i.shortage || 0), 0)
+  const hasActions = totalLaundry > 0 || totalConsumed > 0 || totalLost > 0 || totalReplaced > 0 || totalDamaged > 0 || totalMissing > 0
   
-  const hasActions = totalLaundry > 0 || totalConsumed > 0 || totalLost > 0 || totalReplaced > 0 || totalDamaged > 0
+  // Check if room is ready (for check-in)
+  const isRoomReady = !hasActions && itemsComplete
   
   return (
     <div className="space-y-6">
+      {/* Check-in Readiness Alert */}
+      {checkType === 'checkin' && (
+        <Alert variant={isRoomReady ? 'default' : 'destructive'} className={isRoomReady ? 'border-green-500 bg-green-50' : ''}>
+          {isRoomReady ? (
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+          ) : (
+            <AlertTriangle className="h-4 w-4" />
+          )}
+          <AlertTitle className={isRoomReady ? 'text-green-700' : ''}>
+            {isRoomReady ? 'Phòng sẵn sàng' : 'Phòng chưa sẵn sàng'}
+          </AlertTitle>
+          <AlertDescription>
+            {isRoomReady 
+              ? 'Phòng đã được kiểm tra và sẵn sàng đón khách.'
+              : `Có ${totalMissing} đồ dùng thiếu và ${totalDamaged} thiết bị hỏng. Không nên cho khách check-in.`
+            }
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {/* Check-out Guest Info & Charges */}
+      {checkType === 'checkout' && currentBooking && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="pt-4">
+            <div className="flex items-start gap-3">
+              <User className="h-5 w-5 text-orange-600 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-medium">{currentBooking.guest_name || 'Khách'}</p>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-3 w-3" />
+                  <span>
+                    {currentBooking.check_in_date && new Date(currentBooking.check_in_date).toLocaleDateString('vi-VN')} 
+                    {' - '}
+                    {currentBooking.check_out_date && new Date(currentBooking.check_out_date).toLocaleDateString('vi-VN')}
+                  </span>
+                </div>
+                {totalCharge > 0 && (
+                  <div className="mt-2 p-2 bg-white rounded border border-orange-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-orange-700">Tổng phí charge khách:</span>
+                      <span className="font-bold text-orange-700">{formatCurrency(totalCharge)}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {estimatedLossValue > 0 && <div>• Mất đồ: {formatCurrency(estimatedLossValue)}</div>}
+                      {damageCostTotal > 0 && <div>• Hư hỏng: {formatCurrency(damageCostTotal)}</div>}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       {/* Cleanliness Score */}
       <FormField
         control={form.control}
