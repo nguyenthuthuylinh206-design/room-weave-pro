@@ -29,6 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { supabase } from '@/integrations/supabase/client'
 import { BookingConsumablesCard } from '@/components/bookings/BookingConsumablesCard'
 import { BookingIssuesCard } from '@/components/bookings/BookingIssuesCard'
+import { ChargeableConsumablesCard } from '@/components/bookings/ChargeableConsumablesCard'
 import { RoomBookingDialog } from '@/components/rooms/RoomBookingDialog'
 import { cn, formatCurrency } from '@/lib/utils'
 
@@ -276,7 +277,11 @@ export function BookingDetailPage() {
         </TabsContent>
 
         {/* Consumables Tab */}
-        <TabsContent value="consumables">
+        <TabsContent value="consumables" className="space-y-4">
+          <ChargeableConsumablesCard 
+            bookingId={booking.id} 
+            showBillAction={booking.status !== 'checked_out'}
+          />
           <BookingConsumablesCard bookingId={booking.id} />
         </TabsContent>
 
