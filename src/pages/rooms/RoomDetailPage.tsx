@@ -25,6 +25,7 @@ import { RoomHealthScore } from '@/components/rooms/RoomHealthScore'
 import { GuestInfoCard } from '@/components/rooms/GuestInfoCard'
 import { MobileRoomDetailPage } from '@/components/rooms/MobileRoomDetailPage'
 import { CreateTaskDialog } from '@/components/housekeeping/CreateTaskDialog'
+import { CleaningRequestBanner } from '@/components/rooms/CleaningRequestBanner'
 import { useRoom } from '@/hooks/useRooms'
 import { useApplyStandards } from '@/hooks/useRoomStandards'
 import { useSetupRoom } from '@/hooks/useSetupRoom'
@@ -136,6 +137,15 @@ export function RoomDetailPage() {
           </Button>
         </div>
       </div>
+      
+      {/* Alert Banner for Room Needs Cleaning */}
+      {room.status === 'cleaning' && (
+        <CleaningRequestBanner
+          roomId={id!}
+          roomNumber={room.room_number}
+          hotelId={room.hotel_id}
+        />
+      )}
       
       {/* Alert Banner for Pending Deliveries */}
       {pendingDeliveryCount > 0 && (
