@@ -1,144 +1,126 @@
 
 
-## Kế hoạch: Xử lý kiểm tra lại phòng và chuyển trạng thái
+## Kế hoạch: Hoàn thiện các phần chưa triển khai
 
-### I. VẤN ĐỀ HIỆN TẠI
+### I. CÁC TÍCH HỢP CẦN HOÀN THIỆN
 
-#### A. Trạng thái phòng sau kiểm tra
+#### Bước 1: Tích hợp ChargeableItemsStep vào RoomCheckPage
 
-| Loại kiểm tra | Trạng thái sau khi hoàn thành |
-|---------------|-------------------------------|
-| `checkout` | → `cleaning` (tự động) |
-| `daily` | Không đổi |
-| `checkin` | Không đổi |
-| `maintenance` | Không đổi |
+**File cần sửa:** `src/pages/rooms/RoomCheckPage.tsx`
 
-**Thiếu**: Cơ chế chuyển `cleaning` → `vacant` khi dọn phòng xong.
+**Thay đổi:**
+1. Import `ChargeableItemsStep` component
+2. Thêm state để lưu danh sách chargeable items đã chọn
+3. Hiển thị `ChargeableItemsStep` như 1 section trong step kiểm tra (chỉ với checkout)
+4. Khi submit room check, lưu chargeable items vào database
+5. Gọi `notify-chargeable` edge function nếu có đồ tính phí
 
-#### B. Kiểm tra lại sau khi đã hoàn thành
-
-Hiện tại **KHÔNG CÓ** tính năng cho phép:
-- Nhân viên kiểm tra lại nếu phát hiện thiếu sót
-- Chỉnh sửa kết quả kiểm tra đã hoàn thành
-- Manager review và yêu cầu kiểm tra lại
-
----
-
-### II. GIẢI PHÁP ĐỀ XUẤT
-
-#### Phần 1: Thêm nút "Hoàn thành dọn phòng" (cleaning → vacant)
-
-**Logic:**
-- Khi phòng ở trạng thái `cleaning`, hiển thị nút "Hoàn thành dọn phòng"
-- Nhân viên bấm → Phòng chuyển sang `vacant`
-- Tùy chọn: Yêu cầu kiểm tra nhanh trước khi đổi trạng thái
-
-**Files thay đổi:**
-- `src/components/rooms/StaffRoomCheckView.tsx` - Thêm nút
-- `src/hooks/useRooms.ts` - Thêm mutation `markRoomReady`
-
-**Code mẫu:**
 ```typescript
-const markRoomReady = async (roomId: string) => {
-  await supabase
-    .from('rooms')
-    .update({ status: 'vacant' })
-    .eq('id', roomId)
-    .eq('status', 'cleaning') // Chỉ đổi nếu đang cleaning
+// Trong RoomCheckPage.tsx
+import { ChargeableItemsStep } from '@/components/rooms/check-steps/ChargeableItemsStep'
+import { useCreateMultipleChargeableConsumptions } from '@/hooks/useChargeableConsumptions'
+
+// State mới
+const [chargeableItems, setChargeableItems] = useState([])
+const createChargeableConsumptions = useCreateMultipleChargeableConsumptions()
+
+// Khi submit checkout
+if (formData.check_type === 'checkout' && chargeableItems.length > 0) {
+  await createChargeableConsumptions.mutateAsync(chargeableItems)
+  // Trigger notification
+  await supabase.functions.invoke('notify-chargeable', {
+    body: { bookingId, roomId, items: chargeableItems }
+  })
 }
 ```
 
-#### Phần 2: Thêm tính năng "Kiểm tra lại" (Re-check)
+#### Bước 2: Hiển thị ChargeableConsumablesCard trong BookingDetailPage
 
-**2 Option:**
+**File cần sửa:** `src/pages/bookings/BookingDetailPage.tsx`
 
-**Option A: Cho phép kiểm tra mới bất cứ lúc nào**
-- Không khóa phòng sau khi kiểm tra xong
-- Mỗi lần kiểm tra tạo record mới trong `room_checks`
-- Ưu điểm: Đơn giản, linh hoạt
-- Nhược điểm: Có thể tạo nhiều records trùng lặp
+**Thay đổi:**
+1. Import `ChargeableConsumablesCard`
+2. Thêm vào phần tabs hoặc section riêng
+3. Chỉ hiển thị khi booking có phụ thu
 
-**Option B: Thêm trạng thái "Chờ xác nhận" trước khi hoàn thành**
-- Sau khi nhân viên kiểm tra xong → Trạng thái: `pending_review`
-- Manager review và duyệt
-- Nếu có vấn đề → Yêu cầu kiểm tra lại
-- Ưu điểm: Kiểm soát chặt hơn
-- Nhược điểm: Phức tạp, chậm workflow
+```typescript
+import { ChargeableConsumablesCard } from '@/components/bookings/ChargeableConsumablesCard'
 
-**Đề xuất: Kết hợp cả 2**
+// Trong render
+<ChargeableConsumablesCard 
+  bookingId={booking.id} 
+  showBillAction={booking.status !== 'checked_out'}
+/>
+```
 
-**Logic chi tiết:**
-1. Sau khi kiểm tra checkout xong → Phòng chuyển `cleaning`
-2. Nhân viên dọn phòng xong → Bấm "Hoàn thành dọn phòng"
-3. Hệ thống hỏi: "Bạn có muốn kiểm tra nhanh trước khi mở phòng?"
-   - Có → Mở form kiểm tra nhanh (daily check)
-   - Không → Chuyển thẳng sang `vacant`
-4. Nếu phát hiện thiếu đồ sau khi đã hoàn thành:
-   - Nhân viên vào lại phòng → Bấm "Kiểm tra lại"
-   - Tạo room_check mới với ghi chú "Kiểm tra bổ sung"
+#### Bước 3: Trigger notification khi ghi nhận đồ tính phí
 
-#### Phần 3: Cập nhật trạng thái phòng đầy đủ
+**File cần sửa:** `src/hooks/useChargeableConsumptions.ts`
 
-**Logic chuyển trạng thái:**
+**Thay đổi:** Gọi edge function trong `onSuccess` của mutation
 
-| Hành động | Phòng đang ở | Chuyển sang |
-|-----------|--------------|-------------|
-| Checkout check hoàn thành | `check_out` / `occupied` | `cleaning` |
-| Hoàn thành dọn phòng | `cleaning` | `vacant` |
-| Check-in check hoàn thành | `check_in` / `vacant` | `occupied` |
-| Daily check hoàn thành | Bất kỳ | Không đổi |
-| Maintenance hoàn thành | `maintenance` | `vacant` |
+```typescript
+onSuccess: async (data) => {
+  // ... existing code ...
+  
+  // Trigger notification
+  if (data && data.length > 0) {
+    try {
+      await supabase.functions.invoke('notify-chargeable', {
+        body: {
+          bookingId: data[0].booking_id,
+          roomId: data[0].room_id,
+          items: data.map(d => ({
+            name: d.item_name,
+            quantity: d.quantity,
+            amount: d.total_amount
+          })),
+          totalAmount: data.reduce((sum, d) => sum + d.total_amount, 0)
+        }
+      })
+    } catch (e) {
+      console.error('Failed to send chargeable notification:', e)
+    }
+  }
+}
+```
 
----
+### II. KIỂM TRA VÀ BỔ SUNG
+
+#### Bước 4: Kiểm tra pg_cron cho cleanup-sessions
+
+**Kiểm tra:** Query database xem cron job đã được thiết lập chưa
+
+```sql
+SELECT * FROM cron.job WHERE jobname LIKE '%cleanup%';
+```
+
+**Nếu chưa có:** Tạo migration thêm cron job
+
+```sql
+SELECT cron.schedule(
+  'cleanup-stale-sessions',
+  '*/30 * * * *', -- Mỗi 30 phút
+  $$SELECT net.http_post(
+    url:='https://ehjtoajnlnuvuiwkpmbp.supabase.co/functions/v1/cleanup-sessions',
+    headers:='{"Authorization": "Bearer ' || current_setting('supabase.service_role_key') || '"}'::jsonb
+  )$$
+);
+```
 
 ### III. FILES CẦN THAY ĐỔI
 
 | File | Thay đổi |
 |------|----------|
-| `src/hooks/useRooms.ts` | Thêm mutation `markRoomReady()` |
-| `src/hooks/useRoomChecks.ts` | Cập nhật logic chuyển trạng thái cho checkin/maintenance |
-| `src/components/rooms/StaffRoomCheckView.tsx` | Thêm nút "Hoàn thành dọn phòng", "Kiểm tra lại" |
-| `src/components/rooms/RoomDetailActions.tsx` (nếu có) | Thêm action buttons cho Manager |
-| `src/pages/rooms/RoomDetailPage.tsx` | Hiển thị lịch sử kiểm tra và nút kiểm tra lại |
+| `src/pages/rooms/RoomCheckPage.tsx` | Tích hợp ChargeableItemsStep vào checkout flow |
+| `src/pages/bookings/BookingDetailPage.tsx` | Hiển thị ChargeableConsumablesCard |
+| `src/hooks/useChargeableConsumptions.ts` | Trigger notify-chargeable sau khi ghi nhận |
+| `supabase/migrations/xxx.sql` | Thiết lập pg_cron job (nếu chưa có) |
 
----
+### IV. KẾT QUẢ SAU TRIỂN KHAI
 
-### IV. UI/UX ĐỀ XUẤT
-
-#### StaffRoomCheckView - Phòng đang cleaning:
-
-```
-┌─────────────────────────────────────┐
-│ P101 - Deluxe                       │
-│ [Đang dọn] ● Checkout lúc 10:30     │
-│                                     │
-│ [✓ Hoàn thành dọn]  [🔄 Kiểm tra]   │
-└─────────────────────────────────────┘
-```
-
-#### Dialog xác nhận hoàn thành dọn:
-
-```
-╔═══════════════════════════════════════╗
-║ Hoàn thành dọn phòng P101?            ║
-╠═══════════════════════════════════════╣
-║ Phòng sẽ chuyển sang trạng thái       ║
-║ "Sẵn sàng" và có thể nhận khách.      ║
-║                                       ║
-║ ○ Kiểm tra nhanh trước khi mở phòng   ║
-║ ○ Mở phòng ngay                       ║
-║                                       ║
-║        [Hủy]  [Xác nhận]              ║
-╚═══════════════════════════════════════╝
-```
-
----
-
-### V. KẾT QUẢ SAU TRIỂN KHAI
-
-1. Nhân viên có thể đánh dấu hoàn thành dọn phòng (cleaning → vacant)
-2. Có thể kiểm tra lại phòng bất cứ lúc nào nếu phát hiện thiếu sót
-3. Trạng thái phòng chuyển đổi đúng theo workflow thực tế
-4. Lịch sử kiểm tra đầy đủ, dễ truy vết
-5. Manager có thể theo dõi tiến độ dọn phòng realtime
+1. Nhân viên checkout có thể ghi nhận đồ tính phí trực tiếp trong flow
+2. Thông báo realtime gửi đến Receptionist/Manager khi có phụ thu
+3. Booking detail hiển thị rõ ràng các khoản phụ thu
+4. Cleanup sessions chạy tự động mỗi 30 phút
 
