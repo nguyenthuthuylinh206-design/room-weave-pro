@@ -321,6 +321,109 @@ export type Database = {
           },
         ]
       }
+      chargeable_consumptions: {
+        Row: {
+          billed_at: string | null
+          booking_id: string
+          created_at: string | null
+          id: string
+          is_billed: boolean | null
+          item_code: string | null
+          item_id: string
+          item_name: string
+          notes: string | null
+          quantity: number
+          recorded_at: string | null
+          recorded_by: string | null
+          room_id: string
+          tenant_id: string
+          total_amount: number | null
+          unit_price: number
+          updated_at: string | null
+        }
+        Insert: {
+          billed_at?: string | null
+          booking_id: string
+          created_at?: string | null
+          id?: string
+          is_billed?: boolean | null
+          item_code?: string | null
+          item_id: string
+          item_name: string
+          notes?: string | null
+          quantity?: number
+          recorded_at?: string | null
+          recorded_by?: string | null
+          room_id: string
+          tenant_id: string
+          total_amount?: number | null
+          unit_price?: number
+          updated_at?: string | null
+        }
+        Update: {
+          billed_at?: string | null
+          booking_id?: string
+          created_at?: string | null
+          id?: string
+          is_billed?: boolean | null
+          item_code?: string | null
+          item_id?: string
+          item_name?: string
+          notes?: string | null
+          quantity?: number
+          recorded_at?: string | null
+          recorded_by?: string | null
+          room_id?: string
+          tenant_id?: string
+          total_amount?: number | null
+          unit_price?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chargeable_consumptions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "room_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chargeable_consumptions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chargeable_consumptions_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chargeable_consumptions_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chargeable_consumptions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chargeable_consumptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checkout_inspection_requests: {
         Row: {
           assigned_to: string
@@ -2378,6 +2481,7 @@ export type Database = {
         Row: {
           brand: string | null
           category_id: string | null
+          charge_price: number | null
           code: string
           created_at: string | null
           current_wash_cycles: number | null
@@ -2385,6 +2489,8 @@ export type Database = {
           expected_lifetime_days: number | null
           hotel_id: string
           id: string
+          is_chargeable: boolean | null
+          is_complimentary: boolean | null
           item_type: Database["public"]["Enums"]["item_type"]
           max_wash_cycles: number | null
           minimum_stock: number | null
@@ -2410,6 +2516,7 @@ export type Database = {
         Insert: {
           brand?: string | null
           category_id?: string | null
+          charge_price?: number | null
           code: string
           created_at?: string | null
           current_wash_cycles?: number | null
@@ -2417,6 +2524,8 @@ export type Database = {
           expected_lifetime_days?: number | null
           hotel_id: string
           id?: string
+          is_chargeable?: boolean | null
+          is_complimentary?: boolean | null
           item_type?: Database["public"]["Enums"]["item_type"]
           max_wash_cycles?: number | null
           minimum_stock?: number | null
@@ -2442,6 +2551,7 @@ export type Database = {
         Update: {
           brand?: string | null
           category_id?: string | null
+          charge_price?: number | null
           code?: string
           created_at?: string | null
           current_wash_cycles?: number | null
@@ -2449,6 +2559,8 @@ export type Database = {
           expected_lifetime_days?: number | null
           hotel_id?: string
           id?: string
+          is_chargeable?: boolean | null
+          is_complimentary?: boolean | null
           item_type?: Database["public"]["Enums"]["item_type"]
           max_wash_cycles?: number | null
           minimum_stock?: number | null
@@ -7241,6 +7353,10 @@ export type Database = {
           warehouse_id: string
           warehouse_name: string
         }[]
+      }
+      get_booking_chargeable_total: {
+        Args: { p_booking_id: string }
+        Returns: number
       }
       get_categories_with_stats:
         | {
