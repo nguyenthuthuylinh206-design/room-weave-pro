@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Check, Loader2, ClipboardCheck, LogIn, LogOut, Settings } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, Loader2, ClipboardCheck, LogIn, LogOut, Settings, Clock } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { roomCheckFormSchema } from '@/lib/validations/rooms.schemas'
@@ -82,7 +82,8 @@ export function RoomCheckPage() {
     session: existingSession, 
     isLoading: isSessionLoading,
     createSession, 
-    deleteSession 
+    deleteSession,
+    takeOverSession 
   } = useRoomCheckSession(id)
   
   // Auto-skip step 1 if check type is provided via URL
@@ -94,6 +95,8 @@ export function RoomCheckPage() {
   const [showResumeDialog, setShowResumeDialog] = useState(false)
   const [showSubmitDialog, setShowSubmitDialog] = useState(false)
   const [showCheckinBlockDialog, setShowCheckinBlockDialog] = useState(false)
+  const [showTakeOverDialog, setShowTakeOverDialog] = useState(false)
+  const [conflictSession, setConflictSession] = useState<{ userName: string; startedAt: string } | null>(null)
   const [quickMode, setQuickMode] = useState(false)
   const [itemQuantities, setItemQuantities] = useState<Record<string, number>>({})
   const [sessionCompleted, setSessionCompleted] = useState(false)
@@ -210,7 +213,7 @@ export function RoomCheckPage() {
     initSession()
   }, [room, user, isLoading, isSessionLoading])
   
-  // Restore form from existing session
+  // Restore form from existing session or show take over dialog for managers
   useEffect(() => {
     // Skip if already resumed to prevent conflicts
     if (hasResumed) return
@@ -218,12 +221,22 @@ export function RoomCheckPage() {
     if (!isSessionLoading && existingSession) {
       // Check if session belongs to current user
       if (existingSession.user_id !== user?.id) {
-        toast({
-          title: 'Phòng đang được kiểm tra',
-          description: `${existingSession.user_name} đang kiểm tra phòng này`,
-          variant: 'destructive',
-        })
-        navigate('/rooms')
+        // Nếu là manager, cho phép take over
+        if (isManager) {
+          setConflictSession({
+            userName: existingSession.user_name,
+            startedAt: existingSession.started_at,
+          })
+          setShowTakeOverDialog(true)
+        } else {
+          // Staff không có quyền take over
+          toast({
+            title: 'Phòng đang được kiểm tra',
+            description: `${existingSession.user_name} đang kiểm tra phòng này`,
+            variant: 'destructive',
+          })
+          navigate('/rooms')
+        }
         return
       }
       
@@ -233,7 +246,28 @@ export function RoomCheckPage() {
         form.setValue('check_type', existingSession.check_type)
       }
     }
-  }, [existingSession, user, id, form, navigate, isSessionLoading, hasResumed])
+  }, [existingSession, user, id, form, navigate, isSessionLoading, hasResumed, isManager])
+  
+  // Handle manager take over
+  const handleTakeOver = async () => {
+    if (!room || !user) return
+    
+    const checkType = prefilledType || 'daily'
+    const result = await takeOverSession(
+      room.id,
+      checkType,
+      user.full_name || user.email || 'Unknown',
+      room.tenant_id
+    )
+    
+    if (result) {
+      setShowTakeOverDialog(false)
+      setConflictSession(null)
+      setHasResumed(true) // Prevent re-triggering effects
+    } else {
+      navigate('/rooms')
+    }
+  }
   
   // Cleanup session only when user closes/refreshes tab
   useEffect(() => {
@@ -502,6 +536,42 @@ export function RoomCheckPage() {
   
   return (
     <>
+      {/* Take Over Dialog - For Managers */}
+      <AlertDialog open={showTakeOverDialog} onOpenChange={(open) => {
+        if (!open) navigate('/rooms')
+        setShowTakeOverDialog(open)
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-amber-500" />
+              Phòng đang được kiểm tra
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <div>
+                <strong>{conflictSession?.userName}</strong> đang kiểm tra phòng này
+                {conflictSession?.startedAt && (
+                  <span className="block text-sm mt-1">
+                    Bắt đầu lúc: {new Date(conflictSession.startedAt).toLocaleString('vi-VN')}
+                    <span className="ml-2 text-amber-600">
+                      ({Math.floor((Date.now() - new Date(conflictSession.startedAt).getTime()) / 60000)} phút trước)
+                    </span>
+                  </span>
+                )}
+              </div>
+              <div className="p-2 bg-muted rounded text-sm">
+                <strong>Bạn là quản lý:</strong> Có thể tiếp quản phiên kiểm tra này.
+                Session cũ sẽ bị hủy và nhân viên đó sẽ mất tiến trình.
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => navigate('/rooms')}>Quay lại</AlertDialogCancel>
+            <AlertDialogAction onClick={handleTakeOver}>Tiếp quản</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Resume Dialog */}
       <AlertDialog open={showResumeDialog} onOpenChange={setShowResumeDialog}>
         <AlertDialogContent>

@@ -6916,6 +6916,7 @@ export type Database = {
       cleanup_expired_otps: { Args: never; Returns: undefined }
       cleanup_old_check_sessions: { Args: never; Returns: undefined }
       cleanup_orphaned_auth_users: { Args: never; Returns: number }
+      cleanup_stale_check_sessions: { Args: never; Returns: undefined }
       close_route_if_complete: {
         Args: { p_actor_id?: string; p_order_id: string }
         Returns: Json
@@ -7860,6 +7861,21 @@ export type Database = {
           p_tenant_id: string
         }
         Returns: Json
+      }
+      get_stale_sessions_for_reminder: {
+        Args: never
+        Returns: {
+          check_type: string
+          duration_minutes: number
+          hotel_id: string
+          room_id: string
+          room_number: string
+          session_id: string
+          started_at: string
+          tenant_id: string
+          user_id: string
+          user_name: string
+        }[]
       }
       get_stock_adjustments_filtered: {
         Args: {
