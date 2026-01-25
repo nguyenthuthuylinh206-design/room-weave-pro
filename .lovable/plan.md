@@ -1,148 +1,144 @@
 
-## Kế hoạch: Phân loại và Thông báo vật dụng tiêu hao tính phí
 
-### I. THAY ĐỔI DATABASE
+## Kế hoạch: Xử lý kiểm tra lại phòng và chuyển trạng thái
 
-#### 1.1 Thêm cột phân loại vào bảng `items`
+### I. VẤN ĐỀ HIỆN TẠI
 
-```sql
-ALTER TABLE items ADD COLUMN IF NOT EXISTS is_chargeable BOOLEAN DEFAULT false;
-ALTER TABLE items ADD COLUMN IF NOT EXISTS is_complimentary BOOLEAN DEFAULT true;
--- is_complimentary = true: Đồ miễn phí (bàn chải, xà phòng)
--- is_chargeable = true: Đồ tính tiền (minibar, đồ uống)
-```
+#### A. Trạng thái phòng sau kiểm tra
 
-#### 1.2 Tạo bảng tracking đồ tính tiền đã dùng
+| Loại kiểm tra | Trạng thái sau khi hoàn thành |
+|---------------|-------------------------------|
+| `checkout` | → `cleaning` (tự động) |
+| `daily` | Không đổi |
+| `checkin` | Không đổi |
+| `maintenance` | Không đổi |
 
-```sql
-CREATE TABLE chargeable_consumptions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id),
-  booking_id UUID NOT NULL REFERENCES room_bookings(id),
-  room_id UUID NOT NULL REFERENCES rooms(id),
-  item_id UUID NOT NULL REFERENCES items(id),
-  quantity INTEGER NOT NULL DEFAULT 1,
-  unit_price NUMERIC NOT NULL,
-  total_amount NUMERIC GENERATED ALWAYS AS (quantity * unit_price) STORED,
-  recorded_by UUID REFERENCES users(id),
-  recorded_at TIMESTAMPTZ DEFAULT NOW(),
-  is_billed BOOLEAN DEFAULT false,
-  notes TEXT
-);
-```
+**Thiếu**: Cơ chế chuyển `cleaning` → `vacant` khi dọn phòng xong.
 
-### II. CẬP NHẬT UI QUẢN LÝ SẢN PHẨM
+#### B. Kiểm tra lại sau khi đã hoàn thành
 
-#### 2.1 Form tạo/sửa Item - Thêm tùy chọn phân loại
+Hiện tại **KHÔNG CÓ** tính năng cho phép:
+- Nhân viên kiểm tra lại nếu phát hiện thiếu sót
+- Chỉnh sửa kết quả kiểm tra đã hoàn thành
+- Manager review và yêu cầu kiểm tra lại
 
-| Trường | Mô tả | Áp dụng |
-|--------|-------|---------|
-| `is_chargeable` | Đánh dấu "Có tính phí khách" | consumables |
-| `is_complimentary` | Đánh dấu "Miễn phí đi kèm phòng" | consumables |
-| `charge_price` | Giá bán cho khách (có thể khác unit_price) | consumables + chargeable |
+---
 
-**Files cần sửa:**
-- `src/lib/validations/items.schemas.ts` - Thêm fields mới vào schema
-- `src/pages/items/ItemFormPage.tsx` - Thêm toggle switches
-- `src/components/items/MobileItemFormPage.tsx` - Mobile form
+### II. GIẢI PHÁP ĐỀ XUẤT
 
-#### 2.2 UI hiển thị badge phân loại
+#### Phần 1: Thêm nút "Hoàn thành dọn phòng" (cleaning → vacant)
 
-- Badge "Tính phí" (màu đỏ) cho items chargeable
-- Badge "Miễn phí" (màu xanh) cho items complimentary
-- Cột "Loại tính phí" trong danh sách items
+**Logic:**
+- Khi phòng ở trạng thái `cleaning`, hiển thị nút "Hoàn thành dọn phòng"
+- Nhân viên bấm → Phòng chuyển sang `vacant`
+- Tùy chọn: Yêu cầu kiểm tra nhanh trước khi đổi trạng thái
 
-### III. CẬP NHẬT FLOW CHECKOUT
+**Files thay đổi:**
+- `src/components/rooms/StaffRoomCheckView.tsx` - Thêm nút
+- `src/hooks/useRooms.ts` - Thêm mutation `markRoomReady`
 
-#### 3.1 Tab riêng cho đồ tính phí trong Room Check
-
-**Component mới:** `ChargeableItemsStep.tsx`
-- Hiển thị danh sách chỉ các items `is_chargeable = true`
-- Input số lượng khách đã dùng cho mỗi item
-- Tự động tính tổng tiền phụ thu
-
-#### 3.2 Cập nhật `useRoomChecks.ts`
-
+**Code mẫu:**
 ```typescript
-// Khi save room check với check_type = 'checkout'
-// Lọc và lưu consumables tính tiền vào chargeable_consumptions
-const chargeableItems = items.filter(i => i.is_chargeable && i.consumed > 0)
-await supabase.from('chargeable_consumptions').insert(chargeableItems.map(...))
+const markRoomReady = async (roomId: string) => {
+  await supabase
+    .from('rooms')
+    .update({ status: 'vacant' })
+    .eq('id', roomId)
+    .eq('status', 'cleaning') // Chỉ đổi nếu đang cleaning
+}
 ```
 
-#### 3.3 Cập nhật tính toán checkout
+#### Phần 2: Thêm tính năng "Kiểm tra lại" (Re-check)
 
-**File:** `src/hooks/useBookingActions.ts`
-- Tách riêng `calculateChargeableConsumables()` chỉ tính đồ có `is_chargeable = true`
-- Hiển thị rõ ràng trong breakdown: "Phụ thu minibar: X đ"
+**2 Option:**
 
-### IV. HỆ THỐNG THÔNG BÁO
+**Option A: Cho phép kiểm tra mới bất cứ lúc nào**
+- Không khóa phòng sau khi kiểm tra xong
+- Mỗi lần kiểm tra tạo record mới trong `room_checks`
+- Ưu điểm: Đơn giản, linh hoạt
+- Nhược điểm: Có thể tạo nhiều records trùng lặp
 
-#### 4.1 Thông báo realtime khi ghi nhận đồ tính phí
+**Option B: Thêm trạng thái "Chờ xác nhận" trước khi hoàn thành**
+- Sau khi nhân viên kiểm tra xong → Trạng thái: `pending_review`
+- Manager review và duyệt
+- Nếu có vấn đề → Yêu cầu kiểm tra lại
+- Ưu điểm: Kiểm soát chặt hơn
+- Nhược điểm: Phức tạp, chậm workflow
 
-**Trigger:** Sau khi nhân viên ghi nhận consumables trong Room Check
+**Đề xuất: Kết hợp cả 2**
 
-**Nội dung thông báo:**
+**Logic chi tiết:**
+1. Sau khi kiểm tra checkout xong → Phòng chuyển `cleaning`
+2. Nhân viên dọn phòng xong → Bấm "Hoàn thành dọn phòng"
+3. Hệ thống hỏi: "Bạn có muốn kiểm tra nhanh trước khi mở phòng?"
+   - Có → Mở form kiểm tra nhanh (daily check)
+   - Không → Chuyển thẳng sang `vacant`
+4. Nếu phát hiện thiếu đồ sau khi đã hoàn thành:
+   - Nhân viên vào lại phòng → Bấm "Kiểm tra lại"
+   - Tạo room_check mới với ghi chú "Kiểm tra bổ sung"
+
+#### Phần 3: Cập nhật trạng thái phòng đầy đủ
+
+**Logic chuyển trạng thái:**
+
+| Hành động | Phòng đang ở | Chuyển sang |
+|-----------|--------------|-------------|
+| Checkout check hoàn thành | `check_out` / `occupied` | `cleaning` |
+| Hoàn thành dọn phòng | `cleaning` | `vacant` |
+| Check-in check hoàn thành | `check_in` / `vacant` | `occupied` |
+| Daily check hoàn thành | Bất kỳ | Không đổi |
+| Maintenance hoàn thành | `maintenance` | `vacant` |
+
+---
+
+### III. FILES CẦN THAY ĐỔI
+
+| File | Thay đổi |
+|------|----------|
+| `src/hooks/useRooms.ts` | Thêm mutation `markRoomReady()` |
+| `src/hooks/useRoomChecks.ts` | Cập nhật logic chuyển trạng thái cho checkin/maintenance |
+| `src/components/rooms/StaffRoomCheckView.tsx` | Thêm nút "Hoàn thành dọn phòng", "Kiểm tra lại" |
+| `src/components/rooms/RoomDetailActions.tsx` (nếu có) | Thêm action buttons cho Manager |
+| `src/pages/rooms/RoomDetailPage.tsx` | Hiển thị lịch sử kiểm tra và nút kiểm tra lại |
+
+---
+
+### IV. UI/UX ĐỀ XUẤT
+
+#### StaffRoomCheckView - Phòng đang cleaning:
+
 ```
-📦 Phòng 301 - Phụ thu minibar
-• 2x Coca-Cola: 40.000đ
-• 1x Snack: 25.000đ
-Tổng: 65.000đ
+┌─────────────────────────────────────┐
+│ P101 - Deluxe                       │
+│ [Đang dọn] ● Checkout lúc 10:30     │
+│                                     │
+│ [✓ Hoàn thành dọn]  [🔄 Kiểm tra]   │
+└─────────────────────────────────────┘
 ```
 
-**Người nhận:**
-- Receptionist đang làm việc
-- Manager (nếu số tiền > ngưỡng cảnh báo)
-
-#### 4.2 File cần thêm/sửa
+#### Dialog xác nhận hoàn thành dọn:
 
 ```
-src/hooks/useChargeableConsumptions.ts - Hook quản lý
-supabase/functions/notify-chargeable/index.ts - Edge function gửi thông báo
+╔═══════════════════════════════════════╗
+║ Hoàn thành dọn phòng P101?            ║
+╠═══════════════════════════════════════╣
+║ Phòng sẽ chuyển sang trạng thái       ║
+║ "Sẵn sàng" và có thể nhận khách.      ║
+║                                       ║
+║ ○ Kiểm tra nhanh trước khi mở phòng   ║
+║ ○ Mở phòng ngay                       ║
+║                                       ║
+║        [Hủy]  [Xác nhận]              ║
+╚═══════════════════════════════════════╝
 ```
 
-### V. HIỂN THỊ TRONG BOOKING DETAIL
+---
 
-#### 5.1 Component `ChargeableConsumablesCard.tsx`
+### V. KẾT QUẢ SAU TRIỂN KHAI
 
-Tách riêng từ `BookingConsumablesCard.tsx`:
-- Chỉ hiển thị items có `is_chargeable = true`
-- Highlight với màu khác (đỏ/cam)
-- Hiển thị badge "Chưa thu" / "Đã thu"
+1. Nhân viên có thể đánh dấu hoàn thành dọn phòng (cleaning → vacant)
+2. Có thể kiểm tra lại phòng bất cứ lúc nào nếu phát hiện thiếu sót
+3. Trạng thái phòng chuyển đổi đúng theo workflow thực tế
+4. Lịch sử kiểm tra đầy đủ, dễ truy vết
+5. Manager có thể theo dõi tiến độ dọn phòng realtime
 
-#### 5.2 Checkout Summary Dialog
-
-Thêm section riêng:
-```
-╔═══════════════════════════════╗
-║ 💰 PHỤ THU MINIBAR            ║
-╠═══════════════════════════════╣
-║ Coca-Cola (2x)       40.000đ  ║
-║ Snack (1x)           25.000đ  ║
-╠═══════════════════════════════╣
-║ TỔNG PHỤ THU:        65.000đ  ║
-╚═══════════════════════════════╝
-```
-
-### VI. DANH SÁCH FILES CẦN THAY ĐỔI
-
-| File | Loại | Mô tả |
-|------|------|-------|
-| `supabase/migrations/xxx.sql` | Migration | Thêm cột + bảng mới |
-| `src/types/items.types.ts` | Type | Thêm interface fields |
-| `src/lib/validations/items.schemas.ts` | Validation | Thêm fields schema |
-| `src/pages/items/ItemFormPage.tsx` | UI | Toggle tính phí |
-| `src/components/items/MobileItemFormPage.tsx` | Mobile UI | Toggle tính phí |
-| `src/hooks/useChargeableConsumptions.ts` | Hook | CRUD consumptions |
-| `src/components/rooms/check-steps/ChargeableItemsStep.tsx` | Component | Tab đồ tính phí |
-| `src/components/bookings/ChargeableConsumablesCard.tsx` | Component | Card phụ thu |
-| `src/hooks/useBookingActions.ts` | Hook | Tính toán riêng |
-| `supabase/functions/notify-chargeable/index.ts` | Edge Fn | Gửi thông báo |
-
-### VII. KẾT QUẢ SAU TRIỂN KHAI
-
-1. ✅ Phân loại rõ ràng đồ miễn phí vs tính tiền
-2. ✅ Thông báo realtime khi khách sử dụng đồ tính tiền
-3. ✅ Checkout không bỏ sót phí phụ thu
-4. ✅ Báo cáo doanh thu minibar/phụ thu riêng
-5. ✅ Quản lý dễ dàng qua UI form items
