@@ -11,6 +11,19 @@ export interface RoomCheckSession {
   started_at: string
 }
 
+// Helper to calculate session duration in minutes
+export function getSessionDurationMinutes(startedAt: string): number {
+  return Math.floor((Date.now() - new Date(startedAt).getTime()) / 60000)
+}
+
+// Format duration for display
+export function formatSessionDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes}p`
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  return mins > 0 ? `${hours}h${mins}p` : `${hours}h`
+}
+
 export function useRoomCheckSession(roomId: string | undefined) {
   const [session, setSession] = useState<RoomCheckSession | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -124,11 +137,62 @@ export function useRoomCheckSession(roomId: string | undefined) {
     }
   }
 
+  // Manager override: xóa session của người khác và tạo session mới
+  const takeOverSession = async (
+    roomId: string,
+    checkType: 'daily' | 'checkin' | 'checkout' | 'maintenance',
+    userName: string,
+    tenantId: string
+  ) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      // 1. Xóa session cũ (của bất kỳ ai)
+      const { error: deleteError } = await supabase
+        .from('room_check_sessions')
+        .delete()
+        .eq('room_id', roomId)
+
+      if (deleteError) throw deleteError
+
+      // 2. Tạo session mới cho manager
+      const { data, error: createError } = await supabase
+        .from('room_check_sessions')
+        .insert({
+          room_id: roomId,
+          user_id: user.id,
+          user_name: userName,
+          check_type: checkType,
+          tenant_id: tenantId,
+        })
+        .select()
+        .single()
+
+      if (createError) throw createError
+
+      toast({
+        title: 'Đã tiếp quản',
+        description: 'Bạn đã tiếp quản phiên kiểm tra phòng này',
+      })
+
+      return data
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive',
+      })
+      return null
+    }
+  }
+
   return {
     session,
     isLoading,
     createSession,
     deleteSession,
+    takeOverSession,
   }
 }
 

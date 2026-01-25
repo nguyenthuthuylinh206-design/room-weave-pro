@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Clock, ClipboardList, Bed, ChevronRight, AlertCircle } from 'lucide-react'
+import { Search, Clock, ClipboardList, Bed, ChevronRight, AlertCircle, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { CheckTypeSelector } from './CheckTypeSelector'
 import { StaffTasksTab } from '@/components/housekeeping/StaffTasksTab'
 import { useRooms } from '@/hooks/useRooms'
 import { useRoomLastCheck } from '@/hooks/useRoomLastCheck'
-import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
+import { useAllRoomCheckSessions, getSessionDurationMinutes, formatSessionDuration } from '@/hooks/useRoomCheckSession'
 import { usePendingTaskCount } from '@/hooks/useHousekeepingTasks'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
@@ -210,6 +211,9 @@ function CompactRoomRow({ room, checkSession, onStartCheck }: CompactRoomRowProp
   const isCheckable = room.status === 'vacant' || room.status === 'cleaning'
   const hasSession = !!checkSession
   const hasIssues = lastCheck && !lastCheck.items_complete
+  
+  // Calculate session duration
+  const sessionDuration = hasSession ? getSessionDurationMinutes(checkSession.started_at) : 0
 
   return (
     <div 
@@ -244,10 +248,34 @@ function CompactRoomRow({ room, checkSession, onStartCheck }: CompactRoomRowProp
       {/* Middle info */}
       <div className="flex-1 min-w-0 text-xs text-muted-foreground">
         {hasSession ? (
-          <div className="flex items-center gap-1 text-amber-600">
-            <Clock className="h-3 w-3 animate-pulse" />
-            <span className="truncate">{checkSession.user_name}</span>
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className={cn(
+                  "flex items-center gap-1",
+                  sessionDuration > 40 ? "text-destructive" : "text-amber-600"
+                )}>
+                  {sessionDuration > 40 ? (
+                    <AlertTriangle className="h-3 w-3" />
+                  ) : (
+                    <Clock className="h-3 w-3 animate-pulse" />
+                  )}
+                  <span className="truncate">{checkSession.user_name}</span>
+                  <span className="text-[10px] opacity-70">
+                    ({formatSessionDuration(sessionDuration)})
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p className="text-xs">
+                  Bắt đầu lúc {new Date(checkSession.started_at).toLocaleTimeString('vi-VN')}
+                  {sessionDuration > 40 && (
+                    <span className="block text-destructive">⚠️ Có thể bị quên chưa hoàn thành</span>
+                  )}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         ) : lastCheck ? (
           <div className="flex items-center gap-1">
             {hasIssues && <AlertCircle className="h-3 w-3 text-destructive flex-shrink-0" />}
@@ -268,8 +296,16 @@ function CompactRoomRow({ room, checkSession, onStartCheck }: CompactRoomRowProp
         <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
       )}
       {hasSession && (
-        <Badge variant="outline" className="text-[10px] h-5 border-amber-300 text-amber-600">
-          Đang KT
+        <Badge 
+          variant="outline" 
+          className={cn(
+            "text-[10px] h-5",
+            sessionDuration > 40 
+              ? "border-destructive text-destructive" 
+              : "border-amber-300 text-amber-600"
+          )}
+        >
+          {sessionDuration > 40 ? "Quá hạn" : "Đang KT"}
         </Badge>
       )}
     </div>

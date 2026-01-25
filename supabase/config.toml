@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.execute-workflow]
 verify_jwt = false
+
+[functions.cleanup-sessions]
+verify_jwt = false
