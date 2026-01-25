@@ -33,6 +33,7 @@ import { CheckTypeStep } from '@/components/rooms/check-steps/CheckTypeStep'
 import { ItemsCheckStep } from '@/components/rooms/check-steps/ItemsCheckStep'
 import { ReviewStep } from '@/components/rooms/check-steps/ReviewStep'
 import { ChargeableItemsStep } from '@/components/rooms/check-steps/ChargeableItemsStep'
+import { CleaningRequestStep } from '@/components/rooms/check-steps/CleaningRequestStep'
 import { cn } from '@/lib/utils'
 import type { RoomCheckFormData } from '@/types/rooms.types'
 
@@ -118,6 +119,11 @@ export function RoomCheckPage() {
       items_damaged: [],
       notes: '',
       photos: [],
+      // Cleaning request defaults
+      needs_cleaning: false,
+      cleaning_priority: 'medium',
+      cleaning_notes: '',
+      room_condition: 'clean',
     },
   })
   
@@ -130,11 +136,11 @@ export function RoomCheckPage() {
   // Watch check_type từ form để detect khi user chọn checkout
   const watchedCheckType = form.watch('check_type')
   
-  // Calculate steps: for checkout, add chargeable items step before review
+  // Calculate steps: for checkout, add chargeable items step + cleaning step before review
   const isCheckoutType = watchedCheckType === 'checkout'
   const getTotalSteps = () => {
     if (quickMode) return 2
-    if (isCheckoutType) return 4 // Type -> Items -> Chargeable -> Review
+    if (isCheckoutType) return 5 // Type -> Items -> Chargeable -> Cleaning -> Review
     return 3 // Type -> Items -> Review
   }
   const totalSteps = getTotalSteps()
@@ -782,7 +788,8 @@ export function RoomCheckPage() {
               {currentStep === 2 && quickMode && 'Đánh giá & Hoàn tất'}
               {currentStep === 3 && !quickMode && isCheckoutType && 'Phụ thu minibar/dịch vụ'}
               {currentStep === 3 && !quickMode && !isCheckoutType && 'Đánh giá & Hoàn tất'}
-              {currentStep === 4 && 'Đánh giá & Hoàn tất'}
+              {currentStep === 4 && isCheckoutType && 'Tình trạng phòng & Dọn dẹp'}
+              {currentStep === 5 && 'Đánh giá & Hoàn tất'}
             </CardTitle>
             <div className="space-y-2">
               <Progress value={progress} />
@@ -836,10 +843,14 @@ export function RoomCheckPage() {
                   onNotesChange={setChargeableNotes}
                 />
               )}
+              {/* Cleaning Request Step - Only for checkout */}
+              {currentStep === 4 && !quickMode && isCheckoutType && (
+                <CleaningRequestStep form={form} />
+              )}
               {/* Review Step - adjusts based on checkout vs other types */}
               {((currentStep === 2 && quickMode) || 
                 (currentStep === 3 && !isCheckoutType) || 
-                (currentStep === 4 && isCheckoutType)) && (
+                (currentStep === 5 && isCheckoutType)) && (
                 <ReviewStep form={form} room={room} checkType={watchedCheckType as CheckType} currentBooking={currentBooking} />
               )}
               

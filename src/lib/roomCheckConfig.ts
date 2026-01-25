@@ -66,8 +66,8 @@ export const CHECK_TYPE_CONFIG: Record<CheckType, CheckTypeConfig> = {
     requireInspection: false,
   },
   checkout: {
-    label: 'Kiểm tra sau check-out',
-    description: 'Kiểm kê sau khi khách rời đi',
+    label: 'Kiểm tra checkout',
+    description: 'Kiểm tra trước khi khách trả phòng + báo dọn dẹp',
     headerColor: 'bg-orange-50 border-orange-200',
     headerTextColor: 'text-orange-700',
     linenActions: ['ok', 'laundry', 'change', 'lost', 'damaged'], // Full actions

@@ -81,6 +81,17 @@ export interface ReplacedItem {
   from_stock: boolean
 }
 
+// Cleaning request data for checkout
+export type CleaningPriority = 'low' | 'medium' | 'high' | 'urgent'
+export type RoomCondition = 'clean' | 'dirty' | 'very_dirty'
+
+export interface CleaningRequestData {
+  needs_cleaning: boolean
+  cleaning_priority: CleaningPriority
+  cleaning_notes?: string
+  room_condition: RoomCondition
+}
+
 export interface RoomCheckFormData {
   check_type: CheckType
   cleanliness_score?: number
@@ -93,6 +104,11 @@ export interface RoomCheckFormData {
   items_replaced: ReplacedItem[]
   notes?: string
   photos?: string[]
+  // Cleaning request fields (checkout only)
+  needs_cleaning?: boolean
+  cleaning_priority?: CleaningPriority
+  cleaning_notes?: string
+  room_condition?: RoomCondition
 }
 
 export interface FloorPlanData {

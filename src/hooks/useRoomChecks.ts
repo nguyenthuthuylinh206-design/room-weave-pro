@@ -167,6 +167,7 @@ async function processCheckinCheck(params: {
 
 // ===== CHECKOUT FULL TRACKING =====
 // Tạo inventory transaction cho lost/consumed, complete inspection
+// Handle cleaning request and notifications
 async function processCheckoutCheck(params: {
   roomId: string
   data: RoomCheckFormData
@@ -176,8 +177,9 @@ async function processCheckoutCheck(params: {
   roomNumber: string
   checkId: string
   inspectionId?: string
+  userName?: string
 }) {
-  const { roomId, data, userId, tenantId, hotelId, roomNumber, checkId, inspectionId } = params
+  const { roomId, data, userId, tenantId, hotelId, roomNumber, checkId, inspectionId, userName } = params
   const quantityChanges: Record<string, number> = {}
   
   // 1. Đồ gửi giặt → Giảm quantity trong room_items
@@ -235,13 +237,40 @@ async function processCheckoutCheck(params: {
   // 5. Complete checkout inspection
   await completeCheckoutInspection(roomId, checkId, inspectionId)
   
-  // 6. Auto-change room status to cleaning
-  await supabase
-    .from('rooms')
-    .update({ status: 'cleaning' })
-    .eq('id', roomId)
+  // 6. Handle room status based on cleaning request
+  const needsCleaning = data.needs_cleaning ?? false
+  const roomCondition = data.room_condition ?? 'clean'
   
-  return { quantityChanges }
+  if (needsCleaning || roomCondition !== 'clean') {
+    // Phòng cần dọn → Chuyển sang cleaning
+    await supabase
+      .from('rooms')
+      .update({ status: 'cleaning' })
+      .eq('id', roomId)
+    
+    // Gửi thông báo cho Manager
+    if (tenantId && userId) {
+      await sendCleaningRequestNotifications({
+        roomId,
+        roomNumber,
+        tenantId,
+        hotelId,
+        userId,
+        userName: userName || 'Nhân viên',
+        priority: data.cleaning_priority || 'medium',
+        notes: data.cleaning_notes,
+        roomCondition,
+      })
+    }
+  } else {
+    // Phòng sạch → Chuyển thẳng sang vacant
+    await supabase
+      .from('rooms')
+      .update({ status: 'vacant' })
+      .eq('id', roomId)
+  }
+  
+  return { quantityChanges, needsCleaning }
 }
 
 // ===== MAINTENANCE CHECK =====
@@ -636,11 +665,12 @@ export function useCreateRoomCheck() {
           break
 
         case 'checkout':
-          // Checkout: Full inventory tracking + complete inspection
+          // Checkout: Full inventory tracking + complete inspection + cleaning request
           await processCheckoutCheck({
             ...baseParams,
             checkId: check.id,
             inspectionId,
+            userName: user?.full_name || user?.email || 'Nhân viên',
           })
           break
 
@@ -898,4 +928,96 @@ async function sendIssueNotifications(params: {
       }),
     ])
   }
+}
+
+// ===== CLEANING REQUEST NOTIFICATIONS =====
+
+const PRIORITY_LABELS: Record<string, string> = {
+  low: 'Thấp',
+  medium: 'Trung bình',
+  high: 'Cao',
+  urgent: 'Khẩn cấp',
+}
+
+const CONDITION_LABELS: Record<string, string> = {
+  clean: 'Sạch',
+  dirty: 'Bẩn nhẹ',
+  very_dirty: 'Rất bẩn',
+}
+
+async function sendCleaningRequestNotifications(params: {
+  roomId: string
+  roomNumber: string
+  tenantId: string
+  hotelId: string
+  userId: string
+  userName: string
+  priority: string
+  notes?: string
+  roomCondition: string
+}) {
+  const { roomId, roomNumber, tenantId, hotelId, userId, userName, priority, notes, roomCondition } = params
+  
+  const priorityLabel = PRIORITY_LABELS[priority] || priority
+  const conditionLabel = CONDITION_LABELS[roomCondition] || roomCondition
+  
+  // Get managers to notify
+  const managers = await getNotificationRecipients({
+    tenantId,
+    hotelId,
+    targetRoles: ['manager'],
+    excludeUserId: userId,
+  })
+  
+  const recipientIds = managers.length > 0 
+    ? managers.map(m => m.id)
+    : userId ? [userId] : []
+  
+  if (recipientIds.length === 0) return
+  
+  const notificationTitle = `🧹 Yêu cầu dọn phòng ${roomNumber}`
+  const notificationBody = notes 
+    ? `${userName} báo cần dọn dẹp. Tình trạng: ${conditionLabel}. Ưu tiên: ${priorityLabel}. Ghi chú: ${notes}`
+    : `${userName} báo cần dọn dẹp. Tình trạng: ${conditionLabel}. Ưu tiên: ${priorityLabel}`
+  const actionUrl = `/rooms/${roomId}?action=assign-cleaning`
+  
+  await Promise.allSettled([
+    // In-app notifications
+    createMultipleNotifications({
+      recipientIds,
+      tenantId,
+      title: notificationTitle,
+      body: notificationBody,
+      type: priority === 'urgent' || priority === 'high' ? 'warning' : 'info',
+      actionUrl,
+      metadata: {
+        room_id: roomId,
+        cleaning_priority: priority,
+        room_condition: roomCondition,
+        requested_by: userId,
+      },
+    }),
+    // Push notifications
+    sendMultiplePushNotifications({
+      recipientIds,
+      tenantId,
+      title: notificationTitle,
+      body: notificationBody,
+      actionUrl,
+      notificationType: priority === 'urgent' || priority === 'high' ? 'warning' : 'info',
+    }),
+    // Telegram notification - use 'system' type for housekeeping
+    sendTelegramNotification({
+      tenantId,
+      hotelId,
+      notificationTypeFilter: 'system',
+      sendToManagementGroups: true,
+      title: notificationTitle,
+      message: notificationBody,
+      notificationType: 'system',
+      actionUrl,
+    }),
+  ])
+  
+  console.log('[useRoomChecks] Cleaning request notifications sent for room', roomNumber)
 }
