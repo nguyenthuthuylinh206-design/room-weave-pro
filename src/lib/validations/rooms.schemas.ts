@@ -79,6 +79,11 @@ export const roomCheckFormSchema = z.object({
   items_replaced: z.array(replacedItemSchema).default([]),
   notes: z.string().max(1000, 'Ghi chú không được quá 1000 ký tự').optional(),
   photos: z.array(z.string().url('URL ảnh không hợp lệ')).max(10, 'Tối đa 10 ảnh').default([]),
+  // Cleaning request fields (checkout only)
+  needs_cleaning: z.boolean().default(false),
+  cleaning_priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
+  cleaning_notes: z.string().max(500, 'Ghi chú không được quá 500 ký tự').optional(),
+  room_condition: z.enum(['clean', 'dirty', 'very_dirty']).default('clean'),
 })
 
 export const standardFormSchema = z.object({
