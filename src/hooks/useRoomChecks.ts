@@ -152,6 +152,16 @@ async function processCheckinCheck(params: {
   // Apply changes
   await applyRoomItemChanges(roomId, quantityChanges, userId)
   
+  // Auto-change room status: check_in/vacant → occupied (phòng đã có khách)
+  // Chỉ thực hiện nếu validation pass
+  if (validation.isReady) {
+    await supabase
+      .from('rooms')
+      .update({ status: 'occupied' })
+      .eq('id', roomId)
+      .in('status', ['check_in', 'vacant'])
+  }
+  
   return { quantityChanges, validation }
 }
 
@@ -235,7 +245,7 @@ async function processCheckoutCheck(params: {
 }
 
 // ===== MAINTENANCE CHECK =====
-// Validate sau sửa chữa, chỉ update room_items
+// Validate sau sửa chữa, chỉ update room_items, chuyển trạng thái maintenance → vacant
 async function processMaintenanceCheck(params: {
   roomId: string
   data: RoomCheckFormData
@@ -250,6 +260,13 @@ async function processMaintenanceCheck(params: {
   }
   
   await applyRoomItemChanges(roomId, quantityChanges, userId)
+  
+  // Auto-change room status: maintenance → vacant (phòng đã sửa xong)
+  await supabase
+    .from('rooms')
+    .update({ status: 'vacant' })
+    .eq('id', roomId)
+    .eq('status', 'maintenance')
   
   return { quantityChanges }
 }

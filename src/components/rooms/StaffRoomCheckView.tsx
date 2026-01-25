@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Clock, ClipboardList, Bed, ChevronRight, AlertCircle, AlertTriangle } from 'lucide-react'
+import { Search, Clock, ClipboardList, Bed, ChevronRight, AlertCircle, AlertTriangle, CheckCircle2, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { CheckTypeSelector } from './CheckTypeSelector'
+import { CleaningCompleteDialog } from './CleaningCompleteDialog'
 import { StaffTasksTab } from '@/components/housekeeping/StaffTasksTab'
 import { useRooms } from '@/hooks/useRooms'
 import { useRoomLastCheck } from '@/hooks/useRoomLastCheck'
@@ -46,7 +47,9 @@ export function StaffRoomCheckView() {
   const [search, setSearch] = useState('')
   const [activeFilter, setActiveFilter] = useState<FilterValue>('all')
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null)
+  const [selectedRoomNumber, setSelectedRoomNumber] = useState<string>('')
   const [showCheckSelector, setShowCheckSelector] = useState(false)
+  const [showCleaningComplete, setShowCleaningComplete] = useState(false)
   
   const { data: rooms, isLoading } = useRooms({})
   const checkSessions = useAllRoomCheckSessions()
@@ -78,6 +81,17 @@ export function StaffRoomCheckView() {
   const handleStartCheck = (roomId: string) => {
     setSelectedRoomId(roomId)
     setShowCheckSelector(true)
+  }
+
+  const handleCleaningComplete = (roomId: string, roomNumber: string) => {
+    setSelectedRoomId(roomId)
+    setSelectedRoomNumber(roomNumber)
+    setShowCleaningComplete(true)
+  }
+
+  const handleRecheck = (roomId: string) => {
+    // Navigate directly to room check page with daily type
+    navigate(`/rooms/${roomId}/check?type=daily`)
   }
 
   return (
@@ -176,6 +190,8 @@ export function StaffRoomCheckView() {
                           room={room}
                           checkSession={checkSessions[room.id]}
                           onStartCheck={handleStartCheck}
+                          onCleaningComplete={handleCleaningComplete}
+                          onRecheck={handleRecheck}
                         />
                       ))}
                     </div>
@@ -195,6 +211,16 @@ export function StaffRoomCheckView() {
           roomNumber={rooms?.find(r => r.id === selectedRoomId)?.room_number || ''}
         />
       )}
+
+      {/* Cleaning Complete Dialog */}
+      {selectedRoomId && (
+        <CleaningCompleteDialog
+          open={showCleaningComplete}
+          onOpenChange={setShowCleaningComplete}
+          roomId={selectedRoomId}
+          roomNumber={selectedRoomNumber}
+        />
+      )}
     </div>
   )
 }
@@ -203,12 +229,15 @@ interface CompactRoomRowProps {
   room: any
   checkSession?: any
   onStartCheck: (roomId: string) => void
+  onCleaningComplete: (roomId: string, roomNumber: string) => void
+  onRecheck: (roomId: string) => void
 }
 
-function CompactRoomRow({ room, checkSession, onStartCheck }: CompactRoomRowProps) {
+function CompactRoomRow({ room, checkSession, onStartCheck, onCleaningComplete, onRecheck }: CompactRoomRowProps) {
   const { data: lastCheck, isLoading } = useRoomLastCheck(room.id)
   const statusConfig = STATUS_CONFIG[room.status as RoomStatus] || STATUS_CONFIG.vacant
-  const isCheckable = room.status === 'vacant' || room.status === 'cleaning'
+  const isCleaning = room.status === 'cleaning'
+  const isCheckable = room.status === 'vacant' || isCleaning
   const hasSession = !!checkSession
   const hasIssues = lastCheck && !lastCheck.items_complete
   
@@ -218,18 +247,18 @@ function CompactRoomRow({ room, checkSession, onStartCheck }: CompactRoomRowProp
   return (
     <div 
       className={cn(
-        "flex items-center gap-3 px-3 py-2.5 bg-background transition-colors",
-        isCheckable && !hasSession && "hover:bg-muted/50 cursor-pointer active:bg-muted",
+        "flex items-center gap-2 px-3 py-2.5 bg-background transition-colors",
+        isCheckable && !hasSession && !isCleaning && "hover:bg-muted/50 cursor-pointer active:bg-muted",
         hasSession && "bg-amber-50/50"
       )}
       onClick={() => {
-        if (isCheckable && !hasSession) {
+        if (room.status === 'vacant' && !hasSession) {
           onStartCheck(room.id)
         }
       }}
     >
       {/* Room number */}
-      <div className="w-14 flex-shrink-0">
+      <div className="w-12 flex-shrink-0">
         <span className="text-base font-semibold">{room.room_number}</span>
       </div>
 
@@ -237,7 +266,7 @@ function CompactRoomRow({ room, checkSession, onStartCheck }: CompactRoomRowProp
       <Badge 
         variant="secondary" 
         className={cn(
-          "h-5 px-1.5 text-[10px] font-medium",
+          "h-5 px-1.5 text-[10px] font-medium flex-shrink-0",
           statusConfig.bgColor,
           statusConfig.color
         )}
@@ -291,23 +320,60 @@ function CompactRoomRow({ room, checkSession, onStartCheck }: CompactRoomRowProp
         )}
       </div>
 
-      {/* Action */}
-      {isCheckable && !hasSession && (
-        <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-      )}
-      {hasSession && (
-        <Badge 
-          variant="outline" 
-          className={cn(
-            "text-[10px] h-5",
-            sessionDuration > 40 
-              ? "border-destructive text-destructive" 
-              : "border-amber-300 text-amber-600"
-          )}
-        >
-          {sessionDuration > 40 ? "Quá hạn" : "Đang KT"}
-        </Badge>
-      )}
+      {/* Action buttons */}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        {/* Cleaning room: Show "Hoàn thành" and "Kiểm tra lại" buttons */}
+        {isCleaning && !hasSession && (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-xs gap-1"
+              onClick={(e) => {
+                e.stopPropagation()
+                onRecheck(room.id)
+              }}
+            >
+              <RotateCcw className="h-3 w-3" />
+              <span className="hidden sm:inline">Kiểm tra</span>
+            </Button>
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              className="h-7 px-2 text-xs gap-1"
+              onClick={(e) => {
+                e.stopPropagation()
+                onCleaningComplete(room.id, room.room_number)
+              }}
+            >
+              <CheckCircle2 className="h-3 w-3" />
+              <span className="hidden sm:inline">Xong</span>
+            </Button>
+          </>
+        )}
+
+        {/* Vacant room without session: Show arrow */}
+        {room.status === 'vacant' && !hasSession && (
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        )}
+
+        {/* Session active badge */}
+        {hasSession && (
+          <Badge 
+            variant="outline" 
+            className={cn(
+              "text-[10px] h-5",
+              sessionDuration > 40 
+                ? "border-destructive text-destructive" 
+                : "border-amber-500 text-amber-600"
+            )}
+          >
+            {sessionDuration > 40 ? "Quá hạn" : "Đang KT"}
+          </Badge>
+        )}
+      </div>
     </div>
   )
 }
