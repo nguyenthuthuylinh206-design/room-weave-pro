@@ -372,3 +372,72 @@ export function useDeleteRoom() {
     },
   })
 }
+
+/**
+ * Mark a room as ready (cleaning → vacant)
+ * Used when housekeeping finishes cleaning a room
+ */
+export function useMarkRoomReady() {
+  const queryClient = useQueryClient()
+  const { tenantId, user } = useUser()
+  
+  return useMutation({
+    mutationFn: async ({ 
+      roomId, 
+      skipCheck = false 
+    }: { 
+      roomId: string
+      skipCheck?: boolean 
+    }) => {
+      // First verify room is in cleaning status
+      const { data: room, error: checkError } = await supabase
+        .from('rooms')
+        .select('id, room_number, hotel_id, status')
+        .eq('id', roomId)
+        .single()
+      
+      if (checkError) throw checkError
+      if (room.status !== 'cleaning') {
+        throw new Error(`Phòng không ở trạng thái "Đang dọn" (hiện tại: ${room.status})`)
+      }
+      
+      // Update status to vacant
+      const { data: updated, error } = await supabase
+        .from('rooms')
+        .update({ status: 'vacant' })
+        .eq('id', roomId)
+        .eq('status', 'cleaning') // Optimistic lock
+        .select('*, room_number, hotel_id')
+        .single()
+      
+      if (error) throw error
+      
+      // Trigger workflow for room status change
+      if (tenantId) {
+        triggerWorkflow({
+          triggerType: WorkflowTriggerTypes.ROOM_STATUS_CHANGE,
+          eventData: {
+            room_id: roomId,
+            room_number: updated.room_number,
+            old_status: 'cleaning',
+            new_status: 'vacant',
+          },
+          tenantId,
+          hotelId: updated.hotel_id,
+        }).catch(err => console.error('[triggerWorkflow] room_status_change error:', err))
+      }
+      
+      return { room: updated, skipCheck }
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+      queryClient.invalidateQueries({ queryKey: ['room', variables.roomId] })
+      queryClient.invalidateQueries({ queryKey: ['room-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['floor-plan'] })
+      toast.success('Phòng đã sẵn sàng nhận khách')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    },
+  })
+}
