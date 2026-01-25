@@ -24,8 +24,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { HotelBadge } from '@/components/layout/HotelBadge';
 import { toast } from 'sonner';
+import { Switch } from '@/components/ui/switch';
+
 const ITEM_TYPES = ['linen', 'consumable', 'equipment', 'furniture'] as const;
 type ItemFormData = z.infer<ReturnType<typeof createItemSchema>>;
+
 function createItemSchema(t: (key: string) => string) {
   return z.object({
     code: z.string().min(1, t('items:validation.codeRequired')),
@@ -40,7 +43,11 @@ function createItemSchema(t: (key: string) => string) {
     reorder_point: z.number().min(0, t('items:validation.reorderMin')),
     brand: z.string().optional(),
     model: z.string().optional(),
-    images: z.array(z.string()).optional()
+    images: z.array(z.string()).optional(),
+    // Chargeable settings
+    is_chargeable: z.boolean().default(false),
+    is_complimentary: z.boolean().default(true),
+    charge_price: z.number().min(0).nullable().optional(),
   });
 }
 export function ItemFormPage() {
@@ -100,7 +107,10 @@ export function ItemFormPage() {
       unit_price: 0,
       minimum_stock: 10,
       reorder_point: 20,
-      item_type: 'equipment'
+      item_type: 'equipment',
+      is_chargeable: false,
+      is_complimentary: true,
+      charge_price: null,
     }
   });
 
@@ -119,6 +129,9 @@ export function ItemFormPage() {
       setValue('reorder_point', copyFrom.reorder_point || 20);
       setValue('brand', copyFrom.brand || '');
       setValue('model', copyFrom.model || '');
+      setValue('is_chargeable', copyFrom.is_chargeable || false);
+      setValue('is_complimentary', copyFrom.is_complimentary ?? true);
+      setValue('charge_price', copyFrom.charge_price || null);
     }
   }, [copyFrom, setValue]);
 
@@ -138,7 +151,10 @@ export function ItemFormPage() {
         minimum_stock: item.minimum_stock || 10,
         reorder_point: item.reorder_point || 20,
         brand: item.brand || '',
-        model: item.model || ''
+        model: item.model || '',
+        is_chargeable: item.is_chargeable || false,
+        is_complimentary: item.is_complimentary ?? true,
+        charge_price: item.charge_price || null,
       });
     }
   }, [item, isEdit, copyFrom, reset]);
@@ -361,6 +377,70 @@ export function ItemFormPage() {
                     <Input id="reorder_point" type="number" {...register('reorder_point', { valueAsNumber: true })} className="h-10" />
                   </div>
                 </div>
+
+                {/* Chargeable Settings - Only for consumables */}
+                {watch('item_type') === 'consumable' && (
+                  <div className="border-t pt-3 mt-3 space-y-3">
+                    <p className="text-xs font-medium text-muted-foreground">Thiết lập tính phí</p>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="is_chargeable" className="text-sm font-medium">
+                          Có tính phí khách
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Minibar, đồ uống, snack...
+                        </p>
+                      </div>
+                      <Switch
+                        id="is_chargeable"
+                        checked={watch('is_chargeable')}
+                        onCheckedChange={(checked) => {
+                          setValue('is_chargeable', checked);
+                          if (checked) {
+                            setValue('is_complimentary', false);
+                          }
+                        }}
+                      />
+                    </div>
+
+                    {watch('is_chargeable') && (
+                      <div className="space-y-1.5 pl-0">
+                        <Label htmlFor="charge_price" className="text-xs">
+                          Giá bán cho khách (₫)
+                        </Label>
+                        <Input
+                          id="charge_price"
+                          type="number"
+                          placeholder={`Mặc định: ${watch('unit_price')?.toLocaleString() || 0}`}
+                          {...register('charge_price', { valueAsNumber: true })}
+                          className="h-10"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Để trống sẽ dùng giá nhập ({watch('unit_price')?.toLocaleString() || 0}₫)
+                        </p>
+                      </div>
+                    )}
+
+                    {!watch('is_chargeable') && (
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="is_complimentary" className="text-sm font-medium">
+                            Miễn phí đi kèm phòng
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            Bàn chải, xà phòng, dầu gội...
+                          </p>
+                        </div>
+                        <Switch
+                          id="is_complimentary"
+                          checked={watch('is_complimentary')}
+                          onCheckedChange={(checked) => setValue('is_complimentary', checked)}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </AccordionContent>
             </AccordionItem>
 
@@ -458,6 +538,72 @@ export function ItemFormPage() {
               {errors.reorder_point && <p className="text-xs text-destructive">{errors.reorder_point.message}</p>}
             </div>
           </div>
+
+          {/* Chargeable Settings for Desktop - Only for consumables */}
+          {watch('item_type') === 'consumable' && (
+            <div className="border-t pt-4 mt-4 space-y-4">
+              <p className="text-sm font-medium">Thiết lập tính phí khách</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="is_chargeable_desktop" className="text-sm font-medium">
+                      Có tính phí khách
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Minibar, đồ uống, snack...
+                    </p>
+                  </div>
+                  <Switch
+                    id="is_chargeable_desktop"
+                    checked={watch('is_chargeable')}
+                    onCheckedChange={(checked) => {
+                      setValue('is_chargeable', checked);
+                      if (checked) {
+                        setValue('is_complimentary', false);
+                      }
+                    }}
+                  />
+                </div>
+
+                {!watch('is_chargeable') && (
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="is_complimentary_desktop" className="text-sm font-medium">
+                        Miễn phí đi kèm phòng
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Bàn chải, xà phòng...
+                      </p>
+                    </div>
+                    <Switch
+                      id="is_complimentary_desktop"
+                      checked={watch('is_complimentary')}
+                      onCheckedChange={(checked) => setValue('is_complimentary', checked)}
+                    />
+                  </div>
+                )}
+
+                {watch('is_chargeable') && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="charge_price_desktop" className="text-xs">
+                      Giá bán cho khách (₫)
+                    </Label>
+                    <Input
+                      id="charge_price_desktop"
+                      type="number"
+                      placeholder={`Mặc định: ${watch('unit_price')?.toLocaleString() || 0}`}
+                      {...register('charge_price', { valueAsNumber: true })}
+                      className="h-9"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Để trống sẽ dùng giá nhập
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="border rounded-lg p-4 space-y-3">

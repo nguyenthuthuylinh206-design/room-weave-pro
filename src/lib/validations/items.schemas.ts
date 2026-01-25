@@ -14,6 +14,11 @@ export const itemFormSchema = z.object({
   brand: z.string().trim().max(100, 'Thương hiệu không được vượt quá 100 ký tự').optional(),
   model: z.string().trim().max(100, 'Model không được vượt quá 100 ký tự').optional(),
   
+  // Chargeable settings (for consumables)
+  is_chargeable: z.boolean().default(false),
+  is_complimentary: z.boolean().default(true),
+  charge_price: z.number().min(0, 'Giá bán phải >= 0').max(999999999, 'Giá quá lớn').nullable().optional(),
+  
   // Quantity
   quantity_total: z.number().int().min(0, 'Số lượng phải >= 0').max(999999, 'Số lượng quá lớn'),
   minimum_stock: z.number().int().min(0, 'Ngưỡng cảnh báo phải >= 0').max(999999, 'Ngưỡng quá lớn'),

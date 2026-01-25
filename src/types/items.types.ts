@@ -18,6 +18,12 @@ export const ITEM_TYPE_LABELS: Record<ItemType, string> = {
   furniture: 'Nội thất',
 }
 
+// Chargeable item labels
+export const CHARGEABLE_LABELS = {
+  chargeable: 'Tính phí',
+  complimentary: 'Miễn phí',
+} as const
+
 export const ITEM_TYPE_OPTIONS: { value: ItemType; label: string; description: string }[] = [
   { value: 'linen', label: 'Đồ vải', description: 'Khăn, ga, gối - cần giặt và thay thế' },
   { value: 'consumable', label: 'Tiêu hao', description: 'Bàn chải, kem đánh răng, nước - dùng 1 lần' },

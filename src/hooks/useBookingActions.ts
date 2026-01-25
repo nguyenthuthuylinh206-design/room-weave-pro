@@ -131,18 +131,24 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
       const checkOut = new Date(booking.check_out_date)
       const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
 
-      // Auto-calculate service charges from consumables
+      // Auto-calculate service charges from consumables (complimentary items)
       const consumablesTotal = await calculateServiceChargesFromConsumables(bookingId)
       const serviceCharges = consumablesTotal > 0 ? consumablesTotal : (booking.service_charges || 0)
 
-      // Calculate final cost breakdown
+      // Get chargeable consumptions total (minibar, paid items)
+      const { data: chargeableTotal } = await supabase
+        .rpc('get_booking_chargeable_total', { p_booking_id: bookingId })
+      const extraChargeableAmount = chargeableTotal || 0
+
+      // Calculate final cost breakdown (include chargeable items in extra_charges)
+      const totalExtraCharges = (booking.extra_charges || 0) + extraChargeableAmount
       const costBreakdown = calculateBookingCost({
         roomPrice: booking.room_price || 0,
         nights,
         earlyCheckinCharge: booking.early_checkin_charge || 0,
         lateCheckoutCharge,
         serviceCharges,
-        extraCharges: booking.extra_charges || 0,
+        extraCharges: totalExtraCharges,
         vatRate: booking.vat_rate ?? DEFAULT_PRICING_RULES.vatRate,
         serviceFeeRate: booking.service_fee_rate ?? DEFAULT_PRICING_RULES.serviceFeeRate,
         depositAmount: booking.deposit_amount || 0,
