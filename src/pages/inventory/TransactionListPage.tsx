@@ -25,6 +25,7 @@ import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import { TransactionTypeBadge } from '@/components/inventory/TransactionTypeBadge'
 import { TransactionDetailDialog } from '@/components/inventory/TransactionDetailDialog'
 import { useInventoryTransactions } from '@/hooks/useInventoryTransactions'
+import { GroupedTransactionRow, groupTransactionsByCode } from '@/components/inventory/GroupedTransactionRow'
 
 import { format } from 'date-fns'
 import { vi, enUS } from 'date-fns/locale'
@@ -329,63 +330,30 @@ export function TransactionListPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.map((transaction) => (
-                <TableRow key={transaction.id} className="hover:bg-muted/30">
-                  <TableCell className="font-mono text-xs py-2">
-                    {transaction.transaction_code}
-                  </TableCell>
-                  <TableCell className="py-2">
-                    <TransactionTypeBadge type={transaction.transaction_type === 'adjustment' ? 'adjust' : transaction.transaction_type as TransactionType} />
-                  </TableCell>
-                  <TableCell className="py-2">
-                    <div className="flex items-center gap-2">
-                      {transaction.item_images?.[0] && (
-                        <img 
-                          src={transaction.item_images[0]} 
-                          alt={transaction.item_name}
-                          className="h-6 w-6 rounded object-cover"
-                        />
-                      )}
-                      <div>
-                        <p className="text-sm">{transaction.item_name}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-2">
-                    <span className={transaction.transaction_type === 'in' ? 'text-green-600 font-medium text-sm' : 'text-amber-600 font-medium text-sm'}>
-                      {transaction.transaction_type === 'in' ? '+' : '-'}{Math.abs(transaction.quantity)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-xs py-2">
-                    {transaction.from_location && <div>{transaction.from_location}</div>}
-                    {transaction.to_location && <div>→ {transaction.to_location}</div>}
-                  </TableCell>
-                  <TableCell className="py-2">
-                    <div className="flex items-center gap-1.5">
-                      <Avatar className="h-5 w-5">
-                        <AvatarImage src={transaction.created_by_avatar} />
-                        <AvatarFallback className="text-[10px]">
-                          {transaction.created_by_name?.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs">{transaction.created_by_name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-xs py-2">
-                    {transaction.created_at ? format(new Date(transaction.created_at), 'dd/MM HH:mm', { locale: dateLocale }) : 'N/A'}
-                  </TableCell>
-                  <TableCell className="text-right py-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => setSelectedTransaction(transaction.id)}
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {(() => {
+                const grouped = groupTransactionsByCode(transactions)
+                const groupKeys = Array.from(grouped.keys())
+                return groupKeys.map((code) => (
+                  <GroupedTransactionRow
+                    key={code}
+                    transactions={grouped.get(code)!.map(t => ({
+                      id: t.id,
+                      transaction_code: t.transaction_code,
+                      transaction_type: t.transaction_type,
+                      item_name: t.item_name,
+                      item_code: t.item_code,
+                      item_images: t.item_images,
+                      quantity: t.quantity,
+                      from_location: t.from_location,
+                      to_location: t.to_location,
+                      created_by_name: t.created_by_name,
+                      created_by_avatar: t.created_by_avatar,
+                      created_at: t.created_at,
+                    }))}
+                    onViewDetail={(id) => setSelectedTransaction(id)}
+                  />
+                ))
+              })()}
             </TableBody>
           </Table>
         )}
