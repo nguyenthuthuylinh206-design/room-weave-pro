@@ -26,10 +26,13 @@ import { useUser } from '@/hooks/useUser'
 import { useRoomCheckSession } from '@/hooks/useRoomCheckSession'
 import { useRoomBooking } from '@/hooks/useRoomBooking'
 import { usePendingInspections, useRoomHasPendingInspection } from '@/hooks/useCheckoutInspection'
+import { useCreateMultipleChargeableConsumptions, type CreateChargeableConsumptionInput } from '@/hooks/useChargeableConsumptions'
 import { toast } from '@/hooks/use-toast'
+import { supabase } from '@/integrations/supabase/client'
 import { CheckTypeStep } from '@/components/rooms/check-steps/CheckTypeStep'
 import { ItemsCheckStep } from '@/components/rooms/check-steps/ItemsCheckStep'
 import { ReviewStep } from '@/components/rooms/check-steps/ReviewStep'
+import { ChargeableItemsStep } from '@/components/rooms/check-steps/ChargeableItemsStep'
 import { cn } from '@/lib/utils'
 import type { RoomCheckFormData } from '@/types/rooms.types'
 
@@ -101,7 +104,9 @@ export function RoomCheckPage() {
   const [itemQuantities, setItemQuantities] = useState<Record<string, number>>({})
   const [sessionCompleted, setSessionCompleted] = useState(false)
   const [hasResumed, setHasResumed] = useState(false) // Flag to prevent useEffect conflicts
-  const totalSteps = quickMode ? 2 : 3 // Skip items step in quick mode
+  const [chargeableItems, setChargeableItems] = useState<CreateChargeableConsumptionInput[]>([])
+  const [chargeableNotes, setChargeableNotes] = useState('')
+  const createChargeableConsumptions = useCreateMultipleChargeableConsumptions()
   
   const form = useForm<RoomCheckFormData>({
     resolver: zodResolver(roomCheckFormSchema),
@@ -124,6 +129,15 @@ export function RoomCheckPage() {
   
   // Watch check_type từ form để detect khi user chọn checkout
   const watchedCheckType = form.watch('check_type')
+  
+  // Calculate steps: for checkout, add chargeable items step before review
+  const isCheckoutType = watchedCheckType === 'checkout'
+  const getTotalSteps = () => {
+    if (quickMode) return 2
+    if (isCheckoutType) return 4 // Type -> Items -> Chargeable -> Review
+    return 3 // Type -> Items -> Review
+  }
+  const totalSteps = getTotalSteps()
   
   useEffect(() => {
     if (!isLoading && !room) {
@@ -470,6 +484,38 @@ export function RoomCheckPage() {
     }
     
     try {
+      // Save chargeable consumptions for checkout if any
+      if (data.check_type === 'checkout' && chargeableItems.length > 0) {
+        console.log('[RoomCheckPage] Saving chargeable consumptions:', chargeableItems.length)
+        const savedItems = await createChargeableConsumptions.mutateAsync(chargeableItems)
+        
+        // Trigger notify-chargeable edge function
+        if (savedItems && savedItems.length > 0) {
+          try {
+            const totalAmount = savedItems.reduce((sum, item) => sum + (item.total_amount || 0), 0)
+            await supabase.functions.invoke('notify-chargeable', {
+              body: {
+                tenant_id: room?.tenant_id,
+                hotel_id: room?.hotel_id,
+                booking_id: currentBooking?.id,
+                room_id: id,
+                room_number: room?.room_number,
+                items: savedItems.map(item => ({
+                  name: item.item_name,
+                  quantity: item.quantity,
+                  total: item.total_amount,
+                })),
+                total_amount: totalAmount,
+                recorded_by_name: user?.full_name || user?.email,
+              },
+            })
+            console.log('[RoomCheckPage] Chargeable notification sent')
+          } catch (notifyError) {
+            console.error('[RoomCheckPage] Failed to send chargeable notification:', notifyError)
+          }
+        }
+      }
+      
       await createCheck.mutateAsync({
         roomId: id,
         data,
@@ -734,7 +780,9 @@ export function RoomCheckPage() {
               {currentStep === 1 && 'Chọn loại kiểm tra'}
               {currentStep === 2 && !quickMode && 'Kiểm tra đồ dùng trong phòng'}
               {currentStep === 2 && quickMode && 'Đánh giá & Hoàn tất'}
-              {currentStep === 3 && 'Đánh giá & Hoàn tất'}
+              {currentStep === 3 && !quickMode && isCheckoutType && 'Phụ thu minibar/dịch vụ'}
+              {currentStep === 3 && !quickMode && !isCheckoutType && 'Đánh giá & Hoàn tất'}
+              {currentStep === 4 && 'Đánh giá & Hoàn tất'}
             </CardTitle>
             <div className="space-y-2">
               <Progress value={progress} />
@@ -777,7 +825,21 @@ export function RoomCheckPage() {
                   onQuantitiesChange={setItemQuantities}
                 />
               )}
-              {((currentStep === 2 && quickMode) || currentStep === 3) && (
+              {/* Chargeable Items Step - Only for checkout */}
+              {currentStep === 3 && !quickMode && isCheckoutType && currentBooking && (
+                <ChargeableItemsStep
+                  hotelId={room.hotel_id}
+                  bookingId={currentBooking.id}
+                  roomId={id!}
+                  onItemsChange={setChargeableItems}
+                  notes={chargeableNotes}
+                  onNotesChange={setChargeableNotes}
+                />
+              )}
+              {/* Review Step - adjusts based on checkout vs other types */}
+              {((currentStep === 2 && quickMode) || 
+                (currentStep === 3 && !isCheckoutType) || 
+                (currentStep === 4 && isCheckoutType)) && (
                 <ReviewStep form={form} room={room} checkType={watchedCheckType as CheckType} currentBooking={currentBooking} />
               )}
               
