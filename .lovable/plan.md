@@ -1,99 +1,113 @@
 
+## Kế hoạch: Xử lý xung đột khi nhiều nhân viên kiểm tra cùng phòng
 
-## Kế hoạch: Sửa lỗi RLS cho chức năng đặt phòng
+### I. VẤN ĐỀ PHÁT HIỆN
 
-### I. NGUYÊN NHÂN
+**Dữ liệu thực tế:**
+- 9 room_check_sessions đang "treo", có session treo từ **2 tháng trước**
+- 3 checkout_inspection_requests pending/in_progress, có request treo **308 giờ**
+- Không có cơ chế tự động dọn dẹp session hết hạn
 
-| Yếu tố | Giá trị |
-|--------|---------|
-| User đang login | NV Linh (staff) |
-| RLS Policy INSERT | Chỉ cho phép: owner, hotel_manager, department_manager |
-| Role của user | `staff` → **KHÔNG có quyền INSERT** |
+**Các trường hợp xung đột:**
+1. NV A đang kiểm tra daily, Manager yêu cầu checkout cùng phòng
+2. NV quên hoàn thành session, phòng bị "khóa" vĩnh viễn
+3. Checkout inspection gán cho NV A nhưng NV B cố kiểm tra
+4. Session cũ treo, không ai kiểm tra được phòng
 
 ### II. GIẢI PHÁP
 
-Có 2 hướng xử lý:
+#### Bước 1: Auto-cleanup sessions hết hạn (Database Trigger/Cron)
 
-#### **Hướng 1: Thêm `staff` vào RLS policy (Đơn giản, nhanh)**
-
-Cập nhật RLS policy để cho phép staff tạo booking:
+Tạo function tự động xóa sessions quá 2 giờ:
 
 ```sql
--- Drop existing policy
-DROP POLICY IF EXISTS "Managers can insert room bookings" ON room_bookings;
-
--- Create new policy including staff
-CREATE POLICY "Staff and managers can insert room bookings"
-ON room_bookings FOR INSERT
-WITH CHECK (
-  (tenant_id IN (SELECT users.tenant_id FROM users WHERE users.id = auth.uid()))
-  AND (
-    has_role(auth.uid(), 'owner'::app_role)
-    OR has_role(auth.uid(), 'hotel_manager'::app_role)
-    OR has_role(auth.uid(), 'department_manager'::app_role)
-    OR has_role(auth.uid(), 'staff'::app_role)
-  )
-);
+-- Cleanup function
+CREATE OR REPLACE FUNCTION cleanup_stale_check_sessions()
+RETURNS void AS $$
+BEGIN
+  -- Xóa sessions quá 2 giờ
+  DELETE FROM room_check_sessions
+  WHERE started_at < NOW() - INTERVAL '2 hours';
+  
+  -- Cập nhật checkout inspections quá 4 giờ về pending
+  UPDATE checkout_inspection_requests
+  SET status = 'pending', started_at = NULL
+  WHERE status = 'in_progress'
+    AND started_at < NOW() - INTERVAL '4 hours';
+END;
+$$ LANGUAGE plpgsql;
 ```
 
-#### **Hướng 2: Tích hợp Permission-Based System (Chuẩn dài hạn)**
+#### Bước 2: Chạy cleanup định kỳ (pg_cron hoặc Edge Function)
 
-1. Thêm module `bookings` vào `PermissionModule` enum
-2. Tạo RLS policy dựa trên `has_user_permission()` thay vì hardcode roles
-3. Cấu hình permission cho từng role trong hệ thống quản lý quyền
+Option 1: **Edge Function scheduled** chạy mỗi 30 phút
+Option 2: **Manual cleanup button** cho Manager trong Settings
 
-### III. ĐỀ XUẤT
+#### Bước 3: Cải thiện UI hiển thị conflict
 
-**Chọn Hướng 1** vì:
-- Nhanh chóng fix lỗi hiện tại
-- Logic nghiệp vụ: Staff của khách sạn thường cần tạo booking cho khách walk-in
-- Có thể migrate sang permission-based sau
+**StaffRoomCheckView.tsx:**
+- Hiển thị rõ ràng ai đang kiểm tra phòng
+- Thêm tooltip với thời gian session bắt đầu
+- Badge "Đang KT" → "Đang KT bởi [Tên] (2h)"
 
-### IV. THAY ĐỔI CẦN THỰC HIỆN
+**RoomCheckPage.tsx:**
+- Dialog hỏi có muốn "take over" session cũ (chỉ Manager)
+- Hiển thị warning nếu session đã quá 1 giờ
 
-| Loại | Chi tiết |
+#### Bước 4: Manager Override (Take Over)
+
+Cho phép Manager/Admin "take over" session của NV khác khi cần thiết:
+
+```typescript
+const takeOverSession = async (roomId: string) => {
+  // 1. Xóa session cũ
+  await supabase
+    .from('room_check_sessions')
+    .delete()
+    .eq('room_id', roomId)
+  
+  // 2. Tạo session mới cho manager
+  await createSession(roomId, checkType, userName, tenantId)
+}
+```
+
+#### Bước 5: Ưu tiên Checkout over Daily
+
+Khi có checkout inspection request:
+- Auto-cancel session daily của NV khác
+- Notify NV bị cancel: "Phòng X được ưu tiên checkout, session của bạn đã bị hủy"
+
+#### Bước 6: Backfill - Dọn dẹp dữ liệu cũ ngay
+
+Chạy migration để xóa sessions và inspections quá cũ:
+
+```sql
+-- Xóa sessions quá 24 giờ
+DELETE FROM room_check_sessions 
+WHERE started_at < NOW() - INTERVAL '24 hours';
+
+-- Reset inspections quá 24 giờ về pending
+UPDATE checkout_inspection_requests
+SET status = 'pending', started_at = NULL
+WHERE status = 'in_progress'
+  AND started_at < NOW() - INTERVAL '24 hours';
+```
+
+### III. FILES CẦN THAY ĐỔI
+
+| File | Thay đổi |
 |------|----------|
-| **Database Migration** | Update RLS policy cho `room_bookings` table - thêm `staff` vào INSERT và UPDATE policies |
+| `supabase/migrations/...` | Function cleanup + backfill data |
+| `src/hooks/useRoomCheckSession.ts` | Thêm `takeOverSession()` method |
+| `src/pages/rooms/RoomCheckPage.tsx` | Dialog take over cho Manager |
+| `src/components/rooms/StaffRoomCheckView.tsx` | Hiển thị chi tiết session conflict |
+| `supabase/functions/cleanup-sessions/index.ts` | Edge function chạy định kỳ (optional) |
 
-### V. SQL Migration
+### IV. KẾT QUẢ MONG ĐỢI
 
-```sql
--- 1. Update INSERT policy to include staff
-DROP POLICY IF EXISTS "Managers can insert room bookings" ON room_bookings;
-
-CREATE POLICY "Staff and managers can insert room bookings"
-ON room_bookings FOR INSERT
-WITH CHECK (
-  (tenant_id IN (SELECT users.tenant_id FROM users WHERE users.id = auth.uid()))
-  AND (
-    has_role(auth.uid(), 'owner'::app_role)
-    OR has_role(auth.uid(), 'hotel_manager'::app_role)
-    OR has_role(auth.uid(), 'department_manager'::app_role)
-    OR has_role(auth.uid(), 'staff'::app_role)
-  )
-);
-
--- 2. Update UPDATE policy to include staff
-DROP POLICY IF EXISTS "Managers can update room bookings" ON room_bookings;
-
-CREATE POLICY "Staff and managers can update room bookings"
-ON room_bookings FOR UPDATE
-USING (
-  (tenant_id IN (SELECT users.tenant_id FROM users WHERE users.id = auth.uid()))
-  AND (
-    has_role(auth.uid(), 'owner'::app_role)
-    OR has_role(auth.uid(), 'hotel_manager'::app_role)
-    OR has_role(auth.uid(), 'department_manager'::app_role)
-    OR has_role(auth.uid(), 'staff'::app_role)
-  )
-);
-
--- Note: DELETE policy giữ nguyên - chỉ manager trở lên mới được xóa booking
-```
-
-### VI. KẾT QUẢ SAU KHI TRIỂN KHAI
-
-- Staff có thể tạo và sửa booking
-- Staff **không thể xóa** booking (vẫn cần manager/owner)
-- Data isolation theo tenant vẫn được đảm bảo
-
+1. **Sessions tự động dọn dẹp** sau 2 giờ không hoạt động
+2. **Manager có thể override** session của NV khi cần thiết
+3. **Checkout được ưu tiên** hơn daily check
+4. **UI hiển thị rõ ràng** ai đang làm gì, từ bao lâu
+5. **Không còn phòng bị "khóa"** do session treo
+Bổ sung : Sau 40p cần thông báo cho saff phụ trách và quản lý tránh trường hợp để quên chưa hoàn thành công việc 
