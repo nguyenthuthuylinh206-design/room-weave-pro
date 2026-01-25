@@ -1,115 +1,99 @@
 
 
-## Kế hoạch: Sửa lỗi Delivery Task không hiển thị
+## Kế hoạch: Sửa lỗi RLS cho chức năng đặt phòng
 
 ### I. NGUYÊN NHÂN
 
-1. **StopCard.tsx không pass `roomInfo`**: Khi gọi `deliverStop.mutate()`, chỉ truyền `roomOrderId` mà không truyền `roomInfo`, dẫn đến workflow trigger không được kích hoạt
-
-2. **Không có workflow template**: Không có workflow nào được cấu hình trong database với trigger type `delivery_stop_completed`, nên ngay cả khi trigger được gọi, edge function cũng không tạo task
+| Yếu tố | Giá trị |
+|--------|---------|
+| User đang login | NV Linh (staff) |
+| RLS Policy INSERT | Chỉ cho phép: owner, hotel_manager, department_manager |
+| Role của user | `staff` → **KHÔNG có quyền INSERT** |
 
 ### II. GIẢI PHÁP
 
-#### Bước 1: Cập nhật StopCard.tsx để pass roomInfo
+Có 2 hướng xử lý:
 
-**File:** `src/components/distribution/components/StopCard.tsx`
+#### **Hướng 1: Thêm `staff` vào RLS policy (Đơn giản, nhanh)**
 
-```typescript
-interface StopCardProps {
-  stop: RouteStop
-  orderCode?: string      // NEW: Thêm order_code
-  tenantId?: string       // NEW: Thêm tenant_id  
-  hotelId?: string        // NEW: Thêm hotel_id
-  canDeliver?: boolean
-  // ... other props
-}
+Cập nhật RLS policy để cho phép staff tạo booking:
 
-const handleDeliver = () => {
-  deliverStop.mutate(
-    { 
-      roomOrderId: stop.id,
-      roomInfo: {
-        room_id: stop.room_id,
-        room_number: stop.room_number,
-        hotel_id: hotelId,
-        tenant_id: tenantId,
-        order_code: orderCode,
-        items: stop.items.map(i => ({
-          item_name: i.item_name,
-          quantity: i.quantity
-        }))
-      }
-    },
-    { onSuccess: () => onAction?.() }
+```sql
+-- Drop existing policy
+DROP POLICY IF EXISTS "Managers can insert room bookings" ON room_bookings;
+
+-- Create new policy including staff
+CREATE POLICY "Staff and managers can insert room bookings"
+ON room_bookings FOR INSERT
+WITH CHECK (
+  (tenant_id IN (SELECT users.tenant_id FROM users WHERE users.id = auth.uid()))
+  AND (
+    has_role(auth.uid(), 'owner'::app_role)
+    OR has_role(auth.uid(), 'hotel_manager'::app_role)
+    OR has_role(auth.uid(), 'department_manager'::app_role)
+    OR has_role(auth.uid(), 'staff'::app_role)
   )
-}
+);
 ```
 
-#### Bước 2: Cập nhật component cha truyền props
+#### **Hướng 2: Tích hợp Permission-Based System (Chuẩn dài hạn)**
 
-**File:** Component parent (BatchAccordion hoặc RouteDetailPage) truyền `orderCode`, `tenantId`, `hotelId` xuống `StopCard`
+1. Thêm module `bookings` vào `PermissionModule` enum
+2. Tạo RLS policy dựa trên `has_user_permission()` thay vì hardcode roles
+3. Cấu hình permission cho từng role trong hệ thống quản lý quyền
 
-#### Bước 3: Thêm fallback - Tự động tạo task trong edge function
+### III. ĐỀ XUẤT
 
-Thay vì phụ thuộc vào workflow template, sẽ thêm logic trong edge function để **tự động tạo task trực tiếp** khi nhận trigger `delivery_stop_completed`:
+**Chọn Hướng 1** vì:
+- Nhanh chóng fix lỗi hiện tại
+- Logic nghiệp vụ: Staff của khách sạn thường cần tạo booking cho khách walk-in
+- Có thể migrate sang permission-based sau
 
-**File:** `supabase/functions/execute-workflow/index.ts`
+### IV. THAY ĐỔI CẦN THỰC HIỆN
 
-Thêm xử lý đặc biệt cho `delivery_stop_completed`:
-```typescript
-// Nếu là delivery_stop_completed và không có workflow, tự động tạo task
-if (trigger_type === 'delivery_stop_completed' && workflows.length === 0) {
-  await createDeliveryConfirmationTask(supabase, event_data, tenant_id, hotel_id)
-  return { success: true, message: 'Auto-created delivery confirmation task' }
-}
-```
-
-#### Bước 4: Tạo function helper `createDeliveryConfirmationTask`
-
-```typescript
-async function createDeliveryConfirmationTask(
-  supabase: any,
-  eventData: Record<string, any>,
-  tenantId: string,
-  hotelId?: string
-) {
-  const { room_id, room_number, order_code, items, room_order_id, item_count } = eventData
-  
-  const title = `Xác nhận nhận hàng - P.${room_number}`
-  const description = `Phiếu ${order_code} - ${item_count || items?.length || 0} items`
-  
-  const { error } = await supabase
-    .from('housekeeping_tasks')
-    .insert({
-      tenant_id: tenantId,
-      hotel_id: hotelId,
-      room_id: room_id,
-      task_type: 'delivery_confirmation',
-      title,
-      description,
-      priority: 'high',
-      assigned_to: null, // Unassigned - staff tự claim
-      status: 'pending',
-      distribution_order_room_id: room_order_id,
-    })
-  
-  if (error) throw error
-}
-```
-
-### III. FILES CẦN THAY ĐỔI
-
-| File | Thay đổi |
+| Loại | Chi tiết |
 |------|----------|
-| `src/components/distribution/components/StopCard.tsx` | Thêm props `orderCode`, `tenantId`, `hotelId` và pass `roomInfo` trong `handleDeliver()` |
-| `src/components/distribution/components/BatchAccordion.tsx` (hoặc parent) | Truyền props mới xuống StopCard |
-| `supabase/functions/execute-workflow/index.ts` | Thêm fallback tự động tạo task cho `delivery_stop_completed` |
+| **Database Migration** | Update RLS policy cho `room_bookings` table - thêm `staff` vào INSERT và UPDATE policies |
 
-### IV. KẾT QUẢ MONG ĐỢI
+### V. SQL Migration
 
-Sau khi triển khai:
-1. NV giao hàng tap "Giao" → Delivery task được tạo tự động
-2. Task hiển thị trong tab "Công việc" của NV phòng (unassigned, có thể claim)
-3. Task có đầy đủ thông tin: room number, order code, số lượng items
-4. Có liên kết `distribution_order_room_id` để truy vấn chi tiết items
+```sql
+-- 1. Update INSERT policy to include staff
+DROP POLICY IF EXISTS "Managers can insert room bookings" ON room_bookings;
+
+CREATE POLICY "Staff and managers can insert room bookings"
+ON room_bookings FOR INSERT
+WITH CHECK (
+  (tenant_id IN (SELECT users.tenant_id FROM users WHERE users.id = auth.uid()))
+  AND (
+    has_role(auth.uid(), 'owner'::app_role)
+    OR has_role(auth.uid(), 'hotel_manager'::app_role)
+    OR has_role(auth.uid(), 'department_manager'::app_role)
+    OR has_role(auth.uid(), 'staff'::app_role)
+  )
+);
+
+-- 2. Update UPDATE policy to include staff
+DROP POLICY IF EXISTS "Managers can update room bookings" ON room_bookings;
+
+CREATE POLICY "Staff and managers can update room bookings"
+ON room_bookings FOR UPDATE
+USING (
+  (tenant_id IN (SELECT users.tenant_id FROM users WHERE users.id = auth.uid()))
+  AND (
+    has_role(auth.uid(), 'owner'::app_role)
+    OR has_role(auth.uid(), 'hotel_manager'::app_role)
+    OR has_role(auth.uid(), 'department_manager'::app_role)
+    OR has_role(auth.uid(), 'staff'::app_role)
+  )
+);
+
+-- Note: DELETE policy giữ nguyên - chỉ manager trở lên mới được xóa booking
+```
+
+### VI. KẾT QUẢ SAU KHI TRIỂN KHAI
+
+- Staff có thể tạo và sửa booking
+- Staff **không thể xóa** booking (vẫn cần manager/owner)
+- Data isolation theo tenant vẫn được đảm bảo
 
