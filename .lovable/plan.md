@@ -1,113 +1,148 @@
 
-## Kế hoạch: Xử lý xung đột khi nhiều nhân viên kiểm tra cùng phòng
+## Kế hoạch: Phân loại và Thông báo vật dụng tiêu hao tính phí
 
-### I. VẤN ĐỀ PHÁT HIỆN
+### I. THAY ĐỔI DATABASE
 
-**Dữ liệu thực tế:**
-- 9 room_check_sessions đang "treo", có session treo từ **2 tháng trước**
-- 3 checkout_inspection_requests pending/in_progress, có request treo **308 giờ**
-- Không có cơ chế tự động dọn dẹp session hết hạn
-
-**Các trường hợp xung đột:**
-1. NV A đang kiểm tra daily, Manager yêu cầu checkout cùng phòng
-2. NV quên hoàn thành session, phòng bị "khóa" vĩnh viễn
-3. Checkout inspection gán cho NV A nhưng NV B cố kiểm tra
-4. Session cũ treo, không ai kiểm tra được phòng
-
-### II. GIẢI PHÁP
-
-#### Bước 1: Auto-cleanup sessions hết hạn (Database Trigger/Cron)
-
-Tạo function tự động xóa sessions quá 2 giờ:
+#### 1.1 Thêm cột phân loại vào bảng `items`
 
 ```sql
--- Cleanup function
-CREATE OR REPLACE FUNCTION cleanup_stale_check_sessions()
-RETURNS void AS $$
-BEGIN
-  -- Xóa sessions quá 2 giờ
-  DELETE FROM room_check_sessions
-  WHERE started_at < NOW() - INTERVAL '2 hours';
-  
-  -- Cập nhật checkout inspections quá 4 giờ về pending
-  UPDATE checkout_inspection_requests
-  SET status = 'pending', started_at = NULL
-  WHERE status = 'in_progress'
-    AND started_at < NOW() - INTERVAL '4 hours';
-END;
-$$ LANGUAGE plpgsql;
+ALTER TABLE items ADD COLUMN IF NOT EXISTS is_chargeable BOOLEAN DEFAULT false;
+ALTER TABLE items ADD COLUMN IF NOT EXISTS is_complimentary BOOLEAN DEFAULT true;
+-- is_complimentary = true: Đồ miễn phí (bàn chải, xà phòng)
+-- is_chargeable = true: Đồ tính tiền (minibar, đồ uống)
 ```
 
-#### Bước 2: Chạy cleanup định kỳ (pg_cron hoặc Edge Function)
+#### 1.2 Tạo bảng tracking đồ tính tiền đã dùng
 
-Option 1: **Edge Function scheduled** chạy mỗi 30 phút
-Option 2: **Manual cleanup button** cho Manager trong Settings
+```sql
+CREATE TABLE chargeable_consumptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  booking_id UUID NOT NULL REFERENCES room_bookings(id),
+  room_id UUID NOT NULL REFERENCES rooms(id),
+  item_id UUID NOT NULL REFERENCES items(id),
+  quantity INTEGER NOT NULL DEFAULT 1,
+  unit_price NUMERIC NOT NULL,
+  total_amount NUMERIC GENERATED ALWAYS AS (quantity * unit_price) STORED,
+  recorded_by UUID REFERENCES users(id),
+  recorded_at TIMESTAMPTZ DEFAULT NOW(),
+  is_billed BOOLEAN DEFAULT false,
+  notes TEXT
+);
+```
 
-#### Bước 3: Cải thiện UI hiển thị conflict
+### II. CẬP NHẬT UI QUẢN LÝ SẢN PHẨM
 
-**StaffRoomCheckView.tsx:**
-- Hiển thị rõ ràng ai đang kiểm tra phòng
-- Thêm tooltip với thời gian session bắt đầu
-- Badge "Đang KT" → "Đang KT bởi [Tên] (2h)"
+#### 2.1 Form tạo/sửa Item - Thêm tùy chọn phân loại
 
-**RoomCheckPage.tsx:**
-- Dialog hỏi có muốn "take over" session cũ (chỉ Manager)
-- Hiển thị warning nếu session đã quá 1 giờ
+| Trường | Mô tả | Áp dụng |
+|--------|-------|---------|
+| `is_chargeable` | Đánh dấu "Có tính phí khách" | consumables |
+| `is_complimentary` | Đánh dấu "Miễn phí đi kèm phòng" | consumables |
+| `charge_price` | Giá bán cho khách (có thể khác unit_price) | consumables + chargeable |
 
-#### Bước 4: Manager Override (Take Over)
+**Files cần sửa:**
+- `src/lib/validations/items.schemas.ts` - Thêm fields mới vào schema
+- `src/pages/items/ItemFormPage.tsx` - Thêm toggle switches
+- `src/components/items/MobileItemFormPage.tsx` - Mobile form
 
-Cho phép Manager/Admin "take over" session của NV khác khi cần thiết:
+#### 2.2 UI hiển thị badge phân loại
+
+- Badge "Tính phí" (màu đỏ) cho items chargeable
+- Badge "Miễn phí" (màu xanh) cho items complimentary
+- Cột "Loại tính phí" trong danh sách items
+
+### III. CẬP NHẬT FLOW CHECKOUT
+
+#### 3.1 Tab riêng cho đồ tính phí trong Room Check
+
+**Component mới:** `ChargeableItemsStep.tsx`
+- Hiển thị danh sách chỉ các items `is_chargeable = true`
+- Input số lượng khách đã dùng cho mỗi item
+- Tự động tính tổng tiền phụ thu
+
+#### 3.2 Cập nhật `useRoomChecks.ts`
 
 ```typescript
-const takeOverSession = async (roomId: string) => {
-  // 1. Xóa session cũ
-  await supabase
-    .from('room_check_sessions')
-    .delete()
-    .eq('room_id', roomId)
-  
-  // 2. Tạo session mới cho manager
-  await createSession(roomId, checkType, userName, tenantId)
-}
+// Khi save room check với check_type = 'checkout'
+// Lọc và lưu consumables tính tiền vào chargeable_consumptions
+const chargeableItems = items.filter(i => i.is_chargeable && i.consumed > 0)
+await supabase.from('chargeable_consumptions').insert(chargeableItems.map(...))
 ```
 
-#### Bước 5: Ưu tiên Checkout over Daily
+#### 3.3 Cập nhật tính toán checkout
 
-Khi có checkout inspection request:
-- Auto-cancel session daily của NV khác
-- Notify NV bị cancel: "Phòng X được ưu tiên checkout, session của bạn đã bị hủy"
+**File:** `src/hooks/useBookingActions.ts`
+- Tách riêng `calculateChargeableConsumables()` chỉ tính đồ có `is_chargeable = true`
+- Hiển thị rõ ràng trong breakdown: "Phụ thu minibar: X đ"
 
-#### Bước 6: Backfill - Dọn dẹp dữ liệu cũ ngay
+### IV. HỆ THỐNG THÔNG BÁO
 
-Chạy migration để xóa sessions và inspections quá cũ:
+#### 4.1 Thông báo realtime khi ghi nhận đồ tính phí
 
-```sql
--- Xóa sessions quá 24 giờ
-DELETE FROM room_check_sessions 
-WHERE started_at < NOW() - INTERVAL '24 hours';
+**Trigger:** Sau khi nhân viên ghi nhận consumables trong Room Check
 
--- Reset inspections quá 24 giờ về pending
-UPDATE checkout_inspection_requests
-SET status = 'pending', started_at = NULL
-WHERE status = 'in_progress'
-  AND started_at < NOW() - INTERVAL '24 hours';
+**Nội dung thông báo:**
+```
+📦 Phòng 301 - Phụ thu minibar
+• 2x Coca-Cola: 40.000đ
+• 1x Snack: 25.000đ
+Tổng: 65.000đ
 ```
 
-### III. FILES CẦN THAY ĐỔI
+**Người nhận:**
+- Receptionist đang làm việc
+- Manager (nếu số tiền > ngưỡng cảnh báo)
 
-| File | Thay đổi |
-|------|----------|
-| `supabase/migrations/...` | Function cleanup + backfill data |
-| `src/hooks/useRoomCheckSession.ts` | Thêm `takeOverSession()` method |
-| `src/pages/rooms/RoomCheckPage.tsx` | Dialog take over cho Manager |
-| `src/components/rooms/StaffRoomCheckView.tsx` | Hiển thị chi tiết session conflict |
-| `supabase/functions/cleanup-sessions/index.ts` | Edge function chạy định kỳ (optional) |
+#### 4.2 File cần thêm/sửa
 
-### IV. KẾT QUẢ MONG ĐỢI
+```
+src/hooks/useChargeableConsumptions.ts - Hook quản lý
+supabase/functions/notify-chargeable/index.ts - Edge function gửi thông báo
+```
 
-1. **Sessions tự động dọn dẹp** sau 2 giờ không hoạt động
-2. **Manager có thể override** session của NV khi cần thiết
-3. **Checkout được ưu tiên** hơn daily check
-4. **UI hiển thị rõ ràng** ai đang làm gì, từ bao lâu
-5. **Không còn phòng bị "khóa"** do session treo
-Bổ sung : Sau 40p cần thông báo cho saff phụ trách và quản lý tránh trường hợp để quên chưa hoàn thành công việc 
+### V. HIỂN THỊ TRONG BOOKING DETAIL
+
+#### 5.1 Component `ChargeableConsumablesCard.tsx`
+
+Tách riêng từ `BookingConsumablesCard.tsx`:
+- Chỉ hiển thị items có `is_chargeable = true`
+- Highlight với màu khác (đỏ/cam)
+- Hiển thị badge "Chưa thu" / "Đã thu"
+
+#### 5.2 Checkout Summary Dialog
+
+Thêm section riêng:
+```
+╔═══════════════════════════════╗
+║ 💰 PHỤ THU MINIBAR            ║
+╠═══════════════════════════════╣
+║ Coca-Cola (2x)       40.000đ  ║
+║ Snack (1x)           25.000đ  ║
+╠═══════════════════════════════╣
+║ TỔNG PHỤ THU:        65.000đ  ║
+╚═══════════════════════════════╝
+```
+
+### VI. DANH SÁCH FILES CẦN THAY ĐỔI
+
+| File | Loại | Mô tả |
+|------|------|-------|
+| `supabase/migrations/xxx.sql` | Migration | Thêm cột + bảng mới |
+| `src/types/items.types.ts` | Type | Thêm interface fields |
+| `src/lib/validations/items.schemas.ts` | Validation | Thêm fields schema |
+| `src/pages/items/ItemFormPage.tsx` | UI | Toggle tính phí |
+| `src/components/items/MobileItemFormPage.tsx` | Mobile UI | Toggle tính phí |
+| `src/hooks/useChargeableConsumptions.ts` | Hook | CRUD consumptions |
+| `src/components/rooms/check-steps/ChargeableItemsStep.tsx` | Component | Tab đồ tính phí |
+| `src/components/bookings/ChargeableConsumablesCard.tsx` | Component | Card phụ thu |
+| `src/hooks/useBookingActions.ts` | Hook | Tính toán riêng |
+| `supabase/functions/notify-chargeable/index.ts` | Edge Fn | Gửi thông báo |
+
+### VII. KẾT QUẢ SAU TRIỂN KHAI
+
+1. ✅ Phân loại rõ ràng đồ miễn phí vs tính tiền
+2. ✅ Thông báo realtime khi khách sử dụng đồ tính tiền
+3. ✅ Checkout không bỏ sót phí phụ thu
+4. ✅ Báo cáo doanh thu minibar/phụ thu riêng
+5. ✅ Quản lý dễ dàng qua UI form items
