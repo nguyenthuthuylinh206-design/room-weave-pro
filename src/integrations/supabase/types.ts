@@ -1590,6 +1590,7 @@ export type Database = {
           assigned_to: string | null
           booking_id: string | null
           cancelled_at: string | null
+          checkout_inspection_id: string | null
           completed_at: string | null
           created_at: string
           description: string | null
@@ -1613,6 +1614,7 @@ export type Database = {
           assigned_to?: string | null
           booking_id?: string | null
           cancelled_at?: string | null
+          checkout_inspection_id?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
@@ -1636,6 +1638,7 @@ export type Database = {
           assigned_to?: string | null
           booking_id?: string | null
           cancelled_at?: string | null
+          checkout_inspection_id?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
@@ -1675,6 +1678,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "room_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "housekeeping_tasks_checkout_inspection_id_fkey"
+            columns: ["checkout_inspection_id"]
+            isOneToOne: false
+            referencedRelation: "checkout_inspection_requests"
             referencedColumns: ["id"]
           },
           {

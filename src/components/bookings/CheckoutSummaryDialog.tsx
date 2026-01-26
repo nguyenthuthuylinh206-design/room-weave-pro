@@ -333,7 +333,7 @@ export function CheckoutSummaryDialog({
       roomId,
       assignedTo,
     })
-    // Send notifications to assigned staff
+    // Send notifications to assigned staff - actionUrl points to /my-tasks
     await Promise.all([
       // 1. Push notification to individual staff
       sendPushNotification({
@@ -341,7 +341,7 @@ export function CheckoutSummaryDialog({
         tenantId,
         title: `Yêu cầu kiểm tra phòng ${roomNumber}`,
         body: `Khách ${guestName} sắp checkout. Vui lòng kiểm tra phòng.`,
-        actionUrl: `/rooms/${roomId}`,
+        actionUrl: `/my-tasks`,
         notificationType: 'room_checkout',
       }),
       // 2. In-app notification to individual staff
@@ -351,7 +351,7 @@ export function CheckoutSummaryDialog({
         title: `Yêu cầu kiểm tra phòng ${roomNumber}`,
         body: `Khách ${guestName} sắp checkout. Vui lòng kiểm tra phòng.`,
         type: 'room_checkout',
-        actionUrl: `/rooms/${roomId}`,
+        actionUrl: `/my-tasks`,
       }),
       // 3. Telegram to individual staff
       sendTelegramNotification({
@@ -361,7 +361,7 @@ export function CheckoutSummaryDialog({
         title: `🔍 Yêu cầu kiểm tra phòng ${roomNumber}`,
         message: `Khách: ${guestName}\nVui lòng kiểm tra phòng trước khi checkout.`,
         notificationType: 'checkout',
-        actionUrl: `/rooms/${roomId}`,
+        actionUrl: `/my-tasks`,
       }),
       // 4. Telegram to staff groups of this hotel
       sendTelegramNotification({
@@ -371,7 +371,7 @@ export function CheckoutSummaryDialog({
         title: `🔍 Yêu cầu kiểm tra phòng ${roomNumber}`,
         message: `Khách: ${guestName}\n👤 Giao cho: ${staffName}\nVui lòng kiểm tra phòng trước khi checkout.`,
         notificationType: 'checkout',
-        actionUrl: `/rooms/${roomId}`,
+        actionUrl: `/my-tasks`,
       }),
     ])
   }
