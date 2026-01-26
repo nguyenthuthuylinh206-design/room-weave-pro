@@ -1,205 +1,194 @@
 
-## Kế hoạch: Sửa lỗi Task không hiển thị trong "Công việc của tôi"
 
-### I. NGUYÊN NHÂN GỐC RỄ
+## Kế hoạch: Sửa lỗi "Xác nhận bổ sung" và làm rõ workflow bổ sung đồ dùng
 
-Có **2 hệ thống quản lý task riêng biệt nhưng KHÔNG ĐƯỢC ĐỒNG BỘ**:
+### I. VẤN ĐỀ PHÁT HIỆN
 
-| Hệ thống | Bảng dữ liệu | Nơi hiển thị |
-|----------|--------------|--------------|
-| Checkout Inspection | `checkout_inspection_requests` | CheckoutSummaryDialog |
-| Housekeeping Tasks | `housekeeping_tasks` | **"Công việc của tôi"** |
+Có **2 lỗi chính** cần sửa:
 
-**Luồng hiện tại bị lỗi:**
-1. Manager yêu cầu kiểm tra checkout → Tạo record trong `checkout_inspection_requests`
-2. Gửi notification cho nhân viên
-3. **KHÔNG tạo record trong `housekeeping_tasks`**
+#### Lỗi 1: PGRST201 - Ambiguous FK relationship
 
-**Kết quả:** Nhân viên nhận notification nhưng mở "Công việc của tôi" → **Không thấy task nào!**
+**File:** `src/utils/notificationRecipients.ts`
+
+Bảng `user_hotels` có 2 FK đến bảng `users`:
+- `user_hotels_user_id_fkey` - user được gán vào hotel
+- `user_hotels_assigned_by_fkey` - người gán user vào hotel
+
+Khi query không chỉ định rõ FK, Supabase trả về lỗi:
+```
+PGRST201: Could not embed because more than one relationship was found for 'user_hotels' and 'users'
+```
+
+**Các function bị ảnh hưởng:**
+- `getManagersOfHotel()` - line 12-32
+- `getHotelStaff()` - line 98-117
+
+#### Lỗi 2: Workflow bổ sung đồ dùng chưa rõ ràng
+
+**Hiện trạng:**
+1. User mở `RoomSupplementSheet` (từ `StaffRoomDetailPage` hoặc `MobileRoomDetailPage`)
+2. Chọn items và số lượng muốn bổ sung
+3. Bấm "Xác nhận bổ sung"
+4. `useCreateRoomSupplement` gọi RPC `create_outbound_transaction`
+5. Sau thành công, cập nhật `room_items`
+
+**Vấn đề tiềm ẩn:**
+- Không có validation `type="button"` cho các nút +/- trong `SupplementItemCard`
+- Không có guard clause chống double-submit
+- Logic update `room_items` sau transaction có thể fail silent
 
 ---
 
 ### II. GIẢI PHÁP
 
-Khi tạo `checkout_inspection_requests`, **CŨNG phải tạo** `housekeeping_tasks` tương ứng.
+#### Sửa lỗi 1: Chỉ định FK cụ thể trong query
+
+**File:** `src/utils/notificationRecipients.ts`
+
+```typescript
+// getManagersOfHotel - Line 12-32
+export async function getManagersOfHotel(hotelId: string): Promise<User[]> {
+  const { data, error } = await supabase
+    .from('user_hotels')
+    .select(`
+      user_id,
+      users!user_hotels_user_id_fkey(id, full_name, email, user_level_code)
+    `)
+    .eq('hotel_id', hotelId);
+
+  if (error) {
+    console.error('Error fetching hotel managers:', error);
+    return [];
+  }
+
+  // Filter managers từ kết quả
+  return data
+    ?.filter(item => (item.users as any)?.user_level_code === 'manager')
+    ?.map(item => ({
+      id: (item.users as any).id,
+      full_name: (item.users as any).full_name,
+      email: (item.users as any).email,
+    })) || [];
+}
+
+// getHotelStaff - Line 98-117
+export async function getHotelStaff(hotelId: string): Promise<User[]> {
+  const { data, error } = await supabase
+    .from('user_hotels')
+    .select(`
+      user_id,
+      users!user_hotels_user_id_fkey(id, full_name, email)
+    `)
+    .eq('hotel_id', hotelId);
+
+  if (error) {
+    console.error('Error fetching hotel staff:', error);
+    return [];
+  }
+
+  return data?.map(item => ({
+    id: (item.users as any).id,
+    full_name: (item.users as any).full_name,
+    email: (item.users as any).email,
+  })) || [];
+}
+```
+
+#### Sửa lỗi 2: Cải thiện RoomSupplementSheet
+
+**File:** `src/components/rooms/RoomSupplementSheet.tsx`
+
+**a) Thêm guard clause chống double-submit:**
+```typescript
+const handleSubmit = () => {
+  // Guard against double submit
+  if (createSupplement.isPending) return
+  
+  const items = Object.entries(selectedItems)
+    .filter(([_, qty]) => qty > 0)
+    // ... rest of logic
+}
+```
+
+**b) Thêm `type="button"` cho các nút trong SupplementItemCard:**
+```typescript
+<Button
+  type="button"  // THÊM
+  variant="outline"
+  size="icon"
+  className="h-8 w-8"
+  disabled={selectedQuantity <= 0}
+  onClick={() => onQuantityChange(-1)}
+>
+  <Minus className="h-4 w-4" />
+</Button>
+```
+
+**c) Thêm feedback rõ ràng khi submit thành công/thất bại:**
+```typescript
+// Trong useCreateRoomSupplement
+onSuccess: (result, variables) => {
+  // ... existing invalidation logic
+  toast.success(`Đã bổ sung ${result.total_quantity} đồ dùng`, {
+    description: `Phòng ${variables.room_number} - Mã GD: ${result.transaction_code}`,
+  })
+},
+onError: (error: Error) => {
+  toast.error('Lỗi bổ sung đồ dùng', {
+    description: error.message,
+  })
+},
+```
 
 ---
 
-### III. CHI TIẾT THAY ĐỔI
+### III. FILES CẦN SỬA
 
-#### File: `src/hooks/useCheckoutInspection.ts`
-
-Cập nhật mutation `createInspection` để tạo cả 2 records:
-
-```typescript
-// src/hooks/useCheckoutInspection.ts - createInspection mutation
-
-mutationFn: async ({ tenantId, hotelId, roomId, assignedTo, notes }) => {
-  // 1. Tạo checkout_inspection_requests như cũ
-  const { data: inspection, error } = await supabase
-    .from('checkout_inspection_requests')
-    .insert({
-      tenant_id: tenantId,
-      hotel_id: hotelId,
-      room_id: roomId,
-      booking_id: bookingId,
-      requested_by: user.id,
-      assigned_to: assignedTo,
-      status: 'pending',
-      notes,
-    })
-    .select()
-    .single()
-  
-  if (error) throw error
-  
-  // 2. TẠO THÊM housekeeping_tasks để hiển thị trong "Công việc của tôi"
-  const { error: taskError } = await supabase
-    .from('housekeeping_tasks')
-    .insert({
-      tenant_id: tenantId,
-      hotel_id: hotelId,
-      room_id: roomId,
-      booking_id: bookingId,
-      assigned_to: assignedTo,
-      requested_by: user.id,
-      task_type: 'checkout_inspection',
-      title: 'Kiểm tra checkout',
-      priority: 'medium',
-      status: 'pending',
-      checkout_inspection_id: inspection.id, // Liên kết để đồng bộ
-    })
-  
-  if (taskError) {
-    console.error('Error creating housekeeping task:', taskError)
-    // Không throw - vẫn trả về inspection
-  }
-  
-  return inspection
-}
-```
-
-#### File: `src/hooks/useCheckoutInspection.ts` 
-
-Cập nhật `cancelInspection` để hủy cả `housekeeping_tasks`:
-
-```typescript
-// cancelInspection mutation
-mutationFn: async (inspectionId: string) => {
-  // 1. Hủy checkout_inspection_requests
-  const { error } = await supabase
-    .from('checkout_inspection_requests')
-    .update({ status: 'cancelled' })
-    .eq('id', inspectionId)
-  
-  if (error) throw error
-  
-  // 2. HỦY housekeeping_tasks liên quan (nếu có)
-  await supabase
-    .from('housekeeping_tasks')
-    .update({ 
-      status: 'cancelled',
-      cancelled_at: new Date().toISOString()
-    })
-    .eq('checkout_inspection_id', inspectionId)
-}
-```
-
-#### Database Migration
-
-Thêm column `checkout_inspection_id` vào bảng `housekeeping_tasks` để liên kết 2 hệ thống:
-
-```sql
--- Thêm column liên kết
-ALTER TABLE housekeeping_tasks 
-ADD COLUMN IF NOT EXISTS checkout_inspection_id UUID REFERENCES checkout_inspection_requests(id);
-
--- Index cho performance
-CREATE INDEX IF NOT EXISTS idx_housekeeping_tasks_checkout_inspection 
-ON housekeeping_tasks(checkout_inspection_id) 
-WHERE checkout_inspection_id IS NOT NULL;
-```
-
-#### Fix notification URL
-
-Cập nhật URL trong notification từ `/rooms/{roomId}` thành `/my-tasks`:
-
-```typescript
-// src/components/bookings/CheckoutSummaryDialog.tsx
-// Thay đổi actionUrl trong các notification
-
-actionUrl: `/my-tasks`, // Thay vì /rooms/${roomId}
-```
+| File | Thay đổi |
+|------|----------|
+| `src/utils/notificationRecipients.ts` | Sửa `getManagersOfHotel()` và `getHotelStaff()` - chỉ định FK |
+| `src/components/rooms/RoomSupplementSheet.tsx` | Thêm guard double-submit, `type="button"` |
+| `src/hooks/useRoomSupplements.ts` | Cải thiện error handling và feedback |
 
 ---
 
 ### IV. WORKFLOW SAU KHI SỬA
 
 ```text
-1. Manager tạo yêu cầu kiểm tra checkout
+1. User mở RoomSupplementSheet
    ↓
-2. Tạo checkout_inspection_requests (status: pending)
+2. Hiển thị 2 tab: "Thiếu tiêu chuẩn" và "Tiêu hao"
    ↓
-3. TẠO housekeeping_tasks với checkout_inspection_id (MỚI)
+3. User điều chỉnh số lượng bằng nút +/- (có type="button")
    ↓
-4. Gửi notification với URL /my-tasks
+4. Bấm "Xác nhận bổ sung (X món)"
    ↓
-5. Nhân viên mở "Công việc của tôi" → Thấy task ✓
+5. Guard check: isPending? → Return early nếu đang xử lý
    ↓
-6. Nhân viên bấm "Kiểm tra phòng" → Chuyển đến /rooms/{id}/check?type=checkout
+6. Validate: hasStockIssue? → Disable nút nếu vượt kho
    ↓
-7. Hoàn thành kiểm tra → Auto-update cả 2 bảng
+7. Call RPC create_outbound_transaction
+   ↓
+8. Success: 
+   - Tạo inventory_transaction (xuất kho)
+   - Update room_items (tăng quantity)
+   - Toast success với mã giao dịch
+   - Invalidate queries
+   - Đóng sheet
+   ↓
+9. Error:
+   - Toast error với message cụ thể
+   - Không đóng sheet (cho user thử lại)
 ```
 
 ---
 
-### V. TẠO DATA CHO RECORD HIỆN TẠI
+### V. TESTING CHECKLIST
 
-Với `checkout_inspection_requests` đã tồn tại nhưng chưa có `housekeeping_tasks`:
+1. ✅ Bấm +/- không gây submit form
+2. ✅ Bấm "Xác nhận" 2 lần liên tiếp chỉ tạo 1 transaction
+3. ✅ Cảnh báo hiển thị khi chọn số lượng > tồn kho
+4. ✅ Toast thành công hiển thị số lượng và mã giao dịch
+5. ✅ Notifications gửi đến managers không bị lỗi PGRST201
+6. ✅ `room_items` được cập nhật đúng sau bổ sung
 
-```sql
--- Tạo housekeeping_tasks cho các checkout_inspection_requests đang pending
-INSERT INTO housekeeping_tasks (
-  tenant_id, hotel_id, room_id, booking_id, assigned_to, requested_by,
-  task_type, title, priority, status, checkout_inspection_id, created_at
-)
-SELECT 
-  cir.tenant_id,
-  cir.hotel_id,
-  cir.room_id,
-  cir.booking_id,
-  cir.assigned_to,
-  cir.requested_by,
-  'checkout_inspection',
-  'Kiểm tra checkout',
-  'medium',
-  cir.status,
-  cir.id,
-  cir.created_at
-FROM checkout_inspection_requests cir
-WHERE cir.status IN ('pending', 'in_progress')
-  AND NOT EXISTS (
-    SELECT 1 FROM housekeeping_tasks ht 
-    WHERE ht.checkout_inspection_id = cir.id
-  );
-```
-
----
-
-### VI. FILES CẦN SỬA
-
-| File | Thay đổi |
-|------|----------|
-| `src/hooks/useCheckoutInspection.ts` | Thêm tạo `housekeeping_tasks` trong `createInspection` và hủy trong `cancelInspection` |
-| `src/components/bookings/CheckoutSummaryDialog.tsx` | Sửa `actionUrl` trong notifications thành `/my-tasks` |
-| Database Migration | Thêm column `checkout_inspection_id` vào `housekeeping_tasks` |
-
----
-
-### VII. TESTING
-
-1. Manager mở CheckoutSummaryDialog → Gửi yêu cầu kiểm tra cho nhân viên
-2. Kiểm tra database: Có record trong cả `checkout_inspection_requests` VÀ `housekeeping_tasks`
-3. Nhân viên mở "Công việc của tôi" → **Thấy task hiển thị**
-4. Bấm "Kiểm tra phòng" → Chuyển đến form checkout check
-5. Hoàn thành → Task biến mất khỏi danh sách
