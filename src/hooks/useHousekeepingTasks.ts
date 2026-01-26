@@ -5,6 +5,7 @@ import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
 import { triggerWorkflow, WorkflowTriggerTypes } from '@/lib/triggerWorkflow'
+import { triggerHousekeepingTaskAssignedNotification } from '@/hooks/useNotificationTriggers'
 import { 
   TASK_TYPE_LABELS,
   PRIORITY_LABELS
@@ -560,7 +561,7 @@ export function useReassignTask() {
         assigned_user?: { full_name: string }
       }
     },
-    onSuccess: (data) => {
+    onSuccess: async (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['unassigned-housekeeping-tasks'] })
@@ -569,6 +570,22 @@ export function useReassignTask() {
       
       if (data.assigned_to) {
         toast.success(`Đã giao việc cho ${(data as any).assigned_user?.full_name || 'nhân viên'}`)
+        
+        // Send detailed notification to assigned staff
+        if (tenantId && user) {
+          triggerHousekeepingTaskAssignedNotification({
+            tenantId,
+            hotelId: data.hotel_id,
+            assignedToUserId: data.assigned_to,
+            assignedByUserId: user.id,
+            taskId: data.id,
+            taskType: data.task_type,
+            roomNumber: (data as any).room?.room_number || 'N/A',
+            priority: data.priority,
+            reason: variables.reason,
+            isReassignment: !!variables.reason, // Has reason = reassignment
+          }).catch(err => console.error('[useReassignTask] Notification failed:', err))
+        }
       } else {
         toast.success('Đã bỏ giao việc')
       }
