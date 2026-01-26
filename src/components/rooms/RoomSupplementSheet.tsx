@@ -92,6 +92,9 @@ export function RoomSupplementSheet({
   }
 
   const handleSubmit = () => {
+    // Guard against double submit
+    if (createSupplement.isPending) return
+
     const items = Object.entries(selectedItems)
       .filter(([_, qty]) => qty > 0)
       .map(([item_id, quantity]) => ({ item_id, quantity }))
@@ -377,6 +380,7 @@ function SupplementItemCard({
           {/* Quantity Control */}
           <div className="flex items-center gap-1 shrink-0">
             <Button
+              type="button"
               variant="outline"
               size="icon"
               className="h-8 w-8"
@@ -392,6 +396,7 @@ function SupplementItemCard({
               {selectedQuantity}
             </div>
             <Button
+              type="button"
               variant="outline"
               size="icon"
               className="h-8 w-8"
@@ -406,6 +411,7 @@ function SupplementItemCard({
         {/* Quick fill button for missing items */}
         {!isExtra && item.missing_quantity > 0 && selectedQuantity !== item.missing_quantity && hasStock && (
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             className="w-full mt-2 text-xs h-7"

@@ -14,21 +14,23 @@ export async function getManagersOfHotel(hotelId: string): Promise<User[]> {
     .from('user_hotels')
     .select(`
       user_id,
-      users!inner(id, full_name, email)
+      users!user_hotels_user_id_fkey(id, full_name, email, user_level_code)
     `)
-    .eq('hotel_id', hotelId)
-    .eq('users.user_level_code', 'manager');
+    .eq('hotel_id', hotelId);
 
   if (error) {
     console.error('Error fetching hotel managers:', error);
     return [];
   }
 
-  return data?.map(item => ({
-    id: (item.users as any).id,
-    full_name: (item.users as any).full_name,
-    email: (item.users as any).email,
-  })) || [];
+  // Filter managers from results
+  return data
+    ?.filter(item => (item.users as any)?.user_level_code === 'manager')
+    ?.map(item => ({
+      id: (item.users as any).id,
+      full_name: (item.users as any).full_name,
+      email: (item.users as any).email,
+    })) || [];
 }
 
 // Get owner of a tenant
@@ -100,7 +102,7 @@ export async function getHotelStaff(hotelId: string): Promise<User[]> {
     .from('user_hotels')
     .select(`
       user_id,
-      users!inner(id, full_name, email)
+      users!user_hotels_user_id_fkey(id, full_name, email)
     `)
     .eq('hotel_id', hotelId);
 
@@ -109,11 +111,13 @@ export async function getHotelStaff(hotelId: string): Promise<User[]> {
     return [];
   }
 
-  return data?.map(item => ({
-    id: (item.users as any).id,
-    full_name: (item.users as any).full_name,
-    email: (item.users as any).email,
-  })) || [];
+  return data
+    ?.filter(item => (item.users as any) !== null)
+    ?.map(item => ({
+      id: (item.users as any).id,
+      full_name: (item.users as any).full_name,
+      email: (item.users as any).email,
+    })) || [];
 }
 
 // Get notification recipients based on roles and context

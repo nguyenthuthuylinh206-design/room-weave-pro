@@ -250,17 +250,22 @@ export function useCreateRoomSupplement() {
       queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
       queryClient.invalidateQueries({ queryKey: ['inventory-dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['low-stock-items'] })
+      queryClient.invalidateQueries({ queryKey: ['room-items'] })
       
-      let description = `Đã bổ sung ${result.total_quantity} đồ dùng cho phòng ${variables.room_number}`
+      toast.success(`Đã bổ sung ${result.total_quantity} đồ dùng`, {
+        description: `Phòng ${variables.room_number}${result.transaction_code ? ` - Mã: ${result.transaction_code}` : ''}`,
+      })
       
       if (result.low_stock_items && result.low_stock_items.length > 0) {
-        toast.warning(`Cảnh báo: ${result.low_stock_items.join(', ')} đã xuống dưới mức tối thiểu`)
+        toast.warning('Cảnh báo tồn kho thấp', {
+          description: `${result.low_stock_items.join(', ')} đã xuống dưới mức tối thiểu`,
+        })
       }
-      
-      toast.success(description)
     },
     onError: (error: Error) => {
-      toast.error(`Lỗi: ${error.message}`)
+      toast.error('Lỗi bổ sung đồ dùng', {
+        description: error.message,
+      })
     },
   })
 }
