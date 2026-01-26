@@ -1,22 +1,29 @@
 import { useState } from 'react'
-import { Users, Activity, History } from 'lucide-react'
+import { Users, Activity, ClipboardList } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StaffStatsCards } from '@/components/staff/StaffStatsCards'
 import { StaffList } from '@/components/staff/StaffList'
 import { StaffDetailSheet } from '@/components/staff/StaffDetailSheet'
 import { StaffActivityTimeline } from '@/components/staff/StaffActivityTimeline'
+import { ManagerTasksTab } from '@/components/staff/ManagerTasksTab'
 import { useStaffStatus, useStaffStatusStats, type StaffWithStatus, type StaffStatusType } from '@/hooks/useStaffStatus'
 import { useRecentStaffActivities } from '@/hooks/useStaffActivity'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { useUser } from '@/hooks/useUser'
+import { isAdminUser } from '@/lib/userAccess'
 
 export default function StaffManagementPage() {
   const [selectedStatus, setSelectedStatus] = useState<StaffStatusType | null>(null)
   const [selectedStaff, setSelectedStaff] = useState<StaffWithStatus | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
 
+  const { user } = useUser()
   const { data: staffList, isLoading } = useStaffStatus()
   const { data: recentActivities, isLoading: loadingActivities } = useRecentStaffActivities(50)
   const stats = useStaffStatusStats(staffList)
+
+  // Check if user is manager or admin
+  const canManageTasks = user ? isAdminUser(user) : false
 
   const handleViewDetail = (staff: StaffWithStatus) => {
     setSelectedStaff(staff)
@@ -56,6 +63,12 @@ export default function StaffManagementPage() {
             <Activity className="h-4 w-4" />
             Hoạt động
           </TabsTrigger>
+          {canManageTasks && (
+            <TabsTrigger value="tasks" className="gap-1.5">
+              <ClipboardList className="h-4 w-4" />
+              Công việc
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="list" className="flex-1 m-0 mt-2 min-h-0">
@@ -74,7 +87,7 @@ export default function StaffManagementPage() {
             <ScrollArea className="h-full">
               <div className="p-4">
                 <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-                  <History className="h-4 w-4" />
+                  <Activity className="h-4 w-4" />
                   Hoạt động gần đây
                 </h3>
                 {loadingActivities ? (
@@ -89,6 +102,14 @@ export default function StaffManagementPage() {
             </ScrollArea>
           </div>
         </TabsContent>
+
+        {canManageTasks && (
+          <TabsContent value="tasks" className="flex-1 m-0 mt-2 min-h-0">
+            <div className="h-full border-t">
+              <ManagerTasksTab />
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Detail Sheet */}
