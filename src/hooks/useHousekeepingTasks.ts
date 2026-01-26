@@ -17,6 +17,32 @@ import type {
   TaskStatus 
 } from '@/types/housekeeping.types'
 
+// Fetch a single task by ID
+export function useTaskById(taskId: string | null) {
+  return useQuery({
+    queryKey: ['housekeeping-task', taskId],
+    queryFn: async () => {
+      if (!taskId) return null
+
+      const { data, error } = await supabase
+        .from('housekeeping_tasks')
+        .select(`
+          *,
+          room:rooms(id, room_number, floor, room_type),
+          assigned_user:users!housekeeping_tasks_assigned_to_fkey(id, full_name, avatar_url),
+          requested_user:users!housekeeping_tasks_requested_by_fkey(id, full_name, avatar_url),
+          booking:room_bookings(id, guest_name, check_out_date)
+        `)
+        .eq('id', taskId)
+        .maybeSingle()
+
+      if (error) throw error
+      return data as unknown as HousekeepingTaskWithDetails | null
+    },
+    enabled: !!taskId
+  })
+}
+
 // Fetch tasks assigned to current user
 export function useMyTasks() {
   const { user } = useUser()

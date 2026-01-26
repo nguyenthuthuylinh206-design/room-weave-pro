@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { CheckCircle2, Clock, AlertTriangle, Inbox, Plus, Users } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { TaskCard } from './TaskCard'
 import { RoomSelectDialog } from './RoomSelectDialog'
 import { CreateTaskDialog } from './CreateTaskDialog'
+import { TaskDetailDialog } from './TaskDetailDialog'
 import { useMyTasks, useUnassignedTasks } from '@/hooks/useHousekeepingTasks'
 import { useUser } from '@/hooks/useUser'
 import { canCreateHousekeepingTask } from '@/lib/userAccess'
@@ -12,7 +13,11 @@ import { cn } from '@/lib/utils'
 
 type FilterType = 'all' | 'pending' | 'in_progress'
 
-export function StaffTasksTab() {
+interface StaffTasksTabProps {
+  initialTaskId?: string | null
+}
+
+export function StaffTasksTab({ initialTaskId }: StaffTasksTabProps) {
   const { data: myTasks, isLoading: isLoadingMyTasks } = useMyTasks()
   const { data: unassignedTasks, isLoading: isLoadingUnassigned } = useUnassignedTasks()
   const { user } = useUser()
@@ -22,12 +27,20 @@ export function StaffTasksTab() {
   // Dialog states
   const [showRoomSelect, setShowRoomSelect] = useState(false)
   const [showCreateTask, setShowCreateTask] = useState(false)
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(initialTaskId || null)
   const [selectedRoom, setSelectedRoom] = useState<{
     id: string
     room_number: string
     floor: number
     hotel_id: string
   } | null>(null)
+
+  // Auto-open dialog when initialTaskId changes (from URL)
+  useEffect(() => {
+    if (initialTaskId) {
+      setSelectedTaskId(initialTaskId)
+    }
+  }, [initialTaskId])
 
   // Separate my tasks by status
   const pendingTasks = myTasks?.filter(t => t.status === 'pending') || []
@@ -178,7 +191,11 @@ export function StaffTasksTab() {
               Đang thực hiện ({inProgressTasks.length})
             </div>
             {inProgressTasks.map(task => (
-              <TaskCard key={task.id} task={task} />
+              <TaskCard 
+                key={task.id} 
+                task={task} 
+                onClick={() => setSelectedTaskId(task.id)}
+              />
             ))}
           </div>
         )}
@@ -193,7 +210,11 @@ export function StaffTasksTab() {
               </div>
             )}
             {pendingTasks.map(task => (
-              <TaskCard key={task.id} task={task} />
+              <TaskCard 
+                key={task.id} 
+                task={task} 
+                onClick={() => setSelectedTaskId(task.id)}
+              />
             ))}
           </div>
         )}
@@ -209,7 +230,12 @@ export function StaffTasksTab() {
               Các công việc chưa được giao cho ai. Bạn có thể nhận để thực hiện.
             </p>
             {unassignedTasks?.map(task => (
-              <TaskCard key={task.id} task={task} showClaimButton />
+              <TaskCard 
+                key={task.id} 
+                task={task} 
+                showClaimButton 
+                onClick={() => setSelectedTaskId(task.id)}
+              />
             ))}
           </div>
         )}
@@ -254,6 +280,13 @@ export function StaffTasksTab() {
           hotelId={selectedRoom.hotel_id}
         />
       )}
+
+      {/* Task Detail Dialog */}
+      <TaskDetailDialog
+        taskId={selectedTaskId}
+        open={!!selectedTaskId}
+        onOpenChange={(open) => !open && setSelectedTaskId(null)}
+      />
     </div>
   )
 }
