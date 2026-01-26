@@ -485,7 +485,11 @@ export function RoomCheckPage() {
   }
   
   const onSubmit = async (data: RoomCheckFormData) => {
-    if (!id || !user?.id) return
+    // Guard: Prevent double submit
+    if (!id || !user?.id || createCheck.isPending) return
+    
+    // Đóng dialog ngay lập tức để chặn double click
+    setShowSubmitDialog(false)
     
     // Ưu tiên: stableInspectionId > URL > pendingInspection
     const finalInspectionId = stableInspectionId || inspectionIdFromUrl || pendingInspection?.id
@@ -539,9 +543,6 @@ export function RoomCheckPage() {
         inspectionId: finalInspectionId || undefined, // Pass checkout inspection ID
       })
       
-      // Đóng dialog khi thành công
-      setShowSubmitDialog(false)
-      
       if (id) {
         await deleteSession(id)
         setSessionCompleted(true)
@@ -554,9 +555,6 @@ export function RoomCheckPage() {
       })
       navigate(isManager ? `/rooms/${id}` : '/rooms')
     } catch (error) {
-      // Đóng dialog khi lỗi
-      setShowSubmitDialog(false)
-      
       console.error('Error creating room check:', error)
       
       // Handle duplicate error
