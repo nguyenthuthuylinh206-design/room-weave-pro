@@ -1555,3 +1555,110 @@ export async function triggerAdjustmentAssigned({
 
   console.log('[triggerAdjustmentAssigned] Notifications sent to', recipientIds.length, 'staff members');
 }
+
+// ==================== HOUSEKEEPING TASK ASSIGNMENT NOTIFICATION ====================
+
+import { TASK_TYPE_LABELS, PRIORITY_LABELS } from '@/types/housekeeping.types';
+
+/**
+ * Trigger notification when a housekeeping task is assigned or reassigned to a staff member
+ * Sends: In-app + Push + Telegram
+ */
+export async function triggerHousekeepingTaskAssignedNotification({
+  tenantId,
+  hotelId,
+  assignedToUserId,
+  assignedByUserId,
+  taskId,
+  taskType,
+  roomNumber,
+  priority,
+  reason,
+  isReassignment,
+}: {
+  tenantId: string;
+  hotelId: string;
+  assignedToUserId: string;
+  assignedByUserId: string;
+  taskId: string;
+  taskType: string;
+  roomNumber: string;
+  priority: string;
+  reason?: string;
+  isReassignment: boolean;
+}): Promise<void> {
+  // Don't notify if user assigns to themselves
+  if (assignedToUserId === assignedByUserId) {
+    console.log('[triggerHousekeepingTaskAssigned] Skipping - user assigned to self');
+    return;
+  }
+
+  // Get assigner name
+  const assigner = await getUserById(assignedByUserId);
+  const taskTypeLabel = TASK_TYPE_LABELS[taskType as keyof typeof TASK_TYPE_LABELS] || taskType;
+  const priorityLabel = PRIORITY_LABELS[priority as keyof typeof PRIORITY_LABELS] || priority;
+
+  // Build title: New assignment vs Reassignment
+  const title = isReassignment 
+    ? 'Bạn được chuyển công việc mới' 
+    : 'Bạn được giao công việc mới';
+
+  // Build detailed body
+  const bodyParts = [
+    `📍 Phòng ${roomNumber}`,
+    `📋 ${taskTypeLabel}`,
+    `⚡ Ưu tiên: ${priorityLabel}`,
+    `👤 Giao bởi: ${assigner?.full_name || 'Quản lý'}`
+  ];
+  
+  if (reason) {
+    bodyParts.push(`📝 Lý do: ${reason}`);
+  }
+
+  const body = bodyParts.join('\n');
+  const actionUrl = `/staff?task=${taskId}`;
+
+  console.log('[triggerHousekeepingTaskAssigned] Sending notifications to user:', assignedToUserId);
+
+  // Send all channels in parallel: In-app + Push + Telegram
+  await Promise.allSettled([
+    createInAppNotification({
+      userId: assignedToUserId,
+      tenantId,
+      title,
+      body,
+      type: 'task_assigned',
+      actionUrl,
+      icon: 'user-check',
+      metadata: { 
+        taskId, 
+        taskType, 
+        roomNumber,
+        priority,
+        assignedBy: assignedByUserId,
+        isReassignment 
+      } as Json,
+    }),
+    sendPushNotification({
+      userId: assignedToUserId,
+      tenantId,
+      title,
+      body,
+      actionUrl,
+      tag: `task-housekeeping-${taskId}`,
+      notificationType: 'task_assigned',
+    }),
+    // Telegram notification to individual user
+    sendTelegramNotification({
+      tenantId,
+      hotelId,
+      userIds: [assignedToUserId],
+      title,
+      message: body,
+      notificationType: 'system',
+      actionUrl,
+    }),
+  ]);
+
+  console.log('[triggerHousekeepingTaskAssigned] Notifications sent successfully');
+}
