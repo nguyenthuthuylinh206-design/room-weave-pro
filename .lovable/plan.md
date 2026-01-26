@@ -1,188 +1,205 @@
 
-## Kế hoạch: Sửa lỗi Task hiển thị không đầy đủ - Đồng bộ Housekeeping Task và Checkout Inspection
+## Kế hoạch: Sửa lỗi Task không hiển thị trong "Công việc của tôi"
 
-### I. PHÂN TÍCH VẤN ĐỀ
+### I. NGUYÊN NHÂN GỐC RỄ
 
-Có **2 hệ thống riêng biệt** đang chạy song song nhưng không được đồng bộ:
+Có **2 hệ thống quản lý task riêng biệt nhưng KHÔNG ĐƯỢC ĐỒNG BỘ**:
 
-| Hệ thống | Bảng | Mục đích |
-|----------|------|----------|
-| Housekeeping Tasks | `housekeeping_tasks` | Quản lý công việc nhân viên |
-| Checkout Inspection | `checkout_inspection_requests` | Workflow kiểm tra checkout |
+| Hệ thống | Bảng dữ liệu | Nơi hiển thị |
+|----------|--------------|--------------|
+| Checkout Inspection | `checkout_inspection_requests` | CheckoutSummaryDialog |
+| Housekeeping Tasks | `housekeeping_tasks` | **"Công việc của tôi"** |
 
-**Vấn đề hiện tại:**
-1. Task `checkout_inspection` có status `in_progress` cho phòng P101
-2. Nhưng `checkout_inspection_requests` cho phòng P101 đã `completed`
-3. Khi nhân viên bấm "Kiểm tra phòng", URL có `taskId` nhưng `RoomCheckPage` **không dùng param này**
-4. `RoomCheckPage` tìm `checkout_inspection_requests` bằng `usePendingInspections(roomId)` → không tìm thấy → lỗi!
+**Luồng hiện tại bị lỗi:**
+1. Manager yêu cầu kiểm tra checkout → Tạo record trong `checkout_inspection_requests`
+2. Gửi notification cho nhân viên
+3. **KHÔNG tạo record trong `housekeeping_tasks`**
 
-**Console Error:**
-```
-PGRST116: Cannot coerce the result to a single JSON object
-The result contains 0 rows
-```
+**Kết quả:** Nhân viên nhận notification nhưng mở "Công việc của tôi" → **Không thấy task nào!**
 
 ---
 
 ### II. GIẢI PHÁP
 
-#### Bước 1: Cập nhật URL Navigation trong TaskCard
+Khi tạo `checkout_inspection_requests`, **CŨNG phải tạo** `housekeeping_tasks` tương ứng.
 
-Thay vì dùng param `taskId`, sử dụng logic thông minh hơn:
+---
 
-**File:** `src/components/housekeeping/TaskCard.tsx`
+### III. CHI TIẾT THAY ĐỔI
 
-```typescript
-const handleContinue = () => {
-  if (task.task_type === 'checkout_inspection') {
-    // Navigate trực tiếp - không cần inspection ID
-    // RoomCheckPage sẽ tự tìm hoặc tạo flow mới
-    navigate(`/rooms/${task.room_id}/check?type=checkout`)
-  }
-}
-```
+#### File: `src/hooks/useCheckoutInspection.ts`
 
-#### Bước 2: Cập nhật TaskDetailDialog tương tự
-
-**File:** `src/components/housekeeping/TaskDetailDialog.tsx`
+Cập nhật mutation `createInspection` để tạo cả 2 records:
 
 ```typescript
-const handleContinue = () => {
-  if (!task) return
-  onOpenChange(false)
-  if (task.task_type === 'checkout_inspection') {
-    navigate(`/rooms/${task.room_id}/check?type=checkout`)
-  }
-}
-```
+// src/hooks/useCheckoutInspection.ts - createInspection mutation
 
-#### Bước 3: Sửa RoomCheckPage để xử lý khi không có pending inspection
-
-**File:** `src/pages/rooms/RoomCheckPage.tsx`
-
-Thêm logic xử lý khi:
-- Không có pending `checkout_inspection_requests`
-- Nhưng user vẫn muốn làm checkout check
-
-```typescript
-// Nếu checkout mode mà không có inspection request, vẫn cho phép kiểm tra
-// (có thể là task được tạo thủ công hoặc inspection đã completed)
-const canProceedWithoutInspection = 
-  isCheckoutType && 
-  !isInspectionLoading && 
-  !pendingInspection && 
-  !roomInspection
-```
-
-#### Bước 4: Đồng bộ status khi hoàn thành room check
-
-**File:** `src/pages/rooms/RoomCheckPage.tsx` (trong `onSubmit`)
-
-Sau khi tạo room check thành công với type `checkout`, tự động cập nhật housekeeping task liên quan:
-
-```typescript
-// Tìm và cập nhật housekeeping task nếu có
-if (isCheckoutType && room?.id) {
-  const { data: relatedTask } = await supabase
-    .from('housekeeping_tasks')
-    .select('id')
-    .eq('room_id', room.id)
-    .eq('task_type', 'checkout_inspection')
-    .eq('assigned_to', user.id)
-    .in('status', ['pending', 'in_progress'])
-    .maybeSingle()
+mutationFn: async ({ tenantId, hotelId, roomId, assignedTo, notes }) => {
+  // 1. Tạo checkout_inspection_requests như cũ
+  const { data: inspection, error } = await supabase
+    .from('checkout_inspection_requests')
+    .insert({
+      tenant_id: tenantId,
+      hotel_id: hotelId,
+      room_id: roomId,
+      booking_id: bookingId,
+      requested_by: user.id,
+      assigned_to: assignedTo,
+      status: 'pending',
+      notes,
+    })
+    .select()
+    .single()
   
-  if (relatedTask) {
-    await supabase
-      .from('housekeeping_tasks')
-      .update({ 
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        room_check_id: createdCheckId
-      })
-      .eq('id', relatedTask.id)
+  if (error) throw error
+  
+  // 2. TẠO THÊM housekeeping_tasks để hiển thị trong "Công việc của tôi"
+  const { error: taskError } = await supabase
+    .from('housekeeping_tasks')
+    .insert({
+      tenant_id: tenantId,
+      hotel_id: hotelId,
+      room_id: roomId,
+      booking_id: bookingId,
+      assigned_to: assignedTo,
+      requested_by: user.id,
+      task_type: 'checkout_inspection',
+      title: 'Kiểm tra checkout',
+      priority: 'medium',
+      status: 'pending',
+      checkout_inspection_id: inspection.id, // Liên kết để đồng bộ
+    })
+  
+  if (taskError) {
+    console.error('Error creating housekeeping task:', taskError)
+    // Không throw - vẫn trả về inspection
   }
+  
+  return inspection
 }
+```
+
+#### File: `src/hooks/useCheckoutInspection.ts` 
+
+Cập nhật `cancelInspection` để hủy cả `housekeeping_tasks`:
+
+```typescript
+// cancelInspection mutation
+mutationFn: async (inspectionId: string) => {
+  // 1. Hủy checkout_inspection_requests
+  const { error } = await supabase
+    .from('checkout_inspection_requests')
+    .update({ status: 'cancelled' })
+    .eq('id', inspectionId)
+  
+  if (error) throw error
+  
+  // 2. HỦY housekeeping_tasks liên quan (nếu có)
+  await supabase
+    .from('housekeeping_tasks')
+    .update({ 
+      status: 'cancelled',
+      cancelled_at: new Date().toISOString()
+    })
+    .eq('checkout_inspection_id', inspectionId)
+}
+```
+
+#### Database Migration
+
+Thêm column `checkout_inspection_id` vào bảng `housekeeping_tasks` để liên kết 2 hệ thống:
+
+```sql
+-- Thêm column liên kết
+ALTER TABLE housekeeping_tasks 
+ADD COLUMN IF NOT EXISTS checkout_inspection_id UUID REFERENCES checkout_inspection_requests(id);
+
+-- Index cho performance
+CREATE INDEX IF NOT EXISTS idx_housekeeping_tasks_checkout_inspection 
+ON housekeeping_tasks(checkout_inspection_id) 
+WHERE checkout_inspection_id IS NOT NULL;
+```
+
+#### Fix notification URL
+
+Cập nhật URL trong notification từ `/rooms/{roomId}` thành `/my-tasks`:
+
+```typescript
+// src/components/bookings/CheckoutSummaryDialog.tsx
+// Thay đổi actionUrl trong các notification
+
+actionUrl: `/my-tasks`, // Thay vì /rooms/${roomId}
 ```
 
 ---
 
-### III. FILES CẦN SỬA
+### IV. WORKFLOW SAU KHI SỬA
+
+```text
+1. Manager tạo yêu cầu kiểm tra checkout
+   ↓
+2. Tạo checkout_inspection_requests (status: pending)
+   ↓
+3. TẠO housekeeping_tasks với checkout_inspection_id (MỚI)
+   ↓
+4. Gửi notification với URL /my-tasks
+   ↓
+5. Nhân viên mở "Công việc của tôi" → Thấy task ✓
+   ↓
+6. Nhân viên bấm "Kiểm tra phòng" → Chuyển đến /rooms/{id}/check?type=checkout
+   ↓
+7. Hoàn thành kiểm tra → Auto-update cả 2 bảng
+```
+
+---
+
+### V. TẠO DATA CHO RECORD HIỆN TẠI
+
+Với `checkout_inspection_requests` đã tồn tại nhưng chưa có `housekeeping_tasks`:
+
+```sql
+-- Tạo housekeeping_tasks cho các checkout_inspection_requests đang pending
+INSERT INTO housekeeping_tasks (
+  tenant_id, hotel_id, room_id, booking_id, assigned_to, requested_by,
+  task_type, title, priority, status, checkout_inspection_id, created_at
+)
+SELECT 
+  cir.tenant_id,
+  cir.hotel_id,
+  cir.room_id,
+  cir.booking_id,
+  cir.assigned_to,
+  cir.requested_by,
+  'checkout_inspection',
+  'Kiểm tra checkout',
+  'medium',
+  cir.status,
+  cir.id,
+  cir.created_at
+FROM checkout_inspection_requests cir
+WHERE cir.status IN ('pending', 'in_progress')
+  AND NOT EXISTS (
+    SELECT 1 FROM housekeeping_tasks ht 
+    WHERE ht.checkout_inspection_id = cir.id
+  );
+```
+
+---
+
+### VI. FILES CẦN SỬA
 
 | File | Thay đổi |
 |------|----------|
-| `src/components/housekeeping/TaskCard.tsx` | Bỏ `taskId` param không dùng |
-| `src/components/housekeeping/TaskDetailDialog.tsx` | Bỏ `taskId` param không dùng |
-| `src/pages/rooms/RoomCheckPage.tsx` | Xử lý case không có inspection + auto-complete task |
+| `src/hooks/useCheckoutInspection.ts` | Thêm tạo `housekeeping_tasks` trong `createInspection` và hủy trong `cancelInspection` |
+| `src/components/bookings/CheckoutSummaryDialog.tsx` | Sửa `actionUrl` trong notifications thành `/my-tasks` |
+| Database Migration | Thêm column `checkout_inspection_id` vào `housekeeping_tasks` |
 
 ---
 
-### IV. WORKFLOW SAU SỬA
+### VII. TESTING
 
-```text
-1. Manager giao task checkout_inspection cho Staff
-   ↓
-2. Staff nhận notification, mở /my-tasks
-   ↓
-3. Staff bấm "Kiểm tra phòng" 
-   ↓
-4. Navigate: /rooms/{roomId}/check?type=checkout
-   ↓
-5. RoomCheckPage kiểm tra:
-   - Có pending inspection? → Dùng inspection flow
-   - Không có? → Vẫn cho phép checkout check
-   ↓
-6. Staff hoàn thành kiểm tra
-   ↓
-7. onSubmit:
-   - Tạo room_check record
-   - Auto-complete housekeeping_task liên quan
-   - Auto-complete checkout_inspection_requests nếu có
-   ↓
-8. Task biến mất khỏi "Công việc của tôi"
-```
-
----
-
-### V. GIẢI PHÁP TẠM THỜI CHO DATA HIỆN TẠI
-
-Cập nhật task đang bị "treo" (status in_progress nhưng inspection đã xong):
-
-```sql
-UPDATE housekeeping_tasks
-SET 
-  status = 'completed',
-  completed_at = NOW()
-WHERE 
-  room_id = '15fdeeb9-4eaa-4b42-bdb5-e99ec65e5983'
-  AND task_type = 'checkout_inspection'
-  AND status = 'in_progress';
-```
-
----
-
-### VI. CHI TIẾT KỸ THUẬT
-
-**Vấn đề với `usePendingInspections`:**
-- Filter: `assigned_to = user.id` AND `status IN ('pending', 'in_progress')`
-- Nếu inspection đã completed/cancelled → trả về null
-- Gây lỗi khi `startInspection` được gọi với inspection không tồn tại
-
-**Sửa đổi trong `startInspection`:**
-Thay vì `.single()`, dùng `.maybeSingle()` để tránh lỗi khi 0 rows:
-
-```typescript
-const { data, error } = await supabase
-  .from('checkout_inspection_requests')
-  .update({ status: 'in_progress', started_at: new Date().toISOString() })
-  .eq('id', inspectionId)
-  .eq('status', 'pending')
-  .select()
-  .maybeSingle() // Thay cho .single()
-
-if (!data) {
-  // Inspection đã được start hoặc không tồn tại - không phải lỗi nghiêm trọng
-  console.warn('Inspection already started or not found')
-  return null
-}
-```
+1. Manager mở CheckoutSummaryDialog → Gửi yêu cầu kiểm tra cho nhân viên
+2. Kiểm tra database: Có record trong cả `checkout_inspection_requests` VÀ `housekeeping_tasks`
+3. Nhân viên mở "Công việc của tôi" → **Thấy task hiển thị**
+4. Bấm "Kiểm tra phòng" → Chuyển đến form checkout check
+5. Hoàn thành → Task biến mất khỏi danh sách
