@@ -497,6 +497,8 @@ export function useClaimTask() {
       queryClient.invalidateQueries({ queryKey: ['unassigned-housekeeping-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
+      queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['task-stats'] })
       toast.success('Đã nhận công việc')
     },
     onError: (error) => {
@@ -504,4 +506,288 @@ export function useClaimTask() {
       toast.error('Không thể nhận công việc. Có thể đã có người khác nhận.')
     }
   })
+}
+
+// Reassign task to another user (Manager only)
+export function useReassignTask() {
+  const queryClient = useQueryClient()
+  const { user } = useUser()
+  const tenantId = user?.tenant_id
+
+  return useMutation({
+    mutationFn: async ({ 
+      taskId, 
+      newAssigneeId, 
+      reason 
+    }: { 
+      taskId: string
+      newAssigneeId: string | null
+      reason?: string 
+    }) => {
+      // Build update object
+      const updates: Record<string, unknown> = { 
+        assigned_to: newAssigneeId
+      }
+
+      // Get current task to preserve existing notes
+      const { data: currentTask } = await supabase
+        .from('housekeeping_tasks')
+        .select('notes')
+        .eq('id', taskId)
+        .single()
+
+      // Append reassignment note
+      if (reason) {
+        const existingNotes = currentTask?.notes || ''
+        const newNote = `[Chuyển việc: ${reason}]`
+        updates.notes = existingNotes ? `${existingNotes}\n${newNote}` : newNote
+      }
+
+      const { data, error } = await supabase
+        .from('housekeeping_tasks')
+        .update(updates)
+        .eq('id', taskId)
+        .select(`
+          *,
+          room:rooms(id, room_number, floor, room_type),
+          assigned_user:users!housekeeping_tasks_assigned_to_fkey(id, full_name)
+        `)
+        .single()
+
+      if (error) throw error
+      return data as HousekeepingTask & {
+        room?: { room_number: string; floor: number }
+        assigned_user?: { full_name: string }
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['unassigned-housekeeping-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
+      queryClient.invalidateQueries({ queryKey: ['task-stats'] })
+      
+      if (data.assigned_to) {
+        toast.success(`Đã giao việc cho ${(data as any).assigned_user?.full_name || 'nhân viên'}`)
+      } else {
+        toast.success('Đã bỏ giao việc')
+      }
+    },
+    onError: (error) => {
+      console.error('Reassign task error:', error)
+      toast.error('Không thể chuyển việc')
+    }
+  })
+}
+
+// Get task statistics for a hotel (Manager dashboard)
+export function useTaskStats(hotelId?: string) {
+  const { user } = useUser()
+  const tenantId = user?.tenant_id
+  const queryClient = useQueryClient()
+
+  const query = useQuery({
+    queryKey: ['task-stats', hotelId],
+    queryFn: async () => {
+      if (!tenantId) return null
+
+      // Get today's date range
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const tomorrow = new Date(today)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+
+      // Build base query conditions
+      const baseFilter = hotelId 
+        ? `hotel_id.eq.${hotelId},tenant_id.eq.${tenantId}`
+        : `tenant_id.eq.${tenantId}`
+
+      // Fetch all counts in parallel
+      const [
+        pendingResult,
+        inProgressResult,
+        completedTodayResult,
+        unassignedResult
+      ] = await Promise.all([
+        // Pending tasks
+        supabase
+          .from('housekeeping_tasks')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'pending')
+          .eq('tenant_id', tenantId)
+          .not('assigned_to', 'is', null)
+          .then(r => hotelId 
+            ? supabase
+                .from('housekeeping_tasks')
+                .select('id', { count: 'exact', head: true })
+                .eq('status', 'pending')
+                .eq('tenant_id', tenantId)
+                .eq('hotel_id', hotelId)
+                .not('assigned_to', 'is', null)
+            : r
+          ),
+        
+        // In progress tasks
+        supabase
+          .from('housekeeping_tasks')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'in_progress')
+          .eq('tenant_id', tenantId)
+          .then(r => hotelId 
+            ? supabase
+                .from('housekeeping_tasks')
+                .select('id', { count: 'exact', head: true })
+                .eq('status', 'in_progress')
+                .eq('tenant_id', tenantId)
+                .eq('hotel_id', hotelId)
+            : r
+          ),
+        
+        // Completed today
+        supabase
+          .from('housekeeping_tasks')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'completed')
+          .eq('tenant_id', tenantId)
+          .gte('completed_at', today.toISOString())
+          .lt('completed_at', tomorrow.toISOString())
+          .then(r => hotelId 
+            ? supabase
+                .from('housekeeping_tasks')
+                .select('id', { count: 'exact', head: true })
+                .eq('status', 'completed')
+                .eq('tenant_id', tenantId)
+                .eq('hotel_id', hotelId)
+                .gte('completed_at', today.toISOString())
+                .lt('completed_at', tomorrow.toISOString())
+            : r
+          ),
+        
+        // Unassigned tasks
+        supabase
+          .from('housekeeping_tasks')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'pending')
+          .eq('tenant_id', tenantId)
+          .is('assigned_to', null)
+          .then(r => hotelId 
+            ? supabase
+                .from('housekeeping_tasks')
+                .select('id', { count: 'exact', head: true })
+                .eq('status', 'pending')
+                .eq('tenant_id', tenantId)
+                .eq('hotel_id', hotelId)
+                .is('assigned_to', null)
+            : r
+          )
+      ])
+
+      return {
+        pending: pendingResult.count || 0,
+        inProgress: inProgressResult.count || 0,
+        completedToday: completedTodayResult.count || 0,
+        unassigned: unassignedResult.count || 0
+      }
+    },
+    enabled: !!tenantId
+  })
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!tenantId) return
+
+    const channel = supabase
+      .channel('task-stats-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'housekeeping_tasks'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['task-stats'] })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [tenantId, queryClient])
+
+  return query
+}
+
+// Get all tasks for a hotel with details (for manager view with grouping)
+export function useAllHotelTasks(hotelId?: string, statusFilter?: TaskStatus | 'all') {
+  const { user } = useUser()
+  const tenantId = user?.tenant_id
+  const queryClient = useQueryClient()
+
+  const query = useQuery({
+    queryKey: ['all-hotel-tasks', hotelId, statusFilter],
+    queryFn: async () => {
+      if (!tenantId) return []
+
+      let q = supabase
+        .from('housekeeping_tasks')
+        .select(`
+          *,
+          room:rooms(id, room_number, floor, room_type),
+          assigned_user:users!housekeeping_tasks_assigned_to_fkey(id, full_name, avatar_url),
+          requested_user:users!housekeeping_tasks_requested_by_fkey(id, full_name, avatar_url),
+          booking:room_bookings(id, guest_name, check_out_date)
+        `)
+        .eq('tenant_id', tenantId)
+        .order('priority', { ascending: false })
+        .order('created_at', { ascending: true })
+
+      if (hotelId) {
+        q = q.eq('hotel_id', hotelId)
+      }
+
+      if (statusFilter && statusFilter !== 'all') {
+        q = q.eq('status', statusFilter)
+      } else {
+        // Default: show active tasks (pending + in_progress)
+        q = q.in('status', ['pending', 'in_progress'])
+      }
+
+      const { data, error } = await q
+
+      if (error) throw error
+      return data as unknown as HousekeepingTaskWithDetails[]
+    },
+    enabled: !!tenantId
+  })
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!tenantId) return
+
+    const filterStr = hotelId ? `hotel_id=eq.${hotelId}` : undefined
+
+    const channel = supabase
+      .channel(`all-hotel-tasks-${hotelId || 'all'}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'housekeeping_tasks',
+          filter: filterStr
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['all-hotel-tasks'] })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [hotelId, tenantId, queryClient])
+
+  return query
 }
