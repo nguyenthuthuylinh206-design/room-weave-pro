@@ -1,139 +1,175 @@
 
-## Kế hoạch: Cải thiện PWA lưu tài khoản/mật khẩu tự động
+## Kế hoạch: Thêm tính năng Quản lý công việc cho Manager
 
-### I. NGUYÊN NHÂN VẤN ĐỀ
+### I. TỔNG QUAN
 
-Sau khi phân tích code, tôi phát hiện các vấn đề khiến trình duyệt/PWA không lưu mật khẩu:
+Hiện tại hệ thống đã có:
+- **Backend**: Hooks `useHotelTasks`, `useUnassignedTasks`, `useCreateTask`, `useUpdateTaskStatus`, `useCancelTask` đầy đủ
+- **UI Staff**: `StaffTasksTab` cho nhân viên xem/nhận việc
 
-| Vấn đề | File | Hiện tại | Cần sửa |
-|--------|------|----------|---------|
-| Form thiếu `id` | `LoginForm.tsx` | `<form onSubmit={...}>` | `<form id="login-form" ...>` |
-| Email autocomplete sai | `LoginForm.tsx` | `autoComplete="email"` | `autoComplete="username"` |
-| Input thiếu `id` rõ ràng | `LoginForm.tsx` | Không có | `id="login-email"`, `id="login-password"` |
-| QuickReLogin cũng thiếu | `QuickReLogin.tsx` | Tương tự | Cần cập nhật giống LoginForm |
-
-**Lý do kỹ thuật:**
-- Browser credential manager yêu cầu `autocomplete="username"` để nhận diện đây là form đăng nhập
-- PWA cần form có `id` rõ ràng để browser lưu credentials chính xác
-- Chrome/Safari yêu cầu `id` attribute trên input fields để gợi ý mật khẩu đã lưu
+**Thiếu**: Giao diện cho Manager quản lý toàn bộ công việc đã giao
 
 ---
 
-### II. CÁC THAY ĐỔI CẦN THỰC HIỆN
+### II. TÍNH NĂNG ĐỀ XUẤT
 
-#### 1. LoginForm.tsx
+#### 1. Tab "Công việc" trong trang Quản lý Nhân sự
 
-```tsx
-// TRƯỚC
-<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-  <Input
-    {...field}
-    type="email"
-    autoComplete="email"
-  />
-  <Input
-    {...field}
-    type={showPassword ? 'text' : 'password'}
-    autoComplete="current-password"
-  />
+Thêm tab thứ 3 vào `StaffManagementPage.tsx`:
 
-// SAU
-<form 
-  id="login-form"
-  onSubmit={form.handleSubmit(onSubmit)} 
-  className="space-y-4"
->
-  <Input
-    {...field}
-    id="login-email"
-    type="email"
-    autoComplete="username"  // Thay đổi để browser nhận diện là login form
-  />
-  <Input
-    {...field}
-    id="login-password"
-    type={showPassword ? 'text' : 'password'}
-    autoComplete="current-password"
-  />
+| Tab | Nội dung |
+|-----|----------|
+| Danh sách | Danh sách nhân viên (hiện có) |
+| Hoạt động | Lịch sử hoạt động (hiện có) |
+| **Công việc** | **Dashboard quản lý tasks (MỚI)** |
+
+#### 2. Manager Tasks Dashboard
+
+**Các thành phần chính:**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  📊 Stats Cards (4 cột)                                 │
+│  ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐               │
+│  │Chờ xử │ │Đang   │ │Hoàn   │ │Chờ    │               │
+│  │lý: 5  │ │làm: 3 │ │thành  │ │giao: 2│               │
+│  └───────┘ └───────┘ │hôm nay│ └───────┘               │
+│                      │12     │                         │
+│                      └───────┘                         │
+├─────────────────────────────────────────────────────────┤
+│  🔍 Filter Bar                                          │
+│  [Trạng thái ▼] [Loại ▼] [Nhân viên ▼] [Tìm kiếm...]   │
+├─────────────────────────────────────────────────────────┤
+│  📋 Task List (grouped by staff)                        │
+│  ┌─────────────────────────────────────────────────────┐│
+│  │ 👤 Nguyễn Văn A (2 việc đang làm)                  ││
+│  │   ├─ P.101 - Dọn phòng 🔵 15 phút                  ││
+│  │   └─ P.205 - Checkout 🟡 Chờ xử lý                 ││
+│  ├─────────────────────────────────────────────────────┤│
+│  │ 👤 Trần Thị B (1 việc)                             ││
+│  │   └─ P.302 - Chuẩn bị check-in 🔵 8 phút          ││
+│  ├─────────────────────────────────────────────────────┤│
+│  │ ⚠️ Chưa giao (3 việc)                              ││
+│  │   ├─ P.401 - Bổ sung đồ dùng 🔴 Khẩn cấp          ││
+│  │   ├─ P.502 - Dọn phòng                            ││
+│  │   └─ P.103 - Checkout                             ││
+│  └─────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────┘
 ```
 
-#### 2. QuickReLogin.tsx
+#### 3. Các action cho Manager
 
-```tsx
-// TRƯỚC
-<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-  <Input
-    {...field}
-    autoComplete="current-password"
-  />
+| Action | Mô tả |
+|--------|-------|
+| **Giao việc** | Chọn nhân viên để giao task chưa có người nhận |
+| **Chuyển việc** | Đổi người thực hiện task sang nhân viên khác |
+| **Xem chi tiết** | Xem thông tin task, lịch sử thay đổi |
+| **Hủy task** | Hủy bỏ task (kèm lý do) |
+| **Tạo mới** | Tạo task nhanh từ dashboard |
 
-// SAU
-<form 
-  id="quick-login-form"
-  onSubmit={form.handleSubmit(onSubmit)} 
-  className="space-y-4"
->
-  {/* Thêm hidden input cho email để browser liên kết credentials */}
-  <input 
-    type="hidden" 
-    name="username" 
-    autoComplete="username" 
-    value={email} 
-  />
-  <Input
-    {...field}
-    id="quick-login-password"
-    autoComplete="current-password"
-  />
+---
+
+### III. CẤU TRÚC FILES
+
+```
+src/
+├── components/
+│   └── staff/
+│       ├── ManagerTasksTab.tsx          # Tab quản lý tasks (MỚI)
+│       ├── ManagerTaskCard.tsx          # Card hiển thị task với actions (MỚI)
+│       ├── AssignTaskDialog.tsx         # Dialog giao/chuyển việc (MỚI)
+│       ├── TaskFilters.tsx              # Bộ lọc tasks (MỚI)
+│       └── ... (files hiện có)
+├── hooks/
+│   └── useHousekeepingTasks.ts          # Thêm useReassignTask mutation
+└── pages/
+    └── staff/
+        └── StaffManagementPage.tsx      # Thêm tab "Công việc"
 ```
 
 ---
 
-### III. GIẢI THÍCH KỸ THUẬT
+### IV. DATABASE & HOOKS
 
-#### Tại sao `autocomplete="username"` thay vì `email`?
+#### 1. Mutation mới: `useReassignTask`
 
-Theo [HTML Living Standard](https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#autofilling-form-controls:-the-autocomplete-attribute), trình duyệt sử dụng các cặp:
-- `username` + `current-password` = Form đăng nhập → Lưu credentials
-- `email` + `current-password` = Có thể nhầm lẫn với form liên hệ
+```typescript
+export function useReassignTask() {
+  return useMutation({
+    mutationFn: async ({ taskId, newAssigneeId, reason }: {
+      taskId: string
+      newAssigneeId: string
+      reason?: string
+    }) => {
+      const { data, error } = await supabase
+        .from('housekeeping_tasks')
+        .update({ 
+          assigned_to: newAssigneeId,
+          notes: reason ? `Chuyển việc: ${reason}` : null
+        })
+        .eq('id', taskId)
+        .select()
+        .single()
+      
+      if (error) throw error
+      return data
+    }
+  })
+}
+```
 
-#### Tại sao cần hidden input trong QuickReLogin?
+#### 2. Hook mới: `useTaskStats`
 
-Vì QuickReLogin chỉ hiển thị password field, browser không biết email đi kèm. Hidden input với `autoComplete="username"` giúp browser:
-1. Hiểu đây là form đăng nhập
-2. Liên kết đúng password với email
-3. Cập nhật credentials nếu mật khẩu thay đổi
+```typescript
+export function useTaskStats(hotelId?: string) {
+  return useQuery({
+    queryKey: ['task-stats', hotelId],
+    queryFn: async () => {
+      // Đếm pending, in_progress, completed today, unassigned
+    }
+  })
+}
+```
 
 ---
 
-### IV. FILES CẦN SỬA
+### V. THỨ TỰ TRIỂN KHAI
 
-| File | Thay đổi |
-|------|----------|
-| `src/components/auth/LoginForm.tsx` | Thêm `id` cho form và inputs, đổi `autoComplete="email"` → `"username"` |
-| `src/components/auth/QuickReLogin.tsx` | Thêm `id` cho form, thêm hidden username input |
-
----
-
-### V. KIỂM TRA SAU TRIỂN KHAI
-
-1. Mở PWA trên Chrome/Safari mobile
-2. Đăng nhập với tài khoản mới
-3. Sau khi đăng nhập thành công, browser sẽ hỏi "Lưu mật khẩu?"
-4. Đăng xuất và mở lại → Browser tự động gợi ý credentials đã lưu
+| Phase | Công việc | Files |
+|-------|-----------|-------|
+| **1** | Thêm `useReassignTask` và `useTaskStats` hooks | `useHousekeepingTasks.ts` |
+| **2** | Tạo `ManagerTasksTab` component | `ManagerTasksTab.tsx` |
+| **3** | Tạo `ManagerTaskCard` với actions | `ManagerTaskCard.tsx` |
+| **4** | Tạo `AssignTaskDialog` cho giao/chuyển việc | `AssignTaskDialog.tsx` |
+| **5** | Tích hợp vào `StaffManagementPage` | `StaffManagementPage.tsx` |
+| **6** | Thêm realtime subscription | `ManagerTasksTab.tsx` |
 
 ---
 
-### VI. LƯU Ý BỔ SUNG
+### VI. UI/UX GUIDELINES
 
-- **PWA Standalone Mode**: Browser credential manager hoạt động trong PWA mode, nhưng UI có thể khác một chút so với browser thường
-- **iOS Safari**: Yêu cầu user cho phép AutoFill trong Settings → Passwords
-- **Android Chrome**: Tự động lưu nếu user đã bật "Save passwords" trong Settings
+Theo design system hiện tại:
+- **Compact rows**: 48-56px height
+- **Semantic colors**: `text-green-600` (OK), `text-red-600` (Urgent), `text-amber-600` (Warning)
+- **No card backgrounds**: Sử dụng `border rounded-lg` thay vì Card
+- **Mobile-first**: Tab "Công việc" responsive trên mobile
 
 ---
 
-### VII. THỨ TỰ TRIỂN KHAI
+### VII. KẾT QUẢ MONG ĐỢI
 
-1. **Phase 1**: Cập nhật `LoginForm.tsx` với các attributes chuẩn
-2. **Phase 2**: Cập nhật `QuickReLogin.tsx` với hidden username input
-3. **Phase 3**: Test trên PWA (Chrome, Safari mobile)
+Sau triển khai, Manager có thể:
+
+1. **Xem tổng quan**: Dashboard hiển thị số lượng tasks theo trạng thái
+2. **Theo dõi tiến độ**: Biết ai đang làm gì, bao lâu rồi
+3. **Giao việc nhanh**: Giao tasks chưa có người nhận cho nhân viên
+4. **Cân bằng workload**: Chuyển việc từ người bận sang người rảnh
+5. **Xử lý trễ hạn**: Nhận cảnh báo và can thiệp kịp thời
+
+---
+
+### VIII. LƯU Ý BẢO MẬT
+
+- Chỉ Manager/Admin mới thấy tab "Công việc" (sử dụng `canCreateHousekeepingTask`)
+- RLS đã có sẵn trên bảng `housekeeping_tasks`
+- Giao/Chuyển việc được log vào `notes` để audit
