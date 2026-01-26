@@ -433,7 +433,17 @@ export function RoomCheckPage() {
       }
     } else if (currentStep === 2 && !quickMode) {
       isValid = await form.trigger(['items_complete', 'items_missing', 'items_damaged'])
-    } else if ((currentStep === 2 && quickMode) || currentStep === 3) {
+    } else if (currentStep === 2 && quickMode) {
+      // Quick mode: step 2 là review cuối
+      isValid = await form.trigger(['cleanliness_score'])
+    } else if (currentStep === 3 && isCheckoutType) {
+      // Checkout step 3 = Chargeable Items - optional, không cần validate
+      isValid = true
+    } else if (currentStep === 4 && isCheckoutType) {
+      // Checkout step 4 = Cleaning Request - có defaults, không cần validate
+      isValid = true
+    } else if (currentStep === 3 && !isCheckoutType) {
+      // Non-checkout: step 3 là Review cuối
       isValid = await form.trigger(['cleanliness_score'])
     }
     
