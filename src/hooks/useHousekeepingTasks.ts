@@ -203,7 +203,23 @@ export function useCreateTask() {
       queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
+      queryClient.invalidateQueries({ queryKey: ['unassigned-housekeeping-tasks'] })
       toast.success('Đã tạo yêu cầu công việc')
+
+      // Send notification to assigned staff if task has an assignee
+      if (tenantId && userId && data.assigned_to && data.assigned_to !== userId) {
+        triggerHousekeepingTaskAssignedNotification({
+          tenantId,
+          hotelId: data.hotel_id,
+          assignedToUserId: data.assigned_to,
+          assignedByUserId: userId,
+          taskId: data.id,
+          taskType: data.task_type,
+          roomNumber: (data as any).room?.room_number || 'N/A',
+          priority: data.priority,
+          isReassignment: false,
+        }).catch(err => console.error('[useCreateTask] Notification failed:', err))
+      }
 
       // Trigger workflow for task created
       if (tenantId) {
