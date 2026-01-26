@@ -56,7 +56,7 @@ export const LoginForm = () => {
   return (
     <div className="w-full space-y-6">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form id="login-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* Email */}
           <FormField
             control={form.control}
@@ -69,10 +69,11 @@ export const LoginForm = () => {
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       {...field}
+                      id="login-email"
                       type="email"
                       placeholder="email@example.com"
                       className="pl-10"
-                      autoComplete="email"
+                      autoComplete="username"
                     />
                   </div>
                 </FormControl>
@@ -93,6 +94,7 @@ export const LoginForm = () => {
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       {...field}
+                      id="login-password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
                       className="pl-10 pr-10"

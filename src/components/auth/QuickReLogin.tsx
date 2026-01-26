@@ -63,7 +63,15 @@ export const QuickReLogin = ({ email, onSwitchAccount, onSuccess }: QuickReLogin
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form id="quick-login-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {/* Hidden username input for browser credential manager */}
+          <input 
+            type="hidden" 
+            name="username" 
+            autoComplete="username" 
+            value={email} 
+          />
+          
           {/* Password */}
           <FormField
             control={form.control}
@@ -76,6 +84,7 @@ export const QuickReLogin = ({ email, onSwitchAccount, onSuccess }: QuickReLogin
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       {...field}
+                      id="quick-login-password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
                       className="pl-10 pr-10"
