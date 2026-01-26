@@ -1,123 +1,132 @@
 
 
-## Kế hoạch: Thêm link "Công việc của tôi" vào Navigation
+## Kế hoạch: Sửa lỗi nút "Tiếp theo" không hoạt động trong Checkout mode
 
-### I. PHÂN TÍCH HIỆN TẠI
+### I. NGUYÊN NHÂN GỐC
 
-| Component | Mô tả | Staff có thể thấy? |
-|-----------|-------|-------------------|
-| `BottomNav.tsx` | Bottom nav cũ (5 tabs) | ✅ |
-| `MobileBottomNav.tsx` | Bottom nav chính cho mobile | ✅ |
-| `MorePage.tsx` | Trang "Thêm" với các modules | ✅ |
+Hàm `handleNext` trong `RoomCheckPage.tsx` thiếu xử lý validation cho step 3 (Chargeable Items) và step 4 (Cleaning Request) trong checkout mode:
 
-**Vấn đề**: Không có link nào dẫn đến `/my-tasks` → Staff phải nhớ URL hoặc chờ notification
+| Step | Nội dung | Hiện tại | Vấn đề |
+|------|----------|----------|--------|
+| 1 | Loại kiểm tra | ✅ Có validation | OK |
+| 2 | Kiểm tra đồ dùng | ✅ Có validation | OK |
+| 3 | Chargeable Items (Checkout) | ❌ Không có case | `isValid = false` |
+| 4 | Cleaning Request (Checkout) | ❌ Không có case | `isValid = false` |
+| 5 | Review | ✅ Có (nhưng điều kiện sai) | Conflict với step 3 |
+
+**Logic lỗi:**
+```typescript
+if ((currentStep === 2 && quickMode) || currentStep === 3) {
+  isValid = await form.trigger(['cleanliness_score']) // Sai! Step 3 checkout là Chargeable
+}
+// Thiếu: step 4 (Cleaning) hoàn toàn không được handle
+```
 
 ---
 
 ### II. GIẢI PHÁP
 
-Thêm link "Công việc của tôi" (My Tasks) vào:
-1. **MorePage** - Trong phần "Liên kết nhanh" (Quick Links)
-2. **BottomNav** - Thêm tab mới cho Staff (thay thế hoặc bổ sung)
-
----
-
-### III. CÁC BƯỚC THỰC HIỆN
-
-#### Bước 1: Cập nhật MorePage.tsx
-
-Thêm "Công việc của tôi" vào `quickLinks`:
+Cập nhật logic `handleNext` để xử lý đúng cho checkout 5-step flow:
 
 ```typescript
-const quickLinks = [
-  { icon: ClipboardList, label: 'Công việc của tôi', path: '/my-tasks' }, // THÊM MỚI
-  { icon: User, label: 'Hồ sơ cá nhân', path: '/settings/profile' },
-  { icon: Settings, label: 'Cài đặt', path: '/settings' },
-  { icon: HelpCircle, label: 'Trợ giúp & Hỗ trợ', path: '/help' },
-]
-```
-
-#### Bước 2: Cập nhật BottomNav.tsx
-
-Thêm tab "Tasks" cho staff với badge hiển thị số công việc pending:
-
-```typescript
-const tabs: NavTab[] = [
-  { id: 'dashboard', icon: Home, label: 'Home', path: '/' },
-  { id: 'my-tasks', icon: ClipboardList, label: 'Tasks', path: '/my-tasks' }, // THÊM MỚI
-  { id: 'rooms', icon: DoorOpen, label: 'Phòng', path: '/rooms', module: 'rooms' },
-  { id: 'laundry', icon: Shirt, label: 'Laundry', path: '/laundry', module: 'laundry' },
-  { id: 'maintenance', icon: Wrench, label: 'Bảo trì', path: '/maintenance', module: 'maintenance' },
-]
-```
-
-#### Bước 3: Cập nhật MobileBottomNav.tsx
-
-Thêm "Tasks" vào `NAV_ITEMS` cho Manager/Staff với badge:
-
-```typescript
-const NAV_ITEMS: NavItem[] = [
-  { id: 'home', label: 'Home', icon: Home, path: '/' },
-  { id: 'my-tasks', label: 'Tasks', icon: ClipboardList, path: '/my-tasks', badge: true }, // THÊM MỚI
-  { id: 'rooms', label: 'Phòng', icon: DoorOpen, path: '/rooms', module: 'rooms', badge: true },
-  { id: 'laundry', label: 'Giặt là', icon: Shirt, path: '/laundry', module: 'laundry', badge: true },
-  { id: 'maintenance', label: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badge: true },
-]
+const handleNext = async () => {
+  let isValid = false
+  
+  if (currentStep === 1) {
+    isValid = await form.trigger(['check_type'])
+    if (isValid && quickMode) {
+      form.setValue('items_complete', true)
+      form.setValue('items_missing', [])
+      form.setValue('items_damaged', [])
+    }
+  } else if (currentStep === 2 && !quickMode) {
+    isValid = await form.trigger(['items_complete', 'items_missing', 'items_damaged'])
+  } else if (currentStep === 2 && quickMode) {
+    // Quick mode: step 2 là review
+    isValid = await form.trigger(['cleanliness_score'])
+  } else if (currentStep === 3 && isCheckoutType) {
+    // THÊM: Checkout step 3 = Chargeable Items (không cần validate)
+    isValid = true
+  } else if (currentStep === 4 && isCheckoutType) {
+    // THÊM: Checkout step 4 = Cleaning Request (không cần validate)
+    isValid = true
+  } else if (currentStep === 3 && !isCheckoutType) {
+    // Non-checkout: step 3 là Review
+    isValid = await form.trigger(['cleanliness_score'])
+  }
+  
+  if (isValid && currentStep < totalSteps) {
+    setCurrentStep(currentStep + 1)
+  }
+}
 ```
 
 ---
 
-### IV. FILES CẦN SỬA
+### III. FILE CẦN SỬA
 
 | File | Thay đổi |
 |------|----------|
-| `src/pages/mobile/MorePage.tsx` | Thêm link "Công việc của tôi" vào quickLinks |
-| `src/components/layout/BottomNav.tsx` | Thêm tab "Tasks" |
-| `src/components/layout/MobileBottomNav.tsx` | Thêm tab "Tasks" với badge |
+| `src/pages/rooms/RoomCheckPage.tsx` | Sửa hàm `handleNext` (lines 423-443) |
 
 ---
 
-### V. BADGE LOGIC
+### IV. LOGIC SAU KHI SỬA
 
-Sử dụng hook `usePendingTaskCount` (đã có) để hiển thị số task pending của staff:
+**Checkout mode (5 steps):**
+```text
+Step 1: Check 'check_type' ✓
+Step 2: Check 'items_complete', 'items_missing', 'items_damaged' ✓
+Step 3: Chargeable Items → isValid = true (optional, no required fields)
+Step 4: Cleaning Request → isValid = true (optional, có defaults)
+Step 5: Review → Submit
+```
 
+**Daily/Checkin/Maintenance mode (3 steps):**
+```text
+Step 1: Check 'check_type' ✓
+Step 2: Check items ✓
+Step 3: Review → Submit
+```
+
+---
+
+### V. CHI TIẾT KỸ THUẬT
+
+Thay thế đoạn code trong `handleNext`:
+
+**Trước:**
 ```typescript
-const { data: myTaskCount = 0 } = usePendingTaskCount()
+} else if ((currentStep === 2 && quickMode) || currentStep === 3) {
+  isValid = await form.trigger(['cleanliness_score'])
+}
+```
 
-// Trong getBadgeCount:
-if (itemId === 'my-tasks') return myTaskCount
+**Sau:**
+```typescript
+} else if (currentStep === 2 && quickMode) {
+  // Quick mode: step 2 là review cuối
+  isValid = await form.trigger(['cleanliness_score'])
+} else if (currentStep === 3 && isCheckoutType) {
+  // Checkout step 3 = Chargeable Items - optional, không cần validate
+  isValid = true
+} else if (currentStep === 4 && isCheckoutType) {
+  // Checkout step 4 = Cleaning Request - có defaults, không cần validate
+  isValid = true
+} else if (currentStep === 3 && !isCheckoutType) {
+  // Non-checkout: step 3 là Review cuối
+  isValid = await form.trigger(['cleanliness_score'])
+}
 ```
 
 ---
 
-### VI. KẾT QUẢ SAU SỬA
+### VI. TESTING
 
-**Mobile Bottom Nav:**
-```text
-┌────────────────────────────────────────────┐
-│  🏠     📋     🚪     👕     🔧           │
-│ Home   Tasks  Phòng  Giặt  Bảo trì        │
-│          (2)   (3)                         │
-└────────────────────────────────────────────┘
-```
-
-**MorePage Quick Links:**
-```text
-┌────────────────────────────────────────────┐
-│ 📋 Công việc của tôi              →        │
-├────────────────────────────────────────────┤
-│ 👤 Hồ sơ cá nhân                  →        │
-├────────────────────────────────────────────┤
-│ ⚙️ Cài đặt                        →        │
-└────────────────────────────────────────────┘
-```
-
----
-
-### VII. LỢI ÍCH
-
-- Staff dễ dàng truy cập công việc được giao từ navigation
-- Không phải nhớ URL `/my-tasks`
-- Badge hiển thị số task pending → nhắc nhở staff
-- Tất cả user (kể cả không có quyền module) đều thấy link này
+1. Vào phòng có booking → Chọn checkout
+2. Step 1: Chọn loại → Tiếp theo ✓
+3. Step 2: Kiểm tra đồ → Tiếp theo ✓
+4. **Step 3: Chargeable** → Tiếp theo ✓ (trước đó bị stuck)
+5. **Step 4: Cleaning** → Tiếp theo ✓ (trước đó bị stuck)
+6. Step 5: Review → Hoàn thành
 
