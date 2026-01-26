@@ -45,9 +45,10 @@ interface TaskCardProps {
   task: HousekeepingTaskWithDetails
   showActions?: boolean
   showClaimButton?: boolean
+  onClick?: () => void
 }
 
-export function TaskCard({ task, showActions = true, showClaimButton = false }: TaskCardProps) {
+export function TaskCard({ task, showActions = true, showClaimButton = false, onClick }: TaskCardProps) {
   const navigate = useNavigate()
   const [isUpdating, setIsUpdating] = useState(false)
   const [showDeliveryModal, setShowDeliveryModal] = useState(false)
@@ -105,8 +106,10 @@ export function TaskCard({ task, showActions = true, showClaimButton = false }: 
   return (
     <>
       <div 
+        onClick={onClick}
         className={cn(
           'border rounded-lg p-3 transition-colors',
+          onClick && 'cursor-pointer hover:bg-muted/50',
           isUrgent && task.status === 'pending' && 'border-red-300 bg-red-50/50 dark:border-red-800 dark:bg-red-900/10',
           isInProgress && 'border-blue-300 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/10'
         )}

@@ -35,8 +35,8 @@ export function MyTasksPage() {
         </div>
       </div>
 
-      {/* Task List */}
-      <StaffTasksTab />
+      {/* Task List - pass initialTaskId from URL */}
+      <StaffTasksTab initialTaskId={taskId} />
     </div>
   )
 }
