@@ -72,7 +72,7 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
       
       // If checkout inspection, redirect to room check form
       if (task.task_type === 'checkout_inspection') {
-        navigate(`/rooms/${task.room_id}/check?type=checkout&taskId=${task.id}`)
+        navigate(`/rooms/${task.room_id}/check?type=checkout`)
       }
     } finally {
       setIsUpdating(false)
@@ -90,7 +90,7 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
 
   const handleContinue = () => {
     if (task.task_type === 'checkout_inspection') {
-      navigate(`/rooms/${task.room_id}/check?type=checkout&taskId=${task.id}`)
+      navigate(`/rooms/${task.room_id}/check?type=checkout`)
     }
   }
 

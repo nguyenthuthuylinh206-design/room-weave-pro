@@ -76,7 +76,7 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
     // If checkout inspection, redirect to room check form
     if (task.task_type === 'checkout_inspection') {
       onOpenChange(false)
-      navigate(`/rooms/${task.room_id}/check?type=checkout&taskId=${task.id}`)
+      navigate(`/rooms/${task.room_id}/check?type=checkout`)
     }
   }
 
@@ -90,7 +90,7 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
     if (!task) return
     onOpenChange(false)
     if (task.task_type === 'checkout_inspection') {
-      navigate(`/rooms/${task.room_id}/check?type=checkout&taskId=${task.id}`)
+      navigate(`/rooms/${task.room_id}/check?type=checkout`)
     }
   }
 

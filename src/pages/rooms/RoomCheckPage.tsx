@@ -536,12 +536,40 @@ export function RoomCheckPage() {
         }
       }
       
-      await createCheck.mutateAsync({
+      const createdCheck = await createCheck.mutateAsync({
         roomId: id,
         data,
         itemQuantities: Object.keys(itemQuantities).length > 0 ? itemQuantities : undefined,
         inspectionId: finalInspectionId || undefined, // Pass checkout inspection ID
       })
+      
+      // Auto-complete related housekeeping task if this is a checkout
+      if (data.check_type === 'checkout' && room?.id && user?.id) {
+        try {
+          const { data: relatedTask } = await supabase
+            .from('housekeeping_tasks')
+            .select('id')
+            .eq('room_id', room.id)
+            .eq('task_type', 'checkout_inspection')
+            .in('status', ['pending', 'in_progress'])
+            .maybeSingle()
+          
+          if (relatedTask) {
+            console.log('[RoomCheckPage] Auto-completing housekeeping task:', relatedTask.id)
+            await supabase
+              .from('housekeeping_tasks')
+              .update({ 
+                status: 'completed',
+                completed_at: new Date().toISOString(),
+                room_check_id: createdCheck?.id,
+              })
+              .eq('id', relatedTask.id)
+          }
+        } catch (taskError) {
+          console.error('[RoomCheckPage] Error auto-completing housekeeping task:', taskError)
+          // Non-critical error - don't block the flow
+        }
+      }
       
       if (id) {
         await deleteSession(id)
