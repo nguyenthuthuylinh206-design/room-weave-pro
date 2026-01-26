@@ -111,6 +111,7 @@ import { PricingPlansPage } from "./pages/admin/PricingPlansPage";
 import { PaymentSettingsPage } from "./pages/admin/PaymentSettingsPage";
 import NotificationHistoryPage from "./pages/NotificationHistoryPage";
 import StaffManagementPage from "./pages/staff/StaffManagementPage";
+import MyTasksPage from "./pages/MyTasksPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -573,7 +574,12 @@ const router = createBrowserRouter([
           </PermissionRoute>
         )
       },
-      { 
+      // My Tasks - No permission required, staff can view their own tasks
+      {
+        path: "my-tasks",
+        element: <MyTasksPage />
+      },
+      {
         path: "settings/warehouses", 
         element: (
           <PermissionRoute module="inventory">
