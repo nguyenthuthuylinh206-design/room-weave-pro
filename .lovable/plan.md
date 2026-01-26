@@ -1,185 +1,96 @@
 
 
-## Kế hoạch: Thêm thông báo chi tiết khi giao/chuyển việc cho nhân viên
+## Kế hoạch: Sửa lỗi Access Denied khi Staff click thông báo giao việc
 
-### I. PHÂN TÍCH HIỆN TẠI
+### I. NGUYÊN NHÂN GỐC
 
-| Thành phần | Hiện tại | Vấn đề |
-|------------|----------|--------|
-| `useReassignTask` | Chỉ toast "Đã giao việc cho X" | Không gửi notification đến nhân viên |
-| `triggerTaskAssignedNotification` | Hỗ trợ maintenance, room_check, laundry, distribution | Chưa hỗ trợ housekeeping tasks |
+| Vấn đề | Chi tiết |
+|--------|----------|
+| **Route hiện tại** | `/staff?task=${taskId}` |
+| **Protection** | `<PermissionRoute module="users">` |
+| **NV Linh** | `user_level_code: staff` - Không có quyền `users` |
+| **Kết quả** | Access Denied ❌ |
 
-### II. GIẢI PHÁP
+Trang `/staff` là **Staff Management** (quản lý nhân sự) dành cho Manager/Owner, nhưng notification lại gửi Staff đến route này.
 
-#### 1. Tạo function mới `triggerHousekeepingTaskAssignedNotification`
+---
 
-Thêm vào `useNotificationTriggers.ts`:
+### II. GIẢI PHÁP ĐỀ XUẤT
 
-```typescript
-export async function triggerHousekeepingTaskAssignedNotification({
-  tenantId,
-  hotelId,
-  assignedToUserId,
-  assignedByUserId,
-  taskId,
-  taskType,        // checkout_inspection, cleaning, etc.
-  roomNumber,
-  priority,
-  reason,          // Lý do chuyển việc (nếu có)
-  isReassignment,  // true = chuyển việc, false = giao mới
-}: {
-  tenantId: string;
-  hotelId: string;
-  assignedToUserId: string;
-  assignedByUserId: string;
-  taskId: string;
-  taskType: string;
-  roomNumber: string;
-  priority: string;
-  reason?: string;
-  isReassignment: boolean;
-}) {
-  if (assignedToUserId === assignedByUserId) return;
+**Tạo route mới `/my-tasks`** dành riêng cho Staff xem công việc của mình, không yêu cầu quyền đặc biệt.
 
-  const assigner = await getUserById(assignedByUserId);
-  const taskTypeLabel = TASK_TYPE_LABELS[taskType] || taskType;
-  const priorityLabel = PRIORITY_LABELS[priority] || priority;
+---
 
-  // Title rõ ràng: Giao mới vs Chuyển việc
-  const title = isReassignment 
-    ? 'Bạn được chuyển công việc mới' 
-    : 'Bạn được giao công việc mới';
+### III. CÁC BƯỚC THỰC HIỆN
 
-  // Body chi tiết với đầy đủ thông tin
-  const bodyParts = [
-    `📍 Phòng ${roomNumber}`,
-    `📋 ${taskTypeLabel}`,
-    `⚡ Ưu tiên: ${priorityLabel}`,
-    `👤 Giao bởi: ${assigner?.full_name || 'Quản lý'}`
-  ];
-  
-  if (reason) {
-    bodyParts.push(`📝 Lý do: ${reason}`);
-  }
+#### Bước 1: Tạo page `MyTasksPage.tsx`
+- Trang này hiển thị `StaffTasksTab` (tab công việc của tôi đã có sẵn)
+- Chỉ cần wrapper đơn giản, không cần tabs phức tạp
+- Tự động mở task detail nếu có `?task=xxx` query param
 
-  const body = bodyParts.join('\n');
-  const actionUrl = `/staff?task=${taskId}`;
-
-  // Gửi đồng thời: In-app + Push + Telegram
-  await Promise.all([
-    createInAppNotification({
-      userId: assignedToUserId,
-      tenantId,
-      title,
-      body,
-      type: 'task_assigned',
-      actionUrl,
-      icon: 'user-check',
-      metadata: { 
-        taskId, 
-        taskType, 
-        roomNumber,
-        priority,
-        assignedBy: assignedByUserId,
-        isReassignment 
-      }
-    }),
-    sendPushNotification({
-      userId: assignedToUserId,
-      tenantId,
-      title,
-      body,
-      actionUrl,
-      tag: `task-housekeeping-${taskId}`,
-      notificationType: 'task_assigned',
-    }),
-    // Telegram notification to individual user
-    sendTelegramNotification({
-      tenantId,
-      hotelId,
-      userIds: [assignedToUserId],
-      title,
-      message: body,
-      notificationType: 'system',
-      actionUrl,
-    }),
-  ]);
+#### Bước 2: Thêm route `/my-tasks` vào App.tsx
+```tsx
+{
+  path: "my-tasks",
+  element: <MyTasksPage />  // Không cần PermissionRoute, mọi user đều có thể xem task của mình
 }
 ```
 
-#### 2. Cập nhật `useReassignTask` để gọi notification
-
-Trong `useHousekeepingTasks.ts`:
-
+#### Bước 3: Cập nhật `actionUrl` trong notification
 ```typescript
-// Sau khi update thành công
-onSuccess: async (data, variables) => {
-  // Invalidate queries (giữ nguyên)
-  queryClient.invalidateQueries(...)
-  
-  // Toast (giữ nguyên)
-  toast.success(`Đã giao việc cho ${data.assigned_user?.full_name}`)
-  
-  // GỬI THÔNG BÁO CHI TIẾT đến nhân viên
-  if (data.assigned_to && user) {
-    await triggerHousekeepingTaskAssignedNotification({
-      tenantId: user.tenant_id,
-      hotelId: data.hotel_id,
-      assignedToUserId: data.assigned_to,
-      assignedByUserId: user.id,
-      taskId: data.id,
-      taskType: data.task_type,
-      roomNumber: data.room?.room_number || 'N/A',
-      priority: data.priority,
-      reason: variables.reason,
-      isReassignment: !!variables.reason, // Có lý do = chuyển việc
-    })
-  }
-}
+// Trong useNotificationTriggers.ts
+const actionUrl = `/my-tasks?task=${taskId}`; // Thay vì /staff?task=...
 ```
 
-### III. NỘI DUNG THÔNG BÁO CHI TIẾT
+#### Bước 4: Thêm link trong navigation (tùy chọn)
+- Mobile: Thêm vào MorePage
+- Desktop: Thêm vào sidebar
 
-**Ví dụ thông báo khi giao việc mới:**
-```
-📌 Bạn được giao công việc mới
+---
 
-📍 Phòng 305
-📋 Dọn phòng  
-⚡ Ưu tiên: Cao
-👤 Giao bởi: Quản Lý 2
-```
-
-**Ví dụ thông báo khi chuyển việc:**
-```
-📌 Bạn được chuyển công việc mới
-
-📍 Phòng 401
-📋 Kiểm tra checkout
-⚡ Ưu tiên: Khẩn cấp
-👤 Giao bởi: Quản Lý 2
-📝 Lý do: NV cũ bận việc khác
-```
-
-### IV. CÁC KÊNH THÔNG BÁO
-
-| Kênh | Mục đích |
-|------|----------|
-| **In-app** | Hiển thị trong app, lưu lịch sử |
-| **Push** | Thông báo đẩy lên thiết bị (PWA) |
-| **Telegram** | Thông báo trực tiếp đến chat Telegram cá nhân |
-
-### V. FILES CẦN SỬA
+### IV. FILES CẦN TẠO/SỬA
 
 | File | Thay đổi |
 |------|----------|
-| `src/hooks/useNotificationTriggers.ts` | Thêm function `triggerHousekeepingTaskAssignedNotification` |
-| `src/hooks/useHousekeepingTasks.ts` | Import và gọi trigger trong `useReassignTask.onSuccess` |
+| `src/pages/MyTasksPage.tsx` | **TẠO MỚI** - Page xem công việc cá nhân |
+| `src/App.tsx` | Thêm route `/my-tasks` |
+| `src/hooks/useNotificationTriggers.ts` | Đổi `actionUrl` từ `/staff?task=` sang `/my-tasks?task=` |
 
-### VI. THỨ TỰ TRIỂN KHAI
+---
 
-1. Thêm `triggerHousekeepingTaskAssignedNotification` vào `useNotificationTriggers.ts`
-2. Import function vào `useHousekeepingTasks.ts`
-3. Cập nhật `onSuccess` của `useReassignTask` để gọi trigger
-4. Test giao việc và kiểm tra notification trên các kênh
+### V. LOGIC CỦA PAGE MỚI
+
+```tsx
+// MyTasksPage.tsx
+export function MyTasksPage() {
+  const searchParams = useSearchParams();
+  const taskId = searchParams.get('task');
+  
+  return (
+    <div className="container mx-auto p-4">
+      <h1>Công việc của tôi</h1>
+      {/* Hiển thị StaffTasksTab đã có sẵn */}
+      <StaffTasksTab initialTaskId={taskId} />
+    </div>
+  );
+}
+```
+
+---
+
+### VI. LỢI ÍCH
+
+- **Staff** có thể truy cập xem task được giao mà không cần quyền `users`
+- **Manager/Owner** vẫn dùng `/staff` để quản lý nhân sự
+- **Notification** hoạt động đúng cho tất cả user roles
+- Phân tách rõ ràng: quản lý nhân sự vs xem công việc cá nhân
+
+---
+
+### VII. TEST SAU SỬA
+
+1. Manager giao việc cho NV Linh
+2. NV Linh nhận notification
+3. Click vào notification → Mở `/my-tasks?task=xxx`
+4. Hiển thị chi tiết task được giao ✅
 
