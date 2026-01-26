@@ -1616,7 +1616,7 @@ export async function triggerHousekeepingTaskAssignedNotification({
   }
 
   const body = bodyParts.join('\n');
-  const actionUrl = `/staff?task=${taskId}`;
+  const actionUrl = `/my-tasks?task=${taskId}`;
 
   console.log('[triggerHousekeepingTaskAssigned] Sending notifications to user:', assignedToUserId);
 
