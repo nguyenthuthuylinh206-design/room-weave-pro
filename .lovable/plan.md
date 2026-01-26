@@ -1,172 +1,139 @@
 
-## Kế hoạch Phase 2: Cập nhật RPC functions để lưu đầy đủ text location
+## Kế hoạch: Cải thiện PWA lưu tài khoản/mật khẩu tự động
 
-### I. TỔNG QUAN VẤN ĐỀ
+### I. NGUYÊN NHÂN VẤN ĐỀ
 
-Hiện tại các RPC functions tạo transaction đang:
-- `create_warehouse_transfer`: Chỉ lưu `from_warehouse_id` và `to_warehouse_id` (UUID), **KHÔNG** lưu text location
-- `confirm_receive_order` (warehouse_release): Lưu cứng `from_location='warehouse'`, `to_location='staff'`
-- `return_to_stock_for_stop`: Chỉ lưu vào `notes`, **KHÔNG** lưu `from_location`/`to_location`
+Sau khi phân tích code, tôi phát hiện các vấn đề khiến trình duyệt/PWA không lưu mật khẩu:
 
----
+| Vấn đề | File | Hiện tại | Cần sửa |
+|--------|------|----------|---------|
+| Form thiếu `id` | `LoginForm.tsx` | `<form onSubmit={...}>` | `<form id="login-form" ...>` |
+| Email autocomplete sai | `LoginForm.tsx` | `autoComplete="email"` | `autoComplete="username"` |
+| Input thiếu `id` rõ ràng | `LoginForm.tsx` | Không có | `id="login-email"`, `id="login-password"` |
+| QuickReLogin cũng thiếu | `QuickReLogin.tsx` | Tương tự | Cần cập nhật giống LoginForm |
 
-### II. CÁC FUNCTIONS CẦN CẬP NHẬT
-
-#### 1. `create_warehouse_transfer`
-
-**Hiện tại (Lines 297-331):**
-```sql
-INSERT INTO inventory_transactions (
-  ...
-  from_warehouse_id,
-  to_warehouse_id,
-  -- THIẾU: from_location, to_location
-)
-```
-
-**Cần sửa:**
-```sql
--- Lấy tên warehouse
-SELECT name INTO v_from_warehouse_name FROM warehouses WHERE id = p_from_warehouse_id;
-SELECT name INTO v_to_warehouse_name FROM warehouses WHERE id = p_to_warehouse_id;
-
--- INSERT với đầy đủ location text
-INSERT INTO inventory_transactions (
-  ...
-  from_warehouse_id,
-  to_warehouse_id,
-  from_location,   -- MỚI
-  to_location,     -- MỚI
-) VALUES (
-  ...
-  p_from_warehouse_id,
-  p_to_warehouse_id,
-  v_from_warehouse_name,   -- "Kho tầng 1"
-  v_to_warehouse_name,     -- "Kho tầng 2"
-)
-```
+**Lý do kỹ thuật:**
+- Browser credential manager yêu cầu `autocomplete="username"` để nhận diện đây là form đăng nhập
+- PWA cần form có `id` rõ ràng để browser lưu credentials chính xác
+- Chrome/Safari yêu cầu `id` attribute trên input fields để gợi ý mật khẩu đã lưu
 
 ---
 
-#### 2. `confirm_receive_order` (warehouse_release)
+### II. CÁC THAY ĐỔI CẦN THỰC HIỆN
 
-**Hiện tại (Lines 124-142):**
-```sql
-INSERT INTO inventory_transactions (
-  ...
-  from_location,
-  to_location,
-) VALUES (
-  ...
-  'warehouse',  -- Cứng, không có tên cụ thể
-  'staff',      -- Cứng, không có tên nhân viên
-)
+#### 1. LoginForm.tsx
+
+```tsx
+// TRƯỚC
+<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+  <Input
+    {...field}
+    type="email"
+    autoComplete="email"
+  />
+  <Input
+    {...field}
+    type={showPassword ? 'text' : 'password'}
+    autoComplete="current-password"
+  />
+
+// SAU
+<form 
+  id="login-form"
+  onSubmit={form.handleSubmit(onSubmit)} 
+  className="space-y-4"
+>
+  <Input
+    {...field}
+    id="login-email"
+    type="email"
+    autoComplete="username"  // Thay đổi để browser nhận diện là login form
+  />
+  <Input
+    {...field}
+    id="login-password"
+    type={showPassword ? 'text' : 'password'}
+    autoComplete="current-password"
+  />
 ```
 
-**Cần sửa:**
-```sql
--- Lấy thông tin warehouse và user
-SELECT w.name INTO v_warehouse_name 
-FROM warehouses w 
-WHERE w.hotel_id = v_order.hotel_id AND w.is_default = true;
+#### 2. QuickReLogin.tsx
 
-SELECT full_name INTO v_staff_name FROM users WHERE id = v_actor_id;
+```tsx
+// TRƯỚC
+<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+  <Input
+    {...field}
+    autoComplete="current-password"
+  />
 
--- INSERT với tên cụ thể
-VALUES (
-  ...
-  v_warehouse_name,  -- "Kho chính"
-  v_staff_name,      -- "Nguyễn Văn A"
-)
-```
-
----
-
-#### 3. `return_to_stock_for_stop`
-
-**Hiện tại (Lines 506-528):**
-```sql
-INSERT INTO inventory_transactions (
-  ...
-  -- THIẾU: from_location, to_location
-  notes
-) VALUES (
-  ...
-  'Returned to stock from room ' || v_room_order.room_number || ' (cannot access)'
-)
-```
-
-**Cần sửa:**
-```sql
--- Lấy default warehouse name
-SELECT name INTO v_warehouse_name 
-FROM warehouses 
-WHERE hotel_id = v_order.hotel_id AND is_default = true;
-
-INSERT INTO inventory_transactions (
-  ...
-  from_location,    -- MỚI
-  to_location,      -- MỚI
-  notes
-) VALUES (
-  ...
-  'Phòng ' || v_room_order.room_number,  -- "Phòng P101"
-  v_warehouse_name,                       -- "Kho chính"
-  'Returned to stock (cannot access)'
-)
+// SAU
+<form 
+  id="quick-login-form"
+  onSubmit={form.handleSubmit(onSubmit)} 
+  className="space-y-4"
+>
+  {/* Thêm hidden input cho email để browser liên kết credentials */}
+  <input 
+    type="hidden" 
+    name="username" 
+    autoComplete="username" 
+    value={email} 
+  />
+  <Input
+    {...field}
+    id="quick-login-password"
+    autoComplete="current-password"
+  />
 ```
 
 ---
 
-### III. SQL MIGRATION ĐỀ XUẤT
+### III. GIẢI THÍCH KỸ THUẬT
 
-```sql
--- =============================================
--- Phase 2: Update RPCs to save full location text
--- =============================================
+#### Tại sao `autocomplete="username"` thay vì `email`?
 
--- 1. Update create_warehouse_transfer
-CREATE OR REPLACE FUNCTION public.create_warehouse_transfer(...)
--- Thêm 2 biến: v_from_warehouse_name, v_to_warehouse_name
--- SELECT name từ warehouses table
--- INSERT vào from_location, to_location
+Theo [HTML Living Standard](https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#autofilling-form-controls:-the-autocomplete-attribute), trình duyệt sử dụng các cặp:
+- `username` + `current-password` = Form đăng nhập → Lưu credentials
+- `email` + `current-password` = Có thể nhầm lẫn với form liên hệ
 
--- 2. Update confirm_receive_order  
-CREATE OR REPLACE FUNCTION confirm_receive_order(...)
--- Thêm biến: v_warehouse_name, v_staff_name
--- SELECT từ warehouses và users table
--- INSERT vào from_location, to_location
+#### Tại sao cần hidden input trong QuickReLogin?
 
--- 3. Update return_to_stock_for_stop
-CREATE OR REPLACE FUNCTION return_to_stock_for_stop(...)
--- Thêm biến: v_warehouse_name
--- SELECT từ warehouses table
--- INSERT from_location = room_number, to_location = warehouse_name
-```
+Vì QuickReLogin chỉ hiển thị password field, browser không biết email đi kèm. Hidden input với `autoComplete="username"` giúp browser:
+1. Hiểu đây là form đăng nhập
+2. Liên kết đúng password với email
+3. Cập nhật credentials nếu mật khẩu thay đổi
 
 ---
 
-### IV. KẾT QUẢ SAU TRIỂN KHAI
+### IV. FILES CẦN SỬA
 
-| Function | from_location | to_location |
-|----------|---------------|-------------|
-| `create_warehouse_transfer` | "Kho tầng 1" | "Kho tầng 2" |
-| `confirm_receive_order` | "Kho chính" | "Nguyễn Văn A" |
-| `return_to_stock_for_stop` | "Phòng P101" | "Kho chính" |
-
----
-
-### V. LƯU Ý QUAN TRỌNG
-
-1. **Phase 1 đã fix hiển thị** - Migration này để đảm bảo dữ liệu mới được lưu đầy đủ
-2. **Không cần migration dữ liệu cũ** - Phase 1 (COALESCE JOIN) đã handle fallback
-3. **Backward compatible** - Chỉ thêm fields, không thay đổi logic nghiệp vụ
-4. **Test sau migration**: Tạo transfer mới, xác nhận nhận hàng, return to stock và kiểm tra UI
+| File | Thay đổi |
+|------|----------|
+| `src/components/auth/LoginForm.tsx` | Thêm `id` cho form và inputs, đổi `autoComplete="email"` → `"username"` |
+| `src/components/auth/QuickReLogin.tsx` | Thêm `id` cho form, thêm hidden username input |
 
 ---
 
-### VI. FILES SẼ ĐƯỢC TẠO/SỬA
+### V. KIỂM TRA SAU TRIỂN KHAI
 
-| File | Hành động |
-|------|-----------|
-| `supabase/migrations/xxx_update_rpc_location_text.sql` | **TẠO MỚI** - Chứa 3 CREATE OR REPLACE FUNCTION |
+1. Mở PWA trên Chrome/Safari mobile
+2. Đăng nhập với tài khoản mới
+3. Sau khi đăng nhập thành công, browser sẽ hỏi "Lưu mật khẩu?"
+4. Đăng xuất và mở lại → Browser tự động gợi ý credentials đã lưu
+
+---
+
+### VI. LƯU Ý BỔ SUNG
+
+- **PWA Standalone Mode**: Browser credential manager hoạt động trong PWA mode, nhưng UI có thể khác một chút so với browser thường
+- **iOS Safari**: Yêu cầu user cho phép AutoFill trong Settings → Passwords
+- **Android Chrome**: Tự động lưu nếu user đã bật "Save passwords" trong Settings
+
+---
+
+### VII. THỨ TỰ TRIỂN KHAI
+
+1. **Phase 1**: Cập nhật `LoginForm.tsx` với các attributes chuẩn
+2. **Phase 2**: Cập nhật `QuickReLogin.tsx` với hidden username input
+3. **Phase 3**: Test trên PWA (Chrome, Safari mobile)
