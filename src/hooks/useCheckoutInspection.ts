@@ -225,6 +225,7 @@ export function usePendingInspections(roomId: string | undefined) {
   }, [roomId, user?.id, refetch, queryClient])
   
   // Start inspection - trả về data để xác nhận thành công
+  // Sử dụng maybeSingle() để tránh lỗi khi 0 rows (inspection đã started hoặc completed)
   const startInspection = useMutation({
     mutationFn: async (inspectionId: string) => {
       console.log('[usePendingInspections.startInspection] Starting with id:', inspectionId)
@@ -238,7 +239,7 @@ export function usePendingInspections(roomId: string | undefined) {
         .eq('id', inspectionId)
         .eq('status', 'pending') // Chỉ update nếu đang pending (tránh duplicate/race condition)
         .select('id, status, started_at')
-        .single()
+        .maybeSingle() // Dùng maybeSingle thay vì single để tránh lỗi khi 0 rows
       
       if (error) {
         console.error('[usePendingInspections.startInspection] Supabase error:', error)
@@ -246,8 +247,9 @@ export function usePendingInspections(roomId: string | undefined) {
       }
       
       if (!data) {
+        // Inspection đã được start hoặc completed - không phải lỗi nghiêm trọng
         console.warn('[usePendingInspections.startInspection] No data returned - inspection may already be in_progress or completed')
-        throw new Error('Không thể cập nhật trạng thái - yêu cầu có thể đã được bắt đầu')
+        return null
       }
       
       console.log('[usePendingInspections.startInspection] Success, data:', data)
@@ -258,7 +260,9 @@ export function usePendingInspections(roomId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['pending-inspection', roomId, user?.id] })
       queryClient.invalidateQueries({ queryKey: ['checkout-inspection'] })
       queryClient.invalidateQueries({ queryKey: ['room-has-pending-inspection', roomId] })
-      toast.success('Đã bắt đầu kiểm tra phòng')
+      if (data) {
+        toast.success('Đã bắt đầu kiểm tra phòng')
+      }
     },
     onError: (error: Error) => {
       console.error('[usePendingInspections.startInspection] onError:', error)
