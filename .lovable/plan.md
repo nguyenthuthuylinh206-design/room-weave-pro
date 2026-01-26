@@ -1,208 +1,123 @@
 
 
-## Kế hoạch: Mở chi tiết task cụ thể khi nhân viên click thông báo
+## Kế hoạch: Thêm link "Công việc của tôi" vào Navigation
 
-### I. VẤN ĐỀ HIỆN TẠI
+### I. PHÂN TÍCH HIỆN TẠI
 
-| Thành phần | Hiện tại | Vấn đề |
-|------------|----------|--------|
-| **MyTasksPage** | Lấy `taskId` từ URL nhưng không sử dụng | Không truyền cho StaffTasksTab |
-| **StaffTasksTab** | Không nhận prop `initialTaskId` | Không biết task nào cần highlight |
-| **TaskCard** | Chỉ hiển thị danh sách | Không có cơ chế highlight/scroll-to |
+| Component | Mô tả | Staff có thể thấy? |
+|-----------|-------|-------------------|
+| `BottomNav.tsx` | Bottom nav cũ (5 tabs) | ✅ |
+| `MobileBottomNav.tsx` | Bottom nav chính cho mobile | ✅ |
+| `MorePage.tsx` | Trang "Thêm" với các modules | ✅ |
+
+**Vấn đề**: Không có link nào dẫn đến `/my-tasks` → Staff phải nhớ URL hoặc chờ notification
 
 ---
 
 ### II. GIẢI PHÁP
 
-Tạo **TaskDetailDialog** và tự động mở khi có `taskId` trong URL.
+Thêm link "Công việc của tôi" (My Tasks) vào:
+1. **MorePage** - Trong phần "Liên kết nhanh" (Quick Links)
+2. **BottomNav** - Thêm tab mới cho Staff (thay thế hoặc bổ sung)
 
 ---
 
 ### III. CÁC BƯỚC THỰC HIỆN
 
-#### Bước 1: Tạo TaskDetailDialog component
+#### Bước 1: Cập nhật MorePage.tsx
 
-Hiển thị chi tiết task trong modal:
-- Thông tin phòng, loại công việc, mức độ ưu tiên
-- Thông tin người giao việc, thời gian
-- Các actions: Bắt đầu, Hoàn thành, Kiểm tra phòng (tùy task type)
+Thêm "Công việc của tôi" vào `quickLinks`:
 
 ```typescript
-// src/components/housekeeping/TaskDetailDialog.tsx
-interface TaskDetailDialogProps {
-  taskId: string | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
+const quickLinks = [
+  { icon: ClipboardList, label: 'Công việc của tôi', path: '/my-tasks' }, // THÊM MỚI
+  { icon: User, label: 'Hồ sơ cá nhân', path: '/settings/profile' },
+  { icon: Settings, label: 'Cài đặt', path: '/settings' },
+  { icon: HelpCircle, label: 'Trợ giúp & Hỗ trợ', path: '/help' },
+]
 ```
 
-#### Bước 2: Thêm hook useTaskById
+#### Bước 2: Cập nhật BottomNav.tsx
 
-Query 1 task cụ thể theo ID:
+Thêm tab "Tasks" cho staff với badge hiển thị số công việc pending:
 
 ```typescript
-// Thêm vào useHousekeepingTasks.ts
-export function useTaskById(taskId: string | null) {
-  return useQuery({
-    queryKey: ['housekeeping-task', taskId],
-    queryFn: async () => {
-      if (!taskId) return null;
-      const { data } = await supabase
-        .from('housekeeping_tasks')
-        .select(`
-          *,
-          room:rooms(id, room_number, floor),
-          requested_user:users!...(id, full_name),
-          assigned_user:users!...(id, full_name)
-        `)
-        .eq('id', taskId)
-        .single();
-      return data;
-    },
-    enabled: !!taskId
-  });
-}
+const tabs: NavTab[] = [
+  { id: 'dashboard', icon: Home, label: 'Home', path: '/' },
+  { id: 'my-tasks', icon: ClipboardList, label: 'Tasks', path: '/my-tasks' }, // THÊM MỚI
+  { id: 'rooms', icon: DoorOpen, label: 'Phòng', path: '/rooms', module: 'rooms' },
+  { id: 'laundry', icon: Shirt, label: 'Laundry', path: '/laundry', module: 'laundry' },
+  { id: 'maintenance', icon: Wrench, label: 'Bảo trì', path: '/maintenance', module: 'maintenance' },
+]
 ```
 
-#### Bước 3: Cập nhật StaffTasksTab
+#### Bước 3: Cập nhật MobileBottomNav.tsx
 
-Nhận prop `initialTaskId` và tự động mở dialog:
-
-```typescript
-// StaffTasksTab.tsx
-interface StaffTasksTabProps {
-  initialTaskId?: string | null;
-}
-
-export function StaffTasksTab({ initialTaskId }: StaffTasksTabProps) {
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(
-    initialTaskId || null
-  );
-  
-  // Auto-open dialog when initialTaskId is provided
-  useEffect(() => {
-    if (initialTaskId) {
-      setSelectedTaskId(initialTaskId);
-    }
-  }, [initialTaskId]);
-  
-  return (
-    <>
-      {/* Task List */}
-      {myTasks?.map(task => (
-        <TaskCard 
-          key={task.id} 
-          task={task} 
-          onClick={() => setSelectedTaskId(task.id)}
-        />
-      ))}
-      
-      {/* Detail Dialog */}
-      <TaskDetailDialog
-        taskId={selectedTaskId}
-        open={!!selectedTaskId}
-        onOpenChange={(open) => !open && setSelectedTaskId(null)}
-      />
-    </>
-  );
-}
-```
-
-#### Bước 4: Cập nhật MyTasksPage
-
-Truyền `taskId` từ URL xuống StaffTasksTab:
+Thêm "Tasks" vào `NAV_ITEMS` cho Manager/Staff với badge:
 
 ```typescript
-// MyTasksPage.tsx
-export function MyTasksPage() {
-  const [searchParams] = useSearchParams();
-  const taskId = searchParams.get('task');
-  
-  return (
-    <div>
-      <StaffTasksTab initialTaskId={taskId} />
-    </div>
-  );
-}
-```
-
-#### Bước 5: Thêm onClick cho TaskCard
-
-Cho phép click vào card để xem chi tiết:
-
-```typescript
-// TaskCard.tsx
-interface TaskCardProps {
-  task: HousekeepingTaskWithDetails;
-  onClick?: () => void;  // Thêm prop mới
-}
-
-<div onClick={onClick} className="cursor-pointer">
-  {/* Card content */}
-</div>
+const NAV_ITEMS: NavItem[] = [
+  { id: 'home', label: 'Home', icon: Home, path: '/' },
+  { id: 'my-tasks', label: 'Tasks', icon: ClipboardList, path: '/my-tasks', badge: true }, // THÊM MỚI
+  { id: 'rooms', label: 'Phòng', icon: DoorOpen, path: '/rooms', module: 'rooms', badge: true },
+  { id: 'laundry', label: 'Giặt là', icon: Shirt, path: '/laundry', module: 'laundry', badge: true },
+  { id: 'maintenance', label: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badge: true },
+]
 ```
 
 ---
 
-### IV. NỘI DUNG TASK DETAIL DIALOG
-
-| Thông tin | Chi tiết |
-|-----------|----------|
-| **Header** | Tên phòng + Badge trạng thái |
-| **Loại công việc** | Icon + Label (Kiểm tra checkout, Dọn phòng...) |
-| **Mức ưu tiên** | Badge màu (Khẩn cấp, Cao, Trung bình, Thấp) |
-| **Thời gian** | Tạo lúc, Deadline (nếu có) |
-| **Người giao** | Tên + Avatar |
-| **Ghi chú** | Nội dung description |
-| **Actions** | Bắt đầu / Tiếp tục / Hoàn thành |
-
----
-
-### V. FILES CẦN TẠO/SỬA
+### IV. FILES CẦN SỬA
 
 | File | Thay đổi |
 |------|----------|
-| `src/components/housekeeping/TaskDetailDialog.tsx` | **TẠO MỚI** |
-| `src/hooks/useHousekeepingTasks.ts` | Thêm `useTaskById` hook |
-| `src/components/housekeeping/StaffTasksTab.tsx` | Nhận prop `initialTaskId`, tích hợp dialog |
-| `src/pages/MyTasksPage.tsx` | Truyền `taskId` từ URL cho StaffTasksTab |
-| `src/components/housekeeping/TaskCard.tsx` | Thêm prop `onClick` |
+| `src/pages/mobile/MorePage.tsx` | Thêm link "Công việc của tôi" vào quickLinks |
+| `src/components/layout/BottomNav.tsx` | Thêm tab "Tasks" |
+| `src/components/layout/MobileBottomNav.tsx` | Thêm tab "Tasks" với badge |
 
 ---
 
-### VI. FLOW SAU KHI SỬA
+### V. BADGE LOGIC
 
-1. Manager giao việc cho NV Linh
-2. NV Linh nhận notification
-3. Click vào notification → Navigate đến `/my-tasks?task=xxx`
-4. **StaffTasksTab** nhận `initialTaskId`
-5. **TaskDetailDialog** tự động mở với chi tiết task
-6. NV Linh xem thông tin và thực hiện hành động (Bắt đầu, Hoàn thành...)
+Sử dụng hook `usePendingTaskCount` (đã có) để hiển thị số task pending của staff:
 
----
+```typescript
+const { data: myTaskCount = 0 } = usePendingTaskCount()
 
-### VII. UI PREVIEW
-
-```text
-┌─────────────────────────────────────┐
-│ ✕                      Chi tiết     │
-├─────────────────────────────────────┤
-│                                     │
-│ 📍 Phòng P101                       │
-│                                     │
-│ ┌─────────────────────────────────┐ │
-│ │ 📋 Kiểm tra checkout            │ │
-│ │ ⚡ Ưu tiên: Trung bình           │ │
-│ │ 👤 Giao bởi: Quản Lý 2          │ │
-│ │ ⏰ 17 phút trước                 │ │
-│ └─────────────────────────────────┘ │
-│                                     │
-│ Ghi chú:                            │
-│ Kiểm tra đồ dùng và báo cáo        │
-│                                     │
-│ ┌─────────────────────────────────┐ │
-│ │       ▶ Bắt đầu thực hiện       │ │
-│ └─────────────────────────────────┘ │
-└─────────────────────────────────────┘
+// Trong getBadgeCount:
+if (itemId === 'my-tasks') return myTaskCount
 ```
+
+---
+
+### VI. KẾT QUẢ SAU SỬA
+
+**Mobile Bottom Nav:**
+```text
+┌────────────────────────────────────────────┐
+│  🏠     📋     🚪     👕     🔧           │
+│ Home   Tasks  Phòng  Giặt  Bảo trì        │
+│          (2)   (3)                         │
+└────────────────────────────────────────────┘
+```
+
+**MorePage Quick Links:**
+```text
+┌────────────────────────────────────────────┐
+│ 📋 Công việc của tôi              →        │
+├────────────────────────────────────────────┤
+│ 👤 Hồ sơ cá nhân                  →        │
+├────────────────────────────────────────────┤
+│ ⚙️ Cài đặt                        →        │
+└────────────────────────────────────────────┘
+```
+
+---
+
+### VII. LỢI ÍCH
+
+- Staff dễ dàng truy cập công việc được giao từ navigation
+- Không phải nhớ URL `/my-tasks`
+- Badge hiển thị số task pending → nhắc nhở staff
+- Tất cả user (kể cả không có quyền module) đều thấy link này
 
