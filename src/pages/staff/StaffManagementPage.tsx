@@ -10,7 +10,7 @@ import { useStaffStatus, useStaffStatusStats, type StaffWithStatus, type StaffSt
 import { useRecentStaffActivities } from '@/hooks/useStaffActivity'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useUser } from '@/hooks/useUser'
-import { isAdminUser } from '@/lib/userAccess'
+import { canCreateHousekeepingTask } from '@/lib/userAccess'
 
 export default function StaffManagementPage() {
   const [selectedStatus, setSelectedStatus] = useState<StaffStatusType | null>(null)
@@ -23,7 +23,7 @@ export default function StaffManagementPage() {
   const stats = useStaffStatusStats(staffList)
 
   // Check if user is manager or admin
-  const canManageTasks = user ? isAdminUser(user) : false
+  const canManageTasks = user ? canCreateHousekeepingTask(user) : false
 
   const handleViewDetail = (staff: StaffWithStatus) => {
     setSelectedStaff(staff)
