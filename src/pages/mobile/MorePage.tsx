@@ -14,7 +14,8 @@ import {
   ChevronRight,
   LogOut,
   HelpCircle,
-  User
+  User,
+  ClipboardList
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -51,6 +52,7 @@ export function MorePage() {
   ]
 
   const quickLinks = [
+    { icon: ClipboardList, label: 'Công việc của tôi', path: '/my-tasks' },
     { icon: User, label: 'Hồ sơ cá nhân', path: '/settings/profile' },
     { icon: Settings, label: 'Cài đặt', path: '/settings' },
     { icon: HelpCircle, label: 'Trợ giúp & Hỗ trợ', path: '/help' },

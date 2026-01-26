@@ -4,7 +4,8 @@ import {
   Package, 
   DoorOpen,
   Shirt, 
-  Wrench
+  Wrench,
+  ClipboardList
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/hooks/useUser'
@@ -33,11 +34,10 @@ export const BottomNav = () => {
       path: '/' 
     },
     { 
-      id: 'inventory', 
-      icon: Package, 
-      label: 'Kho', 
-      path: '/inventory',
-      module: 'inventory'
+      id: 'my-tasks', 
+      icon: ClipboardList, 
+      label: 'Tasks', 
+      path: '/my-tasks'
     },
     { 
       id: 'rooms', 

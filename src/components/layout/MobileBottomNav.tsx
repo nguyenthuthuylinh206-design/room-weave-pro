@@ -61,7 +61,7 @@ export const MobileBottomNav = () => {
   // Manager/Staff navigation (operations)
   const NAV_ITEMS: NavItem[] = [
     { id: 'home', label: 'Home', icon: Home, path: '/' },
-    { id: 'inventory', label: 'Kho', icon: Package, path: '/inventory', module: 'inventory,items' },
+    { id: 'my-tasks', label: 'Tasks', icon: ClipboardList, path: '/my-tasks', badge: true },
     { id: 'rooms', label: 'Phòng', icon: DoorOpen, path: '/rooms', module: 'rooms', badge: true },
     { id: 'laundry', label: 'Giặt là', icon: Shirt, path: '/laundry', module: 'laundry', badge: true },
     { id: 'maintenance', label: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badge: true },
@@ -91,6 +91,7 @@ export const MobileBottomNav = () => {
   }
 
   const getBadgeCount = (itemId: string): number => {
+    if (itemId === 'my-tasks') return pendingTaskCount
     if (!pendingCounts) return 0
     if (itemId === 'maintenance') return pendingCounts.maintenance
     if (itemId === 'laundry') return pendingCounts.laundry
