@@ -68,7 +68,7 @@ export function useCheckoutInspection(bookingId: string | undefined) {
     }
   }, [bookingId, refetch])
   
-  // Create inspection request
+  // Create inspection request + housekeeping task
   const createInspection = useMutation({
     mutationFn: async ({ 
       tenantId, 
@@ -85,7 +85,8 @@ export function useCheckoutInspection(bookingId: string | undefined) {
     }) => {
       if (!bookingId || !user?.id) throw new Error('Missing required data')
       
-      const { data, error } = await supabase
+      // 1. Tạo checkout_inspection_requests
+      const { data: inspection, error } = await supabase
         .from('checkout_inspection_requests')
         .insert({
           tenant_id: tenantId,
@@ -101,10 +102,36 @@ export function useCheckoutInspection(bookingId: string | undefined) {
         .single()
       
       if (error) throw error
-      return data
+      
+      // 2. TẠO housekeeping_tasks để hiển thị trong "Công việc của tôi"
+      const { error: taskError } = await supabase
+        .from('housekeeping_tasks')
+        .insert({
+          tenant_id: tenantId,
+          hotel_id: hotelId,
+          room_id: roomId,
+          booking_id: bookingId,
+          assigned_to: assignedTo,
+          requested_by: user.id,
+          task_type: 'checkout_inspection',
+          title: 'Kiểm tra checkout',
+          priority: 'medium',
+          status: 'pending',
+          checkout_inspection_id: inspection.id,
+          notes,
+        })
+      
+      if (taskError) {
+        console.error('Error creating housekeeping task:', taskError)
+        // Không throw - vẫn trả về inspection để flow hoàn thành
+      }
+      
+      return inspection
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['checkout-inspection', bookingId] })
+      queryClient.invalidateQueries({ queryKey: ['my-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-tasks'] })
       toast.success('Đã gửi yêu cầu kiểm tra phòng')
     },
     onError: (error: Error) => {
@@ -113,18 +140,30 @@ export function useCheckoutInspection(bookingId: string | undefined) {
     },
   })
   
-  // Cancel inspection request
+  // Cancel inspection request + housekeeping task
   const cancelInspection = useMutation({
     mutationFn: async (inspectionId: string) => {
+      // 1. Hủy checkout_inspection_requests
       const { error } = await supabase
         .from('checkout_inspection_requests')
         .update({ status: 'cancelled' })
         .eq('id', inspectionId)
       
       if (error) throw error
+      
+      // 2. HỦY housekeeping_tasks liên quan
+      await supabase
+        .from('housekeeping_tasks')
+        .update({ 
+          status: 'cancelled',
+          cancelled_at: new Date().toISOString()
+        })
+        .eq('checkout_inspection_id', inspectionId)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['checkout-inspection', bookingId] })
+      queryClient.invalidateQueries({ queryKey: ['my-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-tasks'] })
       toast.success('Đã hủy yêu cầu kiểm tra')
     },
     onError: (error: Error) => {
