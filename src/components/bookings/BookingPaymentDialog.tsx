@@ -192,12 +192,13 @@ export function BookingPaymentDialog({
         return;
       }
 
-      // Get push subscriptions for current user
+      // Check if user has any push subscriptions
       const { data: subscriptions, error: subError } = await supabase
         .from('push_subscriptions')
-        .select('*')
+        .select('id')
         .eq('user_id', userData.user.id)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .limit(1);
 
       if (subError) throw subError;
 
@@ -206,29 +207,20 @@ export function BookingPaymentDialog({
         return;
       }
 
-      // Construct subscription objects from stored data
-      const pushSubscriptions = subscriptions.map(sub => ({
-        endpoint: sub.endpoint,
-        keys: {
-          p256dh: sub.p256dh_key,
-          auth: sub.auth_key,
-        },
-      }));
-
-      // Send push notification
+      // Send push notification using user_id (edge function will look up subscriptions)
       const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
         body: {
-          subscriptions: pushSubscriptions,
-          payload: {
-            title: `QR Thanh toán phòng ${booking.room_number}`,
-            body: `Số tiền: ${formatVNCurrency(parsedAmount)} - Khách: ${booking.guest_name}`,
-            tag: `payment-qr-${createdPayment.id}`,
-            data: {
-              url: `/payment-qr/${createdPayment.id}`,
-              type: 'payment_qr',
-              paymentId: createdPayment.id,
-              roomNumber: booking.room_number,
-            },
+          user_id: userData.user.id,
+          title: `QR Thanh toán phòng ${booking.room_number}`,
+          body: `Số tiền: ${formatVNCurrency(parsedAmount)} - Khách: ${booking.guest_name}`,
+          tag: `payment-qr-${createdPayment.id}`,
+          action_url: `/payment-qr/${createdPayment.id}`,
+          notification_type: 'payment_qr',
+          data: {
+            url: `/payment-qr/${createdPayment.id}`,
+            type: 'payment_qr',
+            paymentId: createdPayment.id,
+            roomNumber: booking.room_number,
           },
         },
       });
