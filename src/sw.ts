@@ -196,7 +196,15 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
     return;
   }
 
-  const urlToOpen = (event.notification.data?.url as string) || '/';
+  const rawUrl = (event.notification.data?.url as string) || '/';
+  let urlToOpen = rawUrl;
+  try {
+    urlToOpen = new URL(rawUrl, self.location.origin).toString();
+  } catch {
+    urlToOpen = new URL('/', self.location.origin).toString();
+  }
+  const urlParsed = new URL(urlToOpen);
+  const shouldNavigate = urlParsed.pathname !== '/' || !!urlParsed.search || !!urlParsed.hash;
 
   event.waitUntil(
     self.clients
@@ -206,9 +214,7 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
         for (const client of clientList) {
           if (client.url.includes(self.location.origin) && 'focus' in client) {
             client.focus();
-            if (urlToOpen !== '/') {
-              (client as WindowClient).navigate(urlToOpen);
-            }
+            if (shouldNavigate) (client as WindowClient).navigate(urlToOpen);
             return;
           }
         }
