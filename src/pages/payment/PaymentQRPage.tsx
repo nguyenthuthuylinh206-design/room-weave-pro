@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Copy, Check, CheckCircle, Loader2, AlertCircle, QrCode, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { formatVNCurrency } from '@/lib/pricing';
 import { getBankName } from '@/lib/vietnam-banks';
@@ -15,26 +15,36 @@ export default function PaymentQRPage() {
   const { paymentId } = useParams<{ paymentId: string }>();
   const navigate = useNavigate();
 
-  // Auto-redirect if on Auth Bridge domain (*.lovableproject.com)
-  // This allows PWA notification clicks to work by first opening in PWA context,
-  // then redirecting to public URL that doesn't require authentication
-  useEffect(() => {
+  // Check if on Auth Bridge domain BEFORE any conditional logic
+  const { isOnAuthBridge, targetUrl } = useMemo(() => {
     const currentOrigin = window.location.origin;
     const publicBaseUrl = getPublicBaseUrl();
-    
-    // If publicBaseUrl is different, we're on Auth Bridge domain - redirect to public URL
-    if (publicBaseUrl !== currentOrigin && paymentId) {
-      const targetUrl = `${publicBaseUrl}/payment-qr/${paymentId}`;
-      console.log('[PaymentQR] Redirecting to bypass Auth Bridge:', targetUrl);
-      window.location.href = targetUrl;
-    }
+    const isOnAuthBridge = publicBaseUrl !== currentOrigin;
+    const targetUrl = paymentId ? `${publicBaseUrl}/payment-qr/${paymentId}` : '';
+    return { isOnAuthBridge, targetUrl, publicBaseUrl };
   }, [paymentId]);
+
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [autoOpenAttempted, setAutoOpenAttempted] = useState(false);
 
-  const { data: payment, isLoading, error } = usePaymentById(paymentId);
+  // Hooks must be called unconditionally - only skip fetching if on Auth Bridge
+  const { data: payment, isLoading, error } = usePaymentById(isOnAuthBridge ? undefined : paymentId);
   const { data: bankSettings, isLoading: bankLoading } = useBankPaymentSettings();
+
+  // Auto-open Safari when on Auth Bridge domain
+  useEffect(() => {
+    if (isOnAuthBridge && paymentId && targetUrl && !autoOpenAttempted) {
+      setAutoOpenAttempted(true);
+      // Small delay to ensure page loads first
+      const timer = setTimeout(() => {
+        console.log('[PaymentQR] Auto-opening in Safari:', targetUrl);
+        window.open(targetUrl, '_blank');
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isOnAuthBridge, paymentId, targetUrl, autoOpenAttempted]);
 
   // Handle window resize for confetti
   useEffect(() => {
@@ -65,9 +75,41 @@ export default function PaymentQRPage() {
     }
   };
 
+  // Show Auth Bridge UI - user needs to open in browser
+  if (isOnAuthBridge && paymentId) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-6">
+        <QrCode className="h-16 w-16 text-primary mb-4" />
+        <h2 className="text-xl font-semibold mb-2 text-center">Xem mã QR thanh toán</h2>
+        <p className="text-muted-foreground text-center mb-6">
+          Nhấn nút bên dưới để mở trang thanh toán
+        </p>
+        <Button 
+          size="lg" 
+          className="w-full max-w-xs"
+          onClick={() => {
+            console.log('[PaymentQR] Manual open in Safari:', targetUrl);
+            window.open(targetUrl, '_blank');
+          }}
+        >
+          <ExternalLink className="h-4 w-4 mr-2" />
+          Mở trong trình duyệt
+        </Button>
+        <Button 
+          variant="ghost" 
+          className="mt-4"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Quay lại
+        </Button>
+      </div>
+    );
+  }
+
   if (isLoading || bankLoading) {
     return (
-      <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center">
+      <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="mt-4 text-muted-foreground">Đang tải thông tin thanh toán...</p>
       </div>
@@ -76,7 +118,7 @@ export default function PaymentQRPage() {
 
   if (error || !payment) {
     return (
-      <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-4">
+      <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-4">
         <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
         <h2 className="text-lg font-semibold mb-2">Không tìm thấy thông tin thanh toán</h2>
         <p className="text-muted-foreground text-center mb-6">
@@ -92,7 +134,7 @@ export default function PaymentQRPage() {
 
   if (!bankSettings) {
     return (
-      <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-4">
+      <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-4">
         <AlertCircle className="h-12 w-12 text-amber-500 mb-4" />
         <h2 className="text-lg font-semibold mb-2">Chưa cấu hình ngân hàng</h2>
         <p className="text-muted-foreground text-center mb-6">
@@ -115,7 +157,7 @@ export default function PaymentQRPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] bg-white flex flex-col"
+        className="fixed inset-0 z-[100] bg-background flex flex-col"
       >
         {/* Confetti for completed payment */}
         {showConfetti && (
@@ -178,7 +220,7 @@ export default function PaymentQRPage() {
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.1 }}
-                className="bg-white p-4 rounded-2xl shadow-xl border-2 border-primary/10"
+                className="bg-background p-4 rounded-2xl shadow-xl border-2 border-primary/10"
               >
                 <img
                   src={qrCodeUrl}
