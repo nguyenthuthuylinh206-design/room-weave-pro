@@ -1,340 +1,207 @@
 
-## Kế hoạch: Tính năng QR Code thanh toán tiền phòng
+## Kế hoạch: Tích hợp QR Payment vào nút "Thu tiền & Trả phòng"
 
-### I. TỔNG QUAN
-
-Xây dựng hệ thống thanh toán tiền phòng với mã QR, cho phép:
-1. Nhân viên chọn phương thức thanh toán (tiền mặt/chuyển khoản)
-2. Nếu chuyển khoản: hiển thị QR code với nội dung thanh toán tự động
-3. Nhân viên có thể hiển thị QR fullscreen trên mobile để đưa khách quét
-4. Lưu lịch sử giao dịch thanh toán booking
-
----
-
-### II. KIẾN TRÚC HỆ THỐNG
+### I. QUY TRÌNH HIỆN TẠI
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                    USER INTERFACE                                │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────────────┐    ┌──────────────────┐                   │
-│  │ RoomBookingDialog│    │CheckoutSummaryDialog│                │
-│  │  "Thu tiền"      │    │  "Thu tiền & Trả"   │                │
-│  └────────┬─────────┘    └─────────┬──────────┘                 │
-│           │                        │                             │
-│           └───────────┬────────────┘                             │
-│                       ▼                                          │
-│           ┌───────────────────────┐                              │
-│           │ BookingPaymentDialog  │ ◄── NEW                      │
-│           │ • Chọn phương thức    │                              │
-│           │ • Nhập số tiền        │                              │
-│           │ • Hiển thị QR/xác nhận│                              │
-│           └───────────┬───────────┘                              │
-│                       │                                          │
-│      ┌────────────────┼────────────────┐                         │
-│      ▼                ▼                ▼                         │
-│ ┌─────────┐    ┌─────────────┐   ┌──────────────────┐           │
-│ │  Cash   │    │ Bank QR     │   │ MobileQRDisplay  │ ◄── NEW   │
-│ │ (update │    │ (BankQRCode)│   │ (Fullscreen QR)  │           │
-│ │ booking)│    │             │   │                  │           │
-│ └─────────┘    └─────────────┘   └──────────────────┘           │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                       DATABASE                                   │
-├─────────────────────────────────────────────────────────────────┤
-│  booking_payments (NEW)                                          │
-│  ├── id                                                          │
-│  ├── tenant_id                                                   │
-│  ├── hotel_id                                                    │
-│  ├── booking_id → room_bookings                                  │
-│  ├── amount                                                      │
-│  ├── payment_method (cash | bank_transfer)                       │
-│  ├── payment_status (pending | completed | cancelled)            │
-│  ├── transaction_reference (mã CK: BP-XXXXXX)                    │
-│  ├── paid_at                                                     │
-│  ├── created_by                                                  │
-│  └── metadata (room_number, guest_name...)                       │
-│                                                                  │
-│  room_bookings (UPDATE)                                          │
-│  └── Cập nhật amount_paid, payment_status khi thanh toán         │
-└─────────────────────────────────────────────────────────────────┘
+User click "Thu tiền & Trả phòng"
+          │
+          ▼
+┌─────────────────────────────┐
+│ handlePayAndCheckout()      │
+│ • Update payment trực tiếp  │
+│ • Thực hiện checkout        │
+│ • Không có lựa chọn method  │
+└─────────────────────────────┘
+```
+
+**Vấn đề:** Thanh toán được xử lý ngầm, không cho phép chọn phương thức (tiền mặt/chuyển khoản QR).
+
+---
+
+### II. QUY TRÌNH MỚI
+
+```text
+User click "Thu tiền & Trả phòng"
+          │
+          ▼
+┌─────────────────────────────────┐
+│       BookingPaymentDialog      │
+│  ┌─────────┐    ┌───────────┐   │
+│  │Tiền mặt │ OR │Chuyển khoản│  │
+│  └────┬────┘    └─────┬─────┘   │
+│       │               │         │
+│       ▼               ▼         │
+│   Xác nhận      ┌───────────┐   │
+│   đã nhận      │  QR Code   │   │
+│   tiền         │  VietQR    │   │
+│       │        │            │   │
+│       │        │ [Fullscreen]│  │
+│       │        │  Button    │   │
+│       │        └─────┬─────┘   │
+│       │              │         │
+│       ▼              ▼         │
+│     ┌────────────────────┐     │
+│     │ onPaymentComplete  │     │
+│     │ → Gọi checkout     │     │
+│     └────────────────────┘     │
+└─────────────────────────────────┘
 ```
 
 ---
 
-### III. CHI TIẾT COMPONENTS
+### III. CHI TIẾT THAY ĐỔI
 
-#### A. BookingPaymentDialog (NEW)
-**File:** `src/components/bookings/BookingPaymentDialog.tsx`
+#### A. CheckoutSummaryDialog.tsx
 
-Dialog chính để xử lý thanh toán booking:
-- **Step 1**: Chọn phương thức (Tiền mặt / Chuyển khoản)
-- **Step 2**: Nhập số tiền (mặc định = số còn lại)
-- **Step 3a** (Tiền mặt): Xác nhận → Cập nhật booking
-- **Step 3b** (Chuyển khoản): Hiển thị QR Code + nút "Mở QR toàn màn hình"
-
+**1. Import thêm:**
 ```typescript
-interface BookingPaymentDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  booking: {
-    id: string;
-    guest_name: string;
-    room_number: string;
-    total_amount: number;
-    amount_paid: number;
-  };
-  onPaymentComplete?: () => void;
-}
+import { BookingPaymentDialog } from '@/components/bookings/BookingPaymentDialog'
 ```
 
-#### B. MobilePaymentQRDisplay (NEW)
-**File:** `src/components/payment/MobilePaymentQRDisplay.tsx`
-
-Fullscreen QR display cho mobile:
-- QR code phóng to toàn màn hình
-- Thông tin thanh toán ngắn gọn
-- Nút đóng/thu nhỏ
-- Auto-brightness tối đa (nếu supported)
-- Pull-down để thu nhỏ
-
+**2. Thêm state:**
 ```typescript
-interface MobilePaymentQRDisplayProps {
-  open: boolean;
-  onClose: () => void;
-  qrData: {
-    bankCode: string;
-    accountNumber: string;
-    accountHolder: string;
-    amount: number;
-    paymentContent: string;
-  };
-  bookingInfo: {
-    guestName: string;
-    roomNumber: string;
-  };
-}
+const [showPaymentDialog, setShowPaymentDialog] = useState(false)
 ```
 
-#### C. Cập nhật RoomBookingDialog
-**File:** `src/components/rooms/RoomBookingDialog.tsx`
-
-Thay đổi nút "Nhận thanh toán đầy đủ":
-- Mở `BookingPaymentDialog` thay vì cập nhật trực tiếp
-- Truyền thông tin booking hiện tại
-
-#### D. Cập nhật CheckoutSummaryDialog
-**File:** `src/components/bookings/CheckoutSummaryDialog.tsx`
-
-Thay đổi nút "Thu tiền & Trả phòng":
-- Mở `BookingPaymentDialog` trước
-- Sau khi thanh toán xong → Thực hiện checkout
-
----
-
-### IV. DATABASE MIGRATION
-
-**Tạo bảng `booking_payments`:**
-
-```sql
-CREATE TABLE public.booking_payments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  hotel_id UUID NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
-  booking_id UUID NOT NULL REFERENCES room_bookings(id) ON DELETE CASCADE,
-  amount NUMERIC NOT NULL,
-  payment_method TEXT NOT NULL CHECK (payment_method IN ('cash', 'bank_transfer')),
-  payment_status TEXT NOT NULL DEFAULT 'pending' CHECK (payment_status IN ('pending', 'completed', 'cancelled')),
-  transaction_reference TEXT, -- Mã chuyển khoản: BP-XXXXXX
-  paid_at TIMESTAMPTZ,
-  created_by UUID REFERENCES auth.users(id),
-  metadata JSONB DEFAULT '{}',
-  notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Indexes
-CREATE INDEX idx_booking_payments_booking ON booking_payments(booking_id);
-CREATE INDEX idx_booking_payments_tenant ON booking_payments(tenant_id);
-CREATE INDEX idx_booking_payments_reference ON booking_payments(transaction_reference);
-
--- RLS
-ALTER TABLE booking_payments ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "booking_payments_tenant_isolation" ON booking_payments
-  FOR ALL USING (tenant_id = (SELECT tenant_id FROM users WHERE id = auth.uid()));
-
--- Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE booking_payments;
-```
-
----
-
-### V. HOOK & UTILITIES
-
-#### A. useBookingPayments (NEW)
-**File:** `src/hooks/useBookingPayments.ts`
-
+**3. Thay đổi handler nút "Thu tiền & Trả phòng":**
 ```typescript
-export function useBookingPayments(bookingId?: string) {
-  // Query payments for a booking
-  // Mutation to create payment
-  // Mutation to confirm cash payment
-  // Realtime subscription for status updates
-}
+// Cũ: onClick={handlePayAndCheckout}
+// Mới: onClick={() => setShowPaymentDialog(true)}
+```
 
-export function useCreateBookingPayment() {
-  // Create payment transaction
-  // Generate unique reference (BP-{timestamp})
-  // Update booking amount_paid if cash
+**4. Thêm callback xử lý sau khi thanh toán:**
+```typescript
+const handlePaymentComplete = () => {
+  setShowPaymentDialog(false)
+  // Gọi callback checkout sau khi thanh toán xong
+  onPayAndCheckout(
+    adjustedLateCharge,
+    isAdjusted ? adjustmentNote : undefined,
+    totalDamageCharge,
+    isDamageAdjusted ? damageAdjustmentNote : undefined,
+    adjustedDamageItems
+  )
 }
 ```
 
-#### B. Payment Reference Generator
-**Format:** `BP-{hotelCode}-{timestamp36}`
-**Ví dụ:** `BP-P102-M8X4Y2`
+**5. Thêm BookingPaymentDialog component:**
+```typescript
+<BookingPaymentDialog
+  open={showPaymentDialog}
+  onOpenChange={setShowPaymentDialog}
+  booking={{
+    id: bookingId!,
+    guest_name: guestName,
+    room_number: roomNumber,
+    total_amount: adjustedCostBreakdown.totalAmount,
+    amount_paid: costBreakdown.amountPaid,
+    tenant_id: tenantId!,
+    hotel_id: hotelId!,
+  }}
+  onPaymentComplete={handlePaymentComplete}
+/>
+```
 
 ---
 
-### VI. FLOW THANH TOÁN
+### IV. FLOW CHI TIẾT
 
 #### Flow 1: Thanh toán tiền mặt
 ```text
-1. Nhân viên click "Thu tiền"
-2. Mở BookingPaymentDialog
-3. Chọn "Tiền mặt"
-4. Nhập số tiền (mặc định = còn lại)
+1. User click "Thu tiền & Trả phòng"
+2. Mở BookingPaymentDialog (step: select)
+3. Chọn "Tiền mặt" (đã chọn mặc định)
+4. Số tiền hiển thị = số tiền còn lại
 5. Click "Xác nhận đã nhận tiền"
 6. System:
-   - Insert booking_payments (status: completed)
-   - Update room_bookings.amount_paid
-   - Update room_bookings.payment_status
-7. Đóng dialog, hiển thị toast thành công
+   - Tạo booking_payment (status: completed)
+   - Cập nhật room_bookings.amount_paid
+7. Dialog đóng, gọi handlePaymentComplete()
+8. CheckoutSummaryDialog gọi onPayAndCheckout → Checkout
+9. Toast: "Đã thanh toán và check-out thành công"
 ```
 
 #### Flow 2: Thanh toán chuyển khoản
 ```text
-1. Nhân viên click "Thu tiền"
-2. Mở BookingPaymentDialog
+1. User click "Thu tiền & Trả phòng"
+2. Mở BookingPaymentDialog (step: select)
 3. Chọn "Chuyển khoản"
-4. Nhập số tiền (mặc định = còn lại)
-5. Click "Tạo mã thanh toán"
+4. Số tiền hiển thị = số tiền còn lại
+5. Click "Tạo mã QR thanh toán"
 6. System:
-   - Insert booking_payments (status: pending)
-   - Generate transaction_reference
-7. Hiển thị QR Code + thông tin CK
+   - Tạo booking_payment (status: pending)
+   - Generate transaction_reference: BP{room}{timestamp}
+7. Hiển thị QR Code VietQR (step: qr)
 8. Nhân viên có thể:
-   a. "Mở QR toàn màn hình" → MobilePaymentQRDisplay
-   b. "Đã nhận tiền" → Confirm manual
-   c. Đợi webhook SePay auto-confirm
+   a. "Mở QR toàn màn hình" → Đưa khách quét
+   b. "Đã nhận được tiền" → Manual confirm
+   c. Đợi SePay webhook tự xác nhận
 9. Khi confirmed:
-   - Update booking_payments.status = completed
-   - Update room_bookings.amount_paid
+   - booking_payment status → completed
+   - room_bookings.amount_paid cập nhật
    - Realtime cập nhật UI
+10. Dialog đóng → Checkout
 ```
 
-#### Flow 3: Mobile QR Display
+#### Flow 3: Mobile QR Fullscreen
 ```text
 1. Từ BookingPaymentDialog, click "Mở QR toàn màn hình"
-2. MobilePaymentQRDisplay mở fullscreen
-3. Nhân viên đưa điện thoại cho khách quét
-4. Khách quét QR bằng app ngân hàng
-5. Khách chuyển khoản
-6. SePay webhook → Auto confirm
-7. UI tự cập nhật "Đã thanh toán"
+2. MobilePaymentQRDisplay mở (overlay fullscreen)
+3. Hiển thị:
+   - QR code lớn (dễ quét)
+   - Thông tin: Phòng, Số tiền, Nội dung CK
+   - Tên chủ TK, số TK
+4. Nhân viên đưa điện thoại cho khách quét
+5. Khách mở app ngân hàng → Quét → Chuyển tiền
+6. Click X hoặc vuốt xuống để đóng
 ```
 
 ---
 
-### VII. FILES CẦN TẠO/SỬA
+### V. FILES CẦN SỬA
 
-| File | Loại | Mô tả |
-|------|------|-------|
-| `src/components/bookings/BookingPaymentDialog.tsx` | **NEW** | Dialog thanh toán chính |
-| `src/components/payment/MobilePaymentQRDisplay.tsx` | **NEW** | Fullscreen QR cho mobile |
-| `src/hooks/useBookingPayments.ts` | **NEW** | Hook quản lý thanh toán |
-| `src/components/rooms/RoomBookingDialog.tsx` | UPDATE | Thêm state, gọi BookingPaymentDialog |
-| `src/components/bookings/CheckoutSummaryDialog.tsx` | UPDATE | Tích hợp payment dialog |
-| `supabase/functions/sepay-webhook/index.ts` | UPDATE | Xử lý booking payments |
+| File | Thay đổi |
+|------|----------|
+| `src/components/bookings/CheckoutSummaryDialog.tsx` | Thêm state, import, BookingPaymentDialog component |
 
 ---
 
-### VIII. SePay Webhook Integration
-
-Cập nhật `sepay-webhook` để xử lý booking payments:
+### VI. DỮ LIỆU TRUYỀN VÀO BookingPaymentDialog
 
 ```typescript
-// Thêm logic match booking payment
-const bookingPayment = await supabase
-  .from('booking_payments')
-  .select('*, booking:room_bookings(*)')
-  .eq('transaction_reference', normalizedContent)
-  .eq('payment_status', 'pending')
-  .maybeSingle();
-
-if (bookingPayment) {
-  // Update booking payment
-  await supabase.from('booking_payments')
-    .update({ payment_status: 'completed', paid_at: new Date() })
-    .eq('id', bookingPayment.id);
-  
-  // Update room booking
-  const newAmountPaid = (bookingPayment.booking.amount_paid || 0) + bookingPayment.amount;
-  await supabase.from('room_bookings')
-    .update({ 
-      amount_paid: newAmountPaid,
-      payment_status: newAmountPaid >= bookingPayment.booking.total_amount ? 'paid' : 'partial'
-    })
-    .eq('id', bookingPayment.booking_id);
-}
+booking={{
+  id: bookingId,               // ID booking
+  guest_name: guestName,       // Tên khách (hiển thị)
+  room_number: roomNumber,     // Số phòng (hiển thị + tạo mã)
+  total_amount: adjustedCostBreakdown.totalAmount,  // Tổng tiền (đã tính phụ thu)
+  amount_paid: costBreakdown.amountPaid,            // Đã thanh toán
+  tenant_id: tenantId,         // Tenant isolation
+  hotel_id: hotelId,           // Hotel context
+}}
 ```
 
----
-
-### IX. UI/UX SPECIFICATIONS
-
-#### A. BookingPaymentDialog
-- Max width: `sm:max-w-md`
-- Payment method: Radio buttons với icons
-- Amount input: Số tiền với format VND
-- QR section: Sử dụng `BankQRCode` component hiện có
-- Mobile button: "Mở QR toàn màn hình" với icon Maximize
-
-#### B. MobilePaymentQRDisplay
-- Fullscreen overlay (fixed, inset-0)
-- Background: White
-- QR size: 80% viewport width (max 400px)
-- Swipe down to close (gesture)
-- Thông tin ngắn: Phòng, Số tiền, Nội dung CK
+**Số tiền còn lại = total_amount - amount_paid** (tính trong dialog)
 
 ---
 
-### X. TESTING CHECKLIST
+### VII. TESTING CHECKLIST
 
-1. Thanh toán tiền mặt:
-   - Số tiền cập nhật đúng
-   - Payment status chuyển đúng (partial/paid)
-   
-2. Thanh toán chuyển khoản:
-   - QR hiển thị đúng thông tin
-   - Transaction reference unique
-   - Webhook xử lý đúng khi nhận tiền
-   
-3. Mobile QR Display:
-   - Fullscreen hoạt động trên iOS/Android
-   - Swipe down đóng được
-   - QR readable by banking apps
-   
-4. Realtime updates:
-   - UI cập nhật khi webhook confirm
-   - Toast notification hiển thị
+1. Click "Thu tiền & Trả phòng" → Mở BookingPaymentDialog
+2. Tiền mặt: Xác nhận → Checkout thành công
+3. Chuyển khoản: QR hiển thị đúng số tiền còn lại
+4. Mobile QR fullscreen hoạt động
+5. Sau thanh toán xong → Tự động checkout
+6. Trường hợp partial payment (trả một phần) hoạt động
+7. Realtime cập nhật khi webhook SePay xác nhận
 
-5. Edge cases:
-   - Thanh toán partial (một phần)
-   - Thanh toán nhiều lần
-   - Cancel payment
+---
+
+### VIII. EDGE CASES
+
+| Case | Xử lý |
+|------|-------|
+| Đã thanh toán đủ | Nút chuyển thành "Xác nhận Check-out" (không qua payment dialog) |
+| Còn nợ partial | Hiển thị số tiền còn lại, cho phép trả một phần |
+| Cancel payment dialog | Quay về CheckoutSummaryDialog, không checkout |
+| Webhook confirm trước manual | UI tự cập nhật, dialog đóng → checkout |
