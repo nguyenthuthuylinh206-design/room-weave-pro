@@ -9,6 +9,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { QuotaWarningBanner } from '@/components/settings/usage/QuotaWarningBanner'
 import { HotelProvider } from '@/contexts/HotelContext'
 import { PushNotificationPrompt } from '@/components/notifications'
+import { PWAUpdatePrompt } from '@/components/pwa'
 
 const MainLayoutContent = () => {
   const { isMobile } = useBreakpoint()
@@ -65,6 +66,7 @@ export const MainLayout = () => {
     <HotelProvider>
       <MainLayoutContent />
       <PushNotificationPrompt />
+      <PWAUpdatePrompt />
     </HotelProvider>
   )
 }
