@@ -41,6 +41,63 @@ export function generatePaymentReference(roomNumber: string): string {
 }
 
 /**
+ * Hook to fetch a single payment by ID with realtime updates
+ */
+export function usePaymentById(paymentId?: string) {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ['booking-payment', paymentId],
+    queryFn: async () => {
+      if (!paymentId) return null;
+
+      const { data, error } = await supabase
+        .from('booking_payments')
+        .select('*')
+        .eq('id', paymentId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as BookingPayment | null;
+    },
+    enabled: !!paymentId,
+  });
+
+  // Subscribe to realtime updates for this specific payment
+  useEffect(() => {
+    if (!paymentId) return;
+
+    const channel = supabase
+      .channel(`booking-payment-${paymentId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'booking_payments',
+          filter: `id=eq.${paymentId}`,
+        },
+        (payload) => {
+          console.log('Payment update:', payload);
+          queryClient.invalidateQueries({ queryKey: ['booking-payment', paymentId] });
+
+          // If payment completed, show toast
+          if (payload.eventType === 'UPDATE' && (payload.new as BookingPayment).payment_status === 'completed') {
+            toast.success('Thanh toán đã được xác nhận!');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [paymentId, queryClient]);
+
+  return query;
+}
+
+/**
  * Hook to fetch payments for a specific booking
  */
 export function useBookingPayments(bookingId?: string) {
