@@ -207,6 +207,9 @@ export function BookingPaymentDialog({
         return;
       }
 
+      const path = `/payment-qr/${createdPayment.id}`;
+      const absoluteUrl = new URL(path, window.location.origin).toString();
+
       // Send push notification using user_id (edge function will look up subscriptions)
       const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
         body: {
@@ -214,10 +217,10 @@ export function BookingPaymentDialog({
           title: `QR Thanh toán phòng ${booking.room_number}`,
           body: `Số tiền: ${formatVNCurrency(parsedAmount)} - Khách: ${booking.guest_name}`,
           tag: `payment-qr-${createdPayment.id}`,
-          action_url: `/payment-qr/${createdPayment.id}`,
+          action_url: absoluteUrl,
           notification_type: 'payment_qr',
           data: {
-            url: `/payment-qr/${createdPayment.id}`,
+            url: absoluteUrl,
             type: 'payment_qr',
             paymentId: createdPayment.id,
             roomNumber: booking.room_number,
