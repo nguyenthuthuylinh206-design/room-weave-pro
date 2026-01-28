@@ -1,142 +1,168 @@
 
 
-## Kế hoạch: Sửa lỗi QR không hiển thị khi PWA đang hoạt động + Cải tiến giao diện
+## Kế hoạch: Hiển thị QR trực tiếp trong PWA khi app đang mở
 
 ### I. PHÂN TÍCH VẤN ĐỀ
 
-**Vấn đề 1: PWA đang hoạt động không mở QR**
+**Hiện tại:**
+1. User nhấn "Gửi QR sang điện thoại" → Push notification gửi đến PWA
+2. Click notification → Service Worker navigate đến `/payment-qr/{id}`
+3. `PaymentQRPage` detect Auth Bridge domain → **Luôn redirect ra browser**
+4. **Vấn đề**: Ngay cả khi PWA đang mở và user đã login, vẫn redirect ra ngoài
 
-Khi PWA đang mở sẵn và user click notification:
-1. Service Worker gọi `client.navigate(url)` → Component được navigate trong app
-2. `PaymentQRPage` nhận URL, detect Auth Bridge domain → Hiển thị UI "Mở trong trình duyệt"
-3. `useEffect` auto-open sử dụng state `autoOpenAttempted` để tránh mở nhiều lần
-4. **Vấn đề**: State này có thể bị giữ lại từ lần navigate trước, hoặc React không re-mount component khi navigate cùng route
+**Thực tế:**
+- Khi PWA đang foreground và user đã login → Có session Supabase → **CÓ THỂ fetch data**
+- Auth Bridge chỉ chặn khi fresh request (chưa có session)
+- Service Worker xử lý notification sẽ navigate trong app đang mở
 
-**Giải pháp**: Reset `autoOpenAttempted` khi `paymentId` thay đổi, và dùng `key={paymentId}` để force re-mount component nếu cần.
-
-**Vấn đề 2: Giao diện đơn giản, chưa đẹp mắt**
-
-UI hiện tại chỉ có nền trắng và các element cơ bản. Cần thêm:
-- Gradient background đẹp mắt
-- Animation cho icon và nút
-- Thẻ card với shadow đẹp
-- Progress indicator khi đang mở browser
+**Giải pháp:**
+1. Kiểm tra xem có Supabase session hay không (thay vì chỉ check domain)
+2. Nếu có session → Fetch data và hiển thị QR trực tiếp
+3. Nếu không có session (fresh open) → Redirect ra browser
 
 ---
 
 ### II. CÁC THAY ĐỔI
 
-#### A. Sửa logic auto-open khi navigate trong PWA
+#### A. Sửa PaymentQRPage.tsx - Logic mới
 
-**File:** `src/pages/payment/PaymentQRPage.tsx`
+**Thay đổi chính:**
+- Thêm check Supabase session trước khi quyết định redirect
+- Nếu có session → Fetch và hiển thị QR trực tiếp
+- Nếu không có session + Auth Bridge domain → Hiển thị UI redirect
 
 ```typescript
-// Reset autoOpenAttempted khi paymentId thay đổi
-useEffect(() => {
-  setAutoOpenAttempted(false);
-}, [paymentId]);
+// src/pages/payment/PaymentQRPage.tsx
+
+export default function PaymentQRPage() {
+  const { paymentId } = useParams<{ paymentId: string }>();
+  const navigate = useNavigate();
+
+  // State để track session status
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
+  
+  // Check Auth Bridge domain
+  const { isOnAuthBridge, targetUrl } = useMemo(() => {
+    const currentOrigin = window.location.origin;
+    const publicBaseUrl = getPublicBaseUrl();
+    const isOnAuthBridge = publicBaseUrl !== currentOrigin;
+    const targetUrl = paymentId ? `${publicBaseUrl}/payment-qr/${paymentId}` : '';
+    return { isOnAuthBridge, targetUrl };
+  }, [paymentId]);
+
+  // Check session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        setHasSession(!!data.session);
+      } catch {
+        setHasSession(false);
+      } finally {
+        setSessionChecked(true);
+      }
+    };
+    checkSession();
+  }, []);
+
+  // Quyết định có fetch data hay không:
+  // - Nếu KHÔNG phải Auth Bridge domain → fetch
+  // - Nếu Auth Bridge + có session → fetch
+  // - Nếu Auth Bridge + không session → không fetch, redirect
+  const shouldFetchData = !isOnAuthBridge || (isOnAuthBridge && hasSession);
+  const shouldShowRedirectUI = isOnAuthBridge && sessionChecked && !hasSession;
+
+  // Fetch data (chỉ khi cần)
+  const { data: payment, isLoading } = usePaymentById(
+    shouldFetchData ? paymentId : undefined
+  );
+  
+  // ... rest of component
+}
 ```
 
-#### B. Cải tiến giao diện Auth Bridge UI
-
-Thiết kế mới với:
-- **Gradient background**: Từ màu primary nhẹ đến background
-- **Card với blur effect**: Glassmorphism style
-- **Icon animation**: Pulse effect cho icon QR
-- **Loading indicator**: Hiển thị khi đang tự động mở browser
-- **Better typography**: Rõ ràng, dễ đọc hơn
-
-**Thiết kế UI mới:**
+#### B. Flow logic mới
 
 ```text
-┌─────────────────────────────────────────────────┐
-│ ┌─ Gradient Background ───────────────────────┐ │
-│ │                                             │ │
-│ │                                             │ │
-│ │         ┌─ Card (glassmorphism) ───────┐    │ │
-│ │         │                              │    │ │
-│ │         │      ╔═══════════════╗       │    │ │
-│ │         │      ║   📱 (pulse)  ║       │    │ │
-│ │         │      ╚═══════════════╝       │    │ │
-│ │         │                              │    │ │
-│ │         │    Xem mã QR thanh toán      │    │ │
-│ │         │                              │    │ │
-│ │         │  ⏳ Đang mở trình duyệt...   │    │ │
-│ │         │                              │    │ │
-│ │         │  ┌─────────────────────────┐ │    │ │
-│ │         │  │ 🔗 Mở trong trình duyệt │ │    │ │
-│ │         │  └─────────────────────────┘ │    │ │
-│ │         │                              │    │ │
-│ │         │        ← Quay lại            │    │ │
-│ │         │                              │    │ │
-│ │         └──────────────────────────────┘    │ │
-│ │                                             │ │
-│ └─────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────┘
+Trường hợp 1: PWA đang mở (user đã login)
+=========================================
+1. User click notification
+2. Service Worker navigate trong app
+3. PaymentQRPage mount
+4. Check session → ĐÃ CÓ SESSION
+5. shouldFetchData = true
+6. Fetch payment data từ Supabase → SUCCESS
+7. Hiển thị QR trực tiếp trong app ✓
+
+
+Trường hợp 2: PWA đóng (click notification mở fresh)
+====================================================
+1. User click notification  
+2. Service Worker openWindow (fresh)
+3. PaymentQRPage mount
+4. Check session → KHÔNG CÓ (Auth Bridge chưa có session)
+5. shouldShowRedirectUI = true
+6. Hiển thị UI + auto-open browser
+7. Browser mở public URL với QR ✓
 ```
 
-**Code mới cho Auth Bridge UI:**
+---
 
+### III. CHI TIẾT IMPLEMENTATION
+
+#### File: `src/pages/payment/PaymentQRPage.tsx`
+
+**Thay đổi:**
+
+1. **Thêm session check:**
 ```typescript
-if (isOnAuthBridge && paymentId) {
+const [sessionChecked, setSessionChecked] = useState(false);
+const [hasSession, setHasSession] = useState(false);
+
+useEffect(() => {
+  const checkSession = async () => {
+    try {
+      const { data } = await supabase.auth.getSession();
+      setHasSession(!!data.session);
+    } catch {
+      setHasSession(false);
+    } finally {
+      setSessionChecked(true);
+    }
+  };
+  checkSession();
+}, []);
+```
+
+2. **Logic quyết định:**
+```typescript
+// Nếu không phải Auth Bridge → fetch bình thường
+// Nếu Auth Bridge + có session → fetch được (PWA đang mở)
+// Nếu Auth Bridge + không session → redirect (fresh open)
+const shouldFetchData = !isOnAuthBridge || (isOnAuthBridge && hasSession);
+const shouldShowRedirectUI = isOnAuthBridge && sessionChecked && !hasSession;
+```
+
+3. **UI loading khi đang check session:**
+```typescript
+// Đang check session
+if (!sessionChecked) {
   return (
-    <div className="fixed inset-0 z-[100] bg-gradient-to-br from-primary/20 via-primary/10 to-background flex flex-col items-center justify-center p-6">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-background/80 backdrop-blur-xl rounded-3xl shadow-2xl p-8 max-w-sm w-full text-center border border-border/50"
-      >
-        {/* Animated QR Icon */}
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", delay: 0.1 }}
-          className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center"
-        >
-          <motion.div
-            animate={{ scale: [1, 1.1, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            <QrCode className="h-10 w-10 text-primary" />
-          </motion.div>
-        </motion.div>
+    <div className="fixed inset-0 z-[100] bg-background flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
+}
+```
 
-        <h2 className="text-xl font-bold mb-2">Xem mã QR thanh toán</h2>
-        
-        {/* Auto-open indicator */}
-        {!autoOpenAttempted && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4"
-          >
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Đang mở trình duyệt...</span>
-          </motion.div>
-        )}
-
-        <p className="text-muted-foreground mb-6">
-          Nhấn nút bên dưới để mở trang thanh toán
-        </p>
-
-        <Button 
-          size="lg" 
-          className="w-full h-12 text-base shadow-lg hover:shadow-xl transition-all"
-          onClick={() => window.open(targetUrl, '_blank')}
-        >
-          <ExternalLink className="h-5 w-5 mr-2" />
-          Mở trong trình duyệt
-        </Button>
-
-        <Button 
-          variant="ghost" 
-          className="mt-4 w-full"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Quay lại
-        </Button>
-      </motion.div>
+4. **Chỉ show redirect UI khi cần:**
+```typescript
+// Chỉ redirect khi: Auth Bridge + không có session
+if (shouldShowRedirectUI && paymentId) {
+  return (
+    <div className="fixed inset-0 z-[100] bg-gradient-to-br ...">
+      {/* UI đẹp với nút mở browser */}
     </div>
   );
 }
@@ -144,58 +170,26 @@ if (isOnAuthBridge && paymentId) {
 
 ---
 
-### III. TÓM TẮT FILE THAY ĐỔI
+### IV. TÓM TẮT FILE THAY ĐỔI
 
 | File | Hành động |
 |------|-----------|
-| `src/pages/payment/PaymentQRPage.tsx` | **Sửa** - Reset state khi navigate + Cải tiến UI Auth Bridge |
+| `src/pages/payment/PaymentQRPage.tsx` | **Sửa** - Thêm session check + conditional fetch |
 
 ---
 
-### IV. CHI TIẾT KỸ THUẬT
+### V. LƯU Ý QUAN TRỌNG
 
-**1. Reset `autoOpenAttempted` khi `paymentId` thay đổi:**
-- Thêm `useEffect` mới để watch `paymentId`
-- Khi `paymentId` thay đổi → reset state về `false`
-- Điều này đảm bảo auto-open chạy mỗi khi có payment mới
+1. **Không break existing flow**: 
+   - Live domain vẫn hoạt động bình thường
+   - Preview qua browser vẫn hoạt động
 
-**2. Cải tiến UI:**
-- **Gradient background**: `bg-gradient-to-br from-primary/20 via-primary/10 to-background`
-- **Glassmorphism card**: `bg-background/80 backdrop-blur-xl rounded-3xl shadow-2xl`
-- **Animated icon**: Framer Motion với pulse effect
-- **Loading state**: Hiển thị spinner khi đang auto-open
-- **Better buttons**: Thêm shadow và hover effects
+2. **Session persistence trong PWA**:
+   - Khi PWA đang mở, session được lưu trong memory/storage
+   - Service Worker navigate trong app → session vẫn có
+   - Fresh open (openWindow) → session chưa có
 
----
-
-### V. FLOW SAU KHI SỬA
-
-```text
-PWA đang hoạt động + Click notification:
-=========================================
-1. User click notification
-   ↓
-2. Service Worker gọi client.navigate('/payment-qr/abc123')
-   ↓
-3. PaymentQRPage nhận paymentId mới
-   ↓
-4. useEffect reset autoOpenAttempted = false
-   ↓
-5. useEffect auto-open chạy → window.open(targetUrl)
-   ↓
-6. Safari mở trang QR public ✓
-   ↓
-7. PWA hiển thị UI đẹp với loading indicator
-
-
-PWA đóng + Click notification:
-=========================================
-1. Service Worker mở window mới với URL
-   ↓
-2. PaymentQRPage load, autoOpenAttempted = false
-   ↓
-3. Auto-open chạy ngay → Safari mở
-   ↓
-4. UI hiển thị đẹp ✓
-```
+3. **Fallback an toàn**:
+   - Nếu fetch fail vì bất kỳ lý do → Hiển thị error UI với nút quay lại
+   - Không bị stuck ở loading screen
 
