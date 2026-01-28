@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { AlertTriangle, CreditCard, Receipt, Clock, Check, Printer, Minimize2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { BookingPaymentDialog } from '@/components/bookings/BookingPaymentDialog'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -111,6 +112,7 @@ export function CheckoutSummaryDialog({
 }: CheckoutSummaryDialogProps) {
   const [adjustedLateCharge, setAdjustedLateCharge] = useState(costBreakdown.lateCheckoutCharge)
   const [adjustmentNote, setAdjustmentNote] = useState('')
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   
   // Damage charge states
   const [adjustedDamageItems, setAdjustedDamageItems] = useState<DamageChargeItem[]>(initialDamageItems)
@@ -315,6 +317,14 @@ export function CheckoutSummaryDialog({
   }
 
   const handlePayAndCheckout = () => {
+    // Mở BookingPaymentDialog thay vì gọi trực tiếp
+    setShowPaymentDialog(true)
+  }
+
+  // Callback sau khi thanh toán xong từ BookingPaymentDialog
+  const handlePaymentComplete = () => {
+    setShowPaymentDialog(false)
+    // Gọi callback checkout sau khi thanh toán xong
     onPayAndCheckout(
       adjustedLateCharge, 
       isAdjusted ? adjustmentNote : undefined,
@@ -759,6 +769,24 @@ export function CheckoutSummaryDialog({
           </div>
         )}
       </AlertDialogContent>
+
+      {/* Payment Dialog - cho phép chọn tiền mặt hoặc chuyển khoản QR */}
+      {bookingId && tenantId && hotelId && (
+        <BookingPaymentDialog
+          open={showPaymentDialog}
+          onOpenChange={setShowPaymentDialog}
+          booking={{
+            id: bookingId,
+            guest_name: guestName,
+            room_number: roomNumber,
+            total_amount: adjustedCostBreakdown.totalAmount,
+            amount_paid: costBreakdown.amountPaid,
+            tenant_id: tenantId,
+            hotel_id: hotelId,
+          }}
+          onPaymentComplete={handlePaymentComplete}
+        />
+      )}
     </AlertDialog>
   )
 }
