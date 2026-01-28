@@ -1,194 +1,84 @@
 
 
-## Kế hoạch: Sửa lỗi "Xác nhận bổ sung" và làm rõ workflow bổ sung đồ dùng
+## Kế hoạch: Sửa lỗi Ambiguous Function Call cho Bổ sung đồ dùng
 
-### I. VẤN ĐỀ PHÁT HIỆN
+### I. NGUYÊN NHÂN LỖI
 
-Có **2 lỗi chính** cần sửa:
+**Lỗi:** `Could not choose the best candidate function between: public.create_outbound_transaction(...)`
 
-#### Lỗi 1: PGRST201 - Ambiguous FK relationship
+**Nguyên nhân:** Database có 2 phiên bản `create_outbound_transaction`:
 
-**File:** `src/utils/notificationRecipients.ts`
+| Phiên bản | Tham số khác biệt |
+|-----------|-------------------|
+| Phiên bản 1 | Không có `p_from_warehouse_id` |
+| Phiên bản 2 | CÓ `p_from_warehouse_id` (optional) |
 
-Bảng `user_hotels` có 2 FK đến bảng `users`:
-- `user_hotels_user_id_fkey` - user được gán vào hotel
-- `user_hotels_assigned_by_fkey` - người gán user vào hotel
+Khi gọi RPC mà không truyền `p_from_warehouse_id`, PostgreSQL không thể phân biệt được function nào cần gọi vì cả 2 đều match signature.
 
-Khi query không chỉ định rõ FK, Supabase trả về lỗi:
-```
-PGRST201: Could not embed because more than one relationship was found for 'user_hotels' and 'users'
-```
-
-**Các function bị ảnh hưởng:**
-- `getManagersOfHotel()` - line 12-32
-- `getHotelStaff()` - line 98-117
-
-#### Lỗi 2: Workflow bổ sung đồ dùng chưa rõ ràng
-
-**Hiện trạng:**
-1. User mở `RoomSupplementSheet` (từ `StaffRoomDetailPage` hoặc `MobileRoomDetailPage`)
-2. Chọn items và số lượng muốn bổ sung
-3. Bấm "Xác nhận bổ sung"
-4. `useCreateRoomSupplement` gọi RPC `create_outbound_transaction`
-5. Sau thành công, cập nhật `room_items`
-
-**Vấn đề tiềm ẩn:**
-- Không có validation `type="button"` cho các nút +/- trong `SupplementItemCard`
-- Không có guard clause chống double-submit
-- Logic update `room_items` sau transaction có thể fail silent
+**So sánh code:**
+- `useInventoryTransactions.ts` line 183: `p_from_warehouse_id: data.from_warehouse_id || null` - CÓ TRUYỀN
+- `useRoomSupplements.ts`: KHÔNG TRUYỀN `p_from_warehouse_id`
 
 ---
 
 ### II. GIẢI PHÁP
 
-#### Sửa lỗi 1: Chỉ định FK cụ thể trong query
+Thêm tham số `p_from_warehouse_id: null` vào RPC call trong `useRoomSupplements.ts` để PostgreSQL xác định được function đúng.
 
-**File:** `src/utils/notificationRecipients.ts`
+---
+
+### III. CHI TIẾT THAY ĐỔI
+
+**File:** `src/hooks/useRoomSupplements.ts`
 
 ```typescript
-// getManagersOfHotel - Line 12-32
-export async function getManagersOfHotel(hotelId: string): Promise<User[]> {
-  const { data, error } = await supabase
-    .from('user_hotels')
-    .select(`
-      user_id,
-      users!user_hotels_user_id_fkey(id, full_name, email, user_level_code)
-    `)
-    .eq('hotel_id', hotelId);
+// Line 182-193: Thêm p_from_warehouse_id
 
-  if (error) {
-    console.error('Error fetching hotel managers:', error);
-    return [];
-  }
-
-  // Filter managers từ kết quả
-  return data
-    ?.filter(item => (item.users as any)?.user_level_code === 'manager')
-    ?.map(item => ({
-      id: (item.users as any).id,
-      full_name: (item.users as any).full_name,
-      email: (item.users as any).email,
-    })) || [];
-}
-
-// getHotelStaff - Line 98-117
-export async function getHotelStaff(hotelId: string): Promise<User[]> {
-  const { data, error } = await supabase
-    .from('user_hotels')
-    .select(`
-      user_id,
-      users!user_hotels_user_id_fkey(id, full_name, email)
-    `)
-    .eq('hotel_id', hotelId);
-
-  if (error) {
-    console.error('Error fetching hotel staff:', error);
-    return [];
-  }
-
-  return data?.map(item => ({
-    id: (item.users as any).id,
-    full_name: (item.users as any).full_name,
-    email: (item.users as any).email,
-  })) || [];
-}
-```
-
-#### Sửa lỗi 2: Cải thiện RoomSupplementSheet
-
-**File:** `src/components/rooms/RoomSupplementSheet.tsx`
-
-**a) Thêm guard clause chống double-submit:**
-```typescript
-const handleSubmit = () => {
-  // Guard against double submit
-  if (createSupplement.isPending) return
-  
-  const items = Object.entries(selectedItems)
-    .filter(([_, qty]) => qty > 0)
-    // ... rest of logic
-}
-```
-
-**b) Thêm `type="button"` cho các nút trong SupplementItemCard:**
-```typescript
-<Button
-  type="button"  // THÊM
-  variant="outline"
-  size="icon"
-  className="h-8 w-8"
-  disabled={selectedQuantity <= 0}
-  onClick={() => onQuantityChange(-1)}
->
-  <Minus className="h-4 w-4" />
-</Button>
-```
-
-**c) Thêm feedback rõ ràng khi submit thành công/thất bại:**
-```typescript
-// Trong useCreateRoomSupplement
-onSuccess: (result, variables) => {
-  // ... existing invalidation logic
-  toast.success(`Đã bổ sung ${result.total_quantity} đồ dùng`, {
-    description: `Phòng ${variables.room_number} - Mã GD: ${result.transaction_code}`,
-  })
-},
-onError: (error: Error) => {
-  toast.error('Lỗi bổ sung đồ dùng', {
-    description: error.message,
-  })
-},
+const { data: result, error } = await supabase.rpc('create_outbound_transaction', {
+  p_tenant_id: tenantId,
+  p_hotel_id: selectedHotel.id,
+  p_transaction_category: 'room_assign',
+  p_from_location: 'Kho',
+  p_to_location: `Phòng ${data.room_number}`,
+  p_created_by: user.id,
+  p_items: rpcItems as any,
+  p_related_type: 'room',
+  p_related_id: data.room_id,
+  p_notes: data.notes || `Bổ sung đồ dùng cho phòng ${data.room_number}`,
+  // THÊM CÁC THAM SỐ OPTIONAL ĐỂ PHÂN BIỆT FUNCTION
+  p_recipient_name: null,
+  p_recipient_signature: null,
+  p_documents: null,
+  p_photos: null,
+  p_from_warehouse_id: null,  // ← QUAN TRỌNG: Thêm để match function signature
+})
 ```
 
 ---
 
-### III. FILES CẦN SỬA
+### IV. TẠI SAO CẦN THÊM TẤT CẢ OPTIONAL PARAMS?
+
+Khi có 2 overloaded functions với signature gần giống nhau, cách tốt nhất để PostgreSQL nhận diện đúng function là:
+1. Truyền **tất cả tham số** (kể cả optional với giá trị null)
+2. Hoặc loại bỏ function cũ khỏi database
+
+Cách 1 an toàn hơn vì không cần thay đổi database schema.
+
+---
+
+### V. FILE CẦN SỬA
 
 | File | Thay đổi |
 |------|----------|
-| `src/utils/notificationRecipients.ts` | Sửa `getManagersOfHotel()` và `getHotelStaff()` - chỉ định FK |
-| `src/components/rooms/RoomSupplementSheet.tsx` | Thêm guard double-submit, `type="button"` |
-| `src/hooks/useRoomSupplements.ts` | Cải thiện error handling và feedback |
+| `src/hooks/useRoomSupplements.ts` | Thêm các tham số optional (`p_from_warehouse_id`, `p_recipient_name`, v.v.) vào RPC call |
 
 ---
 
-### IV. WORKFLOW SAU KHI SỬA
+### VI. TESTING
 
-```text
-1. User mở RoomSupplementSheet
-   ↓
-2. Hiển thị 2 tab: "Thiếu tiêu chuẩn" và "Tiêu hao"
-   ↓
-3. User điều chỉnh số lượng bằng nút +/- (có type="button")
-   ↓
-4. Bấm "Xác nhận bổ sung (X món)"
-   ↓
-5. Guard check: isPending? → Return early nếu đang xử lý
-   ↓
-6. Validate: hasStockIssue? → Disable nút nếu vượt kho
-   ↓
-7. Call RPC create_outbound_transaction
-   ↓
-8. Success: 
-   - Tạo inventory_transaction (xuất kho)
-   - Update room_items (tăng quantity)
-   - Toast success với mã giao dịch
-   - Invalidate queries
-   - Đóng sheet
-   ↓
-9. Error:
-   - Toast error với message cụ thể
-   - Không đóng sheet (cho user thử lại)
-```
-
----
-
-### V. TESTING CHECKLIST
-
-1. ✅ Bấm +/- không gây submit form
-2. ✅ Bấm "Xác nhận" 2 lần liên tiếp chỉ tạo 1 transaction
-3. ✅ Cảnh báo hiển thị khi chọn số lượng > tồn kho
-4. ✅ Toast thành công hiển thị số lượng và mã giao dịch
-5. ✅ Notifications gửi đến managers không bị lỗi PGRST201
-6. ✅ `room_items` được cập nhật đúng sau bổ sung
+1. Mở chi tiết phòng (route hiện tại: `/rooms/9bc582e3-...`)
+2. Mở sheet "Bổ sung đồ dùng"
+3. Chọn items và số lượng
+4. Bấm "Xác nhận bổ sung"
+5. **Kết quả mong đợi:** Toast thành công, không còn lỗi "Could not choose the best candidate function"
 
