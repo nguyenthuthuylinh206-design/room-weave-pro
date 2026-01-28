@@ -1,187 +1,186 @@
 
-## Kế hoạch: Tự động cập nhật PWA mà không cần xóa đi cài lại
 
-### Vấn đề hiện tại
+## Kế hoạch: Sửa lỗi QR không hiển thị khi click notification trên PWA iOS
 
-Khi có phiên bản mới của ứng dụng:
-1. Service Worker mới được tải về nhưng **đợi ở trạng thái "waiting"**
-2. Người dùng phải đóng hoàn toàn tất cả tab/PWA và mở lại để kích hoạt SW mới
-3. Trên iOS PWA, điều này đặc biệt khó khăn vì PWA chạy liên tục
+### I. PHÂN TÍCH VẤN ĐỀ
 
-### Giải pháp
+**Hiện tại:**
+1. PWA cài từ `*.lovableproject.com` (có Auth Bridge)
+2. Notification gửi relative URL: `/payment-qr/xxx`
+3. Service Worker resolve → `https://894427c4-...lovableproject.com/payment-qr/xxx`
+4. PWA mở trang nhưng:
+   - Auth Bridge **chặn** request đến Supabase (yêu cầu login)
+   - Trang cố redirect sang `id-preview--*.lovable.app` bằng `window.location.href`
+   - iOS PWA mở Safari thay vì ở trong app → **Trải nghiệm xấu**
 
-Tạo hệ thống cập nhật tự động với 3 thành phần:
-
-#### 1. Hook `usePWAUpdate` - Quản lý Service Worker update
-
-Sử dụng `virtual:pwa-register/react` từ vite-plugin-pwa để:
-- Kiểm tra update định kỳ (mỗi 1 giờ)
-- Phát hiện khi có phiên bản mới (`needRefresh`)
-- Cung cấp hàm `updateServiceWorker()` để áp dụng update
-
-```typescript
-// src/hooks/usePWAUpdate.ts
-import { useRegisterSW } from 'virtual:pwa-register/react';
-
-const UPDATE_CHECK_INTERVAL = 60 * 60 * 1000; // 1 giờ
-
-export function usePWAUpdate() {
-  const {
-    needRefresh: [needRefresh, setNeedRefresh],
-    offlineReady: [offlineReady],
-    updateServiceWorker,
-  } = useRegisterSW({
-    onRegistered(registration) {
-      // Kiểm tra update định kỳ
-      if (registration) {
-        setInterval(() => registration.update(), UPDATE_CHECK_INTERVAL);
-      }
-    },
-    onNeedRefresh() {
-      console.log('[PWA] New version available');
-    },
-  });
-
-  const update = async () => {
-    await updateServiceWorker(true);
-  };
-
-  const dismiss = () => setNeedRefresh(false);
-
-  return { needRefresh, offlineReady, update, dismiss };
-}
-```
+**Giải pháp:**
+Thay đổi chiến lược - PWA trên Preview domain sẽ:
+1. Detect ngay khi vào trang PaymentQR
+2. **Không fetch data** - chỉ hiển thị loading với nút mở trong browser
+3. Dùng phương pháp an toàn để mở URL trong Safari
 
 ---
 
-#### 2. Component `PWAUpdatePrompt` - Thông báo cập nhật
+### II. CÁC THAY ĐỔI
 
-Hiển thị toast/banner khi có phiên bản mới, cho phép người dùng:
-- **Cập nhật ngay** → Reload app với phiên bản mới
-- **Để sau** → Ẩn thông báo (sẽ hiện lại khi mở app lần sau)
+#### A. Sửa PaymentQRPage.tsx - Xử lý Auth Bridge domain trước khi fetch
+
+**Thay đổi logic:**
+- Nếu đang ở Auth Bridge domain (`*.lovableproject.com`), hiển thị UI đặc biệt với nút "Mở trong trình duyệt"
+- KHÔNG fetch data từ Supabase (vì sẽ bị Auth Bridge chặn)
+- Dùng `window.open()` thay vì `window.location.href` để mở Safari
 
 ```typescript
-// src/components/pwa/PWAUpdatePrompt.tsx
-export function PWAUpdatePrompt() {
-  const { needRefresh, update, dismiss } = usePWAUpdate();
-  const [isUpdating, setIsUpdating] = useState(false);
+// src/pages/payment/PaymentQRPage.tsx
+export default function PaymentQRPage() {
+  const { paymentId } = useParams<{ paymentId: string }>();
+  const navigate = useNavigate();
 
-  if (!needRefresh) return null;
-
-  const handleUpdate = async () => {
-    setIsUpdating(true);
-    await update();
-    // App sẽ reload tự động
-  };
-
-  return (
-    <Card className="fixed bottom-20 left-4 right-4 z-50 ...">
-      <div className="flex items-center gap-3">
-        <RefreshCw className="..." />
-        <div>
-          <h3>Có phiên bản mới</h3>
-          <p>Nhấn "Cập nhật" để sử dụng các tính năng mới nhất</p>
-        </div>
-      </div>
-      <div className="flex gap-2 mt-3">
-        <Button onClick={handleUpdate} disabled={isUpdating}>
-          {isUpdating ? 'Đang cập nhật...' : 'Cập nhật ngay'}
+  // Check if on Auth Bridge domain
+  const currentOrigin = window.location.origin;
+  const publicBaseUrl = getPublicBaseUrl();
+  const isOnAuthBridge = publicBaseUrl !== currentOrigin;
+  
+  // If on Auth Bridge, show "Open in Browser" UI immediately
+  if (isOnAuthBridge && paymentId) {
+    const targetUrl = `${publicBaseUrl}/payment-qr/${paymentId}`;
+    
+    return (
+      <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-6">
+        <QrCode className="h-16 w-16 text-primary mb-4" />
+        <h2 className="text-xl font-semibold mb-2 text-center">Xem mã QR thanh toán</h2>
+        <p className="text-muted-foreground text-center mb-6">
+          Nhấn nút bên dưới để mở trang thanh toán
+        </p>
+        <Button 
+          size="lg" 
+          className="w-full max-w-xs"
+          onClick={() => {
+            // Use window.open for better iOS PWA compatibility
+            window.open(targetUrl, '_blank');
+          }}
+        >
+          <ExternalLink className="h-4 w-4 mr-2" />
+          Mở trong trình duyệt
         </Button>
-        <Button variant="ghost" onClick={dismiss}>
-          Để sau
+        <Button 
+          variant="ghost" 
+          className="mt-4"
+          onClick={() => navigate(-1)}
+        >
+          Quay lại
         </Button>
       </div>
-    </Card>
-  );
+    );
+  }
+
+  // Normal flow for public domain (id-preview-- or live)
+  const { data: payment, isLoading } = usePaymentById(paymentId);
+  // ... rest of component
 }
 ```
 
 ---
 
-#### 3. Tích hợp vào App
+#### B. Thêm auto-open với delay (cải thiện UX)
 
-Thêm component vào layout chính:
-
-```typescript
-// src/App.tsx hoặc MainLayout.tsx
-import { PWAUpdatePrompt } from '@/components/pwa/PWAUpdatePrompt';
-
-// Trong JSX:
-<PWAUpdatePrompt />
-```
-
----
-
-#### 4. Thêm TypeScript types cho virtual module
+Để tự động mở trình duyệt ngay sau khi click notification mà không cần user bấm thêm:
 
 ```typescript
-// src/vite-env.d.ts
-declare module 'virtual:pwa-register/react' {
-  export function useRegisterSW(options?: RegisterSWOptions): {
-    needRefresh: [boolean, (value: boolean) => void];
-    offlineReady: [boolean, (value: boolean) => void];
-    updateServiceWorker: (reloadPage?: boolean) => Promise<void>;
-  };
-}
+useEffect(() => {
+  if (isOnAuthBridge && paymentId) {
+    const targetUrl = `${publicBaseUrl}/payment-qr/${paymentId}`;
+    
+    // Small delay to ensure page loads first
+    const timer = setTimeout(() => {
+      window.open(targetUrl, '_blank');
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }
+}, [isOnAuthBridge, paymentId, publicBaseUrl]);
 ```
 
 ---
 
-### Flow hoạt động
-
-```text
-Người dùng đang dùng app (v1):
-==============================
-1. vite-plugin-pwa kiểm tra update mỗi 1 giờ
-   ↓
-2. Phát hiện có phiên bản mới (v2)
-   ↓
-3. Tải SW mới về background (trạng thái "waiting")
-   ↓
-4. Hook `usePWAUpdate` nhận callback `onNeedRefresh`
-   ↓
-5. State `needRefresh = true`
-   ↓
-6. Component `PWAUpdatePrompt` hiển thị
-   ↓
-7. Người dùng bấm "Cập nhật ngay"
-   ↓
-8. `updateServiceWorker(true)` gọi `skipWaiting()` + reload
-   ↓
-9. App load lại với phiên bản mới (v2) ✓
-```
-
----
-
-### Files thay đổi
+### III. TÓM TẮT FILE THAY ĐỔI
 
 | File | Hành động |
 |------|-----------|
-| `src/hooks/usePWAUpdate.ts` | **Tạo mới** - Hook quản lý PWA update |
-| `src/components/pwa/PWAUpdatePrompt.tsx` | **Tạo mới** - UI thông báo update |
-| `src/components/pwa/index.ts` | **Sửa** - Export component mới |
-| `src/components/layout/MainLayout.tsx` | **Sửa** - Thêm PWAUpdatePrompt |
-| `src/vite-env.d.ts` | **Sửa** - Thêm TypeScript types |
+| `src/pages/payment/PaymentQRPage.tsx` | **Sửa** - Xử lý Auth Bridge domain với UI riêng và auto-open |
 
 ---
 
-### Bonus: Nút "Kiểm tra cập nhật" trong Settings
+### IV. FLOW SAU KHI SỬA
 
-Thêm vào trang Settings để người dùng có thể chủ động kiểm tra:
+```text
+PWA trên iOS (từ *.lovableproject.com):
+=========================================
+1. User click notification trên iPhone
+   ↓
+2. Service Worker resolve → https://[pwa].lovableproject.com/payment-qr/xxx
+   ↓
+3. PWA mở trang PaymentQRPage
+   ↓
+4. Component detect đang ở Auth Bridge domain
+   ↓
+5. KHÔNG fetch data (tránh bị Auth Bridge chặn)
+   ↓
+6. Auto-open Safari với URL: https://id-preview--[id].lovable.app/payment-qr/xxx
+   ↓
+7. Safari mở trang QR (public, không cần login) ✓
+   ↓
+8. PWA hiển thị nút "Mở trong trình duyệt" để user có thể mở lại nếu cần
 
-```typescript
-// Trong NotificationSettingsPage hoặc MobileSettingsPage
-const { needRefresh, update } = usePWAUpdate();
 
-<Button onClick={() => registration?.update()}>
-  Kiểm tra cập nhật
-</Button>
+PWA trên iOS (từ Live domain room-weave-pro.lovable.app):
+=========================================
+1. Notification → SW resolve → https://room-weave-pro.lovable.app/payment-qr/xxx
+   ↓
+2. Component detect domain OK (không phải Auth Bridge)
+   ↓  
+3. Fetch data từ Supabase (cho phép vì public RLS policy)
+   ↓
+4. Hiển thị QR trực tiếp trong PWA ✓
 ```
 
 ---
 
-### Lưu ý quan trọng
+### V. FALLBACK UI
 
-1. **iOS Safari**: Có thể cần 2 bước - tắt/mở lại PWA lần đầu để kích hoạt SW mới, sau đó các lần sau sẽ tự động
-2. **Precache**: Với `injectManifest`, tất cả assets đã được cache. Khi SW mới activate, cache cũ sẽ được xóa tự động (`cleanupOutdatedCaches()`)
-3. **Không cần xóa PWA**: Người dùng chỉ cần bấm "Cập nhật" hoặc đóng/mở lại app
+Nếu auto-open không hoạt động (bị popup blocker), user vẫn thấy:
+
+```
+┌─────────────────────────────────┐
+│                                 │
+│          📱 [QR Icon]           │
+│                                 │
+│    Xem mã QR thanh toán         │
+│                                 │
+│  Nhấn nút bên dưới để mở        │
+│       trang thanh toán          │
+│                                 │
+│  ┌─────────────────────────┐    │
+│  │ 🔗 Mở trong trình duyệt │    │
+│  └─────────────────────────┘    │
+│                                 │
+│         ← Quay lại              │
+│                                 │
+└─────────────────────────────────┘
+```
+
+---
+
+### VI. LƯU Ý KỸ THUẬT
+
+1. **Không dùng `window.location.href`** để redirect cross-domain trong iOS PWA vì:
+   - Có thể không hoạt động
+   - Hoặc mở Safari nhưng PWA chuyển sang trạng thái lạ
+
+2. **Dùng `window.open(url, '_blank')`** vì:
+   - Rõ ràng intent mở tab mới
+   - Tương thích tốt hơn với iOS Safari/PWA
+   - User biết sẽ mở trình duyệt
+
+3. **Hooks phải được gọi unconditionally** - sửa code để tuân thủ rules of hooks
+
