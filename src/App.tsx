@@ -112,6 +112,7 @@ import { PaymentSettingsPage } from "./pages/admin/PaymentSettingsPage";
 import NotificationHistoryPage from "./pages/NotificationHistoryPage";
 import StaffManagementPage from "./pages/staff/StaffManagementPage";
 import MyTasksPage from "./pages/MyTasksPage";
+import PaymentQRPage from "./pages/payment/PaymentQRPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -139,6 +140,16 @@ const router = createBrowserRouter([
   
   { path: "/auth/callback", element: <AuthCallback /> },
   { path: "/unauthorized", element: <Unauthorized /> },
+  
+  // Payment QR Page - Public route with auth
+  {
+    path: "/payment-qr/:paymentId",
+    element: (
+      <AuthGuard>
+        <PaymentQRPage />
+      </AuthGuard>
+    ),
+  },
   
   // Onboarding - requires authentication but not tenant setup
   {

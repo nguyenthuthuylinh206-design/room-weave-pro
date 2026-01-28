@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Banknote, CreditCard, Maximize2, CheckCircle, Loader2 } from 'lucide-react';
+import { Banknote, CreditCard, Maximize2, CheckCircle, Loader2, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatVNCurrency } from '@/lib/pricing';
 import { BankQRCode } from '@/components/payment/BankQRCode';
@@ -23,6 +23,7 @@ import {
   BookingPayment,
 } from '@/hooks/useBookingPayments';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface BookingPaymentDialogProps {
   open: boolean;
@@ -55,6 +56,7 @@ export function BookingPaymentDialog({
   const [amount, setAmount] = useState(remainingAmount.toString());
   const [showMobileQR, setShowMobileQR] = useState(false);
   const [createdPayment, setCreatedPayment] = useState<BookingPayment | null>(null);
+  const [isSendingNotification, setIsSendingNotification] = useState(false);
 
   const { data: bankSettings } = useBankPaymentSettings();
   const createPayment = useCreateBookingPayment();
@@ -176,6 +178,69 @@ export function BookingPaymentDialog({
     } catch (error) {
       console.error('Manual confirm error:', error);
       toast.error('Không thể xác nhận thanh toán');
+    }
+  };
+
+  const handleSendQRNotification = async () => {
+    if (!createdPayment) return;
+
+    setIsSendingNotification(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        toast.error('Vui lòng đăng nhập lại');
+        return;
+      }
+
+      // Get push subscriptions for current user
+      const { data: subscriptions, error: subError } = await supabase
+        .from('push_subscriptions')
+        .select('*')
+        .eq('user_id', userData.user.id)
+        .eq('is_active', true);
+
+      if (subError) throw subError;
+
+      if (!subscriptions || subscriptions.length === 0) {
+        toast.error('Chưa đăng ký thiết bị nhận thông báo. Vào Cài đặt → Thông báo → Quản lý thiết bị');
+        return;
+      }
+
+      // Construct subscription objects from stored data
+      const pushSubscriptions = subscriptions.map(sub => ({
+        endpoint: sub.endpoint,
+        keys: {
+          p256dh: sub.p256dh_key,
+          auth: sub.auth_key,
+        },
+      }));
+
+      // Send push notification
+      const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
+        body: {
+          subscriptions: pushSubscriptions,
+          payload: {
+            title: `QR Thanh toán phòng ${booking.room_number}`,
+            body: `Số tiền: ${formatVNCurrency(parsedAmount)} - Khách: ${booking.guest_name}`,
+            tag: `payment-qr-${createdPayment.id}`,
+            data: {
+              url: `/payment-qr/${createdPayment.id}`,
+              type: 'payment_qr',
+              paymentId: createdPayment.id,
+              roomNumber: booking.room_number,
+            },
+          },
+        },
+      });
+
+      if (pushError) throw pushError;
+
+      toast.success('Đã gửi thông báo QR sang điện thoại');
+    } catch (error) {
+      console.error('Send notification error:', error);
+      toast.error('Không thể gửi thông báo');
+    } finally {
+      setIsSendingNotification(false);
     }
   };
 
@@ -334,6 +399,22 @@ export function BookingPaymentDialog({
               >
                 <Maximize2 className="h-4 w-4 mr-2" />
                 Mở QR toàn màn hình
+              </Button>
+
+              {/* Send to Phone Button */}
+              <Button
+                variant="outline"
+                className="w-full"
+                type="button"
+                onClick={handleSendQRNotification}
+                disabled={isSendingNotification}
+              >
+                {isSendingNotification ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Smartphone className="h-4 w-4 mr-2" />
+                )}
+                Gửi QR sang điện thoại
               </Button>
 
               {/* Manual Confirm */}
