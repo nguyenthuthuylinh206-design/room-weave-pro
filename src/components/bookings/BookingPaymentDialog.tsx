@@ -5,6 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { buildPublicUrl } from '@/utils/getPublicUrl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -207,8 +208,8 @@ export function BookingPaymentDialog({
         return;
       }
 
-      const path = `/payment-qr/${createdPayment.id}`;
-      const absoluteUrl = new URL(path, window.location.origin).toString();
+      // Use buildPublicUrl to bypass Auth Bridge on Preview domain
+      const absoluteUrl = buildPublicUrl(`/payment-qr/${createdPayment.id}`);
 
       // Send push notification using user_id (edge function will look up subscriptions)
       const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
