@@ -1,82 +1,186 @@
 
-## Kế hoạch: Sửa lỗi QR Payment mở qua Auth Bridge
+## Kế hoạch: Sửa lỗi QR Payment trắng trang trên Preview + Live
 
-### I. VẤN ĐỀ XÁC ĐỊNH
+### I. NGUYÊN NHÂN GỐC
 
-Khi click thông báo push notification trên điện thoại, URL được mở là:
+Khi gửi thông báo từ Preview, URL được tạo là:
 ```
-lovable.dev/auth-bridge?project_id=...&return_url=.../payment-qr/...
+https://894427c4-74e7-48d3-b143-a401e780c7a2.lovableproject.com/payment-qr/...
 ```
 
-Auth Bridge là hệ thống xác thực của Lovable cho Preview domain. Trang QR payment cần public (không cần login) nhưng Auth Bridge đang chặn → trắng trang.
+Domain `*.lovableproject.com` bị **Auth Bridge** chặn, nên trang QR public không thể mở được.
 
-**Nguyên nhân:** URL được gửi trong notification là Preview domain (`894427c4-...lovableproject.com`). Khi điện thoại mở URL này trong Safari mà chưa có session auth, nó bị redirect qua Auth Bridge.
-
----
-
-### II. GIẢI PHÁP
-
-**Có 2 phương án:**
-
-**Phương án A (Khuyến nghị): Publish app và sử dụng Production domain**
-- Khi gửi notification từ Live domain (`room-weave-pro.lovable.app`), URL sẽ là live domain
-- Live domain không có Auth Bridge → trang QR mở trực tiếp
-- Đây là giải pháp đúng cho production
-
-**Phương án B: Bypass Auth Bridge cho Preview (không khuyến nghị cho production)**
-- Đây là hạn chế của Lovable Preview environment
-- Preview luôn yêu cầu auth qua Auth Bridge
-- Không có cách bypass Auth Bridge ở phía code
+**Giải pháp:** Chuyển đổi URL sang domain `id-preview--*.lovable.app` khi đang ở Preview, domain này không có Auth Bridge.
 
 ---
 
-### III. HÀNH ĐỘNG CẦN THỰC HIỆN
+### II. CÁC THAY ĐỔI CẦN THỰC HIỆN
 
-**1. Publish app lên Live domain**
-- Click **Publish** → **Update** trong Lovable
-- Đảm bảo tất cả code mới (route public, RLS policies) được deploy
+#### A. Tạo utility function để lấy đúng domain (file mới)
 
-**2. Trên điện thoại:**
-- Mở app/website từ **Live domain**: `room-weave-pro.lovable.app`
-- KHÔNG dùng Preview domain để test tính năng public QR
-- Đăng nhập và đăng ký push notification **trên Live domain**
+**File:** `src/utils/getPublicUrl.ts`
 
-**3. Test lại:**
-- Tạo thanh toán mới
-- Gửi QR sang điện thoại
-- Click thông báo → phải mở `room-weave-pro.lovable.app/payment-qr/...` thay vì Preview domain
+```typescript
+/**
+ * Get the correct public URL for QR payments that bypasses Auth Bridge
+ * 
+ * Preview domains:
+ * - *.lovableproject.com (has Auth Bridge - blocked)
+ * - id-preview--*.lovable.app (no Auth Bridge - works!)
+ * 
+ * Live domains:
+ * - *.lovable.app (no Auth Bridge - works!)
+ */
+export function getPublicBaseUrl(): string {
+  const origin = window.location.origin;
+  
+  // Check if we're on Preview domain with Auth Bridge
+  // Pattern: {project-id}.lovableproject.com
+  const lovableProjectMatch = origin.match(
+    /^https:\/\/([a-f0-9-]+)\.lovableproject\.com$/
+  );
+  
+  if (lovableProjectMatch) {
+    // Convert to id-preview--{project-id}.lovable.app format
+    const projectId = lovableProjectMatch[1];
+    return `https://id-preview--${projectId}.lovable.app`;
+  }
+  
+  // For all other domains (Live, custom), use as-is
+  return origin;
+}
+
+export function buildPublicUrl(path: string): string {
+  const base = getPublicBaseUrl();
+  return new URL(path, base).toString();
+}
+```
+
+**Giải thích:**
+- Hàm `getPublicBaseUrl()` phát hiện nếu đang ở Preview domain (`*.lovableproject.com`)
+- Tự động chuyển sang `id-preview--{project-id}.lovable.app` (domain không có Auth Bridge)
+- Nếu đang ở Live hoặc custom domain, giữ nguyên
 
 ---
 
-### IV. TẠI SAO PHẢI LÀM VẬY?
+#### B. Cập nhật BookingPaymentDialog.tsx
+
+**File:** `src/components/bookings/BookingPaymentDialog.tsx`
+
+Thay đổi hàm `handleSendQRNotification`:
+
+```typescript
+// Trước:
+const path = `/payment-qr/${createdPayment.id}`;
+const absoluteUrl = new URL(path, window.location.origin).toString();
+
+// Sau:
+import { buildPublicUrl } from '@/utils/getPublicUrl';
+
+const absoluteUrl = buildPublicUrl(`/payment-qr/${createdPayment.id}`);
+```
+
+---
+
+#### C. Cập nhật Service Worker (sw.ts)
+
+**File:** `src/sw.ts`
+
+Đảm bảo Service Worker cũng xử lý đúng URL:
+
+```typescript
+// Trong notificationclick handler:
+const rawUrl = (event.notification.data?.url as string) || '/';
+let urlToOpen = rawUrl;
+
+try {
+  // Nếu URL đã là absolute, dùng trực tiếp
+  if (rawUrl.startsWith('http')) {
+    urlToOpen = rawUrl;
+  } else {
+    // Nếu relative, resolve với origin hiện tại
+    urlToOpen = new URL(rawUrl, self.location.origin).toString();
+  }
+} catch {
+  urlToOpen = new URL('/', self.location.origin).toString();
+}
+```
+
+Giữ nguyên logic navigate/openWindow nhưng đảm bảo không override absolute URL từ payload.
+
+---
+
+### III. FLOW SAU KHI SỬA
 
 ```text
-Preview domain (đang bị lỗi):
-894427c4-...lovableproject.com/payment-qr/...
-        ↓
-   Auth Bridge (chặn)
-        ↓
-   Trắng trang ❌
+Preview Environment:
+================================
+BookingPaymentDialog gửi notification
+    ↓
+buildPublicUrl('/payment-qr/abc')
+    ↓
+Phát hiện: *.lovableproject.com
+    ↓
+Chuyển: https://id-preview--{id}.lovable.app/payment-qr/abc
+    ↓
+Push notification gửi URL mới
+    ↓
+Service Worker mở URL → Không qua Auth Bridge → Hiển thị QR ✓
 
-Live domain (giải pháp):
-room-weave-pro.lovable.app/payment-qr/...
-        ↓
-   Mở trực tiếp (public route)
-        ↓
-   Hiển thị QR ✅
+
+Live Environment:
+================================
+BookingPaymentDialog gửi notification
+    ↓
+buildPublicUrl('/payment-qr/abc')
+    ↓
+Phát hiện: *.lovable.app (Live)
+    ↓
+Giữ nguyên: https://room-weave-pro.lovable.app/payment-qr/abc
+    ↓
+Push notification gửi URL
+    ↓
+Service Worker mở URL → Hiển thị QR ✓
 ```
 
 ---
 
-### V. TÓM TẮT
+### IV. TÓM TẮT FILE THAY ĐỔI
 
-| Bước | Hành động |
+| File | Hành động |
 |------|-----------|
-| 1 | Publish/Update app lên Live |
-| 2 | Mở `room-weave-pro.lovable.app` trên điện thoại |
-| 3 | Đăng nhập và bật thông báo push **trên Live** |
-| 4 | Test tạo payment + gửi QR |
-| 5 | Click notification → mở QR không cần login |
+| `src/utils/getPublicUrl.ts` | **Tạo mới** - Utility chuyển đổi URL |
+| `src/components/bookings/BookingPaymentDialog.tsx` | **Sửa** - Dùng `buildPublicUrl()` |
+| `src/sw.ts` | **Sửa** - Hỗ trợ absolute URL từ payload |
 
-**Lưu ý:** Push subscription gắn với domain. Nếu bạn đã subscribe trên Preview, cần subscribe lại trên Live domain để notification mở đúng domain.
+---
 
+### V. CHI TIẾT KỸ THUẬT
+
+**Tại sao dùng `id-preview--*.lovable.app`?**
+- Đây là domain Preview chính thức của Lovable
+- Không có Auth Bridge
+- Dữ liệu Test database giống như `*.lovableproject.com`
+- User có thể truy cập public route mà không cần login
+
+**RLS Policies đã có (không cần sửa):**
+- `booking_payments`: Policy `SELECT` cho anonymous với `USING (true)`
+- `bank_payment_settings`: Policy `SELECT` cho anonymous với `is_active = true`
+
+**Realtime vẫn hoạt động:**
+- Hook `usePaymentById` đã có realtime subscription
+- Khi SePay webhook confirm payment, UI sẽ tự cập nhật
+
+---
+
+### VI. TEST SAU KHI SỬA
+
+1. **Từ Preview domain:**
+   - Tạo booking payment mới
+   - Bấm "Gửi QR sang điện thoại"
+   - Kiểm tra URL trong notification phải là `https://id-preview--894427c4-74e7-48d3-b143-a401e780c7a2.lovable.app/payment-qr/...`
+   - Click notification → Mở QR không cần login
+
+2. **Từ Live domain:**
+   - Tương tự, URL phải là `https://room-weave-pro.lovable.app/payment-qr/...`
+   - Click notification → Mở QR không cần login
