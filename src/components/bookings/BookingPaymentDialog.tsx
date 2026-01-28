@@ -5,7 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { buildPublicUrl } from '@/utils/getPublicUrl';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -208,8 +208,9 @@ export function BookingPaymentDialog({
         return;
       }
 
-      // Use buildPublicUrl to bypass Auth Bridge on Preview domain
-      const absoluteUrl = buildPublicUrl(`/payment-qr/${createdPayment.id}`);
+      // Use relative URL so PWA can handle navigation within same domain
+      // PaymentQRPage will auto-redirect to public URL if on Auth Bridge domain
+      const paymentPath = `/payment-qr/${createdPayment.id}`;
 
       // Send push notification using user_id (edge function will look up subscriptions)
       const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
@@ -218,10 +219,10 @@ export function BookingPaymentDialog({
           title: `QR Thanh toán phòng ${booking.room_number}`,
           body: `Số tiền: ${formatVNCurrency(parsedAmount)} - Khách: ${booking.guest_name}`,
           tag: `payment-qr-${createdPayment.id}`,
-          action_url: absoluteUrl,
+          action_url: paymentPath,
           notification_type: 'payment_qr',
           data: {
-            url: absoluteUrl,
+            url: paymentPath,
             type: 'payment_qr',
             paymentId: createdPayment.id,
             roomNumber: booking.room_number,

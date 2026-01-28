@@ -9,10 +9,26 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { usePaymentById } from '@/hooks/useBookingPayments';
 import { useBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
 import ReactConfetti from 'react-confetti';
+import { getPublicBaseUrl } from '@/utils/getPublicUrl';
 
 export default function PaymentQRPage() {
   const { paymentId } = useParams<{ paymentId: string }>();
   const navigate = useNavigate();
+
+  // Auto-redirect if on Auth Bridge domain (*.lovableproject.com)
+  // This allows PWA notification clicks to work by first opening in PWA context,
+  // then redirecting to public URL that doesn't require authentication
+  useEffect(() => {
+    const currentOrigin = window.location.origin;
+    const publicBaseUrl = getPublicBaseUrl();
+    
+    // If publicBaseUrl is different, we're on Auth Bridge domain - redirect to public URL
+    if (publicBaseUrl !== currentOrigin && paymentId) {
+      const targetUrl = `${publicBaseUrl}/payment-qr/${paymentId}`;
+      console.log('[PaymentQR] Redirecting to bypass Auth Bridge:', targetUrl);
+      window.location.href = targetUrl;
+    }
+  }, [paymentId]);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
