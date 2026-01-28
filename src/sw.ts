@@ -199,7 +199,14 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
   const rawUrl = (event.notification.data?.url as string) || '/';
   let urlToOpen = rawUrl;
   try {
-    urlToOpen = new URL(rawUrl, self.location.origin).toString();
+    // If URL is already absolute (starts with http), use it directly
+    // This preserves the correct domain (id-preview-- for Preview, live domain for Live)
+    if (rawUrl.startsWith('http')) {
+      urlToOpen = rawUrl;
+    } else {
+      // If relative, resolve with current origin
+      urlToOpen = new URL(rawUrl, self.location.origin).toString();
+    }
   } catch {
     urlToOpen = new URL('/', self.location.origin).toString();
   }
