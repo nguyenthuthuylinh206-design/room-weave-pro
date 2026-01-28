@@ -141,14 +141,10 @@ const router = createBrowserRouter([
   { path: "/auth/callback", element: <AuthCallback /> },
   { path: "/unauthorized", element: <Unauthorized /> },
   
-  // Payment QR Page - Public route with auth
+  // Payment QR Page - Public route (no auth required)
   {
     path: "/payment-qr/:paymentId",
-    element: (
-      <AuthGuard>
-        <PaymentQRPage />
-      </AuthGuard>
-    ),
+    element: <PaymentQRPage />,
   },
   
   // Onboarding - requires authentication but not tenant setup
