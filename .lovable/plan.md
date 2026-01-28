@@ -1,99 +1,82 @@
 
-## Mục tiêu
-Khi nhân viên chạm vào thông báo trên điện thoại, trang **/payment-qr/:paymentId** phải mở ra ngay và hiển thị QR **không cần đăng nhập**, không còn rơi vào “404 Không tìm thấy trang”.
+## Kế hoạch: Sửa lỗi QR Payment mở qua Auth Bridge
+
+### I. VẤN ĐỀ XÁC ĐỊNH
+
+Khi click thông báo push notification trên điện thoại, URL được mở là:
+```
+lovable.dev/auth-bridge?project_id=...&return_url=.../payment-qr/...
+```
+
+Auth Bridge là hệ thống xác thực của Lovable cho Preview domain. Trang QR payment cần public (không cần login) nhưng Auth Bridge đang chặn → trắng trang.
+
+**Nguyên nhân:** URL được gửi trong notification là Preview domain (`894427c4-...lovableproject.com`). Khi điện thoại mở URL này trong Safari mà chưa có session auth, nó bị redirect qua Auth Bridge.
 
 ---
 
-## Nhận định nguyên nhân (dựa trên code hiện tại)
-Trong `src/App.tsx` route `/payment-qr/:paymentId` đã tồn tại và đã public, nên “404” khi mở từ thông báo thường đến từ 1 trong 2 nguyên nhân sau:
+### II. GIẢI PHÁP
 
-1) **Thông báo đang mở nhầm domain/môi trường (Live vs Preview)**
-- Điện thoại có thể đang nhận push từ **domain đã subscribe trước đó** (thường là site đã Publish).
-- Nếu bạn vừa sửa route ở môi trường Preview/Test nhưng **chưa Publish/Update lên Live**, thì khi điện thoại mở link trên Live sẽ gặp 404 (do code Live chưa có route public hoặc chưa có route đó).
+**Có 2 phương án:**
 
-2) **Service Worker mở URL dạng relative (`/payment-qr/...`) trên iOS/Safari có thể resolve sai**
-- Hiện tại payload push và service worker đều dùng `data.url` kiểu `"/payment-qr/..."` (relative).
-- Trên một số trình duyệt mobile (đặc biệt iOS web push), `clients.openWindow()` / `WindowClient.navigate()` với URL relative có thể dẫn tới mở sai đường dẫn → 404.
-- Fix bền vững: luôn chuyển sang **absolute URL** trước khi openWindow/navigate.
+**Phương án A (Khuyến nghị): Publish app và sử dụng Production domain**
+- Khi gửi notification từ Live domain (`room-weave-pro.lovable.app`), URL sẽ là live domain
+- Live domain không có Auth Bridge → trang QR mở trực tiếp
+- Đây là giải pháp đúng cho production
 
----
-
-## Cách sửa (đảm bảo bền vững trên mobile)
-### A) Luôn gửi URL dạng absolute trong payload push (đúng domain hiện tại)
-**File:** `src/components/bookings/BookingPaymentDialog.tsx`
-
-- Khi bấm “Gửi QR sang điện thoại”, thay vì gửi:
-  - `action_url: "/payment-qr/:id"`
-  - `data.url: "/payment-qr/:id"`
-- Sẽ tạo:
-  - `const path = \`/payment-qr/${createdPayment.id}\``
-  - `const absoluteUrl = new URL(path, window.location.origin).toString()`
-- Và gửi:
-  - `action_url: absoluteUrl`
-  - `data.url: absoluteUrl`
-
-Lợi ích:
-- Nếu bạn đang thao tác ở Preview → link mở Preview (đúng DB Test).
-- Nếu bạn thao tác ở Live → link mở Live (đúng DB Live).
-- Tránh 404 do mở nhầm môi trường.
+**Phương án B: Bypass Auth Bridge cho Preview (không khuyến nghị cho production)**
+- Đây là hạn chế của Lovable Preview environment
+- Preview luôn yêu cầu auth qua Auth Bridge
+- Không có cách bypass Auth Bridge ở phía code
 
 ---
 
-### B) Service Worker: luôn normalize URL sang absolute trước khi mở (fix iOS)
-**File:** `src/sw.ts`
+### III. HÀNH ĐỘNG CẦN THỰC HIỆN
 
-Trong `notificationclick`:
-- Lấy `rawUrl = event.notification.data?.url || '/'`
-- Tạo `resolvedUrl = new URL(rawUrl, self.location.origin).toString()`
-- Dùng `resolvedUrl` cho:
-  - `(client as WindowClient).navigate(resolvedUrl)`
-  - `self.clients.openWindow(resolvedUrl)`
+**1. Publish app lên Live domain**
+- Click **Publish** → **Update** trong Lovable
+- Đảm bảo tất cả code mới (route public, RLS policies) được deploy
 
-Lợi ích:
-- Dù payload gửi relative hay absolute, SW vẫn mở đúng.
-- Giảm rủi ro khác nhau giữa Android Chrome / iOS Safari.
+**2. Trên điện thoại:**
+- Mở app/website từ **Live domain**: `room-weave-pro.lovable.app`
+- KHÔNG dùng Preview domain để test tính năng public QR
+- Đăng nhập và đăng ký push notification **trên Live domain**
 
----
-
-### C) Đảm bảo Live đã nhận code mới (nếu điện thoại đang mở site Live)
-Vì frontend thay đổi route chỉ có hiệu lực khi Publish:
-- Thực hiện **Publish → Update** để đưa thay đổi route public + SW lên môi trường Live.
-- Trên điện thoại, cần **refresh** để SW cập nhật:
-  - Mở app/site → kéo refresh 1–2 lần
-  - Nếu vẫn dính SW cũ: xóa cache site (Safari/Chrome) hoặc gỡ “Add to Home Screen” rồi thêm lại (trong trường hợp đã cài kiểu PWA)
+**3. Test lại:**
+- Tạo thanh toán mới
+- Gửi QR sang điện thoại
+- Click thông báo → phải mở `room-weave-pro.lovable.app/payment-qr/...` thay vì Preview domain
 
 ---
 
-## Kế hoạch triển khai (thứ tự tối ưu)
-1) **Sửa `BookingPaymentDialog.tsx`**: gửi `action_url` & `data.url` là absolute URL theo `window.location.origin`.
-2) **Sửa `src/sw.ts`**: normalize URL sang absolute trước `navigate/openWindow`.
-3) **Publish/Update** (nếu bạn đang test bằng site đã publish trên điện thoại).
-4) **Test end-to-end theo checklist** (bên dưới).
+### IV. TẠI SAO PHẢI LÀM VẬY?
+
+```text
+Preview domain (đang bị lỗi):
+894427c4-...lovableproject.com/payment-qr/...
+        ↓
+   Auth Bridge (chặn)
+        ↓
+   Trắng trang ❌
+
+Live domain (giải pháp):
+room-weave-pro.lovable.app/payment-qr/...
+        ↓
+   Mở trực tiếp (public route)
+        ↓
+   Hiển thị QR ✅
+```
 
 ---
 
-## Checklist test (để xác nhận “đã được”)
-1) Trên desktop (đang đăng xuất hoặc Incognito):
-   - Mở trực tiếp: `https://<domain>/payment-qr/<paymentId>`  
-   - Kỳ vọng: vào được màn QR (không bị đá login, không NotFound)
+### V. TÓM TẮT
 
-2) Tạo payment mới → bấm “Gửi QR sang điện thoại”
-3) Trên điện thoại:
-   - Chạm thông báo
-   - Kỳ vọng: mở đúng domain và đúng đường dẫn `/payment-qr/<id>` và hiện QR ngay
-   - Nếu vẫn 404: ghi lại “URL đang mở là domain nào” (Live hay Preview) để chốt đúng nguyên nhân môi trường
+| Bước | Hành động |
+|------|-----------|
+| 1 | Publish/Update app lên Live |
+| 2 | Mở `room-weave-pro.lovable.app` trên điện thoại |
+| 3 | Đăng nhập và bật thông báo push **trên Live** |
+| 4 | Test tạo payment + gửi QR |
+| 5 | Click notification → mở QR không cần login |
 
----
+**Lưu ý:** Push subscription gắn với domain. Nếu bạn đã subscribe trên Preview, cần subscribe lại trên Live domain để notification mở đúng domain.
 
-## (Khuyến nghị bảo mật – làm sau khi hết 404)
-Hiện migration đang tạo policy `USING (true)` cho `booking_payments` (public read toàn bảng) → có rủi ro bị đọc danh sách payment.
-Sau khi fix 404 ổn định, nên chuyển sang:
-- Một backend function “public get payment qr” trả về đúng vài field cần hiển thị, thay vì mở public SELECT cả bảng,
-- Và gỡ policy public read.
-
-(Phần này không bắt buộc để hết 404 ngay, nhưng rất nên làm để tránh lộ dữ liệu.)
-
----
-
-## Rủi ro & phương án dự phòng
-- Nếu vẫn 404 sau A+B+C, khả năng cao là **điện thoại đang mở một domain khác** (ví dụ domain custom / domain cũ / Live chưa update). Khi đó sẽ bổ sung log trong SW để in ra `resolvedUrl` và confirm chính xác URL được mở.
