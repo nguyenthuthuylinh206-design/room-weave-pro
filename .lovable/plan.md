@@ -1,131 +1,340 @@
 
-## Kế hoạch: Sửa lỗi Thông báo bị trùng lặp
+## Kế hoạch: Tính năng QR Code thanh toán tiền phòng
 
-### I. NGUYÊN NHÂN GỐC
+### I. TỔNG QUAN
 
-Edge function `send-push-notification` đang **TỰ ĐỘNG TẠO IN-APP NOTIFICATION** mỗi khi gửi push notification (lines 387-412).
-
-Khi gửi thông báo checkout/cleaning request, code gọi **song song**:
-1. `createMultipleNotifications()` → Tạo in-app notification
-2. `sendMultiplePushNotifications()` → Edge function tạo **thêm** 1 in-app notification
-
-**Kết quả:** Mỗi notification được tạo **2 lần** với metadata khác nhau.
-
-**Bằng chứng từ Database:**
-- "Báo cáo checkout phòng P102":
-  - 16:26:31 - metadata: `{check_id, check_type, room_id}`
-  - 16:26:33 - metadata: `{type, url}` (từ edge function)
-- "Yêu cầu dọn phòng P102":
-  - 16:26:17 - metadata: `{cleaning_priority, room_condition, ...}`
-  - 16:26:20 - metadata: `{type, url}` (từ edge function)
+Xây dựng hệ thống thanh toán tiền phòng với mã QR, cho phép:
+1. Nhân viên chọn phương thức thanh toán (tiền mặt/chuyển khoản)
+2. Nếu chuyển khoản: hiển thị QR code với nội dung thanh toán tự động
+3. Nhân viên có thể hiển thị QR fullscreen trên mobile để đưa khách quét
+4. Lưu lịch sử giao dịch thanh toán booking
 
 ---
 
-### II. GIẢI PHÁP
+### II. KIẾN TRÚC HỆ THỐNG
 
-**Loại bỏ code tự động tạo in-app notification trong edge function** `send-push-notification`.
-
-Logic đã sai: Push notification và In-app notification là **2 kênh riêng biệt**, không nên gộp chung.
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                    USER INTERFACE                                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────────┐    ┌──────────────────┐                   │
+│  │ RoomBookingDialog│    │CheckoutSummaryDialog│                │
+│  │  "Thu tiền"      │    │  "Thu tiền & Trả"   │                │
+│  └────────┬─────────┘    └─────────┬──────────┘                 │
+│           │                        │                             │
+│           └───────────┬────────────┘                             │
+│                       ▼                                          │
+│           ┌───────────────────────┐                              │
+│           │ BookingPaymentDialog  │ ◄── NEW                      │
+│           │ • Chọn phương thức    │                              │
+│           │ • Nhập số tiền        │                              │
+│           │ • Hiển thị QR/xác nhận│                              │
+│           └───────────┬───────────┘                              │
+│                       │                                          │
+│      ┌────────────────┼────────────────┐                         │
+│      ▼                ▼                ▼                         │
+│ ┌─────────┐    ┌─────────────┐   ┌──────────────────┐           │
+│ │  Cash   │    │ Bank QR     │   │ MobileQRDisplay  │ ◄── NEW   │
+│ │ (update │    │ (BankQRCode)│   │ (Fullscreen QR)  │           │
+│ │ booking)│    │             │   │                  │           │
+│ └─────────┘    └─────────────┘   └──────────────────┘           │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                       DATABASE                                   │
+├─────────────────────────────────────────────────────────────────┤
+│  booking_payments (NEW)                                          │
+│  ├── id                                                          │
+│  ├── tenant_id                                                   │
+│  ├── hotel_id                                                    │
+│  ├── booking_id → room_bookings                                  │
+│  ├── amount                                                      │
+│  ├── payment_method (cash | bank_transfer)                       │
+│  ├── payment_status (pending | completed | cancelled)            │
+│  ├── transaction_reference (mã CK: BP-XXXXXX)                    │
+│  ├── paid_at                                                     │
+│  ├── created_by                                                  │
+│  └── metadata (room_number, guest_name...)                       │
+│                                                                  │
+│  room_bookings (UPDATE)                                          │
+│  └── Cập nhật amount_paid, payment_status khi thanh toán         │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-### III. CHI TIẾT THAY ĐỔI
+### III. CHI TIẾT COMPONENTS
 
-**File:** `supabase/functions/send-push-notification/index.ts`
+#### A. BookingPaymentDialog (NEW)
+**File:** `src/components/bookings/BookingPaymentDialog.tsx`
 
-**Xóa đoạn code lines 387-412:**
+Dialog chính để xử lý thanh toán booking:
+- **Step 1**: Chọn phương thức (Tiền mặt / Chuyển khoản)
+- **Step 2**: Nhập số tiền (mặc định = số còn lại)
+- **Step 3a** (Tiền mặt): Xác nhận → Cập nhật booking
+- **Step 3b** (Chuyển khoản): Hiển thị QR Code + nút "Mở QR toàn màn hình"
 
 ```typescript
-// XÓA TOÀN BỘ ĐOẠN NÀY:
-// Create in-app notifications for each user
-const notificationInserts = userIds.map(userId => {
-  const sub = subscriptions.find((s: PushSubscriptionRow) => s.user_id === userId)
-  return {
-    tenant_id: sub?.tenant_id || payload.tenant_id,
-    user_id: userId,
-    title: payload.title,
-    body: payload.body,
-    type: payload.data?.type || 'info',
-    action_url: payload.action_url,
-    icon: payload.icon,
-    metadata: payload.data || {},
-  }
-}).filter(n => n.tenant_id)
+interface BookingPaymentDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  booking: {
+    id: string;
+    guest_name: string;
+    room_number: string;
+    total_amount: number;
+    amount_paid: number;
+  };
+  onPaymentComplete?: () => void;
+}
+```
 
-if (notificationInserts.length > 0) {
-  const { error: notifError } = await supabase
-    .from('in_app_notifications')
-    .insert(notificationInserts)
+#### B. MobilePaymentQRDisplay (NEW)
+**File:** `src/components/payment/MobilePaymentQRDisplay.tsx`
+
+Fullscreen QR display cho mobile:
+- QR code phóng to toàn màn hình
+- Thông tin thanh toán ngắn gọn
+- Nút đóng/thu nhỏ
+- Auto-brightness tối đa (nếu supported)
+- Pull-down để thu nhỏ
+
+```typescript
+interface MobilePaymentQRDisplayProps {
+  open: boolean;
+  onClose: () => void;
+  qrData: {
+    bankCode: string;
+    accountNumber: string;
+    accountHolder: string;
+    amount: number;
+    paymentContent: string;
+  };
+  bookingInfo: {
+    guestName: string;
+    roomNumber: string;
+  };
+}
+```
+
+#### C. Cập nhật RoomBookingDialog
+**File:** `src/components/rooms/RoomBookingDialog.tsx`
+
+Thay đổi nút "Nhận thanh toán đầy đủ":
+- Mở `BookingPaymentDialog` thay vì cập nhật trực tiếp
+- Truyền thông tin booking hiện tại
+
+#### D. Cập nhật CheckoutSummaryDialog
+**File:** `src/components/bookings/CheckoutSummaryDialog.tsx`
+
+Thay đổi nút "Thu tiền & Trả phòng":
+- Mở `BookingPaymentDialog` trước
+- Sau khi thanh toán xong → Thực hiện checkout
+
+---
+
+### IV. DATABASE MIGRATION
+
+**Tạo bảng `booking_payments`:**
+
+```sql
+CREATE TABLE public.booking_payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  hotel_id UUID NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
+  booking_id UUID NOT NULL REFERENCES room_bookings(id) ON DELETE CASCADE,
+  amount NUMERIC NOT NULL,
+  payment_method TEXT NOT NULL CHECK (payment_method IN ('cash', 'bank_transfer')),
+  payment_status TEXT NOT NULL DEFAULT 'pending' CHECK (payment_status IN ('pending', 'completed', 'cancelled')),
+  transaction_reference TEXT, -- Mã chuyển khoản: BP-XXXXXX
+  paid_at TIMESTAMPTZ,
+  created_by UUID REFERENCES auth.users(id),
+  metadata JSONB DEFAULT '{}',
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_booking_payments_booking ON booking_payments(booking_id);
+CREATE INDEX idx_booking_payments_tenant ON booking_payments(tenant_id);
+CREATE INDEX idx_booking_payments_reference ON booking_payments(transaction_reference);
+
+-- RLS
+ALTER TABLE booking_payments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "booking_payments_tenant_isolation" ON booking_payments
+  FOR ALL USING (tenant_id = (SELECT tenant_id FROM users WHERE id = auth.uid()));
+
+-- Realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE booking_payments;
+```
+
+---
+
+### V. HOOK & UTILITIES
+
+#### A. useBookingPayments (NEW)
+**File:** `src/hooks/useBookingPayments.ts`
+
+```typescript
+export function useBookingPayments(bookingId?: string) {
+  // Query payments for a booking
+  // Mutation to create payment
+  // Mutation to confirm cash payment
+  // Realtime subscription for status updates
+}
+
+export function useCreateBookingPayment() {
+  // Create payment transaction
+  // Generate unique reference (BP-{timestamp})
+  // Update booking amount_paid if cash
+}
+```
+
+#### B. Payment Reference Generator
+**Format:** `BP-{hotelCode}-{timestamp36}`
+**Ví dụ:** `BP-P102-M8X4Y2`
+
+---
+
+### VI. FLOW THANH TOÁN
+
+#### Flow 1: Thanh toán tiền mặt
+```text
+1. Nhân viên click "Thu tiền"
+2. Mở BookingPaymentDialog
+3. Chọn "Tiền mặt"
+4. Nhập số tiền (mặc định = còn lại)
+5. Click "Xác nhận đã nhận tiền"
+6. System:
+   - Insert booking_payments (status: completed)
+   - Update room_bookings.amount_paid
+   - Update room_bookings.payment_status
+7. Đóng dialog, hiển thị toast thành công
+```
+
+#### Flow 2: Thanh toán chuyển khoản
+```text
+1. Nhân viên click "Thu tiền"
+2. Mở BookingPaymentDialog
+3. Chọn "Chuyển khoản"
+4. Nhập số tiền (mặc định = còn lại)
+5. Click "Tạo mã thanh toán"
+6. System:
+   - Insert booking_payments (status: pending)
+   - Generate transaction_reference
+7. Hiển thị QR Code + thông tin CK
+8. Nhân viên có thể:
+   a. "Mở QR toàn màn hình" → MobilePaymentQRDisplay
+   b. "Đã nhận tiền" → Confirm manual
+   c. Đợi webhook SePay auto-confirm
+9. Khi confirmed:
+   - Update booking_payments.status = completed
+   - Update room_bookings.amount_paid
+   - Realtime cập nhật UI
+```
+
+#### Flow 3: Mobile QR Display
+```text
+1. Từ BookingPaymentDialog, click "Mở QR toàn màn hình"
+2. MobilePaymentQRDisplay mở fullscreen
+3. Nhân viên đưa điện thoại cho khách quét
+4. Khách quét QR bằng app ngân hàng
+5. Khách chuyển khoản
+6. SePay webhook → Auto confirm
+7. UI tự cập nhật "Đã thanh toán"
+```
+
+---
+
+### VII. FILES CẦN TẠO/SỬA
+
+| File | Loại | Mô tả |
+|------|------|-------|
+| `src/components/bookings/BookingPaymentDialog.tsx` | **NEW** | Dialog thanh toán chính |
+| `src/components/payment/MobilePaymentQRDisplay.tsx` | **NEW** | Fullscreen QR cho mobile |
+| `src/hooks/useBookingPayments.ts` | **NEW** | Hook quản lý thanh toán |
+| `src/components/rooms/RoomBookingDialog.tsx` | UPDATE | Thêm state, gọi BookingPaymentDialog |
+| `src/components/bookings/CheckoutSummaryDialog.tsx` | UPDATE | Tích hợp payment dialog |
+| `supabase/functions/sepay-webhook/index.ts` | UPDATE | Xử lý booking payments |
+
+---
+
+### VIII. SePay Webhook Integration
+
+Cập nhật `sepay-webhook` để xử lý booking payments:
+
+```typescript
+// Thêm logic match booking payment
+const bookingPayment = await supabase
+  .from('booking_payments')
+  .select('*, booking:room_bookings(*)')
+  .eq('transaction_reference', normalizedContent)
+  .eq('payment_status', 'pending')
+  .maybeSingle();
+
+if (bookingPayment) {
+  // Update booking payment
+  await supabase.from('booking_payments')
+    .update({ payment_status: 'completed', paid_at: new Date() })
+    .eq('id', bookingPayment.id);
   
-  if (notifError) {
-    console.error('Error inserting in-app notifications:', notifError)
-  } else {
-    console.log(`Created ${notificationInserts.length} in-app notifications`)
-  }
+  // Update room booking
+  const newAmountPaid = (bookingPayment.booking.amount_paid || 0) + bookingPayment.amount;
+  await supabase.from('room_bookings')
+    .update({ 
+      amount_paid: newAmountPaid,
+      payment_status: newAmountPaid >= bookingPayment.booking.total_amount ? 'paid' : 'partial'
+    })
+    .eq('id', bookingPayment.booking_id);
 }
 ```
 
 ---
 
-### IV. TẠI SAO LOẠI BỎ THAY VÌ SỬA?
+### IX. UI/UX SPECIFICATIONS
 
-| Phương án | Ưu điểm | Nhược điểm |
-|-----------|---------|------------|
-| **Loại bỏ code** | Đơn giản, rõ ràng, tách biệt 2 kênh notification | Không có |
-| Thêm flag `skipInApp` | Phức tạp, cần sửa nhiều nơi gọi | Khó maintain |
-| Check duplicate trước khi insert | Tốn thêm query, logic phức tạp | Performance |
+#### A. BookingPaymentDialog
+- Max width: `sm:max-w-md`
+- Payment method: Radio buttons với icons
+- Amount input: Số tiền với format VND
+- QR section: Sử dụng `BankQRCode` component hiện có
+- Mobile button: "Mở QR toàn màn hình" với icon Maximize
 
-**Quyết định:** Loại bỏ code là giải pháp tốt nhất vì:
-- Push notification và In-app notification nên được quản lý **độc lập**
-- Tất cả các nơi gọi thông báo đã có logic tách biệt: gọi riêng `createMultipleNotifications()` và `sendMultiplePushNotifications()`
-- Đảm bảo tính **single responsibility** của edge function
-
----
-
-### V. FILES CẦN SỬA
-
-| File | Thay đổi |
-|------|----------|
-| `supabase/functions/send-push-notification/index.ts` | Xóa lines 387-412 (tự động tạo in-app notification) |
+#### B. MobilePaymentQRDisplay
+- Fullscreen overlay (fixed, inset-0)
+- Background: White
+- QR size: 80% viewport width (max 400px)
+- Swipe down to close (gesture)
+- Thông tin ngắn: Phòng, Số tiền, Nội dung CK
 
 ---
 
-### VI. TESTING CHECKLIST
+### X. TESTING CHECKLIST
 
-1. Thực hiện checkout phòng, kiểm tra chỉ tạo **1 notification** "Báo cáo checkout"
-2. Tạo cleaning request, kiểm tra chỉ tạo **1 notification** "Yêu cầu dọn phòng"
-3. Push notification vẫn hoạt động bình thường
-4. In-app notification vẫn có đầy đủ metadata (check_id, room_id, v.v.)
-5. Query database để confirm không còn duplicate:
-   ```sql
-   SELECT title, COUNT(*) 
-   FROM in_app_notifications 
-   WHERE created_at > NOW() - INTERVAL '1 hour' 
-   GROUP BY title, body 
-   HAVING COUNT(*) > 1
-   ```
+1. Thanh toán tiền mặt:
+   - Số tiền cập nhật đúng
+   - Payment status chuyển đúng (partial/paid)
+   
+2. Thanh toán chuyển khoản:
+   - QR hiển thị đúng thông tin
+   - Transaction reference unique
+   - Webhook xử lý đúng khi nhận tiền
+   
+3. Mobile QR Display:
+   - Fullscreen hoạt động trên iOS/Android
+   - Swipe down đóng được
+   - QR readable by banking apps
+   
+4. Realtime updates:
+   - UI cập nhật khi webhook confirm
+   - Toast notification hiển thị
 
----
-
-### VII. CLEAN UP (SAU KHI SỬA)
-
-Xóa các notification trùng lặp cũ trong database:
-
-```sql
--- Xóa notification trùng (giữ lại record có metadata đầy đủ hơn)
-DELETE FROM in_app_notifications 
-WHERE id IN (
-  SELECT id FROM (
-    SELECT id, 
-           ROW_NUMBER() OVER (
-             PARTITION BY user_id, title, body, DATE_TRUNC('minute', created_at)
-             ORDER BY 
-               CASE WHEN metadata::text != '{}' THEN 0 ELSE 1 END,
-               created_at ASC
-           ) as rn
-    FROM in_app_notifications
-    WHERE created_at > NOW() - INTERVAL '7 days'
-  ) t
-  WHERE rn > 1
-);
-```
+5. Edge cases:
+   - Thanh toán partial (một phần)
+   - Thanh toán nhiều lần
+   - Cancel payment
