@@ -1,104 +1,145 @@
 
 
-## Kế hoạch: Sửa lỗi QR không hiển thị khi click notification trên PWA iOS
+## Kế hoạch: Sửa lỗi QR không hiển thị khi PWA đang hoạt động + Cải tiến giao diện
 
 ### I. PHÂN TÍCH VẤN ĐỀ
 
-**Hiện tại:**
-1. PWA cài từ `*.lovableproject.com` (có Auth Bridge)
-2. Notification gửi relative URL: `/payment-qr/xxx`
-3. Service Worker resolve → `https://894427c4-...lovableproject.com/payment-qr/xxx`
-4. PWA mở trang nhưng:
-   - Auth Bridge **chặn** request đến Supabase (yêu cầu login)
-   - Trang cố redirect sang `id-preview--*.lovable.app` bằng `window.location.href`
-   - iOS PWA mở Safari thay vì ở trong app → **Trải nghiệm xấu**
+**Vấn đề 1: PWA đang hoạt động không mở QR**
 
-**Giải pháp:**
-Thay đổi chiến lược - PWA trên Preview domain sẽ:
-1. Detect ngay khi vào trang PaymentQR
-2. **Không fetch data** - chỉ hiển thị loading với nút mở trong browser
-3. Dùng phương pháp an toàn để mở URL trong Safari
+Khi PWA đang mở sẵn và user click notification:
+1. Service Worker gọi `client.navigate(url)` → Component được navigate trong app
+2. `PaymentQRPage` nhận URL, detect Auth Bridge domain → Hiển thị UI "Mở trong trình duyệt"
+3. `useEffect` auto-open sử dụng state `autoOpenAttempted` để tránh mở nhiều lần
+4. **Vấn đề**: State này có thể bị giữ lại từ lần navigate trước, hoặc React không re-mount component khi navigate cùng route
+
+**Giải pháp**: Reset `autoOpenAttempted` khi `paymentId` thay đổi, và dùng `key={paymentId}` để force re-mount component nếu cần.
+
+**Vấn đề 2: Giao diện đơn giản, chưa đẹp mắt**
+
+UI hiện tại chỉ có nền trắng và các element cơ bản. Cần thêm:
+- Gradient background đẹp mắt
+- Animation cho icon và nút
+- Thẻ card với shadow đẹp
+- Progress indicator khi đang mở browser
 
 ---
 
 ### II. CÁC THAY ĐỔI
 
-#### A. Sửa PaymentQRPage.tsx - Xử lý Auth Bridge domain trước khi fetch
+#### A. Sửa logic auto-open khi navigate trong PWA
 
-**Thay đổi logic:**
-- Nếu đang ở Auth Bridge domain (`*.lovableproject.com`), hiển thị UI đặc biệt với nút "Mở trong trình duyệt"
-- KHÔNG fetch data từ Supabase (vì sẽ bị Auth Bridge chặn)
-- Dùng `window.open()` thay vì `window.location.href` để mở Safari
+**File:** `src/pages/payment/PaymentQRPage.tsx`
 
 ```typescript
-// src/pages/payment/PaymentQRPage.tsx
-export default function PaymentQRPage() {
-  const { paymentId } = useParams<{ paymentId: string }>();
-  const navigate = useNavigate();
-
-  // Check if on Auth Bridge domain
-  const currentOrigin = window.location.origin;
-  const publicBaseUrl = getPublicBaseUrl();
-  const isOnAuthBridge = publicBaseUrl !== currentOrigin;
-  
-  // If on Auth Bridge, show "Open in Browser" UI immediately
-  if (isOnAuthBridge && paymentId) {
-    const targetUrl = `${publicBaseUrl}/payment-qr/${paymentId}`;
-    
-    return (
-      <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-6">
-        <QrCode className="h-16 w-16 text-primary mb-4" />
-        <h2 className="text-xl font-semibold mb-2 text-center">Xem mã QR thanh toán</h2>
-        <p className="text-muted-foreground text-center mb-6">
-          Nhấn nút bên dưới để mở trang thanh toán
-        </p>
-        <Button 
-          size="lg" 
-          className="w-full max-w-xs"
-          onClick={() => {
-            // Use window.open for better iOS PWA compatibility
-            window.open(targetUrl, '_blank');
-          }}
-        >
-          <ExternalLink className="h-4 w-4 mr-2" />
-          Mở trong trình duyệt
-        </Button>
-        <Button 
-          variant="ghost" 
-          className="mt-4"
-          onClick={() => navigate(-1)}
-        >
-          Quay lại
-        </Button>
-      </div>
-    );
-  }
-
-  // Normal flow for public domain (id-preview-- or live)
-  const { data: payment, isLoading } = usePaymentById(paymentId);
-  // ... rest of component
-}
+// Reset autoOpenAttempted khi paymentId thay đổi
+useEffect(() => {
+  setAutoOpenAttempted(false);
+}, [paymentId]);
 ```
 
----
+#### B. Cải tiến giao diện Auth Bridge UI
 
-#### B. Thêm auto-open với delay (cải thiện UX)
+Thiết kế mới với:
+- **Gradient background**: Từ màu primary nhẹ đến background
+- **Card với blur effect**: Glassmorphism style
+- **Icon animation**: Pulse effect cho icon QR
+- **Loading indicator**: Hiển thị khi đang tự động mở browser
+- **Better typography**: Rõ ràng, dễ đọc hơn
 
-Để tự động mở trình duyệt ngay sau khi click notification mà không cần user bấm thêm:
+**Thiết kế UI mới:**
+
+```text
+┌─────────────────────────────────────────────────┐
+│ ┌─ Gradient Background ───────────────────────┐ │
+│ │                                             │ │
+│ │                                             │ │
+│ │         ┌─ Card (glassmorphism) ───────┐    │ │
+│ │         │                              │    │ │
+│ │         │      ╔═══════════════╗       │    │ │
+│ │         │      ║   📱 (pulse)  ║       │    │ │
+│ │         │      ╚═══════════════╝       │    │ │
+│ │         │                              │    │ │
+│ │         │    Xem mã QR thanh toán      │    │ │
+│ │         │                              │    │ │
+│ │         │  ⏳ Đang mở trình duyệt...   │    │ │
+│ │         │                              │    │ │
+│ │         │  ┌─────────────────────────┐ │    │ │
+│ │         │  │ 🔗 Mở trong trình duyệt │ │    │ │
+│ │         │  └─────────────────────────┘ │    │ │
+│ │         │                              │    │ │
+│ │         │        ← Quay lại            │    │ │
+│ │         │                              │    │ │
+│ │         └──────────────────────────────┘    │ │
+│ │                                             │ │
+│ └─────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────┘
+```
+
+**Code mới cho Auth Bridge UI:**
 
 ```typescript
-useEffect(() => {
-  if (isOnAuthBridge && paymentId) {
-    const targetUrl = `${publicBaseUrl}/payment-qr/${paymentId}`;
-    
-    // Small delay to ensure page loads first
-    const timer = setTimeout(() => {
-      window.open(targetUrl, '_blank');
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }
-}, [isOnAuthBridge, paymentId, publicBaseUrl]);
+if (isOnAuthBridge && paymentId) {
+  return (
+    <div className="fixed inset-0 z-[100] bg-gradient-to-br from-primary/20 via-primary/10 to-background flex flex-col items-center justify-center p-6">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-background/80 backdrop-blur-xl rounded-3xl shadow-2xl p-8 max-w-sm w-full text-center border border-border/50"
+      >
+        {/* Animated QR Icon */}
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", delay: 0.1 }}
+          className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center"
+        >
+          <motion.div
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <QrCode className="h-10 w-10 text-primary" />
+          </motion.div>
+        </motion.div>
+
+        <h2 className="text-xl font-bold mb-2">Xem mã QR thanh toán</h2>
+        
+        {/* Auto-open indicator */}
+        {!autoOpenAttempted && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4"
+          >
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Đang mở trình duyệt...</span>
+          </motion.div>
+        )}
+
+        <p className="text-muted-foreground mb-6">
+          Nhấn nút bên dưới để mở trang thanh toán
+        </p>
+
+        <Button 
+          size="lg" 
+          className="w-full h-12 text-base shadow-lg hover:shadow-xl transition-all"
+          onClick={() => window.open(targetUrl, '_blank')}
+        >
+          <ExternalLink className="h-5 w-5 mr-2" />
+          Mở trong trình duyệt
+        </Button>
+
+        <Button 
+          variant="ghost" 
+          className="mt-4 w-full"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Quay lại
+        </Button>
+      </motion.div>
+    </div>
+  );
+}
 ```
 
 ---
@@ -107,80 +148,54 @@ useEffect(() => {
 
 | File | Hành động |
 |------|-----------|
-| `src/pages/payment/PaymentQRPage.tsx` | **Sửa** - Xử lý Auth Bridge domain với UI riêng và auto-open |
+| `src/pages/payment/PaymentQRPage.tsx` | **Sửa** - Reset state khi navigate + Cải tiến UI Auth Bridge |
 
 ---
 
-### IV. FLOW SAU KHI SỬA
+### IV. CHI TIẾT KỸ THUẬT
+
+**1. Reset `autoOpenAttempted` khi `paymentId` thay đổi:**
+- Thêm `useEffect` mới để watch `paymentId`
+- Khi `paymentId` thay đổi → reset state về `false`
+- Điều này đảm bảo auto-open chạy mỗi khi có payment mới
+
+**2. Cải tiến UI:**
+- **Gradient background**: `bg-gradient-to-br from-primary/20 via-primary/10 to-background`
+- **Glassmorphism card**: `bg-background/80 backdrop-blur-xl rounded-3xl shadow-2xl`
+- **Animated icon**: Framer Motion với pulse effect
+- **Loading state**: Hiển thị spinner khi đang auto-open
+- **Better buttons**: Thêm shadow và hover effects
+
+---
+
+### V. FLOW SAU KHI SỬA
 
 ```text
-PWA trên iOS (từ *.lovableproject.com):
+PWA đang hoạt động + Click notification:
 =========================================
-1. User click notification trên iPhone
+1. User click notification
    ↓
-2. Service Worker resolve → https://[pwa].lovableproject.com/payment-qr/xxx
+2. Service Worker gọi client.navigate('/payment-qr/abc123')
    ↓
-3. PWA mở trang PaymentQRPage
+3. PaymentQRPage nhận paymentId mới
    ↓
-4. Component detect đang ở Auth Bridge domain
+4. useEffect reset autoOpenAttempted = false
    ↓
-5. KHÔNG fetch data (tránh bị Auth Bridge chặn)
+5. useEffect auto-open chạy → window.open(targetUrl)
    ↓
-6. Auto-open Safari với URL: https://id-preview--[id].lovable.app/payment-qr/xxx
+6. Safari mở trang QR public ✓
    ↓
-7. Safari mở trang QR (public, không cần login) ✓
-   ↓
-8. PWA hiển thị nút "Mở trong trình duyệt" để user có thể mở lại nếu cần
+7. PWA hiển thị UI đẹp với loading indicator
 
 
-PWA trên iOS (từ Live domain room-weave-pro.lovable.app):
+PWA đóng + Click notification:
 =========================================
-1. Notification → SW resolve → https://room-weave-pro.lovable.app/payment-qr/xxx
+1. Service Worker mở window mới với URL
    ↓
-2. Component detect domain OK (không phải Auth Bridge)
-   ↓  
-3. Fetch data từ Supabase (cho phép vì public RLS policy)
+2. PaymentQRPage load, autoOpenAttempted = false
    ↓
-4. Hiển thị QR trực tiếp trong PWA ✓
+3. Auto-open chạy ngay → Safari mở
+   ↓
+4. UI hiển thị đẹp ✓
 ```
-
----
-
-### V. FALLBACK UI
-
-Nếu auto-open không hoạt động (bị popup blocker), user vẫn thấy:
-
-```
-┌─────────────────────────────────┐
-│                                 │
-│          📱 [QR Icon]           │
-│                                 │
-│    Xem mã QR thanh toán         │
-│                                 │
-│  Nhấn nút bên dưới để mở        │
-│       trang thanh toán          │
-│                                 │
-│  ┌─────────────────────────┐    │
-│  │ 🔗 Mở trong trình duyệt │    │
-│  └─────────────────────────┘    │
-│                                 │
-│         ← Quay lại              │
-│                                 │
-└─────────────────────────────────┘
-```
-
----
-
-### VI. LƯU Ý KỸ THUẬT
-
-1. **Không dùng `window.location.href`** để redirect cross-domain trong iOS PWA vì:
-   - Có thể không hoạt động
-   - Hoặc mở Safari nhưng PWA chuyển sang trạng thái lạ
-
-2. **Dùng `window.open(url, '_blank')`** vì:
-   - Rõ ràng intent mở tab mới
-   - Tương thích tốt hơn với iOS Safari/PWA
-   - User biết sẽ mở trình duyệt
-
-3. **Hooks phải được gọi unconditionally** - sửa code để tuân thủ rules of hooks
 
