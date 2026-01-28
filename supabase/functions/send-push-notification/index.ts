@@ -384,33 +384,6 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Create in-app notifications for each user
-    const notificationInserts = userIds.map(userId => {
-      const sub = subscriptions.find((s: PushSubscriptionRow) => s.user_id === userId)
-      return {
-        tenant_id: sub?.tenant_id || payload.tenant_id,
-        user_id: userId,
-        title: payload.title,
-        body: payload.body,
-        type: payload.data?.type || 'info',
-        action_url: payload.action_url,
-        icon: payload.icon,
-        metadata: payload.data || {},
-      }
-    }).filter(n => n.tenant_id)
-
-    if (notificationInserts.length > 0) {
-      const { error: notifError } = await supabase
-        .from('in_app_notifications')
-        .insert(notificationInserts)
-      
-      if (notifError) {
-        console.error('Error inserting in-app notifications:', notifError)
-      } else {
-        console.log(`Created ${notificationInserts.length} in-app notifications`)
-      }
-    }
-
     // Prepare notification payload with Vietnamese support
     const notificationPayload = JSON.stringify({
       title: payload.title,
