@@ -10,10 +10,15 @@ import { usePaymentById } from '@/hooks/useBookingPayments';
 import { useBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
 import ReactConfetti from 'react-confetti';
 import { getPublicBaseUrl } from '@/utils/getPublicUrl';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function PaymentQRPage() {
   const { paymentId } = useParams<{ paymentId: string }>();
   const navigate = useNavigate();
+
+  // Session check state
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
 
   // Check if on Auth Bridge domain BEFORE any conditional logic
   const { isOnAuthBridge, targetUrl } = useMemo(() => {
@@ -29,8 +34,33 @@ export default function PaymentQRPage() {
   const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
   const [autoOpenAttempted, setAutoOpenAttempted] = useState(false);
 
-  // Hooks must be called unconditionally - only skip fetching if on Auth Bridge
-  const { data: payment, isLoading, error } = usePaymentById(isOnAuthBridge ? undefined : paymentId);
+  // Check session on mount to determine if PWA is logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        setHasSession(!!data.session);
+        console.log('[PaymentQR] Session check:', !!data.session);
+      } catch {
+        setHasSession(false);
+      } finally {
+        setSessionChecked(true);
+      }
+    };
+    checkSession();
+  }, []);
+
+  // Decision logic:
+  // - If NOT on Auth Bridge → always fetch (normal flow)
+  // - If on Auth Bridge + has session → fetch (PWA is open and logged in)
+  // - If on Auth Bridge + no session → redirect to browser (fresh open)
+  const shouldFetchData = !isOnAuthBridge || (isOnAuthBridge && hasSession);
+  const shouldShowRedirectUI = isOnAuthBridge && sessionChecked && !hasSession;
+
+  // Fetch data only when appropriate
+  const { data: payment, isLoading, error } = usePaymentById(
+    shouldFetchData && sessionChecked ? paymentId : undefined
+  );
   const { data: bankSettings, isLoading: bankLoading } = useBankPaymentSettings();
 
   // Reset autoOpenAttempted when paymentId changes (for in-app navigation)
@@ -38,9 +68,9 @@ export default function PaymentQRPage() {
     setAutoOpenAttempted(false);
   }, [paymentId]);
 
-  // Auto-open Safari when on Auth Bridge domain
+  // Auto-open Safari only when showing redirect UI
   useEffect(() => {
-    if (isOnAuthBridge && paymentId && targetUrl && !autoOpenAttempted) {
+    if (shouldShowRedirectUI && paymentId && targetUrl && !autoOpenAttempted) {
       setAutoOpenAttempted(true);
       // Small delay to ensure page loads first
       const timer = setTimeout(() => {
@@ -49,7 +79,7 @@ export default function PaymentQRPage() {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [isOnAuthBridge, paymentId, targetUrl, autoOpenAttempted]);
+  }, [shouldShowRedirectUI, paymentId, targetUrl, autoOpenAttempted]);
 
   // Handle window resize for confetti
   useEffect(() => {
@@ -80,8 +110,18 @@ export default function PaymentQRPage() {
     }
   };
 
-  // Show Auth Bridge UI - user needs to open in browser
-  if (isOnAuthBridge && paymentId) {
+  // Show loading while checking session
+  if (!sessionChecked) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Đang kiểm tra...</p>
+      </div>
+    );
+  }
+
+  // Show Auth Bridge UI only when: on Auth Bridge domain + no session (fresh open)
+  if (shouldShowRedirectUI && paymentId) {
     return (
       <div className="fixed inset-0 z-[100] bg-gradient-to-br from-primary/20 via-primary/10 to-background flex flex-col items-center justify-center p-6">
         <motion.div
