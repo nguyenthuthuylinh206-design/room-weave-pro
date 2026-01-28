@@ -1,84 +1,131 @@
 
+## Kế hoạch: Sửa lỗi Thông báo bị trùng lặp
 
-## Kế hoạch: Sửa lỗi Ambiguous Function Call cho Bổ sung đồ dùng
+### I. NGUYÊN NHÂN GỐC
 
-### I. NGUYÊN NHÂN LỖI
+Edge function `send-push-notification` đang **TỰ ĐỘNG TẠO IN-APP NOTIFICATION** mỗi khi gửi push notification (lines 387-412).
 
-**Lỗi:** `Could not choose the best candidate function between: public.create_outbound_transaction(...)`
+Khi gửi thông báo checkout/cleaning request, code gọi **song song**:
+1. `createMultipleNotifications()` → Tạo in-app notification
+2. `sendMultiplePushNotifications()` → Edge function tạo **thêm** 1 in-app notification
 
-**Nguyên nhân:** Database có 2 phiên bản `create_outbound_transaction`:
+**Kết quả:** Mỗi notification được tạo **2 lần** với metadata khác nhau.
 
-| Phiên bản | Tham số khác biệt |
-|-----------|-------------------|
-| Phiên bản 1 | Không có `p_from_warehouse_id` |
-| Phiên bản 2 | CÓ `p_from_warehouse_id` (optional) |
-
-Khi gọi RPC mà không truyền `p_from_warehouse_id`, PostgreSQL không thể phân biệt được function nào cần gọi vì cả 2 đều match signature.
-
-**So sánh code:**
-- `useInventoryTransactions.ts` line 183: `p_from_warehouse_id: data.from_warehouse_id || null` - CÓ TRUYỀN
-- `useRoomSupplements.ts`: KHÔNG TRUYỀN `p_from_warehouse_id`
+**Bằng chứng từ Database:**
+- "Báo cáo checkout phòng P102":
+  - 16:26:31 - metadata: `{check_id, check_type, room_id}`
+  - 16:26:33 - metadata: `{type, url}` (từ edge function)
+- "Yêu cầu dọn phòng P102":
+  - 16:26:17 - metadata: `{cleaning_priority, room_condition, ...}`
+  - 16:26:20 - metadata: `{type, url}` (từ edge function)
 
 ---
 
 ### II. GIẢI PHÁP
 
-Thêm tham số `p_from_warehouse_id: null` vào RPC call trong `useRoomSupplements.ts` để PostgreSQL xác định được function đúng.
+**Loại bỏ code tự động tạo in-app notification trong edge function** `send-push-notification`.
+
+Logic đã sai: Push notification và In-app notification là **2 kênh riêng biệt**, không nên gộp chung.
 
 ---
 
 ### III. CHI TIẾT THAY ĐỔI
 
-**File:** `src/hooks/useRoomSupplements.ts`
+**File:** `supabase/functions/send-push-notification/index.ts`
+
+**Xóa đoạn code lines 387-412:**
 
 ```typescript
-// Line 182-193: Thêm p_from_warehouse_id
+// XÓA TOÀN BỘ ĐOẠN NÀY:
+// Create in-app notifications for each user
+const notificationInserts = userIds.map(userId => {
+  const sub = subscriptions.find((s: PushSubscriptionRow) => s.user_id === userId)
+  return {
+    tenant_id: sub?.tenant_id || payload.tenant_id,
+    user_id: userId,
+    title: payload.title,
+    body: payload.body,
+    type: payload.data?.type || 'info',
+    action_url: payload.action_url,
+    icon: payload.icon,
+    metadata: payload.data || {},
+  }
+}).filter(n => n.tenant_id)
 
-const { data: result, error } = await supabase.rpc('create_outbound_transaction', {
-  p_tenant_id: tenantId,
-  p_hotel_id: selectedHotel.id,
-  p_transaction_category: 'room_assign',
-  p_from_location: 'Kho',
-  p_to_location: `Phòng ${data.room_number}`,
-  p_created_by: user.id,
-  p_items: rpcItems as any,
-  p_related_type: 'room',
-  p_related_id: data.room_id,
-  p_notes: data.notes || `Bổ sung đồ dùng cho phòng ${data.room_number}`,
-  // THÊM CÁC THAM SỐ OPTIONAL ĐỂ PHÂN BIỆT FUNCTION
-  p_recipient_name: null,
-  p_recipient_signature: null,
-  p_documents: null,
-  p_photos: null,
-  p_from_warehouse_id: null,  // ← QUAN TRỌNG: Thêm để match function signature
-})
+if (notificationInserts.length > 0) {
+  const { error: notifError } = await supabase
+    .from('in_app_notifications')
+    .insert(notificationInserts)
+  
+  if (notifError) {
+    console.error('Error inserting in-app notifications:', notifError)
+  } else {
+    console.log(`Created ${notificationInserts.length} in-app notifications`)
+  }
+}
 ```
 
 ---
 
-### IV. TẠI SAO CẦN THÊM TẤT CẢ OPTIONAL PARAMS?
+### IV. TẠI SAO LOẠI BỎ THAY VÌ SỬA?
 
-Khi có 2 overloaded functions với signature gần giống nhau, cách tốt nhất để PostgreSQL nhận diện đúng function là:
-1. Truyền **tất cả tham số** (kể cả optional với giá trị null)
-2. Hoặc loại bỏ function cũ khỏi database
+| Phương án | Ưu điểm | Nhược điểm |
+|-----------|---------|------------|
+| **Loại bỏ code** | Đơn giản, rõ ràng, tách biệt 2 kênh notification | Không có |
+| Thêm flag `skipInApp` | Phức tạp, cần sửa nhiều nơi gọi | Khó maintain |
+| Check duplicate trước khi insert | Tốn thêm query, logic phức tạp | Performance |
 
-Cách 1 an toàn hơn vì không cần thay đổi database schema.
+**Quyết định:** Loại bỏ code là giải pháp tốt nhất vì:
+- Push notification và In-app notification nên được quản lý **độc lập**
+- Tất cả các nơi gọi thông báo đã có logic tách biệt: gọi riêng `createMultipleNotifications()` và `sendMultiplePushNotifications()`
+- Đảm bảo tính **single responsibility** của edge function
 
 ---
 
-### V. FILE CẦN SỬA
+### V. FILES CẦN SỬA
 
 | File | Thay đổi |
 |------|----------|
-| `src/hooks/useRoomSupplements.ts` | Thêm các tham số optional (`p_from_warehouse_id`, `p_recipient_name`, v.v.) vào RPC call |
+| `supabase/functions/send-push-notification/index.ts` | Xóa lines 387-412 (tự động tạo in-app notification) |
 
 ---
 
-### VI. TESTING
+### VI. TESTING CHECKLIST
 
-1. Mở chi tiết phòng (route hiện tại: `/rooms/9bc582e3-...`)
-2. Mở sheet "Bổ sung đồ dùng"
-3. Chọn items và số lượng
-4. Bấm "Xác nhận bổ sung"
-5. **Kết quả mong đợi:** Toast thành công, không còn lỗi "Could not choose the best candidate function"
+1. Thực hiện checkout phòng, kiểm tra chỉ tạo **1 notification** "Báo cáo checkout"
+2. Tạo cleaning request, kiểm tra chỉ tạo **1 notification** "Yêu cầu dọn phòng"
+3. Push notification vẫn hoạt động bình thường
+4. In-app notification vẫn có đầy đủ metadata (check_id, room_id, v.v.)
+5. Query database để confirm không còn duplicate:
+   ```sql
+   SELECT title, COUNT(*) 
+   FROM in_app_notifications 
+   WHERE created_at > NOW() - INTERVAL '1 hour' 
+   GROUP BY title, body 
+   HAVING COUNT(*) > 1
+   ```
 
+---
+
+### VII. CLEAN UP (SAU KHI SỬA)
+
+Xóa các notification trùng lặp cũ trong database:
+
+```sql
+-- Xóa notification trùng (giữ lại record có metadata đầy đủ hơn)
+DELETE FROM in_app_notifications 
+WHERE id IN (
+  SELECT id FROM (
+    SELECT id, 
+           ROW_NUMBER() OVER (
+             PARTITION BY user_id, title, body, DATE_TRUNC('minute', created_at)
+             ORDER BY 
+               CASE WHEN metadata::text != '{}' THEN 0 ELSE 1 END,
+               created_at ASC
+           ) as rn
+    FROM in_app_notifications
+    WHERE created_at > NOW() - INTERVAL '7 days'
+  ) t
+  WHERE rn > 1
+);
+```
