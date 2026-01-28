@@ -1,169 +1,187 @@
 
-## Kế hoạch: Sửa lỗi Notification Click không mở QR trên PWA
+## Kế hoạch: Tự động cập nhật PWA mà không cần xóa đi cài lại
 
-### I. NGUYÊN NHÂN GỐC
+### Vấn đề hiện tại
 
-**Vấn đề hiện tại:**
-1. PWA được cài từ `*.lovableproject.com`
-2. Notification gửi URL `https://id-preview--*.lovable.app/payment-qr/xxx` (cross-domain)
-3. iOS PWA **KHÔNG THỂ** navigate hoặc openWindow đến domain khác trong app context
-4. Kết quả: Click notification → Không xảy ra gì hoặc mở Safari thất bại
+Khi có phiên bản mới của ứng dụng:
+1. Service Worker mới được tải về nhưng **đợi ở trạng thái "waiting"**
+2. Người dùng phải đóng hoàn toàn tất cả tab/PWA và mở lại để kích hoạt SW mới
+3. Trên iOS PWA, điều này đặc biệt khó khăn vì PWA chạy liên tục
 
-**Giải pháp:** 
-- Service Worker gửi **relative URL** (`/payment-qr/xxx`)
-- Trang `PaymentQRPage` tự detect nếu đang ở `*.lovableproject.com` → **auto redirect** sang `id-preview--*.lovable.app`
+### Giải pháp
 
----
+Tạo hệ thống cập nhật tự động với 3 thành phần:
 
-### II. CÁC THAY ĐỔI
+#### 1. Hook `usePWAUpdate` - Quản lý Service Worker update
 
-#### A. Sửa BookingPaymentDialog.tsx - Gửi relative URL trong notification
-
-**File:** `src/components/bookings/BookingPaymentDialog.tsx`
+Sử dụng `virtual:pwa-register/react` từ vite-plugin-pwa để:
+- Kiểm tra update định kỳ (mỗi 1 giờ)
+- Phát hiện khi có phiên bản mới (`needRefresh`)
+- Cung cấp hàm `updateServiceWorker()` để áp dụng update
 
 ```typescript
-// TRƯỚC (cross-domain URL - không hoạt động trên iOS PWA):
-const absoluteUrl = buildPublicUrl(`/payment-qr/${createdPayment.id}`);
+// src/hooks/usePWAUpdate.ts
+import { useRegisterSW } from 'virtual:pwa-register/react';
 
-// SAU (relative URL - để SW xử lý cùng domain):
-const paymentPath = `/payment-qr/${createdPayment.id}`;
+const UPDATE_CHECK_INTERVAL = 60 * 60 * 1000; // 1 giờ
 
-// Send push notification với relative URL
-const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
-  body: {
-    user_id: user.id,
-    title: `QR Thanh toán phòng ${roomNumber}`,
-    body: `Số tiền: ${formatVNCurrency(createdPayment.amount)} - Khách: ${guestName}`,
-    tag: `payment-qr-${createdPayment.id}`,
-    action_url: paymentPath, // Relative URL
-    notification_type: 'payment_qr',
-    data: {
-      url: paymentPath, // Relative URL
-      type: 'payment_qr',
-      paymentId: createdPayment.id,
-      roomNumber,
+export function usePWAUpdate() {
+  const {
+    needRefresh: [needRefresh, setNeedRefresh],
+    offlineReady: [offlineReady],
+    updateServiceWorker,
+  } = useRegisterSW({
+    onRegistered(registration) {
+      // Kiểm tra update định kỳ
+      if (registration) {
+        setInterval(() => registration.update(), UPDATE_CHECK_INTERVAL);
+      }
     },
-  },
-});
-```
+    onNeedRefresh() {
+      console.log('[PWA] New version available');
+    },
+  });
 
----
+  const update = async () => {
+    await updateServiceWorker(true);
+  };
 
-#### B. Sửa PaymentQRPage.tsx - Auto redirect nếu ở Auth Bridge domain
+  const dismiss = () => setNeedRefresh(false);
 
-**File:** `src/pages/payment/PaymentQRPage.tsx`
-
-Thêm logic redirect ở đầu component:
-
-```typescript
-import { getPublicBaseUrl } from '@/utils/getPublicUrl';
-
-export default function PaymentQRPage() {
-  const { paymentId } = useParams<{ paymentId: string }>();
-  const navigate = useNavigate();
-
-  // Auto-redirect if on Auth Bridge domain (*.lovableproject.com)
-  useEffect(() => {
-    const currentOrigin = window.location.origin;
-    const publicBaseUrl = getPublicBaseUrl();
-    
-    // If publicBaseUrl is different, we're on Auth Bridge domain
-    // Redirect to the public URL
-    if (publicBaseUrl !== currentOrigin && paymentId) {
-      const targetUrl = `${publicBaseUrl}/payment-qr/${paymentId}`;
-      console.log('[PaymentQR] Redirecting to bypass Auth Bridge:', targetUrl);
-      window.location.href = targetUrl;
-      return;
-    }
-  }, [paymentId]);
-
-  // ... rest of component
+  return { needRefresh, offlineReady, update, dismiss };
 }
 ```
 
 ---
 
-#### C. Giữ nguyên Service Worker - Xử lý relative URL
+#### 2. Component `PWAUpdatePrompt` - Thông báo cập nhật
 
-**File:** `src/sw.ts` (không cần sửa)
+Hiển thị toast/banner khi có phiên bản mới, cho phép người dùng:
+- **Cập nhật ngay** → Reload app với phiên bản mới
+- **Để sau** → Ẩn thông báo (sẽ hiện lại khi mở app lần sau)
 
-Logic hiện tại đã đúng:
 ```typescript
-if (rawUrl.startsWith('http')) {
-  urlToOpen = rawUrl;
-} else {
-  // Relative URL → resolve với SW origin
-  urlToOpen = new URL(rawUrl, self.location.origin).toString();
+// src/components/pwa/PWAUpdatePrompt.tsx
+export function PWAUpdatePrompt() {
+  const { needRefresh, update, dismiss } = usePWAUpdate();
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  if (!needRefresh) return null;
+
+  const handleUpdate = async () => {
+    setIsUpdating(true);
+    await update();
+    // App sẽ reload tự động
+  };
+
+  return (
+    <Card className="fixed bottom-20 left-4 right-4 z-50 ...">
+      <div className="flex items-center gap-3">
+        <RefreshCw className="..." />
+        <div>
+          <h3>Có phiên bản mới</h3>
+          <p>Nhấn "Cập nhật" để sử dụng các tính năng mới nhất</p>
+        </div>
+      </div>
+      <div className="flex gap-2 mt-3">
+        <Button onClick={handleUpdate} disabled={isUpdating}>
+          {isUpdating ? 'Đang cập nhật...' : 'Cập nhật ngay'}
+        </Button>
+        <Button variant="ghost" onClick={dismiss}>
+          Để sau
+        </Button>
+      </div>
+    </Card>
+  );
 }
 ```
 
-Service Worker sẽ tự resolve `/payment-qr/xxx` thành `https://[current-domain]/payment-qr/xxx`
+---
+
+#### 3. Tích hợp vào App
+
+Thêm component vào layout chính:
+
+```typescript
+// src/App.tsx hoặc MainLayout.tsx
+import { PWAUpdatePrompt } from '@/components/pwa/PWAUpdatePrompt';
+
+// Trong JSX:
+<PWAUpdatePrompt />
+```
 
 ---
 
-### III. FLOW SAU KHI SỬA
+#### 4. Thêm TypeScript types cho virtual module
+
+```typescript
+// src/vite-env.d.ts
+declare module 'virtual:pwa-register/react' {
+  export function useRegisterSW(options?: RegisterSWOptions): {
+    needRefresh: [boolean, (value: boolean) => void];
+    offlineReady: [boolean, (value: boolean) => void];
+    updateServiceWorker: (reloadPage?: boolean) => Promise<void>;
+  };
+}
+```
+
+---
+
+### Flow hoạt động
 
 ```text
-PWA trên iOS (từ *.lovableproject.com):
-=========================================
-1. User bấm "Gửi QR sang điện thoại"
+Người dùng đang dùng app (v1):
+==============================
+1. vite-plugin-pwa kiểm tra update mỗi 1 giờ
    ↓
-2. Notification gửi với url: "/payment-qr/abc123" (relative)
+2. Phát hiện có phiên bản mới (v2)
    ↓
-3. User click notification trên iPhone
+3. Tải SW mới về background (trạng thái "waiting")
    ↓
-4. Service Worker nhận click event
+4. Hook `usePWAUpdate` nhận callback `onNeedRefresh`
    ↓
-5. SW resolve: /payment-qr/abc123 → https://[pwa-origin].lovableproject.com/payment-qr/abc123
+5. State `needRefresh = true`
    ↓
-6. PWA mở URL (cùng domain → OK!)
+6. Component `PWAUpdatePrompt` hiển thị
    ↓
-7. PaymentQRPage load, detect đang ở *.lovableproject.com
+7. Người dùng bấm "Cập nhật ngay"
    ↓
-8. Auto redirect → https://id-preview--[id].lovable.app/payment-qr/abc123
+8. `updateServiceWorker(true)` gọi `skipWaiting()` + reload
    ↓
-9. Safari mở trang QR public (không cần login) ✓
-
-
-PWA trên iOS (từ Live domain):
-=========================================
-1. Notification gửi với url: "/payment-qr/abc123"
-   ↓
-2. SW resolve → https://room-weave-pro.lovable.app/payment-qr/abc123
-   ↓
-3. PWA mở URL (cùng domain → OK!)
-   ↓
-4. PaymentQRPage detect domain OK → Không redirect
-   ↓
-5. Hiển thị QR trực tiếp ✓
+9. App load lại với phiên bản mới (v2) ✓
 ```
 
 ---
 
-### IV. TÓM TẮT FILE THAY ĐỔI
+### Files thay đổi
 
 | File | Hành động |
 |------|-----------|
-| `src/components/bookings/BookingPaymentDialog.tsx` | **Sửa** - Gửi relative URL thay vì absolute |
-| `src/pages/payment/PaymentQRPage.tsx` | **Sửa** - Thêm auto-redirect logic |
-| `src/sw.ts` | **Giữ nguyên** |
-| `src/utils/getPublicUrl.ts` | **Giữ nguyên** |
+| `src/hooks/usePWAUpdate.ts` | **Tạo mới** - Hook quản lý PWA update |
+| `src/components/pwa/PWAUpdatePrompt.tsx` | **Tạo mới** - UI thông báo update |
+| `src/components/pwa/index.ts` | **Sửa** - Export component mới |
+| `src/components/layout/MainLayout.tsx` | **Sửa** - Thêm PWAUpdatePrompt |
+| `src/vite-env.d.ts` | **Sửa** - Thêm TypeScript types |
 
 ---
 
-### V. TEST SAU KHI SỬA
+### Bonus: Nút "Kiểm tra cập nhật" trong Settings
 
-1. **Từ PWA Preview (*.lovableproject.com):**
-   - Tạo payment, bấm "Gửi QR sang điện thoại"
-   - Click notification trên iPhone
-   - PWA mở → tự redirect sang `id-preview--*.lovable.app`
-   - Safari mở trang QR public
+Thêm vào trang Settings để người dùng có thể chủ động kiểm tra:
 
-2. **Từ PWA Live:**
-   - Click notification
-   - PWA mở trang QR trực tiếp (không redirect)
-   - Hiển thị QR trong PWA
+```typescript
+// Trong NotificationSettingsPage hoặc MobileSettingsPage
+const { needRefresh, update } = usePWAUpdate();
 
-3. **Edge cases:**
-   - Click notification khi PWA đóng → openWindow tạo tab mới
-   - Click notification khi PWA đang mở → navigate trong app
+<Button onClick={() => registration?.update()}>
+  Kiểm tra cập nhật
+</Button>
+```
+
+---
+
+### Lưu ý quan trọng
+
+1. **iOS Safari**: Có thể cần 2 bước - tắt/mở lại PWA lần đầu để kích hoạt SW mới, sau đó các lần sau sẽ tự động
+2. **Precache**: Với `injectManifest`, tất cả assets đã được cache. Khi SW mới activate, cache cũ sẽ được xóa tự động (`cleanupOutdatedCaches()`)
+3. **Không cần xóa PWA**: Người dùng chỉ cần bấm "Cập nhật" hoặc đóng/mở lại app
