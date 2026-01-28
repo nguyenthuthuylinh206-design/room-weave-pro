@@ -191,6 +191,92 @@ Deno.serve(async (req) => {
       }
     }
 
+    // If no matching payment_transaction, try booking_payments
+    if (!matchedPayment) {
+      console.log('No matching payment_transaction, trying booking_payments...');
+      
+      // Query pending booking payments
+      const { data: bookingPayments, error: bookingQueryError } = await supabase
+        .from('booking_payments')
+        .select(`
+          *,
+          booking:room_bookings(id, total_amount, amount_paid, guest_name, tenant_id)
+        `)
+        .eq('payment_status', 'pending')
+        .eq('payment_method', 'bank_transfer');
+
+      if (bookingQueryError) {
+        console.error('Error querying booking payments:', bookingQueryError);
+      } else {
+        console.log(`Found ${bookingPayments?.length || 0} pending booking payments`);
+
+        for (const bp of bookingPayments || []) {
+          const transRef = bp.transaction_reference || '';
+          const normalizedTransRef = normalizeString(transRef);
+          
+          console.log(`Checking booking payment ${bp.id}:`);
+          console.log(`  - TransRef: "${transRef}" -> normalized: "${normalizedTransRef}"`);
+          
+          if (normalizedTransRef && normalizedContent.includes(normalizedTransRef)) {
+            const amountDiff = Math.abs(bp.amount - payload.transferAmount);
+            console.log(`  - Amount check: expected ${bp.amount}, got ${payload.transferAmount}, diff: ${amountDiff}`);
+            
+            if (amountDiff <= 1000) {
+              console.log(`  - ✅ MATCHED BOOKING PAYMENT!`);
+              
+              // Update booking payment status
+              const { error: updateBpError } = await supabase
+                .from('booking_payments')
+                .update({
+                  payment_status: 'completed',
+                  paid_at: new Date().toISOString(),
+                })
+                .eq('id', bp.id);
+
+              if (updateBpError) {
+                console.error('Error updating booking payment:', updateBpError);
+                throw updateBpError;
+              }
+
+              // Update room_booking amount_paid
+              if (bp.booking) {
+                const currentPaid = bp.booking.amount_paid || 0;
+                const newAmountPaid = currentPaid + bp.amount;
+                const totalAmount = bp.booking.total_amount || 0;
+                const paymentStatus = newAmountPaid >= totalAmount ? 'paid' : 'partial';
+
+                const { error: updateBookingError } = await supabase
+                  .from('room_bookings')
+                  .update({
+                    amount_paid: newAmountPaid,
+                    payment_status: paymentStatus,
+                    paid_at: paymentStatus === 'paid' ? new Date().toISOString() : null,
+                  })
+                  .eq('id', bp.booking_id);
+
+                if (updateBookingError) {
+                  console.error('Error updating room booking:', updateBookingError);
+                }
+              }
+
+              console.log('Booking payment processed successfully');
+              await logWebhookAttempt(supabase, payload, 'success', `Booking payment confirmed: ${bp.transaction_reference}`, bp.id);
+
+              return new Response(
+                JSON.stringify({
+                  success: true,
+                  message: 'Booking payment confirmed',
+                  transactionReference: bp.transaction_reference,
+                  amount: payload.transferAmount
+                }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              );
+            }
+          }
+        }
+      }
+    }
+
     if (!matchedPayment) {
       console.log('No matching pending payment found for content:', content);
       console.log('Normalized content was:', normalizedContent);
