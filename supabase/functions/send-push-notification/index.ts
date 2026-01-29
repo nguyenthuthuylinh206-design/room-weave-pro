@@ -18,6 +18,7 @@ interface PushPayload {
   action_url?: string
   notification_type?: string
   data?: Record<string, any>
+  skip_auth_check?: boolean // Skip tenant verification for self-notifications
 }
 
 interface PushSubscriptionRow {
@@ -319,51 +320,61 @@ Deno.serve(async (req) => {
       throw new Error('No user_id or user_ids provided')
     }
 
-    // Authorization check: Verify the requesting user belongs to the same tenant
-    // Get authorization header to identify the caller
+    // Determine if we should skip auth check (self-notifications)
+    const shouldSkipAuth = payload.skip_auth_check && userIds.length === 1
     const authHeader = req.headers.get('Authorization')
-    if (authHeader) {
-      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-        global: { headers: { Authorization: authHeader } }
-      })
-      
-      const { data: { user: callingUser } } = await supabaseAuth.auth.getUser()
-      
-      if (callingUser) {
-        // Get calling user's tenant
-        const { data: callerData } = await supabase
-          .from('users')
-          .select('tenant_id')
-          .eq('id', callingUser.id)
-          .single()
-        
-        if (callerData?.tenant_id) {
-          // Verify all target users belong to the same tenant
-          const { data: targetUsers } = await supabase
-            .from('users')
-            .select('id, tenant_id')
-            .in('id', userIds)
-          
-          const crossTenantUsers = targetUsers?.filter(u => u.tenant_id !== callerData.tenant_id) || []
-          
-          if (crossTenantUsers.length > 0) {
-            console.error('Cross-tenant notification attempt blocked:', {
-              callerId: callingUser.id,
-              callerTenant: callerData.tenant_id,
-              blockedUsers: crossTenantUsers.map(u => u.id)
-            })
-            throw new Error('Cannot send notifications to users in different tenants')
-          }
-        }
-      }
-    }
 
-    // Fetch active subscriptions for users
-    const { data: subscriptions, error: fetchError } = await supabase
+    // Fetch subscriptions immediately (always needed)
+    const subscriptionsPromise = supabase
       .from('push_subscriptions')
       .select('*')
       .in('user_id', userIds)
       .eq('is_active', true)
+
+    // Authorization check: Only for multi-user or external notifications
+    let authCheckPromise: Promise<void> = Promise.resolve()
+    
+    if (!shouldSkipAuth && authHeader) {
+      authCheckPromise = (async () => {
+        const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+          global: { headers: { Authorization: authHeader } }
+        })
+        
+        const { data: { user: callingUser } } = await supabaseAuth.auth.getUser()
+        
+        if (callingUser) {
+          // Parallel fetch caller and target users
+          const [callerResult, targetResult] = await Promise.all([
+            supabase.from('users').select('tenant_id').eq('id', callingUser.id).single(),
+            supabase.from('users').select('id, tenant_id').in('id', userIds)
+          ])
+          
+          const callerData = callerResult.data
+          const targetUsers = targetResult.data
+          
+          if (callerData?.tenant_id) {
+            const crossTenantUsers = targetUsers?.filter(u => u.tenant_id !== callerData.tenant_id) || []
+            
+            if (crossTenantUsers.length > 0) {
+              console.error('Cross-tenant notification attempt blocked:', {
+                callerId: callingUser.id,
+                callerTenant: callerData.tenant_id,
+                blockedUsers: crossTenantUsers.map(u => u.id)
+              })
+              throw new Error('Cannot send notifications to users in different tenants')
+            }
+          }
+        }
+      })()
+    }
+
+    // Wait for both operations in parallel
+    const [subscriptionsResult] = await Promise.all([
+      subscriptionsPromise,
+      authCheckPromise
+    ])
+
+    const { data: subscriptions, error: fetchError } = subscriptionsResult
 
     if (fetchError) {
       console.error('Error fetching subscriptions:', fetchError)
