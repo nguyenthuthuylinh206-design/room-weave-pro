@@ -1,150 +1,194 @@
 
-## Kế hoạch: Sửa lỗi QR không đúng cho từng khách sạn
+## Phân tích Quy trình Housekeeping: Vấn đề và Đề xuất Cải tiến
 
-### I. NGUYÊN NHÂN
+### I. TỔNG QUAN QUY TRÌNH HIỆN TẠI
 
-**Vấn đề phát hiện:**
-
-Trong `PaymentQRPage.tsx`:
-```typescript
-const paymentHotelId = payment?.hotel_id;
-const { data: bankSettings } = useBankPaymentSettings(paymentHotelId);
-```
-
-Và trong `useBankPaymentSettings`:
-```typescript
-export function useBankPaymentSettings(hotelId?: string) {
-  return useQuery({
-    queryKey: ['bank-payment-settings', hotelId],
-    queryFn: async () => {
-      let query = supabase
-        .from('bank_payment_settings')
-        .select('*')
-        .eq('is_active', true);
-
-      if (hotelId) {
-        query = query.eq('hotel_id', hotelId);  // CHỈ FILTER KHI CÓ hotelId
-      }
-      // NẾU hotelId = undefined → TRẢ VỀ BẤT KỲ ACTIVE SETTINGS NÀO!
-      
-      const { data, error } = await query.limit(1).maybeSingle();
-      return data;
-    },
-    // KHÔNG CÓ enabled check → chạy ngay cả khi hotelId = undefined
-  });
-}
-```
-
-**Kịch bản lỗi:**
-1. Khi `PaymentQRPage` mount, `payment = undefined` → `paymentHotelId = undefined`
-2. Hook `useBankPaymentSettings(undefined)` fetch **bất kỳ** active settings (không filter hotel_id)
-3. Có thể trả về settings của hotel khác (ví dụ: tài khoản `030380171013` thay vì `0866158977`)
-4. Sau khi `payment` load xong, query với đúng `hotelId` nhưng có thể cache cũ vẫn được dùng
-
----
-
-### II. GIẢI PHÁP
-
-#### A. Sửa hook `useBankPaymentSettings`
-
-**Thay đổi:**
-- Thêm `enabled: !!hotelId` để chỉ chạy query khi có hotelId
-- Đảm bảo không trả về settings sai khi chưa có hotelId
-
-```typescript
-export function useBankPaymentSettings(hotelId?: string) {
-  return useQuery({
-    queryKey: ['bank-payment-settings', hotelId],
-    queryFn: async () => {
-      // Nếu không có hotelId, không query
-      if (!hotelId) return null;
-      
-      const { data, error } = await supabase
-        .from('bank_payment_settings')
-        .select('*')
-        .eq('is_active', true)
-        .eq('hotel_id', hotelId)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data as BankPaymentSettings | null;
-    },
-    enabled: !!hotelId,  // CHỈ CHẠY KHI CÓ hotelId
-  });
-}
-```
-
-#### B. Sửa `PaymentQRPage.tsx`
-
-**Thay đổi loading logic:**
-- Đảm bảo chờ cả payment data VÀ bank settings
-- Không show QR sai trong khi đang load
-
-```typescript
-// Fetch payment trước
-const { data: payment, isLoading: paymentLoading, error } = usePaymentById(
-  shouldFetchData && sessionChecked ? paymentId : undefined
-);
-
-// Lấy hotelId từ payment - CHỈ KHI CÓ DATA
-const paymentHotelId = payment?.hotel_id;
-
-// Fetch bank settings - CHỈ KHI CÓ hotelId từ payment
-const { data: bankSettings, isLoading: bankLoading } = useBankPaymentSettings(paymentHotelId);
-
-// Loading: chờ cả payment VÀ bank settings load xong
-if (paymentLoading || (payment && bankLoading)) {
-  return <LoadingState />;
-}
+```text
+┌─────────────┐    ┌──────────────────┐    ┌─────────────────┐    ┌──────────────┐    ┌─────────────┐
+│  CHECKOUT   │ → │   KIỂM TRA PHÒNG  │ → │    DỌN PHÒNG     │ → │  BỔ SUNG ĐỒ   │ → │   VACANT    │
+│  (Booking)  │    │  (Room Check)     │    │   (Cleaning)     │    │ (Distribution)│    │  (Sẵn sàng) │
+└─────────────┘    └──────────────────┘    └─────────────────┘    └──────────────┘    └─────────────┘
 ```
 
 ---
 
-### III. TÓM TẮT FILE THAY ĐỔI
+### II. VẤN ĐỀ PHÁT HIỆN
 
-| File | Thay đổi |
-|------|----------|
-| `src/hooks/useBankPaymentSettings.ts` | Thêm `enabled: !!hotelId`, luôn filter theo `hotel_id` |
-| `src/pages/payment/PaymentQRPage.tsx` | Cải thiện loading logic |
+#### A. Checkout → Kiểm tra phòng
+
+**Vấn đề 1: Phòng "check_out" không có đường dẫn rõ ràng**
+- **Hiện trạng**: Sau `perform_checkout`, phòng chuyển sang status `check_out`
+- **Tắc nghẽn**: Nhân viên phải tự vào `/rooms/{id}/check?type=checkout` để kiểm tra
+- **Thiếu**: Không có nút "Kiểm tra ngay" trong `StaffRoomCheckView` cho phòng `check_out`
+- **Tham khảo code**: `StaffRoomCheckView.tsx` chỉ xử lý `vacant` và `cleaning`, không có logic cho `check_out`
+
+**Vấn đề 2: Kiểm tra checkout chưa link với Housekeeping Task**
+- **Hiện trạng**: Manager tạo `checkout_inspection_request` nhưng hệ thống tạo thêm `housekeeping_task` song song
+- **Tắc nghẽn**: Khi hoàn thành room check, code phải tìm và update CẢ HAI bảng
+- **Phức tạp không cần thiết**: 2 bảng tracking cùng 1 việc
 
 ---
 
-### IV. LỢI ÍCH
+#### B. Kiểm tra phòng → Dọn phòng
 
-1. **Đúng QR cho đúng hotel**: Mỗi khách sạn hiển thị đúng tài khoản ngân hàng đã cấu hình
-2. **Không fetch sai data**: Query chỉ chạy khi có đủ thông tin cần thiết
-3. **UX tốt hơn**: Loading state rõ ràng, không flash QR sai
+**Vấn đề 3: Thiếu liên kết giữa CleaningRequest và Housekeeping Task**
+- **Hiện trạng**: Khi checkout + `needs_cleaning=true`:
+  - Room status → `cleaning`
+  - Thông báo gửi cho Manager
+  - Manager phải vào `RoomDetailPage` để xem `CleaningRequestBanner` và tạo task thủ công
+- **Tắc nghẽn**: Không tự động tạo `housekeeping_task` loại `cleaning`
+- **Tham khảo code**: `processCheckoutCheck()` chỉ gửi notification, không tạo task
+
+**Vấn đề 4: Phòng "cleaning" không có task tương ứng**
+- **Hiện trạng**: Phòng ở status `cleaning` nhưng chưa có task trong `housekeeping_tasks`
+- **Hậu quả**: Nhân viên xem tab "Việc cần làm" (`StaffTasksTab`) không thấy phòng cần dọn
+- **Mâu thuẫn**: 2 nguồn dữ liệu khác nhau (room status vs task list)
 
 ---
 
-### V. CHI TIẾT KỸ THUẬT
+#### C. Dọn phòng → Bổ sung đồ
 
-**Hook sửa đổi:**
-```typescript
-// src/hooks/useBankPaymentSettings.ts
-export function useBankPaymentSettings(hotelId?: string) {
-  return useQuery({
-    queryKey: ['bank-payment-settings', hotelId],
-    queryFn: async () => {
-      if (!hotelId) return null;
-      
-      const { data, error } = await supabase
-        .from('bank_payment_settings')
-        .select('*')
-        .eq('is_active', true)
-        .eq('hotel_id', hotelId)
-        .maybeSingle();
+**Vấn đề 5: Không có workflow tự động bổ sung đồ**
+- **Hiện trạng**: Sau checkout check, nếu có đồ `consumed` hoặc `lost`:
+  - Tạo `inventory_transaction` để ghi nhận giảm stock
+  - NHƯNG không tự động tạo yêu cầu bổ sung cho phòng đó
+- **Thiếu**: Không tự động tạo `distribution_order` hoặc alert cho warehouse
 
-      if (error) throw error;
-      return data as BankPaymentSettings | null;
-    },
-    enabled: !!hotelId,
-  });
-}
+**Vấn đề 6: Flow nhận đồ từ Distribution Order tách rời**
+- **Hiện trạng**: 
+  - Manager tạo phiếu giao hàng (distribution_order) thủ công
+  - Nhân viên nhận đồ qua `DeliveryConfirmationModal`
+- **Tắc nghẽn**: Không có link từ room check result → distribution order
+
+---
+
+#### D. Dọn phòng xong → Mở phòng
+
+**Vấn đề 7: Flow "Hoàn thành dọn phòng" chưa tối ưu**
+- **Hiện trạng**: `CleaningCompleteDialog` có 2 option:
+  - "Mở phòng ngay" (skipCheck=true)
+  - "Kiểm tra nhanh trước" (redirect to daily check)
+- **Thiếu**: Không có logic để verify đồ đã đủ standard trước khi mở phòng
+- **Rủi ro**: Có thể mở phòng khi đồ chưa đủ
+
+**Vấn đề 8: Housekeeping task không tự complete khi mở phòng**
+- **Hiện trạng**: `useMarkRoomReady()` chỉ update room status
+- **Thiếu**: Không auto-complete `housekeeping_task` loại `cleaning` cho phòng đó
+
+---
+
+#### E. Session Management
+
+**Vấn đề 9: Session cleanup có thể bỏ sót**
+- **Hiện trạng**: `cleanup_stale_check_sessions` chạy mỗi 30 phút
+- **Tắc nghẽn**: Session 40-50 phút có thể bị "lơ lửng"
+- **Notification overlap**: Có thể gửi reminder nhiều lần nếu session duration > 50
+
+---
+
+#### F. Báo cáo
+
+**Vấn đề 10: Thiếu báo cáo Housekeeping**
+- **Hiện trạng**: `RoomsReportPage` có thống kê phòng, kiểm tra, doanh thu
+- **Thiếu**: 
+  - Thời gian dọn phòng trung bình
+  - Hiệu suất nhân viên housekeeping (theo task, không chỉ room check)
+  - Tỷ lệ phòng cần dọn vs dọn kịp thời
+
+---
+
+### III. ĐỀ XUẤT CẢI TIẾN
+
+#### Nhóm A: Quick Fixes (Ít thay đổi)
+
+| STT | Vấn đề | Giải pháp | Độ phức tạp |
+|-----|--------|-----------|-------------|
+| 1 | Phòng check_out không có nút KT | Thêm status `check_out` vào `StaffRoomCheckView` với nút "Kiểm tra checkout" | Thấp |
+| 7 | Không verify đồ đủ standard | Thêm warning trong `CleaningCompleteDialog` nếu room có missing items | Thấp |
+| 8 | Task không auto-complete | Thêm logic trong `useMarkRoomReady()` để complete task loại `cleaning` | Thấp |
+
+---
+
+#### Nhóm B: Medium Fixes (Cải thiện Flow)
+
+| STT | Vấn đề | Giải pháp | Độ phức tạp |
+|-----|--------|-----------|-------------|
+| 3,4 | CleaningRequest không tạo task | Trong `processCheckoutCheck()`, nếu `needs_cleaning=true` → auto-create `housekeeping_task` loại `cleaning` | Trung bình |
+| 5 | Không tự động bổ sung đồ | Sau checkout check, nếu có items consumed/lost → create "supplement request" hoặc alert | Trung bình |
+
+---
+
+#### Nhóm C: Major Refactor (Đơn giản hóa kiến trúc)
+
+| STT | Vấn đề | Giải pháp | Độ phức tạp |
+|-----|--------|-----------|-------------|
+| 2 | 2 bảng tracking cùng 1 việc | Deprecated `checkout_inspection_requests`, chỉ dùng `housekeeping_tasks` với `task_type='checkout_inspection'` | Cao |
+| 10 | Thiếu báo cáo Housekeeping | Tạo `HousekeepingReportPage` với metrics từ `housekeeping_tasks` | Trung bình |
+
+---
+
+### IV. FLOW ĐỀ XUẤT SAU CẢI TIẾN
+
+```text
+┌─────────────┐
+│  CHECKOUT   │
+│  (Booking)  │
+└──────┬──────┘
+       │ perform_checkout()
+       ▼
+┌──────────────────┐
+│  Room: check_out │ ← NV thấy trong StaffRoomCheckView (mới)
+└──────┬───────────┘
+       │ Checkout Room Check (5 bước)
+       ▼
+┌──────────────────────────────────────────────┐
+│           CHECKOUT ROOM CHECK                │
+│  - Items consumed/lost → inventory_tx        │
+│  - Chargeable items → notify managers        │
+│  - needs_cleaning? → auto-create task (mới)  │
+│  - Supplement needed? → create alert (mới)   │
+└──────┬───────────────────────────────────────┘
+       │
+       ├── needs_cleaning = false ──────────────▶ Room: vacant ✓
+       │
+       ▼ needs_cleaning = true
+┌─────────────────┐
+│  Room: cleaning │
+│  + Task: cleaning (auto-created - mới)       │
+└──────┬──────────┘
+       │ Staff claims task OR Manager assigns
+       ▼
+┌─────────────────┐
+│  Staff dọn phòng │
+│  + Nhận đồ bổ sung (nếu có Distribution)     │
+└──────┬──────────┘
+       │ Mark as Complete
+       ▼
+┌─────────────────────────────────────────────┐
+│         CLEANING COMPLETE DIALOG             │
+│  - Check missing items (mới) → warning       │
+│  - Auto-complete housekeeping task (mới)     │
+│  - Daily check (optional)                    │
+└──────┬──────────────────────────────────────┘
+       ▼
+┌─────────────┐
+│ Room: vacant │ ← Sẵn sàng nhận khách
+└─────────────┘
 ```
 
-**PaymentQRPage sửa đổi:**
-```typescript
-// Đảm bảo loading đúng sequence
-const isLoading = paymentLoading || (payment && !bankSettings && bankLoading);
-```
+---
+
+### V. ƯU TIÊN TRIỂN KHAI
+
+**Phase 1 - Quick Wins (1-2 ngày):**
+1. Thêm status `check_out` vào `StaffRoomCheckView`
+2. Auto-complete cleaning task trong `useMarkRoomReady()`
+3. Warning missing items trong `CleaningCompleteDialog`
+
+**Phase 2 - Core Improvements (3-5 ngày):**
+4. Auto-create cleaning task khi checkout + needs_cleaning
+5. Supplement alert sau checkout check
+
+**Phase 3 - Architecture (Optional, 1 tuần):**
+6. Migrate `checkout_inspection_requests` → `housekeeping_tasks`
+7. Housekeeping Report Page
