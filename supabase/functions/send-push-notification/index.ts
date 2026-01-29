@@ -52,33 +52,6 @@ function base64UrlDecode(str: string): Uint8Array {
   return bytes
 }
 
-// JWT cache - survives across requests in same worker instance
-const vapidJwtCache = new Map<string, { jwt: string; expiry: number }>()
-
-// Get or create cached VAPID JWT for audience
-async function getOrCreateVapidJwt(
-  audience: string,
-  subject: string,
-  vapidPrivateKey: string,
-  vapidPublicKey: string
-): Promise<string> {
-  const cached = vapidJwtCache.get(audience)
-  const now = Math.floor(Date.now() / 1000)
-  
-  // JWT valid for 12 hours, use if > 1 hour remaining
-  if (cached && cached.expiry > now + 3600) {
-    return cached.jwt
-  }
-  
-  // Generate new JWT
-  const jwt = await generateVapidJwt(audience, subject, vapidPrivateKey, vapidPublicKey)
-  const expiry = now + 12 * 60 * 60
-  
-  vapidJwtCache.set(audience, { jwt, expiry })
-  
-  return jwt
-}
-
 // Generate VAPID JWT token
 async function generateVapidJwt(
   audience: string,
@@ -274,8 +247,8 @@ async function sendPushNotification(
     const url = new URL(endpoint)
     const audience = `${url.protocol}//${url.host}`
 
-    // Get cached or generate new VAPID JWT
-    const jwt = await getOrCreateVapidJwt(audience, 'mailto:support@roomweave.app', vapidPrivateKey, vapidPublicKey)
+    // Generate VAPID JWT
+    const jwt = await generateVapidJwt(audience, 'mailto:support@roomweave.app', vapidPrivateKey, vapidPublicKey)
 
     // Encrypt the payload
     const encryptedPayload = await encryptPayload(

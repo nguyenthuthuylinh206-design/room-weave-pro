@@ -57,7 +57,7 @@ export function BookingPaymentDialog({
   const [amount, setAmount] = useState(remainingAmount.toString());
   const [showMobileQR, setShowMobileQR] = useState(false);
   const [createdPayment, setCreatedPayment] = useState<BookingPayment | null>(null);
-  
+  const [isSendingNotification, setIsSendingNotification] = useState(false);
 
   const { data: bankSettings } = useBankPaymentSettings();
   const createPayment = useCreateBookingPayment();
@@ -185,9 +185,7 @@ export function BookingPaymentDialog({
   const handleSendQRNotification = async () => {
     if (!createdPayment) return;
 
-    // Show immediate feedback - fire and forget pattern
-    toast.success('Đang gửi QR đến điện thoại...');
-
+    setIsSendingNotification(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) {
@@ -195,13 +193,16 @@ export function BookingPaymentDialog({
         return;
       }
 
+      // Use relative URL so PWA can handle navigation within same domain
+      // PaymentQRPage will auto-redirect to public URL if on Auth Bridge domain
       const paymentPath = `/payment-qr/${createdPayment.id}`;
 
-      // Fire and forget - don't await, let it run in background
-      supabase.functions.invoke('send-push-notification', {
+      // Send push notification directly - edge function handles subscriptions check
+      // skip_auth_check: true for self-notification (faster)
+      const { data, error: pushError } = await supabase.functions.invoke('send-push-notification', {
         body: {
           user_id: userData.user.id,
-          skip_auth_check: true,
+          skip_auth_check: true, // Self-notification, skip tenant verification
           title: `QR Thanh toán phòng ${booking.room_number}`,
           body: `Số tiền: ${formatVNCurrency(parsedAmount)} - Khách: ${booking.guest_name}`,
           tag: `payment-qr-${createdPayment.id}`,
@@ -214,22 +215,21 @@ export function BookingPaymentDialog({
             roomNumber: booking.room_number,
           },
         },
-      }).then(({ data, error }) => {
-        if (error) {
-          toast.error('Không thể gửi thông báo');
-        } else if (data?.sent === 0) {
-          toast.warning('Chưa có thiết bị nào đăng ký nhận thông báo');
-        }
-        // Success: first toast is enough
-      }).catch((err) => {
-        console.error('Push notification error:', err);
-        toast.error('Không thể gửi thông báo');
       });
-      
-      // Return immediately - no loading state needed
+
+      if (pushError) throw pushError;
+
+      // Handle response based on sent count
+      if (data?.sent === 0) {
+        toast.warning('Chưa có thiết bị nào đăng ký nhận thông báo. Vào Cài đặt → Thông báo → Quản lý thiết bị');
+      } else {
+        toast.success(`Đã gửi QR đến ${data?.sent || 1} thiết bị`);
+      }
     } catch (error) {
       console.error('Send notification error:', error);
       toast.error('Không thể gửi thông báo');
+    } finally {
+      setIsSendingNotification(false);
     }
   };
 
@@ -396,8 +396,13 @@ export function BookingPaymentDialog({
                 className="w-full"
                 type="button"
                 onClick={handleSendQRNotification}
+                disabled={isSendingNotification}
               >
-                <Smartphone className="h-4 w-4 mr-2" />
+                {isSendingNotification ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Smartphone className="h-4 w-4 mr-2" />
+                )}
                 Gửi QR sang điện thoại
               </Button>
 
