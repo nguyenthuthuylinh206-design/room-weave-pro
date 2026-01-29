@@ -1,194 +1,228 @@
 
-## Phân tích Quy trình Housekeeping: Vấn đề và Đề xuất Cải tiến
+## Đánh giá chi tiết: Hoàn thiện quy trình Housekeeping
 
-### I. TỔNG QUAN QUY TRÌNH HIỆN TẠI
+### I. TỔNG QUAN TIẾN ĐỘ PHASE 1
 
-```text
-┌─────────────┐    ┌──────────────────┐    ┌─────────────────┐    ┌──────────────┐    ┌─────────────┐
-│  CHECKOUT   │ → │   KIỂM TRA PHÒNG  │ → │    DỌN PHÒNG     │ → │  BỔ SUNG ĐỒ   │ → │   VACANT    │
-│  (Booking)  │    │  (Room Check)     │    │   (Cleaning)     │    │ (Distribution)│    │  (Sẵn sàng) │
-└─────────────┘    └──────────────────┘    └─────────────────┘    └──────────────┘    └─────────────┘
+| Vấn đề | Trạng thái | Nhận xét |
+|--------|------------|----------|
+| ✅ Phòng check_out không có nút KT | **Đã hoàn thành** | `StaffRoomCheckView.tsx` có nút "Kiểm tra" màu tím cho phòng check_out, filter chip "Check-out" với số lượng |
+| ✅ Task không auto-complete khi mở phòng | **Đã hoàn thành** | `useMarkRoomReady()` tự động complete housekeeping_tasks loại `cleaning` |
+| ✅ Warning missing items | **Đã hoàn thành** | `CleaningCompleteDialog.tsx` hiển thị cảnh báo số lượng đồ thiếu |
+
+---
+
+### II. CÁC VẤN ĐỀ CÒN TỒN TẠI (PHASE 2)
+
+#### A. Không tự động tạo Cleaning Task khi Checkout
+
+**Vấn đề:**
+Trong `processCheckoutCheck()` (useRoomChecks.ts dòng 241-271):
+```typescript
+if (needsCleaning || roomCondition !== 'clean') {
+  // ✅ Chuyển room status → cleaning
+  await supabase.from('rooms').update({ status: 'cleaning' })...
+  
+  // ✅ Gửi thông báo cho Manager
+  await sendCleaningRequestNotifications(...)
+  
+  // ❌ THIẾU: Không tự động tạo housekeeping_task loại 'cleaning'
+}
+```
+
+**Hậu quả:**
+- Phòng ở status `cleaning` nhưng không có task trong `housekeeping_tasks`
+- Nhân viên vào tab "Việc cần làm" không thấy phòng cần dọn
+- Manager phải vào `RoomDetailPage` → `CleaningRequestBanner` để tạo task thủ công
+
+**Giải pháp đề xuất:**
+Thêm logic tự động tạo cleaning task trong `processCheckoutCheck()`:
+```typescript
+// Sau khi update room status → cleaning
+if (needsCleaning) {
+  await supabase.from('housekeeping_tasks').insert({
+    tenant_id: tenantId,
+    hotel_id: hotelId,
+    room_id: roomId,
+    task_type: 'cleaning',
+    title: `Dọn dẹp phòng ${roomNumber}`,
+    description: notes || `Yêu cầu dọn phòng sau checkout`,
+    priority: priority || 'medium',
+    requested_by: userId,
+    // assigned_to: null → Chờ Manager giao việc hoặc NV tự nhận
+    status: 'pending'
+  })
+}
 ```
 
 ---
 
-### II. VẤN ĐỀ PHÁT HIỆN
+#### B. Không có Alert/Request tự động bổ sung đồ
 
-#### A. Checkout → Kiểm tra phòng
+**Vấn đề:**
+Sau checkout check, nếu có đồ `consumed` hoặc `lost`:
+- ✅ Tạo `inventory_transaction` (ghi nhận xuất kho)
+- ✅ Giảm `quantity_in_stock` trong items table
+- ❌ **KHÔNG** tự động tạo yêu cầu bổ sung cho phòng đó
 
-**Vấn đề 1: Phòng "check_out" không có đường dẫn rõ ràng**
-- **Hiện trạng**: Sau `perform_checkout`, phòng chuyển sang status `check_out`
-- **Tắc nghẽn**: Nhân viên phải tự vào `/rooms/{id}/check?type=checkout` để kiểm tra
-- **Thiếu**: Không có nút "Kiểm tra ngay" trong `StaffRoomCheckView` cho phòng `check_out`
-- **Tham khảo code**: `StaffRoomCheckView.tsx` chỉ xử lý `vacant` và `cleaning`, không có logic cho `check_out`
+**Hiện trạng:**
+- Hook `useRoomSupplements` chỉ **tính toán** missing items, không tự động trigger alert
+- Distribution order phải tạo **thủ công** bởi Manager
 
-**Vấn đề 2: Kiểm tra checkout chưa link với Housekeeping Task**
-- **Hiện trạng**: Manager tạo `checkout_inspection_request` nhưng hệ thống tạo thêm `housekeeping_task` song song
-- **Tắc nghẽn**: Khi hoàn thành room check, code phải tìm và update CẢ HAI bảng
-- **Phức tạp không cần thiết**: 2 bảng tracking cùng 1 việc
-
----
-
-#### B. Kiểm tra phòng → Dọn phòng
-
-**Vấn đề 3: Thiếu liên kết giữa CleaningRequest và Housekeeping Task**
-- **Hiện trạng**: Khi checkout + `needs_cleaning=true`:
-  - Room status → `cleaning`
-  - Thông báo gửi cho Manager
-  - Manager phải vào `RoomDetailPage` để xem `CleaningRequestBanner` và tạo task thủ công
-- **Tắc nghẽn**: Không tự động tạo `housekeeping_task` loại `cleaning`
-- **Tham khảo code**: `processCheckoutCheck()` chỉ gửi notification, không tạo task
-
-**Vấn đề 4: Phòng "cleaning" không có task tương ứng**
-- **Hiện trạng**: Phòng ở status `cleaning` nhưng chưa có task trong `housekeeping_tasks`
-- **Hậu quả**: Nhân viên xem tab "Việc cần làm" (`StaffTasksTab`) không thấy phòng cần dọn
-- **Mâu thuẫn**: 2 nguồn dữ liệu khác nhau (room status vs task list)
+**Giải pháp đề xuất:**
+1. **Option 1 - Alert notification:** Sau checkout check có consumed/lost items → Gửi thông báo "Phòng X cần bổ sung Y đồ dùng" cho warehouse manager
+2. **Option 2 - Auto-add to queue:** Tạo record trong bảng mới `supplement_requests` để Manager duyệt và tạo distribution order
 
 ---
 
-#### C. Dọn phòng → Bổ sung đồ
+#### C. Flow từ Task → Room Check chưa liền mạch
 
-**Vấn đề 5: Không có workflow tự động bổ sung đồ**
-- **Hiện trạng**: Sau checkout check, nếu có đồ `consumed` hoặc `lost`:
-  - Tạo `inventory_transaction` để ghi nhận giảm stock
-  - NHƯNG không tự động tạo yêu cầu bổ sung cho phòng đó
-- **Thiếu**: Không tự động tạo `distribution_order` hoặc alert cho warehouse
+**Vấn đề:**
+Khi nhân viên click "Bắt đầu" trên task `checkout_inspection`:
+```typescript
+// TaskCard.tsx dòng 68-79
+const handleStart = async () => {
+  await updateStatus({ taskId: task.id, status: 'in_progress' })
+  
+  if (task.task_type === 'checkout_inspection') {
+    // Navigate KHÔNG có inspection ID
+    navigate(`/rooms/${task.room_id}/check?type=checkout`)
+  }
+}
+```
 
-**Vấn đề 6: Flow nhận đồ từ Distribution Order tách rời**
-- **Hiện trạng**: 
-  - Manager tạo phiếu giao hàng (distribution_order) thủ công
-  - Nhân viên nhận đồ qua `DeliveryConfirmationModal`
-- **Tắc nghẽn**: Không có link từ room check result → distribution order
+**Nhận xét:**
+- ✅ Navigation đúng route
+- ⚠️ Không truyền `inspection_id` → `RoomCheckPage` phải tự tìm pending inspection
+- ⚠️ Có fallback logic trong `completeCheckoutInspection()` nhưng tăng complexity
 
----
-
-#### D. Dọn phòng xong → Mở phòng
-
-**Vấn đề 7: Flow "Hoàn thành dọn phòng" chưa tối ưu**
-- **Hiện trạng**: `CleaningCompleteDialog` có 2 option:
-  - "Mở phòng ngay" (skipCheck=true)
-  - "Kiểm tra nhanh trước" (redirect to daily check)
-- **Thiếu**: Không có logic để verify đồ đã đủ standard trước khi mở phòng
-- **Rủi ro**: Có thể mở phòng khi đồ chưa đủ
-
-**Vấn đề 8: Housekeeping task không tự complete khi mở phòng**
-- **Hiện trạng**: `useMarkRoomReady()` chỉ update room status
-- **Thiếu**: Không auto-complete `housekeeping_task` loại `cleaning` cho phòng đó
-
----
-
-#### E. Session Management
-
-**Vấn đề 9: Session cleanup có thể bỏ sót**
-- **Hiện trạng**: `cleanup_stale_check_sessions` chạy mỗi 30 phút
-- **Tắc nghẽn**: Session 40-50 phút có thể bị "lơ lửng"
-- **Notification overlap**: Có thể gửi reminder nhiều lần nếu session duration > 50
-
----
-
-#### F. Báo cáo
-
-**Vấn đề 10: Thiếu báo cáo Housekeeping**
-- **Hiện trạng**: `RoomsReportPage` có thống kê phòng, kiểm tra, doanh thu
-- **Thiếu**: 
-  - Thời gian dọn phòng trung bình
-  - Hiệu suất nhân viên housekeeping (theo task, không chỉ room check)
-  - Tỷ lệ phòng cần dọn vs dọn kịp thời
-
----
-
-### III. ĐỀ XUẤT CẢI TIẾN
-
-#### Nhóm A: Quick Fixes (Ít thay đổi)
-
-| STT | Vấn đề | Giải pháp | Độ phức tạp |
-|-----|--------|-----------|-------------|
-| 1 | Phòng check_out không có nút KT | Thêm status `check_out` vào `StaffRoomCheckView` với nút "Kiểm tra checkout" | Thấp |
-| 7 | Không verify đồ đủ standard | Thêm warning trong `CleaningCompleteDialog` nếu room có missing items | Thấp |
-| 8 | Task không auto-complete | Thêm logic trong `useMarkRoomReady()` để complete task loại `cleaning` | Thấp |
-
----
-
-#### Nhóm B: Medium Fixes (Cải thiện Flow)
-
-| STT | Vấn đề | Giải pháp | Độ phức tạp |
-|-----|--------|-----------|-------------|
-| 3,4 | CleaningRequest không tạo task | Trong `processCheckoutCheck()`, nếu `needs_cleaning=true` → auto-create `housekeeping_task` loại `cleaning` | Trung bình |
-| 5 | Không tự động bổ sung đồ | Sau checkout check, nếu có items consumed/lost → create "supplement request" hoặc alert | Trung bình |
-
----
-
-#### Nhóm C: Major Refactor (Đơn giản hóa kiến trúc)
-
-| STT | Vấn đề | Giải pháp | Độ phức tạp |
-|-----|--------|-----------|-------------|
-| 2 | 2 bảng tracking cùng 1 việc | Deprecated `checkout_inspection_requests`, chỉ dùng `housekeeping_tasks` với `task_type='checkout_inspection'` | Cao |
-| 10 | Thiếu báo cáo Housekeeping | Tạo `HousekeepingReportPage` với metrics từ `housekeeping_tasks` | Trung bình |
-
----
-
-### IV. FLOW ĐỀ XUẤT SAU CẢI TIẾN
-
-```text
-┌─────────────┐
-│  CHECKOUT   │
-│  (Booking)  │
-└──────┬──────┘
-       │ perform_checkout()
-       ▼
-┌──────────────────┐
-│  Room: check_out │ ← NV thấy trong StaffRoomCheckView (mới)
-└──────┬───────────┘
-       │ Checkout Room Check (5 bước)
-       ▼
-┌──────────────────────────────────────────────┐
-│           CHECKOUT ROOM CHECK                │
-│  - Items consumed/lost → inventory_tx        │
-│  - Chargeable items → notify managers        │
-│  - needs_cleaning? → auto-create task (mới)  │
-│  - Supplement needed? → create alert (mới)   │
-└──────┬───────────────────────────────────────┘
-       │
-       ├── needs_cleaning = false ──────────────▶ Room: vacant ✓
-       │
-       ▼ needs_cleaning = true
-┌─────────────────┐
-│  Room: cleaning │
-│  + Task: cleaning (auto-created - mới)       │
-└──────┬──────────┘
-       │ Staff claims task OR Manager assigns
-       ▼
-┌─────────────────┐
-│  Staff dọn phòng │
-│  + Nhận đồ bổ sung (nếu có Distribution)     │
-└──────┬──────────┘
-       │ Mark as Complete
-       ▼
-┌─────────────────────────────────────────────┐
-│         CLEANING COMPLETE DIALOG             │
-│  - Check missing items (mới) → warning       │
-│  - Auto-complete housekeeping task (mới)     │
-│  - Daily check (optional)                    │
-└──────┬──────────────────────────────────────┘
-       ▼
-┌─────────────┐
-│ Room: vacant │ ← Sẵn sàng nhận khách
-└─────────────┘
+**Đề xuất cải tiến:**
+Truyền inspection ID nếu task có `checkout_inspection_id`:
+```typescript
+navigate(`/rooms/${task.room_id}/check?type=checkout&inspection=${task.checkout_inspection_id}`)
 ```
 
 ---
 
-### V. ƯU TIÊN TRIỂN KHAI
+#### D. Cleaning Task chưa sync với Room Status
 
-**Phase 1 - Quick Wins (1-2 ngày):**
-1. Thêm status `check_out` vào `StaffRoomCheckView`
-2. Auto-complete cleaning task trong `useMarkRoomReady()`
-3. Warning missing items trong `CleaningCompleteDialog`
+**Vấn đề:**
+- Khi Manager tạo cleaning task qua `CleaningRequestBanner` → Task được tạo ✅
+- Nhưng nếu phòng chuyển từ `cleaning` → `vacant` qua cách khác (ví dụ: trực tiếp từ DB) → Task vẫn pending
 
-**Phase 2 - Core Improvements (3-5 ngày):**
-4. Auto-create cleaning task khi checkout + needs_cleaning
-5. Supplement alert sau checkout check
+**Hiện trạng:**
+`useMarkRoomReady()` ĐÃ auto-complete cleaning tasks ✅
+Nhưng nếu room được update status bởi code khác → Task không được complete
 
-**Phase 3 - Architecture (Optional, 1 tuần):**
-6. Migrate `checkout_inspection_requests` → `housekeeping_tasks`
-7. Housekeeping Report Page
+**Đề xuất:**
+Thêm database trigger để sync:
+```sql
+CREATE TRIGGER sync_cleaning_task_on_room_status
+AFTER UPDATE ON rooms
+FOR EACH ROW
+WHEN (OLD.status = 'cleaning' AND NEW.status = 'vacant')
+EXECUTE FUNCTION auto_complete_cleaning_tasks();
+```
+
+---
+
+### III. ĐÁNH GIÁ UX CHO NHÂN VIÊN
+
+#### Flow hiện tại đã hoạt động tốt:
+
+| Flow | Trạng thái | Nhận xét |
+|------|------------|----------|
+| ✅ Xem phòng check_out | **Tốt** | Filter chip "Check-out" với số lượng, nút "Kiểm tra" rõ ràng |
+| ✅ Kiểm tra checkout 5 bước | **Tốt** | Type → Items → Chargeable → Cleaning → Review |
+| ✅ Dọn phòng xong | **Tốt** | Dialog với 2 option + warning missing items |
+| ✅ Xem task cá nhân | **Tốt** | Tab "Việc cần làm" với filter, badge số lượng |
+| ✅ Nhận đồ giao hàng | **Tốt** | DeliveryConfirmationModal với xác nhận/từ chối |
+
+#### Flow cần cải thiện:
+
+| Flow | Vấn đề | Mức độ |
+|------|--------|--------|
+| ⚠️ Phòng cleaning không có task | NV không thấy trong task list | **Cao** |
+| ⚠️ Bổ sung đồ sau checkout | Phải làm thủ công | **Trung bình** |
+| ⚠️ Theo dõi tiến độ dọn phòng | Manager không biết NV nào đang dọn | **Thấp** |
+
+---
+
+### IV. ĐỀ XUẤT TRIỂN KHAI PHASE 2
+
+#### Quick Fix (1-2 giờ):
+
+**1. Auto-create cleaning task trong `processCheckoutCheck()`:**
+```typescript
+// Thêm sau dòng 265 trong useRoomChecks.ts
+if (needsCleaning && tenantId && userId) {
+  await supabase.from('housekeeping_tasks').insert({
+    tenant_id: tenantId,
+    hotel_id: hotelId,
+    room_id: roomId,
+    task_type: 'cleaning',
+    title: `Dọn dẹp phòng ${roomNumber}`,
+    description: data.cleaning_notes || `Yêu cầu dọn phòng sau checkout. Tình trạng: ${roomCondition}`,
+    priority: data.cleaning_priority || 'medium',
+    requested_by: userId,
+    status: 'pending'
+  })
+}
+```
+
+#### Medium Fix (3-4 giờ):
+
+**2. Alert thông báo cần bổ sung đồ:**
+- Sau checkout check, nếu có consumed/lost items:
+  - Tính toán missing_items cho phòng đó
+  - Gửi notification cho warehouse manager với danh sách cần bổ sung
+  - Thêm badge/indicator trên phòng trong StaffRoomCheckView
+
+**3. Sync Task → Inspection ID:**
+- Khi tạo `checkout_inspection_request`, lưu ID vào task
+- Khi navigate từ task, truyền inspection ID qua URL
+
+---
+
+### V. TÓM TẮT FILE CẦN SỬA
+
+| File | Thay đổi | Độ ưu tiên |
+|------|----------|------------|
+| `src/hooks/useRoomChecks.ts` | Thêm auto-create cleaning task trong `processCheckoutCheck()` | **Cao** |
+| `src/hooks/useRoomChecks.ts` | Thêm supplement alert sau checkout | **Trung bình** |
+| `src/components/housekeeping/TaskCard.tsx` | Truyền inspection_id khi navigate | **Thấp** |
+| `src/components/housekeeping/TaskDetailDialog.tsx` | Truyền inspection_id khi navigate | **Thấp** |
+
+---
+
+### VI. FLOW ĐỀ XUẤT SAU CẢI TIẾN
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                    CHECKOUT FLOW                            │
+├─────────────────────────────────────────────────────────────┤
+│ 1. Khách checkout → perform_checkout()                      │
+│    └─ Room: occupied → check_out                            │
+│                                                             │
+│ 2. NV thấy phòng trong StaffRoomCheckView (filter Check-out)│
+│    └─ Click "Kiểm tra" → /rooms/ID/check?type=checkout      │
+│                                                             │
+│ 3. Checkout Room Check (5 bước)                             │
+│    ├─ Items consumed/lost → inventory_transaction           │
+│    ├─ Chargeable items → notify managers                    │
+│    └─ needs_cleaning?                                       │
+│        ├─ YES → Room: cleaning                              │
+│        │        └─ ✨ AUTO-CREATE cleaning task (MỚI)       │
+│        │        └─ Notify managers                          │
+│        │        └─ ✨ Supplement alert nếu có missing (MỚI) │
+│        └─ NO → Room: vacant                                 │
+│                                                             │
+│ 4. NV dọn phòng (nếu cần)                                   │
+│    └─ Xem task trong "Việc cần làm"                         │
+│    └─ Click "Bắt đầu" → Task: in_progress                   │
+│    └─ Dọn xong → CleaningCompleteDialog                     │
+│        └─ "Mở phòng ngay" → Room: vacant                    │
+│        └─ Auto-complete cleaning task ✅ (đã có)            │
+│                                                             │
+│ 5. Phòng sẵn sàng nhận khách mới                            │
+└─────────────────────────────────────────────────────────────┘
+```
