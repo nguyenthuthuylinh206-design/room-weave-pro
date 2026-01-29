@@ -153,14 +153,6 @@ export const MobileMaintenanceRequestsPage = () => {
             </div>
           )}
 
-          {/* Create Button */}
-          <Button
-            className="w-full h-12 text-base"
-            onClick={() => navigate('/maintenance/create')}
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            {t('requests.create')}
-          </Button>
         </div>
       </PullToRefresh>
     </div>
