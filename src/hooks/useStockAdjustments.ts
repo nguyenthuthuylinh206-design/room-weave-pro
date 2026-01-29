@@ -395,52 +395,9 @@ export function useApproveAdjustment() {
       
       if (itemsError) throw itemsError
       
-      // Fetch all approved items with quantity differences
-      const { data: approvedItems } = await supabase
-        .from('stock_adjustment_items')
-        .select('item_id, system_quantity, actual_quantity, unit_price')
-        .eq('adjustment_id', adjustmentId)
-        .eq('status', 'approved')
-
-      // Update stock quantities and create transactions
-      if (approvedItems && approvedItems.length > 0) {
-        for (const item of approvedItems) {
-          // Update quantity_in_stock in items table
-          const { error: updateError } = await supabase
-            .from('items')
-            .update({ quantity_in_stock: item.actual_quantity })
-            .eq('id', item.item_id)
-          
-          if (updateError) throw updateError
-          
-          // Create transaction only if there's a discrepancy
-          if (item.system_quantity !== item.actual_quantity) {
-            const quantity = item.actual_quantity - item.system_quantity
-            const transactionType = quantity > 0 ? 'in' : 'out'
-            
-            const { error: transactionError } = await supabase
-              .from('inventory_transactions')
-              .insert({
-                hotel_id: adjustment.hotel_id,
-                tenant_id: adjustment.tenant_id,
-                item_id: item.item_id,
-                transaction_type: transactionType,
-                transaction_category: 'adjustment',
-                quantity: Math.abs(quantity),
-                quantity_before: item.system_quantity,
-                quantity_after: item.actual_quantity,
-                transaction_code: `ADJ-${adjustment.adjustment_code}`,
-                related_type: 'stock_adjustment',
-                related_id: adjustmentId,
-                created_by: user.id,
-                unit_price: item.unit_price,
-                total_value: Math.abs(quantity) * (item.unit_price || 0),
-              })
-            
-            if (transactionError) throw transactionError
-          }
-        }
-      }
+      // NOTE: Stock update and transaction creation is handled by DB trigger 
+      // 'stock_adjustment_items_apply' when status changes to 'approved'.
+      // No need to duplicate that logic here.
       
       // Check if all items are now approved
       const { data: pendingItems } = await supabase
@@ -670,46 +627,9 @@ export function useApproveItem() {
       
       if (updateError) throw updateError
       
-      // Update stock quantity if there's a difference
-      if (itemData.system_quantity !== itemData.actual_quantity) {
-        const { error: stockError } = await supabase
-          .from('items')
-          .update({ quantity_in_stock: itemData.actual_quantity })
-          .eq('id', itemData.item_id)
-        
-        if (stockError) throw stockError
-        
-        // Get adjustment info for transaction
-        const { data: adjustment } = await supabase
-          .from('stock_adjustments')
-          .select('adjustment_code, hotel_id, tenant_id')
-          .eq('id', adjustmentId)
-          .single()
-        
-        if (adjustment) {
-          const quantity = itemData.actual_quantity - itemData.system_quantity
-          const transactionType = quantity > 0 ? 'in' : 'out'
-          
-          await supabase
-            .from('inventory_transactions')
-            .insert({
-              hotel_id: adjustment.hotel_id,
-              tenant_id: adjustment.tenant_id,
-              item_id: itemData.item_id,
-              transaction_type: transactionType,
-              transaction_category: 'adjustment',
-              quantity: Math.abs(quantity),
-              quantity_before: itemData.system_quantity,
-              quantity_after: itemData.actual_quantity,
-              transaction_code: `ADJ-${adjustment.adjustment_code}`,
-              related_type: 'stock_adjustment',
-              related_id: adjustmentId,
-              created_by: user.id,
-              unit_price: itemData.unit_price,
-              total_value: Math.abs(quantity) * (itemData.unit_price || 0),
-            })
-        }
-      }
+      // NOTE: Stock update and transaction creation is handled by DB trigger 
+      // 'stock_adjustment_items_apply' when status changes to 'approved'.
+      // No need to duplicate that logic here.
       
       // Log action for audit
       await logInvestigationAction({
