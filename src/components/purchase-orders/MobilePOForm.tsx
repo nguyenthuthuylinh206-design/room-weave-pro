@@ -279,6 +279,7 @@ export function MobilePOForm() {
             </Card>
             
             <Button
+              type="button"
               className="w-full"
               size="lg"
               onClick={() => {
@@ -368,10 +369,11 @@ export function MobilePOForm() {
             </Button>
             
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
+              <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(1)}>
                 {t('actions.back')}
               </Button>
               <Button
+                type="button"
                 className="flex-1"
                 onClick={() => {
                   if (cart.length === 0) {
@@ -471,10 +473,11 @@ export function MobilePOForm() {
             </Card>
             
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>
+              <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(2)}>
                 {t('actions.back')}
               </Button>
               <Button
+                type="button"
                 className="flex-1"
                 onClick={form.handleSubmit(onSubmit)}
                 disabled={createPO.isPending}

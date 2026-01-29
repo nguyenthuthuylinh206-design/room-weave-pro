@@ -376,6 +376,7 @@ export function MobileBatchForm() {
             </Card>
             
             <Button
+              type="button"
               className="w-full"
               size="lg"
               onClick={handleStep1Complete}
@@ -462,10 +463,10 @@ export function MobileBatchForm() {
             </Button>
             
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
+              <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(1)}>
                 {t('createBatch.step2.back')}
               </Button>
-              <Button className="flex-1" onClick={handleStep2Complete}>
+              <Button type="button" className="flex-1" onClick={handleStep2Complete}>
                 {t('createBatch.step2.next')}
               </Button>
             </div>
@@ -506,10 +507,11 @@ export function MobileBatchForm() {
             </Card>
             
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>
+              <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(2)}>
                 {t('createBatch.step3.back')}
               </Button>
               <Button
+                type="button"
                 className="flex-1"
                 onClick={handleSubmit}
                 disabled={isPending}
