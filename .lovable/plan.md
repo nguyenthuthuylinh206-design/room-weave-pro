@@ -81,17 +81,13 @@
 
 ### IV. VẤN ĐỀ CÒN TỒN TẠI (Phase 2 & 3)
 
-#### A. Room Check - Không validate stock trước khi Replace (Ưu tiên: Trung bình)
+#### A. Room Check - Stock Validation khi Thay Đồ ✅ DONE
 
-**Vị trí:** `src/components/rooms/check-steps/ItemsCheckStep.tsx`
-
-**Vấn đề:**
-Khi staff chọn "Thay đổi đồ vải" (change) hoặc "Bổ sung đồ" (add), không check `quantity_in_stock` trước.
-
-**Giải pháp đề xuất:**
-1. Fetch `quantity_in_stock` cho items trong room
-2. Hiển thị available stock trong UI
-3. Warning/block khi quantity vượt stock
+**Đã triển khai:**
+1. Fetch `quantity_in_stock` khi load room items trong `ItemsCheckStep.tsx`
+2. Pass `stockMap` vào `LinenTab` component  
+3. Hiển thị available stock trong UI khi chọn "Thêm" hoặc "Đổi"
+4. Warning khi số lượng yêu cầu > stock hiện có (amber highlight + message)
 
 ---
 
@@ -136,7 +132,7 @@ Thêm realtime subscription hoặc giảm refetch interval xuống 30s cho dashb
 | - | Duplicate code approve adjustment | **Cao** | ✅ DONE |
 | D | Adjustment không sync warehouse_stock | **Cao** | ℹ️ Design limitation - không cần fix |
 | B | Distribution không validate stock | **Trung bình** | ✅ Đã có sẵn trong `useDistributionForm` |
-| A | Room Check không validate stock khi replace | **Trung bình** | 🔲 TODO |
+| A | Room Check không validate stock khi replace | **Trung bình** | ✅ DONE |
 | C | Inbound từ Adjustment thiếu warehouse_id | **Thấp** | 🔲 TODO |
 | F | Room Check không trigger low stock workflow | **Thấp** | 🔲 TODO |
 | G | Dashboard không realtime | **Thấp** | 🔲 TODO |
