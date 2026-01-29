@@ -33,26 +33,27 @@ export interface CreateBankPaymentSettingsInput {
  * Get active bank payment settings for a specific hotel
  * @param hotelId - Hotel ID to filter by (required for hotel-specific settings)
  */
+/**
+ * Get active bank payment settings for a specific hotel
+ * @param hotelId - Hotel ID to filter by (required for hotel-specific settings)
+ */
 export function useBankPaymentSettings(hotelId?: string) {
   return useQuery({
     queryKey: ['bank-payment-settings', hotelId],
     queryFn: async () => {
-      let query = supabase
+      if (!hotelId) return null;
+
+      const { data, error } = await supabase
         .from('bank_payment_settings')
         .select('*')
-        .eq('is_active', true);
-
-      if (hotelId) {
-        query = query.eq('hotel_id', hotelId);
-      }
-
-      const { data, error } = await query.limit(1).maybeSingle();
+        .eq('is_active', true)
+        .eq('hotel_id', hotelId)
+        .maybeSingle();
 
       if (error) throw error;
       return data as BankPaymentSettings | null;
     },
-    // Enable query even without hotelId for backwards compatibility
-    // (e.g., public PaymentQRPage that fetches by payment's hotel)
+    enabled: !!hotelId, // Only run when hotelId is available
   });
 }
 
