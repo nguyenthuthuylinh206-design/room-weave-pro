@@ -1,12 +1,20 @@
 
 
-## Phân tích Sâu Quy trình Housekeeping - Các vấn đề còn tồn tại
+## Phân tích Sâu Quy trình Housekeeping - Hoàn thành
 
-### I. NHỮNG GÌ ĐÃ HOÀN THIỆN (SKIP)
+### I. NHỮNG GÌ ĐÃ HOÀN THIỆN
 
 | Component | Trạng thái |
 |-----------|------------|
 | StaffRoomCheckView - Nút kiểm tra check_out | ✅ Done |
+| Auto-complete cleaning task khi mở phòng | ✅ Done |
+| CleaningCompleteDialog - Warning missing items | ✅ Done |
+| Auto-create cleaning task khi checkout + needs_cleaning | ✅ Done |
+| Supplement alert sau checkout | ✅ Done |
+| TaskCard/TaskDetailDialog - Truyền inspection_id | ✅ Done |
+| checkout_inspection_id trong HousekeepingTaskWithDetails | ✅ Done |
+| **Workflow trigger cho cleaning task** | ✅ Done (Phase 3) |
+| **Query invalidation sau auto-complete task** | ✅ Done (Phase 3) |
 | Auto-complete cleaning task khi mở phòng | ✅ Done |
 | CleaningCompleteDialog - Warning missing items | ✅ Done |
 | Auto-create cleaning task khi checkout + needs_cleaning | ✅ Done |
