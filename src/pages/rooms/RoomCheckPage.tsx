@@ -26,7 +26,7 @@ import { useCreateRoomCheck } from '@/hooks/useRoomChecks'
 import { useUser } from '@/hooks/useUser'
 import { useRoomCheckSession } from '@/hooks/useRoomCheckSession'
 import { useRoomBooking } from '@/hooks/useRoomBooking'
-import { usePendingInspections, useRoomHasPendingInspection } from '@/hooks/useCheckoutInspection'
+import { usePendingInspections, useRoomHasPendingInspection, useAutoCreateCheckoutInspection } from '@/hooks/useCheckoutInspection'
 import { useCreateMultipleChargeableConsumptions, type CreateChargeableConsumptionInput } from '@/hooks/useChargeableConsumptions'
 import { toast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
@@ -109,7 +109,9 @@ export function RoomCheckPage() {
   const [hasResumed, setHasResumed] = useState(false) // Flag to prevent useEffect conflicts
   const [chargeableItems, setChargeableItems] = useState<CreateChargeableConsumptionInput[]>([])
   const [chargeableNotes, setChargeableNotes] = useState('')
+  const [autoCreatedInspectionId, setAutoCreatedInspectionId] = useState<string | null>(null)
   const createChargeableConsumptions = useCreateMultipleChargeableConsumptions()
+  const autoCreateInspection = useAutoCreateCheckoutInspection()
   
   const form = useForm<RoomCheckFormData>({
     resolver: zodResolver(roomCheckFormSchema),
@@ -208,6 +210,64 @@ export function RoomCheckPage() {
       startInspection.mutate(pendingInspection.id)
     }
   }, [prefilledType, watchedCheckType, pendingInspection?.id, pendingInspection?.status, startInspection])
+  
+  // HYBRID APPROACH: Auto-create checkout inspection when user selects checkout type 
+  // and room has active booking but NO existing inspection request
+  useEffect(() => {
+    const isCheckoutMode = watchedCheckType === 'checkout'
+    const hasActiveBooking = !!currentBooking?.id
+    const hasPendingOrInProgressInspection = !!pendingInspection || !!roomInspection
+    const alreadyAutoCreated = !!autoCreatedInspectionId
+    
+    // Auto-create khi:
+    // 1. User chọn checkout type (từ form)
+    // 2. Có active booking trong phòng
+    // 3. KHÔNG có inspection request nào đang pending/in_progress
+    // 4. Chưa auto-create trong session này
+    // 5. Có đủ room data
+    // 6. Không đang pending mutation
+    if (
+      isCheckoutMode &&
+      hasActiveBooking &&
+      !hasPendingOrInProgressInspection &&
+      !alreadyAutoCreated &&
+      room?.id &&
+      room?.tenant_id &&
+      room?.hotel_id &&
+      !autoCreateInspection.isPending &&
+      !isInspectionLoading &&
+      !isLoadingRoomInspection
+    ) {
+      console.log('[RoomCheckPage] Auto-creating checkout inspection for booking:', currentBooking.id)
+      autoCreateInspection.mutate({
+        tenantId: room.tenant_id,
+        hotelId: room.hotel_id,
+        roomId: room.id,
+        bookingId: currentBooking.id,
+      }, {
+        onSuccess: (result) => {
+          setAutoCreatedInspectionId(result.id)
+          setStableInspectionId(result.id)
+          // Update URL với inspection ID mới
+          navigate(`/rooms/${id}/check?type=checkout&inspection=${result.id}`, { replace: true })
+        }
+      })
+    }
+  }, [
+    watchedCheckType, 
+    currentBooking?.id, 
+    pendingInspection, 
+    roomInspection,
+    autoCreatedInspectionId,
+    room?.id, 
+    room?.tenant_id, 
+    room?.hotel_id,
+    autoCreateInspection,
+    isInspectionLoading,
+    isLoadingRoomInspection,
+    id,
+    navigate,
+  ])
   
   // Create check session on mount
   useEffect(() => {
@@ -493,12 +553,12 @@ export function RoomCheckPage() {
     // Đóng dialog ngay lập tức để chặn double click
     setShowSubmitDialog(false)
     
-    // Ưu tiên: stableInspectionId > URL > pendingInspection
-    const finalInspectionId = stableInspectionId || inspectionIdFromUrl || pendingInspection?.id
+    // Ưu tiên: stableInspectionId > autoCreatedInspectionId > URL > pendingInspection
+    const finalInspectionId = stableInspectionId || autoCreatedInspectionId || inspectionIdFromUrl || pendingInspection?.id
     
     console.log('[RoomCheckPage] onSubmit - check_type:', data.check_type)
     console.log('[RoomCheckPage] onSubmit - finalInspectionId:', finalInspectionId)
-    console.log('[RoomCheckPage] onSubmit - sources: stable=', stableInspectionId, 'url=', inspectionIdFromUrl, 'pending=', pendingInspection?.id)
+    console.log('[RoomCheckPage] onSubmit - sources: stable=', stableInspectionId, 'autoCreated=', autoCreatedInspectionId, 'url=', inspectionIdFromUrl, 'pending=', pendingInspection?.id)
     
     // Warning nếu là checkout mà không có inspectionId
     if (data.check_type === 'checkout' && !finalInspectionId) {
