@@ -1,299 +1,264 @@
 
 
-## Phân Tích Vấn Đề: PWA - Ghi Nhớ Tài Khoản và Tự Động Đăng Nhập Không Hoạt Động
+## Phân Tích Module Giặt Ủi (Laundry) - Kết Quả Kiểm Tra
 
-### I. NGUYÊN NHÂN GỐC RỄ
+### I. TỔNG QUAN ĐÁNH GIÁ
 
-Có **3 vấn đề chính** ảnh hưởng đến việc ghi nhớ và tự động đăng nhập trên PWA:
+| Tiêu chí | Trạng thái | Chi tiết |
+|----------|------------|----------|
+| **Tạo lô giặt (Desktop)** | ✅ Tốt | 3-step wizard với validation stock đầy đủ |
+| **Tạo lô giặt (Mobile)** | ⚠️ Có vấn đề | Thiếu filter `is_launderable` |
+| **Nhận lô giặt** | ✅ Tốt | Status validation, rating, compensation |
+| **Nhập kho từ giặt** | ✅ Tốt | RPC transactional, xử lý lost/damaged riêng |
+| **Status Transitions** | ✅ Tốt | delivered → ready → received → stocked |
+| **Vendor Management** | ✅ Tốt | CRUD, performance tracking, rating |
+| **Inventory Sync** | ✅ Tốt | RPCs atomic cho create/return/loss |
+| **Workflow Triggers** | ✅ Tốt | `LAUNDRY_BATCH_STATUS_CHANGE` |
+| **Notifications** | ✅ Tốt | Manager notifications cho issues |
 
 ---
 
-#### 1. iOS Safari ITP (Intelligent Tracking Prevention) - **Quan trọng nhất**
+### II. VẤN ĐỀ PHÁT HIỆN
+
+#### A. MobileBatchForm - Thiếu Filter `is_launderable` (Mức độ: **TRUNG BÌNH**)
+
+**Vị trí:** `src/components/laundry/MobileBatchForm.tsx` (lines 75-78)
 
 **Vấn đề:**
-- iOS Safari có cơ chế ITP xóa localStorage sau **7 ngày** nếu không tương tác
-- Khi PWA được cài đặt từ Home Screen, ITP được vô hiệu hóa (điểm tốt)
-- **NHƯNG**: App chưa yêu cầu `navigator.storage.persist()` để đảm bảo dữ liệu không bị xóa
-
-**Hiện trạng trong code:**
 ```typescript
-// src/integrations/supabase/client.ts
-auth: {
-  storage: localStorage,  // ← Dùng localStorage, có thể bị xóa
-  persistSession: true,
-  autoRefreshToken: true,
-}
+// Hiện tại: Chỉ check category_id !== null
+const laundrableItems = itemsData?.items?.filter(item => 
+  item.category_id !== null  // ❌ Không filter is_launderable
+)
 ```
+
+**So sánh với Desktop:**
+```typescript
+// CreateBatchStep2.tsx - lines 62-74: Có filter đúng
+const { data: launderableCategories } = useQuery({
+  queryKey: ['launderable-categories', tenantId],
+  queryFn: async () => {
+    const { data } = await supabase
+      .from('item_categories')
+      .select('id')
+      .eq('is_launderable', true)  // ✅ Filter đúng
+      .eq('status', 'active')
+    return data?.map(cat => cat.id) || []
+  },
+})
+
+const availableItems = itemsQuery.data?.items?.filter((item) => {
+  const hasStock = (item.quantity_in_stock || 0) > 0
+  const isLaunderable = item.category_id && launderableCategories?.includes(item.category_id)
+  return hasStock && isLaunderable  // ✅ Filter is_launderable
+}) || []
+```
+
+**Tác động:**
+- Mobile hiển thị TẤT CẢ items có category, bao gồm cả items không thể giặt
+- Gây nhầm lẫn cho staff, có thể chọn sai items
 
 ---
 
-#### 2. Thiếu Request Persistent Storage
+#### B. MobileBatchForm - Thiếu Validation Stock (Mức độ: **THẤP**)
 
 **Vấn đề:**
-- App không gọi `navigator.storage.persist()` khi khởi động
-- Trên iOS, cần request persist storage để ngăn dữ liệu bị xóa khi device restart hoặc storage pressure
-
-**Cần thêm:**
+Mobile form cho phép add items mà không check stock availability:
 ```typescript
-// Request persistent storage khi app khởi động
-if (navigator.storage && navigator.storage.persist) {
-  const isPersisted = await navigator.storage.persist()
-  console.log('[Storage] Persistence granted:', isPersisted)
+// Line 95-112: addItem không check stock
+const addItem = (item: any) => {
+  const existing = items.find(i => i.item_id === item.id)
+  if (existing) {
+    setItems(items.map(i => 
+      i.item_id === item.id 
+        ? { ...i, quantity: i.quantity + 1 }  // ❌ Không check stock
+        : i
+    ))
+  }
+  // ...
 }
 ```
 
----
-
-#### 3. Browser Credential Manager - Hidden Input Cần Điều Chỉnh
-
-**Vấn đề trong `QuickReLogin.tsx`:**
-```typescript
-// Line 68-73 - Hidden input không được browser đọc đúng
-<input 
-  type="hidden"      // ← hidden không trigger credential manager
-  name="username" 
-  autoComplete="username" 
-  value={email} 
-/>
-```
-
-**Trên iOS Safari:**
-- `type="hidden"` không được credential manager nhận diện
-- Cần dùng input visible hoặc `readOnly` với styling ẩn
+**So sánh với Desktop:**
+- Desktop có `superRefine` validation check quantity vs stock
 
 ---
 
-### II. GIẢI PHÁP ĐỀ XUẤT
-
-#### A. Thêm Persistent Storage Request (Ưu tiên: Cao)
-
-**File:** `src/main.tsx` hoặc `src/App.tsx`
-
-**Thay đổi:**
-```typescript
-// Thêm hook requestPersistentStorage
-useEffect(() => {
-  const requestPersistentStorage = async () => {
-    if (navigator.storage && navigator.storage.persist) {
-      const isPersisted = await navigator.storage.persisted()
-      if (!isPersisted) {
-        const granted = await navigator.storage.persist()
-        console.log('[PWA] Persistent storage:', granted ? 'granted' : 'denied')
-      }
-    }
-  }
-  
-  // Chỉ request khi PWA (standalone mode)
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-  if (isStandalone) {
-    requestPersistentStorage()
-  }
-}, [])
-```
-
----
-
-#### B. Fix Hidden Username Input (Ưu tiên: Cao)
-
-**File:** `src/components/auth/QuickReLogin.tsx`
-
-**Thay đổi từ:**
-```typescript
-<input 
-  type="hidden" 
-  name="username" 
-  autoComplete="username" 
-  value={email} 
-/>
-```
-
-**Thành:**
-```typescript
-<input 
-  type="email"
-  name="username"
-  id="quick-login-username"
-  autoComplete="username"
-  value={email}
-  readOnly
-  tabIndex={-1}
-  aria-hidden="true"
-  className="sr-only"  // Screen-reader only, visually hidden
-/>
-```
-
----
-
-#### C. Thêm IndexedDB Fallback cho Session (Ưu tiên: Trung bình)
+#### C. ReceiveItemsTable - Thiếu Compensation Logic (Mức độ: **THẤP**)
 
 **Vấn đề:**
-- localStorage có thể bị xóa trên iOS trong một số trường hợp
-- IndexedDB có khả năng persist tốt hơn
+Khi có items mất/hỏng, `ReceiveItemsTable` hiển thị các trường nhập liệu nhưng không hiển thị giá trị bồi thường cho từng item inline.
 
-**Giải pháp:**
-Tạo custom storage adapter sử dụng IndexedDB với localStorage fallback:
+**Hiện trạng:**
+- Compensation chỉ hiển thị tổng ở bên ngoài (ReceiveBatchPage)
+- User phải tự tính giá trị thiệt hại từng item
 
+---
+
+### III. NHỮNG GÌ ĐÃ TỐT
+
+#### 1. RPC Transactional cho Inventory
+```
+✅ create_laundry_batch_with_items: Validate stock → Create batch → Update items ATOMIC
+✅ create_laundry_return_transaction: Nhập kho từ giặt, sync stock+laundry
+✅ create_laundry_loss_transaction: Xử lý items mất/hỏng, update quantity_total
+```
+
+#### 2. Status Validation Chặt Chẽ
 ```typescript
-// src/lib/persistentStorage.ts
-const STORAGE_DB_NAME = 'roomweave-auth'
-const STORAGE_STORE_NAME = 'session'
-
-export const createPersistentStorage = () => {
-  // Kiểm tra IndexedDB availability
-  const hasIndexedDB = typeof indexedDB !== 'undefined'
-  
-  if (!hasIndexedDB) {
-    // Fallback to localStorage
-    return localStorage
-  }
-  
-  return {
-    getItem: async (key: string) => {
-      // Try IndexedDB first, fallback to localStorage
-    },
-    setItem: async (key: string, value: string) => {
-      // Write to both IndexedDB and localStorage
-    },
-    removeItem: async (key: string) => {
-      // Remove from both
-    }
-  }
+const ALLOWED_TRANSITIONS = {
+  delivered: ['ready'],
+  washing: ['ready'],
+  ready: ['received'],
+  received: ['stocked']
 }
 ```
 
-**Lưu ý:** Supabase client file được auto-generate, nên cần tạo wrapper hoặc sử dụng approach khác.
-
----
-
-#### D. Thêm Session Restore Logic (Ưu tiên: Trung bình)
-
-**File:** `src/contexts/AuthContext.tsx`
-
-**Thay đổi:**
-Thêm logic phát hiện và khôi phục session từ storage khi app khởi động:
-
+#### 3. Workflow Integration
 ```typescript
-// Trong useEffect khởi tạo
-useEffect(() => {
-  const initAuth = async () => {
-    // 1. Check storage persistence
-    await requestPersistentStorage()
-    
-    // 2. Try to restore session
-    const { data: { session }, error } = await supabase.auth.getSession()
-    
-    if (session) {
-      // Session restored successfully
-      console.log('[Auth] Session restored from storage')
-    } else if (!error) {
-      // No session, no error - normal case
-      console.log('[Auth] No stored session')
-    } else {
-      // Error restoring - might need re-login
-      console.warn('[Auth] Session restore error:', error)
-    }
-    
-    setSession(session)
-    setUser(session?.user ?? null)
-    setLoading(false)
-  }
-  
-  initAuth()
-  
-  // ... rest of listener setup
-}, [])
+triggerWorkflow({
+  triggerType: WorkflowTriggerTypes.LAUNDRY_BATCH_STATUS_CHANGE,
+  eventData: { batch_id, new_status },
+  tenantId, hotelId
+})
+```
+
+#### 4. Quality & Timeliness Tracking
+- Rating 1-5 cho quality và timeliness
+- Auto-calculate timeliness rating based on delivery delay
+
+#### 5. Vendor Performance
+```
+✅ get_vendor_performance RPC
+✅ total_orders, total_value tracking
+✅ Rating aggregation
 ```
 
 ---
 
-### III. THỰC HIỆN THEO THỨ TỰ
+### IV. ĐỀ XUẤT SỬA LỖI
 
-| # | Task | File | Mức độ |
-|---|------|------|--------|
-| 1 | Fix hidden input trong QuickReLogin | `QuickReLogin.tsx` | **Cao** |
-| 2 | Request persistent storage khi PWA | `AuthContext.tsx` hoặc `App.tsx` | **Cao** |
-| 3 | Thêm logging chi tiết cho debug | `AuthContext.tsx` | Trung bình |
-| 4 | IndexedDB storage adapter (nếu cần) | Tạo mới `persistentStorage.ts` | Thấp |
+#### Fix A: MobileBatchForm - Thêm is_launderable Filter (Ưu tiên: **CAO**)
+
+**Thay đổi cần thực hiện:**
+
+```typescript
+// 1. Thêm query để lấy launderable categories (như CreateBatchStep2)
+const { data: launderableCategories } = useQuery({
+  queryKey: ['launderable-categories', tenantId],
+  queryFn: async () => {
+    const { data, error } = await supabase
+      .from('item_categories')
+      .select('id')
+      .eq('is_launderable', true)
+      .eq('status', 'active')
+    if (error) throw error
+    return data?.map(cat => cat.id) || []
+  },
+  enabled: !!tenantId,
+})
+
+// 2. Cập nhật filter logic
+const laundrableItems = itemsData?.items?.filter(item => {
+  const hasStock = (item.quantity_in_stock || 0) > 0
+  const isLaunderable = item.category_id && launderableCategories?.includes(item.category_id)
+  return hasStock && isLaunderable
+})
+```
 
 ---
 
-### IV. CHI TIẾT THAY ĐỔI
+#### Fix B: MobileBatchForm - Thêm Stock Validation (Ưu tiên: **TRUNG BÌNH**)
 
-#### 1. QuickReLogin.tsx - Fix Credential Manager
-
-```typescript
-// Line 67-73: Thay hidden input
-{/* Username input for browser credential manager - styled to be invisible but focusable */}
-<input 
-  type="email"
-  name="username"
-  id="quick-login-username"
-  autoComplete="username"
-  value={email}
-  readOnly
-  tabIndex={-1}
-  aria-hidden="true"
-  className="absolute -left-[9999px] w-px h-px opacity-0"
-/>
-```
-
-#### 2. AuthContext.tsx - Persistent Storage + Enhanced Logging
+**Thay đổi cần thực hiện:**
 
 ```typescript
-// Thêm function requestPersistentStorage
-const requestPersistentStorage = async () => {
-  try {
-    if (navigator.storage && navigator.storage.persist) {
-      const isPersisted = await navigator.storage.persisted()
-      if (!isPersisted) {
-        const granted = await navigator.storage.persist()
-        console.log('[Auth] Persistent storage request:', granted ? 'granted' : 'denied')
-      } else {
-        console.log('[Auth] Storage already persistent')
-      }
-    }
-  } catch (e) {
-    console.warn('[Auth] Persistent storage not supported:', e)
+const addItem = (item: any) => {
+  const existing = items.find(i => i.item_id === item.id)
+  const currentQty = existing?.quantity || 0
+  const stockAvailable = item.quantity_in_stock || 0
+  
+  // Check stock
+  if (currentQty + 1 > stockAvailable) {
+    toast.error(t('mobileBatch.insufficientStock', { name: item.name }))
+    return
   }
+  
+  // ... rest of logic
 }
 
-// Gọi trong useEffect đầu tiên
-useEffect(() => {
-  // Request persistent storage for PWA
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-  const isIOSStandalone = (window.navigator as any).standalone === true
-  
-  if (isStandalone || isIOSStandalone) {
-    requestPersistentStorage()
+const updateItem = (itemId: string, field: keyof BatchItem, value: any) => {
+  // Validate quantity against stock when updating
+  if (field === 'quantity') {
+    const item = items.find(i => i.item_id === itemId)
+    const stockAvailable = item?.item?.quantity_in_stock || 0
+    if (value > stockAvailable) {
+      toast.error(t('mobileBatch.maxStock', { max: stockAvailable }))
+      return
+    }
   }
-  
-  // ... existing auth listener code
-}, [])
+  // ... rest of logic
+}
 ```
 
 ---
 
-### V. KIỂM TRA SAU TRIỂN KHAI
+#### Fix C: Thêm Item-level Compensation trong ReceiveItemsTable (Ưu tiên: **THẤP**)
 
-1. **Test trên iOS Safari:**
-   - Cài PWA từ Home Screen
-   - Đăng nhập với "Ghi nhớ"
-   - Tắt app hoàn toàn (swipe up)
-   - Mở lại → Kiểm tra tự động đăng nhập
+**Thay đổi cần thực hiện:**
 
-2. **Test trên Android Chrome:**
-   - Cài PWA
-   - Đăng nhập → Đóng app → Mở lại
+```typescript
+// Thêm cột "Bồi thường" trong table
+<TableHead className="text-right">Bồi thường</TableHead>
 
-3. **Kiểm tra Console Logs:**
-   - `[Auth] Persistent storage request: granted`
-   - `[Auth] Session restored from storage`
+// Hiển thị giá trị
+<TableCell className="text-right text-red-600">
+  {(formItem.quantity_lost + formItem.quantity_damaged) > 0 
+    ? formatCurrency((formItem.quantity_lost + formItem.quantity_damaged) * (item.item?.unit_price || 0))
+    : '-'
+  }
+</TableCell>
+```
 
 ---
 
-### VI. LƯU Ý QUAN TRỌNG
+### V. TÓM TẮT
 
-1. **Không thể sửa `src/integrations/supabase/client.ts`** - File này auto-generate
-2. Persistent storage request có thể bị từ chối nếu user không có nhiều interaction với site
-3. iOS có thể xóa data khi device restart lâu hoặc low storage - đây là giới hạn của platform
+| # | Vấn đề | Mức độ | File |
+|---|--------|--------|------|
+| A | MobileBatchForm thiếu `is_launderable` filter | **Trung bình** | `MobileBatchForm.tsx` |
+| B | MobileBatchForm thiếu stock validation | Thấp | `MobileBatchForm.tsx` |
+| C | ReceiveItemsTable thiếu item-level compensation | Thấp | `ReceiveItemsTable.tsx` |
+
+---
+
+### VI. TRẠNG THÁI MODULE
+
+**Module Laundry đạt ~95% hoàn thiện**
+
+**Điểm mạnh:**
+- ✅ RPCs transactional đảm bảo data consistency
+- ✅ Status transitions với validation
+- ✅ Workflow triggers integration
+- ✅ Vendor performance tracking
+- ✅ Quality rating system
+- ✅ Desktop form có đầy đủ validation
+
+**Cần cải thiện:**
+- ⚠️ Mobile form thiếu `is_launderable` filter
+- ⚠️ Mobile form thiếu stock validation
+- ⚠️ UI hiển thị compensation có thể cải thiện
+
+---
+
+### VII. THỰC HIỆN
+
+| Bước | Công việc | Ước lượng |
+|------|-----------|-----------|
+| 1 | Fix MobileBatchForm - is_launderable filter | 5 phút |
+| 2 | Fix MobileBatchForm - stock validation | 5 phút |
+| 3 | Fix ReceiveItemsTable - item compensation | 5 phút |
+| 4 | Test end-to-end trên mobile | 10 phút |
+
+Tổng thời gian ước tính: **~25 phút**
 
