@@ -1,14 +1,16 @@
-import { useState, useMemo } from 'react'
-import { Droplets, Check, Package, AlertCircle } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { Droplets, Check, Package, AlertCircle, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import type { RoomItemWithDetails, ConsumedItem } from '@/types/rooms.types'
 import { CategoryGroup, groupItemsByCategory } from './CategoryGroup'
 import { getCheckTypeConfig, type CheckType } from '@/lib/roomCheckConfig'
+import { supabase } from '@/integrations/supabase/client'
 
 interface ExtendedRoomItem extends RoomItemWithDetails {
   category_name?: string | null
@@ -35,6 +37,30 @@ export function ConsumableTab({
   const [needRefill, setNeedRefill] = useState<Record<string, boolean>>({})
   const [okItems, setOkItems] = useState<Set<string>>(new Set())
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
+  const [stockMap, setStockMap] = useState<Record<string, number>>({})
+
+  // Fetch stock info for items
+  useEffect(() => {
+    const fetchStock = async () => {
+      const itemIds = items.map(i => i.item_id)
+      if (itemIds.length === 0) return
+
+      const { data } = await supabase
+        .from('items')
+        .select('id, quantity_in_stock')
+        .in('id', itemIds)
+
+      if (data) {
+        const map: Record<string, number> = {}
+        data.forEach(item => {
+          map[item.id] = item.quantity_in_stock || 0
+        })
+        setStockMap(map)
+      }
+    }
+
+    fetchStock()
+  }, [items])
 
   const getConsumedInfo = (itemId: string) => {
     return consumedItems.find(i => i.item_id === itemId)
@@ -125,6 +151,9 @@ export function ConsumableTab({
     const isExpanded = expandedItems.has(item.item_id)
     const qty = quantities[item.item_id] ?? 1
     const refill = needRefill[item.item_id] ?? true
+    const currentStock = stockMap[item.item_id] ?? 0
+    const isOutOfStock = currentStock === 0
+    const isLowStock = currentStock > 0 && currentStock <= 5
 
     // Status badge
     const getStatusBadge = () => {
@@ -172,23 +201,42 @@ export function ConsumableTab({
 
           {/* Row 2: Action Buttons - only show if not consumed */}
           {consumed ? (
-            <div className="flex items-center justify-between mt-2">
-              <div className="text-sm">
-                {consumed.need_refill ? (
-                  <span className="text-primary">Cần bổ sung {consumed.quantity}</span>
-                ) : (
-                  <span className="text-muted-foreground">Không bổ sung</span>
-                )}
+            <div className="mt-2 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="text-sm">
+                  {consumed.need_refill ? (
+                    <span className="text-primary">Cần bổ sung {consumed.quantity}</span>
+                  ) : (
+                    <span className="text-muted-foreground">Không bổ sung</span>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-9"
+                  onClick={() => onRemoveConsumed(item.item_id)}
+                >
+                  Hủy
+                </Button>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-9"
-                onClick={() => onRemoveConsumed(item.item_id)}
-              >
-                Hủy
-              </Button>
+              {/* Stock warning when need_refill and out of stock */}
+              {consumed.need_refill && isOutOfStock && (
+                <Alert variant="destructive" className="py-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    Hết hàng trong kho! Không thể bổ sung ngay.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {consumed.need_refill && isLowStock && (
+                <Alert className="py-2 border-amber-500/50 bg-amber-500/10">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="text-xs text-amber-700">
+                    Tồn kho thấp: còn {currentStock}
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
           ) : (
             <>

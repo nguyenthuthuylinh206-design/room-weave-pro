@@ -31,7 +31,8 @@ export function useTaskById(taskId: string | null) {
           room:rooms(id, room_number, floor, room_type),
           assigned_user:users!housekeeping_tasks_assigned_to_fkey(id, full_name, avatar_url),
           requested_user:users!housekeeping_tasks_requested_by_fkey(id, full_name, avatar_url),
-          booking:room_bookings(id, guest_name, check_out_date)
+          booking:room_bookings(id, guest_name, check_out_date),
+          checkout_inspection:checkout_inspection_requests(id, status, completed_at)
         `)
         .eq('id', taskId)
         .maybeSingle()
