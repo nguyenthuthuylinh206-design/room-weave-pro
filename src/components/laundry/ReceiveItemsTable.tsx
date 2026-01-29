@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 
 interface ReceiveItemsTableProps {
   items: any[]
@@ -36,12 +36,15 @@ export function ReceiveItemsTable({ items, formItems, onUpdateItem }: ReceiveIte
             <TableHead className="text-center w-24">Mất</TableHead>
             <TableHead className="text-center w-24">Hỏng</TableHead>
             <TableHead className="w-40">Tình trạng</TableHead>
+            <TableHead className="text-right w-28">Bồi thường</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {items.map((item, index) => {
             const formItem = formItems[index]
             const hasIssue = formItem.quantity_lost > 0 || formItem.quantity_damaged > 0
+            const unitPrice = (item as any).item?.unit_price || 0
+            const compensationAmount = (formItem.quantity_lost + formItem.quantity_damaged) * unitPrice
             
             return (
               <TableRow
@@ -130,6 +133,15 @@ export function ReceiveItemsTable({ items, formItems, onUpdateItem }: ReceiveIte
                       <SelectItem value="Khác">Khác</SelectItem>
                     </SelectContent>
                   </Select>
+                </TableCell>
+                <TableCell className="text-right">
+                  {hasIssue ? (
+                    <span className="text-red-600 font-medium">
+                      {formatCurrency(compensationAmount)}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
                 </TableCell>
               </TableRow>
             )

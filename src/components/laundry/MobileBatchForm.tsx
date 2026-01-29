@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ArrowLeft, Plus, Trash2, Check, Package } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -19,6 +20,8 @@ import { useCreateLaundryBatch } from '@/hooks/useLaundryBatches'
 import { useLaundryVendors } from '@/hooks/useLaundryVendors'
 import { useItems } from '@/hooks/useItems'
 import { useUsers } from '@/hooks/useUsers'
+import { useUser } from '@/hooks/useUser'
+import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { addDays, format } from 'date-fns'
 
@@ -60,7 +63,23 @@ export function MobileBatchForm() {
   const { data: vendors } = useLaundryVendors({ status: 'active' })
   const { data: itemsData } = useItems({})
   const { users } = useUsers()
+  const { tenantId } = useUser()
   const { mutate: createBatch, isPending } = useCreateLaundryBatch()
+  
+  // Fetch launderable categories - same logic as Desktop (CreateBatchStep2)
+  const { data: launderableCategories } = useQuery({
+    queryKey: ['launderable-categories', tenantId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('item_categories')
+        .select('id')
+        .eq('is_launderable', true)
+        .eq('status', 'active')
+      if (error) throw error
+      return data?.map(cat => cat.id) || []
+    },
+    enabled: !!tenantId,
+  })
   
   // Dynamic schema with translations
   const step1Schema = useMemo(() => z.object({
@@ -72,10 +91,12 @@ export function MobileBatchForm() {
     notes: z.string().optional(),
   }), [t])
   
-  // Filter launderable items
-  const laundrableItems = itemsData?.items?.filter(item => 
-    item.category_id !== null
-  )
+  // Filter launderable items with is_launderable check and stock availability
+  const laundrableItems = itemsData?.items?.filter(item => {
+    const hasStock = (item.quantity_in_stock || 0) > 0
+    const isLaunderable = item.category_id && launderableCategories?.includes(item.category_id)
+    return hasStock && isLaunderable
+  })
   
   const step1Form = useForm<Step1Data>({
     resolver: zodResolver(step1Schema),
@@ -94,6 +115,18 @@ export function MobileBatchForm() {
   
   const addItem = (item: any) => {
     const existing = items.find(i => i.item_id === item.id)
+    const currentQty = existing?.quantity || 0
+    const stockAvailable = item.quantity_in_stock || 0
+    
+    // Check stock before adding
+    if (currentQty + 1 > stockAvailable) {
+      toast.error(t('mobileBatch.insufficientStock', { 
+        name: item.name, 
+        stock: stockAvailable 
+      }))
+      return
+    }
+    
     if (existing) {
       setItems(items.map(i => 
         i.item_id === item.id 
@@ -118,6 +151,19 @@ export function MobileBatchForm() {
   }
   
   const updateItem = (itemId: string, field: keyof BatchItem, value: any) => {
+    // Validate quantity against stock when updating
+    if (field === 'quantity') {
+      const batchItem = items.find(i => i.item_id === itemId)
+      const stockAvailable = batchItem?.item?.quantity_in_stock || 0
+      if (value > stockAvailable) {
+        toast.error(t('mobileBatch.maxStock', { max: stockAvailable }))
+        return
+      }
+      if (value < 1) {
+        return // Don't allow quantity less than 1
+      }
+    }
+    
     setItems(items.map(i => 
       i.item_id === itemId ? { ...i, [field]: value } : i
     ))
