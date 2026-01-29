@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
-import { useMaintenanceRequest } from '@/hooks/useMaintenanceRequests'
+import { useMaintenanceRequest, useStartRequest } from '@/hooks/useMaintenanceRequests'
 import { MaintenanceTimeline } from './MaintenanceTimeline'
 import { PriorityBadge } from './PriorityBadge'
 import { CompleteRequestDialog } from './CompleteRequestDialog'
@@ -46,6 +46,7 @@ export const MobileMaintenanceRequestDetail = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const { data: request, isLoading } = useMaintenanceRequest(id!)
+  const startRequest = useStartRequest()
 
   const [showCompleteDialog, setShowCompleteDialog] = useState(false)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
@@ -120,12 +121,11 @@ export const MobileMaintenanceRequestDetail = () => {
               {request.status === 'pending' && (
                 <Button
                   className="flex-1"
-                  onClick={() => {
-                    /* Handle start */
-                  }}
+                  disabled={startRequest.isPending}
+                  onClick={() => startRequest.mutate(request.id)}
                 >
                   <Play className="h-4 w-4 mr-2" />
-                  Bắt đầu
+                  {startRequest.isPending ? 'Đang xử lý...' : 'Bắt đầu'}
                 </Button>
               )}
               {canComplete && (
