@@ -1,264 +1,215 @@
 
 
-## Phân Tích Module Giặt Ủi (Laundry) - Kết Quả Kiểm Tra
+## Kiểm Tra Chức Năng Điều Hướng Mobile - Kết Quả Phân Tích
 
-### I. TỔNG QUAN ĐÁNH GIÁ
+### I. VẤN ĐỀ CHÍNH PHÁT HIỆN
 
-| Tiêu chí | Trạng thái | Chi tiết |
-|----------|------------|----------|
-| **Tạo lô giặt (Desktop)** | ✅ Tốt | 3-step wizard với validation stock đầy đủ |
-| **Tạo lô giặt (Mobile)** | ⚠️ Có vấn đề | Thiếu filter `is_launderable` |
-| **Nhận lô giặt** | ✅ Tốt | Status validation, rating, compensation |
-| **Nhập kho từ giặt** | ✅ Tốt | RPC transactional, xử lý lost/damaged riêng |
-| **Status Transitions** | ✅ Tốt | delivered → ready → received → stocked |
-| **Vendor Management** | ✅ Tốt | CRUD, performance tracking, rating |
-| **Inventory Sync** | ✅ Tốt | RPCs atomic cho create/return/loss |
-| **Workflow Triggers** | ✅ Tốt | `LAUNDRY_BATCH_STATUS_CHANGE` |
-| **Notifications** | ✅ Tốt | Manager notifications cho issues |
+Sau khi kiểm tra toàn bộ các component mobile có wizard/multi-step forms, tôi phát hiện **VẤN ĐỀ QUAN TRỌNG**:
 
----
-
-### II. VẤN ĐỀ PHÁT HIỆN
-
-#### A. MobileBatchForm - Thiếu Filter `is_launderable` (Mức độ: **TRUNG BÌNH**)
-
-**Vị trí:** `src/components/laundry/MobileBatchForm.tsx` (lines 75-78)
-
-**Vấn đề:**
-```typescript
-// Hiện tại: Chỉ check category_id !== null
-const laundrableItems = itemsData?.items?.filter(item => 
-  item.category_id !== null  // ❌ Không filter is_launderable
-)
-```
-
-**So sánh với Desktop:**
-```typescript
-// CreateBatchStep2.tsx - lines 62-74: Có filter đúng
-const { data: launderableCategories } = useQuery({
-  queryKey: ['launderable-categories', tenantId],
-  queryFn: async () => {
-    const { data } = await supabase
-      .from('item_categories')
-      .select('id')
-      .eq('is_launderable', true)  // ✅ Filter đúng
-      .eq('status', 'active')
-    return data?.map(cat => cat.id) || []
-  },
-})
-
-const availableItems = itemsQuery.data?.items?.filter((item) => {
-  const hasStock = (item.quantity_in_stock || 0) > 0
-  const isLaunderable = item.category_id && launderableCategories?.includes(item.category_id)
-  return hasStock && isLaunderable  // ✅ Filter is_launderable
-}) || []
-```
-
-**Tác động:**
-- Mobile hiển thị TẤT CẢ items có category, bao gồm cả items không thể giặt
-- Gây nhầm lẫn cho staff, có thể chọn sai items
+| Component | Vấn đề | Mức độ |
+|-----------|--------|--------|
+| `MobileBatchForm.tsx` | Các nút "Quay lại", "Tiếp" **THIẾU `type="button"`** | **CAO** |
+| `MobilePOForm.tsx` | Các nút "Quay lại", "Tiếp" **THIẾU `type="button"`** | **CAO** |
+| `MobileRoomFormPage.tsx` | Các nút step navigation **THIẾU `type="button"`** | **CAO** |
+| `MobileItemFormPage.tsx` | ✅ Đã có `type="button"` đầy đủ | OK |
+| `MobileMaintenanceRequestForm.tsx` | ✅ Đã có `type="button"` đầy đủ | OK |
+| `MobileInboundForm.tsx` | ✅ Sử dụng `TouchButton` riêng, không trong form | OK |
+| `MobileAdjustmentForm.tsx` | ✅ Sử dụng `TouchButton` riêng, không trong form | OK |
+| `BookingWizard.tsx` | ✅ Đã có `type="button"` đầy đủ | OK |
 
 ---
 
-#### B. MobileBatchForm - Thiếu Validation Stock (Mức độ: **THẤP**)
+### II. NGUYÊN NHÂN GỐC
 
-**Vấn đề:**
-Mobile form cho phép add items mà không check stock availability:
-```typescript
-// Line 95-112: addItem không check stock
-const addItem = (item: any) => {
-  const existing = items.find(i => i.item_id === item.id)
-  if (existing) {
-    setItems(items.map(i => 
-      i.item_id === item.id 
-        ? { ...i, quantity: i.quantity + 1 }  // ❌ Không check stock
-        : i
-    ))
-  }
-  // ...
-}
-```
-
-**So sánh với Desktop:**
-- Desktop có `superRefine` validation check quantity vs stock
+Trong HTML, button mặc định có `type="submit"`. Khi button nằm trong thẻ `<form>`, click vào sẽ:
+1. **Trigger form submission** (không phải chuyển step)
+2. **Gây refresh page** hoặc validation errors không mong muốn
+3. **Navigation không hoạt động** như mong đợi
 
 ---
 
-#### C. ReceiveItemsTable - Thiếu Compensation Logic (Mức độ: **THẤP**)
+### III. CÁC FILE CẦN SỬA
 
-**Vấn đề:**
-Khi có items mất/hỏng, `ReceiveItemsTable` hiển thị các trường nhập liệu nhưng không hiển thị giá trị bồi thường cho từng item inline.
+#### A. MobileBatchForm.tsx (Lines 378-384, 465-471, 508-519)
 
-**Hiện trạng:**
-- Compensation chỉ hiển thị tổng ở bên ngoài (ReceiveBatchPage)
-- User phải tự tính giá trị thiệt hại từng item
-
----
-
-### III. NHỮNG GÌ ĐÃ TỐT
-
-#### 1. RPC Transactional cho Inventory
-```
-✅ create_laundry_batch_with_items: Validate stock → Create batch → Update items ATOMIC
-✅ create_laundry_return_transaction: Nhập kho từ giặt, sync stock+laundry
-✅ create_laundry_loss_transaction: Xử lý items mất/hỏng, update quantity_total
-```
-
-#### 2. Status Validation Chặt Chẽ
+**Step 1 - Nút "Tiếp tục":**
 ```typescript
-const ALLOWED_TRANSITIONS = {
-  delivered: ['ready'],
-  washing: ['ready'],
-  ready: ['received'],
-  received: ['stocked']
-}
+// Line 378-384: THIẾU type="button"
+<Button
+  className="w-full"
+  size="lg"
+  onClick={handleStep1Complete}
+>
+  {t('createBatch.step1.next')}
+</Button>
 ```
 
-#### 3. Workflow Integration
+**Step 2 - Nút "Quay lại" và "Tiếp":**
 ```typescript
-triggerWorkflow({
-  triggerType: WorkflowTriggerTypes.LAUNDRY_BATCH_STATUS_CHANGE,
-  eventData: { batch_id, new_status },
-  tenantId, hotelId
-})
+// Lines 465-471: THIẾU type="button"
+<div className="flex gap-2">
+  <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
+    {t('createBatch.step2.back')}
+  </Button>
+  <Button className="flex-1" onClick={handleStep2Complete}>
+    {t('createBatch.step2.next')}
+  </Button>
+</div>
 ```
 
-#### 4. Quality & Timeliness Tracking
-- Rating 1-5 cho quality và timeliness
-- Auto-calculate timeliness rating based on delivery delay
-
-#### 5. Vendor Performance
-```
-✅ get_vendor_performance RPC
-✅ total_orders, total_value tracking
-✅ Rating aggregation
+**Step 3 - Nút "Quay lại" và "Tạo":**
+```typescript
+// Lines 508-519: THIẾU type="button"
+<div className="flex gap-2">
+  <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>
+    {t('createBatch.step3.back')}
+  </Button>
+  <Button className="flex-1" onClick={handleSubmit} disabled={isPending}>
+    ...
+  </Button>
+</div>
 ```
 
 ---
 
-### IV. ĐỀ XUẤT SỬA LỖI
+#### B. MobilePOForm.tsx (Lines 281-293, 370-386, 472-490)
 
-#### Fix A: MobileBatchForm - Thêm is_launderable Filter (Ưu tiên: **CAO**)
+**Step 1 - Nút "Tiếp tục":**
+```typescript
+// Lines 281-293: THIẾU type="button"
+<Button
+  className="w-full"
+  size="lg"
+  onClick={() => {...}}
+>
+  {t('actions.next')}
+</Button>
+```
 
-**Thay đổi cần thực hiện:**
+**Step 2 - Nút "Quay lại" và "Tiếp":**
+```typescript
+// Lines 370-386: THIẾU type="button"
+<Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
+  {t('actions.back')}
+</Button>
+<Button className="flex-1" onClick={() => {...}}>
+  {t('actions.next')}
+</Button>
+```
+
+**Step 3 - Nút "Quay lại" và "Tạo":**
+```typescript
+// Lines 472-490: THIẾU type="button"
+<Button variant="outline" className="flex-1" onClick={() => setStep(2)}>
+  {t('actions.back')}
+</Button>
+<Button className="flex-1" onClick={form.handleSubmit(onSubmit)}>
+  ...
+</Button>
+```
+
+---
+
+#### C. MobileRoomFormPage.tsx (Lines 483-509)
 
 ```typescript
-// 1. Thêm query để lấy launderable categories (như CreateBatchStep2)
-const { data: launderableCategories } = useQuery({
-  queryKey: ['launderable-categories', tenantId],
-  queryFn: async () => {
-    const { data, error } = await supabase
-      .from('item_categories')
-      .select('id')
-      .eq('is_launderable', true)
-      .eq('status', 'active')
-    if (error) throw error
-    return data?.map(cat => cat.id) || []
-  },
-  enabled: !!tenantId,
-})
-
-// 2. Cập nhật filter logic
-const laundrableItems = itemsData?.items?.filter(item => {
-  const hasStock = (item.quantity_in_stock || 0) > 0
-  const isLaunderable = item.category_id && launderableCategories?.includes(item.category_id)
-  return hasStock && isLaunderable
-})
+// Lines 483-509: Nút navigation THIẾU type="button"
+<Button
+  variant="outline"
+  className="flex-1"
+  onClick={currentStep === 1 ? () => navigate('/rooms') : handlePrevStep}
+>
+  {currentStep === 1 ? 'Hủy' : 'Quay lại'}
+</Button>
+<Button
+  className="flex-1"
+  onClick={currentStep === 3 ? undefined : handleNextStep}
+  // Thiếu type="button" cho nút không submit
+>
+  {currentStep === 3 ? 'Hoàn thành' : 'Tiếp tục'}
+</Button>
 ```
 
 ---
 
-#### Fix B: MobileBatchForm - Thêm Stock Validation (Ưu tiên: **TRUNG BÌNH**)
+### IV. GIẢI PHÁP
 
-**Thay đổi cần thực hiện:**
+Thêm `type="button"` vào TẤT CẢ các button trong form mà không có mục đích submit:
 
 ```typescript
-const addItem = (item: any) => {
-  const existing = items.find(i => i.item_id === item.id)
-  const currentQty = existing?.quantity || 0
-  const stockAvailable = item.quantity_in_stock || 0
-  
-  // Check stock
-  if (currentQty + 1 > stockAvailable) {
-    toast.error(t('mobileBatch.insufficientStock', { name: item.name }))
-    return
-  }
-  
-  // ... rest of logic
-}
+// BEFORE (lỗi)
+<Button onClick={() => setStep(1)}>Quay lại</Button>
 
-const updateItem = (itemId: string, field: keyof BatchItem, value: any) => {
-  // Validate quantity against stock when updating
-  if (field === 'quantity') {
-    const item = items.find(i => i.item_id === itemId)
-    const stockAvailable = item?.item?.quantity_in_stock || 0
-    if (value > stockAvailable) {
-      toast.error(t('mobileBatch.maxStock', { max: stockAvailable }))
-      return
-    }
-  }
-  // ... rest of logic
-}
+// AFTER (đúng)
+<Button type="button" onClick={() => setStep(1)}>Quay lại</Button>
 ```
+
+**Quy tắc:**
+- `type="button"` - Cho tất cả nút navigation, back, next (không submit)
+- `type="submit"` - Chỉ cho nút cuối cùng thực sự submit form
+- Hoặc không có `type` - Chỉ khi button NGOÀI thẻ `<form>`
 
 ---
 
-#### Fix C: Thêm Item-level Compensation trong ReceiveItemsTable (Ưu tiên: **THẤP**)
+### V. DANH SÁCH THAY ĐỔI CHI TIẾT
 
-**Thay đổi cần thực hiện:**
+| File | Số dòng | Thay đổi |
+|------|---------|----------|
+| `MobileBatchForm.tsx` | 378 | Thêm `type="button"` |
+| `MobileBatchForm.tsx` | 465, 468 | Thêm `type="button"` cho cả 2 nút |
+| `MobileBatchForm.tsx` | 509, 512 | Thêm `type="button"` cho cả 2 nút |
+| `MobilePOForm.tsx` | 281 | Thêm `type="button"` |
+| `MobilePOForm.tsx` | 371, 374 | Thêm `type="button"` cho cả 2 nút |
+| `MobilePOForm.tsx` | 474, 477 | Thêm `type="button"` cho cả 2 nút |
+| `MobileRoomFormPage.tsx` | 489, 498 | Thêm `type="button"` cho nút không submit |
 
+---
+
+### VI. VẤN ĐỀ PHỤ KHÁC
+
+#### 1. MobileBatchForm - Header Back Button
 ```typescript
-// Thêm cột "Bồi thường" trong table
-<TableHead className="text-right">Bồi thường</TableHead>
-
-// Hiển thị giá trị
-<TableCell className="text-right text-red-600">
-  {(formItem.quantity_lost + formItem.quantity_damaged) > 0 
-    ? formatCurrency((formItem.quantity_lost + formItem.quantity_damaged) * (item.item?.unit_price || 0))
-    : '-'
-  }
-</TableCell>
+// Line 231-236: Nút back trong header OK (ngoài form)
+<Button
+  variant="ghost"
+  size="icon"
+  onClick={() => navigate('/laundry')}
+>
+  <ArrowLeft className="h-5 w-5" />
+</Button>
 ```
+**Trạng thái:** ✅ OK - Nằm ngoài `<form>`, không cần `type="button"`
+
+#### 2. MobilePOForm - Header Back Button
+```typescript
+// Line 168-173: OK - nằm ngoài form
+<Button
+  variant="ghost"
+  size="icon"
+  onClick={() => navigate('/purchase-orders')}
+>
+```
+**Trạng thái:** ✅ OK
 
 ---
 
-### V. TÓM TẮT
+### VII. TÓM TẮT THỰC HIỆN
 
-| # | Vấn đề | Mức độ | File |
-|---|--------|--------|------|
-| A | MobileBatchForm thiếu `is_launderable` filter | **Trung bình** | `MobileBatchForm.tsx` |
-| B | MobileBatchForm thiếu stock validation | Thấp | `MobileBatchForm.tsx` |
-| C | ReceiveItemsTable thiếu item-level compensation | Thấp | `ReceiveItemsTable.tsx` |
+| Bước | Công việc | File |
+|------|-----------|------|
+| 1 | Thêm `type="button"` cho 4 buttons | `MobileBatchForm.tsx` |
+| 2 | Thêm `type="button"` cho 5 buttons | `MobilePOForm.tsx` |
+| 3 | Thêm `type="button"` cho 2 buttons | `MobileRoomFormPage.tsx` |
 
----
-
-### VI. TRẠNG THÁI MODULE
-
-**Module Laundry đạt ~95% hoàn thiện**
-
-**Điểm mạnh:**
-- ✅ RPCs transactional đảm bảo data consistency
-- ✅ Status transitions với validation
-- ✅ Workflow triggers integration
-- ✅ Vendor performance tracking
-- ✅ Quality rating system
-- ✅ Desktop form có đầy đủ validation
-
-**Cần cải thiện:**
-- ⚠️ Mobile form thiếu `is_launderable` filter
-- ⚠️ Mobile form thiếu stock validation
-- ⚠️ UI hiển thị compensation có thể cải thiện
+**Tổng cộng: 11 buttons cần sửa**
 
 ---
 
-### VII. THỰC HIỆN
+### VIII. KIỂM TRA SAU SỬA
 
-| Bước | Công việc | Ước lượng |
-|------|-----------|-----------|
-| 1 | Fix MobileBatchForm - is_launderable filter | 5 phút |
-| 2 | Fix MobileBatchForm - stock validation | 5 phút |
-| 3 | Fix ReceiveItemsTable - item compensation | 5 phút |
-| 4 | Test end-to-end trên mobile | 10 phút |
-
-Tổng thời gian ước tính: **~25 phút**
+Sau khi sửa, cần test:
+1. **MobileBatchForm:** Quay lại/Tiếp tục giữa 3 steps
+2. **MobilePOForm:** Quay lại/Tiếp tục giữa 3 steps
+3. **MobileRoomFormPage:** Quay lại/Tiếp tục giữa 3 steps
+4. Đảm bảo submit form chỉ xảy ra ở step cuối cùng
 
