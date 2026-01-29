@@ -174,8 +174,15 @@ export function ChargeableItemsStep({
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-sm truncate">{item.name}</p>
                     {item.quantity_in_stock <= 5 && (
-                      <Badge variant="outline" className="text-xs shrink-0">
-                        Còn {item.quantity_in_stock}
+                      <Badge 
+                        variant="outline" 
+                        className={cn(
+                          "text-xs shrink-0",
+                          item.quantity_in_stock === 0 && "border-red-300 text-red-600",
+                          item.quantity_in_stock > 0 && item.quantity_in_stock <= 5 && "border-amber-300 text-amber-600"
+                        )}
+                      >
+                        {item.quantity_in_stock === 0 ? 'Hết hàng' : `Còn ${item.quantity_in_stock}`}
                       </Badge>
                     )}
                   </div>
@@ -201,7 +208,10 @@ export function ChargeableItemsStep({
                     type="number"
                     value={quantity}
                     onChange={(e) => handleSetQuantity(item.id, parseInt(e.target.value) || 0)}
-                    className="w-12 h-8 text-center text-sm px-1"
+                    className={cn(
+                      "w-12 h-8 text-center text-sm px-1",
+                      quantity > 0 && quantity >= item.quantity_in_stock && "border-amber-400"
+                    )}
                     min={0}
                     max={item.quantity_in_stock}
                   />
@@ -227,6 +237,18 @@ export function ChargeableItemsStep({
                   </div>
                 )}
               </div>
+              
+              {/* Low stock warning */}
+              {isSelected && quantity >= item.quantity_in_stock && item.quantity_in_stock > 0 && (
+                <p className="text-xs text-amber-600 mt-2">
+                  ⚠️ Đã chọn tối đa số lượng tồn kho ({item.quantity_in_stock})
+                </p>
+              )}
+              {item.quantity_in_stock === 0 && (
+                <p className="text-xs text-red-600 mt-2">
+                  ⚠️ Hết hàng trong kho - Không thể ghi nhận
+                </p>
+              )}
             </div>
           )
         })}

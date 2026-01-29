@@ -24,7 +24,8 @@ export function useInventoryDashboard() {
       return data as unknown as InventoryDashboardStats
     },
     enabled: !!tenant?.id && (isAllHotelsMode || !!selectedHotel?.id),
-    refetchInterval: 60000, // 1 minute
+    refetchInterval: 30000, // 30 seconds for more responsive dashboard
+    staleTime: 15000, // Consider data stale after 15s
   })
 }
 
@@ -49,6 +50,8 @@ export function useLowStockItems(limit = 50) {
       return data as LowStockItem[]
     },
     enabled: !!tenant?.id && (isAllHotelsMode || !!selectedHotel?.id),
+    refetchInterval: 30000, // 30 seconds
+    staleTime: 15000,
   })
 }
 
