@@ -426,6 +426,11 @@ export function BookingsPage() {
       const consumablesTotal = await calculateServiceChargesFromConsumables(booking.id)
       const serviceCharges = consumablesTotal > 0 ? consumablesTotal : ((booking as any).service_charges || 0)
 
+      // Get chargeable consumptions total (minibar, paid items)
+      const { data: chargeableTotal } = await supabase
+        .rpc('get_booking_chargeable_total', { p_booking_id: booking.id })
+      const extraChargeableAmount = chargeableTotal || 0
+
       // Fetch latest room check for damage info
       const { data: latestCheck } = await supabase
         .from('room_checks')
@@ -473,7 +478,7 @@ export function BookingsPage() {
         earlyCheckinCharge: (booking as any).early_checkin_charge || 0,
         lateCheckoutCharge: calculatedLateCharge,
         serviceCharges,
-        extraCharges: (booking as any).extra_charges || 0,
+        extraCharges: ((booking as any).extra_charges || 0) + extraChargeableAmount,
         damageCharges: totalDamageCharge,
         damageItems,
         vatRate: (booking as any).vat_rate ?? DEFAULT_PRICING_RULES.vatRate,
@@ -765,13 +770,18 @@ export function BookingsPage() {
           const checkOut = new Date(actionBooking.check_out_date)
           const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
           
+          // Refetch chargeable total after inspection completed
+          const { data: chargeableTotal } = await supabase
+            .rpc('get_booking_chargeable_total', { p_booking_id: actionBooking.id })
+          const extraChargeableAmount = chargeableTotal || 0
+          
           const newCostBreakdown = calculateBookingCost({
             roomPrice,
             nights,
             earlyCheckinCharge: checkoutCostBreakdown.earlyCheckinCharge,
             lateCheckoutCharge: checkoutCostBreakdown.lateCheckoutCharge,
             serviceCharges: checkoutCostBreakdown.serviceCharges,
-            extraCharges: checkoutCostBreakdown.extraCharges,
+            extraCharges: ((actionBooking as any).extra_charges || 0) + extraChargeableAmount,
             damageCharges: totalDamageCharge,
             damageItems,
             vatRate: checkoutCostBreakdown.vatRate,
