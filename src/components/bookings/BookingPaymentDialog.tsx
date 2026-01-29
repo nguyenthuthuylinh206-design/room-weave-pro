@@ -193,29 +193,16 @@ export function BookingPaymentDialog({
         return;
       }
 
-      // Check if user has any push subscriptions
-      const { data: subscriptions, error: subError } = await supabase
-        .from('push_subscriptions')
-        .select('id')
-        .eq('user_id', userData.user.id)
-        .eq('is_active', true)
-        .limit(1);
-
-      if (subError) throw subError;
-
-      if (!subscriptions || subscriptions.length === 0) {
-        toast.error('Chưa đăng ký thiết bị nhận thông báo. Vào Cài đặt → Thông báo → Quản lý thiết bị');
-        return;
-      }
-
       // Use relative URL so PWA can handle navigation within same domain
       // PaymentQRPage will auto-redirect to public URL if on Auth Bridge domain
       const paymentPath = `/payment-qr/${createdPayment.id}`;
 
-      // Send push notification using user_id (edge function will look up subscriptions)
-      const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
+      // Send push notification directly - edge function handles subscriptions check
+      // skip_auth_check: true for self-notification (faster)
+      const { data, error: pushError } = await supabase.functions.invoke('send-push-notification', {
         body: {
           user_id: userData.user.id,
+          skip_auth_check: true, // Self-notification, skip tenant verification
           title: `QR Thanh toán phòng ${booking.room_number}`,
           body: `Số tiền: ${formatVNCurrency(parsedAmount)} - Khách: ${booking.guest_name}`,
           tag: `payment-qr-${createdPayment.id}`,
@@ -232,7 +219,12 @@ export function BookingPaymentDialog({
 
       if (pushError) throw pushError;
 
-      toast.success('Đã gửi thông báo QR sang điện thoại');
+      // Handle response based on sent count
+      if (data?.sent === 0) {
+        toast.warning('Chưa có thiết bị nào đăng ký nhận thông báo. Vào Cài đặt → Thông báo → Quản lý thiết bị');
+      } else {
+        toast.success(`Đã gửi QR đến ${data?.sent || 1} thiết bị`);
+      }
     } catch (error) {
       console.error('Send notification error:', error);
       toast.error('Không thể gửi thông báo');
