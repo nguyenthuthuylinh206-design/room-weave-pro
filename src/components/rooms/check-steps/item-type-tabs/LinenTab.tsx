@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Shirt, Minus, Plus } from 'lucide-react'
+import { Shirt, Minus, Plus, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { RoomItemWithDetails, LaundryItem, LostItem, ReplacedItem } from '@/types/rooms.types'
@@ -20,6 +20,7 @@ interface LinenTabProps {
   laundryItems: LaundryItem[]
   lostItems: LostItem[]
   replacedItems: ReplacedItem[]
+  stockMap?: Record<string, number>
   onLinenStatusChange: (item: RoomItemWithDetails, status: LinenStatus, quantity: number) => void
   onResetStatus: (itemId: string) => void
 }
@@ -40,6 +41,7 @@ export function LinenTab({
   laundryItems,
   lostItems,
   replacedItems,
+  stockMap = {},
   onLinenStatusChange,
   onResetStatus,
 }: LinenTabProps) {
@@ -263,6 +265,11 @@ export function LinenTab({
                 const statusInfo = STATUS_CONFIG[status] || STATUS_CONFIG.ok
                 const needsQuantity = ['laundry', 'add', 'change', 'lost', 'damaged', 'missing'].includes(status)
                 
+                // Stock validation for actions that consume stock (add, change)
+                const availableStock = stockMap[item.item_id] ?? 0
+                const needsStockCheck = ['add', 'change'].includes(status)
+                const isOverStock = needsStockCheck && qty > availableStock
+                
                 return (
                   <CompactItemRow
                     key={item.item_id}
@@ -277,43 +284,57 @@ export function LinenTab({
                     expanded={isExpanded && needsQuantity}
                   >
                     {/* Quantity adjustment for expanded items */}
-                    <div className="flex items-center gap-2 pt-1">
-                      <span className="text-xs text-muted-foreground">Số lượng:</span>
-                      <div className="flex items-center gap-0.5">
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Số lượng:</span>
+                        <div className="flex items-center gap-0.5">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => handleQuantityChange(item, qty - 1)}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <Input
+                            type="number"
+                            value={qty}
+                            onChange={(e) => handleQuantityChange(item, parseInt(e.target.value) || 1)}
+                            className={`w-12 h-7 text-center text-sm px-1 ${isOverStock ? 'border-amber-500' : ''}`}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => handleQuantityChange(item, qty + 1)}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        {needsStockCheck && (
+                          <span className={`text-xs ${isOverStock ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                            Kho: {availableStock}
+                          </span>
+                        )}
                         <Button
                           type="button"
-                          variant="outline"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => handleQuantityChange(item, qty - 1)}
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs ml-auto"
+                          onClick={() => setExpandedItem(null)}
                         >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <Input
-                          type="number"
-                          value={qty}
-                          onChange={(e) => handleQuantityChange(item, parseInt(e.target.value) || 1)}
-                          className="w-12 h-7 text-center text-sm px-1"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => handleQuantityChange(item, qty + 1)}
-                        >
-                          <Plus className="h-3 w-3" />
+                          Xong
                         </Button>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs ml-auto"
-                        onClick={() => setExpandedItem(null)}
-                      >
-                        Xong
-                      </Button>
+                      {/* Stock warning */}
+                      {isOverStock && (
+                        <div className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 rounded px-2 py-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          <span>Kho chỉ còn {availableStock}, yêu cầu {qty}</span>
+                        </div>
+                      )}
                     </div>
                   </CompactItemRow>
                 )

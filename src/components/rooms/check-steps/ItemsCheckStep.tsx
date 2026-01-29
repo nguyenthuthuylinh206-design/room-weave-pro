@@ -79,21 +79,33 @@ export function ItemsCheckStep({
   // Fetch item_type and category_name for each item
   const [itemsWithType, setItemsWithType] = useState<ExtendedRoomItem[]>([]);
 
+  // Track stock quantities for validation
+  const [stockMap, setStockMap] = useState<Record<string, number>>({});
+
   useEffect(() => {
-    const fetchItemTypesAndCategories = async () => {
+    const fetchItemTypesAndStock = async () => {
       if (items.length === 0) return;
       
       const itemIds = items.map(i => i.item_id);
       const { data } = await supabase
         .from('items')
-        .select('id, item_type, category_id, item_categories(name)')
+        .select('id, item_type, quantity_in_stock, category_id, item_categories(name)')
         .in('id', itemIds);
       
       if (data) {
         const itemMap = new Map(data.map(d => [d.id, {
           item_type: d.item_type,
-          category_name: (d.item_categories as any)?.name || null
+          category_name: (d.item_categories as any)?.name || null,
+          quantity_in_stock: d.quantity_in_stock || 0
         }]));
+        
+        // Build stock map
+        const newStockMap: Record<string, number> = {};
+        data.forEach(d => {
+          newStockMap[d.id] = d.quantity_in_stock || 0;
+        });
+        setStockMap(newStockMap);
+        
         setItemsWithType(items.map(item => {
           const itemData = itemMap.get(item.item_id);
           return {
@@ -111,7 +123,7 @@ export function ItemsCheckStep({
       }
     };
 
-    fetchItemTypesAndCategories();
+    fetchItemTypesAndStock();
   }, [items]);
 
   // Filter items by type
@@ -505,6 +517,7 @@ export function ItemsCheckStep({
             laundryItems={laundryItems}
             lostItems={lostItems.filter(i => i.item_type === 'linen')}
             replacedItems={replacedItems}
+            stockMap={stockMap}
             onLinenStatusChange={handleLinenStatusChange}
             onResetStatus={resetLinenStatus}
           />
