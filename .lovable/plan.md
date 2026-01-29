@@ -1,110 +1,83 @@
 
 
-## Sửa Lỗi: Phí Sử Dụng Đồ Không Cập Nhật Khi Kiểm Tra Phòng Xong
+## Sửa Lỗi: Phí Đồ Dùng Tính Phí Không Hiển Thị Trong Dialog Thanh Toán
 
 ### I. VẤN ĐỀ PHÁT HIỆN
 
-Khi mở `CheckoutSummaryDialog`, phí phụ thu từ "Đồ đã dùng" (`items_consumed`) **KHÔNG được tải** vì query ban đầu chỉ lấy 2 loại:
+Khi nhân viên kiểm tra phòng và ghi nhận đồ dùng tính phí (minibar, bàn chải...) qua `ChargeableItemsStep`, dữ liệu được lưu vào table `chargeable_consumptions`. Tuy nhiên, khi mở dialog checkout, **số tiền này KHÔNG được cộng vào tổng thanh toán**.
 
-| Vị trí | Query hiện tại | Thiếu |
-|--------|----------------|-------|
-| `handleCheckOutClick` (line 431-432) | `items_lost, items_damaged` | **`items_consumed`** |
-| `handleInspectionCompleted` (line 707-708) | `items_lost, items_damaged, items_consumed` | ✅ Đầy đủ |
+| Thời điểm | Hành vi | Kết quả |
+|-----------|---------|---------|
+| Mở dialog checkout | Chỉ lấy `booking.extra_charges` | ❌ Thiếu phí minibar |
+| Thực hiện checkout thực tế | Có gọi RPC `get_booking_chargeable_total` | ✅ Đúng |
+| Sau inspection hoàn thành | Giữ nguyên `extraCharges` cũ | ❌ Không cập nhật |
 
-**Tác động:**
-- Mở dialog checkout lần đầu → Chỉ thấy đồ mất + đồ hỏng
-- Sau khi inspection hoàn thành → Mới thấy đầy đủ (bao gồm đồ đã dùng)
-- Nếu có room check trước đó với `items_consumed` → **KHÔNG hiển thị** cho đến khi có inspection mới
+**Hậu quả:**
+- Dialog checkout hiển thị tổng tiền THẤP hơn thực tế
+- Khi checkout thật, số tiền mới được tính đúng → Khách bất ngờ
 
 ---
 
 ### II. GIẢI PHÁP
 
-**Cập nhật query trong `handleCheckOutClick`** để lấy cả `items_consumed`:
+**Cập nhật `handleCheckOutClick` và `handleInspectionCompleted`** để lấy và cộng thêm `chargeable_consumptions`:
+
+---
+
+### III. CHI TIẾT THAY ĐỔI
+
+#### Bước 1: Trong `handleCheckOutClick` - Thêm query chargeable_consumptions
 
 **File:** `src/pages/bookings/BookingsPage.tsx`
 
-**Line 431-456 → Thay đổi:**
+**Vị trí:** Sau dòng 427 (sau khi tính `serviceCharges`), trước khi fetch `room_checks`
 
+**Thêm code:**
 ```typescript
-// TRƯỚC (thiếu items_consumed)
-const { data: latestCheck } = await supabase
-  .from('room_checks')
-  .select('items_lost, items_damaged')  // ❌ Thiếu items_consumed
-  .eq('room_id', booking.room_id)
-  .in('check_type', ['checkout', 'daily'])
-  .order('checked_at', { ascending: false })
-  .limit(1)
-  .maybeSingle()
-
-// Convert to DamageChargeItem[]
-const damageItems: DamageChargeItem[] = [
-  // items_lost...
-  // items_damaged...
-  // ❌ THIẾU items_consumed
-]
+// Get chargeable consumptions total (minibar, paid items)
+const { data: chargeableTotal } = await supabase
+  .rpc('get_booking_chargeable_total', { p_booking_id: booking.id })
+const extraChargeableAmount = chargeableTotal || 0
 ```
 
+**Thay đổi line 476:**
 ```typescript
-// SAU (đầy đủ 3 loại)
-const { data: latestCheck } = await supabase
-  .from('room_checks')
-  .select('items_lost, items_damaged, items_consumed')  // ✅ Thêm items_consumed
-  .eq('room_id', booking.room_id)
-  .in('check_type', ['checkout', 'daily'])
-  .order('checked_at', { ascending: false })
-  .limit(1)
-  .maybeSingle()
+// TRƯỚC
+extraCharges: (booking as any).extra_charges || 0,
 
-// Convert to DamageChargeItem[]
-const damageItems: DamageChargeItem[] = [
-  // Đồ mất
-  ...((latestCheck?.items_lost as any[]) || []).map(item => ({
-    item_id: item.item_id,
-    item_name: item.item_name,
-    item_type: 'lost' as const,
-    quantity: item.quantity,
-    charge_amount: item.estimated_value || 0,
-  })),
-  // Đồ hỏng
-  ...((latestCheck?.items_damaged as any[]) || []).map(item => ({
-    item_id: item.item_id,
-    item_name: item.item_name,
-    item_type: 'damaged' as const,
-    quantity: item.quantity,
-    charge_amount: item.damage_cost || 0,
-    damage_type: item.damage_type,
-  })),
-  // ✅ Đồ đã dùng (consumed)
-  ...((latestCheck?.items_consumed as any[]) || []).map(item => ({
-    item_id: item.item_id,
-    item_name: item.item_name,
-    item_type: 'consumed' as const,
-    quantity: item.quantity,
-    charge_amount: item.unit_price || 0,
-  })),
-]
+// SAU
+extraCharges: ((booking as any).extra_charges || 0) + extraChargeableAmount,
 ```
 
 ---
 
-### III. TÓM TẮT THAY ĐỔI
+#### Bước 2: Trong `handleInspectionCompleted` - Cập nhật extraCharges
 
-| Bước | File | Thay đổi |
-|------|------|----------|
-| 1 | `BookingsPage.tsx` | Line 432: Thêm `items_consumed` vào select query |
-| 2 | `BookingsPage.tsx` | Lines 440-456: Thêm mapping `items_consumed` → `DamageChargeItem[]` |
+**Vị trí:** Trong phần recalculate cost breakdown (line 768-781)
+
+**Thêm query và cập nhật:**
+```typescript
+// Sau khi inspection hoàn thành, cũng cần refetch chargeable total
+const { data: chargeableTotal } = await supabase
+  .rpc('get_booking_chargeable_total', { p_booking_id: actionBooking.id })
+const extraChargeableAmount = chargeableTotal || 0
+
+const newCostBreakdown = calculateBookingCost({
+  // ...existing params
+  extraCharges: ((actionBooking as any).extra_charges || 0) + extraChargeableAmount, // Updated
+  // ...rest
+})
+```
 
 ---
 
-### IV. UI ĐÃ SẴN SÀNG
+### IV. TÓM TẮT THAY ĐỔI
 
-`DamageChargesSection.tsx` đã hỗ trợ hiển thị 3 loại:
-- ✅ Đồ mất (`lostItems`) - màu đỏ
-- ✅ Đồ hỏng (`damagedItems`) - màu cam
-- ✅ Đồ đã dùng (`consumedItems`) - màu xanh dương
-
-Không cần thay đổi UI.
+| # | Vị trí | Thay đổi |
+|---|--------|----------|
+| 1 | `handleCheckOutClick` | Thêm query `get_booking_chargeable_total` |
+| 2 | `handleCheckOutClick` line 476 | Cộng `extraChargeableAmount` vào `extraCharges` |
+| 3 | `handleInspectionCompleted` | Thêm query và cộng vào `extraCharges` |
 
 ---
 
@@ -112,9 +85,19 @@ Không cần thay đổi UI.
 
 | Trường hợp | Trước | Sau |
 |------------|-------|-----|
-| Mở checkout dialog lần đầu | Chỉ thấy Mất + Hỏng | Thấy đủ Mất + Hỏng + Đã dùng |
-| Sau inspection hoàn thành | Đầy đủ | Đầy đủ (không đổi) |
-| Room check trước đó có items_consumed | Không hiển thị | Hiển thị đúng |
+| Mở dialog checkout (có đồ minibar) | Không hiển thị phí minibar | Hiển thị đầy đủ phí |
+| Sau inspection ghi nhận thêm đồ | Không cập nhật | Tự động cập nhật tổng |
+| So sánh dialog vs checkout thực | Khác nhau | Đồng nhất |
 
-**Thời gian ước tính:** ~5 phút
+---
+
+### VI. LƯU Ý KỸ THUẬT
+
+- `chargeable_consumptions` lưu đồ tính phí qua `ChargeableItemsStep` (minibar, bàn chải...)
+- `items_consumed` trong `room_checks` lưu đồ tiêu hao miễn phí
+- Cả 2 cần được tính riêng và cộng vào đúng chỗ:
+  - `items_consumed` → `damageItems` (hiển thị ở DamageChargesSection)
+  - `chargeable_consumptions` → `extraCharges` (cộng vào tổng)
+
+**Thời gian thực hiện:** ~10 phút
 
