@@ -59,7 +59,7 @@ export function BookingPaymentDialog({
   const [createdPayment, setCreatedPayment] = useState<BookingPayment | null>(null);
   const [isSendingNotification, setIsSendingNotification] = useState(false);
 
-  const { data: bankSettings } = useBankPaymentSettings();
+  const { data: bankSettings } = useBankPaymentSettings(booking.hotel_id);
   const createPayment = useCreateBookingPayment();
   const updateBookingAmount = useUpdateBookingAmountPaid();
   const confirmPayment = useConfirmBookingPayment();

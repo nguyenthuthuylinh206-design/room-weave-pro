@@ -71,6 +71,8 @@ export function BankPaymentSettings() {
         bank_name: bank?.name || values.bank_code,
       });
     } else {
+      // For super-admin global settings, we don't require hotel_id/tenant_id
+      // This is a legacy path - hotels should use HotelBankPaymentSettings instead
       await createMutation.mutateAsync({
         bank_code: values.bank_code,
         bank_name: bank?.name || values.bank_code,
@@ -79,7 +81,9 @@ export function BankPaymentSettings() {
         payment_prefix: values.payment_prefix,
         qr_template: values.qr_template,
         is_active: values.is_active,
-      });
+        hotel_id: '', // Legacy - no hotel association
+        tenant_id: '', // Legacy - no tenant association
+      } as Parameters<typeof createMutation.mutateAsync>[0]);
     }
   };
 
