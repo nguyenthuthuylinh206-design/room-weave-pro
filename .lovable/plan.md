@@ -1,193 +1,120 @@
 
-## Phân Tích Nút Thao Tác Mobile - Kết Quả Kiểm Tra
 
-### I. TỔNG QUAN
+## Sửa Lỗi: Phí Sử Dụng Đồ Không Cập Nhật Khi Kiểm Tra Phòng Xong
 
-Sau khi kiểm tra toàn bộ các trang mobile, tôi phát hiện **một số vấn đề về tính nhất quán** trong việc bố trí và hiển thị nút thao tác:
+### I. VẤN ĐỀ PHÁT HIỆN
 
-| Trang | Vị trí nút "Thêm" | Vị trí nút "Hành động" | Vấn đề |
-|-------|------------------|----------------------|--------|
-| `MobileItemsPage` | Header (góc phải) | ✅ Hợp lý | OK |
-| `MobileRoomsPage` | Full-width Button dưới header | Header có "Chọn" | OK |
-| `MobileLaundryDashboard` | Quick Actions Grid | ✅ Hợp lý | OK |
-| `MobileLaundryBatchesPage` | Full-width Button | Filter tabs | OK |
-| `MobileMaintenanceDashboard` | Quick Actions Grid | ✅ Hợp lý | OK |
-| `MobileMaintenanceRequestsPage` | Header + Bottom Button | ⚠️ **Trùng lặp** | Cần sửa |
-| `MobileInventoryDashboard` | FAB (Floating Action Button) | Primary Actions | ⚠️ **Không nhất quán** |
-| `MobileCategoriesPage` | Header (góc phải) | Edit mode toggle | OK |
-| `MobileRoomsDashboard` | Compact buttons | Quick links | OK |
+Khi mở `CheckoutSummaryDialog`, phí phụ thu từ "Đồ đã dùng" (`items_consumed`) **KHÔNG được tải** vì query ban đầu chỉ lấy 2 loại:
+
+| Vị trí | Query hiện tại | Thiếu |
+|--------|----------------|-------|
+| `handleCheckOutClick` (line 431-432) | `items_lost, items_damaged` | **`items_consumed`** |
+| `handleInspectionCompleted` (line 707-708) | `items_lost, items_damaged, items_consumed` | ✅ Đầy đủ |
+
+**Tác động:**
+- Mở dialog checkout lần đầu → Chỉ thấy đồ mất + đồ hỏng
+- Sau khi inspection hoàn thành → Mới thấy đầy đủ (bao gồm đồ đã dùng)
+- Nếu có room check trước đó với `items_consumed` → **KHÔNG hiển thị** cho đến khi có inspection mới
 
 ---
 
-### II. VẤN ĐỀ PHÁT HIỆN
+### II. GIẢI PHÁP
 
-#### A. MobileMaintenanceRequestsPage - NÚT TRÙNG LẶP (Mức độ: **TRUNG BÌNH**)
+**Cập nhật query trong `handleCheckOutClick`** để lấy cả `items_consumed`:
 
-**File:** `src/components/maintenance/MobileMaintenanceRequestsPage.tsx`
+**File:** `src/pages/bookings/BookingsPage.tsx`
 
-**Vấn đề:**
-- Có nút "+" ở **Header** (line 71-75) VÀ nút "Tạo yêu cầu" ở **cuối trang** (line 157-163)
-- Gây nhầm lẫn UX, lãng phí không gian
+**Line 431-456 → Thay đổi:**
 
 ```typescript
-// Header action (line 71-75)
-action={{
-  icon: Plus,
-  onClick: () => navigate('/maintenance/create'),
-  label: t('requests.create')
-}}
+// TRƯỚC (thiếu items_consumed)
+const { data: latestCheck } = await supabase
+  .from('room_checks')
+  .select('items_lost, items_damaged')  // ❌ Thiếu items_consumed
+  .eq('room_id', booking.room_id)
+  .in('check_type', ['checkout', 'daily'])
+  .order('checked_at', { ascending: false })
+  .limit(1)
+  .maybeSingle()
 
-// Bottom button (line 157-163)
-<Button
-  className="w-full h-12 text-base"
-  onClick={() => navigate('/maintenance/create')}
->
-  <Plus className="h-5 w-5 mr-2" />
-  {t('requests.create')}
-</Button>
+// Convert to DamageChargeItem[]
+const damageItems: DamageChargeItem[] = [
+  // items_lost...
+  // items_damaged...
+  // ❌ THIẾU items_consumed
+]
 ```
 
-**Đề xuất:** Giữ nút ở Header, xóa nút dưới cùng (hoặc ngược lại - tùy thuộc UX pattern chung)
-
----
-
-#### B. MobileMaintenanceRequestDetail - NÚT "BẮT ĐẦU" KHÔNG HOẠT ĐỘNG (Mức độ: **CAO**)
-
-**File:** `src/components/maintenance/MobileMaintenanceRequestDetail.tsx` (line 120-129)
-
-**Vấn đề:**
 ```typescript
-{request.status === 'pending' && (
-  <Button
-    className="flex-1"
-    onClick={() => {
-      /* Handle start */  // ❌ KHÔNG CÓ LOGIC
-    }}
-  >
-    <Play className="h-4 w-4 mr-2" />
-    Bắt đầu
-  </Button>
-)}
-```
+// SAU (đầy đủ 3 loại)
+const { data: latestCheck } = await supabase
+  .from('room_checks')
+  .select('items_lost, items_damaged, items_consumed')  // ✅ Thêm items_consumed
+  .eq('room_id', booking.room_id)
+  .in('check_type', ['checkout', 'daily'])
+  .order('checked_at', { ascending: false })
+  .limit(1)
+  .maybeSingle()
 
-Nút "Bắt đầu" không có handler thực tế - chỉ có comment placeholder.
-
-**Đề xuất:** Thêm logic `useStartRequest` để chuyển status từ `pending` → `in_progress`
-
----
-
-#### C. Thiếu Tính Nhất Quán Về Pattern (Mức độ: **THẤP**)
-
-**Hiện trạng các pattern đang sử dụng:**
-
-| Pattern | Sử dụng ở | Ghi chú |
-|---------|-----------|---------|
-| **Header action icon** | Items, Categories, Maintenance Detail | Compact, không chiếm không gian |
-| **Full-width button** | Rooms Page, Batches Page, Maintenance List | Dễ tap, rõ ràng |
-| **Quick Actions Grid** | Laundry Dashboard, Maintenance Dashboard | Nhiều actions, visual |
-| **FAB (Floating Action Button)** | Inventory Dashboard | Expandable menu |
-
-**Đánh giá:** Các pattern này phù hợp với context của từng trang, không cần thống nhất hoàn toàn.
-
----
-
-#### D. Batch Detail - Nút Action Ở Bottom Bar (Mức độ: OK)
-
-**File:** `src/components/laundry/MobileBatchDetail.tsx` (line 276-310)
-
-**Đánh giá:** ✅ Tốt - Sử dụng sticky bottom bar cho các action chính tùy theo status:
-- `delivered` → "Đánh dấu sẵn sàng"
-- `ready` → "Nhận đồ về"
-- `received` → "Nhập vào kho"
-
----
-
-### III. DANH SÁCH CẦN SỬA
-
-| # | Vấn đề | File | Ưu tiên |
-|---|--------|------|---------|
-| 1 | Nút "Bắt đầu" không hoạt động | `MobileMaintenanceRequestDetail.tsx` | **CAO** |
-| 2 | Nút trùng lặp (Header + Bottom) | `MobileMaintenanceRequestsPage.tsx` | Trung bình |
-
----
-
-### IV. CHI TIẾT THAY ĐỔI
-
-#### Fix 1: MobileMaintenanceRequestDetail - Thêm Logic Nút "Bắt đầu"
-
-**Vị trí:** Line 120-129
-
-**Thay đổi:**
-```typescript
-// Import thêm
-import { useStartRequest } from '@/hooks/useMaintenanceRequests'
-
-// Trong component
-const startRequest = useStartRequest()
-
-// Trong JSX
-{request.status === 'pending' && (
-  <Button
-    className="flex-1"
-    disabled={startRequest.isPending}
-    onClick={() => {
-      startRequest.mutate(request.id)
-    }}
-  >
-    <Play className="h-4 w-4 mr-2" />
-    {startRequest.isPending ? 'Đang xử lý...' : 'Bắt đầu'}
-  </Button>
-)}
+// Convert to DamageChargeItem[]
+const damageItems: DamageChargeItem[] = [
+  // Đồ mất
+  ...((latestCheck?.items_lost as any[]) || []).map(item => ({
+    item_id: item.item_id,
+    item_name: item.item_name,
+    item_type: 'lost' as const,
+    quantity: item.quantity,
+    charge_amount: item.estimated_value || 0,
+  })),
+  // Đồ hỏng
+  ...((latestCheck?.items_damaged as any[]) || []).map(item => ({
+    item_id: item.item_id,
+    item_name: item.item_name,
+    item_type: 'damaged' as const,
+    quantity: item.quantity,
+    charge_amount: item.damage_cost || 0,
+    damage_type: item.damage_type,
+  })),
+  // ✅ Đồ đã dùng (consumed)
+  ...((latestCheck?.items_consumed as any[]) || []).map(item => ({
+    item_id: item.item_id,
+    item_name: item.item_name,
+    item_type: 'consumed' as const,
+    quantity: item.quantity,
+    charge_amount: item.unit_price || 0,
+  })),
+]
 ```
 
 ---
 
-#### Fix 2: MobileMaintenanceRequestsPage - Xóa Nút Trùng
+### III. TÓM TẮT THAY ĐỔI
 
-**Vị trí:** Line 157-163
-
-**Đề xuất:** Xóa nút full-width ở cuối, giữ action ở Header (pattern nhất quán với các trang khác)
-
----
-
-### V. CÁC TRANG ĐÃ TỐT
-
-| Trang | Lý do |
-|-------|-------|
-| `MobileItemsPage` | Header action + PermissionGate |
-| `MobileRoomsPage` | Full-width button rõ ràng, selection mode toggle ở header |
-| `MobileLaundryDashboard` | Quick Actions grid trực quan |
-| `MobileLaundryBatchesPage` | Full-width button + filter tabs |
-| `MobileBatchDetail` | Sticky bottom bar theo status |
-| `MobileMaintenanceDashboard` | Quick Actions grid |
-| `MobileInventoryDashboard` | FAB với expandable actions |
-| `MobileCategoriesPage` | Edit mode + Header actions |
-| `MobileItemDetailPage` | Edit action ở header (conditional) |
+| Bước | File | Thay đổi |
+|------|------|----------|
+| 1 | `BookingsPage.tsx` | Line 432: Thêm `items_consumed` vào select query |
+| 2 | `BookingsPage.tsx` | Lines 440-456: Thêm mapping `items_consumed` → `DamageChargeItem[]` |
 
 ---
 
-### VI. TÓM TẮT THỰC HIỆN
+### IV. UI ĐÃ SẴN SÀNG
 
-| Bước | Công việc | File | Ước lượng |
-|------|-----------|------|-----------|
-| 1 | Fix nút "Bắt đầu" với useStartRequest | `MobileMaintenanceRequestDetail.tsx` | 5 phút |
-| 2 | Xóa nút trùng lặp ở bottom | `MobileMaintenanceRequestsPage.tsx` | 2 phút |
+`DamageChargesSection.tsx` đã hỗ trợ hiển thị 3 loại:
+- ✅ Đồ mất (`lostItems`) - màu đỏ
+- ✅ Đồ hỏng (`damagedItems`) - màu cam
+- ✅ Đồ đã dùng (`consumedItems`) - màu xanh dương
 
-**Tổng thời gian:** ~7 phút
+Không cần thay đổi UI.
 
 ---
 
-### VII. GHI CHÚ BỔ SUNG
+### V. KẾT QUẢ SAU SỬA
 
-**Điểm tích cực:**
-- Hầu hết các trang đã có `PermissionGate` bảo vệ các action
-- `MobileDetailHeader` component được tái sử dụng tốt với `action` prop
-- Các detail pages có sticky bottom action bar phù hợp với mobile UX
-- FAB pattern ở Inventory Dashboard phù hợp với nhiều quick actions
-- Pull-to-refresh được implement đầy đủ
+| Trường hợp | Trước | Sau |
+|------------|-------|-----|
+| Mở checkout dialog lần đầu | Chỉ thấy Mất + Hỏng | Thấy đủ Mất + Hỏng + Đã dùng |
+| Sau inspection hoàn thành | Đầy đủ | Đầy đủ (không đổi) |
+| Room check trước đó có items_consumed | Không hiển thị | Hiển thị đúng |
 
-**Khuyến nghị UX:**
-- Pattern **Header action** phù hợp cho: List pages, Detail pages
-- Pattern **Full-width button** phù hợp cho: Dashboard, Landing trong module
-- Pattern **FAB** phù hợp khi: Có nhiều quick actions cạnh tranh
-- Pattern **Sticky bottom bar** phù hợp cho: Form pages, Workflow actions
+**Thời gian ước tính:** ~5 phút
+
