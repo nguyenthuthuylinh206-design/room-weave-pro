@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Clock, ClipboardList, Bed, ChevronRight, AlertCircle, AlertTriangle, CheckCircle2, RotateCcw } from 'lucide-react'
+import { Search, Clock, ClipboardList, Bed, ChevronRight, AlertCircle, AlertTriangle, CheckCircle2, RotateCcw, DoorOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -34,6 +34,7 @@ const STATUS_CONFIG: Record<RoomStatus, { label: string; color: string; bgColor:
 const FILTER_CHIPS = [
   { value: 'all', label: 'Tất cả' },
   { value: 'check_needed', label: 'Cần kiểm tra' },
+  { value: 'check_out', label: 'Check-out' },
   { value: 'vacant', label: 'Trống' },
   { value: 'cleaning', label: 'Đang dọn' },
   { value: 'occupied', label: 'Đang ở' },
@@ -65,7 +66,7 @@ export function StaffRoomCheckView() {
     // Status filter
     if (activeFilter === 'all') return true
     if (activeFilter === 'check_needed') {
-      return room.status === 'vacant' || room.status === 'cleaning'
+      return room.status === 'vacant' || room.status === 'cleaning' || room.status === 'check_out'
     }
     return room.status === activeFilter
   }) || []
@@ -150,6 +151,11 @@ export function StaffRoomCheckView() {
                 onClick={() => setActiveFilter(chip.value)}
               >
                 {chip.label}
+                {chip.value === 'check_out' && (
+                  <span className="ml-1 text-[10px] opacity-70">
+                    ({rooms?.filter(r => r.status === 'check_out').length || 0})
+                  </span>
+                )}
                 {chip.value === 'check_needed' && (
                   <span className="ml-1 text-[10px] opacity-70">
                     ({rooms?.filter(r => r.status === 'vacant' || r.status === 'cleaning').length || 0})
@@ -234,10 +240,12 @@ interface CompactRoomRowProps {
 }
 
 function CompactRoomRow({ room, checkSession, onStartCheck, onCleaningComplete, onRecheck }: CompactRoomRowProps) {
+  const navigate = useNavigate()
   const { data: lastCheck, isLoading } = useRoomLastCheck(room.id)
   const statusConfig = STATUS_CONFIG[room.status as RoomStatus] || STATUS_CONFIG.vacant
   const isCleaning = room.status === 'cleaning'
-  const isCheckable = room.status === 'vacant' || isCleaning
+  const isCheckOut = room.status === 'check_out'
+  const isCheckable = room.status === 'vacant' || isCleaning || isCheckOut
   const hasSession = !!checkSession
   const hasIssues = lastCheck && !lastCheck.items_complete
   
@@ -322,6 +330,23 @@ function CompactRoomRow({ room, checkSession, onStartCheck, onCleaningComplete, 
 
       {/* Action buttons */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
+        {/* Check-out room: Show "Kiểm tra checkout" button */}
+        {isCheckOut && !hasSession && (
+          <Button
+            type="button"
+            variant="default"
+            size="sm"
+            className="h-7 px-2 text-xs gap-1 bg-purple-600 hover:bg-purple-700"
+            onClick={(e) => {
+              e.stopPropagation()
+              navigate(`/rooms/${room.id}/check?type=checkout`)
+            }}
+          >
+            <ClipboardList className="h-3 w-3" />
+            <span className="hidden sm:inline">Kiểm tra</span>
+          </Button>
+        )}
+
         {/* Cleaning room: Show "Hoàn thành" and "Kiểm tra lại" buttons */}
         {isCleaning && !hasSession && (
           <>

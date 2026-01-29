@@ -376,6 +376,7 @@ export function useDeleteRoom() {
 /**
  * Mark a room as ready (cleaning → vacant)
  * Used when housekeeping finishes cleaning a room
+ * Also auto-completes any pending/in_progress cleaning tasks for this room
  */
 export function useMarkRoomReady() {
   const queryClient = useQueryClient()
@@ -412,6 +413,22 @@ export function useMarkRoomReady() {
       
       if (error) throw error
       
+      // Auto-complete any pending/in_progress cleaning tasks for this room
+      const { error: taskError } = await supabase
+        .from('housekeeping_tasks')
+        .update({ 
+          status: 'completed',
+          completed_at: new Date().toISOString()
+        })
+        .eq('room_id', roomId)
+        .eq('task_type', 'cleaning')
+        .in('status', ['pending', 'in_progress'])
+      
+      if (taskError) {
+        console.error('Failed to auto-complete cleaning tasks:', taskError)
+        // Don't throw - room is already updated, just log the error
+      }
+      
       // Trigger workflow for room status change
       if (tenantId) {
         triggerWorkflow({
@@ -434,6 +451,8 @@ export function useMarkRoomReady() {
       queryClient.invalidateQueries({ queryKey: ['room', variables.roomId] })
       queryClient.invalidateQueries({ queryKey: ['room-stats'] })
       queryClient.invalidateQueries({ queryKey: ['floor-plan'] })
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['my-tasks'] })
       toast.success('Phòng đã sẵn sàng nhận khách')
     },
     onError: (error: Error) => {
