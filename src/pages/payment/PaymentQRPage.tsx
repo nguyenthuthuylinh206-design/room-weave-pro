@@ -192,7 +192,10 @@ export default function PaymentQRPage() {
     );
   }
 
-  if (isLoading || bankLoading) {
+  // Loading: wait for payment AND bank settings (only when payment has loaded with hotel_id)
+  const isBankSettingsLoading = payment && paymentHotelId && bankLoading;
+  
+  if (isLoading || isBankSettingsLoading) {
     return (
       <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
