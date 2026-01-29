@@ -1,239 +1,250 @@
 
 
-## Kế hoạch: Tăng tốc gửi QR sang điện thoại
+## Kế hoạch: Cài đặt tài khoản thanh toán theo từng khách sạn (chỉ chủ khách sạn)
 
-### I. PHÂN TÍCH NGUYÊN NHÂN
+### I. PHÂN TÍCH HIỆN TRẠNG
 
-**Timeline chi tiết từ logs:**
-```text
-13:02:17.814 - Boot start
-13:02:18.238 - Boot done (41ms)
-13:02:18.273 - Received request
-13:02:19.514 - Found 5 subscriptions ← Khoảng 1.2s để query
-13:02:19.527-530 - Start sending 5 pushes
-13:02:19.878-20.187 - All 5 pushes sent ← ~0.7s để encrypt + gửi
-13:02:21.xxx - Response về client
-─────────────────────────────────────────────────
-Tổng: ~4 giây
-```
+**Bảng `bank_payment_settings` hiện tại:**
+- Không có `hotel_id` hoặc `tenant_id`
+- Chỉ có 1 record cho toàn hệ thống
+- RLS: Chỉ `super_admin` mới quản lý được
 
-**Bottleneck chính:**
-1. **Database query subscriptions**: ~1.2 giây (đã tối ưu parallel nhưng vẫn chậm)
-2. **VAPID JWT + Encryption**: Mỗi push cần generate JWT + encrypt payload riêng (~100-150ms/push)
-3. **5 thiết bị đăng ký**: User có 5 subscriptions → 5x processing time
+**Yêu cầu mới:**
+- Mỗi khách sạn có tài khoản thanh toán riêng
+- Chỉ **chủ khách sạn** (`tenant_owner` / `owner`) mới được cài đặt
+- Staff, Manager không có quyền
 
 ---
 
-### II. GIẢI PHÁP
+### II. CÁC THAY ĐỔI
 
-#### A. Tối ưu UI: "Fire and forget" pattern
+#### A. Database Migration
 
-**Ý tưởng**: Không chờ edge function hoàn thành, hiển thị toast ngay khi request được gửi
+**Thêm cột mới vào `bank_payment_settings`:**
+```sql
+ALTER TABLE bank_payment_settings 
+ADD COLUMN hotel_id UUID REFERENCES hotels(id) ON DELETE CASCADE,
+ADD COLUMN tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+
+-- Tạo index và unique constraint
+CREATE UNIQUE INDEX idx_bank_payment_settings_hotel 
+ON bank_payment_settings(hotel_id) WHERE hotel_id IS NOT NULL;
+```
+
+**Cập nhật RLS policies:**
+```sql
+-- Drop các policy cũ
+DROP POLICY IF EXISTS "Super admins can manage bank settings" ON bank_payment_settings;
+DROP POLICY IF EXISTS "Allow public read active bank_payment_settings" ON bank_payment_settings;
+DROP POLICY IF EXISTS "Authenticated users can view active bank settings" ON bank_payment_settings;
+
+-- Policy mới: Chỉ tenant_owner/owner được quản lý
+CREATE POLICY "Owners can manage their hotel bank settings"
+ON bank_payment_settings FOR ALL
+USING (
+  -- Super admin có toàn quyền
+  is_super_admin() 
+  OR (
+    -- Tenant owner của cùng tenant
+    tenant_id IN (
+      SELECT u.tenant_id FROM users u 
+      WHERE u.id = auth.uid() 
+      AND (u.user_level_code = 'tenant_owner' OR EXISTS (
+        SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id AND ur.role = 'owner'
+      ))
+    )
+  )
+);
+
+-- Policy cho authenticated users đọc settings của khách sạn mình
+CREATE POLICY "Users can view their hotel bank settings"
+ON bank_payment_settings FOR SELECT
+USING (
+  is_active = true 
+  AND (
+    is_super_admin()
+    OR tenant_id IN (SELECT tenant_id FROM users WHERE id = auth.uid())
+  )
+);
+
+-- Policy cho public read (cho PaymentQRPage public) - Chỉ qua UUID
+CREATE POLICY "Public read active bank settings by ID"
+ON bank_payment_settings FOR SELECT
+TO public
+USING (is_active = true);
+```
+
+---
+
+#### B. Cập nhật Hook `useBankPaymentSettings.ts`
+
+Thêm tham số `hotelId` để query theo khách sạn:
 
 ```typescript
-const handleSendQRNotification = async () => {
-  if (!createdPayment) return;
-
-  // Hiển thị toast NGAY LẬP TỨC
-  toast.success('Đang gửi QR đến điện thoại...');
-
-  try {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      toast.error('Vui lòng đăng nhập lại');
-      return;
-    }
-
-    // Fire and forget - không await
-    supabase.functions.invoke('send-push-notification', {
-      body: { ... }
-    }).then(({ data, error }) => {
-      if (error) {
-        toast.error('Không thể gửi thông báo');
-      } else if (data?.sent === 0) {
-        toast.warning('Chưa có thiết bị nào đăng ký');
+// Query active settings cho một hotel cụ thể
+export function useBankPaymentSettings(hotelId?: string) {
+  return useQuery({
+    queryKey: ['bank-payment-settings', hotelId],
+    queryFn: async () => {
+      let query = supabase
+        .from('bank_payment_settings')
+        .select('*')
+        .eq('is_active', true);
+      
+      if (hotelId) {
+        query = query.eq('hotel_id', hotelId);
       }
-      // Không show success toast nữa vì đã show ở đầu
-    }).catch(() => {
-      toast.error('Không thể gửi thông báo');
-    });
-    
-    // KHÔNG chờ - return ngay
-  } catch (error) {
-    console.error('Send notification error:', error);
-    toast.error('Không thể gửi thông báo');
-  }
-};
-```
-
-**Lợi ích:**
-- User thấy phản hồi ngay lập tức (< 100ms)
-- Push notification vẫn được gửi trong background
-- Nếu có lỗi, toast error sẽ xuất hiện sau
-
----
-
-#### B. Tối ưu Edge Function: Reuse VAPID JWT
-
-**Ý tưởng**: VAPID JWT có thể reuse cho tất cả requests đến cùng push service (FCM/Apple)
-
-```typescript
-// Cache JWT theo audience (push service domain)
-const jwtCache = new Map<string, { jwt: string; expiry: number }>();
-
-async function getOrCreateVapidJwt(audience: string, ...): Promise<string> {
-  const cached = jwtCache.get(audience);
-  const now = Math.floor(Date.now() / 1000);
-  
-  // JWT còn hạn (trừ buffer 60s)
-  if (cached && cached.expiry > now + 60) {
-    return cached.jwt;
-  }
-  
-  // Generate new JWT
-  const jwt = await generateVapidJwt(audience, ...);
-  jwtCache.set(audience, { 
-    jwt, 
-    expiry: now + 12 * 60 * 60 // 12 hours
+      
+      const { data, error } = await query.limit(1).single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      return data as BankPaymentSettings | null;
+    },
+    enabled: !!hotelId,
   });
-  
-  return jwt;
+}
+
+// Create với hotel_id và tenant_id
+export function useCreateBankPaymentSettings() {
+  return useMutation({
+    mutationFn: async (settings: { hotel_id: string; tenant_id: string; ... }) => {
+      // Deactivate existing cho hotel này
+      await supabase
+        .from('bank_payment_settings')
+        .update({ is_active: false })
+        .eq('hotel_id', settings.hotel_id);
+      
+      // Insert new
+      const { data, error } = await supabase
+        .from('bank_payment_settings')
+        .insert(settings)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    // ...
+  });
 }
 ```
 
-**Lợi ích:**
-- 5 pushes đến Apple chỉ cần generate 1 JWT
-- Giảm ~300-400ms crypto time
+---
+
+#### C. Tạo Component mới: `HotelBankPaymentSettings.tsx`
+
+Đặt trong `src/components/settings/` cho owner cài đặt:
+
+```typescript
+// src/components/settings/HotelBankPaymentSettings.tsx
+
+export function HotelBankPaymentSettings({ hotelId }: { hotelId: string }) {
+  const { user } = useUser();
+  const { tenant } = useTenant();
+  const isOwner = isTenantOwner(user) || isAdminUser(user);
+  
+  // Chỉ owner mới thấy và chỉnh sửa
+  if (!isOwner) {
+    return (
+      <Alert variant="default">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Chỉ chủ khách sạn mới có quyền cài đặt tài khoản thanh toán
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Form giống BankPaymentSettings.tsx nhưng với hotel_id
+  // ...
+}
+```
 
 ---
 
-### III. TÓM TẮT THAY ĐỔI
+#### D. Thêm vào trang PricingRulesPage
 
-| File | Thay đổi |
-|------|----------|
-| `src/components/bookings/BookingPaymentDialog.tsx` | Fire-and-forget pattern, toast ngay lập tức |
-| `supabase/functions/send-push-notification/index.ts` | Cache VAPID JWT theo audience |
+Thêm section "Tài khoản nhận thanh toán" vào trang `/settings/pricing-rules`:
+
+```typescript
+// src/pages/settings/PricingRulesPage.tsx
+
+import { HotelBankPaymentSettings } from '@/components/settings/HotelBankPaymentSettings';
+
+export default function PricingRulesPage() {
+  const { selectedHotel } = useHotelContext();
+  
+  return (
+    <div className="space-y-6 p-4">
+      {/* Existing: Phụ thu & Thuế phí */}
+      <section>
+        <h1>Cài đặt Phụ thu & Thuế phí</h1>
+        <PricingRulesForm hotelId={selectedHotel.id} />
+      </section>
+      
+      {/* New: Tài khoản thanh toán */}
+      <section>
+        <HotelBankPaymentSettings hotelId={selectedHotel.id} />
+      </section>
+    </div>
+  );
+}
+```
 
 ---
 
-### IV. TIMELINE SAU TỐI ƯU
+#### E. Cập nhật các component sử dụng `useBankPaymentSettings`
 
-**User Experience:**
+Truyền `hotelId` từ context/props:
+
+| Component | Thay đổi |
+|-----------|----------|
+| `BookingPaymentDialog.tsx` | Dùng `booking.hotel_id` |
+| `PaymentQRPage.tsx` | Lấy `hotel_id` từ payment metadata |
+| `ViewPaymentQRDialog.tsx` | Lấy `hotel_id` từ payment |
+| `BankTransferPaymentDialog.tsx` | Truyền `hotelId` prop |
+
+---
+
+### III. TÓM TẮT FILE THAY ĐỔI
+
+| File | Hành động |
+|------|-----------|
+| **Database Migration** | Thêm cột `hotel_id`, `tenant_id` + RLS policies |
+| `src/hooks/useBankPaymentSettings.ts` | **Sửa** - Thêm `hotelId` param |
+| `src/components/settings/HotelBankPaymentSettings.tsx` | **Tạo mới** - Component cài đặt |
+| `src/pages/settings/PricingRulesPage.tsx` | **Sửa** - Thêm section bank settings |
+| `src/components/bookings/BookingPaymentDialog.tsx` | **Sửa** - Truyền hotelId |
+| `src/pages/payment/PaymentQRPage.tsx` | **Sửa** - Lấy hotelId từ payment |
+| `src/components/payment/ViewPaymentQRDialog.tsx` | **Sửa** - Truyền hotelId |
+
+---
+
+### IV. LƯU Ý BẢO MẬT
+
+1. **Chỉ tenant_owner/owner/super_admin** được thêm/sửa/xóa bank settings
+2. **Staff/Manager** chỉ xem được settings active của hotel mình để hiển thị QR
+3. **Public access** chỉ qua PaymentQRPage với UUID cụ thể
+4. **Unique constraint** đảm bảo mỗi hotel chỉ có 1 active setting
+
+---
+
+### V. FLOW SAU KHI IMPLEMENT
+
 ```text
-Click "Gửi QR"
-    ↓ (0ms)
-Toast "Đang gửi QR..." ← HIỂN THỊ NGAY
-    ↓
-(Background: Edge function xử lý)
-    ↓
-Button không loading, user có thể tiếp tục thao tác
-    ↓
-(Nếu lỗi: Toast error xuất hiện sau)
+Chủ khách sạn (Owner):
+======================
+1. Vào Settings → Quy tắc giá (Pricing Rules)
+2. Thấy 2 section:
+   - Phụ thu & Thuế phí (existing)
+   - Tài khoản nhận thanh toán (new)
+3. Cấu hình ngân hàng cho khách sạn đang chọn
+4. Mỗi khách sạn có settings riêng
+
+Staff/Manager:
+==============
+1. Vào trang Pricing Rules
+2. Thấy alert "Chỉ chủ khách sạn mới có quyền cài đặt"
+3. Vẫn sử dụng được QR thanh toán (read-only)
 ```
-
-**Từ góc nhìn user**: < 100ms thay vì 4 giây
-
----
-
-### V. CHI TIẾT IMPLEMENTATION
-
-#### A. BookingPaymentDialog.tsx - Fire and Forget
-
-```typescript
-const handleSendQRNotification = async () => {
-  if (!createdPayment) return;
-
-  // Show immediate feedback
-  toast.success('Đang gửi QR đến điện thoại...');
-
-  try {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      toast.error('Vui lòng đăng nhập lại');
-      return;
-    }
-
-    const paymentPath = `/payment-qr/${createdPayment.id}`;
-
-    // Fire and forget - don't await
-    supabase.functions.invoke('send-push-notification', {
-      body: {
-        user_id: userData.user.id,
-        skip_auth_check: true,
-        title: `QR Thanh toán phòng ${booking.room_number}`,
-        body: `Số tiền: ${formatVNCurrency(parsedAmount)} - Khách: ${booking.guest_name}`,
-        tag: `payment-qr-${createdPayment.id}`,
-        action_url: paymentPath,
-        notification_type: 'payment_qr',
-        data: {
-          url: paymentPath,
-          type: 'payment_qr',
-          paymentId: createdPayment.id,
-          roomNumber: booking.room_number,
-        },
-      },
-    }).then(({ data, error }) => {
-      if (error) {
-        toast.error('Không thể gửi thông báo');
-      } else if (data?.sent === 0) {
-        toast.warning('Chưa có thiết bị nào đăng ký nhận thông báo');
-      }
-      // Success case: don't show another toast, first one is enough
-    }).catch((err) => {
-      console.error('Push notification error:', err);
-      toast.error('Không thể gửi thông báo');
-    });
-    
-    // Return immediately - no loading state needed
-  } catch (error) {
-    console.error('Send notification error:', error);
-    toast.error('Không thể gửi thông báo');
-  }
-};
-```
-
-**Thay đổi thêm:**
-- Bỏ `setIsSendingNotification(true/false)` 
-- Bỏ `isSendingNotification` state
-- Button không còn loading spinner
-
-#### B. Edge Function - VAPID JWT Cache
-
-```typescript
-// JWT cache - survives across requests in same worker instance
-const vapidJwtCache = new Map<string, { jwt: string; expiry: number }>();
-
-async function getOrCreateVapidJwt(
-  audience: string,
-  subject: string,
-  vapidPrivateKey: string,
-  vapidPublicKey: string
-): Promise<string> {
-  const cacheKey = audience;
-  const cached = vapidJwtCache.get(cacheKey);
-  const now = Math.floor(Date.now() / 1000);
-  
-  // JWT valid for 12 hours, use if > 1 hour remaining
-  if (cached && cached.expiry > now + 3600) {
-    return cached.jwt;
-  }
-  
-  // Generate new JWT
-  const jwt = await generateVapidJwt(audience, subject, vapidPrivateKey, vapidPublicKey);
-  const expiry = now + 12 * 60 * 60;
-  
-  vapidJwtCache.set(cacheKey, { jwt, expiry });
-  
-  return jwt;
-}
-```
-
----
-
-### VI. LỢI ÍCH
-
-1. **UX cải thiện rõ rệt**: Phản hồi ngay lập tức thay vì chờ 4 giây
-2. **Vẫn đảm bảo chức năng**: Push notification được gửi đầy đủ trong background
-3. **Error handling tốt**: Nếu có lỗi, user vẫn được thông báo qua toast
-4. **Edge function nhanh hơn**: JWT cache giảm crypto overhead
 
