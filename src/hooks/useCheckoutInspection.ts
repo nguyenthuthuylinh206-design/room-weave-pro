@@ -317,6 +317,98 @@ export function usePendingInspections(roomId: string | undefined) {
   }
 }
 
+// Hook to auto-create checkout inspection when staff selects checkout type
+// Used for hybrid approach: auto-create if room has booking, allow free checkout if not
+export function useAutoCreateCheckoutInspection() {
+  const queryClient = useQueryClient()
+  const { user } = useUser()
+  
+  return useMutation({
+    mutationFn: async ({ 
+      tenantId, 
+      hotelId, 
+      roomId, 
+      bookingId,
+    }: { 
+      tenantId: string
+      hotelId: string
+      roomId: string
+      bookingId: string
+    }) => {
+      if (!user?.id) throw new Error('User not authenticated')
+      
+      // Check if there's already a pending/in_progress inspection for this room
+      const { data: existingInspection } = await supabase
+        .from('checkout_inspection_requests')
+        .select('id, status, assigned_to')
+        .eq('room_id', roomId)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle()
+      
+      // If exists and assigned to current user, just return it
+      if (existingInspection) {
+        if (existingInspection.assigned_to === user.id) {
+          return { id: existingInspection.id, isNew: false }
+        }
+        // If assigned to someone else, throw error
+        throw new Error('Phòng đã có yêu cầu kiểm tra giao cho nhân viên khác')
+      }
+      
+      // Create new inspection request (self-assigned)
+      const { data: inspection, error } = await supabase
+        .from('checkout_inspection_requests')
+        .insert({
+          tenant_id: tenantId,
+          hotel_id: hotelId,
+          room_id: roomId,
+          booking_id: bookingId,
+          requested_by: user.id,
+          assigned_to: user.id, // Self-assign
+          status: 'in_progress', // Start immediately
+          started_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single()
+      
+      if (error) throw error
+      
+      // Create housekeeping task for tracking
+      await supabase
+        .from('housekeeping_tasks')
+        .insert({
+          tenant_id: tenantId,
+          hotel_id: hotelId,
+          room_id: roomId,
+          booking_id: bookingId,
+          assigned_to: user.id,
+          requested_by: user.id,
+          task_type: 'checkout_inspection',
+          title: 'Kiểm tra checkout',
+          priority: 'medium',
+          status: 'in_progress',
+          started_at: new Date().toISOString(),
+          checkout_inspection_id: inspection.id,
+        })
+      
+      return { id: inspection.id, isNew: true }
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['checkout-inspection', variables.bookingId] })
+      queryClient.invalidateQueries({ queryKey: ['pending-inspection', variables.roomId] })
+      queryClient.invalidateQueries({ queryKey: ['room-has-pending-inspection', variables.roomId] })
+      queryClient.invalidateQueries({ queryKey: ['my-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-tasks'] })
+      if (data.isNew) {
+        toast.success('Đã tạo yêu cầu kiểm tra checkout')
+      }
+    },
+    onError: (error: Error) => {
+      console.error('Error auto-creating inspection:', error)
+      toast.error(error.message)
+    },
+  })
+}
+
 // Hook to complete inspection (called when room check is submitted)
 export function useCompleteCheckoutInspection() {
   const queryClient = useQueryClient()
