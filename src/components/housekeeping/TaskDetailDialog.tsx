@@ -73,10 +73,13 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
     if (!task) return
     await updateStatus({ taskId: task.id, status: 'in_progress' })
     
-    // If checkout inspection, redirect to room check form
+    // If checkout inspection, redirect to room check form with inspection ID
     if (task.task_type === 'checkout_inspection') {
       onOpenChange(false)
-      navigate(`/rooms/${task.room_id}/check?type=checkout`)
+      const inspectionParam = task.checkout_inspection_id 
+        ? `&inspection=${task.checkout_inspection_id}` 
+        : ''
+      navigate(`/rooms/${task.room_id}/check?type=checkout${inspectionParam}`)
     }
   }
 
@@ -90,7 +93,10 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
     if (!task) return
     onOpenChange(false)
     if (task.task_type === 'checkout_inspection') {
-      navigate(`/rooms/${task.room_id}/check?type=checkout`)
+      const inspectionParam = task.checkout_inspection_id 
+        ? `&inspection=${task.checkout_inspection_id}` 
+        : ''
+      navigate(`/rooms/${task.room_id}/check?type=checkout${inspectionParam}`)
     }
   }
 

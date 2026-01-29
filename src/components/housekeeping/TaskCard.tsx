@@ -70,9 +70,12 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
     try {
       await updateStatus({ taskId: task.id, status: 'in_progress' })
       
-      // If checkout inspection, redirect to room check form
+      // If checkout inspection, redirect to room check form with inspection ID
       if (task.task_type === 'checkout_inspection') {
-        navigate(`/rooms/${task.room_id}/check?type=checkout`)
+        const inspectionParam = task.checkout_inspection_id 
+          ? `&inspection=${task.checkout_inspection_id}` 
+          : ''
+        navigate(`/rooms/${task.room_id}/check?type=checkout${inspectionParam}`)
       }
     } finally {
       setIsUpdating(false)
@@ -90,7 +93,10 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
 
   const handleContinue = () => {
     if (task.task_type === 'checkout_inspection') {
-      navigate(`/rooms/${task.room_id}/check?type=checkout`)
+      const inspectionParam = task.checkout_inspection_id 
+        ? `&inspection=${task.checkout_inspection_id}` 
+        : ''
+      navigate(`/rooms/${task.room_id}/check?type=checkout${inspectionParam}`)
     }
   }
 

@@ -55,6 +55,8 @@ export interface HousekeepingTaskWithDetails extends HousekeepingTask {
     guest_name: string
     check_out_date: string
   }
+  // Add checkout inspection ID for navigation
+  checkout_inspection_id?: string | null
 }
 
 export interface CreateTaskInput {

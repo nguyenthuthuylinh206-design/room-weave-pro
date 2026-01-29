@@ -261,6 +261,36 @@ async function processCheckoutCheck(params: {
         notes: data.cleaning_notes,
         roomCondition,
       })
+      
+      // ✨ AUTO-CREATE CLEANING TASK
+      // Tạo housekeeping_task loại 'cleaning' để nhân viên thấy trong task list
+      const priorityMap: Record<string, string> = {
+        'very_dirty': 'high',
+        'dirty': 'medium', 
+        'clean': 'low'
+      }
+      const taskPriority = data.cleaning_priority || priorityMap[roomCondition] || 'medium'
+      
+      const { error: taskError } = await supabase
+        .from('housekeeping_tasks')
+        .insert({
+          tenant_id: tenantId,
+          hotel_id: hotelId,
+          room_id: roomId,
+          task_type: 'cleaning',
+          title: `Dọn dẹp phòng ${roomNumber}`,
+          description: data.cleaning_notes || `Yêu cầu dọn phòng sau checkout. Tình trạng: ${roomCondition === 'very_dirty' ? 'Rất bẩn' : roomCondition === 'dirty' ? 'Bẩn' : 'Bình thường'}`,
+          priority: taskPriority,
+          requested_by: userId,
+          room_check_id: checkId,
+          status: 'pending'
+        })
+      
+      if (taskError) {
+        console.error('[useRoomChecks] Error creating cleaning task:', taskError)
+      } else {
+        console.log('[useRoomChecks] Auto-created cleaning task for room', roomNumber)
+      }
     }
   } else {
     // Phòng sạch → Chuyển thẳng sang vacant
@@ -268,6 +298,21 @@ async function processCheckoutCheck(params: {
       .from('rooms')
       .update({ status: 'vacant' })
       .eq('id', roomId)
+  }
+  
+  // 7. Send supplement alert if items were consumed/lost
+  const hasConsumedOrLost = (data.items_consumed?.length || 0) > 0 || (data.items_lost?.length || 0) > 0
+  if (hasConsumedOrLost && tenantId && userId) {
+    await sendSupplementAlert({
+      roomId,
+      roomNumber,
+      tenantId,
+      hotelId,
+      userId,
+      userName: userName || 'Nhân viên',
+      consumedItems: data.items_consumed || [],
+      lostItems: data.items_lost || [],
+    })
   }
   
   return { quantityChanges, needsCleaning }
@@ -1020,4 +1065,93 @@ async function sendCleaningRequestNotifications(params: {
   ])
   
   console.log('[useRoomChecks] Cleaning request notifications sent for room', roomNumber)
+}
+
+// ===== SUPPLEMENT ALERT (After checkout with consumed/lost items) =====
+
+async function sendSupplementAlert(params: {
+  roomId: string
+  roomNumber: string
+  tenantId: string
+  hotelId: string
+  userId: string
+  userName: string
+  consumedItems: ConsumedItem[]
+  lostItems: LostItem[]
+}) {
+  const { roomId, roomNumber, tenantId, hotelId, userId, userName, consumedItems, lostItems } = params
+  
+  const totalConsumed = consumedItems.reduce((sum, item) => sum + item.quantity, 0)
+  const totalLost = lostItems.reduce((sum, item) => sum + item.quantity, 0)
+  const totalItems = totalConsumed + totalLost
+  
+  if (totalItems === 0) return
+  
+  // Get warehouse managers (or fallback to general managers)
+  const managers = await getNotificationRecipients({
+    tenantId,
+    hotelId,
+    targetRoles: ['manager'],
+    excludeUserId: userId,
+  })
+  
+  const recipientIds = managers.length > 0 
+    ? managers.map(m => m.id)
+    : userId ? [userId] : []
+  
+  if (recipientIds.length === 0) return
+  
+  // Build summary of items
+  const itemSummary: string[] = []
+  for (const item of consumedItems) {
+    itemSummary.push(`${item.item_name}: ${item.quantity} (tiêu hao)`)
+  }
+  for (const item of lostItems) {
+    itemSummary.push(`${item.item_name}: ${item.quantity} (mất)`)
+  }
+  
+  const notificationTitle = `📦 Phòng ${roomNumber} cần bổ sung đồ dùng`
+  const notificationBody = `${userName} báo: ${itemSummary.slice(0, 3).join(', ')}${itemSummary.length > 3 ? ` +${itemSummary.length - 3} khác` : ''}`
+  const actionUrl = `/distribution?room=${roomId}&action=supplement`
+  
+  await Promise.allSettled([
+    // In-app notifications
+    createMultipleNotifications({
+      recipientIds,
+      tenantId,
+      title: notificationTitle,
+      body: notificationBody,
+      type: 'info',
+      actionUrl,
+      metadata: {
+        room_id: roomId,
+        consumed_count: consumedItems.length,
+        lost_count: lostItems.length,
+        total_quantity: totalItems,
+        items: itemSummary,
+      },
+    }),
+    // Push notifications
+    sendMultiplePushNotifications({
+      recipientIds,
+      tenantId,
+      title: notificationTitle,
+      body: notificationBody,
+      actionUrl,
+      notificationType: 'info',
+    }),
+    // Telegram notification
+    sendTelegramNotification({
+      tenantId,
+      hotelId,
+      notificationTypeFilter: 'inventory',
+      sendToManagementGroups: true,
+      title: notificationTitle,
+      message: notificationBody,
+      notificationType: 'inventory',
+      actionUrl,
+    }),
+  ])
+  
+  console.log('[useRoomChecks] Supplement alert sent for room', roomNumber, '- Total items:', totalItems)
 }
