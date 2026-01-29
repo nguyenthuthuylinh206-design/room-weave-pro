@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { PricingRulesForm } from '@/components/settings/PricingRulesForm'
+import { HotelBankPaymentSettings } from '@/components/settings/HotelBankPaymentSettings'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
 
@@ -22,15 +23,22 @@ export default function PricingRulesPage() {
   }
 
   return (
-    <div className="space-y-4 p-4">
-      <div>
-        <h1 className="text-xl font-semibold">Cài đặt Phụ thu & Thuế phí</h1>
-        <p className="text-sm text-muted-foreground">
-          Cấu hình quy tắc tính phụ thu check-in sớm, check-out muộn và thuế phí cho {selectedHotel.name}
-        </p>
-      </div>
+    <div className="space-y-6 p-4">
+      {/* Pricing Rules Section */}
+      <section>
+        <div className="mb-4">
+          <h1 className="text-xl font-semibold">Cài đặt Phụ thu & Thuế phí</h1>
+          <p className="text-sm text-muted-foreground">
+            Cấu hình quy tắc tính phụ thu check-in sớm, check-out muộn và thuế phí cho {selectedHotel.name}
+          </p>
+        </div>
+        <PricingRulesForm hotelId={selectedHotel.id} />
+      </section>
 
-      <PricingRulesForm hotelId={selectedHotel.id} />
+      {/* Bank Payment Settings Section */}
+      <section>
+        <HotelBankPaymentSettings hotelId={selectedHotel.id} />
+      </section>
     </div>
   )
 }

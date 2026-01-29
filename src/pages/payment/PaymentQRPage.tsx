@@ -61,7 +61,11 @@ export default function PaymentQRPage() {
   const { data: payment, isLoading, error } = usePaymentById(
     shouldFetchData && sessionChecked ? paymentId : undefined
   );
-  const { data: bankSettings, isLoading: bankLoading } = useBankPaymentSettings();
+  
+  // Get hotelId from payment metadata
+  const paymentHotelId = payment?.hotel_id;
+  
+  const { data: bankSettings, isLoading: bankLoading } = useBankPaymentSettings(paymentHotelId);
 
   // Reset autoOpenAttempted when paymentId changes (for in-app navigation)
   useEffect(() => {

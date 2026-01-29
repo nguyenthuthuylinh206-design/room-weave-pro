@@ -11,14 +11,16 @@ interface ViewPaymentQRDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   payment: PendingPayment | null;
+  hotelId?: string;
 }
 
 export function ViewPaymentQRDialog({
   open,
   onOpenChange,
   payment,
+  hotelId,
 }: ViewPaymentQRDialogProps) {
-  const { data: bankSettings, isLoading: isLoadingSettings } = useBankPaymentSettings();
+  const { data: bankSettings, isLoading: isLoadingSettings } = useBankPaymentSettings(hotelId);
 
   if (!payment) return null;
 

@@ -164,10 +164,12 @@ export type Database = {
           bank_code: string
           bank_name: string
           created_at: string | null
+          hotel_id: string | null
           id: string
           is_active: boolean | null
           payment_prefix: string | null
           qr_template: string | null
+          tenant_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -176,10 +178,12 @@ export type Database = {
           bank_code: string
           bank_name: string
           created_at?: string | null
+          hotel_id?: string | null
           id?: string
           is_active?: boolean | null
           payment_prefix?: string | null
           qr_template?: string | null
+          tenant_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -188,13 +192,37 @@ export type Database = {
           bank_code?: string
           bank_name?: string
           created_at?: string | null
+          hotel_id?: string | null
           id?: string
           is_active?: boolean | null
           payment_prefix?: string | null
           qr_template?: string | null
+          tenant_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bank_payment_settings_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "bank_payment_settings_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_payment_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       booking_consumables: {
         Row: {
@@ -8321,6 +8349,7 @@ export type Database = {
         Returns: boolean
       }
       is_manager: { Args: never; Returns: boolean }
+      is_owner_user: { Args: never; Returns: boolean }
       is_route_assignee: {
         Args: { _order_id: string; _user_id: string }
         Returns: boolean
