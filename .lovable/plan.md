@@ -1,334 +1,282 @@
 
 
-## Phân tích Sâu Quy trình Housekeeping - Hoàn thành
+## Phân tích Chi tiết Inventory Flow
 
-### I. NHỮNG GÌ ĐÃ HOÀN THIỆN
+### I. TỔNG QUAN KIẾN TRÚC INVENTORY
 
-| Component | Trạng thái |
-|-----------|------------|
-| StaffRoomCheckView - Nút kiểm tra check_out | ✅ Done |
-| Auto-complete cleaning task khi mở phòng | ✅ Done |
-| CleaningCompleteDialog - Warning missing items | ✅ Done |
-| Auto-create cleaning task khi checkout + needs_cleaning | ✅ Done |
-| Supplement alert sau checkout | ✅ Done |
-| TaskCard/TaskDetailDialog - Truyền inspection_id | ✅ Done |
-| checkout_inspection_id trong HousekeepingTaskWithDetails | ✅ Done |
-| **Workflow trigger cho cleaning task** | ✅ Done (Phase 3) |
-| **Query invalidation sau auto-complete task** | ✅ Done (Phase 3) |
-| Auto-complete cleaning task khi mở phòng | ✅ Done |
-| CleaningCompleteDialog - Warning missing items | ✅ Done |
-| Auto-create cleaning task khi checkout + needs_cleaning | ✅ Done |
-| Supplement alert sau checkout | ✅ Done |
-| TaskCard/TaskDetailDialog - Truyền inspection_id | ✅ Done |
-| checkout_inspection_id trong HousekeepingTaskWithDetails | ✅ Done |
+```text
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           INVENTORY FLOW ARCHITECTURE                            │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐      │
+│  │  INBOUND    │    │  OUTBOUND   │    │  TRANSFER   │    │ ADJUSTMENT  │      │
+│  │ (Nhập kho)  │    │ (Xuất kho)  │    │ (Chuyển kho)│    │ (Kiểm kê)   │      │
+│  └──────┬──────┘    └──────┬──────┘    └──────┬──────┘    └──────┬──────┘      │
+│         │                  │                  │                  │              │
+│         ▼                  ▼                  ▼                  ▼              │
+│  ┌──────────────────────────────────────────────────────────────────────────┐  │
+│  │                    inventory_transactions (Giao dịch)                     │  │
+│  │   - transaction_type: in | out | transfer | adjust                       │  │
+│  │   - quantity_before, quantity_after                                       │  │
+│  └───────────────────────────────┬──────────────────────────────────────────┘  │
+│                                  │                                              │
+│                                  ▼                                              │
+│  ┌──────────────────────────────────────────────────────────────────────────┐  │
+│  │                              items (Tồn kho)                              │  │
+│  │   - quantity_total: Tổng số lượng                                         │  │
+│  │   - quantity_in_stock: Tồn kho hiện có                                    │  │
+│  │   - quantity_in_laundry: Đang giặt                                        │  │
+│  │   - minimum_stock, reorder_point: Ngưỡng cảnh báo                        │  │
+│  └───────────────────────────────┬──────────────────────────────────────────┘  │
+│                                  │                                              │
+│                                  ▼                                              │
+│  ┌──────────────────────────────────────────────────────────────────────────┐  │
+│  │                       warehouse_stock (Multi-warehouse)                   │  │
+│  │   - quantity: Tồn kho tại từng kho                                        │  │
+│  │   - minimum_stock: Ngưỡng cảnh báo per warehouse                         │  │
+│  └──────────────────────────────────────────────────────────────────────────┘  │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-### II. VẤN ĐỀ CÒN TỒN TẠI CẦN XỬ LÝ
+### II. NHỮNG GÌ ĐÃ HOẠT ĐỘNG TỐT
 
-#### A. Query Task không include `checkout_inspection_id`
+| Component | Trạng thái | Chi tiết |
+|-----------|------------|----------|
+| Inbound Transaction | ✅ Tốt | RPC `create_inbound_transaction` xử lý đúng, update cả `items` và `warehouse_stock` |
+| Outbound Transaction | ✅ Tốt | RPC `create_outbound_transaction` có low stock detection, trigger workflow |
+| Warehouse Transfer | ✅ Tốt | `useCreateWarehouseTransfer` invalidate đúng queries |
+| Low Stock Alert Dashboard | ✅ Tốt | `LowStockAlert.tsx` hiển thị critical/warning items |
+| Low Stock Workflow | ✅ Tốt | Trigger `INVENTORY_LOW_STOCK` khi xuất kho dưới ngưỡng |
+| Query Invalidation | ✅ Tốt | Cả inbound/outbound đều invalidate đầy đủ related queries |
+| Realtime Warehouse Stock | ✅ Tốt | `useWarehouseStock` có realtime subscription |
+| Draft Auto-Save | ✅ Tốt | Cả `MobileInboundForm` và `MobileOutboundForm` đều có localStorage draft |
+| Stock Adjustment Flow | ✅ Tốt | Full flow: create → assign → check → complete → approve |
+| Adjustment Workflow Triggers | ✅ Tốt | Triggers cho created, started, completed, approved, rejected |
+| Per-item Approval | ✅ Tốt | `useApproveItem` cho phép duyệt từng item riêng lẻ |
+| Investigation Flow | ✅ Tốt | Workflow cho items có chênh lệch cần điều tra |
 
-**Vấn đề phát hiện:**
+---
 
-Trong `useMyTasks()` (dòng 54-80) và `useHotelTasks()` (dòng 118-138), query **KHÔNG** select `checkout_inspection_id`:
+### III. VẤN ĐỀ PHÁT HIỆN
 
+#### A. Room Check - Không validate stock trước khi Replace (Ưu tiên: Trung bình)
+
+**Vị trí:** `src/components/rooms/check-steps/ItemsCheckStep.tsx`
+
+**Vấn đề:**
+Khi staff chọn "Thay đổi đồ vải" (change) hoặc "Bổ sung đồ" (add):
 ```typescript
-// useMyTasks - thiếu checkout_inspection_id
-.select(`
-  *,
-  room:rooms(id, room_number, floor, room_type),
-  requested_user:users!housekeeping_tasks_requested_by_fkey(id, full_name, avatar_url),
-  booking:room_bookings(id, guest_name, check_out_date)
-`)
+// Line 247-262 - Không check quantity_in_stock trước
+} else if (status === 'change') {
+  setLaundryItems(prev => [...prev, {...}]);
+  setReplacedItems(prev => [...prev, {...}]);  // ← Không validate stock
+  toast({ title: 'Thay đổi đồ vải', description: `${quantity}x ${item.item_name}` });
+}
 ```
 
 **Hậu quả:**
-- `task.checkout_inspection_id` sẽ luôn là `undefined`
-- Logic trong `TaskCard.tsx` và `TaskDetailDialog.tsx` dùng `task.checkout_inspection_id` sẽ không work
-- Navigation sẽ KHÔNG có `inspection=XXX` param → fallback query vẫn phải chạy
-
-**Giải pháp:**
-Thêm `checkout_inspection_id` vào select query của cả 3 hooks:
-- `useMyTasks()`
-- `useHotelTasks()`
-- `useUnassignedTasks()`
-
----
-
-#### B. Auto-sync Housekeeping Task status với Checkout Inspection
-
-**Vấn đề phát hiện:**
-
-Trong `RoomCheckPage.tsx` (dòng 547-572), khi submit checkout check, code tìm và complete `housekeeping_task`:
-
-```typescript
-if (data.check_type === 'checkout' && room?.id && user?.id) {
-  const { data: relatedTask } = await supabase
-    .from('housekeeping_tasks')
-    .select('id')
-    .eq('room_id', room.id)
-    .eq('task_type', 'checkout_inspection')  // CHỈ checkout_inspection
-    .in('status', ['pending', 'in_progress'])
-    .maybeSingle()
-  
-  if (relatedTask) {
-    await supabase.from('housekeeping_tasks')
-      .update({ status: 'completed', completed_at: ... })
-      .eq('id', relatedTask.id)
-  }
-}
-```
-
-**Vấn đề:**
-- Chỉ complete task `checkout_inspection`, KHÔNG complete các task khác (ví dụ: cleaning nếu NV làm checkout rồi dọn luôn)
-- Thiếu invalidation query `housekeeping-tasks` sau khi complete
-
-**Giải pháp:**
-Thêm invalidation queries sau khi auto-complete:
-```typescript
-queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
-queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
-```
-
----
-
-#### C. Xử lý Items trong Room Check - Thiếu validation stock
-
-**Vấn đề phát hiện:**
-
-Trong `ItemsCheckStep.tsx`, khi staff chọn "Thay đổi đồ vải" (change action):
-```typescript
-// status === 'change' → Add to BOTH laundry AND replaced
-setLaundryItems(prev => [...prev, {...}])
-setReplacedItems(prev => [...prev, {...}])
-```
-
-**Vấn đề:**
-1. **Không validate stock tại warehouse**: Có thể thay đổ mà kho không đủ
-2. **Không fetch real-time stock**: Số liệu có thể outdated
-3. **Không warning khi vượt stock**: User không biết kho hết hàng
-
-**Mức độ nghiêm trọng:** Trung bình - có thể dẫn đến negative stock
+- Cho phép replace nhiều hơn stock hiện có
+- Có thể dẫn đến negative stock sau khi submit
+- Khác với `MobileOutboundForm.tsx` đã có validation stock
 
 **Giải pháp đề xuất:**
-- Fetch `quantity_in_stock` khi load items
-- Warning khi số lượng replace > available stock
-- Hoặc block action nếu stock = 0
+1. Fetch `quantity_in_stock` cho items trong room
+2. Hiển thị available stock trong UI
+3. Warning/block khi quantity vượt stock
 
 ---
 
-#### D. Session Cleanup Edge Cases
+#### B. Distribution Order - Không validate stock per warehouse (Ưu tiên: Trung bình)
 
-**Vấn đề phát hiện:**
-
-Trong `RoomCheckPage.tsx` (dòng 293-308), cleanup session khi đóng tab:
-```typescript
-const handleBeforeUnload = () => {
-  if (id && !sessionCompleted) {
-    navigator.sendBeacon(
-      `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/room_check_sessions?room_id=eq.${id}`,
-      JSON.stringify({})
-    )
-  }
-}
-```
+**Vị trí:** `src/hooks/useDistributionOrders.ts`
 
 **Vấn đề:**
-- `sendBeacon` với empty body không DELETE session, chỉ gửi request rỗng
-- Session có thể bị orphan nếu user close tab mà không complete
-- Phụ thuộc hoàn toàn vào scheduled cleanup (30 phút)
-
-**Giải pháp đề xuất:**
-Dùng đúng DELETE request hoặc trust scheduled cleanup:
+`useCreateDistributionOrder` không validate stock trước khi tạo:
 ```typescript
-// Option 1: Dùng đúng endpoint DELETE
-navigator.sendBeacon(
-  `${SUPABASE_URL}/rest/v1/rpc/cleanup_user_session`,
-  JSON.stringify({ room_id: id })
-)
-```
-
----
-
-#### E. Duplicate Notification khi Checkout
-
-**Vấn đề phát hiện:**
-
-Trong `useRoomChecks.ts`, sau khi checkout check hoàn thành:
-1. `processCheckoutCheck()` (dòng 251-263) gửi `sendCleaningRequestNotifications()`
-2. Sau đó `sendCheckoutNotifications()` (dòng 758-768) lại gửi notification
-
-**Kiểm tra:**
-- `sendCleaningRequestNotifications` → Gửi cho Managers về cleaning request
-- `sendCheckoutNotifications` → Gửi báo cáo checkout
-
-**Kết luận:** 2 loại notification khác nhau - OK, không phải duplicate thực sự
-
----
-
-#### F. Thiếu workflow trigger cho Cleaning Task
-
-**Vấn đề phát hiện:**
-
-Trong `processCheckoutCheck()` (dòng 274-293), khi tạo cleaning task:
-```typescript
-const { error: taskError } = await supabase
-  .from('housekeeping_tasks')
-  .insert({...})
-
-if (taskError) {
-  console.error('[useRoomChecks] Error creating cleaning task:', taskError)
-} else {
-  console.log('[useRoomChecks] Auto-created cleaning task for room', roomNumber)
-}
-// THIẾU: Không trigger workflow HOUSEKEEPING_TASK_CREATED
-```
-
-**Hậu quả:**
-- Task được tạo nhưng không trigger workflow automation
-- Notification workflow có thể không gửi cho assigned staff (nếu có template)
-
-**Giải pháp:**
-Thêm `triggerWorkflow()` sau khi insert thành công:
-```typescript
-if (!taskError) {
-  triggerWorkflow({
-    triggerType: WorkflowTriggerTypes.HOUSEKEEPING_TASK_CREATED,
-    eventData: {...},
-    tenantId,
-    hotelId,
+// Line 66-82 - Không check warehouse stock
+mutationFn: async (data: CreateDistributionData) => {
+  const { data: result, error } = await supabase.rpc('create_distribution_order', {
+    // ... items without stock validation
   })
 }
 ```
 
----
+**Khác biệt:**
+- `MobileOutboundForm` ✅ có `useMultipleWarehouseStock` để validate
+- `CreateDistributionPage` ❓ cần kiểm tra xem có validate không
 
-### III. ĐỀ XUẤT TRIỂN KHAI
-
-#### Quick Fixes (Ưu tiên cao)
-
-| # | Vấn đề | Giải pháp | File |
-|---|--------|-----------|------|
-| 1 | Query task thiếu `checkout_inspection_id` | Thêm field vào select | `useHousekeepingTasks.ts` |
-| 2 | Thiếu invalidation sau auto-complete | Thêm invalidateQueries | `RoomCheckPage.tsx` |
-| 3 | Thiếu workflow trigger cho cleaning task | Thêm triggerWorkflow | `useRoomChecks.ts` |
-
-#### Medium Fixes (Ưu tiên trung bình)
-
-| # | Vấn đề | Giải pháp | File |
-|---|--------|-----------|------|
-| 4 | Stock validation khi thay đồ | Fetch stock + warning UI | `ItemsCheckStep.tsx` |
-| 5 | Session cleanup sendBeacon | Review logic hoặc trust scheduler | `RoomCheckPage.tsx` |
+**Giải pháp đề xuất:**
+1. Thêm stock validation trong UI trước submit
+2. Hoặc RPC validate và trả về error nếu insufficient stock
 
 ---
 
-### IV. CHI TIẾT THAY ĐỔI FILE
+#### C. Inbound từ Adjustment - Thiếu warehouse_id (Ưu tiên: Thấp)
 
-#### 1. `src/hooks/useHousekeepingTasks.ts`
+**Vị trí:** `src/components/inventory/MobileInboundForm.tsx`
 
-**Thay đổi 1:** Thêm `checkout_inspection_id` vào `useMyTasks`:
+**Vấn đề:**
+Khi prefill từ adjustment (bổ sung hàng thiếu):
 ```typescript
-.select(`
-  *,
-  room:rooms(id, room_number, floor, room_type),
-  requested_user:users!housekeeping_tasks_requested_by_fkey(id, full_name, avatar_url),
-  booking:room_bookings(id, guest_name, check_out_date)
-`)
-// ↓ Thêm *
-.select(`
-  *, checkout_inspection_id,
-  ...
-`)
-```
-
-Thực tế `*` đã bao gồm tất cả columns, nên không cần thay đổi select. Vấn đề có thể nằm ở TypeScript type. Cần verify lại.
-
-**Kiểm tra:** Query `*` đã bao gồm `checkout_inspection_id` (là column trong table). Type `HousekeepingTaskWithDetails` đã có field này. Không cần sửa query.
-
-#### 2. `src/pages/rooms/RoomCheckPage.tsx`
-
-**Thay đổi:** Thêm invalidation sau auto-complete task (sau dòng 566):
-```typescript
-if (relatedTask) {
-  await supabase.from('housekeeping_tasks').update({...}).eq('id', relatedTask.id)
-  
-  // Thêm invalidation
-  queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
-  queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
+// Line 86-101 - Prefill from adjustment nhưng không có warehouse info
+defaultValues: {
+  transaction_category: 'purchase',
+  from_location: hasPrefill ? 'Bổ sung kiểm kê' : '',
+  to_location: t('inventory:mobileForm.inbound.toPlaceholder'),
+  items: hasPrefill ? prefillFromAdjustment.items : [],
+  // ... KHÔNG có to_warehouse_id từ adjustment
 }
 ```
 
-#### 3. `src/hooks/useRoomChecks.ts`
-
-**Thay đổi:** Thêm workflow trigger sau khi tạo cleaning task (sau dòng 293):
-```typescript
-if (!taskError) {
-  console.log('[useRoomChecks] Auto-created cleaning task for room', roomNumber)
-  
-  // Trigger workflow
-  triggerWorkflow({
-    triggerType: WorkflowTriggerTypes.HOUSEKEEPING_TASK_CREATED,
-    eventData: {
-      task_type: 'cleaning',
-      task_type_label: 'Dọn phòng',
-      priority: taskPriority,
-      room_id: roomId,
-      room_number: roomNumber,
-      hotel_id: hotelId,
-      title: `Dọn dẹp phòng ${roomNumber}`,
-    },
-    tenantId,
-    hotelId,
-  }).catch(err => console.error('Workflow trigger failed:', err))
-}
-```
+**Giải pháp đề xuất:**
+Pass `warehouseId` từ adjustment page khi navigate đến inbound form
 
 ---
 
-### V. FLOW SAU CẢI TIẾN
+#### D. Stock Adjustment - Không update warehouse_stock (Ưu tiên: Cao)
+
+**Vị trí:** `src/hooks/useStockAdjustments.ts` - Line 406-442, 674-681
+
+**Vấn đề:**
+Khi approve adjustment, code update `items.quantity_in_stock` nhưng KHÔNG update `warehouse_stock`:
+```typescript
+// Line 409-414 trong useApproveAdjustment
+const { error: updateError } = await supabase
+  .from('items')
+  .update({ quantity_in_stock: item.actual_quantity })  // ← Chỉ update items
+  .eq('id', item.item_id)
+// ❌ KHÔNG có update warehouse_stock
+```
+
+**Hậu quả:**
+- `items.quantity_in_stock` và `warehouse_stock.quantity` bị out of sync
+- Dashboard stats có thể không chính xác
+- Multi-warehouse reports sai số liệu
+
+**Giải pháp đề xuất:**
+1. Update cả `warehouse_stock` khi approve adjustment
+2. Hoặc sử dụng DB trigger để tự động sync
+3. Hoặc adjustment phải gắn với warehouse cụ thể
+
+---
+
+#### E. Delete Transaction - Không rollback warehouse_stock (Ưu tiên: Cao)
+
+**Vị trí:** `src/hooks/useInventoryTransactions.ts` - Line 246-285
+
+**Vấn đề:**
+`useDeleteTransaction` gọi RPC `delete_inventory_transaction` nhưng cần verify RPC có rollback `warehouse_stock` không:
+```typescript
+// Line 252-265
+const { data, error } = await supabase.rpc('delete_inventory_transaction', {
+  p_transaction_id: transactionId
+})
+// Cần verify RPC này có rollback warehouse_stock hay không
+```
+
+**Giải pháp đề xuất:**
+Verify và update RPC nếu cần thiết
+
+---
+
+#### F. Low Stock Alert - Không trigger từ Room Check (Ưu tiên: Thấp)
+
+**Vấn đề:**
+Khi room check consume items, inventory giảm nhưng không trigger low stock workflow:
+- `processCheckoutCheck()` trong `useRoomChecks.ts` tạo inventory transaction
+- Nhưng không check và trigger `INVENTORY_LOW_STOCK` như `useCreateOutboundTransaction` làm
+
+**Giải pháp đề xuất:**
+Thêm low stock check sau khi room check consume items
+
+---
+
+#### G. Realtime Subscription - Chỉ có cho warehouse_stock (Ưu tiên: Thấp)
+
+**Vấn đề:**
+- ✅ `useWarehouseStock` có realtime subscription
+- ❌ `useInventoryDashboard` không có realtime
+- ❌ `useLowStockItems` không có realtime
+
+**Hiện trạng:**
+Dashboard dùng `refetchInterval: 60000` (1 phút) thay vì realtime
+
+**Giải pháp đề xuất:**
+Thêm realtime subscription hoặc giảm refetch interval xuống 30s cho dashboard
+
+---
+
+### IV. TÓM TẮT VẤN ĐỀ THEO MỨC ĐỘ
+
+| # | Vấn đề | Mức độ | File cần sửa |
+|---|--------|--------|--------------|
+| D | Adjustment không sync warehouse_stock | **Cao** | `useStockAdjustments.ts` hoặc DB RPC |
+| E | Delete transaction không rollback warehouse_stock | **Cao** | Verify `delete_inventory_transaction` RPC |
+| A | Room Check không validate stock khi replace | **Trung bình** | `ItemsCheckStep.tsx` |
+| B | Distribution không validate stock per warehouse | **Trung bình** | `useDistributionOrders.ts` hoặc UI |
+| C | Inbound từ Adjustment thiếu warehouse_id | **Thấp** | `MobileInboundForm.tsx` |
+| F | Room Check không trigger low stock workflow | **Thấp** | `useRoomChecks.ts` |
+| G | Dashboard không realtime | **Thấp** | `useInventoryDashboard.ts` |
+
+---
+
+### V. FLOW ĐỀ XUẤT SAU CẢI TIẾN
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                    CHECKOUT FLOW                            │
-├─────────────────────────────────────────────────────────────┤
-│ 1. Khách checkout → perform_checkout()                      │
-│    └─ Room: occupied → check_out                            │
-│                                                             │
-│ 2. NV thấy phòng trong StaffRoomCheckView (filter Check-out)│
-│    └─ Click "Kiểm tra" → /rooms/ID/check?type=checkout      │
-│                                                             │
-│ 3. Checkout Room Check (5 bước)                             │
-│    ├─ Items consumed/lost → inventory_transaction           │
-│    ├─ Chargeable items → notify managers                    │
-│    └─ needs_cleaning?                                       │
-│        ├─ YES → Room: cleaning                              │
-│        │        └─ AUTO-CREATE cleaning task ✅             │
-│        │        └─ ✨ TRIGGER WORKFLOW (mới)                │
-│        │        └─ Notify managers                          │
-│        │        └─ Supplement alert nếu có missing ✅       │
-│        └─ NO → Room: vacant                                 │
-│                                                             │
-│ 4. NV dọn phòng (nếu cần)                                   │
-│    └─ Xem task trong "Việc cần làm"                         │
-│        └─ ✅ checkout_inspection_id có trong response       │
-│    └─ Click "Bắt đầu" → Task: in_progress                   │
-│        └─ Navigate với inspection ID ✅                     │
-│    └─ Dọn xong → CleaningCompleteDialog                     │
-│        └─ Warning missing items ✅                          │
-│        └─ "Mở phòng ngay" → Room: vacant                    │
-│        └─ Auto-complete cleaning task ✅                    │
-│        └─ ✨ INVALIDATE QUERIES (mới)                       │
-│                                                             │
-│ 5. Phòng sẵn sàng nhận khách mới                            │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                         IMPROVED INVENTORY FLOW                                  │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌─────────────────┐                                                            │
+│  │    INBOUND      │ ← validate warehouse exists                                │
+│  │  (Nhập kho)     │ → update items + warehouse_stock                          │
+│  └────────┬────────┘                                                            │
+│           │                                                                      │
+│  ┌────────▼────────┐                                                            │
+│  │    OUTBOUND     │ ← ✅ validate stock per warehouse                         │
+│  │   (Xuất kho)    │ → ✅ trigger low stock workflow                           │
+│  └────────┬────────┘                                                            │
+│           │                                                                      │
+│  ┌────────▼────────┐                                                            │
+│  │   ROOM CHECK    │ ← ✨ validate stock before replace (MỚI)                  │
+│  │ (Kiểm tra phòng)│ → ✨ trigger low stock workflow (MỚI)                     │
+│  └────────┬────────┘                                                            │
+│           │                                                                      │
+│  ┌────────▼────────┐                                                            │
+│  │  DISTRIBUTION   │ ← ✨ validate stock per warehouse (MỚI)                   │
+│  │ (Phiếu giao)    │ → update items + warehouse_stock                          │
+│  └────────┬────────┘                                                            │
+│           │                                                                      │
+│  ┌────────▼────────┐                                                            │
+│  │   ADJUSTMENT    │ ← validate against warehouse (if multi-wh)                │
+│  │   (Kiểm kê)     │ → ✨ update items + warehouse_stock (MỚI)                 │
+│  └────────┬────────┘                                                            │
+│           │                                                                      │
+│  ┌────────▼────────┐                                                            │
+│  │    DASHBOARD    │ ← ✨ realtime subscription (optional)                     │
+│  │  (Tổng quan)    │                                                            │
+│  └──────────────────┘                                                            │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### VI. TÓM TẮT ƯU TIÊN
+### VI. ĐỀ XUẤT HÀNH ĐỘNG
 
-1. **Cao:** Thêm workflow trigger cho auto-created cleaning task
-2. **Cao:** Thêm query invalidation sau auto-complete task
-3. **Trung bình:** Stock validation trong ItemsCheckStep
-4. **Thấp:** Review session cleanup logic
+**Phase 1 - Critical Fixes (1-2 ngày):**
+1. Verify và fix `delete_inventory_transaction` RPC rollback warehouse_stock
+2. Update `useApproveAdjustment` / DB trigger để sync warehouse_stock
+
+**Phase 2 - Medium Fixes (2-3 ngày):**
+3. Thêm stock validation trong `ItemsCheckStep.tsx`
+4. Thêm stock validation trong Distribution Order flow
+
+**Phase 3 - Nice-to-Have (1-2 ngày):**
+5. Thêm low stock trigger cho room check
+6. Improve realtime cho dashboard
 
