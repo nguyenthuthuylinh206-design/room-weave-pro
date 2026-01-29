@@ -253,9 +253,28 @@ export function useRejectPO() {
 export function useReceivePO() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { tenantId, hotelId } = useUser();
 
   return useMutation({
-    mutationFn: async ({ po_id, items, notes }: any) => {
+    mutationFn: async ({ po_id, items, notes, warehouse_id }: {
+      po_id: string;
+      items: Array<{
+        item_id: string;
+        quantity_to_receive: number;
+        notes?: string;
+      }>;
+      notes?: string;
+      warehouse_id?: string;
+    }) => {
+      // Get PO details for vendor info
+      const { data: poData } = await supabase
+        .from('purchase_orders')
+        .select('vendor_id, vendors(name)')
+        .eq('id', po_id)
+        .single();
+
+      const vendorName = (poData?.vendors as any)?.name || 'Nhà cung cấp';
+
       // Update received quantities for each item
       for (const item of items) {
         const { error } = await supabase
@@ -268,6 +287,40 @@ export function useReceivePO() {
           .eq('item_id', item.item_id);
 
         if (error) throw error;
+      }
+
+      // Create inventory inbound transaction for received items
+      if (tenantId && hotelId && items.length > 0) {
+        const transactionItems = items
+          .filter(item => item.quantity_to_receive > 0)
+          .map(item => ({
+            item_id: item.item_id,
+            quantity: item.quantity_to_receive,
+            notes: item.notes || null
+          }));
+
+        if (transactionItems.length > 0) {
+          const { error: txError } = await supabase.rpc('create_inbound_transaction', {
+            p_tenant_id: tenantId,
+            p_hotel_id: hotelId,
+            p_transaction_category: 'purchase',
+            p_from_location: vendorName,
+            p_to_location: 'Kho hàng',
+            p_created_by: (await supabase.auth.getUser()).data.user?.id || '',
+            p_items: transactionItems as any,
+            p_related_type: 'purchase_order',
+            p_related_id: po_id,
+            p_documents: null,
+            p_photos: null,
+            p_notes: notes || `Nhận hàng từ PO`,
+            p_to_warehouse_id: warehouse_id || null
+          });
+
+          if (txError) {
+            console.error('Failed to create inventory transaction:', txError);
+            // Don't throw - PO receive still succeeded
+          }
+        }
       }
 
       // Check if all items received
@@ -300,9 +353,12 @@ export function useReceivePO() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
       queryClient.invalidateQueries({ queryKey: ['purchase-order', data.po_id] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] });
       toast({
         title: 'Thành công',
-        description: 'Đã nhận hàng',
+        description: 'Đã nhận hàng và cập nhật tồn kho',
       });
     },
   });
