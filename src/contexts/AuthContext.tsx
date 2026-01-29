@@ -23,6 +23,23 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Request persistent storage for PWA to prevent data loss
+const requestPersistentStorage = async () => {
+  try {
+    if (navigator.storage && navigator.storage.persist) {
+      const isPersisted = await navigator.storage.persisted()
+      if (!isPersisted) {
+        const granted = await navigator.storage.persist()
+        console.log('[Auth] Persistent storage request:', granted ? 'granted' : 'denied')
+      } else {
+        console.log('[Auth] Storage already persistent')
+      }
+    }
+  } catch (e) {
+    console.warn('[Auth] Persistent storage not supported:', e)
+  }
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [session, setSession] = useState<Session | null>(null)
@@ -32,6 +49,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient()
   const isManualLogout = useRef(false)
   const previousSessionRef = useRef<Session | null>(null)
+
+  // Request persistent storage for PWA on mount
+  useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    const isIOSStandalone = (window.navigator as any).standalone === true
+    
+    if (isStandalone || isIOSStandalone) {
+      console.log('[Auth] PWA mode detected, requesting persistent storage')
+      requestPersistentStorage()
+    }
+  }, [])
 
   // Silent refresh: refresh token periodically to keep session alive
   useEffect(() => {

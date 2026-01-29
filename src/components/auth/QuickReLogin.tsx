@@ -64,12 +64,18 @@ export const QuickReLogin = ({ email, onSwitchAccount, onSuccess }: QuickReLogin
 
       <Form {...form}>
         <form id="quick-login-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          {/* Hidden username input for browser credential manager */}
+          {/* Username input for browser credential manager - styled invisible but recognized by browsers */}
           <input 
-            type="hidden" 
-            name="username" 
-            autoComplete="username" 
-            value={email} 
+            type="email"
+            name="username"
+            id="quick-login-username"
+            autoComplete="username"
+            value={email}
+            readOnly
+            tabIndex={-1}
+            aria-hidden="true"
+            className="absolute -left-[9999px] w-px h-px opacity-0"
+            onChange={() => {}} // Prevent React warning
           />
           
           {/* Password */}
