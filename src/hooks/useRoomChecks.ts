@@ -290,6 +290,22 @@ async function processCheckoutCheck(params: {
         console.error('[useRoomChecks] Error creating cleaning task:', taskError)
       } else {
         console.log('[useRoomChecks] Auto-created cleaning task for room', roomNumber)
+        
+        // Trigger workflow for automation (e.g., notify assigned staff)
+        triggerWorkflow({
+          triggerType: 'housekeeping_task_created',
+          eventData: {
+            task_type: 'cleaning',
+            task_type_label: 'Dọn phòng',
+            priority: taskPriority,
+            room_id: roomId,
+            room_number: roomNumber,
+            hotel_id: hotelId,
+            title: `Dọn dẹp phòng ${roomNumber}`,
+          },
+          tenantId,
+          hotelId,
+        }).catch(err => console.error('[useRoomChecks] Workflow trigger failed:', err))
       }
     }
   } else {

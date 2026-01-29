@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Check, Loader2, ClipboardCheck, LogIn, LogOut, Settings, Clock } from 'lucide-react'
 import { useForm } from 'react-hook-form'
@@ -48,6 +49,7 @@ const CHECK_TYPE_ICONS: Record<CheckType, any> = {
 export function RoomCheckPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
   const prefilledType = searchParams.get('type') as 'daily' | 'checkin' | 'checkout' | 'maintenance' | null
   const shouldAutoResume = searchParams.get('resume') === 'true'
@@ -564,6 +566,11 @@ export function RoomCheckPage() {
                 room_check_id: createdCheck?.id,
               })
               .eq('id', relatedTask.id)
+            
+            // Invalidate housekeeping task queries to update UI
+            queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
+            queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
+            queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
           }
         } catch (taskError) {
           console.error('[RoomCheckPage] Error auto-completing housekeeping task:', taskError)
