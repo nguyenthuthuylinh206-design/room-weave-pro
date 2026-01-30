@@ -39,7 +39,7 @@ export const MobileBottomNav = () => {
   const NAV_ITEMS: NavItem[] = [
     { id: 'home', label: 'Home', icon: Home, path: '/' },
     { id: 'my-tasks', label: 'Tasks', icon: ClipboardList, path: '/my-tasks', badgeKey: 'tasks' },
-    { id: 'rooms', label: 'Phòng', icon: DoorOpen, path: '/rooms', module: 'rooms', badgeKey: 'tasks' },
+    { id: 'rooms', label: 'Phòng', icon: DoorOpen, path: '/rooms', module: 'rooms' },
     { id: 'laundry', label: 'Giặt là', icon: Shirt, path: '/laundry', module: 'laundry', badgeKey: 'laundryTotal' },
     { id: 'maintenance', label: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badgeKey: 'maintenanceTotal' },
   ]
