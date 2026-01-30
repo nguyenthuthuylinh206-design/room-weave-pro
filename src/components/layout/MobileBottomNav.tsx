@@ -5,8 +5,9 @@ import { Badge } from '@/components/ui/badge'
 import { useUser } from '@/hooks/useUser'
 import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
 import { usePendingTaskCount } from '@/hooks/useHousekeepingTasks'
-import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { usePendingCounts, type PendingCounts } from '@/hooks/usePendingCounts'
+
+type PendingCountKey = keyof PendingCounts | 'tasks'
 
 interface NavItem {
   id: string
@@ -14,7 +15,7 @@ interface NavItem {
   icon: typeof Home
   path: string
   module?: string
-  badge?: boolean
+  badgeKey?: PendingCountKey
 }
 
 export const MobileBottomNav = () => {
@@ -23,31 +24,7 @@ export const MobileBottomNav = () => {
   const { user, role, tenantId } = useUser()
   const { data: modulePermissions } = useUserModulePermissions()
   const { data: pendingTaskCount = 0 } = usePendingTaskCount()
-
-  // Get pending counts
-  const { data: pendingCounts } = useQuery({
-    queryKey: ['pending-counts', tenantId],
-    queryFn: async () => {
-      const [maintenance, laundry] = await Promise.all([
-        supabase
-          .from('maintenance_requests')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', tenantId!)
-          .eq('status', 'pending'),
-        supabase
-          .from('laundry_batches')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', tenantId!)
-          .eq('status', 'in_progress')
-      ])
-      return {
-        maintenance: maintenance.count || 0,
-        laundry: laundry.count || 0
-      }
-    },
-    enabled: !!tenantId,
-    refetchInterval: 30000
-  })
+  const { data: pendingCounts } = usePendingCounts()
 
   // Owner-specific navigation (strategic focus)
   const OWNER_NAV_ITEMS: NavItem[] = [
@@ -61,10 +38,10 @@ export const MobileBottomNav = () => {
   // Manager/Staff navigation (operations)
   const NAV_ITEMS: NavItem[] = [
     { id: 'home', label: 'Home', icon: Home, path: '/' },
-    { id: 'my-tasks', label: 'Tasks', icon: ClipboardList, path: '/my-tasks', badge: true },
-    { id: 'rooms', label: 'Phòng', icon: DoorOpen, path: '/rooms', module: 'rooms', badge: true },
-    { id: 'laundry', label: 'Giặt là', icon: Shirt, path: '/laundry', module: 'laundry', badge: true },
-    { id: 'maintenance', label: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badge: true },
+    { id: 'my-tasks', label: 'Tasks', icon: ClipboardList, path: '/my-tasks', badgeKey: 'tasks' },
+    { id: 'rooms', label: 'Phòng', icon: DoorOpen, path: '/rooms', module: 'rooms', badgeKey: 'tasks' },
+    { id: 'laundry', label: 'Giặt là', icon: Shirt, path: '/laundry', module: 'laundry', badgeKey: 'laundryTotal' },
+    { id: 'maintenance', label: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badgeKey: 'maintenanceTotal' },
   ]
 
   // Select nav items based on role
@@ -90,13 +67,11 @@ export const MobileBottomNav = () => {
     return location.pathname.startsWith(path)
   }
 
-  const getBadgeCount = (itemId: string): number => {
-    if (itemId === 'my-tasks') return pendingTaskCount
+  const getBadgeCount = (badgeKey?: PendingCountKey): number => {
+    if (!badgeKey) return 0
+    if (badgeKey === 'tasks') return pendingTaskCount
     if (!pendingCounts) return 0
-    if (itemId === 'maintenance') return pendingCounts.maintenance
-    if (itemId === 'laundry') return pendingCounts.laundry
-    if (itemId === 'rooms') return pendingTaskCount
-    return 0
+    return (pendingCounts as PendingCounts)[badgeKey as keyof PendingCounts] || 0
   }
 
   return (
@@ -105,7 +80,7 @@ export const MobileBottomNav = () => {
         {effectiveNavItems.filter(item => hasModuleAccess(item.module)).map((item) => {
           const Icon = item.icon
           const active = isActive(item.path)
-          const badgeCount = item.badge ? getBadgeCount(item.id) : 0
+          const badgeCount = getBadgeCount(item.badgeKey)
 
           return (
             <button

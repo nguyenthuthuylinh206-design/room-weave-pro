@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { useUser } from '@/hooks/useUser'
 import { useTenant } from '@/hooks/useTenant'
 import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
+import { usePendingCounts, type PendingCounts } from '@/hooks/usePendingCounts'
 import {
   LayoutDashboard,
   Package,
@@ -51,11 +52,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { AppRole } from '@/types/database.types'
 
+type PendingCountKey = keyof PendingCounts
+
 interface NavItem {
   titleKey: string
   href?: string
   icon: React.ElementType
   badge?: string
+  badgeKey?: PendingCountKey  // Key to get count from usePendingCounts
   roles?: AppRole[]
   children?: Omit<NavItem, 'children'>[]
 }
@@ -136,6 +140,7 @@ const navigation: NavItem[] = [
   {
     titleKey: 'inventory',
     icon: Warehouse,
+    badgeKey: 'inventoryTotal',
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
     children: [
       { titleKey: 'dashboard', href: '/inventory', icon: LayoutDashboard },
@@ -143,12 +148,12 @@ const navigation: NavItem[] = [
       { titleKey: 'categories', href: '/items/categories', icon: Grid },
       { titleKey: 'addItem', href: '/items/new', icon: Plus },
       { titleKey: 'transactions', href: '/inventory/transactions', icon: List },
-      { titleKey: 'supplements', href: '/supplements', icon: Package },
+      { titleKey: 'supplements', href: '/supplements', icon: Package, badgeKey: 'supplements' },
       { titleKey: 'inbound', href: '/inventory/inbound/new', icon: ArrowDownToLine },
       { titleKey: 'outbound', href: '/inventory/outbound/new', icon: ArrowUpFromLine },
       { titleKey: 'transfer', href: '/inventory/transfer/new', icon: GitCompare },
-      { titleKey: 'adjustment', href: '/inventory/adjustments', icon: ClipboardCheck },
-      { titleKey: 'distribution', href: '/inventory/distributions', icon: Truck },
+      { titleKey: 'adjustment', href: '/inventory/adjustments', icon: ClipboardCheck, badgeKey: 'adjustments' },
+      { titleKey: 'distribution', href: '/inventory/distributions', icon: Truck, badgeKey: 'distributions' },
       { titleKey: 'warehouses', href: '/settings/warehouses', icon: Warehouse },
     ],
   },
@@ -166,10 +171,11 @@ const navigation: NavItem[] = [
   {
     titleKey: 'laundry',
     icon: Wind,
+    badgeKey: 'laundryTotal',
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
     children: [
       { titleKey: 'laundryOverview', href: '/laundry', icon: LayoutDashboard },
-      { titleKey: 'laundryRequests', href: '/laundry?tab=requests', icon: Inbox },
+      { titleKey: 'laundryRequests', href: '/laundry?tab=requests', icon: Inbox, badgeKey: 'laundryRequests' },
       { titleKey: 'laundryBatches', href: '/laundry/batches', icon: Package },
       { titleKey: 'newBatch', href: '/laundry/batches/new', icon: Plus },
       { titleKey: 'laundryVendors', href: '/laundry/vendors', icon: Building2 },
@@ -191,10 +197,11 @@ const navigation: NavItem[] = [
   {
     titleKey: 'maintenance',
     icon: Wrench,
+    badgeKey: 'maintenanceTotal',
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
     children: [
       { titleKey: 'maintenanceDashboard', href: '/maintenance', icon: LayoutDashboard },
-      { titleKey: 'maintenanceRequests', href: '/maintenance/requests', icon: AlertCircle },
+      { titleKey: 'maintenanceRequests', href: '/maintenance/requests', icon: AlertCircle, badgeKey: 'maintenance' },
       { titleKey: 'recurringIssues', href: '/maintenance/recurring-issues', icon: TrendingUp },
     ],
   },
@@ -267,6 +274,7 @@ export const Sidebar = () => {
   const { user, role, isLoading: userLoading } = useUser()
   const { tenant, isLoading: tenantLoading } = useTenant()
   const { data: modulePermissions, isLoading: permissionsLoading } = useUserModulePermissions()
+  const { data: pendingCounts } = usePendingCounts()
   const [expandedItems, setExpandedItems] = useState<string[]>(() => {
     const expanded: string[] = []
     navigation.forEach((item) => {
@@ -418,6 +426,8 @@ export const Sidebar = () => {
               (child) => child.href && currentPath.startsWith(normalizePath(child.href))
             )
 
+            const parentBadgeCount = item.badgeKey && pendingCounts ? pendingCounts[item.badgeKey] : 0
+
             return (
               <div key={item.titleKey} className="space-y-1">
                 <button
@@ -431,6 +441,11 @@ export const Sidebar = () => {
                 >
                   <Icon className="h-5 w-5 flex-shrink-0" />
                   <span className="flex-1 text-left">{title}</span>
+                  {parentBadgeCount > 0 && (
+                    <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs">
+                      {parentBadgeCount > 99 ? '99+' : parentBadgeCount}
+                    </Badge>
+                  )}
                   {item.badge && <Badge variant="secondary">{item.badge}</Badge>}
                   {isExpanded ? (
                     <ChevronDown className="h-4 w-4" />
@@ -445,6 +460,7 @@ export const Sidebar = () => {
                       const ChildIcon = child.icon
                       const isChildActive = child.href && currentPath === normalizePath(child.href)
                       const childTitle = t(child.titleKey)
+                      const childBadgeCount = child.badgeKey && pendingCounts ? pendingCounts[child.badgeKey] : 0
 
                       return (
                         <Link
@@ -458,7 +474,12 @@ export const Sidebar = () => {
                           )}
                         >
                           <ChildIcon className="h-4 w-4 flex-shrink-0" />
-                          <span>{childTitle}</span>
+                          <span className="flex-1">{childTitle}</span>
+                          {childBadgeCount > 0 && (
+                            <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs">
+                              {childBadgeCount > 99 ? '99+' : childBadgeCount}
+                            </Badge>
+                          )}
                           {child.badge && (
                             <Badge variant="secondary" className="ml-auto">
                               {child.badge}
