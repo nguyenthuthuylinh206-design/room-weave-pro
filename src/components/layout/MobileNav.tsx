@@ -23,6 +23,7 @@ interface MobileNavProps {
 const navigation = [
   { title: 'Dashboard', href: '/', icon: LayoutDashboard },
   { title: 'Kho & Tài sản', href: '/inventory', icon: Warehouse },
+  { title: 'Bổ sung đồ', href: '/supplements', icon: Package },
   { title: 'Phòng', href: '/rooms', icon: Hotel },
   { title: 'Giặt là', href: '/laundry', icon: Wind },
   { title: 'Nhân sự', href: '/staff', icon: Users },

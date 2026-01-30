@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Plus, Wind, DollarSign, Package, Star, Truck, CheckCircle } from 'lucide-react'
+import { Plus, Wind, DollarSign, Package, Star, Truck, CheckCircle, Inbox } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PullToRefresh } from '@/components/mobile/TouchOptimized'
 import { StatScrollContainer, MobileStatCard } from '@/components/mobile/MobileDashboardStats'
@@ -11,6 +11,7 @@ import { MobileLaundryExpenseChart } from '@/components/laundry/MobileLaundryExp
 import { MobileLaundryVendorPerformance } from '@/components/laundry/MobileLaundryVendorPerformance'
 import { useLaundryDashboardStats } from '@/hooks/useLaundryDashboard'
 import { useLaundryBatches } from '@/hooks/useLaundryBatches'
+import { usePendingLaundryRequestsCount } from '@/hooks/useLaundryRequests'
 import { useQueryClient } from '@tanstack/react-query'
 import { formatCurrency, formatNumber } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -30,6 +31,7 @@ export function MobileLaundryDashboard() {
   const dateLocale = i18n.language === 'vi' ? vi : enUS
   const { data: stats, isLoading: statsLoading } = useLaundryDashboardStats()
   const { data: batchesData, isLoading: batchesLoading } = useLaundryBatches({})
+  const { data: pendingRequestsCount } = usePendingLaundryRequestsCount()
 
   const activeBatches = batchesData?.batches.filter(
     b => ['delivered', 'washing', 'ready'].includes(b.status)
@@ -38,6 +40,7 @@ export function MobileLaundryDashboard() {
   const handleRefresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['laundry-dashboard-stats'] })
     await queryClient.invalidateQueries({ queryKey: ['laundry-batches'] })
+    await queryClient.invalidateQueries({ queryKey: ['laundry-requests-pending-count'] })
   }
 
   const handleQuickReceive = (batchId: string, e: React.MouseEvent) => {
@@ -58,6 +61,13 @@ export function MobileLaundryDashboard() {
       label: t('dashboard.createBatch'),
       onClick: () => navigate('/laundry/batches/new'),
       color: 'text-cyan-600 dark:text-cyan-400',
+    },
+    {
+      icon: Inbox,
+      label: 'Đồ giặt từ phòng',
+      onClick: () => navigate('/laundry?tab=requests'),
+      color: 'text-amber-600 dark:text-amber-400',
+      badge: pendingRequestsCount && pendingRequestsCount > 0 ? pendingRequestsCount : undefined,
     },
     {
       icon: Truck,
@@ -125,11 +135,21 @@ export function MobileLaundryDashboard() {
             {quickActions.map((action) => (
               <Card
                 key={action.label}
-                className="cursor-pointer active:scale-95 transition-transform"
+                className="cursor-pointer active:scale-95 transition-transform relative"
                 onClick={action.onClick}
               >
                 <CardContent className="flex flex-col items-center justify-center p-4 space-y-2">
-                  <action.icon className={`h-6 w-6 ${action.color}`} />
+                  <div className="relative">
+                    <action.icon className={`h-6 w-6 ${action.color}`} />
+                    {action.badge && (
+                      <Badge 
+                        variant="destructive" 
+                        className="absolute -top-2 -right-3 h-4 min-w-4 px-1 text-[10px]"
+                      >
+                        {action.badge}
+                      </Badge>
+                    )}
+                  </div>
                   <span className="text-xs font-medium text-center">{action.label}</span>
                 </CardContent>
               </Card>

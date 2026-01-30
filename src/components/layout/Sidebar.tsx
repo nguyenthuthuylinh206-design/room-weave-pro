@@ -41,6 +41,7 @@ import {
   Tag,
   Truck,
   BarChart3,
+  Inbox,
   CalendarDays,
   CreditCard,
   KeyRound,
@@ -142,6 +143,7 @@ const navigation: NavItem[] = [
       { titleKey: 'categories', href: '/items/categories', icon: Grid },
       { titleKey: 'addItem', href: '/items/new', icon: Plus },
       { titleKey: 'transactions', href: '/inventory/transactions', icon: List },
+      { titleKey: 'supplements', href: '/supplements', icon: Package },
       { titleKey: 'inbound', href: '/inventory/inbound/new', icon: ArrowDownToLine },
       { titleKey: 'outbound', href: '/inventory/outbound/new', icon: ArrowUpFromLine },
       { titleKey: 'transfer', href: '/inventory/transfer/new', icon: GitCompare },
@@ -167,6 +169,7 @@ const navigation: NavItem[] = [
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
     children: [
       { titleKey: 'laundryOverview', href: '/laundry', icon: LayoutDashboard },
+      { titleKey: 'laundryRequests', href: '/laundry?tab=requests', icon: Inbox },
       { titleKey: 'laundryBatches', href: '/laundry/batches', icon: Package },
       { titleKey: 'newBatch', href: '/laundry/batches/new', icon: Plus },
       { titleKey: 'laundryVendors', href: '/laundry/vendors', icon: Building2 },

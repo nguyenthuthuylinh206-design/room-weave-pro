@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { 
@@ -30,6 +30,8 @@ import {
   type LaundryRequestItem,
 } from '@/hooks/useLaundryRequests'
 import { cn } from '@/lib/utils'
+import { supabase } from '@/integrations/supabase/client'
+import { useQueryClient } from '@tanstack/react-query'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   pending: { label: 'Chờ xử lý', color: 'text-amber-600', icon: Clock },
@@ -38,12 +40,31 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof
 }
 
 export function LaundryRequestsTab() {
+  const queryClient = useQueryClient()
   const [selectedRequest, setSelectedRequest] = useState<LaundryRequest | null>(null)
   
   const { data: requests, isLoading } = useLaundryRequests({ status: 'pending' })
   const { data: pendingCount } = usePendingLaundryRequestsCount()
   const { data: draftBatch } = useDraftLaundryBatch()
   const addToBatch = useAddToDraftBatch()
+  
+  // Realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('laundry-requests-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'laundry_requests' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['laundry-requests'] })
+          queryClient.invalidateQueries({ queryKey: ['laundry-requests-pending-count'] })
+        }
+      )
+      .subscribe()
+    
+    return () => { 
+      supabase.removeChannel(channel) 
+    }
+  }, [queryClient])
   
   const handleAddToBatch = async (request: LaundryRequest) => {
     await addToBatch.mutateAsync({
