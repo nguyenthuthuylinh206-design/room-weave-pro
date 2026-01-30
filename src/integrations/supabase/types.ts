@@ -3018,6 +3018,117 @@ export type Database = {
           },
         ]
       }
+      laundry_requests: {
+        Row: {
+          added_at: string | null
+          created_at: string
+          hotel_id: string
+          id: string
+          items: Json
+          laundry_batch_id: string | null
+          notes: string | null
+          request_code: string
+          requested_by: string | null
+          room_check_id: string | null
+          room_id: string
+          status: string
+          tenant_id: string
+          total_quantity: number
+          updated_at: string
+        }
+        Insert: {
+          added_at?: string | null
+          created_at?: string
+          hotel_id: string
+          id?: string
+          items?: Json
+          laundry_batch_id?: string | null
+          notes?: string | null
+          request_code: string
+          requested_by?: string | null
+          room_check_id?: string | null
+          room_id: string
+          status?: string
+          tenant_id: string
+          total_quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          added_at?: string | null
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          items?: Json
+          laundry_batch_id?: string | null
+          notes?: string | null
+          request_code?: string
+          requested_by?: string | null
+          room_check_id?: string | null
+          room_id?: string
+          status?: string
+          tenant_id?: string
+          total_quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "laundry_requests_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "laundry_requests_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "laundry_requests_laundry_batch_id_fkey"
+            columns: ["laundry_batch_id"]
+            isOneToOne: false
+            referencedRelation: "laundry_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "laundry_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "laundry_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "laundry_requests_room_check_id_fkey"
+            columns: ["room_check_id"]
+            isOneToOne: false
+            referencedRelation: "room_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "laundry_requests_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "laundry_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       laundry_vendors: {
         Row: {
           address: string | null
@@ -5806,6 +5917,143 @@ export type Database = {
           },
         ]
       }
+      supplement_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          completed_at: string | null
+          created_at: string
+          hotel_id: string
+          id: string
+          items: Json
+          notes: string | null
+          rejection_reason: string | null
+          request_code: string
+          request_type: string
+          requested_by: string | null
+          room_check_id: string | null
+          room_id: string
+          status: string
+          tenant_id: string
+          total_value: number
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          hotel_id: string
+          id?: string
+          items?: Json
+          notes?: string | null
+          rejection_reason?: string | null
+          request_code: string
+          request_type: string
+          requested_by?: string | null
+          room_check_id?: string | null
+          room_id: string
+          status?: string
+          tenant_id: string
+          total_value?: number
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          items?: Json
+          notes?: string | null
+          rejection_reason?: string | null
+          request_code?: string
+          request_type?: string
+          requested_by?: string | null
+          room_check_id?: string | null
+          room_id?: string
+          status?: string
+          tenant_id?: string
+          total_value?: number
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplement_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplement_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplement_requests_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "supplement_requests_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplement_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplement_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplement_requests_room_check_id_fkey"
+            columns: ["room_check_id"]
+            isOneToOne: false
+            referencedRelation: "room_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplement_requests_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplement_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplement_requests_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       telegram_connections: {
         Row: {
           chat_id: string
@@ -7080,6 +7328,14 @@ export type Database = {
       }
     }
     Functions: {
+      add_laundry_to_draft_batch: {
+        Args: {
+          p_hotel_id: string
+          p_laundry_request_id: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
       apply_promo_code: {
         Args: {
           p_original_amount: number
@@ -7455,6 +7711,14 @@ export type Database = {
           }
         | { Args: { p_actor_id?: string; p_stop_id: string }; Returns: Json }
       generate_invoice_number: { Args: never; Returns: string }
+      generate_laundry_request_code: {
+        Args: { p_tenant_id: string }
+        Returns: string
+      }
+      generate_supplement_request_code: {
+        Args: { p_tenant_id: string }
+        Returns: string
+      }
       generate_unique_code: {
         Args: { column_name: string; prefix: string; table_name: string }
         Returns: string

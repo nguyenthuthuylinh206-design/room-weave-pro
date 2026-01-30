@@ -63,8 +63,10 @@ export interface DamagedItem {
   item_id: string
   item_name: string
   item_code?: string
+  item_type?: 'linen' | 'consumable' | 'equipment' | 'furniture'
   quantity: number
   damage_type: 'repairable' | 'replacement_needed'
+  damage_level?: 'minor' | 'moderate' | 'major' | 'critical'
   damage_cost: number
   notes?: string
   photos?: string[]
