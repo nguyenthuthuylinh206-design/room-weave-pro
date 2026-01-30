@@ -13,6 +13,7 @@ import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
 import { MainLayout } from "@/components/layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import { InventoryDashboardPage } from "./pages/inventory/InventoryDashboardPage";
+import { SupplementsPage } from "./pages/supplements/SupplementsPage";
 import { TransactionListPage } from "./pages/inventory/TransactionListPage";
 import { InboundPage } from "./pages/inventory/InboundPage";
 import { OutboundPage } from "./pages/inventory/OutboundPage";
@@ -442,6 +443,16 @@ const router = createBrowserRouter([
         element: (
           <PermissionRoute module="rooms">
             <RoomStandardsPage />
+          </PermissionRoute>
+        )
+      },
+
+      // Supplements - Permission Based
+      { 
+        path: "supplements", 
+        element: (
+          <PermissionRoute module="inventory">
+            <SupplementsPage />
           </PermissionRoute>
         )
       },

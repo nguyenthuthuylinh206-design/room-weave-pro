@@ -316,19 +316,54 @@ async function processCheckoutCheck(params: {
       .eq('id', roomId)
   }
   
-  // 7. Send supplement alert if items were consumed/lost
+  // 7. Create automated requests for supplements, laundry, and maintenance
   const hasConsumedOrLost = (data.items_consumed?.length || 0) > 0 || (data.items_lost?.length || 0) > 0
-  if (hasConsumedOrLost && tenantId && userId) {
-    await sendSupplementAlert({
-      roomId,
-      roomNumber,
-      tenantId,
-      hotelId,
-      userId,
-      userName: userName || 'Nhân viên',
-      consumedItems: data.items_consumed || [],
-      lostItems: data.items_lost || [],
-    })
+  const hasLaundry = (data.items_sent_to_laundry?.length || 0) > 0
+  const hasDamaged = (data.items_damaged?.length || 0) > 0
+  
+  if (tenantId && userId) {
+    // Create supplement request for consumed/lost items
+    if (hasConsumedOrLost) {
+      await createSupplementRequestFromCheck({
+        roomId,
+        roomNumber,
+        tenantId,
+        hotelId,
+        userId,
+        userName: userName || 'Nhân viên',
+        checkId,
+        consumedItems: data.items_consumed || [],
+        lostItems: data.items_lost || [],
+      })
+    }
+    
+    // Create laundry request and auto-add to draft batch
+    if (hasLaundry) {
+      await createLaundryRequestFromCheck({
+        roomId,
+        roomNumber,
+        tenantId,
+        hotelId,
+        userId,
+        userName: userName || 'Nhân viên',
+        checkId,
+        laundryItems: data.items_sent_to_laundry || [],
+      })
+    }
+    
+    // Create maintenance requests for damaged equipment/furniture
+    if (hasDamaged) {
+      await createMaintenanceForDamagedItems({
+        roomId,
+        roomNumber,
+        tenantId,
+        hotelId,
+        userId,
+        userName: userName || 'Nhân viên',
+        checkId,
+        damagedItems: data.items_damaged || [],
+      })
+    }
   }
   
   return { quantityChanges, needsCleaning }
@@ -1083,27 +1118,109 @@ async function sendCleaningRequestNotifications(params: {
   console.log('[useRoomChecks] Cleaning request notifications sent for room', roomNumber)
 }
 
-// ===== SUPPLEMENT ALERT (After checkout with consumed/lost items) =====
+// ===== AUTO-CREATE SUPPLEMENT REQUEST (After checkout with consumed/lost items) =====
 
-async function sendSupplementAlert(params: {
+async function createSupplementRequestFromCheck(params: {
   roomId: string
   roomNumber: string
   tenantId: string
   hotelId: string
   userId: string
   userName: string
+  checkId: string
   consumedItems: ConsumedItem[]
   lostItems: LostItem[]
 }) {
-  const { roomId, roomNumber, tenantId, hotelId, userId, userName, consumedItems, lostItems } = params
+  const { roomId, roomNumber, tenantId, hotelId, userId, userName, checkId, consumedItems, lostItems } = params
   
-  const totalConsumed = consumedItems.reduce((sum, item) => sum + item.quantity, 0)
-  const totalLost = lostItems.reduce((sum, item) => sum + item.quantity, 0)
-  const totalItems = totalConsumed + totalLost
+  // Combine consumed and lost items
+  const allItems: { item_id: string; item_name: string; item_code?: string; quantity: number; unit_price: number; type: string }[] = []
   
-  if (totalItems === 0) return
+  for (const item of consumedItems) {
+    allItems.push({
+      item_id: item.item_id,
+      item_name: item.item_name,
+      item_code: item.item_code,
+      quantity: item.quantity,
+      unit_price: 0, // Will be fetched from items table
+      type: 'consumed',
+    })
+  }
   
-  // Get warehouse managers (or fallback to general managers)
+  for (const item of lostItems) {
+    allItems.push({
+      item_id: item.item_id,
+      item_name: item.item_name,
+      item_code: item.item_code,
+      quantity: item.quantity,
+      unit_price: 0,
+      type: 'lost',
+    })
+  }
+  
+  if (allItems.length === 0) return null
+  
+  // Fetch unit prices for all items
+  const itemIds = allItems.map(i => i.item_id)
+  const { data: itemPrices } = await supabase
+    .from('items')
+    .select('id, unit_price')
+    .in('id', itemIds)
+  
+  const priceMap = new Map((itemPrices || []).map(i => [i.id, i.unit_price || 0]))
+  
+  const itemsWithPrices = allItems.map(item => ({
+    item_id: item.item_id,
+    item_name: item.item_name,
+    item_code: item.item_code,
+    quantity: item.quantity,
+    unit_price: priceMap.get(item.item_id) || 0,
+  }))
+  
+  // Calculate total value
+  const totalValue = itemsWithPrices.reduce(
+    (sum, item) => sum + (item.quantity * item.unit_price),
+    0
+  )
+  
+  // Determine request type
+  const hasConsumed = consumedItems.length > 0
+  const hasLost = lostItems.length > 0
+  const requestType = hasConsumed && hasLost ? 'mixed' : hasConsumed ? 'consumed' : 'lost'
+  
+  // Generate request code
+  const { data: codeResult } = await supabase
+    .rpc('generate_supplement_request_code', { p_tenant_id: tenantId })
+  
+  const requestCode = codeResult || `SUP-${Date.now()}`
+  
+  // Create supplement request
+  const { data: request, error } = await supabase
+    .from('supplement_requests')
+    .insert([{
+      tenant_id: tenantId,
+      hotel_id: hotelId,
+      room_id: roomId,
+      room_check_id: checkId,
+      request_code: requestCode,
+      request_type: requestType,
+      items: itemsWithPrices as any,
+      total_value: totalValue,
+      requested_by: userId,
+      notes: `Tự động tạo từ kiểm tra checkout phòng ${roomNumber}`,
+      status: 'pending',
+    }])
+    .select()
+    .single()
+  
+  if (error) {
+    console.error('[useRoomChecks] Error creating supplement request:', error)
+    return null
+  }
+  
+  console.log('[useRoomChecks] Created supplement request:', request?.request_code)
+  
+  // Send notification with link to new supplements page
   const managers = await getNotificationRecipients({
     tenantId,
     hotelId,
@@ -1115,59 +1232,300 @@ async function sendSupplementAlert(params: {
     ? managers.map(m => m.id)
     : userId ? [userId] : []
   
-  if (recipientIds.length === 0) return
-  
-  // Build summary of items
-  const itemSummary: string[] = []
-  for (const item of consumedItems) {
-    itemSummary.push(`${item.item_name}: ${item.quantity} (tiêu hao)`)
+  if (recipientIds.length > 0) {
+    const itemSummary = itemsWithPrices.slice(0, 3).map(i => `${i.item_name}: ${i.quantity}`).join(', ')
+    const notificationTitle = `📦 Yêu cầu bổ sung - Phòng ${roomNumber}`
+    const notificationBody = `${userName}: ${itemSummary}${itemsWithPrices.length > 3 ? ` +${itemsWithPrices.length - 3} khác` : ''} | ${new Intl.NumberFormat('vi-VN').format(totalValue)}đ`
+    const actionUrl = `/supplements?request=${request?.id}`
+    
+    await Promise.allSettled([
+      createMultipleNotifications({
+        recipientIds,
+        tenantId,
+        title: notificationTitle,
+        body: notificationBody,
+        type: 'info',
+        actionUrl,
+        metadata: {
+          room_id: roomId,
+          request_id: request?.id,
+          request_code: requestCode,
+          total_value: totalValue,
+        },
+      }),
+      sendMultiplePushNotifications({
+        recipientIds,
+        tenantId,
+        title: notificationTitle,
+        body: notificationBody,
+        actionUrl,
+        notificationType: 'info',
+      }),
+      sendTelegramNotification({
+        tenantId,
+        hotelId,
+        notificationTypeFilter: 'inventory',
+        sendToManagementGroups: true,
+        title: notificationTitle,
+        message: notificationBody,
+        notificationType: 'inventory',
+        actionUrl,
+      }),
+    ])
   }
-  for (const item of lostItems) {
-    itemSummary.push(`${item.item_name}: ${item.quantity} (mất)`)
+  
+  return request
+}
+
+// ===== AUTO-CREATE LAUNDRY REQUEST (After checkout with laundry items) =====
+
+async function createLaundryRequestFromCheck(params: {
+  roomId: string
+  roomNumber: string
+  tenantId: string
+  hotelId: string
+  userId: string
+  userName: string
+  checkId: string
+  laundryItems: LaundryItem[]
+}) {
+  const { roomId, roomNumber, tenantId, hotelId, userId, userName, checkId, laundryItems } = params
+  
+  if (laundryItems.length === 0) return null
+  
+  const items = laundryItems.map(item => ({
+    item_id: item.item_id,
+    item_name: item.item_name,
+    item_code: item.item_code,
+    quantity: item.quantity,
+  }))
+  
+  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
+  
+  // Generate request code
+  const { data: codeResult } = await supabase
+    .rpc('generate_laundry_request_code', { p_tenant_id: tenantId })
+  
+  const requestCode = codeResult || `LRQ-${Date.now()}`
+  
+  // Create laundry request
+  const { data: request, error } = await supabase
+    .from('laundry_requests')
+    .insert([{
+      tenant_id: tenantId,
+      hotel_id: hotelId,
+      room_id: roomId,
+      room_check_id: checkId,
+      request_code: requestCode,
+      items: items as any,
+      total_quantity: totalQuantity,
+      requested_by: userId,
+      notes: `Tự động tạo từ kiểm tra checkout phòng ${roomNumber}`,
+      status: 'pending',
+    }])
+    .select()
+    .single()
+  
+  if (error) {
+    console.error('[useRoomChecks] Error creating laundry request:', error)
+    return null
   }
   
-  const notificationTitle = `📦 Phòng ${roomNumber} cần bổ sung đồ dùng`
-  const notificationBody = `${userName} báo: ${itemSummary.slice(0, 3).join(', ')}${itemSummary.length > 3 ? ` +${itemSummary.length - 3} khác` : ''}`
-  const actionUrl = `/distribution?room=${roomId}&action=supplement`
+  console.log('[useRoomChecks] Created laundry request:', request?.request_code)
   
-  await Promise.allSettled([
-    // In-app notifications
-    createMultipleNotifications({
-      recipientIds,
-      tenantId,
-      title: notificationTitle,
-      body: notificationBody,
-      type: 'info',
-      actionUrl,
-      metadata: {
+  // Auto-add to draft batch
+  try {
+    await supabase.rpc('add_laundry_to_draft_batch', {
+      p_tenant_id: tenantId,
+      p_hotel_id: hotelId,
+      p_laundry_request_id: request?.id,
+    })
+    console.log('[useRoomChecks] Auto-added laundry request to draft batch')
+  } catch (err) {
+    console.error('[useRoomChecks] Error auto-adding to batch:', err)
+  }
+  
+  // Send notification
+  const managers = await getNotificationRecipients({
+    tenantId,
+    hotelId,
+    targetRoles: ['manager'],
+    excludeUserId: userId,
+  })
+  
+  const recipientIds = managers.length > 0 
+    ? managers.map(m => m.id)
+    : userId ? [userId] : []
+  
+  if (recipientIds.length > 0) {
+    const itemSummary = items.slice(0, 3).map(i => `${i.item_name}: ${i.quantity}`).join(', ')
+    const notificationTitle = `🧺 Đồ giặt từ phòng ${roomNumber}`
+    const notificationBody = `${userName}: ${itemSummary}${items.length > 3 ? ` +${items.length - 3} khác` : ''} | Tổng: ${totalQuantity} món`
+    const actionUrl = `/laundry?tab=requests`
+    
+    await Promise.allSettled([
+      createMultipleNotifications({
+        recipientIds,
+        tenantId,
+        title: notificationTitle,
+        body: notificationBody,
+        type: 'info',
+        actionUrl,
+        metadata: {
+          room_id: roomId,
+          request_id: request?.id,
+          request_code: requestCode,
+          total_quantity: totalQuantity,
+        },
+      }),
+      sendMultiplePushNotifications({
+        recipientIds,
+        tenantId,
+        title: notificationTitle,
+        body: notificationBody,
+        actionUrl,
+        notificationType: 'info',
+      }),
+      sendTelegramNotification({
+        tenantId,
+        hotelId,
+        notificationTypeFilter: 'laundry',
+        sendToManagementGroups: true,
+        title: notificationTitle,
+        message: notificationBody,
+        notificationType: 'laundry',
+        actionUrl,
+      }),
+    ])
+  }
+  
+  return request
+}
+
+// ===== AUTO-CREATE MAINTENANCE REQUEST (For damaged equipment/furniture) =====
+
+async function createMaintenanceForDamagedItems(params: {
+  roomId: string
+  roomNumber: string
+  tenantId: string
+  hotelId: string
+  userId: string
+  userName: string
+  checkId: string
+  damagedItems: DamagedItem[]
+}) {
+  const { roomId, roomNumber, tenantId, hotelId, userId, userName, checkId, damagedItems } = params
+  
+  // Only create maintenance for equipment and furniture
+  const equipmentTypes = ['equipment', 'furniture']
+  const maintenanceItems = damagedItems.filter(item => 
+    equipmentTypes.includes(item.item_type || '')
+  )
+  
+  if (maintenanceItems.length === 0) return []
+  
+  const createdRequests: any[] = []
+  
+  for (const item of maintenanceItems) {
+    // Generate request code
+    const now = new Date()
+    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
+    const random = Math.floor(1000 + Math.random() * 9000)
+    const requestCode = `MNT-${dateStr}-${random}`
+    
+    // Determine priority based on damage level
+    const priorityMap: Record<string, string> = {
+      'minor': 'low',
+      'moderate': 'medium',
+      'major': 'high',
+      'critical': 'urgent',
+    }
+    const priority = priorityMap[item.damage_level || 'moderate'] || 'medium'
+    
+    const { data: request, error } = await supabase
+      .from('maintenance_requests')
+      .insert({
+        tenant_id: tenantId,
+        hotel_id: hotelId,
         room_id: roomId,
-        consumed_count: consumedItems.length,
-        lost_count: lostItems.length,
-        total_quantity: totalItems,
-        items: itemSummary,
-      },
-    }),
-    // Push notifications
-    sendMultiplePushNotifications({
-      recipientIds,
-      tenantId,
-      title: notificationTitle,
-      body: notificationBody,
-      actionUrl,
-      notificationType: 'info',
-    }),
-    // Telegram notification
-    sendTelegramNotification({
+        item_id: item.item_id,
+        request_code: requestCode,
+        location: `Phòng ${roomNumber}`,
+        issue_type: 'repair',
+        priority: priority,
+        title: `Sửa chữa ${item.item_name} - Phòng ${roomNumber}`,
+        description: `${item.item_name} bị hỏng. ${item.notes ? `Ghi chú: ${item.notes}` : ''}`.trim(),
+        reported_by: userId,
+        reported_at: new Date().toISOString(),
+        status: 'waiting',
+        notes: `Tự động tạo từ kiểm tra checkout. Room check ID: ${checkId}`,
+      })
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('[useRoomChecks] Error creating maintenance request:', error)
+      continue
+    }
+    
+    createdRequests.push(request)
+    console.log('[useRoomChecks] Created maintenance request:', request?.request_code)
+  }
+  
+  // Send summary notification if any requests were created
+  if (createdRequests.length > 0) {
+    const managers = await getNotificationRecipients({
       tenantId,
       hotelId,
-      notificationTypeFilter: 'inventory',
-      sendToManagementGroups: true,
-      title: notificationTitle,
-      message: notificationBody,
-      notificationType: 'inventory',
-      actionUrl,
-    }),
-  ])
+      targetRoles: ['manager'],
+      excludeUserId: userId,
+    })
+    
+    const recipientIds = managers.length > 0 
+      ? managers.map(m => m.id)
+      : userId ? [userId] : []
+    
+    if (recipientIds.length > 0) {
+      const itemNames = maintenanceItems.map(i => i.item_name).join(', ')
+      const notificationTitle = `🔧 Yêu cầu bảo trì - Phòng ${roomNumber}`
+      const notificationBody = `${createdRequests.length} thiết bị cần sửa: ${itemNames}`
+      const actionUrl = `/maintenance`
+      
+      await Promise.allSettled([
+        createMultipleNotifications({
+          recipientIds,
+          tenantId,
+          title: notificationTitle,
+          body: notificationBody,
+          type: 'warning',
+          actionUrl,
+          metadata: {
+            room_id: roomId,
+            request_count: createdRequests.length,
+            request_ids: createdRequests.map(r => r.id),
+          },
+        }),
+        sendMultiplePushNotifications({
+          recipientIds,
+          tenantId,
+          title: notificationTitle,
+          body: notificationBody,
+          actionUrl,
+          notificationType: 'warning',
+        }),
+        sendTelegramNotification({
+          tenantId,
+          hotelId,
+          notificationTypeFilter: 'maintenance',
+          sendToManagementGroups: true,
+          title: notificationTitle,
+          message: notificationBody,
+          notificationType: 'maintenance',
+          actionUrl,
+        }),
+      ])
+    }
+  }
   
-  console.log('[useRoomChecks] Supplement alert sent for room', roomNumber, '- Total items:', totalItems)
+  return createdRequests
 }
