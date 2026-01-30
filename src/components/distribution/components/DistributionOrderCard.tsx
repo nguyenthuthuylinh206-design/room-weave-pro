@@ -1,7 +1,7 @@
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { Progress } from '@/components/ui/progress'
-import { OrderStatusBadge } from './DistributionStatusBadge'
+import { OrderStatusText } from './DistributionStatusBadge'
 import type { DistributionOrder } from '@/types/distribution.types'
 
 interface DistributionOrderCardProps {
@@ -16,32 +16,35 @@ export function DistributionOrderCard({ order, onClick }: DistributionOrderCardP
 
   return (
     <div 
-      className="border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors space-y-2"
+      className="border-b py-2.5 px-3 cursor-pointer hover:bg-muted/30 transition-colors"
       onClick={onClick}
     >
-      <div className="flex items-center justify-between">
-        <span className="font-mono font-medium text-sm">{order.order_code}</span>
-        <OrderStatusBadge status={order.status} />
+      {/* Row 1: Code, rooms, items, status */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="font-mono font-medium text-sm">{order.order_code}</span>
+          <span className="text-xs text-muted-foreground">
+            {order.rooms_completed}/{order.total_rooms} phòng
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {order.total_items} SP
+          </span>
+        </div>
+        <OrderStatusText status={order.status} />
       </div>
       
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        <div>
-          <span className="text-muted-foreground">Phòng:</span>{' '}
-          <span className="font-medium">{order.rooms_completed}/{order.total_rooms}</span>
-        </div>
-        <div>
-          <span className="text-muted-foreground">Sản phẩm:</span>{' '}
-          <span className="font-medium">{order.total_items}</span>
-        </div>
-      </div>
-
-      {order.status === 'in_progress' && (
-        <Progress value={progress} className="h-1.5" />
-      )}
-
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{order.assigned_to_name || 'Chưa phân công'}</span>
-        <span>{format(new Date(order.created_at), 'dd/MM HH:mm', { locale: vi })}</span>
+      {/* Row 2: Assignee, date, progress */}
+      <div className="flex items-center justify-between gap-2 mt-1">
+        <span className="text-xs text-muted-foreground truncate">
+          {order.assigned_to_name || 'Chưa phân công'} • {format(new Date(order.created_at), 'dd/MM HH:mm', { locale: vi })}
+        </span>
+        
+        {order.status === 'in_progress' && (
+          <div className="flex items-center gap-1.5">
+            <Progress value={progress} className="w-12 h-1" />
+            <span className="text-[10px] text-muted-foreground w-7">{progress}%</span>
+          </div>
+        )}
       </div>
     </div>
   )

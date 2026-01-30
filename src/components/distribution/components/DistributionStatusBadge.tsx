@@ -1,17 +1,19 @@
 import { Clock, Truck, CheckCircle, XCircle, PackageCheck } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import type { DistributionOrderStatus, DistributionRoomStatus } from '@/types/distribution.types'
 
 const ORDER_STATUS_CONFIG: Record<DistributionOrderStatus, { 
   label: string
   variant: 'default' | 'secondary' | 'destructive' | 'outline'
   icon: typeof Clock 
+  textClass: string
 }> = {
-  pending: { label: 'Chờ giao', variant: 'outline', icon: Clock },
-  released: { label: 'Đã giao cho NV', variant: 'secondary', icon: PackageCheck },
-  in_progress: { label: 'Đang giao', variant: 'default', icon: Truck },
-  completed: { label: 'Hoàn thành', variant: 'secondary', icon: CheckCircle },
-  cancelled: { label: 'Đã hủy', variant: 'destructive', icon: XCircle },
+  pending: { label: 'Chờ giao', variant: 'outline', icon: Clock, textClass: 'text-muted-foreground' },
+  released: { label: 'Đã giao NV', variant: 'secondary', icon: PackageCheck, textClass: 'text-blue-600 dark:text-blue-400' },
+  in_progress: { label: 'Đang giao', variant: 'default', icon: Truck, textClass: 'text-amber-600 dark:text-amber-400' },
+  completed: { label: 'Hoàn thành', variant: 'secondary', icon: CheckCircle, textClass: 'text-green-600 dark:text-green-400' },
+  cancelled: { label: 'Đã hủy', variant: 'destructive', icon: XCircle, textClass: 'text-red-600 dark:text-red-400' },
 }
 
 const ROOM_STATUS_CONFIG: Record<DistributionRoomStatus, { 
@@ -40,6 +42,27 @@ export function OrderStatusBadge({ status, showIcon = true }: OrderStatusBadgePr
       {showIcon && <Icon className="h-3 w-3 mr-1" />}
       {config.label}
     </Badge>
+  )
+}
+
+// Text-only status display (minimalist design)
+interface OrderStatusTextProps {
+  status: DistributionOrderStatus
+  showIcon?: boolean
+  className?: string
+}
+
+export function OrderStatusText({ status, showIcon = true, className }: OrderStatusTextProps) {
+  const config = ORDER_STATUS_CONFIG[status]
+  if (!config) return null
+  
+  const Icon = config.icon
+  
+  return (
+    <span className={cn('inline-flex items-center gap-1 text-xs font-medium', config.textClass, className)}>
+      {showIcon && <Icon className="h-3 w-3" />}
+      {config.label}
+    </span>
   )
 }
 
