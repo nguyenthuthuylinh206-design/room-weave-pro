@@ -63,7 +63,7 @@ export function SupplementsPage() {
   })
   
   const { data: requests, isLoading } = useSupplementRequests({
-    status: filters.status || undefined,
+    status: filters.status && filters.status !== 'all' ? filters.status : undefined,
     search: filters.search || undefined,
   })
   

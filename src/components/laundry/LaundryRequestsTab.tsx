@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { 
@@ -40,6 +41,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof
 }
 
 export function LaundryRequestsTab() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [selectedRequest, setSelectedRequest] = useState<LaundryRequest | null>(null)
   
@@ -111,7 +113,7 @@ export function LaundryRequestsTab() {
                 size="sm" 
                 variant="outline"
                 className="border-blue-300 text-blue-700"
-                onClick={() => window.location.href = `/laundry/batches/${draftBatch.id}`}
+                onClick={() => navigate(`/laundry/batches/${draftBatch.id}`)}
               >
                 Xem lô giặt
               </Button>
