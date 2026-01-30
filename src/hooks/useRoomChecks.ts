@@ -49,6 +49,7 @@ function generateTransactionCode(prefix: string): string {
 
 // ===== DAILY CHECK LOGIC =====
 // Chỉ update room_items (laundry, change), không tạo inventory transaction
+// Nếu có đồ gửi giặt → tự động tạo laundry_request
 async function processDailyCheck(params: {
   roomId: string
   data: RoomCheckFormData
@@ -56,8 +57,10 @@ async function processDailyCheck(params: {
   tenantId?: string
   hotelId: string
   roomNumber: string
+  checkId?: string      // Thêm mới: để liên kết với laundry request
+  userName?: string     // Thêm mới: hiển thị người tạo request
 }) {
-  const { roomId, data, userId } = params
+  const { roomId, data, userId, tenantId, hotelId, roomNumber, checkId, userName } = params
   const quantityChanges: Record<string, number> = {}
   
   // 1. Đồ gửi giặt (change action) → Giảm quantity trong room_items
@@ -79,6 +82,21 @@ async function processDailyCheck(params: {
   
   // Apply quantity changes to room_items
   await applyRoomItemChanges(roomId, quantityChanges, userId)
+  
+  // 3. Auto-create laundry request nếu có đồ gửi giặt
+  const hasLaundry = laundryItems.length > 0
+  if (hasLaundry && tenantId && userId && checkId) {
+    await createLaundryRequestFromCheck({
+      roomId,
+      roomNumber,
+      tenantId,
+      hotelId,
+      userId,
+      userName: userName || 'Nhân viên',
+      checkId,
+      laundryItems,
+    })
+  }
   
   return { quantityChanges }
 }
@@ -747,8 +765,12 @@ export function useCreateRoomCheck() {
 
       switch (data.check_type) {
         case 'daily':
-          // Daily: Chỉ update room_items (laundry/change)
-          await processDailyCheck(baseParams)
+          // Daily: Update room_items + auto-create laundry request nếu có
+          await processDailyCheck({
+            ...baseParams,
+            checkId: check.id,
+            userName: user?.full_name || 'Nhân viên',
+          })
           break
 
         case 'checkin':
