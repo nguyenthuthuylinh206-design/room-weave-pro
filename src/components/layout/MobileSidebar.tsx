@@ -30,18 +30,19 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useUser } from '@/hooks/useUser'
 import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
 import { useHotelContext } from '@/contexts/HotelContext'
-import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { usePendingCounts, type PendingCounts } from '@/hooks/usePendingCounts'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 import { useToast } from '@/hooks/use-toast'
 import { InstallGuideSheet } from '@/components/pwa/InstallGuideSheet'
+
+type PendingCountKey = keyof PendingCounts
 
 interface MenuItem {
   title: string
   icon: typeof Home
   path: string
   module?: string
-  badge?: string
+  badgeKey?: PendingCountKey
 }
 
 interface MenuSection {
@@ -63,6 +64,7 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
   const { canInstall, installPWA, isInstalled } = usePWAInstall()
   const { toast } = useToast()
   const [showInstallGuide, setShowInstallGuide] = useState(false)
+  const { data: pendingCounts } = usePendingCounts()
 
   // Handle PWA install
   const handleInstallApp = async () => {
@@ -89,31 +91,6 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
       setShowInstallGuide(true)
     }
   }
-
-  // Get pending counts
-  const { data: pendingCounts } = useQuery({
-    queryKey: ['pending-counts', tenantId],
-    queryFn: async () => {
-      const [maintenance, laundry] = await Promise.all([
-        supabase
-          .from('maintenance_requests')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', tenantId!)
-          .eq('status', 'pending'),
-        supabase
-          .from('laundry_batches')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', tenantId!)
-          .eq('status', 'in_progress')
-      ])
-      return {
-        maintenance: maintenance.count || 0,
-        laundry: laundry.count || 0
-      }
-    },
-    enabled: !!tenantId,
-    refetchInterval: 30000
-  })
 
   // Owner-specific menu (strategic focus)
   const ownerMenuSections: MenuSection[] = [
@@ -159,10 +136,10 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
     {
       title: 'Vận hành',
       items: [
-        { title: 'Kho & Tài sản', icon: Package, path: '/inventory', module: 'inventory,items' },
+        { title: 'Kho & Tài sản', icon: Package, path: '/inventory', module: 'inventory,items', badgeKey: 'inventoryTotal' },
         { title: 'Phòng', icon: DoorOpen, path: '/rooms', module: 'rooms' },
-        { title: 'Laundry', icon: Shirt, path: '/laundry', module: 'laundry', badge: 'laundry' },
-        { title: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badge: 'maintenance' },
+        { title: 'Laundry', icon: Shirt, path: '/laundry', module: 'laundry', badgeKey: 'laundryTotal' },
+        { title: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badgeKey: 'maintenanceTotal' },
         { title: 'Đơn mua hàng', icon: ShoppingCart, path: '/purchase-orders', module: 'purchase_orders' },
       ]
     },
@@ -219,11 +196,9 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
     return location.pathname.startsWith(path)
   }
 
-  const getBadgeCount = (badgeType?: string): number => {
-    if (!badgeType || !pendingCounts) return 0
-    if (badgeType === 'maintenance') return pendingCounts.maintenance
-    if (badgeType === 'laundry') return pendingCounts.laundry
-    return 0
+  const getBadgeCount = (badgeKey?: PendingCountKey): number => {
+    if (!badgeKey || !pendingCounts) return 0
+    return pendingCounts[badgeKey] || 0
   }
 
   return (
@@ -290,35 +265,36 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
                   .map((item) => {
                     const Icon = item.icon
                     const active = isActive(item.path)
+                    const badgeCount = getBadgeCount(item.badgeKey)
 
-                  return (
-                    <button
-                      key={item.path}
-                      onClick={() => handleNavigation(item.path)}
-                      className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg",
-                        "transition-colors duration-200",
-                        "hover:bg-accent",
-                        "active:scale-98",
-                        active && "bg-accent text-accent-foreground font-medium"
-                      )}
-                    >
-                      <Icon className={cn(
-                        "h-5 w-5 flex-shrink-0",
-                        active ? "text-primary" : "text-muted-foreground"
-                      )} />
-                      <span className="flex-1 text-left">{item.title}</span>
-                      {item.badge && getBadgeCount(item.badge) > 0 && (
-                        <Badge variant="destructive" className="ml-auto">
-                          {getBadgeCount(item.badge)}
-                        </Badge>
-                      )}
-                      {active && (
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r" />
-                      )}
-                    </button>
-                  )
-                })}
+                    return (
+                      <button
+                        key={item.path}
+                        onClick={() => handleNavigation(item.path)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg relative",
+                          "transition-colors duration-200",
+                          "hover:bg-accent",
+                          "active:scale-98",
+                          active && "bg-accent text-accent-foreground font-medium"
+                        )}
+                      >
+                        <Icon className={cn(
+                          "h-5 w-5 flex-shrink-0",
+                          active ? "text-primary" : "text-muted-foreground"
+                        )} />
+                        <span className="flex-1 text-left">{item.title}</span>
+                        {badgeCount > 0 && (
+                          <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs">
+                            {badgeCount > 99 ? '99+' : badgeCount}
+                          </Badge>
+                        )}
+                        {active && (
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r" />
+                        )}
+                      </button>
+                    )
+                  })}
               </div>
             </div>
           ))}
