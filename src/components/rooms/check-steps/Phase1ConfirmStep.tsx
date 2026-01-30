@@ -16,6 +16,7 @@ interface Phase1ConfirmStepProps {
   roomNumber: string
   guestName?: string
   onSubmitPhase1: () => Promise<void>
+  onContinue: () => void
   isSubmitting: boolean
   phase1Submitted: boolean
 }
@@ -27,6 +28,7 @@ export function Phase1ConfirmStep({
   roomNumber,
   guestName,
   onSubmitPhase1,
+  onContinue,
   isSubmitting,
   phase1Submitted,
 }: Phase1ConfirmStepProps) {
@@ -59,9 +61,9 @@ export function Phase1ConfirmStep({
         </Alert>
         
         <div className="flex justify-center">
-          <Button variant="outline" className="gap-2">
+          <Button type="button" variant="outline" className="gap-2" onClick={onContinue}>
             <ChevronRight className="h-4 w-4" />
-            Tiếp tục kiểm tra
+            Tiếp tục kiểm tra đồ bổ sung
           </Button>
         </div>
       </div>
