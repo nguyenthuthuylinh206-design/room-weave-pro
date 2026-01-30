@@ -1,288 +1,121 @@
 
 
-## Quy trình hoàn chỉnh: Báo cáo đồ thiếu → Tạo phiếu giao hàng → Giao việc cho nhân viên
+## Kế hoạch: Thêm Badge đếm công việc cần xử lý cho các danh mục
 
-### Hiểu đúng quy trình nghiệp vụ
+### Mục tiêu
+Hiển thị số lượng công việc pending (màu đỏ) trên các danh mục navigation để user biết ngay cần xử lý những gì.
 
-Bạn hoàn toàn đúng! Flow logic phải là:
+### Các danh mục cần đếm
 
-```text
-Room Check phát hiện đồ thiếu
-          ↓
-Tạo Supplement Request (yêu cầu bổ sung)
-          ↓
-Manager/Supervisor xem xét & duyệt
-          ↓
-Tạo Distribution Order (phiếu giao hàng) với các item cần bổ sung
-          ↓
-Gán nhân viên thực hiện giao hàng
-          ↓
-Nhân viên lấy đồ từ kho → Giao đến phòng
-          ↓
-Xác nhận giao hàng hoàn thành
-          ↓
-Supplement Request chuyển sang "Completed"
-```
+| Danh mục | Điều kiện đếm | Hook hiện có |
+|----------|---------------|--------------|
+| **Bổ sung đồ** (`/supplements`) | `status = 'pending'` | ✅ `usePendingSupplementRequestCount` |
+| **Yêu cầu giặt** (`/laundry?tab=requests`) | `status = 'pending'` | ✅ `usePendingLaundryRequestsCount` |
+| **Phiếu giao hàng** (`/inventory/distributions`) | `status IN ('pending', 'in_progress')` | ❌ Cần tạo mới |
+| **Bảo trì** (`/maintenance`) | `status IN ('pending', 'waiting')` | ✅ Có trong `pending-counts` query |
+| **Điều chỉnh kho** (`/inventory/adjustments`) | `status = 'pending'` | ✅ `usePendingAdjustmentsCount` |
+| **Housekeeping Tasks** (`/my-tasks`) | `status IN ('pending', 'assigned')` | ✅ `usePendingTaskCount` |
 
-### So sánh với hệ thống hiện tại
+### Chi tiết triển khai
 
-| Bước | Hiện tại | Cần sửa |
-|------|----------|---------|
-| 1. Tạo request | ✅ Có | - |
-| 2. Duyệt request | ✅ Có nhưng lỗi logic | Duyệt = tạo Distribution Order |
-| 3. Tạo Distribution Order | ❌ Chưa có | **Thêm mới** |
-| 4. Gán nhân viên | ❌ Chưa có | **Thêm mới** |
-| 5. Giao hàng | ✅ Có (Distribution system) | Tái sử dụng |
-| 6. Hoàn thành | ❌ Thiếu liên kết | **Thêm mới** |
+#### Bước 1: Tạo hook tập trung `usePendingCounts`
+**File mới:** `src/hooks/usePendingCounts.ts`
 
----
-
-### Kế hoạch triển khai
-
-#### Phase 1: Sửa flow "Duyệt yêu cầu bổ sung"
-
-##### 1.1 Thay thế nút "Duyệt & Xuất kho" → "Duyệt & Tạo phiếu giao"
-
-**File:** `src/components/supplements/SupplementRequestSheet.tsx`
-
-**Logic mới:**
-1. Khi duyệt, KHÔNG tạo outbound transaction trực tiếp
-2. Thay vào đó, tạo Distribution Order với:
-   - `rooms`: 1 phòng (room_id từ request)
-   - `items`: danh sách items từ request
-   - `notes`: link tới supplement request
-3. Cập nhật `supplement_request.status = 'approved'` 
-4. Lưu `distribution_order_id` vào `supplement_request` (cần thêm column)
-
-##### 1.2 Thêm column mới vào database
-
-```sql
-ALTER TABLE supplement_requests 
-ADD COLUMN distribution_order_id uuid REFERENCES distribution_orders(id);
-```
-
-##### 1.3 Dialog chọn nhân viên giao hàng
-
-Khi duyệt, hiển thị dialog cho phép:
-- Xem danh sách items cần giao
-- Chọn nhân viên thực hiện (dropdown)
-- Xác nhận tạo phiếu giao
-
-```text
-┌─────────────────────────────────────────────────┐
-│   Duyệt & Tạo phiếu giao hàng                   │
-├─────────────────────────────────────────────────┤
-│  Mã yêu cầu: SUP-20260130-001                   │
-│  Phòng: 205                                     │
-│                                                 │
-│  📦 Items cần giao:                             │
-│  ├── Khăn tắm lớn x2                            │
-│  ├── Dầu gội x3                                 │
-│  └── Bàn chải đánh răng x1                      │
-│                                                 │
-│  👤 Gán cho nhân viên:                          │
-│  [▼ Chọn nhân viên              ]               │
-│    ├── Nguyễn Văn A (Tầng 1-3)                  │
-│    ├── Trần Thị B (Tầng 4-6)                    │
-│    └── Không gán (tự nhận)                      │
-│                                                 │
-│  [Hủy]                    [Tạo phiếu giao hàng] │
-└─────────────────────────────────────────────────┘
-```
-
----
-
-#### Phase 2: Liên kết Distribution Order → Supplement Request
-
-##### 2.1 Thêm `related_supplement_request_id` vào `distribution_orders`
-
-```sql
-ALTER TABLE distribution_orders 
-ADD COLUMN supplement_request_id uuid REFERENCES supplement_requests(id);
-```
-
-##### 2.2 Khi Distribution Order hoàn thành → Auto cập nhật Supplement Request
-
-**File:** `src/hooks/useDistributionOrders.ts`
-
-Trong `useCompleteRoomDelivery`:
-- Kiểm tra nếu order có `supplement_request_id`
-- Cập nhật `supplement_request.status = 'completed'`
-- Cập nhật `supplement_request.completed_at`
-
----
-
-#### Phase 3: Hook mới để tạo Distribution từ Supplement Request
-
-**File mới:** `src/hooks/useCreateDistributionFromSupplement.ts`
+Hook này sẽ:
+- Gộp tất cả các query đếm pending vào một chỗ
+- Sử dụng `Promise.all` để query song song
+- Cache và refetch mỗi 30 giây
+- Hỗ trợ filter theo hotel (khi không ở chế độ "All Hotels")
 
 ```typescript
-export function useCreateDistributionFromSupplement() {
-  return useMutation({
-    mutationFn: async (data: {
-      supplementRequestId: string
-      assignedTo?: string
-    }) => {
-      // 1. Fetch supplement request details
-      const { data: request } = await supabase
-        .from('supplement_requests')
-        .select('*, room:rooms(id, room_number)')
-        .eq('id', data.supplementRequestId)
-        .single()
-      
-      // 2. Create distribution order via RPC
-      const { data: result } = await supabase.rpc('create_distribution_order', {
-        p_tenant_id: request.tenant_id,
-        p_hotel_id: request.hotel_id,
-        p_created_by: userId,
-        p_assigned_to: data.assignedTo || null,
-        p_rooms: [{
-          room_id: request.room_id,
-          items: request.items.map(i => ({
-            item_id: i.item_id,
-            quantity: i.quantity,
-          }))
-        }],
-        p_notes: `Bổ sung theo yêu cầu ${request.request_code}`,
-      })
-      
-      // 3. Update supplement request with distribution order ID
-      await supabase
-        .from('supplement_requests')
-        .update({
-          status: 'approved',
-          approved_by: userId,
-          approved_at: new Date().toISOString(),
-          distribution_order_id: result.order_id,
-        })
-        .eq('id', data.supplementRequestId)
-      
-      return result
-    },
-  })
+interface PendingCounts {
+  supplements: number       // Yêu cầu bổ sung đồ
+  laundryRequests: number   // Yêu cầu giặt
+  distributions: number     // Phiếu giao hàng
+  maintenance: number       // Yêu cầu bảo trì
+  adjustments: number       // Điều chỉnh kho
+  tasks: number             // Công việc housekeeping
 }
 ```
 
----
+#### Bước 2: Cập nhật Desktop Sidebar
+**File:** `src/components/layout/Sidebar.tsx`
 
-#### Phase 4: UI hiển thị trạng thái liên kết
+Thay đổi:
+1. Import và sử dụng `usePendingCounts` hook
+2. Thêm property `badgeKey` vào `NavItem` interface
+3. Hiển thị Badge màu đỏ với số lượng bên cạnh tên menu item
+4. Áp dụng cho các child items cụ thể:
+   - `supplements` → Bổ sung đồ
+   - `laundryRequests` → Laundry Requests tab
+   - `distributions` → Phiếu giao hàng
+   - `maintenanceRequests` → Yêu cầu bảo trì
 
-##### 4.1 Trong Supplement Request Sheet
+#### Bước 3: Cập nhật Mobile Sidebar
+**File:** `src/components/layout/MobileSidebar.tsx`
 
-Khi đã có `distribution_order_id`:
-- Hiển thị badge "Đã tạo phiếu giao"
-- Link đến chi tiết phiếu giao
-- Hiển thị trạng thái giao hàng realtime
+Thay đổi:
+1. Thay thế logic `pendingCounts` riêng lẻ bằng `usePendingCounts` hook
+2. Cập nhật `getBadgeCount()` để map với tất cả badge types
+3. Thêm badge cho menu item "Kho & Tài sản" (tổng của supplements + distributions + adjustments)
 
-```text
-┌─────────────────────────────────────────────────┐
-│  SUP-20260130-001             [Đã duyệt]        │
-├─────────────────────────────────────────────────┤
-│  Phòng: 205                                     │
-│  Loại: Đồ mất                                   │
-│                                                 │
-│  📦 Phiếu giao hàng: DIST-20260130-015          │
-│  ├── Trạng thái: Đang giao                      │
-│  ├── Nhân viên: Nguyễn Văn A                    │
-│  └── [Xem chi tiết phiếu giao →]                │
-│                                                 │
-│  📋 Items:                                      │
-│  ├── Khăn tắm lớn x2    [✓ Đã giao]             │
-│  ├── Dầu gội x3         [⏳ Đang giao]          │
-│  └── Bàn chải x1        [⏳ Đang giao]          │
-└─────────────────────────────────────────────────┘
-```
+#### Bước 4: Cập nhật Bottom Navigation (Mobile)
+**File:** `src/components/layout/MobileBottomNav.tsx`
 
-##### 4.2 Trong Distribution Order Detail
+Thay đổi:
+- Sử dụng `usePendingCounts` hook thay vì query riêng
+- Hiển thị tổng số pending cho các module chính
 
-Nếu order được tạo từ supplement request:
-- Hiển thị badge "Từ yêu cầu bổ sung"
-- Link về supplement request gốc
-
----
-
-### Sơ đồ flow hoàn chỉnh
+### Thiết kế UI Badge
 
 ```text
-                    ┌──────────────────┐
-                    │   ROOM CHECK     │
-                    │ Phát hiện đồ    │
-                    │ thiếu/mất/hỏng   │
-                    └────────┬─────────┘
-                             │
-                             ▼
-                    ┌──────────────────┐
-                    │ SUPPLEMENT       │
-                    │ REQUEST          │
-                    │ Status: pending  │
-                    └────────┬─────────┘
-                             │
-                   Manager duyệt & chọn nhân viên
-                             │
-                             ▼
-           ┌─────────────────┴─────────────────┐
-           │                                    │
-           ▼                                    ▼
-  ┌──────────────────┐              ┌──────────────────┐
-  │ SUPPLEMENT       │              │ DISTRIBUTION     │
-  │ REQUEST          │◄────────────►│ ORDER            │
-  │ Status: approved │   linked     │ Status: pending  │
-  └──────────────────┘              └────────┬─────────┘
-                                             │
-                                    Nhân viên nhận nhiệm vụ
-                                             │
-                                             ▼
-                                    ┌──────────────────┐
-                                    │ DISTRIBUTION     │
-                                    │ ORDER            │
-                                    │ Status: in_progress │
-                                    └────────┬─────────┘
-                                             │
-                                    Lấy đồ từ kho → Giao đến phòng
-                                             │
-                                             ▼
-                                    ┌──────────────────┐
-                                    │ DISTRIBUTION     │
-                                    │ ORDER            │
-                                    │ Status: completed │
-                                    └────────┬─────────┘
-                                             │
-                                    Auto-update status
-                                             │
-                                             ▼
-                                    ┌──────────────────┐
-                                    │ SUPPLEMENT       │
-                                    │ REQUEST          │
-                                    │ Status: completed │
-                                    └──────────────────┘
+┌─────────────────────────────────────┐
+│ 📦 Kho & Tài sản              ▼    │
+│   ├── Dashboard                    │
+│   ├── Danh sách items              │
+│   ├── Bổ sung đồ           🔴 5    │  ← Badge đỏ
+│   ├── Phiếu giao hàng      🔴 3    │  ← Badge đỏ
+│   └── Điều chỉnh kho       🔴 2    │  ← Badge đỏ
+│                                     │
+│ 👕 Laundry                    ▼    │
+│   ├── Tổng quan                    │
+│   ├── Yêu cầu giặt         🔴 4    │  ← Badge đỏ
+│   └── Lô giặt                      │
+│                                     │
+│ 🔧 Bảo trì                   ▼    │
+│   ├── Dashboard                    │
+│   └── Yêu cầu bảo trì      🔴 7    │  ← Badge đỏ
+└─────────────────────────────────────┘
 ```
 
----
+### Badge Styling
+- **Variant:** `destructive` (màu đỏ)
+- **Size:** nhỏ gọn (h-5, min-w-5)
+- **Text:** Nếu số > 99, hiển thị "99+"
+- **Position:** Bên phải của text, trước chevron icon
 
 ### Thứ tự triển khai
 
 | # | Công việc | File | Ước tính |
 |---|-----------|------|----------|
-| 1 | Migration: Thêm column `distribution_order_id` | Database migration | 5 phút |
-| 2 | Hook: `useCreateDistributionFromSupplement` | Tạo file mới | 30 phút |
-| 3 | Dialog: Chọn nhân viên khi duyệt | `SupplementRequestSheet.tsx` | 45 phút |
-| 4 | Hook: Sửa `useCompleteRoomDelivery` để auto-complete supplement request | `useDistributionOrders.ts` | 20 phút |
-| 5 | UI: Hiển thị liên kết trong Sheet | `SupplementRequestSheet.tsx` | 30 phút |
-| 6 | UI: Badge "Từ yêu cầu bổ sung" trong Distribution | Component mới | 15 phút |
+| 1 | Tạo hook `usePendingCounts` | `src/hooks/usePendingCounts.ts` | 15 phút |
+| 2 | Cập nhật `Sidebar.tsx` | `src/components/layout/Sidebar.tsx` | 25 phút |
+| 3 | Cập nhật `MobileSidebar.tsx` | `src/components/layout/MobileSidebar.tsx` | 15 phút |
+| 4 | Cập nhật `MobileBottomNav.tsx` | `src/components/layout/MobileBottomNav.tsx` | 10 phút |
 
-**Tổng thời gian ước tính: ~2.5 giờ**
+**Tổng thời gian ước tính: ~1 giờ**
 
----
+### Lưu ý kỹ thuật
 
-### Câu hỏi xác nhận
+1. **Performance:**
+   - Sử dụng `select('id', { count: 'exact', head: true })` để chỉ đếm, không fetch data
+   - `refetchInterval: 30000` (30 giây) để cập nhật realtime nhẹ nhàng
+   - Shared query key để tránh duplicate requests
 
-Trước khi triển khai, cần xác nhận:
+2. **Hotel filtering:**
+   - Khi chọn một hotel cụ thể → chỉ đếm pending của hotel đó
+   - Khi ở "All Hotels" mode → đếm tất cả
 
-1. **Kho xuất**: Khi tạo Distribution Order, có cần chọn kho xuất cụ thể không? Hay dùng kho mặc định?
-
-2. **Nhiều phòng**: Nếu có nhiều Supplement Requests cùng lúc, có muốn gom thành 1 Distribution Order không?
-
-3. **Xuất kho thời điểm nào?**: 
-   - Khi tạo Distribution Order (trừ kho ngay)?
-   - Hay khi nhân viên nhận đồ từ kho (có bước xác nhận)?
+3. **RLS:**
+   - Tất cả queries đều đã có filter `tenant_id` đảm bảo data isolation
 
