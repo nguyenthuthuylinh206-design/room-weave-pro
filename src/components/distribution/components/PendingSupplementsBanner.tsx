@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, ChevronDown, ChevronUp, Package, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { usePendingSupplementCount, useSupplementRequests, type SupplementRequest } from '@/hooks/useSupplementRequests'
@@ -44,12 +43,21 @@ export function PendingSupplementsBanner({ onCreateFromSupplements }: PendingSup
 
   const handleCreateDistribution = () => {
     if (selectedIds.length > 0) {
-      // Navigate with selected IDs as query params
       const params = new URLSearchParams()
       selectedIds.forEach(id => params.append('ids', id))
       navigate(`/inventory/distributions/from-supplements?${params.toString()}`)
     } else {
       navigate('/inventory/distributions/from-supplements')
+    }
+  }
+
+  const getRequestTypeClass = (type: string) => {
+    switch (type) {
+      case 'lost': return 'text-red-600 dark:text-red-400'
+      case 'damaged': return 'text-amber-600 dark:text-amber-400'
+      case 'consumed': return 'text-blue-600 dark:text-blue-400'
+      case 'mixed': return 'text-purple-600 dark:text-purple-400'
+      default: return 'text-muted-foreground'
     }
   }
 
@@ -127,6 +135,7 @@ export function PendingSupplementsBanner({ onCreateFromSupplements }: PendingSup
                     isSelected={selectedIds.includes(request.id)}
                     onToggle={() => toggleSelect(request.id)}
                     getRequestTypeLabel={getRequestTypeLabel}
+                    getRequestTypeClass={getRequestTypeClass}
                   />
                 ))
               )}
@@ -159,9 +168,10 @@ interface SupplementCardProps {
   isSelected: boolean
   onToggle: () => void
   getRequestTypeLabel: (type: string) => string
+  getRequestTypeClass: (type: string) => string
 }
 
-function SupplementCard({ request, isSelected, onToggle, getRequestTypeLabel }: SupplementCardProps) {
+function SupplementCard({ request, isSelected, onToggle, getRequestTypeLabel, getRequestTypeClass }: SupplementCardProps) {
   const itemCount = request.items?.length || 0
   const timeAgo = formatDistanceToNow(new Date(request.created_at), { addSuffix: true, locale: vi })
 
@@ -169,10 +179,10 @@ function SupplementCard({ request, isSelected, onToggle, getRequestTypeLabel }: 
     <div
       onClick={onToggle}
       className={cn(
-        'p-2 rounded-lg border cursor-pointer transition-all',
+        'py-1.5 px-2 rounded border cursor-pointer transition-all',
         isSelected 
-          ? 'border-primary bg-primary/5 ring-1 ring-primary'
-          : 'border-border bg-background hover:border-primary/50'
+          ? 'border-l-4 border-l-primary border-t border-r border-b bg-muted/30'
+          : 'border-l-4 border-l-transparent hover:border-l-primary/50'
       )}
     >
       <div className="flex items-start justify-between gap-1">
@@ -191,9 +201,9 @@ function SupplementCard({ request, isSelected, onToggle, getRequestTypeLabel }: 
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <Package className="h-3 w-3" />
           {itemCount} SP
-          <Badge variant="outline" className="text-[10px] px-1 py-0 ml-1">
+          <span className={cn('text-[10px] ml-1', getRequestTypeClass(request.request_type))}>
             {getRequestTypeLabel(request.request_type)}
-          </Badge>
+          </span>
         </div>
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1">
           <Clock className="h-3 w-3" />
