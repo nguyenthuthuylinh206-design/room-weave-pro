@@ -31,6 +31,7 @@ export interface SupplementRequest {
   approved_at?: string
   completed_at?: string
   transaction_id?: string
+  distribution_order_id?: string // Link to distribution order created when approved
   notes?: string
   rejection_reason?: string
   created_at: string

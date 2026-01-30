@@ -135,6 +135,7 @@ export function useCompleteRoomDelivery() {
       orderCode,
       roomNumber,
       createdByUserId,
+      orderId,
     }: { 
       roomOrderId: string
       items?: { item_id: string; quantity_confirmed: number }[]
@@ -142,6 +143,7 @@ export function useCompleteRoomDelivery() {
       orderCode?: string
       roomNumber?: string
       createdByUserId?: string
+      orderId?: string
     }) => {
       if (!user?.id) throw new Error('User not authenticated')
 
@@ -166,11 +168,35 @@ export function useCompleteRoomDelivery() {
       })
 
       if (error) throw error
+
+      const result = data as { success: boolean; room_id: string; all_completed: boolean }
+
+      // If all rooms are completed and we have orderId, check for linked supplement request
+      if (result.all_completed && orderId) {
+        const { data: order } = await supabase
+          .from('distribution_orders')
+          .select('supplement_request_id')
+          .eq('id', orderId)
+          .single()
+
+        if (order?.supplement_request_id) {
+          // Auto-complete the linked supplement request
+          await supabase
+            .from('supplement_requests')
+            .update({
+              status: 'completed',
+              completed_at: new Date().toISOString(),
+            })
+            .eq('id', order.supplement_request_id)
+        }
+      }
+
       return { 
-        ...(data as { success: boolean; room_id: string; all_completed: boolean }),
+        ...result,
         orderCode,
         roomNumber,
         createdByUserId,
+        orderId,
       }
     },
     onSuccess: async (result) => {
@@ -180,7 +206,11 @@ export function useCompleteRoomDelivery() {
       queryClient.invalidateQueries({ queryKey: ['items'] })
       queryClient.invalidateQueries({ queryKey: ['room-distribution-history'] })
       
+      // Also invalidate supplement requests if order was completed
       if (result.all_completed) {
+        queryClient.invalidateQueries({ queryKey: ['supplement-requests'] })
+        queryClient.invalidateQueries({ queryKey: ['supplement-request'] })
+        queryClient.invalidateQueries({ queryKey: ['supplement-requests-pending-count'] })
         toast.success('Đã hoàn thành giao hàng cho tất cả các phòng!')
       } else {
         toast.success('Xác nhận giao hàng thành công')
@@ -191,7 +221,7 @@ export function useCompleteRoomDelivery() {
         try {
           await triggerDistributionDeliveryConfirmed({
             tenantId: tenant.id,
-            orderId: '', // We don't have order ID here but it's okay
+            orderId: result.orderId || '',
             orderCode: result.orderCode,
             roomNumber: result.roomNumber,
             createdByUserId: result.createdByUserId,

@@ -1205,6 +1205,7 @@ export type Database = {
           shift_date: string | null
           started_at: string | null
           status: string
+          supplement_request_id: string | null
           tenant_id: string
           total_items: number | null
           total_rooms: number | null
@@ -1231,6 +1232,7 @@ export type Database = {
           shift_date?: string | null
           started_at?: string | null
           status?: string
+          supplement_request_id?: string | null
           tenant_id: string
           total_items?: number | null
           total_rooms?: number | null
@@ -1257,6 +1259,7 @@ export type Database = {
           shift_date?: string | null
           started_at?: string | null
           status?: string
+          supplement_request_id?: string | null
           tenant_id?: string
           total_items?: number | null
           total_rooms?: number | null
@@ -1332,6 +1335,13 @@ export type Database = {
             columns: ["released_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_orders_supplement_request_id_fkey"
+            columns: ["supplement_request_id"]
+            isOneToOne: false
+            referencedRelation: "supplement_requests"
             referencedColumns: ["id"]
           },
           {
@@ -5923,6 +5933,7 @@ export type Database = {
           approved_by: string | null
           completed_at: string | null
           created_at: string
+          distribution_order_id: string | null
           hotel_id: string
           id: string
           items: Json
@@ -5944,6 +5955,7 @@ export type Database = {
           approved_by?: string | null
           completed_at?: string | null
           created_at?: string
+          distribution_order_id?: string | null
           hotel_id: string
           id?: string
           items?: Json
@@ -5965,6 +5977,7 @@ export type Database = {
           approved_by?: string | null
           completed_at?: string | null
           created_at?: string
+          distribution_order_id?: string | null
           hotel_id?: string
           id?: string
           items?: Json
@@ -5994,6 +6007,13 @@ export type Database = {
             columns: ["approved_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplement_requests_distribution_order_id_fkey"
+            columns: ["distribution_order_id"]
+            isOneToOne: false
+            referencedRelation: "distribution_orders"
             referencedColumns: ["id"]
           },
           {
