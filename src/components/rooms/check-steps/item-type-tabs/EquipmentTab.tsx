@@ -20,6 +20,7 @@ interface ExtendedRoomItem extends RoomItemWithDetails {
 interface EquipmentTabProps {
   items: ExtendedRoomItem[]
   checkType: CheckType
+  phase?: 1 | 2 // NEW: Phase for checkout 2-phase flow
   lostItems: LostItem[]
   damagedItems: DamagedItem[]
   onMarkLost: (item: RoomItemWithDetails, quantity: number, estimatedValue?: number) => void
@@ -33,6 +34,7 @@ type ItemStatus = 'pending' | 'ok' | 'lost' | 'damaged'
 export function EquipmentTab({
   items,
   checkType,
+  phase,
   lostItems,
   damagedItems,
   onMarkLost,
@@ -41,7 +43,15 @@ export function EquipmentTab({
   onRemoveFromDamaged,
 }: EquipmentTabProps) {
   const config = getCheckTypeConfig(checkType)
-  const allowedActions = config.equipmentActions
+  
+  // Get allowed actions based on phase (for checkout) or default config
+  const allowedActions = (() => {
+    if (checkType === 'checkout' && phase && config.phase1Actions && config.phase2Actions) {
+      return phase === 1 ? config.phase1Actions.equipment : config.phase2Actions.equipment
+    }
+    return config.equipmentActions
+  })()
+  
   const [checkedOk, setCheckedOk] = useState<Set<string>>(new Set())
   const [expandedItem, setExpandedItem] = useState<string | null>(null)
   const [pendingType, setPendingType] = useState<'lost' | 'damaged' | null>(null)

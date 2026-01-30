@@ -21,7 +21,7 @@ import type {
 import type { ItemType } from '@/types/items.types';
 import { LinenTab, ConsumableTabBooking, EquipmentTab, FurnitureTab } from './item-type-tabs';
 
-import { type CheckType } from '@/lib/roomCheckConfig'
+import { type CheckType, getCheckTypeConfig } from '@/lib/roomCheckConfig'
 
 interface ItemsCheckStepProps {
   form: UseFormReturn<RoomCheckFormData>;
@@ -31,6 +31,7 @@ interface ItemsCheckStepProps {
   tenantId: string;
   bookingId?: string | null;
   checkType: CheckType;
+  phase?: 1 | 2; // NEW: Phase for checkout 2-phase flow
   onQuantitiesChange?: (quantities: Record<string, number>) => void;
 }
 
@@ -59,6 +60,7 @@ export function ItemsCheckStep({
   tenantId,
   bookingId,
   checkType,
+  phase, // NEW: Phase for checkout 2-phase flow
   onQuantitiesChange
 }: ItemsCheckStepProps) {
   const [search, setSearch] = useState('');
@@ -555,6 +557,7 @@ export function ItemsCheckStep({
           <LinenTab
             items={filterBySearch(linenItems)}
             checkType={checkType}
+            phase={phase}
             laundryItems={laundryItems}
             lostItems={lostItems.filter(i => i.item_type === 'linen')}
             replacedItems={replacedItems}
@@ -571,6 +574,7 @@ export function ItemsCheckStep({
             roomId={roomId}
             tenantId={tenantId}
             checkType={checkType}
+            phase={phase}
             consumedItems={consumedItems}
             onMarkConsumed={handleMarkConsumed}
             onRemoveConsumed={removeFromConsumed}
@@ -581,6 +585,7 @@ export function ItemsCheckStep({
           <EquipmentTab
             items={filterBySearch(equipmentItems)}
             checkType={checkType}
+            phase={phase}
             lostItems={lostItems.filter(i => i.item_type === 'equipment')}
             damagedItems={damagedItems}
             onMarkLost={handleEquipmentLost}
@@ -594,6 +599,7 @@ export function ItemsCheckStep({
           <FurnitureTab
             items={filterBySearch(furnitureItems)}
             checkType={checkType}
+            phase={phase}
             lostItems={lostItems.filter(i => i.item_type === 'furniture')}
             damagedItems={damagedItems}
             onMarkLost={(item, qty) => handleEquipmentLost(item, qty)}
