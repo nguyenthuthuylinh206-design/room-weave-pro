@@ -110,6 +110,7 @@ export function RoomCheckPage() {
   const [chargeableItems, setChargeableItems] = useState<CreateChargeableConsumptionInput[]>([])
   const [chargeableNotes, setChargeableNotes] = useState('')
   const [autoCreatedInspectionId, setAutoCreatedInspectionId] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false) // Track submission state
   const createChargeableConsumptions = useCreateMultipleChargeableConsumptions()
   const autoCreateInspection = useAutoCreateCheckoutInspection()
   
@@ -548,10 +549,10 @@ export function RoomCheckPage() {
   
   const onSubmit = async (data: RoomCheckFormData) => {
     // Guard: Prevent double submit
-    if (!id || !user?.id || createCheck.isPending) return
+    if (!id || !user?.id || createCheck.isPending || isSubmitting) return
     
-    // Đóng dialog ngay lập tức để chặn double click
-    setShowSubmitDialog(false)
+    // Bắt đầu submitting - KHÔNG đóng dialog ngay
+    setIsSubmitting(true)
     
     // Ưu tiên: stableInspectionId > autoCreatedInspectionId > URL > pendingInspection
     const finalInspectionId = stableInspectionId || autoCreatedInspectionId || inspectionIdFromUrl || pendingInspection?.id
@@ -644,6 +645,11 @@ export function RoomCheckPage() {
       }
       
       clearSavedProgress()
+      
+      // Đóng dialog SAU KHI thành công
+      setShowSubmitDialog(false)
+      setShowCheckinBlockDialog(false)
+      
       toast({
         title: 'Thành công',
         description: `Đã hoàn thành kiểm tra phòng ${room?.room_number}`,
@@ -652,6 +658,9 @@ export function RoomCheckPage() {
     } catch (error) {
       console.error('Error creating room check:', error)
       
+      // KHÔNG đóng dialog - giữ mở để user có thể thử lại
+      // setShowSubmitDialog(false) - BỎ DÒNG NÀY
+      
       // Handle duplicate error
       if (error instanceof Error && error.message.includes('Duplicate')) {
         toast({
@@ -659,7 +668,22 @@ export function RoomCheckPage() {
           description: 'Bạn vừa kiểm tra phòng này rồi. Vui lòng đợi 5 phút.',
           variant: 'destructive',
         })
+        // Đóng dialog và navigate cho trường hợp duplicate
+        setShowSubmitDialog(false)
+        setShowCheckinBlockDialog(false)
+        navigate(isManager ? `/rooms/${id}` : '/rooms')
+      } else {
+        // Hiển thị toast lỗi chi tiết cho user
+        toast({
+          title: 'Lỗi',
+          description: error instanceof Error 
+            ? error.message 
+            : 'Không thể hoàn thành kiểm tra. Vui lòng thử lại.',
+          variant: 'destructive',
+        })
       }
+    } finally {
+      setIsSubmitting(false)
     }
   }
   
@@ -781,14 +805,14 @@ export function RoomCheckPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={createCheck.isPending}>
+            <AlertDialogCancel disabled={createCheck.isPending || isSubmitting}>
               Kiểm tra lại
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={form.handleSubmit(onSubmit)}
-              disabled={createCheck.isPending}
+              disabled={createCheck.isPending || isSubmitting}
             >
-              {createCheck.isPending ? (
+              {(createCheck.isPending || isSubmitting) ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Đang lưu...
@@ -1006,10 +1030,10 @@ export function RoomCheckPage() {
                         }
                       })
                     }}
-                    disabled={createCheck.isPending}
+                    disabled={createCheck.isPending || isSubmitting}
                   >
                     <Check className="mr-2 h-4 w-4" />
-                    {createCheck.isPending ? 'Đang lưu...' : 'Hoàn thành'}
+                    {(createCheck.isPending || isSubmitting) ? 'Đang lưu...' : 'Hoàn thành'}
                   </Button>
                 )}
               </div>

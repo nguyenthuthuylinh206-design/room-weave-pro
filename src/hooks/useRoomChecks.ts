@@ -92,33 +92,63 @@ async function processDailyCheck(params: {
   
   // 4. Auto-create laundry request nếu có đồ gửi giặt
   const hasLaundry = laundryItems.length > 0
+  console.log('[processDailyCheck] Laundry check:', { 
+    hasLaundry, 
+    tenantId: !!tenantId, 
+    userId: !!userId, 
+    checkId: !!checkId,
+    laundryItemsCount: laundryItems.length 
+  })
+  
   if (hasLaundry && tenantId && userId && checkId) {
-    await createLaundryRequestFromCheck({
-      roomId,
-      roomNumber,
-      tenantId,
-      hotelId,
-      userId,
-      userName: userName || 'Nhân viên',
-      checkId,
-      laundryItems,
-    })
+    try {
+      console.log('[processDailyCheck] Creating laundry request...')
+      await createLaundryRequestFromCheck({
+        roomId,
+        roomNumber,
+        tenantId,
+        hotelId,
+        userId,
+        userName: userName || 'Nhân viên',
+        checkId,
+        laundryItems,
+      })
+      console.log('[processDailyCheck] Laundry request created successfully')
+    } catch (err) {
+      console.error('[processDailyCheck] Failed to create laundry request:', err)
+      // Không throw - cho phép room check vẫn thành công
+    }
   }
   
   // 5. Auto-create supplement request nếu có đồ tiêu hao
   const hasConsumed = consumedItems.length > 0
+  console.log('[processDailyCheck] Consumed check:', { 
+    hasConsumed, 
+    tenantId: !!tenantId, 
+    userId: !!userId, 
+    checkId: !!checkId,
+    consumedItemsCount: consumedItems.length 
+  })
+  
   if (hasConsumed && tenantId && userId && checkId) {
-    await createSupplementRequestFromCheck({
-      roomId,
-      roomNumber,
-      tenantId,
-      hotelId,
-      userId,
-      userName: userName || 'Nhân viên',
-      checkId,
-      consumedItems,
-      lostItems: [], // Daily check không track lost items
-    })
+    try {
+      console.log('[processDailyCheck] Creating supplement request...')
+      await createSupplementRequestFromCheck({
+        roomId,
+        roomNumber,
+        tenantId,
+        hotelId,
+        userId,
+        userName: userName || 'Nhân viên',
+        checkId,
+        consumedItems,
+        lostItems: [], // Daily check không track lost items
+      })
+      console.log('[processDailyCheck] Supplement request created successfully')
+    } catch (err) {
+      console.error('[processDailyCheck] Failed to create supplement request:', err)
+      // Không throw - cho phép room check vẫn thành công
+    }
   }
   
   return { quantityChanges }
