@@ -43,8 +43,11 @@ export function PendingSupplementsBanner({ onCreateFromSupplements }: PendingSup
   }
 
   const handleCreateDistribution = () => {
-    if (selectedIds.length > 0 && onCreateFromSupplements) {
-      onCreateFromSupplements(selectedIds)
+    if (selectedIds.length > 0) {
+      // Navigate with selected IDs as query params
+      const params = new URLSearchParams()
+      selectedIds.forEach(id => params.append('ids', id))
+      navigate(`/inventory/distributions/from-supplements?${params.toString()}`)
     } else {
       navigate('/inventory/distributions/from-supplements')
     }

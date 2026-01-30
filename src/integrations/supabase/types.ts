@@ -7506,17 +7506,31 @@ export type Database = {
         Args: { p_hotel_id: string; p_tenant_id: string }
         Returns: string
       }
-      create_distribution_order: {
-        Args: {
-          p_assigned_to: string
-          p_created_by: string
-          p_hotel_id: string
-          p_notes?: string
-          p_rooms: Json
-          p_tenant_id: string
-        }
-        Returns: Json
-      }
+      create_distribution_order:
+        | {
+            Args: {
+              p_assigned_to: string
+              p_created_by: string
+              p_hotel_id: string
+              p_notes?: string
+              p_rooms: Json
+              p_tenant_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_assigned_to: string
+              p_auto_release?: boolean
+              p_created_by: string
+              p_hotel_id: string
+              p_notes?: string
+              p_rooms: Json
+              p_supplement_request_ids?: string[]
+              p_tenant_id: string
+            }
+            Returns: Json
+          }
       create_inbound_transaction:
         | {
             Args: {
