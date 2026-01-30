@@ -66,10 +66,10 @@ const replacedItemSchema = z.object({
 export const roomCheckFormSchema = z.object({
   check_type: z.enum(['daily', 'checkout', 'checkin', 'maintenance'], {
     required_error: 'Vui lòng chọn loại kiểm tra',
-  }),
+  }).default('daily'),
   cleanliness_score: z.number({
     required_error: 'Vui lòng đánh giá mức độ sạch sẽ',
-  }).int().min(1, 'Điểm phải từ 1-5').max(5, 'Điểm phải từ 1-5'),
+  }).int().min(1, 'Điểm phải từ 1-5').max(5, 'Điểm phải từ 1-5').default(5),
   items_complete: z.boolean().default(true),
   items_missing: z.array(z.any()).default([]),
   items_damaged: z.array(z.any()).default([]),
