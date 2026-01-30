@@ -9,6 +9,7 @@ import { getCheckTypeConfig, type CheckType } from '@/lib/roomCheckConfig'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Form } from '@/components/ui/form'
 import {
@@ -586,8 +587,37 @@ export function RoomCheckPage() {
         const lostTotal = lostItems.reduce((sum, item) => sum + (item.estimated_value || 0), 0)
         const damagedTotal = damagedItems.reduce((sum, item) => sum + (item.damage_cost || 0), 0)
         
-        // This notification is for lost/damaged - could extend notify-chargeable or use a new function
-        console.log('[RoomCheckPage] Phase 1: Lost/damaged items:', { lostItems, damagedItems, lostTotal, damagedTotal })
+        // Send notification for lost/damaged items
+        try {
+          await supabase.functions.invoke('notify-chargeable', {
+            body: {
+              tenant_id: room.tenant_id,
+              hotel_id: room.hotel_id,
+              booking_id: currentBooking?.id,
+              room_id: id,
+              room_number: room.room_number,
+              items: [], // No chargeable items in this notification
+              total_amount: 0,
+              lost_items: lostItems.map(item => ({
+                name: item.item_name,
+                quantity: item.quantity,
+                estimated_value: item.estimated_value || 0,
+              })),
+              damaged_items: damagedItems.map(item => ({
+                name: item.item_name,
+                quantity: item.quantity,
+                damage_cost: item.damage_cost || 0,
+                damage_type: item.damage_type,
+              })),
+              lost_total: lostTotal,
+              damaged_total: damagedTotal,
+              recorded_by_name: user.full_name || user.email,
+            },
+          })
+          console.log('[RoomCheckPage] Phase 1: Lost/damaged notification sent')
+        } catch (notifyError) {
+          console.error('[RoomCheckPage] Failed to send lost/damaged notification:', notifyError)
+        }
       }
       
       // 4. Mark Phase 1 as submitted
@@ -664,8 +694,9 @@ export function RoomCheckPage() {
     
     try {
       // Save chargeable consumptions for checkout if any
-      if (data.check_type === 'checkout' && chargeableItems.length > 0) {
-        console.log('[RoomCheckPage] Saving chargeable consumptions:', chargeableItems.length)
+      // Skip if already submitted in Phase 1 (2-phase checkout flow)
+      if (data.check_type === 'checkout' && chargeableItems.length > 0 && !phase1Submitted) {
+        console.log('[RoomCheckPage] Saving chargeable consumptions (non-phase1):', chargeableItems.length)
         const savedItems = await createChargeableConsumptions.mutateAsync(chargeableItems)
         
         // Trigger notify-chargeable edge function
@@ -1004,17 +1035,42 @@ export function RoomCheckPage() {
       <Card>
         <CardHeader>
           <div className="space-y-4">
-            <CardTitle>
-              Bước {currentStep}/{totalSteps}:{' '}
+            <CardTitle className="flex items-center gap-2">
+              <span>Bước {currentStep}/{totalSteps}:</span>
               {currentStep === 1 && 'Chọn loại kiểm tra'}
               {currentStep === 2 && !quickMode && !isCheckoutType && 'Kiểm tra đồ dùng trong phòng'}
-              {currentStep === 2 && !quickMode && isCheckoutType && 'Kiểm tra đồ tính phí & mất/hỏng'}
+              {currentStep === 2 && !quickMode && isCheckoutType && (
+                <>
+                  <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300">GĐ1</Badge>
+                  Kiểm tra đồ tính phí & mất/hỏng
+                </>
+              )}
               {currentStep === 2 && quickMode && 'Đánh giá & Hoàn tất'}
-              {currentStep === 3 && !quickMode && isCheckoutType && 'Gửi báo cáo cho lễ tân'}
+              {currentStep === 3 && !quickMode && isCheckoutType && (
+                <>
+                  <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300">GĐ1</Badge>
+                  Gửi báo cáo cho lễ tân
+                </>
+              )}
               {currentStep === 3 && !quickMode && !isCheckoutType && 'Đánh giá & Hoàn tất'}
-              {currentStep === 4 && isCheckoutType && 'Kiểm tra đồ bổ sung & giặt/thay'}
-              {currentStep === 5 && isCheckoutType && 'Tình trạng phòng & Dọn dẹp'}
-              {currentStep === 6 && isCheckoutType && 'Đánh giá & Hoàn tất'}
+              {currentStep === 4 && isCheckoutType && (
+                <>
+                  <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">GĐ2</Badge>
+                  Kiểm tra đồ bổ sung & giặt/thay
+                </>
+              )}
+              {currentStep === 5 && isCheckoutType && (
+                <>
+                  <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">GĐ2</Badge>
+                  Tình trạng phòng & Dọn dẹp
+                </>
+              )}
+              {currentStep === 6 && isCheckoutType && (
+                <>
+                  <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">Hoàn tất</Badge>
+                  Đánh giá & Hoàn tất
+                </>
+              )}
             </CardTitle>
             <div className="space-y-2">
               <Progress value={progress} />
