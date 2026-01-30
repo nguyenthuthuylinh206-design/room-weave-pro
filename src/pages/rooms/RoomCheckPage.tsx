@@ -35,8 +35,9 @@ import { ItemsCheckStep } from '@/components/rooms/check-steps/ItemsCheckStep'
 import { ReviewStep } from '@/components/rooms/check-steps/ReviewStep'
 import { ChargeableItemsStep } from '@/components/rooms/check-steps/ChargeableItemsStep'
 import { CleaningRequestStep } from '@/components/rooms/check-steps/CleaningRequestStep'
+import { Phase1ConfirmStep } from '@/components/rooms/check-steps/Phase1ConfirmStep'
 import { cn } from '@/lib/utils'
-import type { RoomCheckFormData } from '@/types/rooms.types'
+import type { RoomCheckFormData, LostItem, DamagedItem } from '@/types/rooms.types'
 
 // Icon mapping for check types
 const CHECK_TYPE_ICONS: Record<CheckType, any> = {
@@ -111,6 +112,11 @@ export function RoomCheckPage() {
   const [chargeableNotes, setChargeableNotes] = useState('')
   const [autoCreatedInspectionId, setAutoCreatedInspectionId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false) // Track submission state
+  
+  // NEW: 2-phase checkout state
+  const [currentPhase, setCurrentPhase] = useState<1 | 2>(1)
+  const [phase1Submitted, setPhase1Submitted] = useState(false)
+  const [isSubmittingPhase1, setIsSubmittingPhase1] = useState(false)
   const createChargeableConsumptions = useCreateMultipleChargeableConsumptions()
   const autoCreateInspection = useAutoCreateCheckoutInspection()
   
@@ -141,11 +147,11 @@ export function RoomCheckPage() {
   // Watch check_type từ form để detect khi user chọn checkout
   const watchedCheckType = form.watch('check_type')
   
-  // Calculate steps: for checkout, add chargeable items step + cleaning step before review
+  // Calculate steps: for checkout, use 6-step 2-phase flow
   const isCheckoutType = watchedCheckType === 'checkout'
   const getTotalSteps = () => {
     if (quickMode) return 2
-    if (isCheckoutType) return 5 // Type -> Items -> Chargeable -> Cleaning -> Review
+    if (isCheckoutType) return 6 // Type -> Phase1 Items -> Phase1 Confirm -> Phase2 Items -> Cleaning -> Review
     return 3 // Type -> Items -> Review
   }
   const totalSteps = getTotalSteps()
@@ -494,16 +500,26 @@ export function RoomCheckPage() {
         form.setValue('items_missing', [])
         form.setValue('items_damaged', [])
       }
+      // Reset phase when starting checkout
+      if (isValid && isCheckoutType) {
+        setCurrentPhase(1)
+        setPhase1Submitted(false)
+      }
     } else if (currentStep === 2 && !quickMode) {
+      // Step 2: Items check (Phase 1 for checkout, regular for others)
       isValid = await form.trigger(['items_complete', 'items_missing', 'items_damaged'])
     } else if (currentStep === 2 && quickMode) {
       // Quick mode: step 2 là review cuối
       isValid = await form.trigger(['cleanliness_score'])
     } else if (currentStep === 3 && isCheckoutType) {
-      // Checkout step 3 = Chargeable Items - optional, không cần validate
+      // Checkout step 3 = Phase 1 Confirm (handled by handlePhase1Submit)
+      // This should not be called directly - Phase1ConfirmStep handles submission
       isValid = true
     } else if (currentStep === 4 && isCheckoutType) {
-      // Checkout step 4 = Cleaning Request - có defaults, không cần validate
+      // Checkout step 4 = Phase 2 Items (bổ sung/giặt/thay)
+      isValid = true
+    } else if (currentStep === 5 && isCheckoutType) {
+      // Checkout step 5 = Cleaning Request - có defaults, không cần validate
       isValid = true
     } else if (currentStep === 3 && !isCheckoutType) {
       // Non-checkout: step 3 là Review cuối
@@ -511,7 +527,79 @@ export function RoomCheckPage() {
     }
     
     if (isValid && currentStep < totalSteps) {
+      // For checkout phase transitions
+      if (isCheckoutType && currentStep === 3 && phase1Submitted) {
+        setCurrentPhase(2) // Move to Phase 2
+      }
       setCurrentStep(currentStep + 1)
+    }
+  }
+  
+  // NEW: Handle Phase 1 submission (send charges to reception)
+  const handlePhase1Submit = async () => {
+    if (!room || !user) return
+    
+    setIsSubmittingPhase1(true)
+    
+    try {
+      // 1. Save chargeable consumptions if any
+      if (chargeableItems.length > 0) {
+        console.log('[RoomCheckPage] Phase 1: Saving chargeable consumptions:', chargeableItems.length)
+        const savedItems = await createChargeableConsumptions.mutateAsync(chargeableItems)
+        
+        // 2. Send notification to reception
+        if (savedItems && savedItems.length > 0) {
+          const totalAmount = savedItems.reduce((sum, item) => sum + (item.total_amount || 0), 0)
+          await supabase.functions.invoke('notify-chargeable', {
+            body: {
+              tenant_id: room.tenant_id,
+              hotel_id: room.hotel_id,
+              booking_id: currentBooking?.id,
+              room_id: id,
+              room_number: room.room_number,
+              items: savedItems.map(item => ({
+                name: item.item_name,
+                quantity: item.quantity,
+                total: item.total_amount,
+              })),
+              total_amount: totalAmount,
+              recorded_by_name: user.full_name || user.email,
+            },
+          })
+          console.log('[RoomCheckPage] Phase 1: Chargeable notification sent')
+        }
+      }
+      
+      // 3. Also notify about lost/damaged items if any
+      const lostItems = (form.getValues('items_lost') || []) as LostItem[]
+      const damagedItems = (form.getValues('items_damaged') || []) as DamagedItem[]
+      
+      if (lostItems.length > 0 || damagedItems.length > 0) {
+        const lostTotal = lostItems.reduce((sum, item) => sum + (item.estimated_value || 0), 0)
+        const damagedTotal = damagedItems.reduce((sum, item) => sum + (item.damage_cost || 0), 0)
+        
+        // This notification is for lost/damaged - could extend notify-chargeable or use a new function
+        console.log('[RoomCheckPage] Phase 1: Lost/damaged items:', { lostItems, damagedItems, lostTotal, damagedTotal })
+      }
+      
+      // 4. Mark Phase 1 as submitted
+      setPhase1Submitted(true)
+      setCurrentPhase(2)
+      setCurrentStep(4) // Move to Phase 2 Items
+      
+      toast({
+        title: 'Đã gửi cho lễ tân',
+        description: 'Bạn có thể tiếp tục kiểm tra đồ bổ sung',
+      })
+    } catch (error) {
+      console.error('[RoomCheckPage] Phase 1 submit error:', error)
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể gửi thông báo. Vui lòng thử lại.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSubmittingPhase1(false)
     }
   }
   
@@ -911,12 +999,14 @@ export function RoomCheckPage() {
             <CardTitle>
               Bước {currentStep}/{totalSteps}:{' '}
               {currentStep === 1 && 'Chọn loại kiểm tra'}
-              {currentStep === 2 && !quickMode && 'Kiểm tra đồ dùng trong phòng'}
+              {currentStep === 2 && !quickMode && !isCheckoutType && 'Kiểm tra đồ dùng trong phòng'}
+              {currentStep === 2 && !quickMode && isCheckoutType && 'Kiểm tra đồ tính phí & mất/hỏng'}
               {currentStep === 2 && quickMode && 'Đánh giá & Hoàn tất'}
-              {currentStep === 3 && !quickMode && isCheckoutType && 'Phụ thu minibar/dịch vụ'}
+              {currentStep === 3 && !quickMode && isCheckoutType && 'Gửi báo cáo cho lễ tân'}
               {currentStep === 3 && !quickMode && !isCheckoutType && 'Đánh giá & Hoàn tất'}
-              {currentStep === 4 && isCheckoutType && 'Tình trạng phòng & Dọn dẹp'}
-              {currentStep === 5 && 'Đánh giá & Hoàn tất'}
+              {currentStep === 4 && isCheckoutType && 'Kiểm tra đồ bổ sung & giặt/thay'}
+              {currentStep === 5 && isCheckoutType && 'Tình trạng phòng & Dọn dẹp'}
+              {currentStep === 6 && isCheckoutType && 'Đánh giá & Hoàn tất'}
             </CardTitle>
             <div className="space-y-2">
               <Progress value={progress} />
@@ -947,6 +1037,7 @@ export function RoomCheckPage() {
                   setQuickMode={setQuickMode}
                 />
               )}
+              {/* Step 2: Items Check - Phase 1 for checkout, regular for others */}
               {currentStep === 2 && !quickMode && (
                 <ItemsCheckStep 
                   form={form} 
@@ -956,28 +1047,59 @@ export function RoomCheckPage() {
                   tenantId={room.tenant_id}
                   bookingId={currentBooking?.id || null}
                   checkType={watchedCheckType as 'daily' | 'checkin' | 'checkout' | 'maintenance'}
+                  phase={isCheckoutType ? 1 : undefined}
                   onQuantitiesChange={setItemQuantities}
                 />
               )}
-              {/* Chargeable Items Step - Only for checkout */}
-              {currentStep === 3 && !quickMode && isCheckoutType && currentBooking && (
-                <ChargeableItemsStep
-                  hotelId={room.hotel_id}
-                  bookingId={currentBooking.id}
+              {/* Step 3 for Checkout: Phase 1 Confirm with Chargeable Items */}
+              {currentStep === 3 && !quickMode && isCheckoutType && (
+                <div className="space-y-6">
+                  {/* Chargeable items selection */}
+                  {currentBooking && (
+                    <ChargeableItemsStep
+                      hotelId={room.hotel_id}
+                      bookingId={currentBooking.id}
+                      roomId={id!}
+                      onItemsChange={setChargeableItems}
+                      notes={chargeableNotes}
+                      onNotesChange={setChargeableNotes}
+                    />
+                  )}
+                  {/* Phase 1 confirmation */}
+                  <Phase1ConfirmStep
+                    chargeableItems={chargeableItems}
+                    lostItems={(form.getValues('items_lost') || []) as LostItem[]}
+                    damagedItems={(form.getValues('items_damaged') || []) as DamagedItem[]}
+                    roomNumber={room.room_number}
+                    guestName={currentBooking?.guest_name}
+                    onSubmitPhase1={handlePhase1Submit}
+                    isSubmitting={isSubmittingPhase1}
+                    phase1Submitted={phase1Submitted}
+                  />
+                </div>
+              )}
+              {/* Step 4 for Checkout: Phase 2 Items (bổ sung/giặt/thay) */}
+              {currentStep === 4 && !quickMode && isCheckoutType && (
+                <ItemsCheckStep 
+                  form={form} 
+                  items={items} 
                   roomId={id!}
-                  onItemsChange={setChargeableItems}
-                  notes={chargeableNotes}
-                  onNotesChange={setChargeableNotes}
+                  hotelId={room.hotel_id}
+                  tenantId={room.tenant_id}
+                  bookingId={currentBooking?.id || null}
+                  checkType={watchedCheckType as 'daily' | 'checkin' | 'checkout' | 'maintenance'}
+                  phase={2}
+                  onQuantitiesChange={setItemQuantities}
                 />
               )}
-              {/* Cleaning Request Step - Only for checkout */}
-              {currentStep === 4 && !quickMode && isCheckoutType && (
+              {/* Step 5 for Checkout: Cleaning Request */}
+              {currentStep === 5 && !quickMode && isCheckoutType && (
                 <CleaningRequestStep form={form} />
               )}
               {/* Review Step - adjusts based on checkout vs other types */}
               {((currentStep === 2 && quickMode) || 
                 (currentStep === 3 && !isCheckoutType) || 
-                (currentStep === 5 && isCheckoutType)) && (
+                (currentStep === 6 && isCheckoutType)) && (
                 <ReviewStep form={form} room={room} checkType={watchedCheckType as CheckType} currentBooking={currentBooking} />
               )}
               

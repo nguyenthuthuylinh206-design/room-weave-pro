@@ -21,6 +21,14 @@ export type ConsumableAction = 'ok' | 'empty' | 'consumed' | 'missing' | 'lost'
 export type EquipmentAction = 'ok' | 'lost' | 'damaged'
 export type FurnitureAction = 'ok' | 'lost' | 'damaged'
 
+// Phase actions for 2-phase checkout
+export interface PhaseActions {
+  linen: LinenAction[]
+  consumable: ConsumableAction[]
+  equipment: EquipmentAction[]
+  furniture: FurnitureAction[]
+}
+
 export interface CheckTypeConfig {
   label: string
   description: string
@@ -34,6 +42,10 @@ export interface CheckTypeConfig {
   allowDamageCharges: boolean
   blockOnDamaged: boolean
   requireInspection: boolean
+  // NEW: Checkout 2-phase config
+  hasIntermediateSubmit?: boolean      // Có gửi giữa chừng không (checkout only)
+  phase1Actions?: PhaseActions         // Actions cho Phase 1 (tính phí)
+  phase2Actions?: PhaseActions         // Actions cho Phase 2 (bổ sung)
 }
 
 export const CHECK_TYPE_CONFIG: Record<CheckType, CheckTypeConfig> = {
@@ -78,6 +90,20 @@ export const CHECK_TYPE_CONFIG: Record<CheckType, CheckTypeConfig> = {
     allowDamageCharges: true,
     blockOnDamaged: false,
     requireInspection: true,
+    // 2-phase checkout config
+    hasIntermediateSubmit: true,
+    phase1Actions: {
+      linen: ['ok', 'lost', 'damaged'],           // Chỉ báo mất/hỏng
+      consumable: ['ok', 'consumed', 'lost'],      // Đã dùng, mất
+      equipment: ['ok', 'lost', 'damaged'],        // Mất, hỏng
+      furniture: ['ok', 'lost', 'damaged'],
+    },
+    phase2Actions: {
+      linen: ['ok', 'laundry', 'change', 'add'],   // Giặt, thay, thêm
+      consumable: ['ok', 'empty'],                  // Hết → cần bổ sung
+      equipment: ['ok'],                            // Đã báo ở phase 1
+      furniture: ['ok'],
+    },
   },
   maintenance: {
     label: 'Kiểm tra bảo trì',

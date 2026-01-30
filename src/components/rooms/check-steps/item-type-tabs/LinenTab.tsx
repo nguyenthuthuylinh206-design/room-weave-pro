@@ -17,6 +17,7 @@ interface ExtendedRoomItem extends RoomItemWithDetails {
 interface LinenTabProps {
   items: ExtendedRoomItem[]
   checkType: CheckType
+  phase?: 1 | 2 // NEW: Phase for checkout 2-phase flow
   laundryItems: LaundryItem[]
   lostItems: LostItem[]
   replacedItems: ReplacedItem[]
@@ -38,6 +39,7 @@ const STATUS_CONFIG: Record<LinenStatus, { label: string; color: string }> = {
 export function LinenTab({
   items,
   checkType,
+  phase,
   laundryItems,
   lostItems,
   replacedItems,
@@ -46,7 +48,15 @@ export function LinenTab({
   onResetStatus,
 }: LinenTabProps) {
   const config = getCheckTypeConfig(checkType)
-  const allowedActions = config.linenActions
+  
+  // Get allowed actions based on phase (for checkout) or default config
+  const allowedActions = (() => {
+    if (checkType === 'checkout' && phase && config.phase1Actions && config.phase2Actions) {
+      return phase === 1 ? config.phase1Actions.linen : config.phase2Actions.linen
+    }
+    return config.linenActions
+  })()
+  
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [statuses, setStatuses] = useState<Record<string, LinenStatus>>({})
   const [expandedItem, setExpandedItem] = useState<string | null>(null)

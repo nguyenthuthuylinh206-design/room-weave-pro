@@ -20,6 +20,7 @@ interface ConsumableTabBookingProps {
   roomId: string
   tenantId: string
   checkType: CheckType
+  phase?: 1 | 2 // NEW: Phase for checkout 2-phase flow
   consumedItems: ConsumedItem[]
   onMarkConsumed: (item: RoomItemWithDetails, quantity: number, needRefill: boolean) => void
   onRemoveConsumed: (itemId: string) => void
@@ -38,12 +39,20 @@ export function ConsumableTabBooking({
   roomId,
   tenantId,
   checkType,
+  phase,
   consumedItems,
   onMarkConsumed,
   onRemoveConsumed,
 }: ConsumableTabBookingProps) {
   const config = getCheckTypeConfig(checkType)
-  const allowedActions = config.consumableActions
+  
+  // Get allowed actions based on phase (for checkout) or default config
+  const allowedActions = (() => {
+    if (checkType === 'checkout' && phase && config.phase1Actions && config.phase2Actions) {
+      return phase === 1 ? config.phase1Actions.consumable : config.phase2Actions.consumable
+    }
+    return config.consumableActions
+  })()
   
   const { data: bookingConsumables, isLoading, refetch } = useBookingConsumables(bookingId || undefined)
   const initializeConsumables = useInitializeBookingConsumables()
