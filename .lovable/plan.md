@@ -1,348 +1,132 @@
 
 
-## Kế hoạch: Tái cấu trúc Checkout Room Check thành 2 giai đoạn liên tiếp
+## Kế hoạch: Fix các lỗi trong 2-Phase Checkout Room Check
 
-### Hiểu rõ yêu cầu
+### Phân tích hiện trạng
 
-**Flow mới của bạn:**
-
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│                    LỄ TÂN YÊU CẦU KIỂM TRA CHECKOUT                  │
-└────────────────────────────┬─────────────────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│  NHÂN VIÊN A LÊN PHÒNG (1 LẦN DUY NHẤT)                              │
-│  ─────────────────────────────────────────────────────────────────── │
-│                                                                      │
-│  PHASE 1: BÁO CÁO PHỤ THU ĐỂ LỄ TÂN TÍNH TIỀN                       │
-│  ├── Kiểm tra đồ tiêu hao tính phí (minibar)                         │
-│  ├── Kiểm tra đồ mất/hỏng                                            │
-│  └── GỬI NGAY → Lễ tân nhận thông báo realtime → Tính tiền khách    │
-│                                                                      │
-│  PHASE 2: BÁO CÁO BỔ SUNG ĐỒ (tiếp tục ngay lập tức)                │
-│  ├── Kiểm tra đồ cần bổ sung                                         │
-│  ├── Đánh dấu đồ cần giặt/thay                                       │
-│  ├── Đánh giá tình trạng phòng (sạch/bẩn)                            │
-│  └── GỬI → Tạo Supplement Requests, Laundry Requests, Cleaning Task │
-│                                                                      │
-└────────────────────────────┬─────────────────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│  NHÂN VIÊN B (KHO) NHẬN PHIẾU GIAO                                   │
-│  ├── Ra kho lấy đồ theo phiếu                                        │
-│  ├── Lên phòng bổ sung đồ                                            │
-│  └── Xác nhận hoàn thành                                             │
-└────────────────────────────┬─────────────────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│  PHÒNG SẴN SÀNG ĐÓN KHÁCH MỚI                                        │
-└──────────────────────────────────────────────────────────────────────┘
-```
-
-**Điểm khác biệt quan trọng:**
-- Nhân viên A **không quay lại phòng** - làm 2 phase liền mạch trong 1 lần
-- Sau Phase 1: Gửi **thông báo realtime** cho lễ tân để tính tiền (không đợi)
-- Sau Phase 2: Tự động tạo requests và phòng chuyển sang `cleaning`
-
-### So sánh với hệ thống hiện tại
-
-| Hiện tại (5 steps) | Mới (6 steps với điểm gửi giữa chừng) |
-|-------------------|---------------------------------------|
-| 1. Chọn loại kiểm tra | 1. Chọn loại kiểm tra |
-| 2. Kiểm tra đồ dùng (tất cả) | 2. Kiểm tra đồ tính phí + mất/hỏng |
-| 3. Phụ thu minibar | **3. GỬI PHASE 1 → Thông báo lễ tân** |
-| 4. Tình trạng phòng | 4. Kiểm tra đồ bổ sung + giặt/thay |
-| 5. Đánh giá & Hoàn tất | 5. Tình trạng phòng & Dọn dẹp |
-|  | 6. Đánh giá & Hoàn tất (GỬI PHASE 2) |
+Sau khi review code, tôi phát hiện một số vấn đề cần sửa:
 
 ---
 
-### Chi tiết triển khai kỹ thuật
+### Vấn đề 1: Phase 1 Confirm Step không có nút "Tiếp theo"
 
-#### Bước 1: Cập nhật `roomCheckConfig.ts` - Thêm flags cho 2 phases
+**Vị trí:** `src/components/rooms/check-steps/Phase1ConfirmStep.tsx`
 
-**File:** `src/lib/roomCheckConfig.ts`
+**Vấn đề:** Sau khi `phase1Submitted = true`, component hiển thị nút "Tiếp tục kiểm tra" nhưng nút này không có `onClick` handler. Người dùng không thể chuyển sang step 4.
 
-Thêm config mới để phân biệt 2 giai đoạn:
+**Giải pháp:** Thêm prop `onContinue` để cho phép chuyển sang Phase 2.
 
 ```typescript
-export interface CheckTypeConfig {
-  // ... existing fields
-  
-  // NEW: Checkout 2-phase config
-  hasIntermediateSubmit?: boolean      // Có gửi giữa chừng không (checkout only)
-  phase1Actions?: {                     // Actions cho Phase 1 (tính phí)
-    linen: LinenAction[]
-    consumable: ConsumableAction[]
-    equipment: EquipmentAction[]
-    furniture: FurnitureAction[]
+// Thêm prop
+onContinue?: () => void
+
+// Trong phần phase1Submitted
+<Button variant="outline" className="gap-2" onClick={onContinue}>
+  <ChevronRight className="h-4 w-4" />
+  Tiếp tục kiểm tra
+</Button>
+```
+
+---
+
+### Vấn đề 2: handleNext logic cho Step 3 checkout
+
+**Vị trí:** `src/pages/rooms/RoomCheckPage.tsx` - Line 514-517
+
+**Vấn đề:** Khi ở Step 3 (Phase 1 Confirm), nút "Tiếp theo" gọi `handleNext()` nhưng logic chỉ set `isValid = true` mà không xử lý phase transition đúng cách.
+
+**Giải pháp:** Cập nhật `handleNext()` để:
+1. Nếu `phase1Submitted = true` → cho phép tiến sang step 4
+2. Nếu `phase1Submitted = false` → block và hiển thị toast yêu cầu gửi Phase 1 trước
+
+```typescript
+} else if (currentStep === 3 && isCheckoutType) {
+  // Phase 1 must be submitted before proceeding
+  if (!phase1Submitted) {
+    toast({
+      title: 'Chưa gửi báo cáo',
+      description: 'Vui lòng gửi báo cáo cho lễ tân trước khi tiếp tục.',
+      variant: 'destructive',
+    })
+    return // Block navigation
   }
-  phase2Actions?: {                     // Actions cho Phase 2 (bổ sung)
-    linen: LinenAction[]
-    consumable: ConsumableAction[]
-    equipment: EquipmentAction[]
-    furniture: FurnitureAction[]
-  }
-}
-
-// Checkout config mới
-checkout: {
-  // ... existing
-  hasIntermediateSubmit: true,
-  
-  phase1Actions: {
-    linen: ['ok', 'lost', 'damaged'],           // Chỉ báo mất/hỏng
-    consumable: ['ok', 'consumed', 'lost'],      // Đã dùng, mất
-    equipment: ['ok', 'lost', 'damaged'],        // Mất, hỏng
-    furniture: ['ok', 'lost', 'damaged'],
-  },
-  
-  phase2Actions: {
-    linen: ['ok', 'laundry', 'change', 'add'],   // Giặt, thay, thêm
-    consumable: ['ok', 'empty'],                  // Hết → cần bổ sung
-    equipment: ['ok'],                            // Đã báo ở phase 1
-    furniture: ['ok'],
-  },
+  isValid = true
 }
 ```
 
-#### Bước 2: Cập nhật `RoomCheckPage.tsx` - Logic 2 phases
+---
 
-**File:** `src/pages/rooms/RoomCheckPage.tsx`
+### Vấn đề 3: RoomCheckPage - Phase1ConfirmStep cần callback
 
-**Thay đổi chính:**
+**Vị trí:** `src/pages/rooms/RoomCheckPage.tsx` - Line 1069-1078
 
-1. **Thêm state để track phase:**
-```typescript
-const [currentPhase, setCurrentPhase] = useState<1 | 2>(1)
-const [phase1Submitted, setPhase1Submitted] = useState(false)
-```
+**Vấn đề:** `Phase1ConfirmStep` không nhận prop `onContinue` để xử lý khi user bấm "Tiếp tục" sau khi gửi Phase 1.
 
-2. **Cập nhật `getTotalSteps()`:**
-```typescript
-const getTotalSteps = () => {
-  if (quickMode) return 2
-  if (isCheckoutType) return 6 // Type -> Phase1 Items -> Phase1 Confirm -> Phase2 Items -> Cleaning -> Review
-  return 3
-}
-```
-
-3. **Thêm step "Gửi Phase 1" với nút "Gửi cho lễ tân":**
-   - Step 3 sẽ hiển thị tóm tắt Phase 1 (đồ tính phí, mất, hỏng)
-   - Có nút "Gửi cho lễ tân" → gọi notification realtime
-   - Sau khi gửi, tự động chuyển sang Step 4 (Phase 2)
-
-4. **Logic gửi Phase 1:**
-```typescript
-const handlePhase1Submit = async () => {
-  // 1. Save chargeable consumptions
-  if (chargeableItems.length > 0) {
-    await createChargeableConsumptions.mutateAsync(chargeableItems)
-  }
-  
-  // 2. Gửi notification realtime cho lễ tân
-  await supabase.functions.invoke('notify-chargeable', {
-    body: {
-      tenant_id: room.tenant_id,
-      hotel_id: room.hotel_id,
-      booking_id: currentBooking.id,
-      room_id: id,
-      room_number: room.room_number,
-      items: chargeableItems,
-      lost_items: lostItems,
-      damaged_items: damagedItems,
-      total_amount: calculateTotal(),
-      recorded_by_name: user.full_name,
-    }
-  })
-  
-  // 3. Mark phase 1 as complete
-  setPhase1Submitted(true)
-  setCurrentPhase(2)
-  setCurrentStep(4) // Move to Phase 2 Items
-  
-  toast({
-    title: 'Đã gửi cho lễ tân',
-    description: 'Bạn có thể tiếp tục kiểm tra đồ bổ sung',
-  })
-}
-```
-
-#### Bước 3: Tạo component `Phase1ConfirmStep.tsx`
-
-**File mới:** `src/components/rooms/check-steps/Phase1ConfirmStep.tsx`
+**Giải pháp:** Truyền callback để chuyển step:
 
 ```typescript
-// Hiển thị tóm tắt Phase 1
-// - Đồ tính phí (minibar)
-// - Đồ mất
-// - Đồ hỏng
-// - Tổng tiền phụ thu
-
-// Có nút "Gửi cho lễ tân" màu cam nổi bật
-// Có note: "Sau khi gửi, lễ tân sẽ nhận thông báo để tính tiền khách"
-```
-
-#### Bước 4: Tách `ItemsCheckStep` thành 2 phases
-
-**Option A (Recommended):** Truyền prop `phase` vào `ItemsCheckStep`
-```typescript
-<ItemsCheckStep
-  form={form}
-  items={items}
-  checkType="checkout"
-  phase={currentPhase}  // 1 hoặc 2
+<Phase1ConfirmStep
+  chargeableItems={chargeableItems}
+  lostItems={(form.getValues('items_lost') || []) as LostItem[]}
+  damagedItems={(form.getValues('items_damaged') || []) as DamagedItem[]}
+  roomNumber={room.room_number}
+  guestName={currentBooking?.guest_name}
+  onSubmitPhase1={handlePhase1Submit}
+  onContinue={() => setCurrentStep(4)} // NEW
+  isSubmitting={isSubmittingPhase1}
+  phase1Submitted={phase1Submitted}
 />
 ```
 
-Trong `ItemsCheckStep`, filter actions theo phase:
-```typescript
-const getAvailableActions = (itemType: string) => {
-  if (checkType === 'checkout' && phase === 1) {
-    return checkTypeConfig.phase1Actions[itemType]
-  }
-  if (checkType === 'checkout' && phase === 2) {
-    return checkTypeConfig.phase2Actions[itemType]
-  }
-  return checkTypeConfig[`${itemType}Actions`]
-}
-```
+---
 
-#### Bước 5: Cập nhật flow steps trong render
+### Vấn đề 4: ConsumableTabBooking - "consumed" action không có trong allowedActions cho Phase 1
 
-**File:** `src/pages/rooms/RoomCheckPage.tsx`
+**Vị trí:** `src/components/rooms/check-steps/item-type-tabs/ConsumableTabBooking.tsx`
 
-```typescript
-// Step labels
-{currentStep === 1 && 'Chọn loại kiểm tra'}
-{currentStep === 2 && isCheckoutType && 'Kiểm tra đồ tính phí & mất/hỏng'}
-{currentStep === 3 && isCheckoutType && 'Gửi báo cáo cho lễ tân'}
-{currentStep === 4 && isCheckoutType && 'Kiểm tra đồ bổ sung & giặt/thay'}
-{currentStep === 5 && isCheckoutType && 'Tình trạng phòng & Dọn dẹp'}
-{currentStep === 6 && isCheckoutType && 'Đánh giá & Hoàn tất'}
-```
+**Vấn đề:** Phase 1 config có `['ok', 'consumed', 'lost']` nhưng UI không có nút "Đã dùng" cho các loại kiểm tra khác checkout.
+
+**Hiện tại:** Code đang check `allowedActions.includes('missing')` và `allowedActions.includes('empty')` nhưng không check `consumed`.
+
+**Giải pháp:** Không cần sửa - "consumed" chỉ được track qua counter UI cho checkout mode.
 
 ---
 
-### Sơ đồ UI mới cho Checkout
+### Vấn đề 5: Cần reset checked items khi chuyển từ Phase 1 sang Phase 2
 
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│  Bước 1/6: Chọn loại kiểm tra                                   │
-│  ─────────────────────────────────────────────────────────────  │
-│  [Hàng ngày] [Check-in] [CHECK-OUT ✓] [Bảo trì]                 │
-│                                                                 │
-│                           [Tiếp theo →]                         │
-└─────────────────────────────────────────────────────────────────┘
+**Vị trí:** `src/components/rooms/check-steps/ItemsCheckStep.tsx`
 
-┌─────────────────────────────────────────────────────────────────┐
-│  Bước 2/6: Kiểm tra đồ tính phí & mất/hỏng                      │
-│  ─────────────────────────────────────────────────────────────  │
-│  ⚡ PHASE 1: Báo cáo để lễ tân tính tiền                         │
-│                                                                 │
-│  [Đồ vải] [Tiêu hao] [Thiết bị] [Nội thất]                      │
-│                                                                 │
-│  Minibar:                                                       │
-│  ├── Coca Cola       [+] 2 [-]    50.000đ                       │
-│  ├── Snack           [+] 1 [-]    30.000đ                       │
-│                                                                 │
-│  Đồ mất/hỏng:                                                   │
-│  ├── Khăn tắm        [Mất x1]                                   │
-│  ├── Remote TV       [Hỏng - cần thay]                          │
-│                                                                 │
-│                           [Tiếp theo →]                         │
-└─────────────────────────────────────────────────────────────────┘
+**Vấn đề tiềm ẩn:** Khi chuyển từ Phase 1 (step 2) sang Phase 2 (step 4), các state như `checkedItems`, `laundryItems`, v.v. vẫn giữ nguyên từ Phase 1. Điều này có thể gây nhầm lẫn hoặc trùng lặp dữ liệu.
 
-┌─────────────────────────────────────────────────────────────────┐
-│  Bước 3/6: Gửi báo cáo cho lễ tân                               │
-│  ─────────────────────────────────────────────────────────────  │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │  📋 TÓM TẮT PHỤ THU                                        │  │
-│  │                                                           │  │
-│  │  Đồ dùng tính phí:                                        │  │
-│  │  • 2x Coca Cola          100.000đ                         │  │
-│  │  • 1x Snack               30.000đ                         │  │
-│  │                                                           │  │
-│  │  Đồ mất:                                                  │  │
-│  │  • 1x Khăn tắm           150.000đ                         │  │
-│  │                                                           │  │
-│  │  Đồ hỏng:                                                 │  │
-│  │  • 1x Remote TV          200.000đ (thay thế)              │  │
-│  │  ─────────────────────────────────────────────────────    │  │
-│  │  TỔNG CỘNG:              480.000đ                         │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                                                                 │
-│  📱 Lễ tân sẽ nhận thông báo ngay khi bạn gửi                   │
-│                                                                 │
-│  [← Quay lại]         [🔔 GỬI CHO LỄ TÂN & TIẾP TỤC]           │
-└─────────────────────────────────────────────────────────────────┘
+**Giải pháp:** Không cần thay đổi - việc giữ state là đúng vì:
+- Phase 1 đánh dấu đồ mất/hỏng/tiêu hao
+- Phase 2 bổ sung thêm đồ giặt/thay/thêm
+- Cả hai phase cùng contribute vào form data cuối cùng
 
-┌─────────────────────────────────────────────────────────────────┐
-│  Bước 4/6: Kiểm tra đồ bổ sung & giặt/thay                      │
-│  ─────────────────────────────────────────────────────────────  │
-│  ⚡ PHASE 2: Yêu cầu bổ sung đồ dùng                             │
-│                                                                 │
-│  [Đồ vải] [Tiêu hao] [Thiết bị] [Nội thất]                      │
-│                                                                 │
-│  Đồ vải - Cần thay/giặt:                                        │
-│  ├── Ga giường       [Giặt x1] [Thay sạch x1]                   │
-│  ├── Khăn tắm        [Thêm x2]                                  │
-│                                                                 │
-│  Tiêu hao - Cần bổ sung:                                        │
-│  ├── Dầu gội         [Hết - cần bổ sung]                        │
-│  ├── Xà phòng        [Hết - cần bổ sung]                        │
-│                                                                 │
-│                           [Tiếp theo →]                         │
-└─────────────────────────────────────────────────────────────────┘
+---
 
-┌─────────────────────────────────────────────────────────────────┐
-│  Bước 5/6: Tình trạng phòng & Dọn dẹp                           │
-│  ─────────────────────────────────────────────────────────────  │
-│  (Giữ nguyên CleaningRequestStep hiện tại)                      │
-└─────────────────────────────────────────────────────────────────┘
+### Vấn đề 6: Nút "Tiếp theo" ở Step 3 (Checkout) không cần thiết
 
-┌─────────────────────────────────────────────────────────────────┐
-│  Bước 6/6: Đánh giá & Hoàn tất                                  │
-│  ─────────────────────────────────────────────────────────────  │
-│  (Giữ nguyên ReviewStep hiện tại)                               │
-│                                                                 │
-│  [← Quay lại]                        [✓ HOÀN THÀNH KIỂM TRA]   │
-└─────────────────────────────────────────────────────────────────┘
-```
+**Vị trí:** `src/pages/rooms/RoomCheckPage.tsx` - Line 1129-1133
+
+**Vấn đề:** Ở Step 3 checkout, có 2 cách để tiến sang step 4:
+1. Bấm nút cam "Gửi cho lễ tân & Tiếp tục" (trong Phase1ConfirmStep) - tự động chuyển step
+2. Bấm nút "Tiếp theo" ở footer - hiện đang gọi handleNext()
+
+**Giải pháp:** Nút "Tiếp theo" chỉ nên hoạt động sau khi Phase 1 đã gửi. Cập nhật UI:
+- Ẩn nút "Tiếp theo" ở Step 3 checkout khi chưa gửi Phase 1
+- Hoặc hiển thị disabled với tooltip "Vui lòng gửi báo cáo trước"
 
 ---
 
 ### Thứ tự triển khai
 
-| # | Công việc | File | Ước tính |
+| # | Công việc | File | Chi tiết |
 |---|-----------|------|----------|
-| 1 | Cập nhật `roomCheckConfig.ts` với phase configs | Config | 20 phút |
-| 2 | Tạo `Phase1ConfirmStep.tsx` | Component mới | 45 phút |
-| 3 | Cập nhật `ItemsCheckStep.tsx` để support phases | Component | 40 phút |
-| 4 | Cập nhật `RoomCheckPage.tsx` với logic 6 steps | Page | 60 phút |
-| 5 | Cập nhật `notify-chargeable` edge function | Edge function | 20 phút |
-| 6 | Testing & fix bugs | - | 30 phút |
+| 1 | Thêm prop `onContinue` cho Phase1ConfirmStep | `Phase1ConfirmStep.tsx` | Thêm prop + wiring |
+| 2 | Truyền callback `onContinue` từ RoomCheckPage | `RoomCheckPage.tsx` | Line ~1069 |
+| 3 | Fix handleNext logic cho Step 3 checkout | `RoomCheckPage.tsx` | Block nếu chưa gửi Phase 1 |
+| 4 | Cải thiện UX: ẩn/disable "Tiếp theo" khi cần | `RoomCheckPage.tsx` | Footer buttons |
 
-**Tổng thời gian ước tính: ~3.5 giờ**
-
----
-
-### Lợi ích của thiết kế mới
-
-1. **Lễ tân nhận thông báo sớm hơn** → Có thể tính tiền khách ngay trong khi nhân viên A vẫn đang kiểm tra
-2. **Nhân viên A không cần quay lại phòng** → Tiết kiệm thời gian
-3. **Flow rõ ràng** → Phân biệt rõ 2 giai đoạn (tính tiền vs bổ sung đồ)
-4. **Backward compatible** → Các loại kiểm tra khác (daily, checkin, maintenance) không bị ảnh hưởng
-
-### Câu hỏi xác nhận
-
-1. **Nút "Gửi cho lễ tân" có cần hiển thị loading/confirmation không?** Hay gửi ngay và chuyển sang bước tiếp theo?
-
-2. **Nếu Phase 1 không có gì để báo cáo (không có phụ thu, không mất/hỏng)** → Có cần hiển thị Step 3 không? Hay tự động skip sang Step 4?
-
-3. **Phase 1 đã gửi rồi, nhân viên có thể quay lại sửa không?** Hay chỉ cho phép tiến về phía trước?
+### Ước tính: ~30 phút
 
