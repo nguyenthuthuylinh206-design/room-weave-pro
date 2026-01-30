@@ -76,6 +76,47 @@ export function ItemsCheckStep({
   const [damagedItems, setDamagedItems] = useState<DamagedItem[]>([]);
   const [missingItems, setMissingItems] = useState<MissingItem[]>([]);
 
+  // Hydrate local tracking state from form values (e.g. resume from localStorage)
+  // ItemsCheckStep uses local state for UI, but RoomCheckPage persists data in react-hook-form.
+  // When the step remounts, we need to restore UI state from form values.
+  useEffect(() => {
+    const initialLaundry = (form.getValues('items_sent_to_laundry') || []) as LaundryItem[]
+    const initialConsumed = (form.getValues('items_consumed') || []) as ConsumedItem[]
+    const initialLost = (form.getValues('items_lost') || []) as LostItem[]
+    const initialReplaced = (form.getValues('items_replaced') || []) as ReplacedItem[]
+    const initialDamaged = (form.getValues('items_damaged') || []) as any[]
+
+    // Reconstruct shortage-tracking UI state from items_missing (reason = 'shortage')
+    const initialShortage = ((form.getValues('items_missing') || []) as any[])
+      .filter((it) => it?.reason === 'shortage')
+      .map((it) => ({
+        item_id: it.item_id,
+        item_name: it.item_name,
+        item_code: it.item_code,
+        item_type: (it.item_type || 'linen') as 'linen' | 'consumable' | 'equipment' | 'furniture',
+        missing_quantity: Number(it.shortage || 0),
+        standard_quantity: Number(it.standard_quantity || 0),
+      }))
+      .filter((it) => it.item_id && it.missing_quantity > 0)
+
+    setLaundryItems(initialLaundry)
+    setConsumedItems(initialConsumed)
+    setLostItems(initialLost)
+    setReplacedItems(initialReplaced)
+    setDamagedItems(initialDamaged as DamagedItem[])
+    setMissingItems(initialShortage as unknown as MissingItem[])
+
+    const hydratedChecked = new Set<string>([
+      ...initialLaundry.map((i) => i.item_id),
+      ...initialConsumed.map((i) => i.item_id),
+      ...initialLost.map((i) => i.item_id),
+      ...initialReplaced.map((i) => i.item_id),
+      ...(initialDamaged as any[]).map((i) => i?.item_id).filter(Boolean),
+      ...(initialShortage as any[]).map((i) => i?.item_id).filter(Boolean),
+    ])
+    setCheckedItems(hydratedChecked)
+  }, [form, roomId])
+
   // Fetch item_type and category_name for each item
   const [itemsWithType, setItemsWithType] = useState<ExtendedRoomItem[]>([]);
 

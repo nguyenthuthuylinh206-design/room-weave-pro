@@ -1027,6 +1027,12 @@ export function RoomCheckPage() {
                           } else {
                             setShowSubmitDialog(true)
                           }
+                        } else {
+                          toast({
+                            title: 'Chưa hợp lệ',
+                            description: 'Vui lòng kiểm tra lại các trường bắt buộc trước khi hoàn thành.',
+                            variant: 'destructive',
+                          })
                         }
                       })
                     }}
