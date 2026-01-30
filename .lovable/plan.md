@@ -1,121 +1,119 @@
 
 
-## Kế hoạch: Fix các lỗi trong 2-Phase Checkout Room Check
+## Kế hoạch: Tiếp tục fix các lỗi trong 2-Phase Checkout Room Check
 
-### Phân tích hiện trạng
+### Phân tích các vấn đề còn lại
 
-Sau khi review code, tôi phát hiện một số vấn đề cần sửa:
+Sau khi review code, tôi phát hiện các vấn đề sau:
 
 ---
 
-### Vấn đề 1: Phase 1 Confirm Step không có nút "Tiếp theo"
+### Vấn đề 1: Nút "Quay lại" ở Step 4 cho phép quay về Step 3
 
-**Vị trí:** `src/components/rooms/check-steps/Phase1ConfirmStep.tsx`
+**Vị trí:** `src/pages/rooms/RoomCheckPage.tsx` - Line 614-618
 
-**Vấn đề:** Sau khi `phase1Submitted = true`, component hiển thị nút "Tiếp tục kiểm tra" nhưng nút này không có `onClick` handler. Người dùng không thể chuyển sang step 4.
+**Vấn đề:** Khi ở Step 4 (Phase 2 Items), nút "Quay lại" (`handleBack()`) cho phép quay về Step 3 (Phase 1 Confirm). Tuy nhiên, Phase 1 đã gửi rồi (`phase1Submitted = true`), việc quay lại sẽ gây nhầm lẫn vì UI hiển thị "Đã gửi" nhưng không có gì để làm.
 
-**Giải pháp:** Thêm prop `onContinue` để cho phép chuyển sang Phase 2.
+**Giải pháp:** Cập nhật `handleBack()` để:
+- Khi ở Step 4 checkout và `phase1Submitted = true` → Hiển thị toast cảnh báo hoặc skip Step 3
+- Hoặc đơn giản hơn: cho phép quay lại nhưng Phase1ConfirmStep đã hiển thị đúng trạng thái "Đã gửi"
+
+**Quyết định:** Giữ nguyên logic hiện tại vì `Phase1ConfirmStep` đã xử lý đúng - khi `phase1Submitted = true`, nó hiển thị thông báo "Đã gửi" và nút "Tiếp tục". UX này hợp lý.
+
+---
+
+### Vấn đề 2: Không có chỉ báo phase hiện tại trong UI
+
+**Vị trí:** `src/pages/rooms/RoomCheckPage.tsx` - Line 1008-1017
+
+**Vấn đề:** Mặc dù step titles đã được update, nhưng không có indicator rõ ràng cho nhân viên biết đang ở Phase 1 hay Phase 2.
+
+**Giải pháp:** Thêm badge/chip "Phase 1" hoặc "Phase 2" vào header hoặc step title khi `isCheckoutType`.
 
 ```typescript
-// Thêm prop
-onContinue?: () => void
-
-// Trong phần phase1Submitted
-<Button variant="outline" className="gap-2" onClick={onContinue}>
-  <ChevronRight className="h-4 w-4" />
-  Tiếp tục kiểm tra
-</Button>
+// Ví dụ trong CardTitle
+{currentStep === 2 && !quickMode && isCheckoutType && (
+  <>
+    <Badge variant="outline" className="mr-2 bg-orange-100 text-orange-700">Phase 1</Badge>
+    Kiểm tra đồ tính phí & mất/hỏng
+  </>
+)}
 ```
 
 ---
 
-### Vấn đề 2: handleNext logic cho Step 3 checkout
+### Vấn đề 3: Step 3 (Phase1ConfirmStep) không có ChargeableItemsStep khi không có booking
 
-**Vị trí:** `src/pages/rooms/RoomCheckPage.tsx` - Line 514-517
+**Vị trí:** `src/pages/rooms/RoomCheckPage.tsx` - Line 1066-1067
 
-**Vấn đề:** Khi ở Step 3 (Phase 1 Confirm), nút "Tiếp theo" gọi `handleNext()` nhưng logic chỉ set `isValid = true` mà không xử lý phase transition đúng cách.
+**Vấn đề:** `ChargeableItemsStep` chỉ render khi có `currentBooking`. Nếu không có booking (trường hợp hiếm), UI sẽ thiếu phần chọn đồ tính phí.
 
-**Giải pháp:** Cập nhật `handleNext()` để:
-1. Nếu `phase1Submitted = true` → cho phép tiến sang step 4
-2. Nếu `phase1Submitted = false` → block và hiển thị toast yêu cầu gửi Phase 1 trước
+**Hiện trạng:** Code đã check `{currentBooking && (...)}` nên không crash. Tuy nhiên, nếu checkout mà không có booking thì flow sẽ không hợp lý.
 
+**Giải pháp:** Không cần sửa - checkout luôn có booking, nếu không có thì UI đã handle đúng.
+
+---
+
+### Vấn đề 4: Duplicate chargeable submission trong final submit
+
+**Vị trí:** `src/pages/rooms/RoomCheckPage.tsx` - Line 667-696
+
+**Vấn đề:** Trong `onSubmit()`, code vẫn save chargeable consumptions lại lần nữa:
 ```typescript
-} else if (currentStep === 3 && isCheckoutType) {
-  // Phase 1 must be submitted before proceeding
-  if (!phase1Submitted) {
-    toast({
-      title: 'Chưa gửi báo cáo',
-      description: 'Vui lòng gửi báo cáo cho lễ tân trước khi tiếp tục.',
-      variant: 'destructive',
-    })
-    return // Block navigation
-  }
-  isValid = true
+if (data.check_type === 'checkout' && chargeableItems.length > 0) {
+  const savedItems = await createChargeableConsumptions.mutateAsync(chargeableItems)
+  ...
+}
+```
+
+Nhưng `chargeableItems` đã được save trong `handlePhase1Submit()` rồi. Điều này có thể gây duplicate entries.
+
+**Giải pháp:** Thêm check để skip nếu Phase 1 đã submit:
+```typescript
+// Skip if already submitted in Phase 1
+if (data.check_type === 'checkout' && chargeableItems.length > 0 && !phase1Submitted) {
+  ...
 }
 ```
 
 ---
 
-### Vấn đề 3: RoomCheckPage - Phase1ConfirmStep cần callback
+### Vấn đề 5: `items_lost` không được lấy từ form đúng cách trong Phase1ConfirmStep
 
-**Vị trí:** `src/pages/rooms/RoomCheckPage.tsx` - Line 1069-1078
+**Vị trí:** `src/components/rooms/check-steps/Phase1ConfirmStep.tsx`
 
-**Vấn đề:** `Phase1ConfirmStep` không nhận prop `onContinue` để xử lý khi user bấm "Tiếp tục" sau khi gửi Phase 1.
-
-**Giải pháp:** Truyền callback để chuyển step:
-
+**Kiểm tra:** Props `lostItems` và `damagedItems` được truyền từ RoomCheckPage với:
 ```typescript
-<Phase1ConfirmStep
-  chargeableItems={chargeableItems}
-  lostItems={(form.getValues('items_lost') || []) as LostItem[]}
-  damagedItems={(form.getValues('items_damaged') || []) as DamagedItem[]}
-  roomNumber={room.room_number}
-  guestName={currentBooking?.guest_name}
-  onSubmitPhase1={handlePhase1Submit}
-  onContinue={() => setCurrentStep(4)} // NEW
-  isSubmitting={isSubmittingPhase1}
-  phase1Submitted={phase1Submitted}
-/>
+lostItems={(form.getValues('items_lost') || []) as LostItem[]}
+damagedItems={(form.getValues('items_damaged') || []) as DamagedItem[]}
 ```
 
----
+**Phân tích:** `items_lost` không phải là field trong form schema. Đúng field là `items_missing` với `reason: 'lost'` hoặc state riêng `lostItems` trong `ItemsCheckStep`.
 
-### Vấn đề 4: ConsumableTabBooking - "consumed" action không có trong allowedActions cho Phase 1
+**Vấn đề thực sự:** `ItemsCheckStep` lưu `lostItems` vào form field `items_lost` (Line 213):
+```typescript
+form.setValue('items_lost', lostItems)
+```
 
-**Vị trí:** `src/components/rooms/check-steps/item-type-tabs/ConsumableTabBooking.tsx`
+Nhưng trong `roomCheckFormSchema`, không có field `items_lost`! Điều này khiến dữ liệu lost items có thể không được persist đúng cách.
 
-**Vấn đề:** Phase 1 config có `['ok', 'consumed', 'lost']` nhưng UI không có nút "Đã dùng" cho các loại kiểm tra khác checkout.
-
-**Hiện tại:** Code đang check `allowedActions.includes('missing')` và `allowedActions.includes('empty')` nhưng không check `consumed`.
-
-**Giải pháp:** Không cần sửa - "consumed" chỉ được track qua counter UI cho checkout mode.
-
----
-
-### Vấn đề 5: Cần reset checked items khi chuyển từ Phase 1 sang Phase 2
-
-**Vị trí:** `src/components/rooms/check-steps/ItemsCheckStep.tsx`
-
-**Vấn đề tiềm ẩn:** Khi chuyển từ Phase 1 (step 2) sang Phase 2 (step 4), các state như `checkedItems`, `laundryItems`, v.v. vẫn giữ nguyên từ Phase 1. Điều này có thể gây nhầm lẫn hoặc trùng lặp dữ liệu.
-
-**Giải pháp:** Không cần thay đổi - việc giữ state là đúng vì:
-- Phase 1 đánh dấu đồ mất/hỏng/tiêu hao
-- Phase 2 bổ sung thêm đồ giặt/thay/thêm
-- Cả hai phase cùng contribute vào form data cuối cùng
+**Giải pháp cần kiểm tra:** Xác nhận schema có field `items_lost` hay không.
 
 ---
 
-### Vấn đề 6: Nút "Tiếp theo" ở Step 3 (Checkout) không cần thiết
+### Vấn đề 6: handlePhase1Submit chưa include lost/damaged items trong notification
 
-**Vị trí:** `src/pages/rooms/RoomCheckPage.tsx` - Line 1129-1133
+**Vị trí:** `src/pages/rooms/RoomCheckPage.tsx` - Line 581-591
 
-**Vấn đề:** Ở Step 3 checkout, có 2 cách để tiến sang step 4:
-1. Bấm nút cam "Gửi cho lễ tân & Tiếp tục" (trong Phase1ConfirmStep) - tự động chuyển step
-2. Bấm nút "Tiếp theo" ở footer - hiện đang gọi handleNext()
+**Vấn đề:** Code log lost/damaged items nhưng không thực sự gửi trong notification:
+```typescript
+if (lostItems.length > 0 || damagedItems.length > 0) {
+  // This notification is for lost/damaged - could extend notify-chargeable or use a new function
+  console.log('[RoomCheckPage] Phase 1: Lost/damaged items:', { lostItems, damagedItems, lostTotal, damagedTotal })
+}
+```
 
-**Giải pháp:** Nút "Tiếp theo" chỉ nên hoạt động sau khi Phase 1 đã gửi. Cập nhật UI:
-- Ẩn nút "Tiếp theo" ở Step 3 checkout khi chưa gửi Phase 1
-- Hoặc hiển thị disabled với tooltip "Vui lòng gửi báo cáo trước"
+**Giải pháp:** Bổ sung lost/damaged vào payload của `notify-chargeable` hoặc tạo notification riêng.
 
 ---
 
@@ -123,10 +121,10 @@ onContinue?: () => void
 
 | # | Công việc | File | Chi tiết |
 |---|-----------|------|----------|
-| 1 | Thêm prop `onContinue` cho Phase1ConfirmStep | `Phase1ConfirmStep.tsx` | Thêm prop + wiring |
-| 2 | Truyền callback `onContinue` từ RoomCheckPage | `RoomCheckPage.tsx` | Line ~1069 |
-| 3 | Fix handleNext logic cho Step 3 checkout | `RoomCheckPage.tsx` | Block nếu chưa gửi Phase 1 |
-| 4 | Cải thiện UX: ẩn/disable "Tiếp theo" khi cần | `RoomCheckPage.tsx` | Footer buttons |
+| 1 | Fix duplicate chargeable submission | `RoomCheckPage.tsx` | Thêm check `!phase1Submitted` |
+| 2 | Thêm phase indicator vào step titles | `RoomCheckPage.tsx` | Badge "Phase 1/2" |
+| 3 | Include lost/damaged trong Phase 1 notification | `RoomCheckPage.tsx` | Extend notify-chargeable payload |
+| 4 | Verify form schema có items_lost | `rooms.schemas.ts` | Kiểm tra và add nếu thiếu |
 
-### Ước tính: ~30 phút
+### Ước tính: ~45 phút
 
