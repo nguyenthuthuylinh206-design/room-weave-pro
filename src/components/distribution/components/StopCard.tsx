@@ -13,6 +13,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -40,8 +46,10 @@ import {
   ArrowRightLeft,
   Undo2,
   ChevronRight,
+  ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 interface StopCardProps {
   stop: RouteStop
@@ -70,6 +78,7 @@ export function StopCard({
 }: StopCardProps) {
   const { t } = useTranslation('distribution')
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const [showCannotAccessDialog, setShowCannotAccessDialog] = useState(false)
   const [showHandoverDialog, setShowHandoverDialog] = useState(false)
   const [exceptionType, setExceptionType] = useState<ExceptionType>('guest_inside')
@@ -81,6 +90,12 @@ export function StopCard({
   const retryStop = useRetryStop()
   const returnToStock = useReturnToStock()
   const handoverStop = useHandoverStop()
+
+  // Quick exception handler for mobile dropdown
+  const handleQuickException = (type: ExceptionType) => {
+    setExceptionType(type)
+    setShowCannotAccessDialog(true)
+  }
 
   // Navigate to room check page when clicking on room
   const handleRoomClick = () => {
@@ -204,67 +219,156 @@ export function StopCard({
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2 shrink-0">
+            {/* Actions - Desktop: inline buttons, Mobile: stacked */}
+            {!isMobile ? (
+              <div className="flex items-center gap-2 shrink-0">
+                {canDeliver && (
+                  <Button
+                    size="sm"
+                    onClick={handleDeliver}
+                    disabled={deliverStop.isPending}
+                    className="gap-1.5"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    Giao
+                  </Button>
+                )}
+                {canMarkCannotAccess && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowCannotAccessDialog(true)}
+                    className="gap-1.5 text-destructive hover:text-destructive"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Không vào được
+                  </Button>
+                )}
+                {canRetry && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleRetry}
+                    disabled={retryStop.isPending}
+                    className="gap-1.5"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Thử lại
+                  </Button>
+                )}
+                {canReturnToStock && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleReturnToStock}
+                    disabled={returnToStock.isPending}
+                    className="gap-1.5"
+                  >
+                    <Undo2 className="h-4 w-4" />
+                    Trả kho
+                  </Button>
+                )}
+                {canHandover && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setShowHandoverDialog(true)}
+                    className="gap-1.5"
+                  >
+                    <ArrowRightLeft className="h-4 w-4" />
+                    Bàn giao
+                  </Button>
+                )}
+              </div>
+            ) : null}
+          </div>
+
+          {/* Mobile Actions - Full width buttons below content */}
+          {isMobile && (
+            <div className="mt-3 space-y-2">
+              {/* Primary Action: Deliver */}
               {canDeliver && (
                 <Button
-                  size="sm"
                   onClick={handleDeliver}
                   disabled={deliverStop.isPending}
-                  className="gap-1.5"
+                  className="w-full h-12 text-base font-semibold gap-2"
                 >
-                  <CheckCircle className="h-4 w-4" />
-                  Giao
+                  <CheckCircle className="h-5 w-5" />
+                  {deliverStop.isPending ? 'Đang giao...' : 'XÁC NHẬN GIAO'}
                 </Button>
               )}
+              
+              {/* Secondary Action: Cannot Access as Dropdown */}
               {canMarkCannotAccess && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowCannotAccessDialog(true)}
-                  className="gap-1.5 text-destructive hover:text-destructive"
-                >
-                  <XCircle className="h-4 w-4" />
-                  Không vào được
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className="w-full h-10 justify-between text-muted-foreground"
+                    >
+                      <span className="flex items-center gap-2">
+                        <XCircle className="h-4 w-4" />
+                        Không vào được...
+                      </span>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem onClick={() => handleQuickException('guest_inside')}>
+                      Khách trong phòng
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleQuickException('dnd')}>
+                      Do Not Disturb
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleQuickException('locked')}>
+                      Phòng khóa
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleQuickException('other')}>
+                      Lý do khác...
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
-              {canRetry && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleRetry}
-                  disabled={retryStop.isPending}
-                  className="gap-1.5"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Thử lại
-                </Button>
-              )}
-              {canReturnToStock && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleReturnToStock}
-                  disabled={returnToStock.isPending}
-                  className="gap-1.5"
-                >
-                  <Undo2 className="h-4 w-4" />
-                  Trả kho
-                </Button>
-              )}
-              {canHandover && (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setShowHandoverDialog(true)}
-                  className="gap-1.5"
-                >
-                  <ArrowRightLeft className="h-4 w-4" />
-                  Bàn giao
-                </Button>
+
+              {/* Exception Actions */}
+              {(canRetry || canReturnToStock || canHandover) && (
+                <div className="flex gap-2">
+                  {canRetry && (
+                    <Button
+                      variant="outline"
+                      onClick={handleRetry}
+                      disabled={retryStop.isPending}
+                      className="flex-1 h-10 gap-1.5"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Thử lại
+                    </Button>
+                  )}
+                  {canReturnToStock && (
+                    <Button
+                      variant="outline"
+                      onClick={handleReturnToStock}
+                      disabled={returnToStock.isPending}
+                      className="flex-1 h-10 gap-1.5"
+                    >
+                      <Undo2 className="h-4 w-4" />
+                      Trả kho
+                    </Button>
+                  )}
+                  {canHandover && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowHandoverDialog(true)}
+                      className="flex-1 h-10 gap-1.5"
+                    >
+                      <ArrowRightLeft className="h-4 w-4" />
+                      Bàn giao
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
-          </div>
+          )}
 
           {/* Item list (collapsed by default, expand on click) */}
           {stop.items.length > 0 && (
