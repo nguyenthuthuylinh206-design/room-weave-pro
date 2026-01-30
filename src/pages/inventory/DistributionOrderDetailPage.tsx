@@ -2,19 +2,15 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { ArrowLeft, Ban, Printer, Pencil, Route, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Ban, Printer, Pencil, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
 import { OrderStatusBadge } from '@/components/distribution/components/DistributionStatusBadge'
-import { RoomDeliveryCard } from '@/components/distribution/components/RoomDeliveryCard'
-import { DistributionSummaryCards } from '@/components/distribution/components/DistributionSummaryCards'
 import { RouteDetailView } from '@/components/distribution/components/RouteDetailView'
 import { CancelOrderDialog } from '@/components/distribution/dialogs/CancelOrderDialog'
 import { UndoDeliveryDialog } from '@/components/distribution/dialogs/UndoDeliveryDialog'
 import { EditDistributionDialog } from '@/components/distribution/dialogs/EditDistributionDialog'
-import { useDistributionOrderDetail, useCancelDistributionOrder, useConfirmWarehouseDelivery } from '@/hooks/useDistributionOrders'
+import { useDistributionOrderDetail, useCancelDistributionOrder } from '@/hooks/useDistributionOrders'
 import { useUndoRoomDelivery } from '@/hooks/useRoomDistributionHistory'
 import { useConfirmReceiveOrder } from '@/hooks/useRouteBatch'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -34,17 +30,20 @@ export default function DistributionOrderDetailPage() {
   const [showUndoDialog, setShowUndoDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [selectedRoom, setSelectedRoom] = useState<DistributionOrderRoom | null>(null)
-  const [activeTab, setActiveTab] = useState<'route' | 'legacy'>('route')
   
   const { data: order, isLoading } = useDistributionOrderDetail(id)
   const { mutate: cancelOrder, isPending: isCancelling } = useCancelDistributionOrder()
   const { mutate: undoDelivery, isPending: isUndoing } = useUndoRoomDelivery()
-  const { mutate: confirmWarehouseDelivery, isPending: isConfirmingWarehouse } = useConfirmWarehouseDelivery()
   const { mutate: confirmReceiveOrder, isPending: isConfirmingReceive } = useConfirmReceiveOrder()
 
   const isWarehouseManager = WAREHOUSE_MANAGER_ROLES.includes(user?.user_level_code || '')
   const isAssignee = user?.id && order?.assigned_to === user.id
   const canConfirmReceive = order?.status === 'released' && isAssignee
+
+  const handleConfirmReceive = () => {
+    if (!id) return
+    confirmReceiveOrder({ orderId: id })
+  }
 
   if (isLoading) {
     return (
@@ -72,10 +71,6 @@ export default function DistributionOrderDetailPage() {
   const allRoomsPending = order.rooms?.every(r => r.status === 'pending') ?? false
   const canEdit = order.status === 'pending' && allRoomsPending
   const canCancel = order.status === 'pending' || order.status === 'in_progress'
-
-  const handleConfirmDelivery = (roomOrderId: string) => {
-    confirmWarehouseDelivery({ roomOrderId })
-  }
 
   const handleUndoRoom = () => {
     if (!selectedRoom || !user?.id) return
@@ -107,11 +102,6 @@ export default function DistributionOrderDetailPage() {
   const handleOpenUndo = (room: DistributionOrderRoom) => {
     setSelectedRoom(room)
     setShowUndoDialog(true)
-  }
-
-  const handleConfirmReceive = () => {
-    if (!id) return
-    confirmReceiveOrder({ orderId: id })
   }
 
   // Mobile view - Use RouteDetailView for unified experience
@@ -283,84 +273,8 @@ export default function DistributionOrderDetailPage() {
         </Card>
       )}
 
-      {/* Tabs: Route View vs Legacy View - Legacy only for managers */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'route' | 'legacy')}>
-        <TabsList>
-          <TabsTrigger value="route" className="gap-2">
-            <Route className="h-4 w-4" />
-            Lộ trình giao hàng
-          </TabsTrigger>
-          {isWarehouseManager && (
-            <TabsTrigger value="legacy">
-              Xem chi tiết (Quản lý)
-            </TabsTrigger>
-          )}
-        </TabsList>
-
-        {/* Route View */}
-        <TabsContent value="route" className="mt-6 space-y-4">
-          {/* Confirm Receive Button for Assignee (Desktop) */}
-          {canConfirmReceive && (
-            <Card className="border-primary/20 bg-primary/5">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-lg">Xác nhận nhận hàng</h3>
-                    <p className="text-muted-foreground">
-                      Vui lòng xác nhận bạn đã nhận đủ hàng từ kho trước khi đi giao
-                    </p>
-                  </div>
-                  <Button
-                    onClick={handleConfirmReceive}
-                    disabled={isConfirmingReceive}
-                    size="lg"
-                    className="gap-2 h-12 px-6"
-                  >
-                    <CheckCircle className="h-5 w-5" />
-                    {isConfirmingReceive ? 'Đang xử lý...' : 'Xác nhận đã nhận đủ hàng'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          
-          {id && <RouteDetailView orderId={id} embedded />}
-        </TabsContent>
-
-        {/* Legacy View */}
-        <TabsContent value="legacy" className="mt-6 space-y-6">
-          {/* Summary Cards */}
-          <DistributionSummaryCards
-            totalRooms={totalRooms}
-            completedRooms={completedRooms}
-            totalItems={order.total_items}
-            assignedTo={order.assigned_to_name}
-          />
-
-          {/* Progress */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Tiến độ giao hàng</span>
-              <span className="font-medium">{progress}% ({completedRooms}/{totalRooms} phòng)</span>
-            </div>
-            <Progress value={progress} className="h-3" />
-          </div>
-
-          {/* Rooms Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {order.rooms?.map(room => (
-              <RoomDeliveryCard
-                key={room.id}
-                room={room}
-                isWarehouseManager={isWarehouseManager}
-                onConfirmDelivery={handleConfirmDelivery}
-                onUndoDelivery={handleOpenUndo}
-                isConfirming={isConfirmingWarehouse}
-              />
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
+      {/* Route View - Unified for all roles */}
+      {id && <RouteDetailView orderId={id} embedded />}
 
       {/* Dialogs */}
       <CancelOrderDialog
