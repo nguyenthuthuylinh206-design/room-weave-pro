@@ -1,6 +1,6 @@
-import { format } from 'date-fns'
+import { format, addHours } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { Calendar, Building2, User, Globe, CreditCard, CheckCircle2, Edit2 } from 'lucide-react'
+import { Calendar, Building2, User, Globe, CreditCard, CheckCircle2, Edit2, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/utils'
 import { BOOKING_SOURCES, OTA_PAYMENT_TYPES } from '@/lib/constants'
@@ -13,7 +13,7 @@ interface ReviewStepProps {
 }
 
 export function ReviewStep({ state, computed, onGoToStep }: ReviewStepProps) {
-  const { isOtaSource, nights, estimatedTotal, otaCommissionAmount, netRevenue } = computed
+  const { isOtaSource, nights, hours, months, estimatedTotal, otaCommissionAmount, netRevenue } = computed
   
   // Get labels
   const sourceLabel = BOOKING_SOURCES.find(s => s.value === state.bookingSource)?.label || state.bookingSource
@@ -37,6 +37,65 @@ export function ReviewStep({ state, computed, onGoToStep }: ReviewStepProps) {
     paymentStatusColor = 'text-blue-600'
   }
 
+  // Format duration based on booking type
+  const renderDurationInfo = () => {
+    switch (state.bookingType) {
+      case 'hourly': {
+        const startTime = state.hourlyStartTime
+        const endTime = state.hourlyDate 
+          ? format(addHours(
+              new Date(`${format(state.hourlyDate, 'yyyy-MM-dd')}T${startTime}`), 
+              state.bookingHours
+            ), 'HH:mm')
+          : ''
+        return (
+          <>
+            <span className="font-medium">
+              {state.hourlyDate && format(state.hourlyDate, 'dd/MM/yyyy', { locale: vi })}
+            </span>
+            <span className="mx-2 text-muted-foreground">|</span>
+            <span className="font-medium">{startTime}</span>
+            <span className="mx-2 text-muted-foreground">→</span>
+            <span className="font-medium">{endTime}</span>
+            <span className="ml-2 text-muted-foreground">({hours} giờ)</span>
+          </>
+        )
+      }
+      case 'monthly': {
+        return (
+          <>
+            <span className="font-medium">
+              {state.monthlyStartDate && format(state.monthlyStartDate, 'dd/MM/yyyy', { locale: vi })}
+            </span>
+            <span className="ml-2 text-muted-foreground">({months} tháng)</span>
+          </>
+        )
+      }
+      case 'daily':
+      default:
+        return (
+          <>
+            <span className="font-medium">
+              {state.checkInDate && format(state.checkInDate, 'dd/MM/yyyy', { locale: vi })} {state.checkInTime}
+            </span>
+            <span className="mx-2 text-muted-foreground">→</span>
+            <span className="font-medium">
+              {state.checkOutDate && format(state.checkOutDate, 'dd/MM/yyyy', { locale: vi })} {state.checkOutTime}
+            </span>
+            <span className="ml-2 text-muted-foreground">({nights} đêm)</span>
+          </>
+        )
+    }
+  }
+
+  const getBookingTypeLabel = () => {
+    switch (state.bookingType) {
+      case 'hourly': return 'Theo giờ'
+      case 'monthly': return 'Theo tháng'
+      default: return 'Theo ngày'
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="text-center pb-2">
@@ -48,8 +107,8 @@ export function ReviewStep({ state, computed, onGoToStep }: ReviewStepProps) {
       <div className="p-3 border rounded-lg space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-primary" />
-            <span className="font-medium text-sm">Ngày & Giờ</span>
+            <Clock className="h-4 w-4 text-primary" />
+            <span className="font-medium text-sm">Thời gian ({getBookingTypeLabel()})</span>
           </div>
           <Button 
             type="button" 
@@ -63,14 +122,7 @@ export function ReviewStep({ state, computed, onGoToStep }: ReviewStepProps) {
           </Button>
         </div>
         <div className="text-sm">
-          <span className="font-medium">
-            {state.checkInDate && format(state.checkInDate, 'dd/MM/yyyy', { locale: vi })} {state.checkInTime}
-          </span>
-          <span className="mx-2 text-muted-foreground">→</span>
-          <span className="font-medium">
-            {state.checkOutDate && format(state.checkOutDate, 'dd/MM/yyyy', { locale: vi })} {state.checkOutTime}
-          </span>
-          <span className="ml-2 text-muted-foreground">({nights} đêm)</span>
+          {renderDurationInfo()}
         </div>
       </div>
       
@@ -96,7 +148,9 @@ export function ReviewStep({ state, computed, onGoToStep }: ReviewStepProps) {
           {state.selectedRooms.map(room => (
             <div key={room.id} className="px-2 py-1 bg-primary/10 rounded text-sm">
               <span className="font-medium">{room.room_number}</span>
-              <span className="text-muted-foreground ml-1">({formatCurrency(room.customPrice)}/đêm)</span>
+              <span className="text-muted-foreground ml-1">
+                ({formatCurrency(room.customPrice)}/{state.bookingType === 'hourly' ? 'giờ' : state.bookingType === 'monthly' ? 'tháng' : 'đêm'})
+              </span>
             </div>
           ))}
         </div>

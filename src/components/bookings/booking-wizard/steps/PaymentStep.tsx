@@ -33,7 +33,13 @@ export function PaymentStep({ state, computed, onUpdate }: PaymentStepProps) {
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground flex items-center gap-2">
                 <CreditCard className="h-4 w-4" />
-                Giá phòng × {computed.nights} đêm:
+                {state.bookingType === 'hourly' ? (
+                  <>Giá phòng × {computed.hours} giờ:</>
+                ) : state.bookingType === 'monthly' ? (
+                  <>Giá phòng × {computed.months} tháng:</>
+                ) : (
+                  <>Giá phòng × {computed.nights} đêm:</>
+                )}
               </span>
               <span className="font-medium">{formatCurrency(subtotal)}</span>
             </div>
@@ -125,7 +131,11 @@ export function PaymentStep({ state, computed, onUpdate }: PaymentStepProps) {
           <span className="font-semibold text-lg text-primary">{formatCurrency(estimatedTotal)}</span>
         </div>
         <p className="text-xs text-muted-foreground -mt-2">
-          (chưa bao gồm phụ thu check-in sớm/trả phòng muộn)
+          {state.bookingType === 'hourly' 
+            ? '(chưa bao gồm phí vượt giờ nếu có)'
+            : state.bookingType === 'monthly'
+            ? '(đã bao gồm chiết khấu dài hạn nếu có)'
+            : '(chưa bao gồm phụ thu check-in sớm/trả phòng muộn)'}
         </p>
         
         {/* OTA Payment Section */}

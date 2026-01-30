@@ -52,6 +52,13 @@ interface CheckoutSummaryDialogProps {
   actualCheckoutDate: Date
   scheduledCheckoutDate: Date
   costBreakdown: BookingCostBreakdown
+  // Booking type support
+  bookingType?: 'daily' | 'hourly' | 'monthly'
+  hourlyRate?: number
+  bookingHours?: number
+  scheduledEndTime?: Date
+  monthlyRate?: number
+  bookingMonths?: number
   // Damage charges
   damageItems?: DamageChargeItem[]
   onConfirmCheckout: (
@@ -96,6 +103,13 @@ export function CheckoutSummaryDialog({
   actualCheckoutDate,
   scheduledCheckoutDate,
   costBreakdown,
+  // Booking type props
+  bookingType = 'daily',
+  hourlyRate,
+  bookingHours,
+  scheduledEndTime,
+  monthlyRate,
+  bookingMonths,
   damageItems: initialDamageItems = [],
   onConfirmCheckout,
   onPayAndCheckout,
@@ -219,11 +233,22 @@ export function CheckoutSummaryDialog({
 
   // Recalculate cost breakdown with adjusted late charge AND damage charges
   const adjustedCostBreakdown = useMemo(() => {
+    // Calculate hourly overtime if applicable
+    const hourlyOvertimeCharge = bookingType === 'hourly' && scheduledEndTime
+      ? Math.max(0, adjustedLateCharge) // adjustedLateCharge holds overtime for hourly
+      : 0
+
     return calculateBookingCost({
+      bookingType,
       roomPrice: costBreakdown.roomPricePerNight,
       nights: costBreakdown.nights,
-      earlyCheckinCharge: costBreakdown.earlyCheckinCharge,
-      lateCheckoutCharge: adjustedLateCharge,
+      earlyCheckinCharge: bookingType === 'daily' ? costBreakdown.earlyCheckinCharge : 0,
+      lateCheckoutCharge: bookingType === 'daily' ? adjustedLateCharge : 0,
+      hourlyRate: hourlyRate || 0,
+      hours: bookingHours || 0,
+      hourlyOvertimeCharge,
+      monthlyRate: monthlyRate || 0,
+      months: bookingMonths || 0,
       serviceCharges: costBreakdown.serviceCharges,
       extraCharges: costBreakdown.extraCharges,
       damageCharges: totalDamageCharge,
@@ -233,23 +258,25 @@ export function CheckoutSummaryDialog({
       depositAmount: costBreakdown.depositAmount,
       amountPaid: costBreakdown.amountPaid,
     })
-  }, [costBreakdown, adjustedLateCharge, totalDamageCharge, adjustedDamageItems])
+  }, [costBreakdown, adjustedLateCharge, totalDamageCharge, adjustedDamageItems, bookingType, hourlyRate, bookingHours, monthlyRate, bookingMonths, scheduledEndTime])
 
-  // Check if this is an early checkout (before scheduled date)
-  const isEarlyCheckoutCase = isEarlyCheckout(actualCheckoutDate, scheduledCheckoutDate)
+  // Check if this is an early checkout (before scheduled date) - only for daily
+  const isEarlyCheckoutCase = bookingType === 'daily' && isEarlyCheckout(actualCheckoutDate, scheduledCheckoutDate)
   
-  // Determine which tier applies (only relevant if NOT early checkout)
+  // Determine which tier applies (only for daily and NOT early checkout)
   const currentHour = parseTimeToHours(actualCheckoutTime)
-  const activeTier = !isEarlyCheckoutCase 
+  const activeTier = bookingType === 'daily' && !isEarlyCheckoutCase 
     ? LATE_CHECKOUT_TIERS.find(tier => currentHour >= tier.minHour && currentHour < tier.maxHour)
     : null
   
-  const lateCheckoutDesc = getLateCheckoutDescription(actualCheckoutTime, actualCheckoutDate, scheduledCheckoutDate)
+  const lateCheckoutDesc = bookingType === 'daily' 
+    ? getLateCheckoutDescription(actualCheckoutTime, actualCheckoutDate, scheduledCheckoutDate)
+    : null
   const hasOutstandingBalance = adjustedCostBreakdown.remainingAmount > 0
 
   // Check if charge was adjusted
   const isAdjusted = adjustedLateCharge !== costBreakdown.lateCheckoutCharge
-  const needsNote = isAdjusted && adjustedLateCharge < costBreakdown.lateCheckoutCharge && !adjustmentNote.trim()
+  const needsNote = bookingType === 'daily' && isAdjusted && adjustedLateCharge < costBreakdown.lateCheckoutCharge && !adjustmentNote.trim()
   
   const handleWaive = () => {
     setAdjustedLateCharge(0)
@@ -510,27 +537,88 @@ export function CheckoutSummaryDialog({
               <div className="space-y-2 text-sm">
                 <h4 className="font-medium">Chi tiết thanh toán</h4>
                 
-                {/* Room Charges */}
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    Tiền phòng ({adjustedCostBreakdown.nights} đêm × {formatCurrency(adjustedCostBreakdown.roomPricePerNight)})
-                  </span>
-                  <span>{formatCurrency(adjustedCostBreakdown.roomTotal)}</span>
-                </div>
+                {/* Room Charges - Based on booking type */}
+                {bookingType === 'hourly' ? (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Tiền phòng ({bookingHours} giờ × {formatCurrency(hourlyRate || 0)})
+                    </span>
+                    <span>{formatCurrency(adjustedCostBreakdown.roomTotal)}</span>
+                  </div>
+                ) : bookingType === 'monthly' ? (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Tiền phòng ({bookingMonths} tháng × {formatCurrency(monthlyRate || 0)})
+                      </span>
+                      <span>{formatCurrency((monthlyRate || 0) * (bookingMonths || 1))}</span>
+                    </div>
+                    {adjustedCostBreakdown.monthlyDiscount && adjustedCostBreakdown.monthlyDiscount > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span>Chiết khấu dài hạn</span>
+                        <span>-{formatCurrency(adjustedCostBreakdown.monthlyDiscount)}</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Tiền phòng ({adjustedCostBreakdown.nights} đêm × {formatCurrency(adjustedCostBreakdown.roomPricePerNight)})
+                    </span>
+                    <span>{formatCurrency(adjustedCostBreakdown.roomTotal)}</span>
+                  </div>
+                )}
                 
-                {/* Early Check-in Surcharge */}
-                {adjustedCostBreakdown.earlyCheckinCharge > 0 && (
+                {/* Early Check-in Surcharge - Only for daily */}
+                {bookingType === 'daily' && adjustedCostBreakdown.earlyCheckinCharge > 0 && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Phụ thu check-in sớm</span>
                     <span>{formatCurrency(adjustedCostBreakdown.earlyCheckinCharge)}</span>
                   </div>
                 )}
                 
-                {/* Late Checkout Surcharge - Editable (only if NOT early checkout and late) */}
-                {!isEarlyCheckoutCase && currentHour > 12 && (
-                  <div className="space-y-2 p-2 border rounded-lg bg-amber-50/50">
+                {/* Hourly Overtime Charge */}
+                {bookingType === 'hourly' && adjustedCostBreakdown.hourlyOvertimeCharge && adjustedCostBreakdown.hourlyOvertimeCharge > 0 && (
+                  <div className="space-y-2 p-2 border rounded-lg bg-amber-50/50 dark:bg-amber-950/30">
                     <div className="flex items-center justify-between gap-2">
-                      <Label className="text-sm text-amber-700">
+                      <Label className="text-sm text-amber-700 dark:text-amber-400">
+                        Phí vượt giờ
+                      </Label>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          className="w-28 h-7 text-right font-mono text-sm"
+                          value={adjustedLateCharge > 0 ? adjustedLateCharge.toString() : ''}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^0-9]/g, '')
+                            setAdjustedLateCharge(parseInt(value) || 0)
+                          }}
+                          placeholder="0"
+                        />
+                        <span className="text-xs text-muted-foreground">đ</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleWaive}
+                        className="h-6 text-xs text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950"
+                        disabled={adjustedLateCharge === 0}
+                      >
+                        Miễn phí
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Late Checkout Surcharge - Editable (only for DAILY and NOT early checkout and late) */}
+                {bookingType === 'daily' && !isEarlyCheckoutCase && currentHour > 12 && (
+                  <div className="space-y-2 p-2 border rounded-lg bg-amber-50/50 dark:bg-amber-950/30">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label className="text-sm text-amber-700 dark:text-amber-400">
                         Phụ thu check-out trễ ({activeTier?.percent || 0}%)
                       </Label>
                       <div className="flex items-center gap-1">
@@ -556,7 +644,7 @@ export function CheckoutSummaryDialog({
                         variant="ghost"
                         size="sm"
                         onClick={handleWaive}
-                        className="h-6 text-xs text-green-600 hover:bg-green-50"
+                        className="h-6 text-xs text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950"
                         disabled={adjustedLateCharge === 0}
                       >
                         Miễn phí
@@ -584,7 +672,7 @@ export function CheckoutSummaryDialog({
                           onChange={(e) => setAdjustmentNote(e.target.value)}
                         />
                         {needsNote && (
-                          <p className="text-xs text-red-500">Vui lòng nhập lý do</p>
+                          <p className="text-xs text-destructive">Vui lòng nhập lý do</p>
                         )}
                       </div>
                     )}

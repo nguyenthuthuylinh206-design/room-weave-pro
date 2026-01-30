@@ -6,6 +6,7 @@ import { format } from 'date-fns'
 import { 
   calculateEarlyCheckinCharge, 
   calculateLateCheckoutCharge,
+  calculateHourlyOvertimeCharge,
   calculateBookingCost,
   DEFAULT_PRICING_RULES 
 } from '@/lib/bookingCalculations'
@@ -53,16 +54,22 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
       // First get the booking to calculate surcharge
       const { data: booking, error: fetchError } = await supabase
         .from('room_bookings')
-        .select('room_price')
+        .select('room_price, booking_type')
         .eq('id', bookingId)
         .single()
 
       if (fetchError) throw fetchError
 
-      // Calculate early check-in surcharge based on actual time
-      const now = new Date()
-      const actualTime = format(now, 'HH:mm')
-      const earlyCheckinCharge = calculateEarlyCheckinCharge(actualTime, booking.room_price || 0)
+      const bookingType = booking.booking_type || 'daily'
+      let earlyCheckinCharge = 0
+
+      // Only calculate early check-in surcharge for DAILY bookings
+      // Hourly and Monthly bookings don't have early check-in charges
+      if (bookingType === 'daily') {
+        const now = new Date()
+        const actualTime = format(now, 'HH:mm')
+        earlyCheckinCharge = calculateEarlyCheckinCharge(actualTime, booking.room_price || 0)
+      }
 
       // Use transaction-safe RPC function to update both booking and room atomically
       const { data: result, error: rpcError } = await supabase.rpc('perform_checkin', {
@@ -100,6 +107,7 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
   /**
    * Check-out: Update booking status to 'checked_out' AND room status to 'check_out'
    * Uses database transaction (RPC) to ensure atomicity for concurrent users
+   * Handles Daily, Hourly, and Monthly booking types differently
    */
   const handleCheckOut = async (bookingId: string, roomId: string) => {
     setIsLoading(true)
@@ -107,29 +115,67 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
       // First get the booking to calculate final billing
       const { data: booking, error: fetchError } = await supabase
         .from('room_bookings')
-        .select('room_price, early_checkin_charge, vat_rate, service_fee_rate, service_charges, extra_charges, deposit_amount, amount_paid, check_in_date, check_out_date')
+        .select(`
+          room_price, early_checkin_charge, vat_rate, service_fee_rate, 
+          service_charges, extra_charges, deposit_amount, amount_paid, 
+          check_in_date, check_out_date, booking_type,
+          hourly_rate, booking_hours, hourly_end_time,
+          monthly_rate, booking_months
+        `)
         .eq('id', bookingId)
         .single()
 
       if (fetchError) throw fetchError
 
-      // Calculate late check-out surcharge based on actual time AND date
+      const bookingType = (booking.booking_type as 'daily' | 'hourly' | 'monthly') || 'daily'
       const now = new Date()
       const actualTime = format(now, 'HH:mm')
-      const scheduledCheckoutDate = new Date(booking.check_out_date)
       
-      // Only charge late fee if checking out ON or AFTER scheduled date
-      const lateCheckoutCharge = calculateLateCheckoutCharge(
-        actualTime, 
-        booking.room_price || 0,
-        now,
-        scheduledCheckoutDate
-      )
+      let lateCheckoutCharge = 0
+      let hourlyOvertimeCharge = 0
+      let nights = 1
+      let hours = booking.booking_hours || 1
+      let months = booking.booking_months || 1
 
-      // Calculate nights
-      const checkIn = new Date(booking.check_in_date)
-      const checkOut = new Date(booking.check_out_date)
-      const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
+      switch (bookingType) {
+        case 'hourly': {
+          // Calculate overtime for hourly bookings
+          if (booking.hourly_end_time) {
+            const scheduledEndTime = new Date(booking.hourly_end_time)
+            hourlyOvertimeCharge = calculateHourlyOvertimeCharge(
+              scheduledEndTime,
+              now,
+              booking.hourly_rate || 0
+            )
+          }
+          break
+        }
+        
+        case 'monthly': {
+          // No time-based surcharges for monthly bookings
+          // Just use the months and monthly rate
+          months = booking.booking_months || 1
+          break
+        }
+        
+        case 'daily':
+        default: {
+          // Calculate late check-out surcharge for daily bookings
+          const scheduledCheckoutDate = new Date(booking.check_out_date)
+          lateCheckoutCharge = calculateLateCheckoutCharge(
+            actualTime, 
+            booking.room_price || 0,
+            now,
+            scheduledCheckoutDate
+          )
+          
+          // Calculate nights
+          const checkIn = new Date(booking.check_in_date)
+          const checkOut = new Date(booking.check_out_date)
+          nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
+          break
+        }
+      }
 
       // Auto-calculate service charges from consumables (complimentary items)
       const consumablesTotal = await calculateServiceChargesFromConsumables(bookingId)
@@ -140,13 +186,19 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
         .rpc('get_booking_chargeable_total', { p_booking_id: bookingId })
       const extraChargeableAmount = chargeableTotal || 0
 
-      // Calculate final cost breakdown (include chargeable items in extra_charges)
+      // Calculate final cost breakdown based on booking type
       const totalExtraCharges = (booking.extra_charges || 0) + extraChargeableAmount
       const costBreakdown = calculateBookingCost({
+        bookingType,
         roomPrice: booking.room_price || 0,
         nights,
-        earlyCheckinCharge: booking.early_checkin_charge || 0,
+        earlyCheckinCharge: bookingType === 'daily' ? (booking.early_checkin_charge || 0) : 0,
         lateCheckoutCharge,
+        hourlyRate: booking.hourly_rate || 0,
+        hours,
+        hourlyOvertimeCharge,
+        monthlyRate: booking.monthly_rate || 0,
+        months,
         serviceCharges,
         extraCharges: totalExtraCharges,
         vatRate: booking.vat_rate ?? DEFAULT_PRICING_RULES.vatRate,
@@ -156,10 +208,13 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
       })
 
       // Use transaction-safe RPC function to update both booking and room atomically
+      // Note: RPC uses late_checkout_charge field, we pass the appropriate surcharge
+      const surchargeToStore = bookingType === 'hourly' ? hourlyOvertimeCharge : lateCheckoutCharge
+      
       const { data: result, error: rpcError } = await supabase.rpc('perform_checkout', {
         p_booking_id: bookingId,
         p_room_id: roomId,
-        p_late_checkout_charge: lateCheckoutCharge,
+        p_late_checkout_charge: surchargeToStore,
         p_service_charges: serviceCharges,
         p_subtotal: costBreakdown.subtotal,
         p_vat_amount: costBreakdown.vatAmount,
@@ -169,14 +224,21 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
 
       if (rpcError) throw rpcError
 
+      // Build success message based on booking type
       const remainingAmount = costBreakdown.remainingAmount
+      let description: string | undefined
+      
+      if (remainingAmount > 0) {
+        description = `Còn phải thu: ${formatCurrency(remainingAmount)}`
+      } else if (bookingType === 'hourly' && hourlyOvertimeCharge > 0) {
+        description = `Phí vượt giờ: ${formatCurrency(hourlyOvertimeCharge)}`
+      } else if (bookingType === 'daily' && lateCheckoutCharge > 0) {
+        description = `Phụ thu check-out trễ: ${formatCurrency(lateCheckoutCharge)}`
+      }
+      
       toast({ 
         title: 'Check-out thành công',
-        description: remainingAmount > 0 
-          ? `Còn phải thu: ${formatCurrency(remainingAmount)}`
-          : lateCheckoutCharge > 0
-          ? `Phụ thu check-out trễ: ${formatCurrency(lateCheckoutCharge)}`
-          : undefined,
+        description,
       })
       
       // Send checkout notification realtime
