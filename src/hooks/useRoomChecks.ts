@@ -50,6 +50,7 @@ function generateTransactionCode(prefix: string): string {
 // ===== DAILY CHECK LOGIC =====
 // Chỉ update room_items (laundry, change), không tạo inventory transaction
 // Nếu có đồ gửi giặt → tự động tạo laundry_request
+// Nếu có đồ tiêu hao → tự động tạo supplement_request
 async function processDailyCheck(params: {
   roomId: string
   data: RoomCheckFormData
@@ -57,8 +58,8 @@ async function processDailyCheck(params: {
   tenantId?: string
   hotelId: string
   roomNumber: string
-  checkId?: string      // Thêm mới: để liên kết với laundry request
-  userName?: string     // Thêm mới: hiển thị người tạo request
+  checkId?: string      // Để liên kết với laundry/supplement request
+  userName?: string     // Hiển thị người tạo request
 }) {
   const { roomId, data, userId, tenantId, hotelId, roomNumber, checkId, userName } = params
   const quantityChanges: Record<string, number> = {}
@@ -80,10 +81,16 @@ async function processDailyCheck(params: {
     quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) + item.quantity
   }
   
+  // 3. Đồ tiêu hao (consumed) → Giảm quantity
+  const consumedItems = data.items_consumed || []
+  for (const item of consumedItems) {
+    quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) - item.quantity
+  }
+  
   // Apply quantity changes to room_items
   await applyRoomItemChanges(roomId, quantityChanges, userId)
   
-  // 3. Auto-create laundry request nếu có đồ gửi giặt
+  // 4. Auto-create laundry request nếu có đồ gửi giặt
   const hasLaundry = laundryItems.length > 0
   if (hasLaundry && tenantId && userId && checkId) {
     await createLaundryRequestFromCheck({
@@ -95,6 +102,22 @@ async function processDailyCheck(params: {
       userName: userName || 'Nhân viên',
       checkId,
       laundryItems,
+    })
+  }
+  
+  // 5. Auto-create supplement request nếu có đồ tiêu hao
+  const hasConsumed = consumedItems.length > 0
+  if (hasConsumed && tenantId && userId && checkId) {
+    await createSupplementRequestFromCheck({
+      roomId,
+      roomNumber,
+      tenantId,
+      hotelId,
+      userId,
+      userName: userName || 'Nhân viên',
+      checkId,
+      consumedItems,
+      lostItems: [], // Daily check không track lost items
     })
   }
   
@@ -896,6 +919,13 @@ export function useCreateRoomCheck() {
       queryClient.invalidateQueries({ queryKey: ['checkout-inspection'] })
       queryClient.invalidateQueries({ queryKey: ['pending-inspection'] })
       queryClient.invalidateQueries({ queryKey: ['room-has-pending-inspection'] })
+      
+      // Invalidate laundry & supplement requests để UI cập nhật realtime
+      queryClient.invalidateQueries({ queryKey: ['laundry-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['laundry-requests-pending-count'] })
+      queryClient.invalidateQueries({ queryKey: ['supplement-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['supplement-requests-pending-count'] })
+      queryClient.invalidateQueries({ queryKey: ['draft-laundry-batch'] })
 
       const isDuplicate = !!check?.__duplicate
 
@@ -1211,8 +1241,12 @@ async function createSupplementRequestFromCheck(params: {
   const requestType = hasConsumed && hasLost ? 'mixed' : hasConsumed ? 'consumed' : 'lost'
   
   // Generate request code
-  const { data: codeResult } = await supabase
+  const { data: codeResult, error: codeError } = await supabase
     .rpc('generate_supplement_request_code', { p_tenant_id: tenantId })
+  
+  if (codeError) {
+    console.error('[useRoomChecks] Error generating supplement request code:', codeError)
+  }
   
   const requestCode = codeResult || `SUP-${Date.now()}`
   
@@ -1325,8 +1359,12 @@ async function createLaundryRequestFromCheck(params: {
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
   
   // Generate request code
-  const { data: codeResult } = await supabase
+  const { data: codeResult, error: codeError } = await supabase
     .rpc('generate_laundry_request_code', { p_tenant_id: tenantId })
+  
+  if (codeError) {
+    console.error('[useRoomChecks] Error generating laundry request code:', codeError)
+  }
   
   const requestCode = codeResult || `LRQ-${Date.now()}`
   
