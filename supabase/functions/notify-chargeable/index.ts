@@ -21,6 +21,20 @@ interface ChargeableNotificationPayload {
   }[]
   total_amount: number
   recorded_by_name?: string
+  // Lost/damaged items for Phase 1 notification
+  lost_items?: {
+    name: string
+    quantity: number
+    estimated_value: number
+  }[]
+  damaged_items?: {
+    name: string
+    quantity: number
+    damage_cost: number
+    damage_type: string
+  }[]
+  lost_total?: number
+  damaged_total?: number
 }
 
 app.options('*', (c) => {
@@ -34,15 +48,46 @@ app.post('/', async (c) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     const payload: ChargeableNotificationPayload = await c.req.json()
-    const { tenant_id, hotel_id, booking_id, room_id, room_number, items, total_amount, recorded_by_name } = payload
+    const { tenant_id, hotel_id, booking_id, room_id, room_number, items, total_amount, recorded_by_name, lost_items, damaged_items, lost_total, damaged_total } = payload
 
-    if (!tenant_id || !hotel_id || items.length === 0) {
-      return c.json({ error: 'Missing required fields' }, { status: 400, headers: corsHeaders })
+    // Allow notification if there are items OR lost/damaged items
+    const hasChargeableItems = items && items.length > 0
+    const hasLostItems = lost_items && lost_items.length > 0
+    const hasDamagedItems = damaged_items && damaged_items.length > 0
+    
+    if (!tenant_id || !hotel_id || (!hasChargeableItems && !hasLostItems && !hasDamagedItems)) {
+      return c.json({ error: 'Missing required fields or no items to notify' }, { status: 400, headers: corsHeaders })
     }
 
     // Format message
-    const itemsList = items.map(i => `• ${i.quantity}x ${i.name}: ${formatCurrency(i.total)}`).join('\n')
-    const message = `📦 Phòng ${room_number} - Phụ thu minibar\n${itemsList}\n💰 Tổng: ${formatCurrency(total_amount)}${recorded_by_name ? `\n👤 Ghi nhận bởi: ${recorded_by_name}` : ''}`
+    let message = `📋 Phòng ${room_number} - Báo cáo checkout\n`
+    
+    // Add chargeable items if any
+    if (hasChargeableItems) {
+      const itemsList = items.map(i => `  • ${i.quantity}x ${i.name}: ${formatCurrency(i.total)}`).join('\n')
+      message += `\n📦 <b>Phụ thu minibar:</b>\n${itemsList}\n  💰 Tổng: ${formatCurrency(total_amount)}`
+    }
+    
+    // Add lost items if any
+    if (hasLostItems) {
+      const lostList = lost_items!.map(i => `  • ${i.quantity}x ${i.name}: ${formatCurrency(i.estimated_value)}`).join('\n')
+      message += `\n\n🚨 <b>Đồ mất:</b>\n${lostList}\n  💰 Tổng: ${formatCurrency(lost_total || 0)}`
+    }
+    
+    // Add damaged items if any
+    if (hasDamagedItems) {
+      const damagedList = damaged_items!.map(i => `  • ${i.quantity}x ${i.name} (${i.damage_type === 'repairable' ? 'sửa được' : 'cần thay'}): ${formatCurrency(i.damage_cost)}`).join('\n')
+      message += `\n\n⚠️ <b>Đồ hỏng:</b>\n${damagedList}\n  💰 Tổng: ${formatCurrency(damaged_total || 0)}`
+    }
+    
+    // Add grand total and recorder
+    const grandTotal = (total_amount || 0) + (lost_total || 0) + (damaged_total || 0)
+    if (grandTotal > 0) {
+      message += `\n\n💵 <b>TỔNG CỘNG: ${formatCurrency(grandTotal)}</b>`
+    }
+    if (recorded_by_name) {
+      message += `\n👤 Ghi nhận: ${recorded_by_name}`
+    }
 
     // Get users to notify (receptionists and managers at this hotel)
     const { data: usersToNotify } = await supabase
