@@ -512,8 +512,16 @@ export function RoomCheckPage() {
       // Quick mode: step 2 là review cuối
       isValid = await form.trigger(['cleanliness_score'])
     } else if (currentStep === 3 && isCheckoutType) {
-      // Checkout step 3 = Phase 1 Confirm (handled by handlePhase1Submit)
-      // This should not be called directly - Phase1ConfirmStep handles submission
+      // Checkout step 3 = Phase 1 Confirm
+      // Block navigation if Phase 1 hasn't been submitted yet
+      if (!phase1Submitted) {
+        toast({
+          title: 'Chưa gửi báo cáo',
+          description: 'Vui lòng gửi báo cáo cho lễ tân trước khi tiếp tục.',
+          variant: 'destructive',
+        })
+        return
+      }
       isValid = true
     } else if (currentStep === 4 && isCheckoutType) {
       // Checkout step 4 = Phase 2 Items (bổ sung/giặt/thay)
@@ -1073,6 +1081,7 @@ export function RoomCheckPage() {
                     roomNumber={room.room_number}
                     guestName={currentBooking?.guest_name}
                     onSubmitPhase1={handlePhase1Submit}
+                    onContinue={() => setCurrentStep(4)}
                     isSubmitting={isSubmittingPhase1}
                     phase1Submitted={phase1Submitted}
                   />
@@ -1127,10 +1136,13 @@ export function RoomCheckPage() {
                 </div>
                 
                 {currentStep < totalSteps ? (
-                  <Button type="button" onClick={handleNext}>
-                    Tiếp theo
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Button>
+                  // Hide "Tiếp theo" on Step 3 checkout when Phase 1 not yet submitted
+                  (currentStep === 3 && isCheckoutType && !phase1Submitted) ? null : (
+                    <Button type="button" onClick={handleNext}>
+                      Tiếp theo
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  )
                 ) : (
                   <Button 
                     type="button"
