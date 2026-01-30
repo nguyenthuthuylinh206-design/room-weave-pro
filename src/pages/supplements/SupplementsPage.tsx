@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
@@ -31,6 +31,8 @@ import {
 } from '@/hooks/useSupplementRequests'
 import { SupplementRequestSheet } from '@/components/supplements/SupplementRequestSheet'
 import { cn } from '@/lib/utils'
+import { supabase } from '@/integrations/supabase/client'
+import { useQueryClient } from '@tanstack/react-query'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   pending: { label: 'Chờ duyệt', color: 'text-amber-600', icon: Clock },
@@ -49,6 +51,7 @@ const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
 
 export function SupplementsPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(
     searchParams.get('request')
@@ -65,6 +68,24 @@ export function SupplementsPage() {
   })
   
   const { data: pendingCount } = usePendingSupplementCount()
+  
+  // Realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('supplement-requests-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'supplement_requests' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['supplement-requests'] })
+          queryClient.invalidateQueries({ queryKey: ['supplement-requests-pending-count'] })
+        }
+      )
+      .subscribe()
+    
+    return () => { 
+      supabase.removeChannel(channel) 
+    }
+  }, [queryClient])
   
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }))

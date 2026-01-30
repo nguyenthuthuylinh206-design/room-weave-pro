@@ -57,6 +57,13 @@ export default function MorePage() {
       title: 'Management',
       items: [
         {
+          icon: Package,
+          label: 'Bổ sung đồ',
+          description: 'Yêu cầu bổ sung từ kiểm tra phòng',
+          path: '/supplements',
+          module: 'inventory'
+        },
+        {
           icon: ShoppingCart,
           label: 'Purchase Orders',
           description: 'Manage orders',
