@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
+import { useNavigate } from 'react-router-dom'
 import {
   Sheet,
   SheetContent,
@@ -32,13 +33,15 @@ import {
   XCircle,
   FileText,
   Truck,
+  ExternalLink,
 } from 'lucide-react'
 import {
   useSupplementRequest,
-  useApproveSupplementRequest,
   useRejectSupplementRequest,
   type SupplementRequestItem,
 } from '@/hooks/useSupplementRequests'
+import { useCreateDistributionFromSupplement } from '@/hooks/useCreateDistributionFromSupplement'
+import { ApproveSupplementDialog } from './ApproveSupplementDialog'
 import { cn } from '@/lib/utils'
 
 interface SupplementRequestSheetProps {
@@ -67,19 +70,22 @@ export function SupplementRequestSheet({
   open, 
   onOpenChange 
 }: SupplementRequestSheetProps) {
+  const navigate = useNavigate()
   const { data: request, isLoading } = useSupplementRequest(requestId || undefined)
-  const approveRequest = useApproveSupplementRequest()
+  const createDistribution = useCreateDistributionFromSupplement()
   const rejectRequest = useRejectSupplementRequest()
   
   const [showRejectDialog, setShowRejectDialog] = useState(false)
+  const [showApproveDialog, setShowApproveDialog] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   
-  const handleApprove = async (createOutbound: boolean) => {
+  const handleApproveWithDistribution = async (assignedTo: string | null) => {
     if (!requestId) return
-    await approveRequest.mutateAsync({
-      requestId,
-      createOutbound,
+    const result = await createDistribution.mutateAsync({
+      supplementRequestId: requestId,
+      assignedTo: assignedTo === 'none' ? null : assignedTo,
     })
+    setShowApproveDialog(false)
     onOpenChange(false)
   }
   
@@ -93,10 +99,18 @@ export function SupplementRequestSheet({
     setRejectReason('')
     onOpenChange(false)
   }
+
+  const handleViewDistributionOrder = () => {
+    if (request?.distribution_order_id) {
+      navigate(`/distribution?orderId=${request.distribution_order_id}`)
+      onOpenChange(false)
+    }
+  }
   
   const statusConfig = STATUS_CONFIG[request?.status || 'pending']
   const items = (request?.items || []) as SupplementRequestItem[]
   const isPending = request?.status === 'pending'
+  const hasDistributionOrder = !!request?.distribution_order_id
   
   return (
     <>
@@ -207,9 +221,9 @@ export function SupplementRequestSheet({
               
               {/* Rejection Reason */}
               {request.status === 'rejected' && request.rejection_reason && (
-                <div className="p-3 rounded-lg bg-red-50 border border-red-200">
-                  <h4 className="text-sm font-medium text-red-800 mb-1">Lý do từ chối</h4>
-                  <p className="text-sm text-red-700">{request.rejection_reason}</p>
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                  <h4 className="text-sm font-medium text-destructive mb-1">Lý do từ chối</h4>
+                  <p className="text-sm text-destructive/90">{request.rejection_reason}</p>
                 </div>
               )}
               
@@ -229,30 +243,35 @@ export function SupplementRequestSheet({
                 <div className="space-y-2 pt-4">
                   <Button
                     className="w-full"
-                    onClick={() => handleApprove(true)}
-                    disabled={approveRequest.isPending}
+                    onClick={() => setShowApproveDialog(true)}
+                    disabled={createDistribution.isPending}
                   >
                     <Truck className="h-4 w-4 mr-2" />
-                    Duyệt & Xuất kho
+                    Duyệt & Tạo phiếu giao
                   </Button>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => handleApprove(false)}
-                      disabled={approveRequest.isPending}
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Chỉ duyệt
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="text-red-600 hover:text-red-700"
-                      onClick={() => setShowRejectDialog(true)}
-                    >
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Từ chối
-                    </Button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full text-destructive hover:text-destructive"
+                    onClick={() => setShowRejectDialog(true)}
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Từ chối
+                  </Button>
+                </div>
+              )}
+
+              {/* Distribution Order Link */}
+              {hasDistributionOrder && (
+                <div className="pt-4">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleViewDistributionOrder}
+                  >
+                    <Truck className="h-4 w-4 mr-2" />
+                    Xem phiếu giao hàng
+                    <ExternalLink className="h-3.5 w-3.5 ml-auto" />
+                  </Button>
                 </div>
               )}
             </div>
@@ -284,13 +303,28 @@ export function SupplementRequestSheet({
             <AlertDialogAction
               onClick={handleReject}
               disabled={!rejectReason.trim() || rejectRequest.isPending}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
             >
               Xác nhận từ chối
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Approve & Create Distribution Dialog */}
+      {request && (
+        <ApproveSupplementDialog
+          open={showApproveDialog}
+          onOpenChange={setShowApproveDialog}
+          requestCode={request.request_code}
+          roomNumber={request.room?.room_number || 'N/A'}
+          items={items}
+          totalValue={request.total_value}
+          hotelId={request.hotel_id}
+          onConfirm={handleApproveWithDistribution}
+          isPending={createDistribution.isPending}
+        />
+      )}
     </>
   )
 }
