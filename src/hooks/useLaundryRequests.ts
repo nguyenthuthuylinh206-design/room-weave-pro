@@ -227,6 +227,7 @@ export function useAddToDraftBatch() {
       queryClient.invalidateQueries({ queryKey: ['laundry-requests'] })
       queryClient.invalidateQueries({ queryKey: ['laundry-requests-pending-count'] })
       queryClient.invalidateQueries({ queryKey: ['laundry-batches'] })
+      queryClient.invalidateQueries({ queryKey: ['draft-laundry-batch'] })
       toast.success('Đã thêm vào lô giặt')
     },
     onError: (error: Error) => {
