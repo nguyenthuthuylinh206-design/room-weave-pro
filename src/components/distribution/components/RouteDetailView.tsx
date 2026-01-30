@@ -1,13 +1,17 @@
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { BatchAccordion } from './BatchAccordion'
+import { StaffDeliveryView } from './StaffDeliveryView'
+import { DeliveryStepWizard } from './DeliveryStepWizard'
 import { ShiftBadge } from './ShiftBadge'
 import { OrderStatusBadge } from './DistributionStatusBadge'
-import { useRouteDetail, useCloseRoute } from '@/hooks/useRouteBatch'
+import { useRouteDetail, useCloseRoute, useConfirmReceiveOrder } from '@/hooks/useRouteBatch'
 import { useAuth } from '@/contexts/AuthContext'
+import { useQueryClient } from '@tanstack/react-query'
 import type { ShiftCode, RouteStatus } from '@/types/route-batch.types'
 import {
   MapPin,
@@ -17,6 +21,8 @@ import {
   CheckCircle,
   Lock,
   ArrowLeft,
+  List,
+  Layers,
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
@@ -31,14 +37,26 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
   const { t } = useTranslation('distribution')
   const { user } = useAuth()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { data: route, isLoading, error } = useRouteDetail(orderId)
   const closeRoute = useCloseRoute()
+  const confirmReceive = useConfirmReceiveOrder()
+
+  // View mode: 'batch' for managers, 'staff' for delivery staff
+  const [viewMode, setViewMode] = useState<'batch' | 'staff'>('batch')
 
   // Check user roles based on user_level_code
   const isAssignee = user?.id === route?.assigned_to
   const userLevel = (user as any)?.user_level_code || ''
   const isLeader = ['tenant_owner', 'manager', 'supervisor'].includes(userLevel)
   const isStorekeeper = ['tenant_owner', 'manager', 'warehouse_manager', 'storekeeper'].includes(userLevel)
+
+  // Auto-switch to staff view for assignees who are not managers
+  useEffect(() => {
+    if (route && isAssignee && !isStorekeeper && !isLeader) {
+      setViewMode('staff')
+    }
+  }, [route, isAssignee, isStorekeeper, isLeader])
 
   // Calculate progress
   const totalStops = route?.stops?.length || 0
@@ -53,6 +71,17 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
   const canClose = isLeader && 
     route?.status === 'completed' || 
     (route?.status === 'in_progress' && pendingStops === 0 && cannotAccessStops === 0)
+
+  // Confirm receive handler
+  const handleConfirmReceive = () => {
+    if (!route) return
+    confirmReceive.mutate({ orderId: route.id })
+  }
+
+  // Refresh data handler
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['route-detail', orderId] })
+  }
 
   if (isLoading) {
     return (
@@ -111,19 +140,23 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
       {embedded && route.shift_code && (
         <div className="flex items-center gap-2">
           <ShiftBadge shift={route.shift_code as ShiftCode} />
-          {canClose && (
-            <Button
-              size="sm"
-              onClick={() => closeRoute.mutate({ orderId: route.id })}
-              disabled={closeRoute.isPending}
-              className="ml-auto gap-2"
-            >
-              <Lock className="h-4 w-4" />
-              {closeRoute.isPending ? 'Đang đóng...' : 'Đóng Route'}
-            </Button>
-          )}
         </div>
       )}
+
+      {/* Step Wizard - shows current step and action */}
+      <DeliveryStepWizard
+        status={route.status as RouteStatus}
+        assignedToName={route.assigned_to_name}
+        totalStops={totalStops}
+        completedStops={completedStops}
+        pendingStops={pendingStops}
+        isWarehouseManager={isStorekeeper}
+        isAssignee={isAssignee}
+        onConfirmReceive={route.status === 'released' && isAssignee ? handleConfirmReceive : undefined}
+        onCloseRoute={canClose ? () => closeRoute.mutate({ orderId: route.id }) : undefined}
+        isConfirmingReceive={confirmReceive.isPending}
+        isClosing={closeRoute.isPending}
+      />
 
       {/* Info Cards */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -195,56 +228,53 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
         </Card>
       </div>
 
-      {/* Progress Bar */}
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Tiến độ giao hàng</span>
-            <div className="flex items-center gap-4 text-sm">
-              <span className="flex items-center gap-1 text-green-600">
-                <CheckCircle className="h-4 w-4" />
-                {deliveredStops} đã giao
-              </span>
-              {resolvedStops > 0 && (
-                <span className="text-purple-600">{resolvedStops} đã xử lý</span>
-              )}
-              {cannotAccessStops > 0 && (
-                <span className="text-destructive">{cannotAccessStops} không vào được</span>
-              )}
-              {pendingStops > 0 && (
-                <span className="text-muted-foreground">{pendingStops} chờ giao</span>
-              )}
-            </div>
-          </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-green-500 transition-all duration-500"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* View Toggle */}
+      <div className="flex items-center justify-between">
+        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'batch' | 'staff')}>
+          <TabsList>
+            <TabsTrigger value="staff" className="gap-2">
+              <List className="h-4 w-4" />
+              Danh sách phòng
+            </TabsTrigger>
+            <TabsTrigger value="batch" className="gap-2">
+              <Layers className="h-4 w-4" />
+              Xem theo Batch
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
 
-      {/* Batches & Stops */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Danh sách Batch</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <BatchAccordion
-            orderId={route.id}
-            orderCode={route.order_code}
-            tenantId={route.tenant_id}
-            hotelId={route.hotel_id}
-            orderStatus={route.status}
-            assignedTo={route.assigned_to}
-            stops={route.stops || []}
-            isStorekeeper={isStorekeeper}
-            isAssignee={isAssignee}
-            isLeader={isLeader}
-          />
-        </CardContent>
-      </Card>
+      {/* Content based on view mode */}
+      {viewMode === 'staff' ? (
+        <StaffDeliveryView
+          stops={route.stops || []}
+          orderCode={route.order_code}
+          tenantId={route.tenant_id}
+          hotelId={route.hotel_id}
+          orderStatus={route.status}
+          onRefresh={handleRefresh}
+        />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Danh sách Batch</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BatchAccordion
+              orderId={route.id}
+              orderCode={route.order_code}
+              tenantId={route.tenant_id}
+              hotelId={route.hotel_id}
+              orderStatus={route.status}
+              assignedTo={route.assigned_to}
+              stops={route.stops || []}
+              isStorekeeper={isStorekeeper}
+              isAssignee={isAssignee}
+              isLeader={isLeader}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Notes */}
       {route.notes && (
