@@ -1,9 +1,12 @@
 /**
  * Booking Calculations Utility
  * Handles all pricing logic including surcharges, VAT, and service fees
+ * Supports Daily, Hourly, and Monthly booking types
  */
 
-import { startOfDay, isBefore } from 'date-fns'
+import { startOfDay, isBefore, differenceInMinutes } from 'date-fns'
+
+export type BookingType = 'daily' | 'hourly' | 'monthly'
 
 export interface PricingRules {
   // Standard times
@@ -45,12 +48,25 @@ export const DEFAULT_PRICING_RULES: PricingRules = {
 }
 
 export interface BookingCostBreakdown {
-  // Room charges
+  // Booking type
+  bookingType: BookingType
+  
+  // Room charges - Daily
   roomPricePerNight: number
   nights: number
   roomTotal: number
   
-  // Surcharges
+  // Room charges - Hourly
+  hourlyRate?: number
+  hours?: number
+  hourlyOvertimeCharge?: number
+  
+  // Room charges - Monthly
+  monthlyRate?: number
+  months?: number
+  monthlyDiscount?: number
+  
+  // Surcharges (only for daily)
   earlyCheckinCharge: number
   lateCheckoutCharge: number
   totalSurcharges: number
@@ -59,7 +75,7 @@ export interface BookingCostBreakdown {
   serviceCharges: number
   extraCharges: number
   
-  // Damage charges (NEW)
+  // Damage charges
   damageCharges: number
   damageItems?: DamageChargeItem[]
   
@@ -216,13 +232,69 @@ export function isEarlyCheckout(actualDate: Date, scheduledDate: Date): boolean 
 }
 
 /**
+ * Calculate hourly overtime charge
+ * Only applies to hourly bookings when checkout is after scheduled end time
+ */
+export function calculateHourlyOvertimeCharge(
+  scheduledEndTime: Date,
+  actualCheckoutTime: Date,
+  hourlyRate: number
+): number {
+  const overtimeMinutes = differenceInMinutes(actualCheckoutTime, scheduledEndTime)
+  if (overtimeMinutes <= 0) return 0
+  
+  // Round up to full hours
+  const overtimeHours = Math.ceil(overtimeMinutes / 60)
+  return overtimeHours * hourlyRate
+}
+
+// Monthly discount configuration (matching types.ts)
+const MONTHLY_DISCOUNTS: Record<number, number> = {
+  1: 0,
+  2: 0,
+  3: 5,
+  6: 10,
+  12: 15,
+}
+
+/**
+ * Get monthly discount percentage based on number of months
+ */
+export function getMonthlyDiscountPercent(months: number): number {
+  // Find the highest applicable discount
+  const thresholds = Object.keys(MONTHLY_DISCOUNTS).map(Number).sort((a, b) => b - a)
+  for (const threshold of thresholds) {
+    if (months >= threshold) {
+      return MONTHLY_DISCOUNTS[threshold]
+    }
+  }
+  return 0
+}
+
+/**
  * Calculate full booking cost breakdown
+ * Supports Daily, Hourly, and Monthly booking types
  */
 export function calculateBookingCost(params: {
+  // Booking type - default to 'daily' for backwards compatibility
+  bookingType?: BookingType
+  
+  // Daily booking
   roomPrice: number
   nights: number
   earlyCheckinCharge?: number
   lateCheckoutCharge?: number
+  
+  // Hourly booking
+  hourlyRate?: number
+  hours?: number
+  hourlyOvertimeCharge?: number
+  
+  // Monthly booking
+  monthlyRate?: number
+  months?: number
+  
+  // Common
   serviceCharges?: number
   extraCharges?: number
   damageCharges?: number
@@ -233,10 +305,16 @@ export function calculateBookingCost(params: {
   amountPaid?: number
 }): BookingCostBreakdown {
   const {
+    bookingType = 'daily',
     roomPrice,
     nights,
     earlyCheckinCharge = 0,
     lateCheckoutCharge = 0,
+    hourlyRate = 0,
+    hours = 0,
+    hourlyOvertimeCharge = 0,
+    monthlyRate = 0,
+    months = 0,
     serviceCharges = 0,
     extraCharges = 0,
     damageCharges = 0,
@@ -247,11 +325,33 @@ export function calculateBookingCost(params: {
     amountPaid = 0,
   } = params
   
-  // Room total
-  const roomTotal = roomPrice * Math.max(1, nights)
+  let roomTotal = 0
+  let totalSurcharges = 0
+  let monthlyDiscount = 0
   
-  // Total surcharges
-  const totalSurcharges = earlyCheckinCharge + lateCheckoutCharge
+  switch (bookingType) {
+    case 'hourly':
+      // Hourly: hourlyRate × hours + overtime
+      roomTotal = hourlyRate * Math.max(1, hours)
+      totalSurcharges = hourlyOvertimeCharge // Overtime is treated as surcharge
+      break
+      
+    case 'monthly':
+      // Monthly: monthlyRate × months - discount
+      const baseMonthlyTotal = monthlyRate * Math.max(1, months)
+      const discountPercent = getMonthlyDiscountPercent(months)
+      monthlyDiscount = Math.round(baseMonthlyTotal * discountPercent / 100)
+      roomTotal = baseMonthlyTotal - monthlyDiscount
+      totalSurcharges = 0 // No time-based surcharges for monthly
+      break
+      
+    case 'daily':
+    default:
+      // Daily: roomPrice × nights + early/late charges
+      roomTotal = roomPrice * Math.max(1, nights)
+      totalSurcharges = earlyCheckinCharge + lateCheckoutCharge
+      break
+  }
   
   // Subtotal before tax (including damage charges)
   const subtotal = roomTotal + totalSurcharges + serviceCharges + extraCharges + damageCharges
@@ -276,11 +376,21 @@ export function calculateBookingCost(params: {
   }
   
   return {
+    bookingType,
     roomPricePerNight: roomPrice,
     nights,
     roomTotal,
-    earlyCheckinCharge,
-    lateCheckoutCharge,
+    // Hourly specific
+    hourlyRate: bookingType === 'hourly' ? hourlyRate : undefined,
+    hours: bookingType === 'hourly' ? hours : undefined,
+    hourlyOvertimeCharge: bookingType === 'hourly' ? hourlyOvertimeCharge : undefined,
+    // Monthly specific
+    monthlyRate: bookingType === 'monthly' ? monthlyRate : undefined,
+    months: bookingType === 'monthly' ? months : undefined,
+    monthlyDiscount: bookingType === 'monthly' ? monthlyDiscount : undefined,
+    // Surcharges (only for daily, but kept for hourly overtime)
+    earlyCheckinCharge: bookingType === 'daily' ? earlyCheckinCharge : 0,
+    lateCheckoutCharge: bookingType === 'daily' ? lateCheckoutCharge : 0,
     totalSurcharges,
     serviceCharges,
     extraCharges,
