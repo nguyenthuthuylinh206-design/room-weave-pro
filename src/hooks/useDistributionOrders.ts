@@ -76,6 +76,8 @@ export function useCreateDistributionOrder() {
         p_assigned_to: data.assigned_to || null,
         p_rooms: data.rooms,
         p_notes: data.notes || null,
+        p_auto_release: data.auto_release || false,
+        p_supplement_request_ids: null,
       })
 
       if (error) throw error

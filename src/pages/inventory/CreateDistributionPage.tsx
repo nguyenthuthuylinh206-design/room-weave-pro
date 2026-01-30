@@ -1,6 +1,9 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
 import { DistributionForm } from '@/components/distribution/forms/DistributionForm'
 import { useDistributionForm } from '@/components/distribution/hooks/useDistributionForm'
 import { useCreateDistributionOrder } from '@/hooks/useDistributionOrders'
@@ -11,6 +14,7 @@ export default function CreateDistributionPage() {
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const { mutate: createOrder, isPending } = useCreateDistributionOrder()
+  const [autoRelease, setAutoRelease] = useState(false)
   
   const form = useDistributionForm()
 
@@ -40,6 +44,7 @@ export default function CreateDistributionPage() {
       assigned_to: form.assignedTo || undefined,
       notes: form.notes || undefined,
       rooms: roomsWithItems,
+      auto_release: autoRelease && !!form.assignedTo,
     }, {
       onSuccess: (result) => {
         navigate(`/inventory/distributions/${result.order_id}`)
@@ -70,8 +75,28 @@ export default function CreateDistributionPage() {
       </div>
 
       {/* Form */}
-      <div className={isMobile ? 'flex-1 overflow-auto p-4' : ''}>
+      <div className={isMobile ? 'flex-1 overflow-auto p-4 space-y-4' : 'space-y-4'}>
         <DistributionForm form={form} />
+        
+        {/* Auto-release option */}
+        {form.assignedTo && (
+          <div className="flex items-start gap-3 p-3 border rounded-lg bg-muted/50">
+            <Checkbox
+              id="auto-release"
+              checked={autoRelease}
+              onCheckedChange={(checked) => setAutoRelease(!!checked)}
+            />
+            <div className="space-y-1">
+              <Label htmlFor="auto-release" className="text-sm font-medium flex items-center gap-2">
+                <Zap className="h-4 w-4 text-amber-500" />
+                Giao ngay cho nhân viên (bỏ qua bước kho)
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Phiếu sẽ được chuyển trực tiếp cho nhân viên mà không cần kho xác nhận
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer */}

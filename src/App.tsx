@@ -24,6 +24,7 @@ import { AdjustmentDetailPage } from "./pages/inventory/AdjustmentDetailPage";
 import DistributionOrdersPage from "./pages/inventory/DistributionOrdersPage";
 import DistributionOrderDetailPage from "./pages/inventory/DistributionOrderDetailPage";
 import CreateDistributionPage from "./pages/inventory/CreateDistributionPage";
+import CreateFromSupplementsPage from "./pages/inventory/CreateFromSupplementsPage";
 import TransferPage from "./pages/inventory/TransferPage";
 import { ItemsPage } from "./pages/items/ItemsPage";
 import ItemDetailPage from "./pages/items/ItemDetailPage";
@@ -343,6 +344,14 @@ const router = createBrowserRouter([
         element: (
           <PermissionRoute module="inventory" action="create">
             <CreateDistributionPage />
+          </PermissionRoute>
+        )
+      },
+      { 
+        path: "inventory/distributions/from-supplements", 
+        element: (
+          <PermissionRoute module="inventory" action="create">
+            <CreateFromSupplementsPage />
           </PermissionRoute>
         )
       },

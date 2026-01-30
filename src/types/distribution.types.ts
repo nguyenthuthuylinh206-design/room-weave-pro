@@ -51,6 +51,7 @@ export interface DistributionOrderDetail extends Omit<DistributionOrder, 'rooms_
 export interface CreateDistributionData {
   assigned_to?: string
   notes?: string
+  auto_release?: boolean
   rooms: {
     room_id: string
     items: {
