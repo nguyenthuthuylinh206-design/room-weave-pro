@@ -158,74 +158,35 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
         isClosing={closeRoute.isPending}
       />
 
-      {/* Info Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <MapPin className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Tầng</p>
-                <p className="text-lg font-semibold">{route.floor ?? '-'}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Calendar className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Ngày</p>
-                <p className="text-lg font-semibold">
-                  {route.shift_date 
-                    ? format(new Date(route.shift_date), 'dd/MM/yyyy', { locale: vi })
-                    : '-'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <User className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Nhân viên</p>
-                <p className="text-lg font-semibold truncate">
-                  {route.assigned_to_name || 'Chưa gán'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Package className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Tiến độ</p>
-                <p className="text-lg font-semibold">
-                  {completedStops}/{totalStops} phòng
-                  <span className="text-sm font-normal text-muted-foreground ml-1">
-                    ({progressPercent}%)
-                  </span>
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Compact Info Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 border rounded-lg bg-muted/30">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          {route.floor !== null && (
+            <span className="flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+              <span>Tầng {route.floor}</span>
+            </span>
+          )}
+          {route.shift_date && (
+            <span className="flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+              <span>{format(new Date(route.shift_date), 'dd/MM/yyyy', { locale: vi })}</span>
+            </span>
+          )}
+          {route.assigned_to_name && (
+            <span className="flex items-center gap-1.5">
+              <User className="h-3.5 w-3.5 text-muted-foreground" />
+              <span>{route.assigned_to_name}</span>
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-sm">
+            <Package className="h-4 w-4 text-muted-foreground" />
+            <span className="font-semibold">{completedStops}/{totalStops}</span>
+            <span className="text-muted-foreground">({progressPercent}%)</span>
+          </div>
+        </div>
       </div>
 
       {/* View Toggle */}
