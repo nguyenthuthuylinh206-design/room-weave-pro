@@ -1,8 +1,6 @@
 import { useState } from 'react'
-import { CheckCircle, Package, DoorOpen, ChevronDown, AlertTriangle, RotateCcw, Undo2, ArrowRightLeft } from 'lucide-react'
+import { CheckCircle, ChevronDown, AlertTriangle, RotateCcw, Undo2, ArrowRightLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,7 +24,6 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { StopStatusBadge } from './StopStatusBadge'
 import {
   useDeliverStop,
   useMarkCannotAccess,
@@ -171,35 +168,10 @@ export function StaffDeliveryView({
   const canDeliver = orderStatus === 'in_progress'
 
   return (
-    <div className="space-y-4">
-      {/* Progress summary - sticky on mobile */}
-      <div className={cn(
-        'p-4 border rounded-lg bg-card',
-        isMobile && 'sticky top-0 z-10'
-      )}>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium">Tiến độ giao hàng</span>
-          <span className="text-sm">
-            <span className="font-bold text-lg">{completedStops}</span>
-            <span className="text-muted-foreground">/{totalStops} phòng</span>
-          </span>
-        </div>
-        <Progress value={progressPercent} className="h-2.5" />
-        <div className="flex gap-4 mt-2 text-xs">
-          {deliveredStops > 0 && (
-            <span className="text-green-600">{deliveredStops} đã giao</span>
-          )}
-          {cannotAccessStops > 0 && (
-            <span className="text-red-600">{cannotAccessStops} không vào được</span>
-          )}
-          {pendingStops.length > 0 && (
-            <span className="text-muted-foreground">{pendingStops.length} chờ giao</span>
-          )}
-        </div>
-      </div>
+    <div className="space-y-2">
 
-      {/* Room list - flat, simple */}
-      <div className="space-y-3">
+      {/* Room list - compact, flat */}
+      <div className="border rounded-lg divide-y">
         {sortedStops.map((stop) => (
           <StaffRoomCard
             key={stop.id}
@@ -351,141 +323,119 @@ function StaffRoomCard({
 }: StaffRoomCardProps) {
   const isCompleted = stop.stop_status === 'delivered' || stop.stop_status === 'resolved'
   const isCannotAccess = stop.stop_status === 'cannot_access'
-  const totalItems = stop.items.reduce((sum, item) => sum + item.quantity, 0)
+  
+  // Build inline items text
+  const itemsText = stop.items.map(i => `${i.item_name} x${i.quantity}`).join(', ')
 
   return (
     <div
       className={cn(
-        'p-4 border rounded-lg transition-colors',
-        isCompleted && 'bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800',
-        isCannotAccess && 'bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-800',
-        !isCompleted && !isCannotAccess && 'bg-card'
+        'p-3 border-b last:border-b-0 border-l-4 transition-colors',
+        isCompleted && 'border-l-green-500 bg-muted/30',
+        isCannotAccess && 'border-l-red-500 bg-muted/30',
+        !isCompleted && !isCannotAccess && 'border-l-transparent'
       )}
     >
-      {/* Room header */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className={cn(
-            'flex items-center justify-center w-12 h-12 rounded-lg',
-            isCompleted && 'bg-green-100 dark:bg-green-900/30 text-green-600',
-            isCannotAccess && 'bg-red-100 dark:bg-red-900/30 text-red-600',
-            !isCompleted && !isCannotAccess && 'bg-primary/10 text-primary'
-          )}>
-            <DoorOpen className="h-6 w-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-bold">P.{stop.room_number}</span>
-              <StopStatusBadge status={stop.stop_status} />
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Package className="h-3.5 w-3.5" />
-              {stop.items.length} sản phẩm • {totalItems} đơn vị
-            </div>
-          </div>
+      {/* Compact header row */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-base font-bold shrink-0">P.{stop.room_number}</span>
+          {isCompleted && (
+            <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+          )}
+          {isCannotAccess && (
+            <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
+          )}
         </div>
-
-        {/* Status indicator for completed */}
-        {isCompleted && (
-          <div className="flex items-center gap-1 text-green-600">
-            <CheckCircle className="h-5 w-5" />
-            <span className="text-sm font-medium">Đã giao</span>
-          </div>
-        )}
-      </div>
-
-      {/* Item list - always visible in staff view */}
-      {stop.items.length > 0 && (
-        <div className="mt-3 pl-2 border-l-2 border-muted space-y-1">
-          {stop.items.map(item => (
-            <div key={item.id} className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">{item.item_name}</span>
-              <Badge variant="outline" className="text-xs">x{item.quantity}</Badge>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Exception info */}
-      {stop.exception_type && (
-        <div className="mt-3 flex items-start gap-2 text-sm text-destructive">
-          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-          <span>
-            {EXCEPTION_TYPE_LABELS[stop.exception_type]}
-            {stop.exception_reason && `: ${stop.exception_reason}`}
-          </span>
-        </div>
-      )}
-
-      {/* Actions */}
-      <div className="mt-4 space-y-2">
-        {/* Primary action: Deliver */}
+        
+        {/* Primary deliver button - inline for pending */}
         {canDeliver && (
           <Button
             onClick={onDeliver}
             disabled={isDelivering}
+            size={isMobile ? 'default' : 'sm'}
             className={cn(
-              'gap-2',
-              isMobile ? 'w-full h-12 text-base font-semibold' : 'w-full h-10'
+              'shrink-0 gap-1.5',
+              isMobile && 'h-10 px-4 text-sm font-semibold'
             )}
           >
-            <CheckCircle className="h-5 w-5" />
-            {isDelivering ? 'Đang xử lý...' : 'XÁC NHẬN GIAO'}
+            <CheckCircle className="h-4 w-4" />
+            {isDelivering ? '...' : 'GIAO'}
           </Button>
         )}
+        
+        {/* Status text for completed */}
+        {isCompleted && (
+          <span className="text-xs text-green-600 font-medium shrink-0">Đã giao</span>
+        )}
+      </div>
 
-        {/* Secondary action: Cannot access (dropdown on mobile) */}
-        {canDeliver && (
+      {/* Items - inline chips */}
+      {stop.items.length > 0 && (
+        <p className="mt-1.5 text-xs text-muted-foreground line-clamp-2">{itemsText}</p>
+      )}
+
+      {/* Exception info */}
+      {stop.exception_type && (
+        <div className="mt-1.5 text-xs text-destructive">
+          {EXCEPTION_TYPE_LABELS[stop.exception_type]}
+          {stop.exception_reason && `: ${stop.exception_reason}`}
+        </div>
+      )}
+
+      {/* Secondary actions row */}
+      {canDeliver && (
+        <div className="mt-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="w-full gap-2">
-                Không vào được...
-                <ChevronDown className="h-4 w-4 ml-auto" />
+              <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground gap-1">
+                Không vào được
+                <ChevronDown className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" className="w-56">
+            <DropdownMenuContent align="start" className="w-48">
               <DropdownMenuItem onClick={onCannotAccess}>
                 Báo cáo không vào được
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
+        </div>
+      )}
 
-        {/* Actions for cannot_access stops */}
-        {isCannotAccess && (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRetry}
-              disabled={isRetrying}
-              className="flex-1 gap-1"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Thử lại
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onReturnToStock}
-              disabled={isReturning}
-              className="flex-1 gap-1"
-            >
-              <Undo2 className="h-4 w-4" />
-              Trả kho
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={onHandover}
-              className="flex-1 gap-1"
-            >
-              <ArrowRightLeft className="h-4 w-4" />
-              Bàn giao
-            </Button>
-          </div>
-        )}
-      </div>
+      {/* Actions for cannot_access stops */}
+      {isCannotAccess && (
+        <div className="mt-2 flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRetry}
+            disabled={isRetrying}
+            className="h-8 flex-1 gap-1 text-xs"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Thử lại
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onReturnToStock}
+            disabled={isReturning}
+            className="h-8 flex-1 gap-1 text-xs"
+          >
+            <Undo2 className="h-3.5 w-3.5" />
+            Trả kho
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onHandover}
+            className="h-8 flex-1 gap-1 text-xs"
+          >
+            <ArrowRightLeft className="h-3.5 w-3.5" />
+            Bàn giao
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

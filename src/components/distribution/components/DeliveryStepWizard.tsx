@@ -208,25 +208,32 @@ export function DeliveryStepWizard({
   }
 
   return (
-    <div className="border rounded-lg bg-card p-4 space-y-4">
-      {/* Step indicators */}
-      <div className="flex items-center justify-between">
+    <div className="border rounded-lg bg-card p-3 space-y-3">
+      {/* Step indicators - compact */}
+      <div className="flex items-center">
         {steps.map((step, index) => (
           <div key={step.id} className="flex items-center flex-1">
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center min-w-0">
               <div
                 className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center transition-colors',
-                  step.status === 'completed' && 'bg-green-500 text-white',
-                  step.status === 'current' && 'bg-primary text-primary-foreground',
-                  step.status === 'upcoming' && 'bg-muted text-muted-foreground'
+                  'w-6 h-6 rounded-full flex items-center justify-center transition-colors',
+                  step.status === 'completed' && 'bg-green-500',
+                  step.status === 'current' && 'bg-primary',
+                  step.status === 'upcoming' && 'bg-muted'
                 )}
               >
-                <step.icon className="h-4 w-4" />
+                <div
+                  className={cn(
+                    'w-2 h-2 rounded-full',
+                    step.status === 'completed' && 'bg-white',
+                    step.status === 'current' && 'bg-white',
+                    step.status === 'upcoming' && 'bg-muted-foreground/50'
+                  )}
+                />
               </div>
               <span
                 className={cn(
-                  'text-xs mt-1 text-center',
+                  'text-[10px] mt-1 text-center leading-tight truncate max-w-[60px]',
                   step.status === 'current' && 'font-medium text-foreground',
                   step.status !== 'current' && 'text-muted-foreground'
                 )}
@@ -237,7 +244,7 @@ export function DeliveryStepWizard({
             {index < steps.length - 1 && (
               <div
                 className={cn(
-                  'flex-1 h-0.5 mx-2',
+                  'flex-1 h-0.5 mx-1',
                   step.status === 'completed' ? 'bg-green-500' : 'bg-muted'
                 )}
               />
@@ -247,9 +254,7 @@ export function DeliveryStepWizard({
       </div>
 
       {/* Guidance and action */}
-      <div className="pt-2 border-t">
-        {renderGuidance()}
-      </div>
+      <div>{renderGuidance()}</div>
     </div>
   )
 }
