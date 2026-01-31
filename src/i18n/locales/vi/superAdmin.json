@@ -230,5 +230,64 @@
       "deleting": "Đang xóa...",
       "deletePermanently": "Xóa vĩnh viễn"
     }
+  },
+  "analytics": {
+    "title": "Thống kê & Báo cáo",
+    "subtitle": "Phân tích hiệu suất nền tảng SaaS",
+    "dateRange": {
+      "7d": "7 ngày",
+      "30d": "30 ngày",
+      "90d": "90 ngày",
+      "custom": "Tùy chỉnh"
+    },
+    "kpi": {
+      "mrr": "MRR",
+      "mrrDesc": "Doanh thu định kỳ hàng tháng",
+      "arr": "ARR",
+      "arrDesc": "Doanh thu định kỳ hàng năm",
+      "growth": "Tăng trưởng",
+      "newCustomers": "Khách hàng mới trong {{days}} ngày",
+      "churnRate": "Tỷ lệ rời bỏ",
+      "churnDesc": "{{count}} khách hàng rời bỏ"
+    },
+    "tabs": {
+      "revenue": "Doanh thu",
+      "tenants": "Khách hàng",
+      "plans": "Gói dịch vụ",
+      "conversion": "Chuyển đổi"
+    },
+    "revenue": {
+      "trend": "Xu hướng doanh thu",
+      "byPlan": "Doanh thu theo gói",
+      "breakdown": "Chi tiết doanh thu",
+      "planColumn": "Gói",
+      "customersColumn": "Khách hàng",
+      "revenueColumn": "Doanh thu",
+      "total": "Tổng cộng"
+    },
+    "tenants": {
+      "growth": "Tăng trưởng khách hàng",
+      "statusBreakdown": "Phân bổ trạng thái",
+      "churnAnalysis": "Phân tích rời bỏ"
+    },
+    "plans": {
+      "distribution": "Phân bổ gói dịch vụ",
+      "arpuByPlan": "ARPU theo gói"
+    },
+    "conversion": {
+      "trialToPaid": "Trial → Trả phí",
+      "rate": "Tỷ lệ chuyển đổi",
+      "funnel": "Phễu chuyển đổi",
+      "trialUsers": "Người dùng thử",
+      "currentTrials": "Đang dùng thử",
+      "converted": "Đã chuyển đổi",
+      "fromTrials": "Từ {{count}} trials",
+      "trials": "Trials",
+      "paid": "Trả phí"
+    },
+    "export": {
+      "pdf": "Xuất PDF",
+      "csv": "Xuất CSV"
+    }
   }
 }

@@ -230,5 +230,64 @@
       "deleting": "Deleting...",
       "deletePermanently": "Delete Permanently"
     }
+  },
+  "analytics": {
+    "title": "Analytics & Reports",
+    "subtitle": "Analyze SaaS platform performance",
+    "dateRange": {
+      "7d": "7 days",
+      "30d": "30 days",
+      "90d": "90 days",
+      "custom": "Custom"
+    },
+    "kpi": {
+      "mrr": "MRR",
+      "mrrDesc": "Monthly Recurring Revenue",
+      "arr": "ARR",
+      "arrDesc": "Annual Recurring Revenue",
+      "growth": "Growth",
+      "newCustomers": "New customers in {{days}} days",
+      "churnRate": "Churn Rate",
+      "churnDesc": "{{count}} customers churned"
+    },
+    "tabs": {
+      "revenue": "Revenue",
+      "tenants": "Customers",
+      "plans": "Plans",
+      "conversion": "Conversion"
+    },
+    "revenue": {
+      "trend": "Revenue Trend",
+      "byPlan": "Revenue by Plan",
+      "breakdown": "Revenue Breakdown",
+      "planColumn": "Plan",
+      "customersColumn": "Customers",
+      "revenueColumn": "Revenue",
+      "total": "Total"
+    },
+    "tenants": {
+      "growth": "Customer Growth",
+      "statusBreakdown": "Status Breakdown",
+      "churnAnalysis": "Churn Analysis"
+    },
+    "plans": {
+      "distribution": "Plan Distribution",
+      "arpuByPlan": "ARPU by Plan"
+    },
+    "conversion": {
+      "trialToPaid": "Trial → Paid",
+      "rate": "Conversion Rate",
+      "funnel": "Conversion Funnel",
+      "trialUsers": "Trial Users",
+      "currentTrials": "Currently on trial",
+      "converted": "Converted",
+      "fromTrials": "From {{count}} trials",
+      "trials": "Trials",
+      "paid": "Paid"
+    },
+    "export": {
+      "pdf": "Export PDF",
+      "csv": "Export CSV"
+    }
   }
 }

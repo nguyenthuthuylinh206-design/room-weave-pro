@@ -106,6 +106,7 @@ import IntegrationsPage from "./pages/settings/IntegrationsPage";
 import PricingRulesPage from "./pages/settings/PricingRulesPage";
 import { SuperAdminDashboard } from "./pages/admin/SuperAdminDashboard";
 import { TenantsPage } from "./pages/admin/TenantsPage";
+import { AnalyticsPage } from "./pages/admin/AnalyticsPage";
 import { PromoCodesPage } from "./pages/admin/PromoCodesPage";
 import { MarketingCampaignsPage } from "./pages/admin/MarketingCampaignsPage";
 import { RenewalRemindersPage } from "./pages/admin/RenewalRemindersPage";
@@ -174,6 +175,7 @@ const router = createBrowserRouter([
       { path: "campaigns", element: <MarketingCampaignsPage /> },
       { path: "reminders", element: <RenewalRemindersPage /> },
       { path: "pricing", element: <PricingPlansPage /> },
+      { path: "analytics", element: <AnalyticsPage /> },
     ],
   },
 
