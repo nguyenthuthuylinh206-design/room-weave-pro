@@ -7737,16 +7737,14 @@ export type Database = {
         Args: { p_transaction_id: string }
         Returns: Json
       }
-      deliver_stop:
-        | {
-            Args: {
-              p_actor_id?: string
-              p_items_confirmed?: Json
-              p_room_order_id: string
-            }
-            Returns: Json
-          }
-        | { Args: { p_actor_id?: string; p_stop_id: string }; Returns: Json }
+      deliver_stop: {
+        Args: {
+          p_actor_id?: string
+          p_items_confirmed?: Json
+          p_room_order_id: string
+        }
+        Returns: Json
+      }
       generate_invoice_number: { Args: never; Returns: string }
       generate_laundry_request_code: {
         Args: { p_tenant_id: string }
