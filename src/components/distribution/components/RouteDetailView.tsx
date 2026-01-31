@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -6,9 +7,11 @@ import { UnifiedRoomList } from './UnifiedRoomList'
 import { DeliveryStepWizard } from './DeliveryStepWizard'
 import { ShiftBadge } from './ShiftBadge'
 import { OrderStatusBadge } from './DistributionStatusBadge'
+import { AdjustQuantityDialog, type InsufficientItem, type ItemAdjustment } from './AdjustQuantityDialog'
 import { useRouteDetail, useCloseRoute, useConfirmReceiveOrder, useHandoverBatch } from '@/hooks/useRouteBatch'
 import { useAuth } from '@/contexts/AuthContext'
 import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import type { ShiftCode, RouteStatus } from '@/types/route-batch.types'
 import {
   MapPin,
@@ -36,6 +39,10 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
   const closeRoute = useCloseRoute()
   const confirmReceive = useConfirmReceiveOrder()
   const handoverBatch = useHandoverBatch()
+
+  // State for adjustment dialog
+  const [adjustDialogOpen, setAdjustDialogOpen] = useState(false)
+  const [insufficientItems, setInsufficientItems] = useState<InsufficientItem[]>([])
 
   // Get first pending batch for handover
   const firstPendingBatch = route?.batches?.find(b => b.status === 'open')
@@ -69,11 +76,45 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
     route?.status === 'completed' || 
     (route?.status === 'in_progress' && pendingStops === 0 && cannotAccessStops === 0)
 
-  // Confirm receive handler
-  const handleConfirmReceive = () => {
+  // Confirm receive handler - now handles insufficient stock
+  const handleConfirmReceive = useCallback(async () => {
     if (!route) return
-    confirmReceive.mutate({ orderId: route.id })
-  }
+    
+    const result = await confirmReceive.mutateAsync({ orderId: route.id })
+    
+    // If insufficient stock, show adjustment dialog
+    if (!result.success && result.error === 'INSUFFICIENT_STOCK' && result.insufficient_items) {
+      setInsufficientItems(result.insufficient_items)
+      setAdjustDialogOpen(true)
+    }
+  }, [route, confirmReceive])
+
+  // Handle confirm with adjustments
+  const handleConfirmWithAdjustments = useCallback(async (adjustments: ItemAdjustment[], reason: string) => {
+    if (!route) return
+    
+    try {
+      const result = await confirmReceive.mutateAsync({ 
+        orderId: route.id, 
+        adjustments 
+      })
+      
+      if (result.success) {
+        setAdjustDialogOpen(false)
+        setInsufficientItems([])
+        toast.success('Đã xác nhận nhận hàng với số lượng điều chỉnh')
+      }
+    } catch (error) {
+      toast.error('Không thể xác nhận nhận hàng')
+    }
+  }, [route, confirmReceive])
+
+  // Handle edit order (close dialog and navigate)
+  const handleEditOrder = useCallback(() => {
+    setAdjustDialogOpen(false)
+    // TODO: Open edit distribution dialog or navigate back
+    toast.info('Vui lòng chỉnh sửa phiếu và thử lại')
+  }, [])
 
   // Refresh data handler
   const handleRefresh = () => {
@@ -214,6 +255,16 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
           </CardContent>
         </Card>
       )}
+
+      {/* Adjust Quantity Dialog */}
+      <AdjustQuantityDialog
+        open={adjustDialogOpen}
+        onOpenChange={setAdjustDialogOpen}
+        insufficientItems={insufficientItems}
+        onConfirm={handleConfirmWithAdjustments}
+        onEditOrder={handleEditOrder}
+        isConfirming={confirmReceive.isPending}
+      />
     </div>
   )
 }

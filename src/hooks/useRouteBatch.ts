@@ -477,7 +477,7 @@ export function useCloseRoute() {
 /**
  * Employee confirms receipt of all items for the order (deducts inventory)
  */
-interface InsufficientItem {
+export interface InsufficientItem {
   item_id: string
   item_name: string
   item_code: string
@@ -486,10 +486,21 @@ interface InsufficientItem {
   shortage: number
 }
 
+export interface ItemAdjustment {
+  item_id: string
+  quantity_actual: number
+}
+
 interface ConfirmReceiveResponse {
   success: boolean
   order_id?: string
-  message: string
+  message?: string
+  error?: string
+  insufficient_items?: InsufficientItem[]
+}
+
+export interface ConfirmReceiveResult {
+  success: boolean
   error?: string
   insufficient_items?: InsufficientItem[]
 }
@@ -499,12 +510,19 @@ export function useConfirmReceiveOrder() {
   const { user } = useAuth()
 
   return useMutation({
-    mutationFn: async ({ orderId }: { orderId: string }) => {
+    mutationFn: async ({ 
+      orderId,
+      adjustments,
+    }: { 
+      orderId: string
+      adjustments?: ItemAdjustment[]
+    }): Promise<ConfirmReceiveResult> => {
       if (!user?.id) throw new Error('User not authenticated')
 
       const { data, error } = await supabase.rpc('confirm_receive_order', {
         p_order_id: orderId,
         p_actor_id: user.id,
+        p_adjustments: adjustments ? JSON.stringify(adjustments) : null,
       })
 
       if (error) throw error
@@ -513,22 +531,30 @@ export function useConfirmReceiveOrder() {
       
       // Check if RPC returned a business logic error (insufficient stock)
       if (!response.success && response.error === 'INSUFFICIENT_STOCK') {
-        const itemsList = response.insufficient_items
-          ?.map(item => `• ${item.item_name}: cần ${item.required}, còn ${item.available} (thiếu ${item.shortage})`)
-          .join('\n') || ''
-        
-        throw new Error(`Không đủ tồn kho:\n${itemsList}`)
+        // Return the error data instead of throwing - let caller handle it
+        return {
+          success: false,
+          error: 'INSUFFICIENT_STOCK',
+          insufficient_items: response.insufficient_items,
+        }
       }
       
-      return response
+      if (!response.success) {
+        throw new Error(response.error || 'Unknown error')
+      }
+      
+      return { success: true }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['route-batches'] })
-      queryClient.invalidateQueries({ queryKey: ['route-detail'] })
-      queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
-      queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
-      queryClient.invalidateQueries({ queryKey: ['items'] })
-      toast.success('Đã xác nhận nhận hàng thành công')
+    onSuccess: (result) => {
+      if (result.success) {
+        queryClient.invalidateQueries({ queryKey: ['route-batches'] })
+        queryClient.invalidateQueries({ queryKey: ['route-detail'] })
+        queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
+        queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+        queryClient.invalidateQueries({ queryKey: ['items'] })
+        toast.success('Đã xác nhận nhận hàng thành công')
+      }
+      // If not success, don't show toast - caller will handle showing dialog
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Không thể xác nhận nhận hàng', {
