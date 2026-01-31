@@ -1,46 +1,41 @@
 
 
-## Kế hoạch: Phát triển trang /super-admin/analytics
+## Kế hoạch: Phát triển trang /super-admin/settings
 
 ### TÌNH TRẠNG HIỆN TẠI
 
 | Thành phần | Trạng thái |
 |------------|-----------|
-| Route `/super-admin/analytics` | Đã khai báo trong Navigation, **CHƯA** có trong router |
-| Page component | **CHƯA** có `AnalyticsPage.tsx` |
-| Analytics components | Đã có: `TenantGrowthChart`, `RevenueChart`, `MRRChart`, `ChurnRateCard`, `PlanDistributionChart` |
-| Hooks dữ liệu | Đã có: `useSuperAdminStats`, `useRevenueByMonth`, `useTenantGrowth`, `useChurnRate`, `useRevenueByPlan`, `useSubscriptionDistribution` |
-| i18n | Đã có key `analytics` trong `superAdmin.json` |
+| Route `/super-admin/settings` | Khai báo trong Navigation nhưng **CHƯA** có trong router |
+| Page component | **CHƯA** có `SettingsPage.tsx` trong `pages/admin/` |
+| Settings components | Đã có: `BankPaymentSettings.tsx` |
+| i18n | Đã có key `settings` trong navigation/titles nhưng **CHƯA** có nội dung chi tiết |
 
 ---
 
-### CẤU TRÚC TRANG ANALYTICS
+### CẤU TRÚC TRANG SETTINGS
 
 ```text
-/super-admin/analytics
-├── PageHeader (Tiêu đề + Actions)
-├── Date Range Picker (7 ngày, 30 ngày, 90 ngày, custom)
-├── Stat Cards Row (KPIs chính)
-│   ├── MRR (Monthly Recurring Revenue)
-│   ├── ARR (Annual Recurring Revenue)  
-│   ├── Tăng trưởng khách hàng
-│   └── Tỷ lệ churn
+/super-admin/settings
+├── PageHeader (Tiêu đề + Mô tả)
 ├── Tabs
-│   ├── Tab: Doanh thu
-│   │   ├── Revenue Trend Chart
-│   │   ├── Revenue by Plan (Pie Chart)
-│   │   └── Revenue Breakdown Table
-│   ├── Tab: Khách hàng
-│   │   ├── Tenant Growth Chart
-│   │   ├── Status Distribution (Progress bars)
-│   │   └── Churn Analysis
-│   ├── Tab: Gói dịch vụ
-│   │   ├── Plan Distribution Chart
-│   │   └── ARPU by Plan Table
-│   └── Tab: Chuyển đổi
-│       ├── Trial → Paid Conversion Rate
-│       └── Upgrade/Downgrade Trend
-└── Export Actions (PDF, CSV)
+│   ├── Tab: Thanh toán (Payment)
+│   │   └── BankPaymentSettings (đã có)
+│   ├── Tab: Nền tảng (Platform)
+│   │   ├── Platform branding (Logo, tên, tagline)
+│   │   ├── Default settings cho tenant mới
+│   │   └── Trial period settings
+│   ├── Tab: Email
+│   │   ├── SMTP settings
+│   │   ├── Email templates preview
+│   │   └── Test email
+│   ├── Tab: Bảo trì (Maintenance)
+│   │   ├── Maintenance mode toggle
+│   │   ├── Scheduled maintenance
+│   │   └── System announcements
+│   └── Tab: Audit Log
+│       ├── Admin activities log
+│       └── Export activities
 ```
 
 ---
@@ -49,13 +44,13 @@
 
 #### Phase 1: Tạo Route và Page Component
 
-**File 1: `src/pages/admin/AnalyticsPage.tsx`**
+**File 1: `src/pages/admin/SuperAdminSettingsPage.tsx`**
 
 ```typescript
-import { AdvancedAnalytics } from '@/components/super-admin/analytics/AdvancedAnalytics';
+import { SuperAdminSettings } from '@/components/super-admin/settings/SuperAdminSettings';
 
-export function AnalyticsPage() {
-  return <AdvancedAnalytics />;
+export function SuperAdminSettingsPage() {
+  return <SuperAdminSettings />;
 }
 ```
 
@@ -63,57 +58,50 @@ export function AnalyticsPage() {
 
 Thêm route vào block `/super-admin`:
 ```typescript
-{ path: "analytics", element: <AnalyticsPage /> },
+{ path: "settings", element: <SuperAdminSettingsPage /> },
 ```
 
 ---
 
-#### Phase 2: Tạo Component Analytics chính
+#### Phase 2: Tạo Component Settings chính
 
-**File 3: `src/components/super-admin/analytics/AdvancedAnalytics.tsx`**
+**File 3: `src/components/super-admin/settings/SuperAdminSettings.tsx`**
 
-| Section | Component/Hook |
-|---------|----------------|
-| Header | `PageHeader` (đã có) |
-| Date Range | `DateRangePicker` - chọn khoảng thời gian |
-| KPI Cards | Grid 4 StatCards với MRR, ARR, Growth, Churn |
-| Revenue Tab | `RevenueChart`, `PlanDistributionChart` + table |
-| Tenants Tab | `TenantGrowthChart`, `ChurnRateCard`, status bars |
-| Plans Tab | Phân tích ARPU theo gói |
-| Conversion Tab | Trial-to-Paid conversion metrics |
+| Tab | Chức năng |
+|-----|-----------|
+| payment | Cấu hình ngân hàng nhận thanh toán (BankPaymentSettings - đã có) |
+| platform | Cài đặt nền tảng SaaS: trial period, default rooms, branding |
+| email | Cấu hình SMTP, test gửi email |
+| maintenance | Chế độ bảo trì, thông báo hệ thống |
+| audit | Xem lịch sử hoạt động admin |
 
 **Logic chính:**
 ```typescript
-export function AdvancedAnalytics() {
+export function SuperAdminSettings() {
   const { t } = useTranslation('superAdmin');
-  const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'custom'>('30d');
-  
-  // Hooks
-  const { data: stats } = useSuperAdminStats();
-  const { data: revenueByMonth } = useRevenueByMonth(getMonthsFromRange(dateRange));
-  const { data: revenueByPlan } = useRevenueByPlan();
-  const { data: tenantGrowth } = useTenantGrowth(getDaysFromRange(dateRange));
-  const { data: churn } = useChurnRate(getDaysFromRange(dateRange));
-  const { data: subscriptionDist } = useSubscriptionDistribution();
+  const [activeTab, setActiveTab] = useState('payment');
 
   return (
     <div className="space-y-4">
       <PageHeader
-        title={t('analytics.title')}
-        description={t('analytics.subtitle')}
-        actions={<DateRangePicker value={dateRange} onChange={setDateRange} />}
+        title={t('settings.title')}
+        description={t('settings.subtitle')}
       />
       
-      {/* KPI Cards */}
-      <div className="grid gap-3 md:grid-cols-4">
-        <StatCard title="MRR" value={stats?.mrr} icon={DollarSign} trend={...} />
-        <StatCard title="ARR" value={stats?.mrr * 12} icon={TrendingUp} />
-        <StatCard title="Tăng trưởng" value={growthRate + '%'} icon={Users} />
-        <StatCard title="Churn Rate" value={churn?.churnRate + '%'} icon={TrendingDown} />
-      </div>
-
-      {/* Tabs */}
-      <Tabs defaultValue="revenue">...</Tabs>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="payment">Thanh toán</TabsTrigger>
+          <TabsTrigger value="platform">Nền tảng</TabsTrigger>
+          <TabsTrigger value="email">Email</TabsTrigger>
+          <TabsTrigger value="maintenance">Bảo trì</TabsTrigger>
+          <TabsTrigger value="audit">Lịch sử</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="payment">
+          <BankPaymentSettings />
+        </TabsContent>
+        {/* ... other tabs */}
+      </Tabs>
     </div>
   );
 }
@@ -121,84 +109,160 @@ export function AdvancedAnalytics() {
 
 ---
 
-#### Phase 3: Tạo Components phụ trợ
+#### Phase 3: Tạo Components cho từng Tab
 
-**File 4: `src/components/super-admin/analytics/DateRangePicker.tsx`**
+**File 4: `src/components/super-admin/settings/PlatformSettings.tsx`**
 
-Bộ chọn khoảng thời gian dạng button group (7 ngày / 30 ngày / 90 ngày / Tùy chỉnh):
+Cài đặt nền tảng:
+- **Trial Period**: Số ngày dùng thử mặc định cho tenant mới
+- **Default Rooms**: Số phòng mặc định khi đăng ký
+- **Grace Period**: Số ngày gia hạn sau khi hết hạn
+- **Platform Name**: Tên hiển thị của nền tảng
+- **Support Email**: Email hỗ trợ
 
 ```typescript
-interface DateRangePickerProps {
-  value: '7d' | '30d' | '90d' | 'custom';
-  onChange: (value: '7d' | '30d' | '90d' | 'custom') => void;
+export function PlatformSettings() {
+  // Form với các fields trên
+  return (
+    <div className="space-y-6">
+      <div className="p-4 border rounded-lg">
+        <h3 className="font-medium mb-4">Cài đặt Subscription</h3>
+        <div className="grid gap-4 md:grid-cols-2">
+          <FormField label="Trial Period (ngày)" />
+          <FormField label="Grace Period (ngày)" />
+          <FormField label="Số phòng mặc định" />
+          <FormField label="Giá mỗi phòng/ngày" />
+        </div>
+      </div>
+      
+      <div className="p-4 border rounded-lg">
+        <h3 className="font-medium mb-4">Thông tin nền tảng</h3>
+        <FormField label="Tên nền tảng" />
+        <FormField label="Email hỗ trợ" />
+      </div>
+    </div>
+  );
 }
+```
 
-export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
-  const options = [
-    { value: '7d', label: '7 ngày' },
-    { value: '30d', label: '30 ngày' },
-    { value: '90d', label: '90 ngày' },
-  ];
+**File 5: `src/components/super-admin/settings/EmailSettings.tsx`**
+
+Cài đặt email:
+- **SMTP Host/Port**: Cấu hình SMTP server
+- **SMTP Username/Password**: Thông tin đăng nhập
+- **Sender Email/Name**: Email và tên người gửi
+- **Test Email**: Gửi email test
+
+```typescript
+export function EmailSettings() {
+  const [testEmail, setTestEmail] = useState('');
   
   return (
-    <div className="flex gap-1 border rounded-lg p-1">
-      {options.map(opt => (
-        <Button
-          key={opt.value}
-          variant={value === opt.value ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => onChange(opt.value)}
-        >
-          {opt.label}
-        </Button>
-      ))}
+    <div className="space-y-6">
+      <div className="p-4 border rounded-lg">
+        <h3 className="font-medium mb-4">Cấu hình SMTP</h3>
+        <div className="grid gap-4 md:grid-cols-2">
+          <FormField label="SMTP Host" placeholder="smtp.gmail.com" />
+          <FormField label="SMTP Port" placeholder="587" />
+          <FormField label="Username" />
+          <FormField label="Password" type="password" />
+        </div>
+      </div>
+      
+      <div className="p-4 border rounded-lg">
+        <h3 className="font-medium mb-4">Thông tin gửi</h3>
+        <FormField label="Email gửi" />
+        <FormField label="Tên hiển thị" />
+      </div>
+      
+      <div className="p-4 border rounded-lg">
+        <h3 className="font-medium mb-4">Gửi email test</h3>
+        <div className="flex gap-2">
+          <Input placeholder="Email nhận test" value={testEmail} onChange={...} />
+          <Button>Gửi test</Button>
+        </div>
+      </div>
     </div>
   );
 }
 ```
 
-**File 5: `src/components/super-admin/analytics/RevenueBreakdownTable.tsx`**
+**File 6: `src/components/super-admin/settings/MaintenanceSettings.tsx`**
 
-Bảng chi tiết doanh thu theo gói:
+Chế độ bảo trì:
+- **Maintenance Mode**: Bật/tắt chế độ bảo trì
+- **Maintenance Message**: Thông báo cho người dùng
+- **Scheduled Maintenance**: Lên lịch bảo trì
+- **System Announcement**: Thông báo hệ thống hiển thị cho tất cả
 
 ```typescript
-export function RevenueBreakdownTable({ data }: { data: any[] }) {
+export function MaintenanceSettings() {
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  
   return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="border-b">
-          <th className="text-left py-2">Gói</th>
-          <th className="text-right py-2">Khách hàng</th>
-          <th className="text-right py-2">Doanh thu</th>
-          <th className="text-right py-2">ARPU</th>
-          <th className="text-right py-2">% Tổng</th>
-        </tr>
-      </thead>
-      <tbody>
-        {data.map(plan => (...))}
-      </tbody>
-    </table>
+    <div className="space-y-6">
+      <div className="p-4 border rounded-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-medium">Chế độ bảo trì</h3>
+            <p className="text-xs text-muted-foreground">
+              Khi bật, người dùng sẽ thấy trang bảo trì thay vì ứng dụng
+            </p>
+          </div>
+          <Switch checked={maintenanceMode} onCheckedChange={setMaintenanceMode} />
+        </div>
+        
+        {maintenanceMode && (
+          <Textarea 
+            className="mt-4"
+            placeholder="Thông báo bảo trì..." 
+          />
+        )}
+      </div>
+      
+      <div className="p-4 border rounded-lg">
+        <h3 className="font-medium mb-4">Thông báo hệ thống</h3>
+        <Textarea placeholder="Nhập thông báo hiển thị cho tất cả người dùng..." />
+        <Button className="mt-2">Gửi thông báo</Button>
+      </div>
+    </div>
   );
 }
 ```
 
-**File 6: `src/components/super-admin/analytics/ConversionMetrics.tsx`**
+**File 7: `src/components/super-admin/settings/AuditLogSettings.tsx`**
 
-Phân tích tỷ lệ chuyển đổi Trial → Paid:
+Lịch sử hoạt động admin:
+- Danh sách các hành động của Super Admin
+- Lọc theo loại, thời gian
+- Export CSV
 
 ```typescript
-export function ConversionMetrics() {
-  const { data: stats } = useSuperAdminStats();
-  const conversionRate = stats?.active_tenants && stats?.trial_tenants
-    ? (stats.active_tenants / (stats.active_tenants + stats.trial_tenants) * 100).toFixed(1)
-    : 0;
-    
+export function AuditLogSettings() {
+  const { data: activities } = useAdminActivities();
+  
   return (
     <div className="space-y-4">
-      {/* Conversion funnel visualization */}
-      <div className="p-3 border rounded-lg">
-        <span className="text-xs text-muted-foreground">Trial → Paid</span>
-        <div className="text-xl font-semibold text-green-600">{conversionRate}%</div>
+      <div className="flex items-center justify-between">
+        <Input placeholder="Tìm kiếm hoạt động..." className="max-w-xs" />
+        <Button variant="outline">Xuất CSV</Button>
+      </div>
+      
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Thời gian</TableHead>
+              <TableHead>Admin</TableHead>
+              <TableHead>Hành động</TableHead>
+              <TableHead>Đối tượng</TableHead>
+              <TableHead>Chi tiết</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {activities?.map(activity => (...))}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
@@ -207,41 +271,89 @@ export function ConversionMetrics() {
 
 ---
 
-#### Phase 4: Cập nhật Hooks (nếu cần)
+#### Phase 4: Tạo Database Table cho Settings
 
-**File 7: `src/hooks/useSuperAdminStats.ts`** - Thêm hook mới
+**Migration: Tạo bảng `platform_settings`**
+
+```sql
+CREATE TABLE IF NOT EXISTS public.platform_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  key TEXT NOT NULL UNIQUE,
+  value JSONB NOT NULL DEFAULT '{}',
+  description TEXT,
+  updated_by UUID REFERENCES auth.users(id),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Default settings
+INSERT INTO public.platform_settings (key, value, description) VALUES
+  ('trial_period_days', '14', 'Số ngày dùng thử mặc định'),
+  ('grace_period_days', '7', 'Số ngày gia hạn sau khi hết hạn'),
+  ('default_rooms', '10', 'Số phòng mặc định khi đăng ký'),
+  ('price_per_room_day', '1000', 'Giá mỗi phòng mỗi ngày (VND)'),
+  ('platform_name', '"Hotel Asset Manager"', 'Tên nền tảng'),
+  ('support_email', '"support@example.com"', 'Email hỗ trợ'),
+  ('maintenance_mode', 'false', 'Chế độ bảo trì'),
+  ('maintenance_message', '""', 'Thông báo bảo trì');
+
+-- RLS - Only super admin can manage
+ALTER TABLE public.platform_settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Super admin can manage platform settings"
+ON public.platform_settings FOR ALL
+USING (
+  EXISTS (
+    SELECT 1 FROM public.users 
+    WHERE id = auth.uid() 
+    AND user_level_code = 'super_admin'
+  )
+);
+```
+
+---
+
+#### Phase 5: Tạo Hook cho Platform Settings
+
+**File 8: `src/hooks/super-admin/usePlatformSettings.ts`**
 
 ```typescript
-// Thêm hook cho conversion metrics
-export function useConversionMetrics(days: number = 30) {
+export function usePlatformSettings() {
   return useQuery({
-    queryKey: ['conversion-metrics', days],
+    queryKey: ['platform-settings'],
     queryFn: async () => {
-      // Query tenants chuyển từ trial sang active trong khoảng thời gian
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - days);
-      
       const { data, error } = await supabase
-        .from('tenants')
-        .select('subscription_status, trial_ends_at, created_at')
-        .gte('created_at', startDate.toISOString());
+        .from('platform_settings')
+        .select('*');
       
       if (error) throw error;
       
-      // Calculate conversion metrics
-      const trials = data.filter(t => t.trial_ends_at);
-      const converted = data.filter(t => 
-        t.trial_ends_at && 
-        t.subscription_status === 'active'
-      );
+      // Convert array to object for easy access
+      return data.reduce((acc, item) => {
+        acc[item.key] = JSON.parse(item.value);
+        return acc;
+      }, {} as Record<string, any>);
+    }
+  });
+}
+
+export function useUpdatePlatformSetting() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ key, value }: { key: string; value: any }) => {
+      const { error } = await supabase
+        .from('platform_settings')
+        .update({ 
+          value: JSON.stringify(value),
+          updated_at: new Date().toISOString()
+        })
+        .eq('key', key);
       
-      return {
-        totalTrials: trials.length,
-        converted: converted.length,
-        conversionRate: trials.length > 0 
-          ? ((converted.length / trials.length) * 100).toFixed(2)
-          : '0'
-      };
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
     }
   });
 }
@@ -249,58 +361,63 @@ export function useConversionMetrics(days: number = 30) {
 
 ---
 
-#### Phase 5: Cập nhật i18n
+#### Phase 6: Cập nhật i18n
 
-**File 8: Cập nhật `src/i18n/locales/vi/superAdmin.json`**
-
-Thêm keys mới vào file:
+**File 9: Cập nhật `src/i18n/locales/vi/superAdmin.json`**
 
 ```json
 {
-  "analytics": {
-    "title": "Thống kê & Báo cáo",
-    "subtitle": "Phân tích hiệu suất nền tảng SaaS",
-    "dateRange": {
-      "7d": "7 ngày",
-      "30d": "30 ngày",
-      "90d": "90 ngày",
-      "custom": "Tùy chỉnh"
-    },
-    "kpi": {
-      "mrr": "Doanh thu định kỳ hàng tháng",
-      "arr": "Doanh thu định kỳ hàng năm",
-      "growth": "Tăng trưởng",
-      "churnRate": "Tỷ lệ rời bỏ"
-    },
+  "settings": {
+    "title": "Cài đặt hệ thống",
+    "subtitle": "Quản lý cấu hình nền tảng SaaS",
     "tabs": {
-      "revenue": "Doanh thu",
-      "tenants": "Khách hàng",
-      "plans": "Gói dịch vụ",
-      "conversion": "Chuyển đổi"
+      "payment": "Thanh toán",
+      "platform": "Nền tảng",
+      "email": "Email",
+      "maintenance": "Bảo trì",
+      "audit": "Lịch sử"
     },
-    "revenue": {
-      "trend": "Xu hướng doanh thu",
-      "byPlan": "Doanh thu theo gói",
-      "breakdown": "Chi tiết doanh thu"
+    "platform": {
+      "subscriptionSettings": "Cài đặt Subscription",
+      "trialPeriod": "Trial Period (ngày)",
+      "gracePeriod": "Grace Period (ngày)",
+      "defaultRooms": "Số phòng mặc định",
+      "pricePerRoom": "Giá mỗi phòng/ngày (VND)",
+      "platformInfo": "Thông tin nền tảng",
+      "platformName": "Tên nền tảng",
+      "supportEmail": "Email hỗ trợ"
     },
-    "tenants": {
-      "growth": "Tăng trưởng khách hàng",
-      "statusBreakdown": "Phân bổ trạng thái",
-      "churnAnalysis": "Phân tích rời bỏ"
+    "email": {
+      "smtpConfig": "Cấu hình SMTP",
+      "smtpHost": "SMTP Host",
+      "smtpPort": "SMTP Port",
+      "username": "Username",
+      "password": "Password",
+      "senderInfo": "Thông tin gửi",
+      "senderEmail": "Email gửi",
+      "senderName": "Tên hiển thị",
+      "testEmail": "Gửi email test",
+      "sendTest": "Gửi test"
     },
-    "plans": {
-      "distribution": "Phân bổ gói dịch vụ",
-      "arpuByPlan": "ARPU theo gói"
+    "maintenance": {
+      "maintenanceMode": "Chế độ bảo trì",
+      "maintenanceModeDesc": "Khi bật, người dùng sẽ thấy trang bảo trì thay vì ứng dụng",
+      "maintenanceMessage": "Thông báo bảo trì",
+      "systemAnnouncement": "Thông báo hệ thống",
+      "sendAnnouncement": "Gửi thông báo"
     },
-    "conversion": {
-      "trialToPaid": "Trial → Trả phí",
-      "rate": "Tỷ lệ chuyển đổi",
-      "funnel": "Phễu chuyển đổi"
+    "audit": {
+      "title": "Lịch sử hoạt động",
+      "search": "Tìm kiếm hoạt động...",
+      "export": "Xuất CSV",
+      "time": "Thời gian",
+      "admin": "Admin",
+      "action": "Hành động",
+      "entity": "Đối tượng",
+      "details": "Chi tiết"
     },
-    "export": {
-      "pdf": "Xuất PDF",
-      "csv": "Xuất CSV"
-    }
+    "save": "Lưu cài đặt",
+    "saved": "Đã lưu cài đặt"
   }
 }
 ```
@@ -311,40 +428,41 @@ Thêm keys mới vào file:
 
 | File | Hành động | Mô tả |
 |------|-----------|-------|
-| `src/pages/admin/AnalyticsPage.tsx` | **Tạo mới** | Page wrapper |
-| `src/App.tsx` | **Sửa** | Thêm route analytics |
-| `src/components/super-admin/analytics/AdvancedAnalytics.tsx` | **Tạo mới** | Component chính |
-| `src/components/super-admin/analytics/DateRangePicker.tsx` | **Tạo mới** | Bộ chọn ngày |
-| `src/components/super-admin/analytics/RevenueBreakdownTable.tsx` | **Tạo mới** | Bảng chi tiết doanh thu |
-| `src/components/super-admin/analytics/ConversionMetrics.tsx` | **Tạo mới** | Metrics chuyển đổi |
-| `src/hooks/useSuperAdminStats.ts` | **Sửa** | Thêm `useConversionMetrics` hook |
-| `src/i18n/locales/vi/superAdmin.json` | **Sửa** | Thêm analytics keys |
-| `src/i18n/locales/en/superAdmin.json` | **Sửa** | Thêm analytics keys (EN) |
+| `src/pages/admin/SuperAdminSettingsPage.tsx` | **Tạo mới** | Page wrapper |
+| `src/App.tsx` | **Sửa** | Thêm route settings |
+| `src/components/super-admin/settings/SuperAdminSettings.tsx` | **Tạo mới** | Component chính với tabs |
+| `src/components/super-admin/settings/PlatformSettings.tsx` | **Tạo mới** | Cài đặt nền tảng |
+| `src/components/super-admin/settings/EmailSettings.tsx` | **Tạo mới** | Cài đặt email SMTP |
+| `src/components/super-admin/settings/MaintenanceSettings.tsx` | **Tạo mới** | Chế độ bảo trì |
+| `src/components/super-admin/settings/AuditLogSettings.tsx` | **Tạo mới** | Lịch sử hoạt động |
+| `src/hooks/super-admin/usePlatformSettings.ts` | **Tạo mới** | Hook quản lý settings |
+| `src/hooks/super-admin/index.ts` | **Sửa** | Export hook mới |
+| `src/i18n/locales/vi/superAdmin.json` | **Sửa** | Thêm settings keys |
+| `src/i18n/locales/en/superAdmin.json` | **Sửa** | Thêm settings keys (EN) |
+| **Database Migration** | **Tạo mới** | Bảng `platform_settings` |
 
 ---
 
 ### KẾT QUẢ MONG ĐỢI
 
-Trang `/super-admin/analytics` hoàn chỉnh với:
+Trang `/super-admin/settings` hoàn chỉnh với:
 
-| Tính năng | Mô tả |
-|-----------|-------|
-| KPI Dashboard | 4 stat cards: MRR, ARR, Growth Rate, Churn Rate |
-| Date Range Filter | Lọc theo 7/30/90 ngày |
-| Revenue Analysis | Biểu đồ xu hướng + phân tích theo gói |
-| Tenant Analysis | Tăng trưởng + phân bổ trạng thái + churn |
-| Plan Analysis | ARPU theo gói + distribution |
-| Conversion Metrics | Trial-to-Paid conversion funnel |
-| Export | PDF/CSV export |
+| Tab | Chức năng |
+|-----|-----------|
+| **Thanh toán** | Cấu hình ngân hàng nhận thanh toán VietQR |
+| **Nền tảng** | Trial period, grace period, default rooms, giá |
+| **Email** | SMTP settings, test email |
+| **Bảo trì** | Maintenance mode, system announcements |
+| **Lịch sử** | Audit log cho các hành động admin |
 
 ---
 
 ### PHONG CÁCH UI (Enterprise SaaS Minimalist)
 
-- Sử dụng `StatCard` từ shared components
-- `PageHeader` đã có
-- Bỏ Card shadow, dùng `border rounded-lg`
-- Màu chữ semantic thay vì màu nền
-- Padding compact: `p-3`, `p-4`
+- Sử dụng `PageHeader` từ shared components
+- Tabs gọn gàng với icons
+- Form sections với `border rounded-lg` thay vì Card
+- Padding compact: `p-4`
 - Font: `text-xs` labels, `text-sm` content
+- Màu chữ semantic cho status
 
