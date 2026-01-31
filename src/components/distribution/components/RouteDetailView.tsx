@@ -1,11 +1,8 @@
-import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { BatchAccordion } from './BatchAccordion'
-import { StaffDeliveryView } from './StaffDeliveryView'
+import { UnifiedRoomList } from './UnifiedRoomList'
 import { DeliveryStepWizard } from './DeliveryStepWizard'
 import { ShiftBadge } from './ShiftBadge'
 import { OrderStatusBadge } from './DistributionStatusBadge'
@@ -18,13 +15,10 @@ import {
   Calendar,
   User,
   Package,
-  CheckCircle,
   Lock,
   ArrowLeft,
-  List,
-  Layers,
 } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 
@@ -42,21 +36,11 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
   const closeRoute = useCloseRoute()
   const confirmReceive = useConfirmReceiveOrder()
 
-  // View mode: 'batch' for managers, 'staff' for delivery staff
-  const [viewMode, setViewMode] = useState<'batch' | 'staff'>('batch')
-
   // Check user roles based on user_level_code
   const isAssignee = user?.id === route?.assigned_to
   const userLevel = (user as any)?.user_level_code || ''
   const isLeader = ['tenant_owner', 'manager', 'supervisor'].includes(userLevel)
   const isStorekeeper = ['tenant_owner', 'manager', 'warehouse_manager', 'storekeeper'].includes(userLevel)
-
-  // Auto-switch to staff view for assignees who are not managers
-  useEffect(() => {
-    if (route && isAssignee && !isStorekeeper && !isLeader) {
-      setViewMode('staff')
-    }
-  }, [route, isAssignee, isStorekeeper, isLeader])
 
   // Calculate progress
   const totalStops = route?.stops?.length || 0
@@ -106,7 +90,7 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header - only show when not embedded */}
       {!embedded && (
         <div className="flex items-center justify-between">
@@ -189,62 +173,25 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
         </div>
       </div>
 
-      {/* View Toggle */}
-      <div className="flex items-center justify-between">
-        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'batch' | 'staff')}>
-          <TabsList>
-            <TabsTrigger value="staff" className="gap-2">
-              <List className="h-4 w-4" />
-              Danh sách phòng
-            </TabsTrigger>
-            <TabsTrigger value="batch" className="gap-2">
-              <Layers className="h-4 w-4" />
-              Xem theo Batch
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
-      {/* Content based on view mode */}
-      {viewMode === 'staff' ? (
-        <StaffDeliveryView
-          stops={route.stops || []}
-          orderCode={route.order_code}
-          tenantId={route.tenant_id}
-          hotelId={route.hotel_id}
-          orderStatus={route.status}
-          onRefresh={handleRefresh}
-        />
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Danh sách Batch</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BatchAccordion
-              orderId={route.id}
-              orderCode={route.order_code}
-              tenantId={route.tenant_id}
-              hotelId={route.hotel_id}
-              orderStatus={route.status}
-              assignedTo={route.assigned_to}
-              stops={route.stops || []}
-              isStorekeeper={isStorekeeper}
-              isAssignee={isAssignee}
-              isLeader={isLeader}
-            />
-          </CardContent>
-        </Card>
-      )}
+      {/* Unified Room List - single view */}
+      <UnifiedRoomList
+        stops={route.stops || []}
+        orderCode={route.order_code}
+        tenantId={route.tenant_id}
+        hotelId={route.hotel_id}
+        orderStatus={route.status}
+        isAssignee={isAssignee}
+        onRefresh={handleRefresh}
+      />
 
       {/* Notes */}
       {route.notes && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Ghi chú</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Ghi chú</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground whitespace-pre-wrap">{route.notes}</p>
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{route.notes}</p>
           </CardContent>
         </Card>
       )}
