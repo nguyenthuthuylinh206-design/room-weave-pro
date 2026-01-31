@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { 
   Bell, 
   Send, 
@@ -14,6 +12,7 @@ import {
   Calendar,
   Zap,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { RemindersTable } from './RemindersTable';
 import { ReminderAutomationRules } from './ReminderAutomationRules';
 import { ReminderTemplates } from './ReminderTemplates';
@@ -25,6 +24,8 @@ import {
   useScheduleReminders,
   useReminderStats,
 } from '@/hooks/super-admin/useRenewalReminders';
+import { PageHeader } from '../shared/PageHeader';
+import { StatCard } from '../shared/StatCard';
 
 export function AdvancedReminderManagement() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -35,113 +36,82 @@ export function AdvancedReminderManagement() {
   const scheduleReminders = useScheduleReminders();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Nhắc nhở gia hạn</h1>
-          <p className="text-muted-foreground mt-1">
-            Thông báo gia hạn tự động cho các gói đăng ký sắp hết hạn
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => scheduleReminders.mutate()}
-            disabled={scheduleReminders.isPending}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${scheduleReminders.isPending ? 'animate-spin' : ''}`} />
-            Lên lịch nhắc nhở
-          </Button>
-          <Button onClick={() => setActiveTab('scheduler')}>
-            <Calendar className="h-4 w-4 mr-2" />
-            Xem lịch
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Nhắc nhở gia hạn"
+        description="Thông báo gia hạn tự động cho các gói đăng ký sắp hết hạn"
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => scheduleReminders.mutate()}
+              disabled={scheduleReminders.isPending}
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", scheduleReminders.isPending && 'animate-spin')} />
+              Lên lịch nhắc nhở
+            </Button>
+            <Button size="sm" onClick={() => setActiveTab('scheduler')}>
+              <Calendar className="h-3.5 w-3.5 mr-1.5" />
+              Xem lịch
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tổng nhắc nhở
-            </CardTitle>
-            <Bell className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalReminders || 0}</div>
-            <p className="text-xs text-muted-foreground">Tất cả thời gian</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Đang chờ
-            </CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.pendingReminders || 0}</div>
-            <p className="text-xs text-muted-foreground">Sẵn sàng gửi</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Đã gửi
-            </CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.sentReminders || 0}</div>
-            <p className="text-xs text-muted-foreground">Gửi thành công</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tỷ lệ gửi
-            </CardTitle>
-            <Zap className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.deliveryRate || 0}%</div>
-            <p className="text-xs text-muted-foreground">Tỷ lệ thành công</p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-3 md:grid-cols-4">
+        <StatCard
+          title="Tổng nhắc nhở"
+          value={stats?.totalReminders || 0}
+          icon={Bell}
+          description="Tất cả thời gian"
+        />
+        <StatCard
+          title="Đang chờ"
+          value={stats?.pendingReminders || 0}
+          icon={Clock}
+          description="Sẵn sàng gửi"
+        />
+        <StatCard
+          title="Đã gửi"
+          value={stats?.sentReminders || 0}
+          icon={CheckCircle2}
+          description="Gửi thành công"
+        />
+        <StatCard
+          title="Tỷ lệ gửi"
+          value={`${stats?.deliveryRate || 0}%`}
+          icon={Zap}
+          description="Tỷ lệ thành công"
+        />
       </div>
 
       {/* Pending Reminders Alert */}
       {pendingReminders.length > 0 && (
-        <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/30 dark:border-yellow-800">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <AlertCircle className="h-5 w-5 text-yellow-600" />
-                <div>
-                  <p className="font-medium text-yellow-900 dark:text-yellow-100">
-                    {pendingReminders.length} nhắc nhở sẵn sàng gửi
-                  </p>
-                  <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                    Các nhắc nhở này đã được lên lịch và sẵn sàng để gửi
-                  </p>
-                </div>
-              </div>
-              <Button
-                onClick={() => setActiveTab('list')}
-                variant="outline"
-                className="border-yellow-300 bg-white dark:bg-yellow-900"
-              >
-                <Send className="h-4 w-4 mr-2" />
-                Xem xét & Gửi
-              </Button>
+        <div className="flex items-center justify-between p-3 border rounded-lg border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <div>
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                {pendingReminders.length} nhắc nhở sẵn sàng gửi
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                Các nhắc nhở này đã được lên lịch và sẵn sàng để gửi
+              </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+          <Button
+            onClick={() => setActiveTab('list')}
+            variant="outline"
+            size="sm"
+            className="h-8 border-amber-300 bg-white dark:bg-amber-900"
+          >
+            <Send className="h-3.5 w-3.5 mr-1.5" />
+            Xem xét & Gửi
+          </Button>
+        </div>
       )}
 
       {/* Tabs */}
@@ -180,61 +150,52 @@ export function AdvancedReminderManagement() {
 
 function ReminderDashboard() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="grid gap-4 lg:grid-cols-2">
         <ReminderAnalytics />
-        <Card>
-          <CardHeader>
-            <CardTitle>Thao tác nhanh</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+        <div className="border rounded-lg p-4">
+          <h3 className="text-sm font-medium mb-3">Thao tác nhanh</h3>
+          <div className="space-y-1.5">
             <QuickActionButton
               icon={Send}
               label="Gửi nhắc nhở đang chờ"
               description="Gửi tất cả nhắc nhở đã lên lịch ngay bây giờ"
-              color="blue"
+              iconColor="text-blue-600"
             />
             <QuickActionButton
               icon={RefreshCw}
               label="Lên lịch nhắc nhở mới"
               description="Tạo nhắc nhở cho các gói sắp hết hạn"
-              color="green"
+              iconColor="text-green-600"
             />
             <QuickActionButton
               icon={Settings}
               label="Cấu hình tự động"
               description="Thiết lập quy tắc nhắc nhở tự động"
-              color="purple"
+              iconColor="text-purple-600"
             />
             <QuickActionButton
               icon={Calendar}
               label="Xem lịch"
               description="Xem lịch nhắc nhở sắp tới"
-              color="orange"
+              iconColor="text-orange-600"
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function QuickActionButton({ icon: Icon, label, description, color }: any) {
-  const colors: Record<string, string> = {
-    blue: 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950 dark:hover:bg-blue-900 dark:text-blue-300 dark:border-blue-800',
-    green: 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200 dark:bg-green-950 dark:hover:bg-green-900 dark:text-green-300 dark:border-green-800',
-    purple: 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950 dark:hover:bg-purple-900 dark:text-purple-300 dark:border-purple-800',
-    orange: 'bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-950 dark:hover:bg-orange-900 dark:text-orange-300 dark:border-orange-800',
-  };
-
+function QuickActionButton({ icon: Icon, label, description, iconColor }: any) {
   return (
     <button
-      className={`w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-colors ${colors[color]}`}
+      className="w-full flex items-center gap-3 p-3 rounded-md border hover:bg-accent transition-colors text-left"
     >
-      <Icon className="h-5 w-5" />
-      <div className="flex-1 text-left">
-        <p className="font-medium">{label}</p>
-        <p className="text-xs opacity-80">{description}</p>
+      <Icon className={cn("h-4 w-4", iconColor)} />
+      <div className="flex-1">
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
       </div>
     </button>
   );
