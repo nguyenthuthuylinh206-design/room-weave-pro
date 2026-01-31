@@ -119,35 +119,31 @@ export function ManagerTasksTab() {
     setAssignDialogOpen(true)
   }
 
-  // Stats cards
+  // Stats cards - minimalist style (no background colors)
   const statsCards = [
     { 
       label: 'Chờ xử lý', 
       value: stats?.pending || 0, 
       icon: Clock, 
       color: 'text-amber-600',
-      bgColor: 'bg-amber-50'
     },
     { 
       label: 'Đang làm', 
       value: stats?.inProgress || 0, 
       icon: PlayCircle, 
       color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
     },
     { 
       label: 'Hoàn thành hôm nay', 
       value: stats?.completedToday || 0, 
       icon: CheckCircle2, 
       color: 'text-green-600',
-      bgColor: 'bg-green-50'
     },
     { 
       label: 'Chưa giao', 
       value: stats?.unassigned || 0, 
       icon: UserX, 
       color: stats?.unassigned ? 'text-red-600' : 'text-muted-foreground',
-      bgColor: stats?.unassigned ? 'bg-red-50' : 'bg-muted/50'
     },
   ]
 
@@ -177,14 +173,11 @@ export function ManagerTasksTab() {
           {statsCards.map((stat) => (
             <div
               key={stat.label}
-              className={cn(
-                'flex items-center gap-3 p-3 rounded-lg border',
-                stat.bgColor
-              )}
+              className="flex items-center gap-3 p-3 rounded-lg border"
             >
               <stat.icon className={cn('h-5 w-5', stat.color)} />
               <div>
-                <p className="text-2xl font-semibold">{stat.value}</p>
+                <p className={cn('text-xl font-semibold', stat.color)}>{stat.value}</p>
                 <p className="text-xs text-muted-foreground">{stat.label}</p>
               </div>
             </div>
@@ -241,16 +234,18 @@ export function ManagerTasksTab() {
               open={expandedSections.unassigned}
               onOpenChange={() => toggleSection('unassigned')}
             >
-              <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 rounded-lg bg-red-50 border border-red-200 hover:bg-red-100 transition-colors">
-                {expandedSections.unassigned ? (
-                  <ChevronDown className="h-4 w-4 text-red-600" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 text-red-600" />
-                )}
-                <AlertCircle className="h-4 w-4 text-red-600" />
-                <span className="font-medium text-red-700">
-                  Chưa giao ({groupedTasks.unassigned.length} việc)
+              <CollapsibleTrigger className="flex items-center w-full p-2 rounded-lg border hover:bg-muted/50 transition-colors">
+                <AlertCircle className="h-4 w-4 text-red-600 mr-2" />
+                <span className="font-medium text-red-600">Chưa giao</span>
+                <span className="flex-1" />
+                <span className="text-xs text-muted-foreground mr-2">
+                  {groupedTasks.unassigned.length} công việc
                 </span>
+                {expandedSections.unassigned ? (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                )}
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2 space-y-1">
                 {groupedTasks.unassigned.map(task => (
@@ -276,22 +271,22 @@ export function ManagerTasksTab() {
                 open={isExpanded}
                 onOpenChange={() => toggleSection(userId)}
               >
-                <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 rounded-lg border hover:bg-muted/50 transition-colors">
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
-                  )}
-                  <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                <CollapsibleTrigger className="flex items-center w-full p-2 rounded-lg border hover:bg-muted/50 transition-colors">
+                  <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center mr-2">
                     <span className="text-xs font-medium text-primary">
                       {userName.charAt(0).toUpperCase()}
                     </span>
                   </div>
                   <span className="font-medium">{userName}</span>
-                  <span className="text-sm text-muted-foreground">
-                    ({userTasks.length} việc
-                    {inProgressCount > 0 && `, ${inProgressCount} đang làm`})
+                  <span className="flex-1" />
+                  <span className="text-xs text-muted-foreground mr-2">
+                    {userTasks.length} việc{inProgressCount > 0 && ` • ${inProgressCount} đang làm`}
                   </span>
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  )}
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-2 space-y-1 ml-6">
                   {userTasks.map(task => (
