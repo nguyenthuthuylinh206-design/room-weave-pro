@@ -112,6 +112,7 @@ import { MarketingCampaignsPage } from "./pages/admin/MarketingCampaignsPage";
 import { RenewalRemindersPage } from "./pages/admin/RenewalRemindersPage";
 import { PricingPlansPage } from "./pages/admin/PricingPlansPage";
 import { PaymentSettingsPage } from "./pages/admin/PaymentSettingsPage";
+import { SuperAdminSettingsPage } from "./pages/admin/SuperAdminSettingsPage";
 import NotificationHistoryPage from "./pages/NotificationHistoryPage";
 import StaffManagementPage from "./pages/staff/StaffManagementPage";
 import MyTasksPage from "./pages/MyTasksPage";
@@ -176,6 +177,7 @@ const router = createBrowserRouter([
       { path: "reminders", element: <RenewalRemindersPage /> },
       { path: "pricing", element: <PricingPlansPage /> },
       { path: "analytics", element: <AnalyticsPage /> },
+      { path: "settings", element: <SuperAdminSettingsPage /> },
     ],
   },
 

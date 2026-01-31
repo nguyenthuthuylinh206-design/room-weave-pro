@@ -289,5 +289,57 @@
       "pdf": "Xuất PDF",
       "csv": "Xuất CSV"
     }
+  },
+  "settings": {
+    "title": "Cài đặt hệ thống",
+    "subtitle": "Quản lý cấu hình nền tảng SaaS",
+    "tabs": {
+      "payment": "Thanh toán",
+      "platform": "Nền tảng",
+      "email": "Email",
+      "maintenance": "Bảo trì",
+      "audit": "Lịch sử"
+    },
+    "platform": {
+      "subscriptionSettings": "Cài đặt Subscription",
+      "trialPeriod": "Trial Period (ngày)",
+      "gracePeriod": "Grace Period (ngày)",
+      "defaultRooms": "Số phòng mặc định",
+      "pricePerRoom": "Giá mỗi phòng/ngày (VND)",
+      "platformInfo": "Thông tin nền tảng",
+      "platformName": "Tên nền tảng",
+      "supportEmail": "Email hỗ trợ"
+    },
+    "email": {
+      "smtpConfig": "Cấu hình SMTP",
+      "smtpHost": "SMTP Host",
+      "smtpPort": "SMTP Port",
+      "username": "Username",
+      "password": "Password",
+      "senderInfo": "Thông tin gửi",
+      "senderEmail": "Email gửi",
+      "senderName": "Tên hiển thị",
+      "testEmail": "Gửi email test",
+      "sendTest": "Gửi test"
+    },
+    "maintenance": {
+      "maintenanceMode": "Chế độ bảo trì",
+      "maintenanceModeDesc": "Khi bật, người dùng sẽ thấy trang bảo trì thay vì ứng dụng",
+      "maintenanceMessage": "Thông báo bảo trì",
+      "systemAnnouncement": "Thông báo hệ thống",
+      "sendAnnouncement": "Gửi thông báo"
+    },
+    "audit": {
+      "title": "Lịch sử hoạt động",
+      "search": "Tìm kiếm hoạt động...",
+      "export": "Xuất CSV",
+      "time": "Thời gian",
+      "admin": "Admin",
+      "action": "Hành động",
+      "entity": "Đối tượng",
+      "details": "Chi tiết"
+    },
+    "save": "Lưu cài đặt",
+    "saved": "Đã lưu cài đặt"
   }
 }

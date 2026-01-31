@@ -4103,6 +4103,36 @@ export type Database = {
           },
         ]
       }
+      platform_settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value?: Json
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
       positions: {
         Row: {
           code: string
@@ -8666,7 +8696,9 @@ export type Database = {
         Returns: boolean
       }
       is_storekeeper: { Args: { _user_id: string }; Returns: boolean }
-      is_super_admin: { Args: never; Returns: boolean }
+      is_super_admin:
+        | { Args: never; Returns: boolean }
+        | { Args: { _user_id: string }; Returns: boolean }
       is_tenant_owner: { Args: never; Returns: boolean }
       log_activity: {
         Args: {
