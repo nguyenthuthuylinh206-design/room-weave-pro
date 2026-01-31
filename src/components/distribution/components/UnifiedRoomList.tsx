@@ -132,7 +132,13 @@ export function UnifiedRoomList({
           }))
         }
       },
-      { onSuccess: () => onRefresh?.() }
+      { 
+        onSuccess: () => {
+          onRefresh?.()
+          // Tự động chuyển đến Room Check với type=delivery
+          navigate(`/rooms/${stop.room_id}/check?type=delivery&distribution_order_id=${stop.distribution_order_id}&room_order_id=${stop.id}`)
+        } 
+      }
     )
   }
 

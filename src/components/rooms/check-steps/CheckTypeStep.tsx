@@ -1,5 +1,5 @@
 import { UseFormReturn } from 'react-hook-form'
-import { Calendar, LogIn, LogOut, Wrench } from 'lucide-react'
+import { Calendar, LogIn, LogOut, Wrench, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
 import type { RoomCheckFormData, CheckType } from '@/types/rooms.types'
@@ -9,6 +9,7 @@ interface CheckTypeStepProps {
   form: UseFormReturn<RoomCheckFormData>
   quickMode: boolean
   setQuickMode: (value: boolean) => void
+  hideDelivery?: boolean // Ẩn option delivery khi user tự chọn (không phải từ luồng giao hàng)
 }
 
 const checkTypes: { value: CheckType; label: string; shortLabel: string; icon: any }[] = [
@@ -36,10 +37,21 @@ const checkTypes: { value: CheckType; label: string; shortLabel: string; icon: a
     shortLabel: 'Bảo trì',
     icon: Wrench,
   },
+  {
+    value: 'delivery',
+    label: 'Sau giao hàng',
+    shortLabel: 'Giao hàng',
+    icon: Package,
+  },
 ]
 
-export function CheckTypeStep({ form, quickMode, setQuickMode }: CheckTypeStepProps) {
+export function CheckTypeStep({ form, quickMode, setQuickMode, hideDelivery = true }: CheckTypeStepProps) {
   const selectedType = form.watch('check_type')
+  
+  // Filter out delivery type if hideDelivery is true (mặc định ẩn khi user tự vào)
+  const visibleCheckTypes = hideDelivery 
+    ? checkTypes.filter(t => t.value !== 'delivery') 
+    : checkTypes
 
   return (
     <div className="space-y-4">
@@ -52,7 +64,7 @@ export function CheckTypeStep({ form, quickMode, setQuickMode }: CheckTypeStepPr
             <FormControl>
               {/* Horizontal compact buttons */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
-                {checkTypes.map((type) => {
+                {visibleCheckTypes.map((type) => {
                   const Icon = type.icon
                   const isSelected = field.value === type.value
                   return (
