@@ -8593,10 +8593,16 @@ export type Database = {
         Args: { p_transaction_id: string }
         Returns: undefined
       }
-      handover_batch: {
-        Args: { p_actor_id?: string; p_batch_id: string }
-        Returns: Json
-      }
+      handover_batch:
+        | { Args: { p_actor_id?: string; p_batch_id: string }; Returns: Json }
+        | {
+            Args: {
+              p_actor_id?: string
+              p_adjustments?: Json
+              p_batch_id: string
+            }
+            Returns: Json
+          }
       handover_stop_create_next_route: {
         Args: {
           p_actor_id?: string

@@ -154,31 +154,66 @@ export function useRouteDetail(orderId: string | undefined) {
 // ===== MUTATIONS =====
 
 /**
- * Storekeeper hands over a batch
+ * Storekeeper hands over a batch - now with stock check and adjustment support
  */
+export interface HandoverBatchResult {
+  success: boolean
+  error?: string
+  insufficient_items?: InsufficientItem[]
+  batch_id?: string
+  order_id?: string
+  transaction_id?: string
+}
+
 export function useHandoverBatch() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
 
   return useMutation({
-    mutationFn: async ({ batchId }: { batchId: string }) => {
+    mutationFn: async ({ 
+      batchId,
+      adjustments,
+    }: { 
+      batchId: string
+      adjustments?: ItemAdjustment[]
+    }): Promise<HandoverBatchResult> => {
       if (!user?.id) throw new Error('User not authenticated')
 
       const { data, error } = await supabase.rpc('handover_batch', {
         p_batch_id: batchId,
         p_actor_id: user.id,
+        p_adjustments: adjustments ? JSON.stringify(adjustments) : null,
       })
 
       if (error) throw error
-      return data as unknown as HandoverBatchResponse
+      
+      const response = data as unknown as HandoverBatchResult
+      
+      // Check if RPC returned a business logic error (insufficient stock)
+      if (!response.success && response.error === 'INSUFFICIENT_STOCK') {
+        return {
+          success: false,
+          error: 'INSUFFICIENT_STOCK',
+          insufficient_items: response.insufficient_items as InsufficientItem[],
+        }
+      }
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Unknown error')
+      }
+      
+      return response
     },
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['route-batches'] })
-      queryClient.invalidateQueries({ queryKey: ['route-detail'] })
-      queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
-      queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
-      queryClient.invalidateQueries({ queryKey: ['items'] })
-      toast.success('Đã giao batch thành công')
+      if (result.success) {
+        queryClient.invalidateQueries({ queryKey: ['route-batches'] })
+        queryClient.invalidateQueries({ queryKey: ['route-detail'] })
+        queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
+        queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+        queryClient.invalidateQueries({ queryKey: ['items'] })
+        toast.success('Đã giao hàng cho nhân viên thành công')
+      }
+      // If not success (INSUFFICIENT_STOCK), don't show toast - caller will handle
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Không thể giao batch')
@@ -512,55 +547,35 @@ export function useConfirmReceiveOrder() {
   return useMutation({
     mutationFn: async ({ 
       orderId,
-      adjustments,
     }: { 
       orderId: string
-      adjustments?: ItemAdjustment[]
     }): Promise<ConfirmReceiveResult> => {
       if (!user?.id) throw new Error('User not authenticated')
 
       const { data, error } = await supabase.rpc('confirm_receive_order', {
         p_order_id: orderId,
         p_actor_id: user.id,
-        p_adjustments: adjustments ? JSON.stringify(adjustments) : null,
       })
 
       if (error) throw error
       
       const response = data as unknown as ConfirmReceiveResponse
       
-      // Check if RPC returned a business logic error (insufficient stock)
-      if (!response.success && response.error === 'INSUFFICIENT_STOCK') {
-        // Return the error data instead of throwing - let caller handle it
-        return {
-          success: false,
-          error: 'INSUFFICIENT_STOCK',
-          insufficient_items: response.insufficient_items,
-        }
-      }
-      
       if (!response.success) {
-        throw new Error(response.error || 'Unknown error')
+        throw new Error(response.error || response.message || 'Unknown error')
       }
       
       return { success: true }
     },
-    onSuccess: (result) => {
-      if (result.success) {
-        queryClient.invalidateQueries({ queryKey: ['route-batches'] })
-        queryClient.invalidateQueries({ queryKey: ['route-detail'] })
-        queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
-        queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
-        queryClient.invalidateQueries({ queryKey: ['items'] })
-        toast.success('Đã xác nhận nhận hàng thành công')
-      }
-      // If not success, don't show toast - caller will handle showing dialog
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['route-batches'] })
+      queryClient.invalidateQueries({ queryKey: ['route-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+      toast.success('Đã xác nhận nhận hàng thành công')
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Không thể xác nhận nhận hàng', {
-        duration: 8000,
-        description: 'Vui lòng kiểm tra tồn kho hoặc liên hệ quản lý kho',
-      })
+      toast.error(error.message || 'Không thể xác nhận nhận hàng')
     },
   })
 }

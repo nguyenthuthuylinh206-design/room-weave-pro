@@ -88,14 +88,14 @@ export function DeliveryStepWizard({
 
   // Render the guidance and action based on current status and user role
   const renderGuidance = () => {
-    // Step 1: Pending - Warehouse manager needs to handover
+    // Step 1: Pending - Warehouse manager needs to handover (with stock check)
     if (status === 'pending') {
       if (isWarehouseManager) {
         return (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Lấy hàng theo danh sách bên dưới, sau đó ấn nút để giao cho nhân viên 
-              {assignedToName && <strong> {assignedToName}</strong>}
+              Kiểm tra hàng trong kho theo danh sách bên dưới. Nếu thiếu hàng, bạn có thể điều chỉnh số lượng.
+              {assignedToName && <span> Sau đó giao cho nhân viên <strong>{assignedToName}</strong></span>}
             </p>
             {onHandoverBatch && (
               <Button 
@@ -105,7 +105,7 @@ export function DeliveryStepWizard({
                 size="lg"
               >
                 <Package className="h-5 w-5" />
-                {isHandingOver ? 'Đang xử lý...' : 'Giao hàng cho nhân viên'}
+                {isHandingOver ? 'Đang kiểm tra kho...' : 'Kiểm tra & Giao hàng cho nhân viên'}
               </Button>
             )}
           </div>
@@ -114,7 +114,7 @@ export function DeliveryStepWizard({
         return (
           <div className="flex items-center gap-3 text-amber-600 dark:text-amber-500">
             <Clock className="h-5 w-5" />
-            <p className="text-sm">Vui lòng chờ quản lý kho giao hàng cho bạn</p>
+            <p className="text-sm">Vui lòng chờ quản lý kho kiểm tra và giao hàng cho bạn</p>
           </div>
         )
       }
@@ -126,7 +126,7 @@ export function DeliveryStepWizard({
         return (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Bạn đã nhận đủ hàng từ kho? Kiểm tra và xác nhận để bắt đầu giao.
+              Hàng đã được chuẩn bị. Xác nhận để bắt đầu giao đến các phòng.
             </p>
             {onConfirmReceive && (
               <Button 
