@@ -92,41 +92,37 @@ export function ManagerTaskCard({ task, onAssign }: ManagerTaskCardProps) {
       {/* Room & Task Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-sm font-medium">
+          <span className="font-mono text-base font-bold">
             {task.room?.room_number || 'N/A'}
           </span>
-          <span className="text-muted-foreground">•</span>
-          <span className="text-sm truncate">
+          <span className="text-xs px-1.5 py-0.5 rounded bg-muted">
             {TASK_TYPE_LABELS[task.task_type as TaskType] || task.task_type}
           </span>
           {task.title && (
-            <>
-              <span className="text-muted-foreground">•</span>
-              <span className="text-sm text-muted-foreground truncate">
-                {task.title}
-              </span>
-            </>
+            <span className="text-sm text-muted-foreground truncate">
+              {task.title}
+            </span>
           )}
         </div>
-        <div className="flex items-center gap-2 mt-0.5">
-          <span className={cn('text-xs', PRIORITY_COLORS[task.priority as TaskPriority])}>
-            {task.priority === 'urgent' && '🔴 Khẩn cấp'}
-            {task.priority === 'high' && '🟠 Cao'}
-            {task.priority === 'medium' && '🟡 Trung bình'}
-            {task.priority === 'low' && '⚪ Thấp'}
+        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+          <span className={cn('font-medium', PRIORITY_COLORS[task.priority as TaskPriority])}>
+            {task.priority === 'urgent' && 'Khẩn cấp'}
+            {task.priority === 'high' && 'Ưu tiên cao'}
+            {task.priority === 'medium' && 'Trung bình'}
+            {task.priority === 'low' && 'Thấp'}
           </span>
           {getDuration() && (
             <>
-              <span className="text-muted-foreground text-xs">•</span>
-              <span className="text-xs text-muted-foreground">
-                {task.status === 'in_progress' ? `⏱️ ${getDuration()}` : getDuration()}
+              <span>•</span>
+              <span>
+                {task.status === 'in_progress' ? `⏱ ${getDuration()}` : getDuration()}
               </span>
             </>
           )}
           {task.room?.floor && (
             <>
-              <span className="text-muted-foreground text-xs">•</span>
-              <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+              <span>•</span>
+              <span className="flex items-center gap-0.5">
                 <MapPin className="h-3 w-3" />
                 Tầng {task.room.floor}
               </span>
