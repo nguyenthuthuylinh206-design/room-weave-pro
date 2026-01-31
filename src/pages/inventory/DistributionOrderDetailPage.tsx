@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { ArrowLeft, Ban, Printer, Pencil, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Ban, Printer, Pencil, CheckCircle, UserX, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { OrderStatusBadge } from '@/components/distribution/components/DistributionStatusBadge'
@@ -140,8 +140,26 @@ export default function DistributionOrderDetailPage() {
             </div>
           </div>
 
-          {/* Guidance for Manager when order is pending */}
-          {order.status === 'pending' && isWarehouseManager && (
+          {/* Warning when no assignee - Mobile */}
+          {order.status === 'pending' && !order.assigned_to && isWarehouseManager && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-1">
+                  <UserX className="h-4 w-4 text-amber-600 shrink-0" />
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    <strong>Chưa phân công:</strong> Vui lòng chọn nhân viên giao hàng
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
+                  <UserPlus className="h-4 w-4 mr-1" />
+                  Phân công
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Guidance for Manager when order is pending and has assignee */}
+          {order.status === 'pending' && order.assigned_to && isWarehouseManager && (
             <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border-b border-blue-200 dark:border-blue-800">
               <p className="text-sm text-blue-800 dark:text-blue-200">
                 <strong>Bước tiếp theo:</strong> Ấn "Giao batch này" bên dưới để chuyển hàng cho nhân viên
@@ -251,8 +269,26 @@ export default function DistributionOrderDetailPage() {
         </div>
       </div>
 
-      {/* Guidance for Manager when order is pending */}
-      {order.status === 'pending' && isWarehouseManager && (
+      {/* Warning when no assignee - Desktop */}
+      {order.status === 'pending' && !order.assigned_to && isWarehouseManager && (
+        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <UserX className="h-5 w-5 text-amber-600" />
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                Phiếu chưa có nhân viên được phân công. Vui lòng phân công trước khi giao hàng.
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Phân công ngay
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Guidance for Manager when order is pending and has assignee */}
+      {order.status === 'pending' && order.assigned_to && isWarehouseManager && (
         <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30">
           <CardContent className="p-4">
             <p className="text-sm text-blue-800 dark:text-blue-200">
