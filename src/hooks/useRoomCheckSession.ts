@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 
+export type RoomCheckType = 'daily' | 'checkin' | 'checkout' | 'maintenance' | 'delivery'
+
 export interface RoomCheckSession {
   id: string
   room_id: string
   user_id: string
   user_name: string
-  check_type: 'daily' | 'checkin' | 'checkout' | 'maintenance'
+  check_type: RoomCheckType
   started_at: string
 }
 
@@ -46,7 +48,7 @@ export function useRoomCheckSession(roomId: string | undefined) {
           room_id: data.room_id,
           user_id: data.user_id,
           user_name: data.user_name,
-          check_type: data.check_type as 'daily' | 'checkin' | 'checkout' | 'maintenance',
+          check_type: data.check_type as RoomCheckType,
           started_at: data.started_at
         } : null)
       } catch (error: any) {
@@ -86,7 +88,7 @@ export function useRoomCheckSession(roomId: string | undefined) {
 
   const createSession = async (
     roomId: string,
-    checkType: 'daily' | 'checkin' | 'checkout' | 'maintenance',
+    checkType: RoomCheckType,
     userName: string,
     tenantId: string
   ) => {
@@ -140,7 +142,7 @@ export function useRoomCheckSession(roomId: string | undefined) {
   // Manager override: xóa session của người khác và tạo session mới
   const takeOverSession = async (
     roomId: string,
-    checkType: 'daily' | 'checkin' | 'checkout' | 'maintenance',
+    checkType: RoomCheckType,
     userName: string,
     tenantId: string
   ) => {

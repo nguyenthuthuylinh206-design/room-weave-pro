@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Check, Loader2, ClipboardCheck, LogIn, LogOut, Settings, Clock } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, Loader2, ClipboardCheck, LogIn, LogOut, Settings, Clock, Package } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { roomCheckFormSchema } from '@/lib/validations/rooms.schemas'
@@ -37,6 +37,7 @@ import { ReviewStep } from '@/components/rooms/check-steps/ReviewStep'
 import { ChargeableItemsStep } from '@/components/rooms/check-steps/ChargeableItemsStep'
 import { CleaningRequestStep } from '@/components/rooms/check-steps/CleaningRequestStep'
 import { Phase1ConfirmStep } from '@/components/rooms/check-steps/Phase1ConfirmStep'
+import { DeliveryItemsStep } from '@/components/rooms/check-steps/DeliveryItemsStep'
 import { cn } from '@/lib/utils'
 import type { RoomCheckFormData, LostItem, DamagedItem } from '@/types/rooms.types'
 
@@ -46,6 +47,7 @@ const CHECK_TYPE_ICONS: Record<CheckType, any> = {
   checkin: LogIn,
   checkout: LogOut,
   maintenance: Settings,
+  delivery: Package,
 }
 
 export function RoomCheckPage() {
@@ -53,9 +55,11 @@ export function RoomCheckPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
-  const prefilledType = searchParams.get('type') as 'daily' | 'checkin' | 'checkout' | 'maintenance' | null
+  const prefilledType = searchParams.get('type') as 'daily' | 'checkin' | 'checkout' | 'maintenance' | 'delivery' | null
   const shouldAutoResume = searchParams.get('resume') === 'true'
   const inspectionIdFromUrl = searchParams.get('inspection') // Lấy checkout inspection ID từ URL
+  const distributionOrderId = searchParams.get('distribution_order_id') // Phiếu giao hàng
+  const roomOrderId = searchParams.get('room_order_id') // Phòng trong phiếu giao
   
   const { user, hasAnyRole } = useUser()
   
@@ -145,14 +149,17 @@ export function RoomCheckPage() {
   const items = roomData?.items || []
   const recentChecks = roomData?.recent_checks || []
   
-  // Watch check_type từ form để detect khi user chọn checkout
+  // Watch check_type từ form để detect khi user chọn checkout hoặc delivery
   const watchedCheckType = form.watch('check_type')
   
-  // Calculate steps: for checkout, use 6-step 2-phase flow
+  // Calculate steps based on check type
   const isCheckoutType = watchedCheckType === 'checkout'
+  const isDeliveryType = watchedCheckType === 'delivery'
+  
   const getTotalSteps = () => {
     if (quickMode) return 2
     if (isCheckoutType) return 6 // Type -> Phase1 Items -> Phase1 Confirm -> Phase2 Items -> Cleaning -> Review
+    if (isDeliveryType) return 3 // Type -> DeliveryItems/Cleaning -> Review
     return 3 // Type -> Items -> Review
   }
   const totalSteps = getTotalSteps()
@@ -506,7 +513,10 @@ export function RoomCheckPage() {
         setCurrentPhase(1)
         setPhase1Submitted(false)
       }
-    } else if (currentStep === 2 && !quickMode) {
+    } else if (currentStep === 2 && !quickMode && isDeliveryType) {
+      // Delivery step 2 = DeliveryItems + Cleaning - không cần validate strict
+      isValid = true
+    } else if (currentStep === 2 && !quickMode && !isDeliveryType) {
       // Step 2: Items check (Phase 1 for checkout, regular for others)
       isValid = await form.trigger(['items_complete', 'items_missing', 'items_damaged'])
     } else if (currentStep === 2 && quickMode) {
@@ -524,14 +534,17 @@ export function RoomCheckPage() {
         return
       }
       isValid = true
+    } else if (currentStep === 3 && isDeliveryType) {
+      // Delivery step 3 = Review - validate cleanliness
+      isValid = await form.trigger(['cleanliness_score'])
     } else if (currentStep === 4 && isCheckoutType) {
       // Checkout step 4 = Phase 2 Items (bổ sung/giặt/thay)
       isValid = true
     } else if (currentStep === 5 && isCheckoutType) {
       // Checkout step 5 = Cleaning Request - có defaults, không cần validate
       isValid = true
-    } else if (currentStep === 3 && !isCheckoutType) {
-      // Non-checkout: step 3 là Review cuối
+    } else if (currentStep === 3 && !isCheckoutType && !isDeliveryType) {
+      // Non-checkout/non-delivery: step 3 là Review cuối
       isValid = await form.trigger(['cleanliness_score'])
     }
     
@@ -781,7 +794,13 @@ export function RoomCheckPage() {
         title: 'Thành công',
         description: `Đã hoàn thành kiểm tra phòng ${room?.room_number}`,
       })
-      navigate(isManager ? `/rooms/${id}` : '/rooms')
+      
+      // Redirect logic: delivery quay lại phiếu giao hàng
+      if (data.check_type === 'delivery' && distributionOrderId) {
+        navigate(`/inventory/distributions/${distributionOrderId}`)
+      } else {
+        navigate(isManager ? `/rooms/${id}` : '/rooms')
+      }
     } catch (error) {
       console.error('Error creating room check:', error)
       
@@ -1038,7 +1057,10 @@ export function RoomCheckPage() {
             <CardTitle className="flex items-center gap-2">
               <span>Bước {currentStep}/{totalSteps}:</span>
               {currentStep === 1 && 'Chọn loại kiểm tra'}
-              {currentStep === 2 && !quickMode && !isCheckoutType && 'Kiểm tra đồ dùng trong phòng'}
+              {/* Delivery type - step 2 */}
+              {currentStep === 2 && !quickMode && isDeliveryType && 'Xác nhận đồ giao & Dọn dẹp'}
+              {/* Non-checkout, non-delivery - step 2 */}
+              {currentStep === 2 && !quickMode && !isCheckoutType && !isDeliveryType && 'Kiểm tra đồ dùng trong phòng'}
               {currentStep === 2 && !quickMode && isCheckoutType && (
                 <>
                   <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300">GĐ1</Badge>
@@ -1052,7 +1074,10 @@ export function RoomCheckPage() {
                   Gửi báo cáo cho lễ tân
                 </>
               )}
-              {currentStep === 3 && !quickMode && !isCheckoutType && 'Đánh giá & Hoàn tất'}
+              {/* Delivery type - step 3 = Review */}
+              {currentStep === 3 && !quickMode && isDeliveryType && 'Đánh giá & Hoàn tất'}
+              {/* Non-checkout, non-delivery - step 3 = Review */}
+              {currentStep === 3 && !quickMode && !isCheckoutType && !isDeliveryType && 'Đánh giá & Hoàn tất'}
               {currentStep === 4 && isCheckoutType && (
                 <>
                   <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">GĐ2</Badge>
@@ -1101,8 +1126,21 @@ export function RoomCheckPage() {
                   setQuickMode={setQuickMode}
                 />
               )}
-              {/* Step 2: Items Check - Phase 1 for checkout, regular for others */}
-              {currentStep === 2 && !quickMode && (
+              {/* Step 2: Items Check - Phase 1 for checkout, DeliveryItems for delivery, regular for others */}
+              {currentStep === 2 && !quickMode && isDeliveryType && distributionOrderId && roomOrderId && (
+                <div className="space-y-6">
+                  <DeliveryItemsStep
+                    distributionOrderId={distributionOrderId}
+                    roomOrderId={roomOrderId}
+                    form={form}
+                    roomId={id!}
+                    hotelId={room.hotel_id}
+                    tenantId={room.tenant_id}
+                  />
+                  <CleaningRequestStep form={form} />
+                </div>
+              )}
+              {currentStep === 2 && !quickMode && !isCheckoutType && !isDeliveryType && (
                 <ItemsCheckStep 
                   form={form} 
                   items={items} 
@@ -1111,7 +1149,20 @@ export function RoomCheckPage() {
                   tenantId={room.tenant_id}
                   bookingId={currentBooking?.id || null}
                   checkType={watchedCheckType as 'daily' | 'checkin' | 'checkout' | 'maintenance'}
-                  phase={isCheckoutType ? 1 : undefined}
+                  phase={undefined}
+                  onQuantitiesChange={setItemQuantities}
+                />
+              )}
+              {currentStep === 2 && !quickMode && isCheckoutType && (
+                <ItemsCheckStep 
+                  form={form} 
+                  items={items} 
+                  roomId={id!}
+                  hotelId={room.hotel_id}
+                  tenantId={room.tenant_id}
+                  bookingId={currentBooking?.id || null}
+                  checkType={watchedCheckType as 'daily' | 'checkin' | 'checkout' | 'maintenance'}
+                  phase={1}
                   onQuantitiesChange={setItemQuantities}
                 />
               )}
@@ -1161,9 +1212,10 @@ export function RoomCheckPage() {
               {currentStep === 5 && !quickMode && isCheckoutType && (
                 <CleaningRequestStep form={form} />
               )}
-              {/* Review Step - adjusts based on checkout vs other types */}
+              {/* Review Step - adjusts based on check type */}
               {((currentStep === 2 && quickMode) || 
-                (currentStep === 3 && !isCheckoutType) || 
+                (currentStep === 3 && !isCheckoutType && !isDeliveryType) ||
+                (currentStep === 3 && isDeliveryType) ||
                 (currentStep === 6 && isCheckoutType)) && (
                 <ReviewStep form={form} room={room} checkType={watchedCheckType as CheckType} currentBooking={currentBooking} />
               )}

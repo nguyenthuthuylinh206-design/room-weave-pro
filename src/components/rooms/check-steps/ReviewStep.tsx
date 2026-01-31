@@ -30,6 +30,7 @@ const CHECK_TYPE_ICONS: Record<CheckType, any> = {
   checkin: LogIn,
   checkout: LogOut,
   maintenance: Settings,
+  delivery: Package,
 }
 
 export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStepProps) {

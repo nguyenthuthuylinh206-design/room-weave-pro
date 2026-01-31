@@ -64,7 +64,7 @@ const replacedItemSchema = z.object({
 })
 
 export const roomCheckFormSchema = z.object({
-  check_type: z.enum(['daily', 'checkout', 'checkin', 'maintenance'], {
+  check_type: z.enum(['daily', 'checkout', 'checkin', 'maintenance', 'delivery'], {
     required_error: 'Vui lòng chọn loại kiểm tra',
   }).default('daily'),
   cleanliness_score: z.number({
