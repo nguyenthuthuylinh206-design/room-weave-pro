@@ -1,168 +1,166 @@
 
-## Kế hoạch Gộp Views - Unified Room List
 
-### I. PHÂN TÍCH HIỆN TRẠNG
+## Kế hoạch Sửa Logic - Unified Room List
 
-**2 Views hiện tại:**
+### I. VẤN ĐỀ PHÁT HIỆN
 
-| Component | Mục đích | Vấn đề |
-|-----------|----------|--------|
-| `StaffDeliveryView` | Flat list cho nhân viên giao | Duplicate code với StopCard |
-| `BatchAccordion` | Group by batch với accordion | Quá phức tạp, ít giá trị cho user |
+Sau khi phân tích code và database, tôi phát hiện **3 vấn đề logic**:
 
-**Logic trùng lặp:**
-- `StaffRoomCard` và `StopCard` cùng render thông tin phòng
-- Dialog "Cannot Access" và "Handover" duplicate ở 2 nơi
-- Progress tracking ở cả 2 views
+| # | Vấn đề | Nguyên nhân | Ảnh hưởng |
+|---|--------|-------------|-----------|
+| 1 | **Room number hiển thị `P.P101`** | Code thêm `P.` prefix vào room_number (`P.{stop.room_number}`), nhưng room_number trong DB đã có format `Pxxx` | UI hiển thị sai |
+| 2 | **Không có nút "Giao hàng cho nhân viên"** | `RouteDetailView` không truyền `onHandoverBatch` cho `DeliveryStepWizard` | Warehouse manager không thể giao batch |
+| 3 | **Thiếu logic Batch Handover trong UnifiedRoomList** | Khi gộp views, đã bỏ mất logic `useHandoverBatch()` từ `BatchAccordion` | Không thể chuyển từ `pending` → `released` |
 
-### II. GIẢI PHÁP: UNIFIED ROOM LIST
+### II. CHI TIẾT VẤN ĐỀ
 
-Gộp thành **1 view duy nhất** hiển thị flat list rooms, với optional batch header khi có nhiều batches.
+#### 2.1. Room Number Double Prefix
+
+**Database:**
+```
+room_number: 'P101', 'P301', 'P102', ...
+```
+
+**Code hiện tại (line 415 UnifiedRoomList.tsx):**
+```jsx
+<span>P.{stop.room_number}</span>  // → "P.P101" 
+```
+
+**Fix:**
+```jsx
+<span>{stop.room_number}</span>  // → "P101" 
+```
+
+#### 2.2. Missing onHandoverBatch prop
+
+**DeliveryStepWizard** cần prop `onHandoverBatch` để hiển thị nút khi:
+- `status === 'pending'`
+- `isWarehouseManager === true`
+
+**Hiện tại RouteDetailView (line 131-143):**
+```tsx
+<DeliveryStepWizard
+  // ... 
+  // onHandoverBatch=??? MISSING!
+/>
+```
+
+#### 2.3. Handover Logic Flow
 
 ```text
+FLOW HIỆN TẠI (lỗi):
 ┌─────────────────────────────────────────────────────────────────┐
-│ [DeliveryStepWizard - Compact]                                  │
-├─────────────────────────────────────────────────────────────────┤
-│ [Compact Info Header - Tầng, Ngày, NV, Progress]                │
-├─────────────────────────────────────────────────────────────────┤
+│ Order pending                                                   │
 │                                                                 │
-│ ─── Batch 1 (2 phòng) ─── (optional divider, chỉ khi >1 batch)  │
+│ DeliveryStepWizard:                                            │
+│   "Lấy hàng theo danh sách..."                                 │
+│   [Nút KHÔNG HIỆN vì onHandoverBatch undefined]                │
 │                                                                 │
-│ P.101  1 SP • 1 đơn vị            [GIAO]                       │
-│ ───────────────────────────────────────────────────────────────│
-│ P.102  18 SP • 22 đơn vị          [GIAO]                       │
-│ ───────────────────────────────────────────────────────────────│
+│ → STUCK! Không có cách chuyển sang released                    │
+└─────────────────────────────────────────────────────────────────┘
+
+FLOW CẦN SỬA:
+┌─────────────────────────────────────────────────────────────────┐
+│ Order pending                                                   │
 │                                                                 │
-│ (nếu có Batch 2, hiển thị divider)                              │
+│ DeliveryStepWizard:                                            │
+│   "Lấy hàng theo danh sách..."                                 │
+│   [Giao hàng cho nhân viên] ← Handover first batch             │
 │                                                                 │
+│ → Batch status: open → handed_over                             │
+│ → Trigger confirm_receive_order RPC                            │
+│ → Order status: pending → released                              │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### III. THAY ĐỔI CHI TIẾT
+### III. PHƯƠNG ÁN SỬA
 
-#### 3.1. RouteDetailView.tsx
+#### 3.1. UnifiedRoomList.tsx - Sửa room number display
 
-**Bỏ:**
-- State `viewMode`
-- Tabs toggle (Danh sách phòng / Xem theo Batch)
-- Import `Tabs, TabsList, TabsTrigger`
-- Import `BatchAccordion`
-- `useEffect` auto-switch view mode
+**Vị trí:** Line 415
 
-**Thay thế:**
-- Chỉ render 1 component: `UnifiedRoomList`
-- Bỏ Card wrapper cho content
+**Thay đổi:**
+```diff
+- <span className="text-sm font-bold shrink-0">P.{stop.room_number}</span>
++ <span className="text-sm font-bold shrink-0">{stop.room_number}</span>
+```
 
-#### 3.2. Tạo UnifiedRoomList.tsx (mới)
+#### 3.2. RouteDetailView.tsx - Thêm Handover Batch Logic
 
-**Tính năng:**
-- Flat list các phòng, sort theo: pending → cannot_access → delivered/resolved
-- Nếu có nhiều batch (>1), hiển thị divider text nhỏ giữa các batch
-- Sử dụng `StopCard` (đã tối ưu) cho mỗi phòng
-- Bỏ `StaffDeliveryView` và `StaffRoomCard` (không còn cần)
+**Thêm import và hook:**
+```tsx
+import { useHandoverBatch } from '@/hooks/useRouteBatch'
 
-```typescript
-interface UnifiedRoomListProps {
-  stops: RouteStop[]
-  orderCode?: string
-  tenantId?: string
-  hotelId?: string
-  orderStatus: string
-  isAssignee: boolean
-  onRefresh?: () => void
+// Inside component
+const handoverBatch = useHandoverBatch()
+```
+
+**Thêm handler:**
+```tsx
+// Get first batch ID to handover
+const firstPendingBatch = route?.batches?.find(b => b.status === 'open')
+
+const handleHandoverFirstBatch = () => {
+  if (!firstPendingBatch) return
+  handoverBatch.mutate({ batchId: firstPendingBatch.id })
 }
 ```
 
-#### 3.3. Đơn giản hóa StopCard.tsx
-
-**Giữ nguyên:**
-- Tất cả logic actions (deliver, cannot_access, retry, return, handover)
-- Mobile optimizations (h-12 buttons, dropdown)
-- Dialogs
-
-**Cải thiện:**
-- Bỏ background colors (bg-green-50) → Chỉ dùng border-l semantic
-- Items hiển thị inline thay vì collapsible details
-- Giảm padding để compact hơn
-
-### IV. FILES THAY ĐỔI
-
-| File | Hành động |
-|------|-----------|
-| `RouteDetailView.tsx` | Bỏ tabs, chỉ render UnifiedRoomList |
-| `UnifiedRoomList.tsx` | **MỚI** - Gộp logic từ StaffDeliveryView + BatchAccordion |
-| `StopCard.tsx` | Refactor UI compact, bỏ bg colors |
-| `StaffDeliveryView.tsx` | **XÓA** (không còn cần) |
-| `BatchAccordion.tsx` | **GIỮ LẠI** cho reference nhưng không import |
-
-### V. LOGIC KIỂM TRA
-
-**Permission flow (giữ nguyên):**
-
-1. **Khi order status = `pending`**:
-   - Không ai có thể deliver
-   - Chờ kho release
-
-2. **Khi order status = `released`**:
-   - Assignee nhận hàng (confirm receive order)
-   - Sau khi nhận → status chuyển `in_progress`
-
-3. **Khi order status = `in_progress`**:
-   - Assignee có thể: Deliver, Mark Cannot Access
-   - Sau khi cannot_access: Retry, Return to Stock, Handover
-
-4. **Khi order status = `completed`**:
-   - Không action nào available
-   - Chỉ xem thông tin
-
-**Validation trong UnifiedRoomList:**
-```typescript
-const canDeliverStops = isAssignee && orderStatus === 'in_progress'
-// Permission cho từng stop check trong StopCard dựa vào stop_status
+**Truyền prop cho DeliveryStepWizard:**
+```tsx
+<DeliveryStepWizard
+  // ... existing props
+  onHandoverBatch={
+    route.status === 'pending' && 
+    isStorekeeper && 
+    firstPendingBatch 
+      ? handleHandoverFirstBatch 
+      : undefined
+  }
+  isHandingOver={handoverBatch.isPending}
+/>
 ```
 
-### VI. UI SAU CẢI THIỆN
+#### 3.3. UnifiedRoomList.tsx - Thêm Batch Handover trong Batch Divider (optional)
 
-**Trước:**
-```text
-[Tab: Danh sách phòng] [Tab: Xem theo Batch]
+Nếu có nhiều batches, cho phép handover từng batch:
 
-┌─ Card ──────────────────────────────────────┐
-│ Danh sách Batch (title)                     │
-│ ┌─ Accordion ──────────────────────────────┐│
-│ │ ▶ Batch 1 [Chờ giao] 2 phòng ▲          ││
-│ │  ┌─ StopCard ────────────────────────┐  ││
-│ │  │ 🚪 P101 [Chờ giao]                │  ││
-│ │  │ ...                               │  ││
-│ │  └───────────────────────────────────┘  ││
-│ └──────────────────────────────────────────┘│
-└─────────────────────────────────────────────┘
+```tsx
+{hasMultipleBatches && isWarehouseManager && batchStatus === 'open' && (
+  <Button 
+    size="sm" 
+    onClick={() => handoverBatch.mutate({ batchId: batch.id })}
+  >
+    Giao batch này
+  </Button>
+)}
 ```
 
-**Sau:**
-```text
-(Không có tabs)
+### IV. FILES CẦN SỬA
 
-┌─ border rounded-lg ────────────────────────────────┐
-│ P.101  Khăn tắm x1, Dầu gội x2    [GIAO]         │
-├────────────────────────────────────────────────────┤
-│ P.102  18 sản phẩm                [GIAO]         │
-├────────────────────────────────────────────────────┤
-│ P.103  ✓ Đã giao                  text-green-600  │
-└────────────────────────────────────────────────────┘
-```
+| File | Thay đổi |
+|------|----------|
+| `UnifiedRoomList.tsx` | Bỏ `P.` prefix trong room number display |
+| `RouteDetailView.tsx` | Thêm `useHandoverBatch`, handler, và truyền `onHandoverBatch` prop |
 
-### VII. TRIỂN KHAI
+### V. LOGIC TEST SCENARIOS
 
-**Bước 1:** Tạo `UnifiedRoomList.tsx` với logic gộp
-**Bước 2:** Refactor `StopCard.tsx` - compact UI, bỏ bg colors
-**Bước 3:** Update `RouteDetailView.tsx` - bỏ tabs, dùng UnifiedRoomList
-**Bước 4:** Test toàn bộ flow deliver/cannot_access/retry/handover
-**Bước 5:** Cleanup files không dùng
+Sau khi sửa, cần test các flow:
 
-### VIII. KẾT QUẢ
+| # | Scenario | Expected |
+|---|----------|----------|
+| 1 | Room number display | Hiển thị `P101` thay vì `P.P101` |
+| 2 | WH Manager xem order pending | Thấy nút "Giao hàng cho nhân viên" |
+| 3 | Click "Giao hàng cho nhân viên" | Batch chuyển `handed_over`, Order chuyển `released` |
+| 4 | Assignee xem order released | Thấy nút "Xác nhận đã nhận đủ hàng" |
+| 5 | Click "Xác nhận đã nhận đủ hàng" | Order chuyển `in_progress`, có thể giao từng phòng |
 
-- **Giảm complexity**: Từ 2 views → 1 view
-- **Giảm code duplication**: Bỏ StaffRoomCard trùng với StopCard
-- **UI cleaner**: Không tabs, không accordion, flat list đơn giản
-- **Giữ nguyên logic**: Tất cả actions và permissions hoạt động như cũ
+### VI. KẾT LUẬN
+
+Vấn đề chính là **khi gộp views, logic Batch Handover bị mất** vì:
+1. `BatchAccordion` có logic `useHandoverBatch()` nhưng không còn được render
+2. `RouteDetailView` không có logic thay thế để handover batch
+3. `DeliveryStepWizard` không nhận được `onHandoverBatch` prop
+
+Cần bổ sung logic Handover Batch vào `RouteDetailView` và sửa room number display.
+
