@@ -477,6 +477,23 @@ export function useCloseRoute() {
 /**
  * Employee confirms receipt of all items for the order (deducts inventory)
  */
+interface InsufficientItem {
+  item_id: string
+  item_name: string
+  item_code: string
+  required: number
+  available: number
+  shortage: number
+}
+
+interface ConfirmReceiveResponse {
+  success: boolean
+  order_id?: string
+  message: string
+  error?: string
+  insufficient_items?: InsufficientItem[]
+}
+
 export function useConfirmReceiveOrder() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
@@ -491,7 +508,19 @@ export function useConfirmReceiveOrder() {
       })
 
       if (error) throw error
-      return data as { success: boolean; order_id: string; message: string }
+      
+      const response = data as unknown as ConfirmReceiveResponse
+      
+      // Check if RPC returned a business logic error (insufficient stock)
+      if (!response.success && response.error === 'INSUFFICIENT_STOCK') {
+        const itemsList = response.insufficient_items
+          ?.map(item => `• ${item.item_name}: cần ${item.required}, còn ${item.available} (thiếu ${item.shortage})`)
+          .join('\n') || ''
+        
+        throw new Error(`Không đủ tồn kho:\n${itemsList}`)
+      }
+      
+      return response
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['route-batches'] })
@@ -502,7 +531,10 @@ export function useConfirmReceiveOrder() {
       toast.success('Đã xác nhận nhận hàng thành công')
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Không thể xác nhận nhận hàng')
+      toast.error(error.message || 'Không thể xác nhận nhận hàng', {
+        duration: 8000,
+        description: 'Vui lòng kiểm tra tồn kho hoặc liên hệ quản lý kho',
+      })
     },
   })
 }
