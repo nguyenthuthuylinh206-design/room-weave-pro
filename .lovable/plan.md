@@ -1,27 +1,22 @@
 
 
-## Kế hoạch: Căn trái các nút liên lạc trong StaffCard
+## Kế hoạch: Căn chỉnh icon liên lạc sang phải và thẳng hàng
 
-### VẤN ĐỀ
+### VẤN ĐỀ HIỆN TẠI
 
-Hiện tại các nút Telegram/Phone đang dùng `ml-auto` nên bị đẩy sang góc phải của card, tách rời khỏi thông tin nhân viên.
+Sau khi bỏ `ml-auto`, các icon bị dính vào bên trái theo sau tên. Cần đưa icon sang phải nhưng vẫn thẳng hàng theo chiều dọc.
 
 ### GIẢI PHÁP
 
-Bỏ `ml-auto` để các nút nằm liền mạch với tên và status badge.
+Thêm lại `ml-auto` vào container chứa các icon để đẩy chúng sang phải của card.
 
-**Layout hiện tại:**
+**Layout mong muốn:**
 ```text
-[Avatar] [Tên] [●]                              [✈] [📞]
-                                                 ↑
-                                          (ml-auto đẩy sang phải)
-```
-
-**Layout mới:**
-```text
-[Avatar] [Tên] [●] [✈] [📞]
-               ↑
-        (tất cả căn trái liền mạch)
+[Avatar] [Tên] [●]                    [✈] [📞]
+[Avatar] [Tên dài hơn] [●]            [✈] [📞]
+[Avatar] [Tên ngắn] [●]               [✈] [📞]
+                                       ↑
+                                (căn thẳng hàng bên phải)
 ```
 
 ### THAY ĐỔI
@@ -30,7 +25,8 @@ Bỏ `ml-auto` để các nút nằm liền mạch với tên và status badge.
 
 | Dòng | Trước | Sau |
 |------|-------|-----|
-| 98 | `<div className="flex items-center gap-0.5 ml-auto">` | `<div className="flex items-center gap-0.5">` |
+| 98 | `<div className="flex items-center gap-0.5">` | `<div className="flex items-center gap-0.5 ml-auto flex-shrink-0">` |
 
-Chỉ cần bỏ `ml-auto` khỏi container chứa các nút liên lạc.
+- `ml-auto`: Đẩy container icon sang phải
+- `flex-shrink-0`: Đảm bảo icon không bị co lại, luôn giữ kích thước cố định → thẳng hàng
 
