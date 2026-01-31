@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { CheckCircle, ChevronDown, AlertTriangle, RotateCcw, Undo2, ArrowRightLeft } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { CheckCircle, ChevronDown, AlertTriangle, RotateCcw, Undo2, ArrowRightLeft, Package, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -36,24 +37,27 @@ import { EXCEPTION_TYPE_LABELS, SHIFT_LABELS } from '@/types/route-batch.types'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
 
-interface StaffDeliveryViewProps {
+interface UnifiedRoomListProps {
   stops: RouteStop[]
   orderCode?: string
   tenantId?: string
   hotelId?: string
-  orderStatus?: string
+  orderStatus: string
+  isAssignee: boolean
   onRefresh?: () => void
 }
 
-export function StaffDeliveryView({
+export function UnifiedRoomList({
   stops,
   orderCode,
   tenantId,
   hotelId,
   orderStatus,
+  isAssignee,
   onRefresh,
-}: StaffDeliveryViewProps) {
+}: UnifiedRoomListProps) {
   const isMobile = useIsMobile()
+  const navigate = useNavigate()
   const [showCannotAccessDialog, setShowCannotAccessDialog] = useState(false)
   const [showHandoverDialog, setShowHandoverDialog] = useState(false)
   const [selectedStop, setSelectedStop] = useState<RouteStop | null>(null)
@@ -67,20 +71,36 @@ export function StaffDeliveryView({
   const returnToStock = useReturnToStock()
   const handoverStop = useHandoverStop()
 
-  // Calculate progress
-  const totalStops = stops.length
-  const deliveredStops = stops.filter(s => s.stop_status === 'delivered').length
-  const resolvedStops = stops.filter(s => s.stop_status === 'resolved').length
-  const completedStops = deliveredStops + resolvedStops
-  const cannotAccessStops = stops.filter(s => s.stop_status === 'cannot_access').length
-  const pendingStops = stops.filter(s => s.stop_status === 'pending')
-  const progressPercent = totalStops > 0 ? Math.round((completedStops / totalStops) * 100) : 0
+  // Check if can perform delivery actions
+  const canDeliverStops = isAssignee && orderStatus === 'in_progress'
 
-  // Sort: pending first, then cannot_access, then completed
-  const sortedStops = [...stops].sort((a, b) => {
-    const order = { pending: 0, cannot_access: 1, delivered: 2, resolved: 3 }
-    return (order[a.stop_status] ?? 99) - (order[b.stop_status] ?? 99)
-  })
+  // Group by batch and sort
+  const { groupedStops, hasMultipleBatches } = useMemo(() => {
+    const batches = new Map<number, RouteStop[]>()
+    
+    stops.forEach(stop => {
+      const batchNum = stop.batch_number || 1
+      if (!batches.has(batchNum)) {
+        batches.set(batchNum, [])
+      }
+      batches.get(batchNum)!.push(stop)
+    })
+    
+    // Sort stops within each batch: pending → cannot_access → delivered/resolved
+    const sortOrder = { pending: 0, cannot_access: 1, delivered: 2, resolved: 3 }
+    batches.forEach((batchStops) => {
+      batchStops.sort((a, b) => 
+        (sortOrder[a.stop_status] ?? 99) - (sortOrder[b.stop_status] ?? 99)
+      )
+    })
+    
+    const sortedBatches = Array.from(batches.entries()).sort(([a], [b]) => a - b)
+    
+    return {
+      groupedStops: sortedBatches,
+      hasMultipleBatches: batches.size > 1
+    }
+  }, [stops])
 
   const handleDeliver = (stop: RouteStop) => {
     deliverStop.mutate(
@@ -103,9 +123,9 @@ export function StaffDeliveryView({
     )
   }
 
-  const openCannotAccessDialog = (stop: RouteStop) => {
+  const openCannotAccessDialog = (stop: RouteStop, quickType?: ExceptionType) => {
     setSelectedStop(stop)
-    setExceptionType('guest_inside')
+    setExceptionType(quickType || 'guest_inside')
     setExceptionReason('')
     setShowCannotAccessDialog(true)
   }
@@ -165,28 +185,55 @@ export function StaffDeliveryView({
     )
   }
 
-  const canDeliver = orderStatus === 'in_progress'
+  const handleRoomClick = (stop: RouteStop) => {
+    navigate(`/rooms/${stop.room_id}/check?distribution_order_id=${stop.distribution_order_id}&room_order_id=${stop.id}`)
+  }
+
+  if (stops.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Không có phòng nào trong phiếu này
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-2">
-
-      {/* Room list - compact, flat */}
-      <div className="border rounded-lg divide-y">
-        {sortedStops.map((stop) => (
-          <StaffRoomCard
-            key={stop.id}
-            stop={stop}
-            canDeliver={canDeliver && stop.stop_status === 'pending'}
-            onDeliver={() => handleDeliver(stop)}
-            onCannotAccess={() => openCannotAccessDialog(stop)}
-            onRetry={() => handleRetry(stop)}
-            onReturnToStock={() => handleReturnToStock(stop)}
-            onHandover={() => openHandoverDialog(stop)}
-            isDelivering={deliverStop.isPending}
-            isRetrying={retryStop.isPending}
-            isReturning={returnToStock.isPending}
-            isMobile={isMobile}
-          />
+    <div className="space-y-4">
+      {/* Room list grouped by batch */}
+      <div className="border rounded-lg overflow-hidden">
+        {groupedStops.map(([batchNumber, batchStops], index) => (
+          <div key={batchNumber}>
+            {/* Batch divider - only show if multiple batches */}
+            {hasMultipleBatches && (
+              <div className="px-3 py-1.5 bg-muted/50 border-b text-xs font-medium text-muted-foreground flex items-center gap-2">
+                <Package className="h-3.5 w-3.5" />
+                Batch {batchNumber} ({batchStops.length} phòng)
+              </div>
+            )}
+            
+            {/* Stops in batch */}
+            {batchStops.map((stop) => (
+              <RoomCard
+                key={stop.id}
+                stop={stop}
+                canDeliver={canDeliverStops && stop.stop_status === 'pending'}
+                canMarkCannotAccess={canDeliverStops && stop.stop_status === 'pending'}
+                canRetry={canDeliverStops && stop.stop_status === 'cannot_access'}
+                canReturnToStock={canDeliverStops && stop.stop_status === 'cannot_access'}
+                canHandover={canDeliverStops && stop.stop_status === 'cannot_access'}
+                onDeliver={() => handleDeliver(stop)}
+                onCannotAccess={(quickType) => openCannotAccessDialog(stop, quickType)}
+                onRetry={() => handleRetry(stop)}
+                onReturnToStock={() => handleReturnToStock(stop)}
+                onHandover={() => openHandoverDialog(stop)}
+                onRoomClick={() => handleRoomClick(stop)}
+                isDelivering={deliverStop.isPending}
+                isRetrying={retryStop.isPending}
+                isReturning={returnToStock.isPending}
+                isMobile={isMobile}
+              />
+            ))}
+          </div>
         ))}
       </div>
 
@@ -275,6 +322,15 @@ export function StaffDeliveryView({
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="p-3 bg-muted rounded-lg text-sm">
+              <p className="font-medium mb-1">Lưu ý:</p>
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                <li>Hàng đã được trả về kho</li>
+                <li>Route mới sẽ được tạo với cùng danh sách sản phẩm</li>
+                <li>Route mới sẽ gán cho giám sát ca sau</li>
+              </ul>
+            </div>
           </div>
 
           <DialogFooter>
@@ -294,64 +350,83 @@ export function StaffDeliveryView({
   )
 }
 
-interface StaffRoomCardProps {
+// Compact Room Card component
+interface RoomCardProps {
   stop: RouteStop
   canDeliver: boolean
+  canMarkCannotAccess: boolean
+  canRetry: boolean
+  canReturnToStock: boolean
+  canHandover: boolean
   onDeliver: () => void
-  onCannotAccess: () => void
+  onCannotAccess: (quickType?: ExceptionType) => void
   onRetry: () => void
   onReturnToStock: () => void
   onHandover: () => void
+  onRoomClick: () => void
   isDelivering: boolean
   isRetrying: boolean
   isReturning: boolean
   isMobile: boolean
 }
 
-function StaffRoomCard({
+function RoomCard({
   stop,
   canDeliver,
+  canMarkCannotAccess,
+  canRetry,
+  canReturnToStock,
+  canHandover,
   onDeliver,
   onCannotAccess,
   onRetry,
   onReturnToStock,
   onHandover,
+  onRoomClick,
   isDelivering,
   isRetrying,
   isReturning,
   isMobile,
-}: StaffRoomCardProps) {
+}: RoomCardProps) {
   const isCompleted = stop.stop_status === 'delivered' || stop.stop_status === 'resolved'
   const isCannotAccess = stop.stop_status === 'cannot_access'
   
   // Build inline items text
-  const itemsText = stop.items.map(i => `${i.item_name} x${i.quantity}`).join(', ')
+  const itemsText = stop.items.length <= 3
+    ? stop.items.map(i => `${i.item_name} x${i.quantity}`).join(', ')
+    : `${stop.items.length} sản phẩm • ${stop.items.reduce((sum, i) => sum + i.quantity, 0)} đơn vị`
 
   return (
     <div
       className={cn(
-        'p-3 border-b last:border-b-0 border-l-4 transition-colors',
+        'px-3 py-2.5 border-b last:border-b-0 border-l-4 transition-colors',
         isCompleted && 'border-l-green-500 bg-muted/30',
         isCannotAccess && 'border-l-red-500 bg-muted/30',
-        !isCompleted && !isCannotAccess && 'border-l-transparent'
+        !isCompleted && !isCannotAccess && 'border-l-transparent hover:bg-muted/20'
       )}
     >
-      {/* Compact header row */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-base font-bold shrink-0">P.{stop.room_number}</span>
+      {/* Main row: room + items + action */}
+      <div className="flex items-center gap-3">
+        {/* Room info - clickable */}
+        <div 
+          className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer group"
+          onClick={onRoomClick}
+        >
+          <span className="text-sm font-bold shrink-0">P.{stop.room_number}</span>
           {isCompleted && (
             <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
           )}
           {isCannotAccess && (
             <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
           )}
+          <span className="text-xs text-muted-foreground truncate">{itemsText}</span>
+          <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
         
-        {/* Primary deliver button - inline for pending */}
+        {/* Primary action */}
         {canDeliver && (
           <Button
-            onClick={onDeliver}
+            onClick={(e) => { e.stopPropagation(); onDeliver(); }}
             disabled={isDelivering}
             size={isMobile ? 'default' : 'sm'}
             className={cn(
@@ -370,32 +445,36 @@ function StaffRoomCard({
         )}
       </div>
 
-      {/* Items - inline chips */}
-      {stop.items.length > 0 && (
-        <p className="mt-1.5 text-xs text-muted-foreground line-clamp-2">{itemsText}</p>
-      )}
-
       {/* Exception info */}
       {stop.exception_type && (
-        <div className="mt-1.5 text-xs text-destructive">
+        <div className="mt-1 text-xs text-destructive">
           {EXCEPTION_TYPE_LABELS[stop.exception_type]}
           {stop.exception_reason && `: ${stop.exception_reason}`}
         </div>
       )}
 
-      {/* Secondary actions row */}
-      {canDeliver && (
-        <div className="mt-2">
+      {/* Cannot Access dropdown - subtle */}
+      {canMarkCannotAccess && (
+        <div className="mt-1.5">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground gap-1">
+              <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-muted-foreground gap-1">
                 Không vào được
                 <ChevronDown className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-48">
-              <DropdownMenuItem onClick={onCannotAccess}>
-                Báo cáo không vào được
+              <DropdownMenuItem onClick={() => onCannotAccess('guest_inside')}>
+                Khách trong phòng
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onCannotAccess('dnd')}>
+                Do Not Disturb
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onCannotAccess('locked')}>
+                Phòng khóa
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onCannotAccess('other')}>
+                Lý do khác...
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -403,37 +482,43 @@ function StaffRoomCard({
       )}
 
       {/* Actions for cannot_access stops */}
-      {isCannotAccess && (
+      {isCannotAccess && (canRetry || canReturnToStock || canHandover) && (
         <div className="mt-2 flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRetry}
-            disabled={isRetrying}
-            className="h-8 flex-1 gap-1 text-xs"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            Thử lại
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onReturnToStock}
-            disabled={isReturning}
-            className="h-8 flex-1 gap-1 text-xs"
-          >
-            <Undo2 className="h-3.5 w-3.5" />
-            Trả kho
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onHandover}
-            className="h-8 flex-1 gap-1 text-xs"
-          >
-            <ArrowRightLeft className="h-3.5 w-3.5" />
-            Bàn giao
-          </Button>
+          {canRetry && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRetry}
+              disabled={isRetrying}
+              className="h-8 flex-1 gap-1 text-xs"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Thử lại
+            </Button>
+          )}
+          {canReturnToStock && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onReturnToStock}
+              disabled={isReturning}
+              className="h-8 flex-1 gap-1 text-xs"
+            >
+              <Undo2 className="h-3.5 w-3.5" />
+              Trả kho
+            </Button>
+          )}
+          {canHandover && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onHandover}
+              className="h-8 flex-1 gap-1 text-xs"
+            >
+              <ArrowRightLeft className="h-3.5 w-3.5" />
+              Bàn giao
+            </Button>
+          )}
         </div>
       )}
     </div>
