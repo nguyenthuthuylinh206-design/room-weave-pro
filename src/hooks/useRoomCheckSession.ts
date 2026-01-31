@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 
-export type RoomCheckType = 'daily' | 'checkin' | 'checkout' | 'maintenance' | 'delivery'
+export type RoomCheckType = 'daily' | 'checkin' | 'checkout' | 'maintenance' | 'delivery' | 'replenish'
 
 export interface RoomCheckSession {
   id: string

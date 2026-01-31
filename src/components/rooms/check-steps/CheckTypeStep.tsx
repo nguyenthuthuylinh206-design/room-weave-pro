@@ -1,5 +1,5 @@
 import { UseFormReturn } from 'react-hook-form'
-import { Calendar, LogIn, LogOut, Wrench, Package } from 'lucide-react'
+import { Calendar, LogIn, LogOut, Wrench, Package, PackagePlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
 import type { RoomCheckFormData, CheckType } from '@/types/rooms.types'
@@ -43,12 +43,19 @@ const checkTypes: { value: CheckType; label: string; shortLabel: string; icon: a
     shortLabel: 'Giao hàng',
     icon: Package,
   },
+  {
+    value: 'replenish',
+    label: 'Bổ sung & Dọn dẹp',
+    shortLabel: 'Bổ sung',
+    icon: PackagePlus,
+  },
 ]
 
 export function CheckTypeStep({ form, quickMode, setQuickMode, hideDelivery = true }: CheckTypeStepProps) {
   const selectedType = form.watch('check_type')
   
   // Filter out delivery type if hideDelivery is true (mặc định ẩn khi user tự vào)
+  // Replenish type luôn hiển thị cho tất cả user
   const visibleCheckTypes = hideDelivery 
     ? checkTypes.filter(t => t.value !== 'delivery') 
     : checkTypes

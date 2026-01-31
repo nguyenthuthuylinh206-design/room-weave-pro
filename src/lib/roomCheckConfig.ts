@@ -9,7 +9,7 @@
  * - Maintenance: Post-repair verification
  */
 
-export type CheckType = 'daily' | 'checkin' | 'checkout' | 'maintenance' | 'delivery'
+export type CheckType = 'daily' | 'checkin' | 'checkout' | 'maintenance' | 'delivery' | 'replenish'
 
 // Linen actions
 export type LinenAction = 'ok' | 'laundry' | 'add' | 'change' | 'lost' | 'missing' | 'damaged'
@@ -128,6 +128,20 @@ export const CHECK_TYPE_CONFIG: Record<CheckType, CheckTypeConfig> = {
     consumableActions: ['ok', 'empty'],            // OK, Hết
     equipmentActions: ['ok'],
     furnitureActions: ['ok'],
+    showBookingInfo: false,
+    allowDamageCharges: false,
+    blockOnDamaged: false,
+    requireInspection: false,
+  },
+  replenish: {
+    label: 'Bổ sung đồ & Dọn dẹp',
+    description: 'Báo đồ cần bổ sung và tình trạng phòng',
+    headerColor: 'bg-teal-50 border-teal-200',
+    headerTextColor: 'text-teal-700',
+    linenActions: ['ok', 'missing', 'add'],        // OK, Thiếu, Thêm
+    consumableActions: ['ok', 'empty', 'missing'], // OK, Hết, Thiếu
+    equipmentActions: ['ok', 'damaged'],           // OK, Hỏng (báo cáo)
+    furnitureActions: ['ok', 'damaged'],
     showBookingInfo: false,
     allowDamageCharges: false,
     blockOnDamaged: false,

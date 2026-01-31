@@ -9,7 +9,7 @@ export type RoomCheck = Database['public']['Tables']['room_checks']['Row']
 
 export type RoomType = 'standard' | 'deluxe' | 'suite' | 'vip'
 export type RoomStatus = 'vacant' | 'occupied' | 'cleaning' | 'maintenance' | 'out_of_order' | 'check_in' | 'check_out'
-export type CheckType = 'daily' | 'checkout' | 'checkin' | 'maintenance' | 'delivery'
+export type CheckType = 'daily' | 'checkout' | 'checkin' | 'maintenance' | 'delivery' | 'replenish'
 
 export interface RoomWithStats extends Omit<Room, 'hourly_price' | 'monthly_price' | 'min_hours' | 'max_hours'> {
   total_items: number

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Check, Loader2, ClipboardCheck, LogIn, LogOut, Settings, Clock, Package } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, Loader2, ClipboardCheck, LogIn, LogOut, Settings, Clock, Package, PackagePlus } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { roomCheckFormSchema } from '@/lib/validations/rooms.schemas'
@@ -48,6 +48,7 @@ const CHECK_TYPE_ICONS: Record<CheckType, any> = {
   checkout: LogOut,
   maintenance: Settings,
   delivery: Package,
+  replenish: PackagePlus,
 }
 
 export function RoomCheckPage() {
@@ -55,7 +56,7 @@ export function RoomCheckPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
-  const prefilledType = searchParams.get('type') as 'daily' | 'checkin' | 'checkout' | 'maintenance' | 'delivery' | null
+  const prefilledType = searchParams.get('type') as 'daily' | 'checkin' | 'checkout' | 'maintenance' | 'delivery' | 'replenish' | null
   const shouldAutoResume = searchParams.get('resume') === 'true'
   const inspectionIdFromUrl = searchParams.get('inspection') // Lấy checkout inspection ID từ URL
   const distributionOrderId = searchParams.get('distribution_order_id') // Phiếu giao hàng
@@ -155,11 +156,13 @@ export function RoomCheckPage() {
   // Calculate steps based on check type
   const isCheckoutType = watchedCheckType === 'checkout'
   const isDeliveryType = watchedCheckType === 'delivery'
+  const isReplenishType = watchedCheckType === 'replenish'
   
   const getTotalSteps = () => {
     if (quickMode) return 2
     if (isCheckoutType) return 6 // Type -> Phase1 Items -> Phase1 Confirm -> Phase2 Items -> Cleaning -> Review
     if (isDeliveryType) return 3 // Type -> DeliveryItems/Cleaning -> Review
+    if (isReplenishType) return 3 // Type -> Items+Cleaning -> Review
     return 3 // Type -> Items -> Review
   }
   const totalSteps = getTotalSteps()
@@ -513,10 +516,10 @@ export function RoomCheckPage() {
         setCurrentPhase(1)
         setPhase1Submitted(false)
       }
-    } else if (currentStep === 2 && !quickMode && isDeliveryType) {
-      // Delivery step 2 = DeliveryItems + Cleaning - không cần validate strict
+    } else if (currentStep === 2 && !quickMode && (isDeliveryType || isReplenishType)) {
+      // Delivery/Replenish step 2 = Items + Cleaning - không cần validate strict
       isValid = true
-    } else if (currentStep === 2 && !quickMode && !isDeliveryType) {
+    } else if (currentStep === 2 && !quickMode && !isDeliveryType && !isReplenishType) {
       // Step 2: Items check (Phase 1 for checkout, regular for others)
       isValid = await form.trigger(['items_complete', 'items_missing', 'items_damaged'])
     } else if (currentStep === 2 && quickMode) {
@@ -534,8 +537,8 @@ export function RoomCheckPage() {
         return
       }
       isValid = true
-    } else if (currentStep === 3 && isDeliveryType) {
-      // Delivery step 3 = Review - validate cleanliness
+    } else if (currentStep === 3 && (isDeliveryType || isReplenishType)) {
+      // Delivery/Replenish step 3 = Review - validate cleanliness
       isValid = await form.trigger(['cleanliness_score'])
     } else if (currentStep === 4 && isCheckoutType) {
       // Checkout step 4 = Phase 2 Items (bổ sung/giặt/thay)
@@ -543,8 +546,8 @@ export function RoomCheckPage() {
     } else if (currentStep === 5 && isCheckoutType) {
       // Checkout step 5 = Cleaning Request - có defaults, không cần validate
       isValid = true
-    } else if (currentStep === 3 && !isCheckoutType && !isDeliveryType) {
-      // Non-checkout/non-delivery: step 3 là Review cuối
+    } else if (currentStep === 3 && !isCheckoutType && !isDeliveryType && !isReplenishType) {
+      // Non-checkout/non-delivery/non-replenish: step 3 là Review cuối
       isValid = await form.trigger(['cleanliness_score'])
     }
     
@@ -1062,8 +1065,10 @@ export function RoomCheckPage() {
               {currentStep === 1 && 'Chọn loại kiểm tra'}
               {/* Delivery type - step 2 */}
               {currentStep === 2 && !quickMode && isDeliveryType && 'Xác nhận đồ giao & Dọn dẹp'}
-              {/* Non-checkout, non-delivery - step 2 */}
-              {currentStep === 2 && !quickMode && !isCheckoutType && !isDeliveryType && 'Kiểm tra đồ dùng trong phòng'}
+              {/* Replenish type - step 2 */}
+              {currentStep === 2 && !quickMode && isReplenishType && 'Bổ sung đồ & Tình trạng dọn dẹp'}
+              {/* Non-checkout, non-delivery, non-replenish - step 2 */}
+              {currentStep === 2 && !quickMode && !isCheckoutType && !isDeliveryType && !isReplenishType && 'Kiểm tra đồ dùng trong phòng'}
               {currentStep === 2 && !quickMode && isCheckoutType && (
                 <>
                   <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300">GĐ1</Badge>
@@ -1077,10 +1082,10 @@ export function RoomCheckPage() {
                   Gửi báo cáo cho lễ tân
                 </>
               )}
-              {/* Delivery type - step 3 = Review */}
-              {currentStep === 3 && !quickMode && isDeliveryType && 'Đánh giá & Hoàn tất'}
-              {/* Non-checkout, non-delivery - step 3 = Review */}
-              {currentStep === 3 && !quickMode && !isCheckoutType && !isDeliveryType && 'Đánh giá & Hoàn tất'}
+              {/* Delivery/Replenish type - step 3 = Review */}
+              {currentStep === 3 && !quickMode && (isDeliveryType || isReplenishType) && 'Đánh giá & Hoàn tất'}
+              {/* Non-checkout, non-delivery, non-replenish - step 3 = Review */}
+              {currentStep === 3 && !quickMode && !isCheckoutType && !isDeliveryType && !isReplenishType && 'Đánh giá & Hoàn tất'}
               {currentStep === 4 && isCheckoutType && (
                 <>
                   <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">GĐ2</Badge>
@@ -1143,7 +1148,25 @@ export function RoomCheckPage() {
                   <CleaningRequestStep form={form} />
                 </div>
               )}
-              {currentStep === 2 && !quickMode && !isCheckoutType && !isDeliveryType && (
+              {/* Replenish type - step 2: Items + Cleaning */}
+              {currentStep === 2 && !quickMode && isReplenishType && (
+                <div className="space-y-6">
+                  <ItemsCheckStep 
+                    form={form} 
+                    items={items} 
+                    roomId={id!}
+                    hotelId={room.hotel_id}
+                    tenantId={room.tenant_id}
+                    bookingId={currentBooking?.id || null}
+                    checkType="replenish"
+                    phase={undefined}
+                    onQuantitiesChange={setItemQuantities}
+                  />
+                  <CleaningRequestStep form={form} />
+                </div>
+              )}
+              {/* Regular types (daily, checkin, maintenance) - step 2 */}
+              {currentStep === 2 && !quickMode && !isCheckoutType && !isDeliveryType && !isReplenishType && (
                 <ItemsCheckStep 
                   form={form} 
                   items={items} 
@@ -1217,8 +1240,8 @@ export function RoomCheckPage() {
               )}
               {/* Review Step - adjusts based on check type */}
               {((currentStep === 2 && quickMode) || 
-                (currentStep === 3 && !isCheckoutType && !isDeliveryType) ||
-                (currentStep === 3 && isDeliveryType) ||
+                (currentStep === 3 && !isCheckoutType && !isDeliveryType && !isReplenishType) ||
+                (currentStep === 3 && (isDeliveryType || isReplenishType)) ||
                 (currentStep === 6 && isCheckoutType)) && (
                 <ReviewStep form={form} room={room} checkType={watchedCheckType as CheckType} currentBooking={currentBooking} />
               )}
