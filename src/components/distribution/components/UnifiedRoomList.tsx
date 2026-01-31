@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle, ChevronDown, AlertTriangle, RotateCcw, Undo2, ArrowRightLeft, Package, ChevronRight } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -135,7 +136,7 @@ export function UnifiedRoomList({
       { 
         onSuccess: () => {
           onRefresh?.()
-          // Tự động chuyển đến Room Check với type=delivery
+          toast.info('Đang chuyển đến bước kiểm tra phòng...')
           navigate(`/rooms/${stop.room_id}/check?type=delivery&distribution_order_id=${stop.distribution_order_id}&room_order_id=${stop.id}`)
         } 
       }
