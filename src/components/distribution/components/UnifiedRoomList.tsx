@@ -216,6 +216,7 @@ export function UnifiedRoomList({
               <RoomCard
                 key={stop.id}
                 stop={stop}
+                orderStatus={orderStatus}
                 canDeliver={canDeliverStops && stop.stop_status === 'pending'}
                 canMarkCannotAccess={canDeliverStops && stop.stop_status === 'pending'}
                 canRetry={canDeliverStops && stop.stop_status === 'cannot_access'}
@@ -353,6 +354,7 @@ export function UnifiedRoomList({
 // Compact Room Card component
 interface RoomCardProps {
   stop: RouteStop
+  orderStatus: string
   canDeliver: boolean
   canMarkCannotAccess: boolean
   canRetry: boolean
@@ -372,6 +374,7 @@ interface RoomCardProps {
 
 function RoomCard({
   stop,
+  orderStatus,
   canDeliver,
   canMarkCannotAccess,
   canRetry,
@@ -391,10 +394,18 @@ function RoomCard({
   const isCompleted = stop.stop_status === 'delivered' || stop.stop_status === 'resolved'
   const isCannotAccess = stop.stop_status === 'cannot_access'
   
+  // Only allow room click when order is in_progress or completed
+  const canClickRoom = orderStatus === 'in_progress' || orderStatus === 'completed'
+  
   // Build inline items text
   const itemsText = stop.items.length <= 3
     ? stop.items.map(i => `${i.item_name} x${i.quantity}`).join(', ')
     : `${stop.items.length} sản phẩm • ${stop.items.reduce((sum, i) => sum + i.quantity, 0)} đơn vị`
+
+  const handleRoomClick = () => {
+    if (!canClickRoom) return
+    onRoomClick()
+  }
 
   return (
     <div
@@ -407,10 +418,13 @@ function RoomCard({
     >
       {/* Main row: room + items + action */}
       <div className="flex items-center gap-3">
-        {/* Room info - clickable */}
+        {/* Room info - clickable only when in_progress or completed */}
         <div 
-          className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer group"
-          onClick={onRoomClick}
+          className={cn(
+            "flex items-center gap-2 min-w-0 flex-1",
+            canClickRoom ? "cursor-pointer group" : "cursor-default"
+          )}
+          onClick={canClickRoom ? handleRoomClick : undefined}
         >
           <span className="text-sm font-bold shrink-0">{stop.room_number}</span>
           {isCompleted && (
@@ -420,7 +434,9 @@ function RoomCard({
             <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
           )}
           <span className="text-xs text-muted-foreground truncate">{itemsText}</span>
-          <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+          {canClickRoom && (
+            <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+          )}
         </div>
         
         {/* Primary action */}
