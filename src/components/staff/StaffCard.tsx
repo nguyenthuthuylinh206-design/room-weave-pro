@@ -95,7 +95,7 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
           <StaffStatusBadge status={staff.status} size="sm" showLabel={false} />
           
           {/* Contact buttons inline */}
-          <div className="flex items-center gap-0.5 ml-auto">
+          <div className="flex items-center gap-0.5">
             <Button
               variant="ghost"
               size="icon"
