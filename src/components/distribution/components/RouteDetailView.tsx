@@ -189,8 +189,9 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
         pendingStops={pendingStops}
         isWarehouseManager={isStorekeeper}
         isAssignee={isAssignee}
+        hasAssignee={!!route.assigned_to}
         onHandoverBatch={
-          route.status === 'pending' && isStorekeeper && firstPendingBatch
+          route.status === 'pending' && isStorekeeper && firstPendingBatch && route.assigned_to
             ? handleHandoverFirstBatch
             : undefined
         }

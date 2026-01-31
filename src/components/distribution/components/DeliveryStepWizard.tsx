@@ -1,4 +1,4 @@
-import { CheckCircle, Package, Truck, Lock, Clock } from 'lucide-react'
+import { CheckCircle, Package, Truck, Lock, Clock, UserX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
@@ -12,6 +12,7 @@ interface DeliveryStepWizardProps {
   pendingStops: number
   isWarehouseManager: boolean
   isAssignee: boolean
+  hasAssignee?: boolean
   onHandoverBatch?: () => void
   onConfirmReceive?: () => void
   onCloseRoute?: () => void
@@ -36,6 +37,7 @@ export function DeliveryStepWizard({
   pendingStops,
   isWarehouseManager,
   isAssignee,
+  hasAssignee = true,
   onHandoverBatch,
   onConfirmReceive,
   onCloseRoute,
@@ -88,9 +90,25 @@ export function DeliveryStepWizard({
 
   // Render the guidance and action based on current status and user role
   const renderGuidance = () => {
-    // Step 1: Pending - Warehouse manager needs to handover (with stock check)
+    // Step 1: Pending - Check if assignee exists first
     if (status === 'pending') {
-      if (isWarehouseManager) {
+      // Show warning if no assignee
+      if (!hasAssignee && isWarehouseManager) {
+        return (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
+              <UserX className="h-5 w-5" />
+              <p className="text-sm font-medium">Chưa có nhân viên được phân công</p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Vui lòng phân công nhân viên giao hàng trước khi tiếp tục.
+            </p>
+          </div>
+        )
+      }
+      
+      // Warehouse manager can handover (with stock check)
+      if (isWarehouseManager && hasAssignee) {
         return (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
