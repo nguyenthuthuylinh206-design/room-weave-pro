@@ -1,96 +1,123 @@
 
+## Kế hoạch: Thêm loại kiểm tra "Bổ sung đồ & Dọn dẹp"
 
-## Kế hoạch: Sửa lỗi báo "Đã giao thành công" quá sớm
+### MỤC ĐÍCH
 
-### NGUYÊN NHÂN GỐC
+Thêm loại kiểm tra mới `replenish` để nhân viên:
+- Báo đồ cần bổ sung (thiếu, hết)
+- Báo tình trạng phòng (sạch/bẩn/rất bẩn)
+- Tạo yêu cầu dọn dẹp nếu cần
 
-Luồng hiện tại:
-
-```text
-Ấn GIAO → RPC deliver_stop → onSuccess:
-                              ├── toast.success("Đã giao hàng đến phòng") ← SAI! Báo sớm
-                              └── navigate to Room Check
-```
-
-**Vấn đề**: Toast "Đã giao hàng đến phòng" xuất hiện **ngay khi gọi API** xong, trong khi nhân viên chưa thực sự:
-1. Xác nhận đồ giao
-2. Kiểm tra phòng
-3. Hoàn tất Room Check
-
-### GIẢI PHÁP
-
-Thay đổi luồng: **Chỉ báo thành công khi hoàn tất Room Check**
-
-```text
-Ấn GIAO → RPC deliver_stop → onSuccess:
-                              ├── toast.info("Đang chuyển đến kiểm tra phòng...") ← Thông báo đang xử lý
-                              └── navigate to Room Check
-                                      │
-                                      ↓
-                              Hoàn tất Room Check
-                                      │
-                                      ↓
-                              toast.success("Đã hoàn tất giao hàng") ← Đúng thời điểm
-```
+Loại này sẽ được dùng cho **kiểm tra nhanh hàng ngày** và **kiểm tra trước khi khách checkout** (cho nhân viên không có quyền làm checkout đầy đủ).
 
 ---
 
-### CHI TIẾT THAY ĐỔI
+### LUỒNG KIỂM TRA
 
-#### 1. Sửa `useDeliverStop` - Thay success bằng info
+```text
+Bước 1: Chọn loại kiểm tra
+         ↓
+Bước 2: Kiểm tra đồ cần bổ sung + Tình trạng dọn dẹp
+         (Gộp: Items thiếu/hết + CleaningRequest)
+         ↓
+Bước 3: Đánh giá & Hoàn tất
+```
 
-**File: `src/hooks/useRouteBatch.ts`**
+**3 bước đơn giản**, tương tự luồng `delivery` nhưng:
+- Không cần distribution order
+- Hiển thị tất cả đồ dùng trong phòng (không chỉ đồ giao)
+- Tập trung vào actions: OK, Thiếu, Hết, Thêm
+
+---
+
+### CHI TIẾT TRIỂN KHAI
+
+#### 1. Thêm Check Type mới: `replenish`
+
+**File: `src/lib/roomCheckConfig.ts`**
 
 ```typescript
-// TRƯỚC
-onSuccess: async (result) => {
-  queryClient.invalidateQueries({ queryKey: ['route-batches'] })
-  // ...
-  toast.success('Đã giao hàng đến phòng') // ← SAI
-}
+export type CheckType = 'daily' | 'checkin' | 'checkout' | 'maintenance' | 'delivery' | 'replenish'
 
-// SAU
-onSuccess: async (result) => {
-  queryClient.invalidateQueries({ queryKey: ['route-batches'] })
-  // ...
-  // Không báo success ở đây - sẽ báo khi hoàn tất Room Check
-  // toast.info được xử lý ở component gọi
+replenish: {
+  label: 'Bổ sung đồ & Dọn dẹp',
+  description: 'Báo đồ cần bổ sung và tình trạng phòng',
+  headerColor: 'bg-teal-50 border-teal-200',
+  headerTextColor: 'text-teal-700',
+  linenActions: ['ok', 'missing', 'add'],        // OK, Thiếu, Thêm
+  consumableActions: ['ok', 'empty', 'missing'], // OK, Hết, Thiếu
+  equipmentActions: ['ok', 'damaged'],           // OK, Hỏng (báo cáo)
+  furnitureActions: ['ok', 'damaged'],
+  showBookingInfo: false,
+  allowDamageCharges: false,
+  blockOnDamaged: false,
+  requireInspection: false,
 }
 ```
 
-#### 2. Sửa `UnifiedRoomList` - Hiển thị thông báo phù hợp
+#### 2. Cập nhật Types
 
-**File: `src/components/distribution/components/UnifiedRoomList.tsx`**
+**Files cần sửa:**
+- `src/types/rooms.types.ts`: Thêm `replenish` vào CheckType
+- `src/lib/validations/rooms.schemas.ts`: Thêm `replenish` vào enum
+
+#### 3. Cập nhật CheckTypeStep - Thêm nút mới
+
+**File: `src/components/rooms/check-steps/CheckTypeStep.tsx`**
+
+Thêm option mới với icon `RefreshCw` hoặc `PackagePlus`:
 
 ```typescript
-const handleDeliver = (stop: RouteStop) => {
-  deliverStop.mutate(
-    { roomOrderId: stop.id, roomInfo: { ... } },
-    { 
-      onSuccess: () => {
-        onRefresh?.()
-        toast.info('Đang chuyển đến bước kiểm tra phòng...') // Thông báo rõ ràng
-        navigate(`/rooms/${stop.room_id}/check?type=delivery&...`)
-      } 
-    }
-  )
+{
+  value: 'replenish',
+  label: 'Bổ sung & Dọn dẹp',
+  shortLabel: 'Bổ sung',
+  icon: PackagePlus,  // hoặc RefreshCw
 }
 ```
 
-#### 3. Sửa `RoomCheckPage` - Báo success khi hoàn tất
+Hiển thị option này cho tất cả user (không ẩn như delivery).
+
+#### 4. Cập nhật RoomCheckPage - Luồng 3 bước
 
 **File: `src/pages/rooms/RoomCheckPage.tsx`**
 
-Trong hàm submit khi là type `delivery`, thêm toast success:
+**Thay đổi logic:**
 
 ```typescript
-const onSubmit = async (data) => {
-  // ... xử lý submit
-  
-  if (data.check_type === 'delivery' && distributionOrderId) {
-    toast.success('Đã hoàn tất giao hàng và kiểm tra phòng')
-    navigate(`/inventory/distributions/${distributionOrderId}`)
-  }
+// Thêm flag cho replenish type
+const isReplenishType = watchedCheckType === 'replenish'
+
+// Cập nhật số bước
+const getTotalSteps = () => {
+  if (quickMode) return 2
+  if (isCheckoutType) return 6
+  if (isDeliveryType) return 3
+  if (isReplenishType) return 3  // NEW: Items+Cleaning -> Review
+  return 3
+}
+```
+
+**Render Step 2 cho replenish:**
+- Hiển thị `ItemsCheckStep` với actions: ok, missing, empty, add
+- Kèm `CleaningRequestStep` ở dưới (tương tự delivery)
+
+**Không cần component mới** - tái sử dụng `ItemsCheckStep` với config từ `replenish`.
+
+#### 5. Cập nhật CHECK_TYPE_ICONS
+
+**File: `src/pages/rooms/RoomCheckPage.tsx`**
+
+```typescript
+import { PackagePlus } from 'lucide-react'
+
+const CHECK_TYPE_ICONS: Record<CheckType, any> = {
+  daily: ClipboardCheck,
+  checkin: LogIn,
+  checkout: LogOut,
+  maintenance: Settings,
+  delivery: Package,
+  replenish: PackagePlus,  // NEW
 }
 ```
 
@@ -100,16 +127,36 @@ const onSubmit = async (data) => {
 
 | File | Thay đổi |
 |------|----------|
-| `src/hooks/useRouteBatch.ts` | Xóa `toast.success('Đã giao hàng đến phòng')` trong `onSuccess` của `useDeliverStop` |
-| `src/components/distribution/components/UnifiedRoomList.tsx` | Thêm `toast.info('Đang chuyển đến bước kiểm tra phòng...')` |
-| `src/pages/rooms/RoomCheckPage.tsx` | Thêm `toast.success('Đã hoàn tất giao hàng và kiểm tra phòng')` khi submit thành công với type `delivery` |
+| `src/lib/roomCheckConfig.ts` | Thêm type `replenish` + config |
+| `src/types/rooms.types.ts` | Thêm `replenish` vào CheckType |
+| `src/lib/validations/rooms.schemas.ts` | Thêm `replenish` vào enum |
+| `src/components/rooms/check-steps/CheckTypeStep.tsx` | Thêm nút chọn mới |
+| `src/pages/rooms/RoomCheckPage.tsx` | Thêm logic xử lý replenish (3 bước) |
+
+---
+
+### SO SÁNH CÁC LOẠI KIỂM TRA
+
+| Loại | Mục đích | Số bước | Actions chính |
+|------|----------|---------|---------------|
+| daily | Kiểm tra đầy đủ hàng ngày | 3 | OK, Đổi |
+| checkin | Chuẩn bị phòng cho khách | 3 | OK, Thiếu, Thêm |
+| checkout | Tính phí + Bổ sung + Dọn dẹp | 6 | Full actions (2 giai đoạn) |
+| maintenance | Sau sửa chữa | 3 | OK, Thiếu, Hỏng |
+| delivery | Sau giao hàng (từ phiếu) | 3 | OK, Thêm, Đổi |
+| **replenish** | **Bổ sung nhanh + Dọn dẹp** | **3** | **OK, Thiếu, Hết, Thêm + Cleaning** |
 
 ---
 
 ### KẾT QUẢ MONG ĐỢI
 
-| Thời điểm | Thông báo |
-|-----------|-----------|
-| Sau khi ấn GIAO | "Đang chuyển đến bước kiểm tra phòng..." (màu xanh dương/info) |
-| Sau khi hoàn tất Room Check | "Đã hoàn tất giao hàng và kiểm tra phòng" (màu xanh lá/success) |
+1. **UI**: Nút mới "Bổ sung" xuất hiện trong bước chọn loại kiểm tra (cùng hàng với Daily, Check-in, Check-out, Bảo trì)
 
+2. **Luồng 3 bước đơn giản**:
+   - Bước 1: Chọn loại → Bổ sung đồ & Dọn dẹp
+   - Bước 2: Kiểm tra đồ thiếu/hết + Tình trạng dọn dẹp (gộp 1 màn hình)
+   - Bước 3: Đánh giá sao + Hoàn tất
+
+3. **Tạo request tự động**: Khi submit, hệ thống tạo:
+   - `supplement_requests` cho đồ thiếu/hết cần bổ sung
+   - `housekeeping_tasks` cho yêu cầu dọn dẹp (nếu needs_cleaning = true)
