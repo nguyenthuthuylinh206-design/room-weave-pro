@@ -790,15 +790,18 @@ export function RoomCheckPage() {
       setShowSubmitDialog(false)
       setShowCheckinBlockDialog(false)
       
-      toast({
-        title: 'Thành công',
-        description: `Đã hoàn thành kiểm tra phòng ${room?.room_number}`,
-      })
-      
-      // Redirect logic: delivery quay lại phiếu giao hàng
+      // Toast message tùy theo check_type
       if (data.check_type === 'delivery' && distributionOrderId) {
+        toast({
+          title: 'Đã hoàn tất giao hàng',
+          description: `Đã giao hàng và kiểm tra phòng ${room?.room_number}`,
+        })
         navigate(`/inventory/distributions/${distributionOrderId}`)
       } else {
+        toast({
+          title: 'Thành công',
+          description: `Đã hoàn thành kiểm tra phòng ${room?.room_number}`,
+        })
         navigate(isManager ? `/rooms/${id}` : '/rooms')
       }
     } catch (error) {

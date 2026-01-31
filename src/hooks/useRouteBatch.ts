@@ -303,7 +303,7 @@ export function useDeliverStop() {
       queryClient.invalidateQueries({ queryKey: ['room-items'] })
       queryClient.invalidateQueries({ queryKey: ['room-distribution-history'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
-      toast.success('Đã giao hàng đến phòng')
+      // Không báo success ở đây - sẽ báo khi hoàn tất Room Check
 
       // Trigger workflow to auto-create delivery confirmation task
       if (result.roomInfo?.tenant_id) {
