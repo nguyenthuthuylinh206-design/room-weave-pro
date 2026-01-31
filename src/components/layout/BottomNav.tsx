@@ -96,8 +96,8 @@ export const BottomNav = () => {
               onClick={() => navigate(tab.path)}
               className={cn(
                 "flex flex-col items-center justify-center flex-1 h-full min-w-[48px]",
-                "transition-all duration-200 relative",
-                "active:scale-95",
+                "transition-colors duration-150 relative",
+                "active:scale-95 touch-manipulation",
                 active 
                   ? "text-primary" 
                   : "text-muted-foreground hover:text-foreground"

@@ -24,7 +24,7 @@ export const MobileHeader = ({
 
   return (
     <header className={cn(
-      "sticky top-0 z-40 bg-background border-b shadow-sm safe-area-top",
+      "sticky top-0 z-40 bg-background border-b shadow-sm safe-area-top will-change-transform",
       className
     )}>
       <div className="flex items-center justify-between px-4 h-14">

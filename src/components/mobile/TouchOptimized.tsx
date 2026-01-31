@@ -75,53 +75,6 @@ export function SwipeableCard({
       {children}
     </div>;
 }
-interface PullToRefreshProps {
-  onRefresh: () => Promise<void>;
-  children: React.ReactNode;
-  threshold?: number;
-}
-export function PullToRefresh({
-  onRefresh,
-  children,
-  threshold = 80
-}: PullToRefreshProps) {
-  const [isPulling, setIsPulling] = React.useState(false);
-  const [pullDistance, setPullDistance] = React.useState(0);
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
-  const startY = React.useRef<number>(0);
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (window.scrollY === 0) {
-      startY.current = e.touches[0].clientY;
-      setIsPulling(true);
-    }
-  };
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (isPulling && window.scrollY === 0) {
-      const currentY = e.touches[0].clientY;
-      const distance = Math.max(0, currentY - startY.current);
-      setPullDistance(Math.min(distance, threshold));
-    }
-  };
-  const handleTouchEnd = async () => {
-    if (isPulling && pullDistance >= threshold && !isRefreshing) {
-      setIsRefreshing(true);
-      try {
-        await onRefresh();
-      } finally {
-        setIsRefreshing(false);
-      }
-    }
-    setIsPulling(false);
-    setPullDistance(0);
-  };
-  const pullProgress = pullDistance / threshold * 100;
-  return <div onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} className="relative">
-      {/* Pull indicator */}
-      {(isPulling || isRefreshing) && <div className="absolute top-0 left-0 right-0 flex justify-center py-2 transition-opacity" style={{
-      opacity: pullProgress / 100
-    }}>
-          <div className={cn("h-8 w-8 rounded-full border-2 border-primary", isRefreshing && "animate-spin border-t-transparent")} />
-        </div>}
-      {children}
-    </div>;
-}
+// PullToRefresh is now exported from src/components/mobile/PullToRefresh.tsx
+// Re-export for backward compatibility
+export { PullToRefresh } from './PullToRefresh'

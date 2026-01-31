@@ -109,11 +109,12 @@ export function SwipeableItemRow({
       <motion.div
         drag={isPending ? "x" : false}
         dragConstraints={{ left: -actionsWidth, right: 0 }}
-        dragElastic={0.1}
+        dragElastic={0.08}
+        dragMomentum={false}
         onDragEnd={handleDragEnd}
-        style={{ x }}
+        style={{ x, willChange: isPending ? 'transform' : 'auto' }}
         animate={{ x: showActions ? -actionsWidth : 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        transition={{ type: "spring", stiffness: 400, damping: 35 }}
         className={cn(
           "relative bg-background py-2.5 px-3 border-b border-border",
           isPending && "cursor-pointer active:bg-muted/50",
