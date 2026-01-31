@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -18,19 +17,19 @@ export function QuickActions() {
       label: t('quickActions.createPromoCode'),
       icon: Tag,
       onClick: () => navigate('/super-admin/promo-codes'),
-      color: 'bg-purple-600 hover:bg-purple-700',
+      iconColor: 'text-purple-600',
     },
     {
       label: t('quickActions.newCampaign'),
       icon: Mail,
       onClick: () => navigate('/super-admin/campaigns/new'),
-      color: 'bg-blue-600 hover:bg-blue-700',
+      iconColor: 'text-blue-600',
     },
     {
       label: t('quickActions.scheduleReminders'),
       icon: RefreshCw,
       onClick: () => navigate('/super-admin/reminders'),
-      color: 'bg-green-600 hover:bg-green-700',
+      iconColor: 'text-green-600',
     },
     {
       label: t('quickActions.generateReport'),
@@ -38,27 +37,26 @@ export function QuickActions() {
       onClick: () => {
         console.log('Generate report');
       },
-      color: 'bg-orange-600 hover:bg-orange-700',
+      iconColor: 'text-orange-600',
     },
   ];
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('quickActions.title')}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
+    <div className="border rounded-lg p-3">
+      <h3 className="text-sm font-medium mb-3">{t('quickActions.title')}</h3>
+      <div className="space-y-1">
         {actions.map((action) => (
           <Button
             key={action.label}
-            className={`w-full justify-start ${action.color} text-white`}
+            variant="ghost"
+            className="w-full justify-start h-9 text-sm"
             onClick={action.onClick}
           >
-            <action.icon className="h-4 w-4 mr-2" />
+            <action.icon className={`h-4 w-4 mr-2 ${action.iconColor}`} />
             {action.label}
           </Button>
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

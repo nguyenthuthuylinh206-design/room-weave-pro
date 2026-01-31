@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -9,13 +8,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Plus, TrendingUp, Tag, Users, DollarSign } from 'lucide-react';
 import { PromoCodesTable } from './PromoCodesTable';
 import { PromoCodeAnalytics } from './PromoCodeAnalytics';
 import { PromoCodeForm } from './PromoCodeForm';
 import { BulkPromoCodeGenerator } from './BulkPromoCodeGenerator';
 import { usePromoCodes } from '@/hooks/super-admin/usePromoCodes';
+import { PageHeader } from '../shared/PageHeader';
+import { StatCard } from '../shared/StatCard';
 
 export function AdvancedPromoCodesManagement() {
   const [formOpen, setFormOpen] = useState(false);
@@ -36,129 +36,78 @@ export function AdvancedPromoCodesManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Mã khuyến mãi</h1>
-          <p className="text-muted-foreground mt-1">
-            Tạo và quản lý mã giảm giá cho khách hàng
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setBulkGenOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Tạo hàng loạt
-          </Button>
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Tạo mã mới
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Mã khuyến mãi"
+        description="Tạo và quản lý mã giảm giá cho khách hàng"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => setBulkGenOpen(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Tạo hàng loạt
+            </Button>
+            <Button size="sm" onClick={() => setFormOpen(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Tạo mã mới
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tổng số mã
-            </CardTitle>
-            <div className="p-2 rounded-lg bg-purple-500">
-              <Tag className="h-4 w-4 text-white" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.active} mã đang hoạt động
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tổng lượt sử dụng
-            </CardTitle>
-            <div className="p-2 rounded-lg bg-blue-500">
-              <Users className="h-4 w-4 text-white" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalUsage}</div>
-            <p className="text-xs text-muted-foreground">
-              Số lần mã được áp dụng
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tổng giảm giá đã áp dụng
-            </CardTitle>
-            <div className="p-2 rounded-lg bg-green-500">
-              <DollarSign className="h-4 w-4 text-white" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.totalDiscount.toLocaleString('vi-VN')}đ
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Giá trị ước tính
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tỷ lệ chuyển đổi
-            </CardTitle>
-            <div className="p-2 rounded-lg bg-orange-500">
-              <TrendingUp className="h-4 w-4 text-white" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.total > 0 ? ((stats.totalUsage / stats.total) * 100).toFixed(1) : 0}%
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Mã đã dùng / mã tạo ra
-            </p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-3 md:grid-cols-4">
+        <StatCard
+          title="Tổng số mã"
+          value={stats.total}
+          icon={Tag}
+          description={`${stats.active} mã đang hoạt động`}
+        />
+        <StatCard
+          title="Tổng lượt sử dụng"
+          value={stats.totalUsage}
+          icon={Users}
+          description="Số lần mã được áp dụng"
+        />
+        <StatCard
+          title="Tổng giảm giá đã áp dụng"
+          value={`${stats.totalDiscount.toLocaleString('vi-VN')}đ`}
+          icon={DollarSign}
+          description="Giá trị ước tính"
+        />
+        <StatCard
+          title="Tỷ lệ chuyển đổi"
+          value={`${stats.total > 0 ? ((stats.totalUsage / stats.total) * 100).toFixed(1) : 0}%`}
+          icon={TrendingUp}
+          description="Mã đã dùng / mã tạo ra"
+        />
       </div>
 
       {/* Filters */}
-      <Card className="p-4">
-        <div className="flex flex-wrap gap-4">
-          <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Lọc theo loại" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả loại</SelectItem>
-              <SelectItem value="percentage">Giảm theo %</SelectItem>
-              <SelectItem value="fixed_amount">Giảm cố định</SelectItem>
-            </SelectContent>
-          </Select>
+      <div className="flex flex-wrap gap-3 pb-4 border-b">
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-[180px] h-8 text-sm">
+            <SelectValue placeholder="Lọc theo loại" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả loại</SelectItem>
+            <SelectItem value="percentage">Giảm theo %</SelectItem>
+            <SelectItem value="fixed_amount">Giảm cố định</SelectItem>
+          </SelectContent>
+        </Select>
 
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Lọc theo trạng thái" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả trạng thái</SelectItem>
-              <SelectItem value="active">Hoạt động</SelectItem>
-              <SelectItem value="expired">Hết hạn</SelectItem>
-              <SelectItem value="used_up">Đã dùng hết</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </Card>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[180px] h-8 text-sm">
+            <SelectValue placeholder="Lọc theo trạng thái" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            <SelectItem value="active">Hoạt động</SelectItem>
+            <SelectItem value="expired">Hết hạn</SelectItem>
+            <SelectItem value="used_up">Đã dùng hết</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* Tabs */}
       <Tabs defaultValue="list" className="space-y-4">
@@ -224,27 +173,27 @@ function PromoCodeTemplates() {
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid gap-3 md:grid-cols-2">
       {templates.map((template) => (
-        <Card key={template.code} className="hover:shadow-lg transition-shadow">
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle className="text-lg">{template.name}</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
-              </div>
-              <Badge variant="secondary">{template.discount}</Badge>
+        <div key={template.code} className="p-4 border rounded-lg hover:border-primary/50 transition-colors">
+          <div className="flex items-start justify-between mb-2">
+            <div>
+              <h4 className="text-sm font-medium">{template.name}</h4>
+              <p className="text-xs text-muted-foreground mt-0.5">{template.description}</p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="font-mono font-bold text-lg text-purple-600">
-                {template.code}
-              </div>
-              <Button size="sm">Sử dụng mẫu</Button>
-            </div>
-          </CardContent>
-        </Card>
+            <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded">
+              {template.discount}
+            </span>
+          </div>
+          <div className="flex items-center justify-between mt-3">
+            <span className="font-mono text-sm font-semibold text-purple-600">
+              {template.code}
+            </span>
+            <Button size="sm" variant="outline" className="h-7 text-xs">
+              Sử dụng mẫu
+            </Button>
+          </div>
+        </div>
       ))}
     </div>
   );
