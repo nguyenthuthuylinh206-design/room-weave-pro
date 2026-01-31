@@ -1,195 +1,233 @@
 
 
-## Kế hoạch: Thêm Yêu cầu Phân công Nhân viên khi Phiếu chưa có Người giao
+## Kế hoạch: Sửa lỗi UI không cập nhật sau khi chỉnh sửa phiếu + Cải thiện hiển thị chi tiết items
 
-### I. PHÂN TÍCH
+### I. PHÂN TÍCH VẤN ĐỀ
 
-**Vấn đề:**
-- Phiếu giao hàng có thể được tạo mà không có nhân viên được phân công (`assigned_to = null`)
-- Khi không có nhân viên, không thể giao hàng vì không biết giao cho ai
-- Hiện tại không có cảnh báo/hướng dẫn khi gặp tình huống này
+**Vấn đề 1: UI không cập nhật sau khi sửa phiếu**
+- Hook `useUpdateDistributionOrder` chỉ invalidate `distribution-order-detail` 
+- Nhưng `RouteDetailView` dùng hook `useRouteDetail` với queryKey `route-detail`
+- Kết quả: Sau khi lưu thay đổi, `UnifiedRoomList` không refresh vì data không được invalidate
 
-**Giải pháp:**
-- Hiển thị cảnh báo khi phiếu chưa có người được phân công
-- Cung cấp nút để mở dialog chỉnh sửa và phân công nhân viên
-- Ẩn nút "Giao hàng cho nhân viên" khi chưa có người được phân công
+**Vấn đề 2: Hiển thị items không trực quan**
+- Hiện tại chỉ hiển thị dạng text ngắn: "Adapter đa năng x2, Ấm đun nước x1..."
+- Khi có nhiều items (>3), chỉ hiển thị tóm tắt: "20 sản phẩm • 24 đơn vị"
+- Nhân viên khó nhìn chi tiết để kiểm tra đúng hàng
 
-### II. LOGIC KIỂM TRA
+### II. GIẢI PHÁP
+
+#### 2.1. Fix Cache Invalidation
+
+**File: `src/hooks/useDistributionOrders.ts`**
+
+Thêm `route-detail` vào danh sách invalidateQueries trong `useUpdateDistributionOrder`:
+
+```typescript
+onSuccess: () => {
+  queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
+  queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+  queryClient.invalidateQueries({ queryKey: ['route-detail'] })  // THÊM
+  queryClient.invalidateQueries({ queryKey: ['items'] })
+  toast.success('Cập nhật phiếu giao hàng thành công')
+},
+```
+
+#### 2.2. Cải thiện UI hiển thị Items trong RoomCard
+
+**File: `src/components/distribution/components/UnifiedRoomList.tsx`**
+
+Thay đổi từ inline text thành collapsible list:
+
+**Thiết kế mới:**
 
 ```text
-Nếu order.assigned_to là null/rỗng VÀ status = 'pending':
-  → Hiển thị cảnh báo "Phiếu chưa có nhân viên được phân công"
-  → Hiển thị nút "Phân công ngay"
-  → Ẩn nút "Giao hàng cho nhân viên"
+TRƯỚC (inline text):
+┌─────────────────────────────────────────────────────────────┐
+│ P101 ✓  Adapter đa năng x2, Ấm đun nước x1...     [GIAO]   │
+└─────────────────────────────────────────────────────────────┘
+
+SAU (expandable list):
+┌─────────────────────────────────────────────────────────────┐
+│ P101 ▼  20 sản phẩm • 24 đơn vị                    [GIAO]  │
+├─────────────────────────────────────────────────────────────┤
+│   • Adapter đa năng                                    x2  │
+│   • Ấm đun nước                                        x1  │
+│   • Bàn chải đánh răng                                 x2  │
+│   • Bàn chải vệ sinh                                   x1  │
+│   • Bông tẩy trang                                     x1  │
+│   • Dao cạo râu                                        x1  │
+│   • Dầu gội đầu                                        x1  │
+│   • Dầu xả                                             x1  │
+│   • Ga chun 180x200x20cm                               x1  │
+│   • Giá treo khăn                                      x1  │
+│   • ...                                                    │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### III. THAY ĐỔI UI
+**Logic:**
+- Click vào row để expand/collapse danh sách items
+- Mặc định: Hiển thị 1 dòng tóm tắt với icon chevron
+- Expanded: Hiển thị toàn bộ items với số lượng
+- Màu sắc: Items đã giao (quantity_confirmed > 0) hiển thị màu xanh
 
-#### 3.1. Trong `DistributionOrderDetailPage.tsx`
+### III. THAY ĐỔI CHI TIẾT
 
-**Thêm logic kiểm tra:**
+#### 3.1. `useDistributionOrders.ts` - Fix invalidation
+
 ```typescript
-const hasAssignee = !!order.assigned_to
+// Line ~352-357
+onSuccess: () => {
+  queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
+  queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+  queryClient.invalidateQueries({ queryKey: ['route-detail'] })  // THÊM
+  queryClient.invalidateQueries({ queryKey: ['route-batches'] })  // THÊM
+  queryClient.invalidateQueries({ queryKey: ['items'] })
+  toast.success('Cập nhật phiếu giao hàng thành công')
+},
 ```
 
-**Thêm cảnh báo (Desktop):**
-```tsx
-{/* Warning when no assignee */}
-{order.status === 'pending' && !order.assigned_to && isWarehouseManager && (
-  <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
-    <CardContent className="p-4 flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <UserX className="h-5 w-5 text-amber-600" />
-        <p className="text-sm text-amber-800 dark:text-amber-200">
-          Phiếu chưa có nhân viên được phân công. Vui lòng phân công trước khi giao hàng.
-        </p>
-      </div>
-      <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
-        <UserPlus className="h-4 w-4 mr-2" />
-        Phân công ngay
-      </Button>
-    </CardContent>
-  </Card>
-)}
-```
+#### 3.2. `UnifiedRoomList.tsx` - Cải thiện RoomCard
 
-**Thêm cảnh báo (Mobile):**
-```tsx
-{/* Warning when no assignee - Mobile */}
-{order.status === 'pending' && !order.assigned_to && isWarehouseManager && (
-  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800">
-    <div className="flex items-center justify-between gap-2">
-      <p className="text-sm text-amber-800 dark:text-amber-200 flex-1">
-        <strong>Chưa phân công:</strong> Vui lòng chọn nhân viên giao hàng
-      </p>
-      <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
-        Phân công
-      </Button>
-    </div>
-  </div>
-)}
-```
-
-#### 3.2. Trong `DeliveryStepWizard.tsx`
-
-**Thêm prop mới:**
+**Thêm state cho expanded rooms:**
 ```typescript
-interface DeliveryStepWizardProps {
-  // ... existing props
-  hasAssignee?: boolean  // THÊM MỚI
+const [expandedRooms, setExpandedRooms] = useState<Set<string>>(new Set())
+
+const toggleExpand = (roomId: string) => {
+  setExpandedRooms(prev => {
+    const next = new Set(prev)
+    if (next.has(roomId)) {
+      next.delete(roomId)
+    } else {
+      next.add(roomId)
+    }
+    return next
+  })
 }
 ```
 
-**Cập nhật logic hiển thị:**
-```tsx
-// Step 1: Pending - Need to assign staff first if not assigned
-if (status === 'pending') {
-  if (!hasAssignee && isWarehouseManager) {
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
-          <UserX className="h-5 w-5" />
-          <p className="text-sm font-medium">Chưa có nhân viên được phân công</p>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Vui lòng phân công nhân viên giao hàng trước khi tiếp tục.
-        </p>
-      </div>
-    )
-  }
-  
-  if (isWarehouseManager) {
-    // ... existing handover logic
-  }
-}
-```
-
-#### 3.3. Trong `RouteDetailView.tsx`
-
-**Truyền prop mới cho DeliveryStepWizard:**
-```tsx
-<DeliveryStepWizard
+**Truyền props cho RoomCard:**
+```typescript
+<RoomCard
   // ... existing props
-  hasAssignee={!!route.assigned_to}  // THÊM
-  onHandoverBatch={
-    route.status === 'pending' && isStorekeeper && firstPendingBatch && route.assigned_to
-      ? handleHandoverFirstBatch
-      : undefined
-  }  // CHỈ CHO PHÉP NẾU CÓ ASSIGNEE
+  isExpanded={expandedRooms.has(stop.id)}
+  onToggleExpand={() => toggleExpand(stop.id)}
 />
+```
+
+**Cập nhật RoomCard UI:**
+```tsx
+function RoomCard({
+  stop,
+  isExpanded,
+  onToggleExpand,
+  // ... other props
+}: RoomCardProps) {
+  const itemsCount = stop.items.length
+  const totalQty = stop.items.reduce((sum, i) => sum + i.quantity, 0)
+  const summaryText = `${itemsCount} sản phẩm • ${totalQty} đơn vị`
+
+  return (
+    <div className="...">
+      {/* Header row - always visible */}
+      <div 
+        className="flex items-center gap-3 cursor-pointer"
+        onClick={onToggleExpand}
+      >
+        <ChevronDown className={cn(
+          "h-4 w-4 transition-transform",
+          isExpanded && "rotate-180"
+        )} />
+        <span className="font-bold">{stop.room_number}</span>
+        <span className="text-xs text-muted-foreground">{summaryText}</span>
+        {/* Action button */}
+      </div>
+
+      {/* Expanded items list */}
+      {isExpanded && (
+        <div className="mt-2 pl-6 space-y-1 border-l-2 border-muted ml-2">
+          {stop.items.map(item => (
+            <div 
+              key={item.id}
+              className="flex items-center justify-between text-sm py-0.5"
+            >
+              <span className={cn(
+                item.quantity_confirmed > 0 && "text-green-600"
+              )}>
+                {item.item_name}
+              </span>
+              <span className="font-mono text-xs">
+                x{item.quantity}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 ```
 
 ### IV. FILES CẦN THAY ĐỔI
 
 | File | Thay đổi |
 |------|----------|
-| `DistributionOrderDetailPage.tsx` | Thêm cảnh báo + nút phân công (Desktop & Mobile) |
-| `DeliveryStepWizard.tsx` | Thêm prop `hasAssignee`, cập nhật UI khi chưa phân công |
-| `RouteDetailView.tsx` | Truyền prop `hasAssignee`, chặn handover khi chưa phân công |
+| `src/hooks/useDistributionOrders.ts` | Thêm invalidate `route-detail` và `route-batches` |
+| `src/components/distribution/components/UnifiedRoomList.tsx` | Thêm expand/collapse cho items list |
 
-### V. UI/UX CHI TIẾT
+### V. UI/UX TRỰC QUAN
 
-**Desktop - Khi chưa phân công:**
+**Mobile - Expanded state:**
 ```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│ DIS-20251231-164831-5295                 [Chỉnh sửa] [Hủy] [In phiếu]  │
-│ Chờ giao                                                                │
-│ Tạo bởi Nguyễn Đức Phước • 31/12/2025                                   │
-├─────────────────────────────────────────────────────────────────────────┤
-│ ⚠ Phiếu chưa có nhân viên được phân công.          [Phân công ngay]    │
-│   Vui lòng phân công trước khi giao hàng.                               │
-├─────────────────────────────────────────────────────────────────────────┤
-│ ┌───────────────────────────────────────────────────────────────────┐  │
-│ │ ○ Chuẩn bị ── ○ Nhận hàng ── ○ Giao hàng ── ○ Hoàn thành        │  │
-│ │                                                                    │  │
-│ │ ⚠ Chưa có nhân viên được phân công                               │  │
-│ │ Vui lòng phân công nhân viên giao hàng trước khi tiếp tục.        │  │
-│ └───────────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────┐
+│ ▼ P101    20 sản phẩm • 24 đơn vị          [GIAO] │
+│ ├─────────────────────────────────────────────────│
+│ │  Adapter đa năng                            x2  │
+│ │  Ấm đun nước                                x1  │
+│ │  Bàn chải đánh răng                         x2  │
+│ │  Bàn chải vệ sinh                           x1  │
+│ │  Bông tẩy trang                             x1  │
+│ │  Dao cạo râu                                x1  │
+│ │  Dầu gội đầu                                x1  │
+│ │  Dầu xả                                     x1  │
+│ │  Ga chun 180x200x20cm                       x1  │
+│ │  Giá treo khăn                              x1  │
+│ │  Giấy vệ sinh                               x1  │
+│ │  Gương soi                                  x1  │
+│ │  Kem đánh răng                              x1  │
+│ │  Khăn tắm lớn                               x1  │
+│ │  Lược chải tóc                              x3  │
+│ │  Sữa tắm                                    x1  │
+│ │  Tăm bông                                   x1  │
+│ │  Vòi xịt vệ sinh                            x1  │
+│ │  Xà phòng tắm                               x1  │
+│ │  Xịt khử mùi                                x1  │
+│ └─────────────────────────────────────────────────│
+├────────────────────────────────────────────────────┤
+│ ▶ P102    15 sản phẩm • 18 đơn vị          [GIAO] │
+└────────────────────────────────────────────────────┘
 ```
 
-**Desktop - Khi đã phân công:**
+**Desktop - Collapsed state:**
 ```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│ Bước tiếp theo: Ấn "Giao batch này" bên dưới để chuyển hàng            │
-│ cho nhân viên được gán                                                  │
-├─────────────────────────────────────────────────────────────────────────┤
-│ ┌───────────────────────────────────────────────────────────────────┐  │
-│ │ ● Chuẩn bị ── ○ Nhận hàng ── ○ Giao hàng ── ○ Hoàn thành        │  │
-│ │                                                                    │  │
-│ │ Kiểm tra hàng trong kho. Sau đó giao cho nhân viên Nguyễn Văn A   │  │
-│ │                                                                    │  │
-│ │ [ Kiểm tra & Giao hàng cho nhân viên ]                            │  │
-│ └───────────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│ ▶ P101   20 sản phẩm • 24 đơn vị                       [GIAO] │
+│ ▶ P102   15 sản phẩm • 18 đơn vị                       [GIAO] │
+│ ▶ P103   12 sản phẩm • 15 đơn vị                       [GIAO] │
+└────────────────────────────────────────────────────────────────┘
 ```
 
-### VI. FLOW SAU KHI SỬA
+### VI. LỢI ÍCH
 
-```text
-PHIẾU CHƯA CÓ NHÂN VIÊN
-───────────────────────
-1. Manager mở phiếu
-2. Thấy cảnh báo "Chưa phân công"
-3. Click "Phân công ngay"
-4. EditDistributionDialog mở ra
-5. Chọn nhân viên từ dropdown
-6. Lưu → Phiếu được cập nhật
-7. Nút "Giao hàng cho nhân viên" xuất hiện
-8. Tiếp tục quy trình bình thường
-
-
-PHIẾU ĐÃ CÓ NHÂN VIÊN
-─────────────────────
-1. Manager mở phiếu
-2. Thấy hướng dẫn "Ấn Giao batch này..."
-3. Click "Kiểm tra & Giao hàng cho nhân viên"
-4. Tiếp tục quy trình bình thường
-```
+| Trước | Sau |
+|-------|-----|
+| UI không refresh sau khi edit | UI tự động cập nhật |
+| Chỉ thấy text ngắn gọn | Có thể xem full danh sách items |
+| Khó kiểm tra hàng đầy đủ | Dễ dàng check từng item |
+| Phải vào Room Check để xem chi tiết | Xem ngay trên màn hình chính |
 
 ### VII. TÓM TẮT TRIỂN KHAI
 
-1. **DistributionOrderDetailPage.tsx**: Thêm Card cảnh báo với nút "Phân công ngay" cho cả desktop và mobile
-2. **DeliveryStepWizard.tsx**: Thêm prop `hasAssignee`, hiển thị trạng thái chưa phân công
-3. **RouteDetailView.tsx**: Truyền `hasAssignee` và chặn handover khi chưa có assignee
+1. **Fix cache**: Thêm `route-detail` và `route-batches` vào invalidateQueries của `useUpdateDistributionOrder`
+2. **UI mới**: Thêm expand/collapse cho RoomCard với danh sách items chi tiết
+3. **State**: Quản lý `expandedRooms` set để track rooms đang mở
 
