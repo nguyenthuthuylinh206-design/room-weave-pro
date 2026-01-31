@@ -1,173 +1,77 @@
 
-## Kế hoạch: Mở rộng nút GIAO → Room Check liền mạch + Dọn dẹp
 
-### TỔNG QUAN
+## Kế hoạch: Sửa lỗi "Hàng chưa được xác nhận nhận"
 
-Khi nhân viên ấn nút **GIAO** trên phiếu giao hàng:
-1. Gọi API `deliver_stop` để đánh dấu đã giao ở backend
-2. Tự động chuyển đến trang **Room Check** với loại kiểm tra mới: `delivery`
-3. Luồng kiểm tra giao hàng gồm 3 bước:
-   - **Bước 1**: Xác nhận đồ đã giao + Bổ sung nếu thiếu
-   - **Bước 2**: Tình trạng phòng & Yêu cầu dọn dẹp
-   - **Bước 3**: Xem lại & Hoàn tất
+### NGUYÊN NHÂN GỐC
 
-### THIẾT KẾ LUỒNG MỚI
+Function `confirm_receive_order` chỉ update trạng thái order nhưng **KHÔNG update trạng thái batch**:
 
-```text
-+------------------+      +------------------+      +------------------+
-|   GIAO (button)  | ---> | Room Check Page  | ---> |   Hoàn thành     |
-|                  |      | type=delivery    |      |   (quay lại DS)  |
-+------------------+      +------------------+      +------------------+
-        |                         |
-        v                         v
- deliver_stop API         3 bước kiểm tra:
- (đánh dấu delivered)     1. Xác nhận đồ giao
-                          2. Dọn dẹp phòng
-                          3. Hoàn tất
+| Bảng | Trước khi xác nhận | Sau khi xác nhận | Mong đợi |
+|------|-------------------|-----------------|----------|
+| `distribution_orders.status` | released | in_progress | in_progress |
+| `distribution_order_batches.status` | handed_over | **handed_over** (không đổi) | **received** |
+
+Khi giao hàng (`deliver_stop`), function kiểm tra:
+```sql
+IF v_batch.status NOT IN ('received', 'done') THEN
+  RAISE EXCEPTION 'Batch not received yet';
 ```
+
+Batch vẫn là `handed_over` → Lỗi!
 
 ---
 
-### CHI TIẾT TRIỂN KHAI
+### GIẢI PHÁP
 
-#### 1. Thêm Check Type mới: `delivery`
+Sửa function `confirm_receive_order` để update cả batch status:
 
-**File: `src/lib/roomCheckConfig.ts`**
-
-```typescript
-export type CheckType = 'daily' | 'checkin' | 'checkout' | 'maintenance' | 'delivery'
-
-delivery: {
-  label: 'Kiểm tra sau giao hàng',
-  description: 'Xác nhận đồ đã giao và tình trạng phòng',
-  headerColor: 'bg-cyan-50 border-cyan-200',
-  headerTextColor: 'text-cyan-700',
-  linenActions: ['ok', 'add', 'change'],        // OK, Thêm, Đổi
-  consumableActions: ['ok', 'empty'],            // OK, Hết
-  equipmentActions: ['ok'],
-  furnitureActions: ['ok'],
-  showBookingInfo: false,
-  allowDamageCharges: false,
-  blockOnDamaged: false,
-  requireInspection: false,
-}
+```sql
+-- Update all batches to 'received'
+UPDATE distribution_order_batches
+SET status = 'received',
+    received_at = now(),
+    received_by = v_actor_id,
+    updated_at = now()
+WHERE distribution_order_id = p_order_id
+  AND status = 'handed_over';
 ```
 
-#### 2. Cập nhật UnifiedRoomList - Chuyển hướng sau khi GIAO
+Thêm đoạn code trên vào function **SAU** khi update `distribution_orders` và **TRƯỚC** khi return.
 
-**File: `src/components/distribution/components/UnifiedRoomList.tsx`**
+---
 
-Thay đổi hàm `handleDeliver`:
+### HOTFIX DATABASE
 
-```typescript
-const handleDeliver = (stop: RouteStop) => {
-  deliverStop.mutate(
-    {
-      roomOrderId: stop.id,
-      roomInfo: { ... }
-    },
-    { 
-      onSuccess: () => {
-        onRefresh?.()
-        // TỰ ĐỘNG CHUYỂN ĐẾN ROOM CHECK
-        navigate(`/rooms/${stop.room_id}/check?type=delivery&distribution_order_id=${stop.distribution_order_id}&room_order_id=${stop.id}`)
-      } 
-    }
-  )
-}
-```
+Sau khi deploy migration, cần chạy hotfix cho các order đang bị stuck:
 
-#### 3. Cập nhật RoomCheckPage - Hỗ trợ luồng delivery
-
-**File: `src/pages/rooms/RoomCheckPage.tsx`**
-
-- Thêm `delivery` vào danh sách prefilledType
-- Đọc `distribution_order_id` và `room_order_id` từ URL
-- Luồng delivery có 3 bước:
-  1. **Xác nhận đồ giao** (hiển thị danh sách từ phiếu)
-  2. **Tình trạng dọn dẹp** (CleaningRequestStep)
-  3. **Hoàn tất** (ReviewStep)
-
-```typescript
-const distributionOrderId = searchParams.get('distribution_order_id')
-const roomOrderId = searchParams.get('room_order_id')
-const isDeliveryType = watchedCheckType === 'delivery'
-
-// Số bước cho delivery
-const getTotalSteps = () => {
-  if (quickMode) return 2
-  if (isCheckoutType) return 6
-  if (isDeliveryType) return 3  // NEW: Đồ giao → Dọn dẹp → Hoàn tất
-  return 3
-}
-```
-
-#### 4. Component mới: DeliveryItemsStep
-
-**File mới: `src/components/rooms/check-steps/DeliveryItemsStep.tsx`**
-
-Hiển thị danh sách đồ từ phiếu giao hàng và cho phép:
-- ✅ Xác nhận đã giao đủ
-- ➕ Bổ sung thêm (nếu thiếu)
-- 🔄 Đổi/thay (nếu đồ cũ hỏng)
-
-```typescript
-interface DeliveryItemsStepProps {
-  distributionOrderId: string
-  roomOrderId: string
-  form: UseFormReturn<RoomCheckFormData>
-  roomId: string
-  hotelId: string
-  tenantId: string
-}
-```
-
-#### 5. Cập nhật CheckTypeStep - Thêm icon delivery
-
-**File: `src/components/rooms/check-steps/CheckTypeStep.tsx`**
-
-```typescript
-const checkTypes = [
-  // ... existing types
-  {
-    value: 'delivery',
-    label: 'Sau giao hàng',
-    shortLabel: 'Giao hàng',
-    icon: Package,
-  },
-]
-```
-
-#### 6. Quay lại phiếu giao hàng sau khi hoàn tất
-
-Sau khi submit Room Check loại `delivery`, tự động quay lại trang phiếu giao hàng:
-
-```typescript
-// Trong onSubmit của RoomCheckPage
-if (data.check_type === 'delivery' && distributionOrderId) {
-  navigate(`/inventory/distributions/${distributionOrderId}`)
-} else {
-  navigate(isManager ? `/rooms/${id}` : '/rooms')
-}
+```sql
+-- Fix orders đã in_progress nhưng batch chưa received
+UPDATE distribution_order_batches
+SET status = 'received',
+    received_at = COALESCE(received_at, now()),
+    updated_at = now()
+WHERE distribution_order_id IN (
+  SELECT id FROM distribution_orders WHERE status = 'in_progress'
+)
+AND status = 'handed_over';
 ```
 
 ---
 
 ### TÓM TẮT THAY ĐỔI
 
-| File | Thay đổi |
-|------|----------|
-| `src/lib/roomCheckConfig.ts` | Thêm type `delivery` + config |
-| `src/components/distribution/components/UnifiedRoomList.tsx` | Chuyển hướng đến Room Check sau GIAO |
-| `src/pages/rooms/RoomCheckPage.tsx` | Hỗ trợ luồng 3 bước cho delivery |
-| `src/components/rooms/check-steps/DeliveryItemsStep.tsx` | Component mới hiển thị đồ giao |
-| `src/components/rooms/check-steps/CheckTypeStep.tsx` | Thêm icon + option delivery |
-| `src/types/rooms.types.ts` | Cập nhật CheckType type |
+| Thay đổi | Mục đích |
+|----------|----------|
+| Sửa `confirm_receive_order` RPC | Tự động update batch status khi xác nhận nhận hàng |
+| Hotfix data hiện tại | Sửa các batch đang bị stuck ở `handed_over` |
 
 ---
 
-### LƯU Ý QUAN TRỌNG
+### KIỂM TRA SAU KHI SỬA
 
-1. **Luồng delivery đơn giản hơn checkout**: Không có 2 giai đoạn, không tính phí, chỉ xác nhận + bổ sung + dọn dẹp
-2. **Tự động quay lại phiếu**: Sau khi hoàn tất, nhân viên quay lại phiếu để tiếp tục giao các phòng khác
-3. **Không tạo task housekeeping riêng**: Vì đã gộp dọn dẹp vào luồng, không cần tạo task `delivery_confirmation` nữa
+Order hiện tại sau khi hotfix:
+- `distribution_orders.status`: `in_progress` ✓
+- `distribution_order_batches.status`: `received` ✓ (thay vì `handed_over`)
+
+Nhân viên sẽ ấn được nút GIAO mà không bị lỗi.
+
