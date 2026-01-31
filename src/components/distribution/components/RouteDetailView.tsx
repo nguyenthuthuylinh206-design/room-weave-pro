@@ -40,18 +40,45 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
   const confirmReceive = useConfirmReceiveOrder()
   const handoverBatch = useHandoverBatch()
 
-  // State for adjustment dialog
+  // State for adjustment dialog (now used for handover step)
   const [adjustDialogOpen, setAdjustDialogOpen] = useState(false)
   const [insufficientItems, setInsufficientItems] = useState<InsufficientItem[]>([])
 
   // Get first pending batch for handover
   const firstPendingBatch = route?.batches?.find(b => b.status === 'open')
 
-  // Handover batch handler
-  const handleHandoverFirstBatch = () => {
+  // Handover batch handler - now with stock check
+  const handleHandoverFirstBatch = useCallback(async () => {
     if (!firstPendingBatch) return
-    handoverBatch.mutate({ batchId: firstPendingBatch.id })
-  }
+    
+    const result = await handoverBatch.mutateAsync({ batchId: firstPendingBatch.id })
+    
+    // If insufficient stock, show adjustment dialog
+    if (!result.success && result.error === 'INSUFFICIENT_STOCK' && result.insufficient_items) {
+      setInsufficientItems(result.insufficient_items)
+      setAdjustDialogOpen(true)
+    }
+  }, [firstPendingBatch, handoverBatch])
+
+  // Handle handover with adjustments
+  const handleHandoverWithAdjustments = useCallback(async (adjustments: ItemAdjustment[], reason: string) => {
+    if (!firstPendingBatch) return
+    
+    try {
+      const result = await handoverBatch.mutateAsync({ 
+        batchId: firstPendingBatch.id, 
+        adjustments 
+      })
+      
+      if (result.success) {
+        setAdjustDialogOpen(false)
+        setInsufficientItems([])
+        toast.success('Đã giao hàng cho nhân viên với số lượng điều chỉnh')
+      }
+    } catch (error) {
+      toast.error('Không thể giao hàng')
+    }
+  }, [firstPendingBatch, handoverBatch])
 
   // Check user roles based on user_level_code
   const isAssignee = user?.id === route?.assigned_to
@@ -76,43 +103,15 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
     route?.status === 'completed' || 
     (route?.status === 'in_progress' && pendingStops === 0 && cannotAccessStops === 0)
 
-  // Confirm receive handler - now handles insufficient stock
+  // Confirm receive handler - simplified, no stock check needed
   const handleConfirmReceive = useCallback(async () => {
     if (!route) return
-    
-    const result = await confirmReceive.mutateAsync({ orderId: route.id })
-    
-    // If insufficient stock, show adjustment dialog
-    if (!result.success && result.error === 'INSUFFICIENT_STOCK' && result.insufficient_items) {
-      setInsufficientItems(result.insufficient_items)
-      setAdjustDialogOpen(true)
-    }
-  }, [route, confirmReceive])
-
-  // Handle confirm with adjustments
-  const handleConfirmWithAdjustments = useCallback(async (adjustments: ItemAdjustment[], reason: string) => {
-    if (!route) return
-    
-    try {
-      const result = await confirmReceive.mutateAsync({ 
-        orderId: route.id, 
-        adjustments 
-      })
-      
-      if (result.success) {
-        setAdjustDialogOpen(false)
-        setInsufficientItems([])
-        toast.success('Đã xác nhận nhận hàng với số lượng điều chỉnh')
-      }
-    } catch (error) {
-      toast.error('Không thể xác nhận nhận hàng')
-    }
+    await confirmReceive.mutateAsync({ orderId: route.id })
   }, [route, confirmReceive])
 
   // Handle edit order (close dialog and navigate)
   const handleEditOrder = useCallback(() => {
     setAdjustDialogOpen(false)
-    // TODO: Open edit distribution dialog or navigate back
     toast.info('Vui lòng chỉnh sửa phiếu và thử lại')
   }, [])
 
@@ -256,14 +255,14 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
         </Card>
       )}
 
-      {/* Adjust Quantity Dialog */}
+      {/* Adjust Quantity Dialog - now for handover step */}
       <AdjustQuantityDialog
         open={adjustDialogOpen}
         onOpenChange={setAdjustDialogOpen}
         insufficientItems={insufficientItems}
-        onConfirm={handleConfirmWithAdjustments}
+        onConfirm={handleHandoverWithAdjustments}
         onEditOrder={handleEditOrder}
-        isConfirming={confirmReceive.isPending}
+        isConfirming={handoverBatch.isPending}
       />
     </div>
   )
