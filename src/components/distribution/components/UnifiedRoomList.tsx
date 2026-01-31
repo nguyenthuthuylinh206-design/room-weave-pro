@@ -64,6 +64,19 @@ export function UnifiedRoomList({
   const [exceptionType, setExceptionType] = useState<ExceptionType>('guest_inside')
   const [exceptionReason, setExceptionReason] = useState('')
   const [nextShift, setNextShift] = useState<ShiftCode>('afternoon')
+  const [expandedRooms, setExpandedRooms] = useState<Set<string>>(new Set())
+
+  const toggleExpand = (roomId: string) => {
+    setExpandedRooms(prev => {
+      const next = new Set(prev)
+      if (next.has(roomId)) {
+        next.delete(roomId)
+      } else {
+        next.add(roomId)
+      }
+      return next
+    })
+  }
 
   const deliverStop = useDeliverStop()
   const markCannotAccess = useMarkCannotAccess()
@@ -232,6 +245,8 @@ export function UnifiedRoomList({
                 isRetrying={retryStop.isPending}
                 isReturning={returnToStock.isPending}
                 isMobile={isMobile}
+                isExpanded={expandedRooms.has(stop.id)}
+                onToggleExpand={() => toggleExpand(stop.id)}
               />
             ))}
           </div>
@@ -370,6 +385,8 @@ interface RoomCardProps {
   isRetrying: boolean
   isReturning: boolean
   isMobile: boolean
+  isExpanded: boolean
+  onToggleExpand: () => void
 }
 
 function RoomCard({
@@ -390,6 +407,8 @@ function RoomCard({
   isRetrying,
   isReturning,
   isMobile,
+  isExpanded,
+  onToggleExpand,
 }: RoomCardProps) {
   const isCompleted = stop.stop_status === 'delivered' || stop.stop_status === 'resolved'
   const isCannotAccess = stop.stop_status === 'cannot_access'
@@ -397,10 +416,10 @@ function RoomCard({
   // Only allow room click when order is in_progress or completed
   const canClickRoom = orderStatus === 'in_progress' || orderStatus === 'completed'
   
-  // Build inline items text
-  const itemsText = stop.items.length <= 3
-    ? stop.items.map(i => `${i.item_name} x${i.quantity}`).join(', ')
-    : `${stop.items.length} sản phẩm • ${stop.items.reduce((sum, i) => sum + i.quantity, 0)} đơn vị`
+  // Build summary text
+  const itemsCount = stop.items.length
+  const totalQty = stop.items.reduce((sum, i) => sum + i.quantity, 0)
+  const summaryText = `${itemsCount} sản phẩm • ${totalQty} đơn vị`
 
   const handleRoomClick = () => {
     if (!canClickRoom) return
@@ -418,6 +437,18 @@ function RoomCard({
     >
       {/* Main row: room + items + action */}
       <div className="flex items-center gap-3">
+        {/* Expand toggle */}
+        <button 
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
+          className="p-0.5 -ml-1 hover:bg-muted rounded shrink-0"
+        >
+          <ChevronDown className={cn(
+            "h-4 w-4 text-muted-foreground transition-transform",
+            isExpanded && "rotate-180"
+          )} />
+        </button>
+
         {/* Room info - clickable only when in_progress or completed */}
         <div 
           className={cn(
@@ -433,7 +464,7 @@ function RoomCard({
           {isCannotAccess && (
             <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
           )}
-          <span className="text-xs text-muted-foreground truncate">{itemsText}</span>
+          <span className="text-xs text-muted-foreground truncate">{summaryText}</span>
           {canClickRoom && (
             <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
           )}
@@ -460,6 +491,28 @@ function RoomCard({
           <span className="text-xs text-green-600 font-medium shrink-0">Đã giao</span>
         )}
       </div>
+
+      {/* Expanded items list */}
+      {isExpanded && (
+        <div className="mt-2 ml-4 pl-3 space-y-0.5 border-l-2 border-muted">
+          {stop.items.map(item => (
+            <div 
+              key={item.id}
+              className="flex items-center justify-between text-sm py-0.5"
+            >
+              <span className={cn(
+                "text-muted-foreground",
+                (item.quantity_confirmed ?? 0) > 0 && "text-green-600"
+              )}>
+                {item.item_name}
+              </span>
+              <span className="font-mono text-xs text-muted-foreground">
+                x{item.quantity}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Exception info */}
       {stop.exception_type && (

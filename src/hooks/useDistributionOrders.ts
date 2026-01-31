@@ -352,6 +352,8 @@ export function useUpdateDistributionOrder() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
       queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['route-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['route-batches'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
       toast.success('Cập nhật phiếu giao hàng thành công')
     },
