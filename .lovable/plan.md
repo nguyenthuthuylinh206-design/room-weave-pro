@@ -1,77 +1,115 @@
 
 
-## Kế hoạch: Sửa lỗi "Hàng chưa được xác nhận nhận"
+## Kế hoạch: Sửa lỗi báo "Đã giao thành công" quá sớm
 
 ### NGUYÊN NHÂN GỐC
 
-Function `confirm_receive_order` chỉ update trạng thái order nhưng **KHÔNG update trạng thái batch**:
+Luồng hiện tại:
 
-| Bảng | Trước khi xác nhận | Sau khi xác nhận | Mong đợi |
-|------|-------------------|-----------------|----------|
-| `distribution_orders.status` | released | in_progress | in_progress |
-| `distribution_order_batches.status` | handed_over | **handed_over** (không đổi) | **received** |
-
-Khi giao hàng (`deliver_stop`), function kiểm tra:
-```sql
-IF v_batch.status NOT IN ('received', 'done') THEN
-  RAISE EXCEPTION 'Batch not received yet';
+```text
+Ấn GIAO → RPC deliver_stop → onSuccess:
+                              ├── toast.success("Đã giao hàng đến phòng") ← SAI! Báo sớm
+                              └── navigate to Room Check
 ```
 
-Batch vẫn là `handed_over` → Lỗi!
-
----
+**Vấn đề**: Toast "Đã giao hàng đến phòng" xuất hiện **ngay khi gọi API** xong, trong khi nhân viên chưa thực sự:
+1. Xác nhận đồ giao
+2. Kiểm tra phòng
+3. Hoàn tất Room Check
 
 ### GIẢI PHÁP
 
-Sửa function `confirm_receive_order` để update cả batch status:
+Thay đổi luồng: **Chỉ báo thành công khi hoàn tất Room Check**
 
-```sql
--- Update all batches to 'received'
-UPDATE distribution_order_batches
-SET status = 'received',
-    received_at = now(),
-    received_by = v_actor_id,
-    updated_at = now()
-WHERE distribution_order_id = p_order_id
-  AND status = 'handed_over';
+```text
+Ấn GIAO → RPC deliver_stop → onSuccess:
+                              ├── toast.info("Đang chuyển đến kiểm tra phòng...") ← Thông báo đang xử lý
+                              └── navigate to Room Check
+                                      │
+                                      ↓
+                              Hoàn tất Room Check
+                                      │
+                                      ↓
+                              toast.success("Đã hoàn tất giao hàng") ← Đúng thời điểm
 ```
-
-Thêm đoạn code trên vào function **SAU** khi update `distribution_orders` và **TRƯỚC** khi return.
 
 ---
 
-### HOTFIX DATABASE
+### CHI TIẾT THAY ĐỔI
 
-Sau khi deploy migration, cần chạy hotfix cho các order đang bị stuck:
+#### 1. Sửa `useDeliverStop` - Thay success bằng info
 
-```sql
--- Fix orders đã in_progress nhưng batch chưa received
-UPDATE distribution_order_batches
-SET status = 'received',
-    received_at = COALESCE(received_at, now()),
-    updated_at = now()
-WHERE distribution_order_id IN (
-  SELECT id FROM distribution_orders WHERE status = 'in_progress'
-)
-AND status = 'handed_over';
+**File: `src/hooks/useRouteBatch.ts`**
+
+```typescript
+// TRƯỚC
+onSuccess: async (result) => {
+  queryClient.invalidateQueries({ queryKey: ['route-batches'] })
+  // ...
+  toast.success('Đã giao hàng đến phòng') // ← SAI
+}
+
+// SAU
+onSuccess: async (result) => {
+  queryClient.invalidateQueries({ queryKey: ['route-batches'] })
+  // ...
+  // Không báo success ở đây - sẽ báo khi hoàn tất Room Check
+  // toast.info được xử lý ở component gọi
+}
+```
+
+#### 2. Sửa `UnifiedRoomList` - Hiển thị thông báo phù hợp
+
+**File: `src/components/distribution/components/UnifiedRoomList.tsx`**
+
+```typescript
+const handleDeliver = (stop: RouteStop) => {
+  deliverStop.mutate(
+    { roomOrderId: stop.id, roomInfo: { ... } },
+    { 
+      onSuccess: () => {
+        onRefresh?.()
+        toast.info('Đang chuyển đến bước kiểm tra phòng...') // Thông báo rõ ràng
+        navigate(`/rooms/${stop.room_id}/check?type=delivery&...`)
+      } 
+    }
+  )
+}
+```
+
+#### 3. Sửa `RoomCheckPage` - Báo success khi hoàn tất
+
+**File: `src/pages/rooms/RoomCheckPage.tsx`**
+
+Trong hàm submit khi là type `delivery`, thêm toast success:
+
+```typescript
+const onSubmit = async (data) => {
+  // ... xử lý submit
+  
+  if (data.check_type === 'delivery' && distributionOrderId) {
+    toast.success('Đã hoàn tất giao hàng và kiểm tra phòng')
+    navigate(`/inventory/distributions/${distributionOrderId}`)
+  }
+}
 ```
 
 ---
 
 ### TÓM TẮT THAY ĐỔI
 
-| Thay đổi | Mục đích |
-|----------|----------|
-| Sửa `confirm_receive_order` RPC | Tự động update batch status khi xác nhận nhận hàng |
-| Hotfix data hiện tại | Sửa các batch đang bị stuck ở `handed_over` |
+| File | Thay đổi |
+|------|----------|
+| `src/hooks/useRouteBatch.ts` | Xóa `toast.success('Đã giao hàng đến phòng')` trong `onSuccess` của `useDeliverStop` |
+| `src/components/distribution/components/UnifiedRoomList.tsx` | Thêm `toast.info('Đang chuyển đến bước kiểm tra phòng...')` |
+| `src/pages/rooms/RoomCheckPage.tsx` | Thêm `toast.success('Đã hoàn tất giao hàng và kiểm tra phòng')` khi submit thành công với type `delivery` |
 
 ---
 
-### KIỂM TRA SAU KHI SỬA
+### KẾT QUẢ MONG ĐỢI
 
-Order hiện tại sau khi hotfix:
-- `distribution_orders.status`: `in_progress` ✓
-- `distribution_order_batches.status`: `received` ✓ (thay vì `handed_over`)
-
-Nhân viên sẽ ấn được nút GIAO mà không bị lỗi.
+| Thời điểm | Thông báo |
+|-----------|-----------|
+| Sau khi ấn GIAO | "Đang chuyển đến bước kiểm tra phòng..." (màu xanh dương/info) |
+| Sau khi hoàn tất Room Check | "Đã hoàn tất giao hàng và kiểm tra phòng" (màu xanh lá/success) |
 
