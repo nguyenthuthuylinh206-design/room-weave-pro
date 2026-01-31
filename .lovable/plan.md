@@ -1,210 +1,268 @@
 
 
-## Phân tích: Cải thiện trải nghiệm Touch/Swipe/Scroll trên Mobile
+## Kế hoạch: Cải thiện giao diện Super Admin theo phong cách Enterprise SaaS Minimalist
 
-### CÁC VẤN ĐỀ PHÁT HIỆN
+### VẤN ĐỀ HIỆN TẠI
 
-#### 1. Pull-to-Refresh có 2 phiên bản không nhất quán
-
-Hiện tại có **2 component PullToRefresh** riêng biệt:
-- `src/components/mobile/PullToRefresh.tsx` - Dùng hook `usePullToRefresh` với document event listeners
-- `src/components/mobile/TouchOptimized.tsx` - Có một version đơn giản hơn
-
-**Vấn đề:**
-- Các page khác nhau import từ file khác nhau
-- Logic không đồng nhất, gây cảm giác khác biệt giữa các trang
-
-#### 2. usePullToRefresh gắn sự kiện vào document (global)
-
-```typescript
-// src/hooks/usePullToRefresh.ts
-document.addEventListener('touchstart', handleTouchStart, { passive: true })
-document.addEventListener('touchmove', handleTouchMove, { passive: false })
-```
-
-**Vấn đề:**
-- Gắn vào `document` thay vì element cụ thể → can thiệp vào tất cả touch events trên trang
-- Có thể xung đột với các scroll areas khác (Modal, Sheet, Dialog)
-- `passive: false` trên touchmove gây latency cho scroll
-
-#### 3. Thiếu CSS Scroll Optimization quan trọng
-
-```css
-/* Hiện tại chỉ có: */
--webkit-overflow-scrolling: touch;
-
-/* Thiếu: */
-overscroll-behavior: contain;  /* Ngăn bounce khi scroll quá đầu/cuối */
-scroll-behavior: smooth;       /* Cuộn mượt */
-```
-
-#### 4. Swipe animations không dùng `will-change`
-
-```typescript
-// SwipeableCard.tsx - Dùng inline style transform
-style={{
-  transform: `translateX(${swipeOffset}px)`,
-  transition: swipeOffset === 0 ? 'transform 0.2s ease-out' : 'none'
-}}
-```
-
-**Vấn đề:**
-- Thiếu `will-change: transform` → browser không tối ưu GPU acceleration
-- Có thể gây jank/giật khi swipe
-
-#### 5. Framer Motion được sử dụng nhưng không tối ưu
-
-17 files dùng framer-motion nhưng không có cấu hình global để:
-- Tắt animations khi `prefers-reduced-motion`
-- Điều chỉnh cho mobile performance
-
-#### 6. MainLayout mobile có overflow-y-auto lồng nhau
-
-```tsx
-// MainLayout.tsx
-<main className="flex-1 overflow-y-auto overflow-x-hidden pb-16">
-```
-
-Kết hợp với PullToRefresh gắn vào document → có thể gây scroll conflicts.
-
-#### 7. Scroll containers trong Dialog/Sheet chưa tối ưu touch
-
-```tsx
-// Nhiều dialogs dùng:
-<DialogContent className="max-h-[90vh] overflow-y-auto">
-```
-
-Thiếu `-webkit-overflow-scrolling: touch` trực tiếp.
+| Vấn đề | Mô tả | Vi phạm nguyên tắc |
+|--------|-------|-------------------|
+| **Card quá nhiều** | Sử dụng Card với shadow cho stats, quick actions | Nên dùng `div border rounded-lg` |
+| **Màu nền cho status** | Badge dùng `bg-green-50`, `bg-yellow-50`... | Chỉ nên dùng màu chữ semantic |
+| **Icon có màu nền đậm** | Icon trong card stat có `bg-green-500`, `bg-blue-500` | Quá rối, nên đơn giản hơn |
+| **Padding lớn** | Nhiều nơi dùng `p-6`, `p-4` | Nên compact hơn với `p-2`, `p-3` |
+| **Font size lớn** | Tiêu đề `text-3xl`, giá trị `text-2xl` | Có thể giảm mật độ |
+| **Thiếu nhất quán** | Mỗi trang có style khác nhau | Cần thống nhất |
 
 ---
 
-### KẾ HOẠCH CẢI THIỆN
+### GIẢI PHÁP CHI TIẾT
 
-#### Giai đoạn 1: CSS Optimizations (Ưu tiên cao)
+#### 1. Cập nhật Layout Super Admin
 
-**File: `src/index.css`**
+**File: `src/components/super-admin/SuperAdminLayout.tsx`**
 
-| Thay đổi | Mục đích |
+| Thay đổi | Chi tiết |
 |----------|----------|
-| Thêm `overscroll-behavior: contain` cho mobile | Ngăn pull-to-refresh mặc định của browser, ngăn bounce scroll |
-| Thêm `scroll-behavior: smooth` | Cuộn mượt mà hơn |
-| Thêm `touch-action: manipulation` mặc định | Loại bỏ delay 300ms trên tap |
-| Thêm `will-change` utility classes | GPU acceleration cho animations |
+| Giảm header height | `h-16` → `h-14` |
+| Compact sidebar | Giảm padding navigation items |
+| Bỏ gradient logo | Dùng màu đơn sắc |
+| Giảm font tiêu đề | `text-2xl` → `text-xl` |
 
-```css
-/* Thêm vào @layer base */
-@media screen and (max-width: 768px) {
-  html, body {
-    overscroll-behavior: contain;
-    touch-action: manipulation;
-  }
-  
-  .scrollable-area {
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
-  }
-}
+#### 2. Refactor Dashboard Components
 
-.will-change-transform {
-  will-change: transform;
-}
+**File: `src/components/super-admin/dashboard/AdvancedDashboard.tsx`**
 
-/* Tối ưu cho reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+**MetricCard Component mới:**
+```typescript
+function MetricCard({ title, value, change, trend, subtitle, icon: Icon }: MetricCardProps) {
+  return (
+    <div className="p-3 border rounded-lg">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs text-muted-foreground">{title}</span>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <div className="text-xl font-semibold">{value}</div>
+      {change && (
+        <div className={cn(
+          "flex items-center gap-1 mt-1 text-xs",
+          trend === 'up' ? "text-green-600" : "text-red-600"
+        )}>
+          {trend === 'up' ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+          <span>{change}</span>
+        </div>
+      )}
+      {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+    </div>
+  );
 }
 ```
 
-#### Giai đoạn 2: Refactor PullToRefresh (Ưu tiên cao)
+**Bỏ gradient header actions, dùng style đơn giản:**
+```typescript
+<div className="flex items-center justify-between border-b pb-4 mb-4">
+  <div>
+    <h1 className="text-xl font-semibold">{t('dashboard.title')}</h1>
+    <p className="text-xs text-muted-foreground">{t('dashboard.subtitle')}</p>
+  </div>
+  <div className="flex gap-2">
+    <Button variant="outline" size="sm" onClick={() => refetch()}>
+      <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+      Làm mới
+    </Button>
+  </div>
+</div>
+```
 
-**File: `src/hooks/usePullToRefresh.ts`**
+#### 3. Cập nhật HealthIndicators
 
-| Thay đổi | Mục đích |
-|----------|----------|
-| Nhận `containerRef` thay vì gắn vào document | Scope chính xác, không conflict |
-| Kiểm tra element.scrollTop thay vì window.scrollY | Hoạt động đúng trong nested scroll |
-| Dùng `passive: true` cho touchstart/end | Cải thiện scroll performance |
+**File: `src/components/super-admin/dashboard/HealthIndicators.tsx`**
 
-**File: `src/components/mobile/PullToRefresh.tsx`**
-
-| Thay đổi | Mục đích |
-|----------|----------|
-| Hợp nhất 2 versions thành 1 | Nhất quán |
-| Thêm `will-change: transform` khi pulling | Smooth animation |
-| Export từ một nơi duy nhất | Tránh confusion |
-
-#### Giai đoạn 3: Tối ưu Swipe Components
-
-**File: `src/components/mobile/SwipeableCard.tsx`**
+**Thay đổi:** Bỏ màu nền, chỉ dùng màu chữ semantic
 
 ```typescript
-// Thêm will-change khi đang swipe
-style={{
-  transform: `translateX(${swipeOffset}px)`,
-  transition: swipeOffset === 0 ? 'transform 0.2s ease-out' : 'none',
-  willChange: swipeOffset !== 0 ? 'transform' : 'auto'
-}}
+// Trước
+<div className="p-4 rounded-lg border-2 bg-green-50 border-green-200">
+
+// Sau  
+<div className="p-3 border rounded-lg">
+  <div className="flex items-center gap-2 mb-2">
+    <CheckCircle2 className="h-4 w-4 text-green-600" />
+    <span className="text-xs text-muted-foreground">{indicator.name}</span>
+  </div>
+  <div className={cn(
+    "text-lg font-semibold",
+    indicator.status === 'good' ? 'text-green-600' : 
+    indicator.status === 'warning' ? 'text-amber-600' : 'text-red-600'
+  )}>
+    {indicator.value}
+  </div>
+</div>
 ```
 
-**File: `src/components/rooms/check-steps/item-type-tabs/SwipeableItemRow.tsx`**
+#### 4. Cập nhật QuickActions
 
-| Thay đổi | Mục đích |
-|----------|----------|
-| Thêm dragElastic với giá trị thấp hơn | Cảm giác tự nhiên hơn |
-| Thêm dragConstraints | Giới hạn swipe distance |
+**File: `src/components/super-admin/dashboard/QuickActions.tsx`**
 
-#### Giai đoạn 4: Bottom Navigation & Fixed Elements
-
-**File: `src/components/layout/BottomNav.tsx`**
-
-```tsx
-// Đổi từ transition-all sang transition cụ thể
-className="transition-colors duration-200"  // thay vì transition-all
-```
-
-**File: `src/components/layout/MobileHeader.tsx`**
-
-```tsx
-// Thêm will-change cho sticky header
-className="sticky top-0 z-40 bg-background border-b shadow-sm safe-area-top will-change-transform"
-```
-
-#### Giai đoạn 5: Framer Motion Configuration
-
-**File mới: `src/lib/motion.ts`**
+**Thay đổi:** Bỏ Card wrapper, bỏ màu nền button
 
 ```typescript
-export const reducedMotionConfig = {
-  reducedMotion: "user" as const
+// Trước
+<Button className="bg-purple-600 hover:bg-purple-700 text-white">
+
+// Sau
+<Button variant="ghost" className="w-full justify-start gap-2 h-8 text-sm">
+  <Tag className="h-3.5 w-3.5 text-purple-600" />
+  {t('quickActions.createPromoCode')}
+</Button>
+```
+
+#### 5. Thống nhất Stats Cards trên tất cả trang
+
+**Áp dụng cho các files:**
+- `src/components/super-admin/promo-codes/AdvancedPromoCodesManagement.tsx`
+- `src/components/super-admin/campaigns/AdvancedCampaignManagement.tsx`  
+- `src/components/super-admin/reminders/AdvancedReminderManagement.tsx`
+
+**Pattern mới cho stat cards:**
+```typescript
+<div className="grid gap-3 md:grid-cols-4">
+  {stats.map((stat) => (
+    <div key={stat.title} className="p-3 border rounded-lg">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">{stat.title}</span>
+        <stat.icon className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <div className="text-xl font-semibold mt-2">{stat.value}</div>
+      <p className="text-xs text-muted-foreground">{stat.description}</p>
+    </div>
+  ))}
+</div>
+```
+
+#### 6. Cập nhật Tables
+
+**File: `src/components/super-admin/tenants/TenantsTable.tsx`**
+
+| Thay đổi | Chi tiết |
+|----------|----------|
+| Badge status | Bỏ màu nền, chỉ dùng màu chữ |
+| Cell padding | Giảm từ `p-4` → `p-2` |
+| Font size | `text-sm` cho nội dung, `text-xs` cho phụ |
+
+```typescript
+// Status badge mới
+<span className={cn(
+  "text-xs font-medium",
+  actualStatus === 'active' ? 'text-green-600' :
+  actualStatus === 'trial' ? 'text-blue-600' :
+  actualStatus === 'expired' ? 'text-red-600' :
+  'text-muted-foreground'
+)}>
+  {getStatusLabel(actualStatus)}
+</span>
+```
+
+#### 7. Cập nhật Filter Cards
+
+**Tất cả trang có filters:**
+
+```typescript
+// Trước
+<Card className="p-4">
+  <div className="flex flex-wrap gap-4">...</div>
+</Card>
+
+// Sau
+<div className="flex flex-wrap gap-3 pb-4 border-b mb-4">
+  <div className="relative flex-1 min-w-[200px] max-w-xs">
+    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+    <Input placeholder="Tìm kiếm..." className="h-8 pl-8 text-sm" />
+  </div>
+  <Select>
+    <SelectTrigger className="w-[160px] h-8">...</SelectTrigger>
+  </Select>
+</div>
+```
+
+#### 8. Tạo Shared Components
+
+**File mới: `src/components/super-admin/shared/StatCard.tsx`**
+
+```typescript
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  icon: LucideIcon;
+  description?: string;
+  trend?: { value: number; label: string };
 }
 
-export const mobileOptimizedTransition = {
-  type: "tween",
-  duration: 0.2,
-  ease: "easeOut"
+export function StatCard({ title, value, icon: Icon, description, trend }: StatCardProps) {
+  return (
+    <div className="p-3 border rounded-lg">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">{title}</span>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <div className="text-xl font-semibold mt-2">{value}</div>
+      {description && <p className="text-xs text-muted-foreground">{description}</p>}
+      {trend && (
+        <div className={cn(
+          "flex items-center gap-1 mt-1 text-xs",
+          trend.value > 0 ? "text-green-600" : "text-red-600"
+        )}>
+          {trend.value > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+          <span>{trend.value > 0 ? '+' : ''}{trend.value}%</span>
+          <span className="text-muted-foreground">{trend.label}</span>
+        </div>
+      )}
+    </div>
+  );
 }
 ```
 
-Áp dụng cho các components dùng framer-motion.
+**File mới: `src/components/super-admin/shared/PageHeader.tsx`**
+
+```typescript
+interface PageHeaderProps {
+  title: string;
+  description?: string;
+  actions?: React.ReactNode;
+}
+
+export function PageHeader({ title, description, actions }: PageHeaderProps) {
+  return (
+    <div className="flex items-center justify-between border-b pb-4 mb-4">
+      <div>
+        <h1 className="text-xl font-semibold">{title}</h1>
+        {description && (
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+        )}
+      </div>
+      {actions && <div className="flex gap-2">{actions}</div>}
+    </div>
+  );
+}
+```
 
 ---
 
-### TÓM TẮT THAY ĐỔI
+### TỔNG KẾT CÁC FILE CẦN SỬA
 
 | File | Thay đổi |
 |------|----------|
-| `src/index.css` | Thêm CSS mobile optimizations |
-| `src/hooks/usePullToRefresh.ts` | Refactor để scope vào container |
-| `src/components/mobile/PullToRefresh.tsx` | Hợp nhất và tối ưu |
-| `src/components/mobile/TouchOptimized.tsx` | Xóa version trùng lặp |
-| `src/components/mobile/SwipeableCard.tsx` | Thêm will-change |
-| `src/components/layout/BottomNav.tsx` | Tối ưu transitions |
-| `src/components/layout/MobileHeader.tsx` | Thêm will-change |
-| `src/lib/motion.ts` (mới) | Cấu hình Framer Motion cho mobile |
+| `src/components/super-admin/SuperAdminLayout.tsx` | Compact layout |
+| `src/components/super-admin/dashboard/AdvancedDashboard.tsx` | Refactor MetricCard, StatusCard |
+| `src/components/super-admin/dashboard/HealthIndicators.tsx` | Bỏ màu nền, dùng màu chữ |
+| `src/components/super-admin/dashboard/QuickActions.tsx` | Simplify buttons |
+| `src/components/super-admin/tenants/AdvancedTenantsManagement.tsx` | Compact filters |
+| `src/components/super-admin/tenants/TenantsTable.tsx` | Compact table, text-based status |
+| `src/components/super-admin/promo-codes/AdvancedPromoCodesManagement.tsx` | Refactor stat cards |
+| `src/components/super-admin/campaigns/AdvancedCampaignManagement.tsx` | Refactor stat cards |
+| `src/components/super-admin/reminders/AdvancedReminderManagement.tsx` | Refactor stat cards, QuickActionButton |
+| `src/components/super-admin/pricing/PricingPlansTable.tsx` | Giảm gradient, compact style |
+| `src/components/super-admin/shared/StatCard.tsx` | **Mới** - Reusable stat card |
+| `src/components/super-admin/shared/PageHeader.tsx` | **Mới** - Reusable page header |
 
 ---
 
@@ -212,9 +270,9 @@ export const mobileOptimizedTransition = {
 
 | Trước | Sau |
 |-------|-----|
-| Scroll giật khi chạm vào đầu/cuối | Cuộn mượt, không bounce không mong muốn |
-| Pull-to-refresh xung đột với modal scroll | Hoạt động độc lập trong từng container |
-| Swipe animation có thể lag | GPU-accelerated, mượt 60fps |
-| Tap có delay 300ms | Phản hồi ngay lập tức |
-| Fixed header/nav có thể flicker | Render ổn định với will-change |
+| Cards có shadow nhiều tầng | Flat với border đơn giản |
+| Badge màu nền rực rỡ | Chỉ màu chữ semantic |
+| Icon trong ô màu đậm | Icon màu nhạt, minimalist |
+| Padding lớn, font lớn | Compact, mật độ cao |
+| Style không nhất quán | Thống nhất qua shared components |
 
