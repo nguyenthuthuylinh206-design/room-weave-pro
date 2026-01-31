@@ -1,5 +1,5 @@
 import { UseFormReturn } from 'react-hook-form'
-import { X, Star, CheckCircle2, XCircle, Loader2, Shirt, Droplets, Tv, Send, RefreshCw, Package, Wrench, Minus, AlertTriangle, User, Calendar, ChevronDown, ChevronUp, Camera, ClipboardCheck, LogIn, LogOut, Settings } from 'lucide-react'
+import { X, Star, CheckCircle2, XCircle, Loader2, Shirt, Droplets, Tv, Send, RefreshCw, Package, Wrench, Minus, AlertTriangle, User, Calendar, ChevronDown, ChevronUp, Camera, ClipboardCheck, LogIn, LogOut, Settings, PackagePlus } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
@@ -31,6 +31,7 @@ const CHECK_TYPE_ICONS: Record<CheckType, any> = {
   checkout: LogOut,
   maintenance: Settings,
   delivery: Package,
+  replenish: PackagePlus,
 }
 
 export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStepProps) {
