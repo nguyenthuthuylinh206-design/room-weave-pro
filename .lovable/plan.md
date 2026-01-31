@@ -1,248 +1,238 @@
 
 
-## Kế hoạch Sửa Logic - Click Room trong Phiếu Giao Hàng
+## Phân tích Quy trình Giao Hàng từ Kho cho Nhân viên
 
-### I. VẤN ĐỀ HIỆN TẠI
+### I. HIỆN TRẠNG HỆ THỐNG
 
-Khi click vào **P101** trong phiếu giao hàng đang ở trạng thái **"chờ giao" (pending)**, hệ thống chuyển thẳng đến trang `/rooms/{room_id}/check` - đây là trang **kiểm tra phòng** (Room Check).
+**Database hiện tại cho order `65ec3198...`:**
 
-**Điều này không đúng logic** vì:
+| Field | Value |
+|-------|-------|
+| Order Status | `pending` |
+| Batch Status | `open` |
+| Assigned To | `NV Linh` (staff) |
+| Released At | `null` |
+| Received At | `null` |
 
-| Trạng thái phiếu | Cho phép click room? | Mục đích click |
-|------------------|---------------------|----------------|
-| `pending` | KHÔNG nên | Chưa có hàng để giao |
-| `released` | KHÔNG nên | Nhân viên chưa xác nhận nhận hàng |
-| `in_progress` | CÓ | Giao hàng đến phòng |
-| `completed` | CÓ (chỉ xem) | Xác nhận bổ sung đúng vị trí |
+**Code logic hiện tại (RouteDetailView.tsx line 149-153):**
 
-### II. QUY TRÌNH GIAO HÀNG CHUẨN
+```typescript
+onHandoverBatch={
+  route.status === 'pending' && isStorekeeper && firstPendingBatch
+    ? handleHandoverFirstBatch
+    : undefined
+}
+```
+
+**Điều kiện để hiển thị nút "Giao hàng cho nhân viên":**
+1. `route.status === 'pending'` ✅ (đúng)
+2. `isStorekeeper === true` ❓ (cần check user đang login)
+3. `firstPendingBatch` có tồn tại ✅ (batch_status = 'open')
+
+### II. VẤN ĐỀ PHÁT HIỆN
+
+**Vấn đề: `isStorekeeper` check không đúng**
+
+```typescript
+// Line 51-53 RouteDetailView.tsx
+const userLevel = (user as any)?.user_level_code || ''
+const isStorekeeper = ['tenant_owner', 'manager', 'warehouse_manager', 'storekeeper'].includes(userLevel)
+```
+
+Nếu user đang login là `staff` (NV Linh - người được phân công), họ KHÔNG phải storekeeper nên nút không hiển thị.
+
+**Workflow chuẩn cần có:**
+- Người TẠO phiếu (manager) giao cho NV (staff)
+- Manager cần GIAO HÀNG cho staff trước
+- Nhưng nếu manager không vào lại phiếu để giao → phiếu bị stuck ở `pending`
+
+### III. QUY TRÌNH GIAO HÀNG CHUẨN
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ BƯỚC 1: TẠO PHIẾU GIAO HÀNG                                                  │
-│ ────────────────────────────                                                 │
-│ • Nhân viên kho hoặc quản lý tạo phiếu từ supplement requests                │
-│ • Phiếu status = "pending"                                                   │
-│ • Các room_order status = "pending"                                          │
-│ • Giao cho nhân viên (assigned_to)                                           │
-│                                                                              │
-│ → Lúc này: KHÔNG AI có thể giao đồ vào phòng                                │
-│ → Click room: Chỉ XEM thông tin, không navigate đến Room Check              │
+│ BƯỚC 0: CHUẨN BỊ                                                             │
+│ ─────────────────                                                            │
+│ Ai: Quản lý kho / Manager                                                    │
+│ Hành động: Tạo phiếu giao hàng từ supplement requests                        │
+│ Kết quả:                                                                     │
+│   - distribution_orders.status = 'pending'                                   │
+│   - distribution_order_batches.status = 'open'                               │
+│   - Chọn assigned_to (nhân viên sẽ giao)                                    │
 └──────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ BƯỚC 2: GIAO PHIẾU CHO NHÂN VIÊN (Handover Batch)                            │
+│ BƯỚC 1: GIAO HÀNG CHO NHÂN VIÊN (Handover Batch)                             │
 │ ────────────────────────────────────────────────────                         │
-│ • Quản lý kho (Storekeeper) lấy hàng theo danh sách                          │
-│ • Click "Giao hàng cho nhân viên"                                            │
-│ • Batch status = "open" → "handed_over"                                      │
-│ • Phiếu status = "pending" → "released"                                      │
-│                                                                              │
-│ → Lúc này: Nhân viên nhận được thông báo có hàng chờ nhận                   │
-│ → Click room: Vẫn không thể giao (chờ nhân viên confirm nhận hàng)          │
+│ Ai: Quản lý kho / Storekeeper (user_level = manager, warehouse_manager,      │
+│     storekeeper, tenant_owner)                                               │
+│ Điều kiện:                                                                   │
+│   - Order status = 'pending'                                                 │
+│   - Batch status = 'open'                                                    │
+│   - User có quyền storekeeper                                                │
+│ Hành động: Click "Giao hàng cho nhân viên"                                   │
+│ RPC: handover_batch(batch_id)                                                │
+│ Kết quả:                                                                     │
+│   - Batch status: 'open' → 'handed_over'                                     │
+│   - Order status: 'pending' → 'released'                                     │
+│   - KHÔNG trừ tồn kho (chỉ chuyển trạng thái)                               │
 └──────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ BƯỚC 3: NHÂN VIÊN XÁC NHẬN NHẬN HÀNG (Confirm Receive)                       │
+│ BƯỚC 2: NHÂN VIÊN XÁC NHẬN NHẬN HÀNG (Confirm Receive)                       │
 │ ────────────────────────────────────────────────────────                     │
-│ • Assignee click "Xác nhận đã nhận đủ hàng"                                  │
-│ • Phiếu status = "released" → "in_progress"                                  │
-│                                                                              │
-│ → Lúc này: Nhân viên có thể bắt đầu giao đồ đến từng phòng                  │
-│ → Click room: Mở trang Room Check để ghi nhận bổ sung                       │
+│ Ai: Nhân viên được phân công (assigned_to)                                   │
+│ Điều kiện:                                                                   │
+│   - Order status = 'released'                                                │
+│   - User là assignee                                                         │
+│ Hành động: Click "Xác nhận đã nhận đủ hàng"                                  │
+│ RPC: confirm_receive_order(order_id)                                         │
+│ Kết quả:                                                                     │
+│   - Order status: 'released' → 'in_progress'                                 │
+│   - Batch status: 'handed_over' → 'received'                                 │
+│   - TRỪ TỒN KHO (inventory_transactions created)                            │
+│   - items.quantity_in_stock giảm                                             │
+│   - items.quantity_pending tăng                                              │
 └──────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ BƯỚC 4: GIAO ĐỒ ĐẾN PHÒNG (Deliver Stop)                                     │
+│ BƯỚC 3: GIAO ĐẾN TỪNG PHÒNG (Deliver Stop)                                   │
 │ ──────────────────────────────────────────                                   │
-│ • Nhân viên đến phòng                                                        │
-│ • HOẶC: Click nút "GIAO" → Xác nhận đã giao (không vào phòng)               │
-│ • HOẶC: Click room number → Vào Room Check để ghi nhận chi tiết             │
-│ • Room order status = "pending" → "delivered"                                │
-│                                                                              │
-│ → Khi giao: Auto trigger update_room_items_for_distribution                 │
-│   (Cập nhật room_items với quantity mới)                                    │
+│ Ai: Nhân viên được phân công (assignee)                                      │
+│ Điều kiện:                                                                   │
+│   - Order status = 'in_progress'                                             │
+│   - Room stop_status = 'pending'                                             │
+│ Hành động: Click nút "GIAO" tại từng phòng                                   │
+│ RPC: deliver_stop(room_order_id)                                             │
+│ Kết quả:                                                                     │
+│   - Stop status: 'pending' → 'delivered'                                     │
+│   - room_items được cập nhật                                                │
+│   - items.quantity_pending giảm                                              │
 └──────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ BƯỚC 5: XÁC NHẬN BỔ SUNG ĐÚNG VỊ TRÍ (Confirm Room Delivery)                 │
-│ ────────────────────────────────────────────────────────────                 │
-│ • Nhân viên buồng (hoặc quản lý) vào phòng kiểm tra                          │
-│ • Xác nhận đồ đã được bổ sung đúng vị trí                                   │
-│ • Room order status = "delivered" → "confirmed"                              │
-│                                                                              │
-│ → Đây là xác nhận từ góc nhìn PHÒNG (RoomDistributionHistory)               │
-│ → Khác với GIAO từ góc nhìn PHIẾU (UnifiedRoomList)                         │
+│ BƯỚC 4: HOÀN THÀNH (Complete/Close)                                          │
+│ ───────────────────────────────────                                          │
+│ Ai: Manager/Leader                                                           │
+│ Điều kiện:                                                                   │
+│   - Tất cả stops đã delivered/resolved                                       │
+│   - Không còn stop nào pending hoặc cannot_access                           │
+│ Hành động: Click "Đóng phiếu"                                               │
+│ RPC: close_route_if_complete(order_id)                                       │
+│ Kết quả:                                                                     │
+│   - Order status: 'in_progress' → 'completed' → 'closed'                     │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### III. VẤN ĐỀ CODE HIỆN TẠI
+### IV. NGUYÊN NHÂN CHƯA CÓ NÚT "GIAO HÀNG CHO NHÂN VIÊN"
 
-**File: `UnifiedRoomList.tsx` (line 188-190)**
+**Kịch bản lỗi:**
+1. Manager tạo phiếu, assign cho staff
+2. Manager ĐÓNG phiếu mà KHÔNG click "Giao hàng cho nhân viên"
+3. Staff vào xem phiếu → **Không thấy nút gì** vì:
+   - Staff không phải `isStorekeeper` → không có nút "Giao hàng"
+   - Order không phải `released` → không có nút "Xác nhận nhận hàng"
 
+**Vấn đề UX:**
+- Manager cần QUAY LẠI phiếu để giao → dễ quên
+- Staff bị stuck → không biết phải làm gì
+
+### V. GIẢI PHÁP ĐỀ XUẤT
+
+#### Giải pháp 1: Auto-Release khi tạo phiếu (đã có sẵn)
+
+Khi tạo phiếu từ supplement requests, có option `auto_release`:
+- Nếu `auto_release = true` → Phiếu tự động chuyển `released`
+- Staff có thể nhận hàng ngay
+
+**Đây là flow "Giao ngay" cho trường hợp đơn giản.**
+
+#### Giải pháp 2: Hiển thị trạng thái rõ ràng hơn cho Staff
+
+Khi staff vào phiếu đang `pending`:
+- Hiển thị message: "Chờ quản lý kho giao hàng cho bạn"
+- Có thể thêm nút "Nhắc nhở" để gửi notification cho manager
+
+**Code hiện tại đã có (line 113-120 DeliveryStepWizard.tsx):**
 ```typescript
-const handleRoomClick = (stop: RouteStop) => {
-  navigate(`/rooms/${stop.room_id}/check?distribution_order_id=${stop.distribution_order_id}&room_order_id=${stop.id}`)
-}
-```
-
-**Vấn đề:**
-1. Không check `orderStatus` trước khi cho phép navigate
-2. Khi order đang `pending` hoặc `released`, không nên cho click vào phòng
-3. Gây hiểu nhầm: "click để giao" trong khi chưa có hàng
-
-### IV. PHƯƠNG ÁN SỬA
-
-#### 4.1. Chặn Navigate khi Order chưa In Progress
-
-**Thay đổi trong `UnifiedRoomList.tsx`:**
-
-```typescript
-// Truyền thêm prop orderStatus cho RoomCard
-<RoomCard
-  // ... existing props
-  orderStatus={orderStatus}  // ← THÊM
-/>
-
-// Trong RoomCard, sửa handleRoomClick:
-const handleRoomClick = () => {
-  // Chỉ cho phép navigate khi order đang in_progress hoặc completed
-  if (orderStatus !== 'in_progress' && orderStatus !== 'completed') {
-    // Không navigate, có thể show toast hoặc không làm gì
-    return
-  }
-  navigate(`/rooms/${stop.room_id}/check?...`)
-}
-```
-
-#### 4.2. Thay đổi UI để phản ánh trạng thái
-
-| Trạng thái | Click room | UI |
-|------------|------------|-----|
-| `pending` | Không clickable | Bỏ cursor-pointer, bỏ hover effect |
-| `released` | Không clickable | Hiển thị "Chờ nhận hàng" |
-| `in_progress` | Clickable → Room Check | Có cursor-pointer, ChevronRight |
-| `completed` | Clickable → View | Xem chi tiết đã giao |
-
-#### 4.3. Làm rõ mục đích click
-
-Khi click vào phòng từ phiếu giao hàng:
-- **Mục đích chính**: Mở Room Check để ghi nhận bổ sung đồ vào phòng
-- **KHÔNG** phải để "deliver" - việc deliver được làm bằng nút "GIAO"
-
-### V. FILES CẦN SỬA
-
-| File | Thay đổi |
-|------|----------|
-| `UnifiedRoomList.tsx` | Truyền `orderStatus` cho RoomCard, chặn navigate khi không phù hợp |
-| `RoomCard` (trong UnifiedRoomList.tsx) | Thêm prop `orderStatus`, sửa `handleRoomClick`, sửa UI |
-
-### VI. CHI TIẾT THAY ĐỔI
-
-#### 6.1. RoomCardProps - Thêm orderStatus
-
-```typescript
-interface RoomCardProps {
-  // ... existing props
-  orderStatus: string  // ← THÊM
-}
-```
-
-#### 6.2. RoomCard - Sửa logic click
-
-```typescript
-function RoomCard({
-  // ... existing props
-  orderStatus,  // ← THÊM
-}: RoomCardProps) {
-  // ...
-  
-  // Xác định có thể click hay không
-  const canClickRoom = orderStatus === 'in_progress' || orderStatus === 'completed'
-  
-  // Handler click
-  const handleRoomClick = () => {
-    if (!canClickRoom) return
-    onRoomClick()
-  }
-  
+} else if (isAssignee) {
   return (
-    <div className={...}>
-      <div 
-        className={cn(
-          "flex items-center gap-2 min-w-0 flex-1",
-          canClickRoom ? "cursor-pointer group" : "cursor-default"  // ← SỬA
-        )}
-        onClick={canClickRoom ? handleRoomClick : undefined}  // ← SỬA
-      >
-        {/* Room number */}
-        <span className="text-sm font-bold shrink-0">{stop.room_number}</span>
-        
-        {/* ... items text ... */}
-        
-        {/* ChevronRight - chỉ hiện khi có thể click */}
-        {canClickRoom && (
-          <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-        )}
-      </div>
-      
-      {/* ... rest of card ... */}
+    <div className="flex items-center gap-3 text-amber-600">
+      <Clock className="h-5 w-5" />
+      <p className="text-sm">Vui lòng chờ quản lý kho giao hàng cho bạn</p>
     </div>
   )
 }
 ```
 
-#### 6.3. Truyền prop từ map
+#### Giải pháp 3: Cho phép người tạo phiếu cũng có thể giao
+
+Mở rộng điều kiện `isStorekeeper` để include người tạo phiếu:
 
 ```typescript
-<RoomCard
-  key={stop.id}
-  stop={stop}
-  // ... existing props
-  orderStatus={orderStatus}  // ← THÊM từ UnifiedRoomList props
-  // ...
-/>
+const isStorekeeper = 
+  ['tenant_owner', 'manager', 'warehouse_manager', 'storekeeper'].includes(userLevel) ||
+  user?.id === route?.created_by  // Người tạo phiếu cũng có thể giao
 ```
 
-### VII. LOGIC TEST SCENARIOS
+### VI. KẾ HOẠCH TRIỂN KHAI
 
-| # | Scenario | Order Status | Click Room | Expected |
-|---|----------|--------------|------------|----------|
-| 1 | Phiếu mới tạo | `pending` | Click P101 | Không navigate, không phản hồi |
-| 2 | Đã giao NV | `released` | Click P101 | Không navigate |
-| 3 | Đang giao | `in_progress` | Click P101 | Navigate → Room Check |
-| 4 | Hoàn thành | `completed` | Click P101 | Navigate → View chi tiết |
-| 5 | Nút GIAO | `in_progress` | Click "GIAO" | Deliver stop (không navigate) |
+#### 6.1. Sửa điều kiện `isStorekeeper` (RouteDetailView.tsx)
 
-### VIII. TÓM TẮT FLOW CHUẨN
+**Thay đổi:**
+```typescript
+// Hiện tại
+const isStorekeeper = ['tenant_owner', 'manager', 'warehouse_manager', 'storekeeper'].includes(userLevel)
+
+// Sau khi sửa
+const isStorekeeper = 
+  ['tenant_owner', 'manager', 'warehouse_manager', 'storekeeper'].includes(userLevel) ||
+  user?.id === route?.created_by
+```
+
+#### 6.2. Cải thiện messaging trong DeliveryStepWizard
+
+**Khi staff chờ:**
+- Hiển thị tên người cần giao hàng (creator hoặc storekeeper)
+- Có thể thêm nút "Gửi nhắc nhở" (optional, tương lai)
+
+### VII. FILES CẦN SỬA
+
+| File | Thay đổi |
+|------|----------|
+| `RouteDetailView.tsx` | Mở rộng điều kiện `isStorekeeper` để include `created_by` |
+| `DeliveryStepWizard.tsx` | (Optional) Cải thiện message khi staff chờ |
+
+### VIII. TEST SCENARIOS
+
+| # | Vai trò | Order Status | Expected UI |
+|---|---------|--------------|-------------|
+| 1 | Manager (creator) | `pending` | Thấy nút "Giao hàng cho nhân viên" |
+| 2 | Storekeeper | `pending` | Thấy nút "Giao hàng cho nhân viên" |
+| 3 | Staff (assignee) | `pending` | Thấy message "Chờ quản lý kho giao..." |
+| 4 | Staff (assignee) | `released` | Thấy nút "Xác nhận đã nhận đủ hàng" |
+| 5 | Staff (assignee) | `in_progress` | Thấy danh sách phòng + nút "GIAO" |
+| 6 | Manager | `in_progress` | Thấy progress, không có action |
+| 7 | Manager | `completed` | Thấy nút "Đóng phiếu" |
+
+### IX. TÓM TẮT QUY TRÌNH
 
 ```text
-PHIẾU GIAO HÀNG:
-├── Tạo phiếu (pending)
-│   └── Room: Không click được
-├── Giao cho NV (released) 
-│   └── Room: Không click được
-├── NV nhận hàng (in_progress)
-│   ├── Room: Click được → Mở Room Check
-│   └── Nút GIAO: Click → Xác nhận đã giao
-└── Hoàn thành (completed)
-    └── Room: Click được → Xem chi tiết
+TẠO PHIẾU              GIAO CHO NV           NV NHẬN HÀNG           GIAO PHÒNG            HOÀN THÀNH
+(Manager)              (Manager/Kho)         (Staff)                (Staff)               (Manager)
+    │                      │                     │                      │                     │
+    ▼                      ▼                     ▼                      ▼                     ▼
+┌────────┐            ┌────────┐            ┌────────┐            ┌────────┐            ┌────────┐
+│pending │ ────────▶ │released│ ────────▶ │in_prog │ ────────▶ │completed│ ────────▶ │closed  │
+└────────┘            └────────┘            └────────┘            └────────┘            └────────┘
+                      handover_              confirm_              deliver_             close_route
+                      batch()                receive_order()       stop()              if_complete()
 
-XÁC NHẬN TẠI PHÒNG (RoomDistributionHistory):
-└── Nhân viên buồng vào Room Detail
-    └── Xem lịch sử giao hàng → Xác nhận bổ sung đúng
+               Không trừ kho          TRỪ KHO              Cập nhật             
+                                      (qty_in_stock ↓)     room_items           
+                                      (qty_pending ↑)      (qty_pending ↓)      
 ```
-
-### IX. KẾT LUẬN
-
-Việc click vào phòng khi phiếu đang `pending` là **không đúng logic** vì:
-1. Hàng chưa được release từ kho
-2. Nhân viên chưa nhận hàng
-3. Không có gì để giao vào phòng
-
-Cần chặn navigate và làm rõ UI để user hiểu trạng thái hiện tại.
 
