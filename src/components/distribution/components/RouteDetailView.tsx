@@ -6,7 +6,7 @@ import { UnifiedRoomList } from './UnifiedRoomList'
 import { DeliveryStepWizard } from './DeliveryStepWizard'
 import { ShiftBadge } from './ShiftBadge'
 import { OrderStatusBadge } from './DistributionStatusBadge'
-import { useRouteDetail, useCloseRoute, useConfirmReceiveOrder } from '@/hooks/useRouteBatch'
+import { useRouteDetail, useCloseRoute, useConfirmReceiveOrder, useHandoverBatch } from '@/hooks/useRouteBatch'
 import { useAuth } from '@/contexts/AuthContext'
 import { useQueryClient } from '@tanstack/react-query'
 import type { ShiftCode, RouteStatus } from '@/types/route-batch.types'
@@ -35,6 +35,16 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
   const { data: route, isLoading, error } = useRouteDetail(orderId)
   const closeRoute = useCloseRoute()
   const confirmReceive = useConfirmReceiveOrder()
+  const handoverBatch = useHandoverBatch()
+
+  // Get first pending batch for handover
+  const firstPendingBatch = route?.batches?.find(b => b.status === 'open')
+
+  // Handover batch handler
+  const handleHandoverFirstBatch = () => {
+    if (!firstPendingBatch) return
+    handoverBatch.mutate({ batchId: firstPendingBatch.id })
+  }
 
   // Check user roles based on user_level_code
   const isAssignee = user?.id === route?.assigned_to
@@ -136,8 +146,14 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
         pendingStops={pendingStops}
         isWarehouseManager={isStorekeeper}
         isAssignee={isAssignee}
+        onHandoverBatch={
+          route.status === 'pending' && isStorekeeper && firstPendingBatch
+            ? handleHandoverFirstBatch
+            : undefined
+        }
         onConfirmReceive={route.status === 'released' && isAssignee ? handleConfirmReceive : undefined}
         onCloseRoute={canClose ? () => closeRoute.mutate({ orderId: route.id }) : undefined}
+        isHandingOver={handoverBatch.isPending}
         isConfirmingReceive={confirmReceive.isPending}
         isClosing={closeRoute.isPending}
       />

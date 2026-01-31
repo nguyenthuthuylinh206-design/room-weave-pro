@@ -412,7 +412,7 @@ function RoomCard({
           className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer group"
           onClick={onRoomClick}
         >
-          <span className="text-sm font-bold shrink-0">P.{stop.room_number}</span>
+          <span className="text-sm font-bold shrink-0">{stop.room_number}</span>
           {isCompleted && (
             <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
           )}
