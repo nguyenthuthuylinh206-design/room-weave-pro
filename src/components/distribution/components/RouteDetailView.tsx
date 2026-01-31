@@ -50,7 +50,10 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
   const isAssignee = user?.id === route?.assigned_to
   const userLevel = (user as any)?.user_level_code || ''
   const isLeader = ['tenant_owner', 'manager', 'supervisor'].includes(userLevel)
-  const isStorekeeper = ['tenant_owner', 'manager', 'warehouse_manager', 'storekeeper'].includes(userLevel)
+  // Allow storekeeper roles OR order creator to handover
+  const isStorekeeper = 
+    ['tenant_owner', 'manager', 'warehouse_manager', 'storekeeper'].includes(userLevel) ||
+    user?.id === route?.created_by
 
   // Calculate progress
   const totalStops = route?.stops?.length || 0
