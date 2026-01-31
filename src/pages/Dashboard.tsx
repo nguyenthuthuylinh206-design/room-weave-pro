@@ -1,3 +1,4 @@
+import { Navigate } from 'react-router-dom'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard'
 import { ExpenseChart } from '@/components/dashboard/ExpenseChart'
@@ -13,7 +14,7 @@ import { useDashboardStats } from '@/hooks/useDashboardStats'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useTranslation } from 'react-i18next'
-import { isAdminUser, isTenantOwner } from '@/lib/userAccess'
+import { isTenantOwner, isSuperAdmin } from '@/lib/userAccess'
 
 export default function Dashboard() {
   const { t } = useTranslation('dashboard')
@@ -22,8 +23,12 @@ export default function Dashboard() {
   const { data: stats, isLoading } = useDashboardStats()
   const { isMobile } = useBreakpoint()
 
+  // Super Admin should use their dedicated dashboard
+  if (isSuperAdmin(user)) {
+    return <Navigate to="/super-admin" replace />
+  }
+
   // Check if user is owner (tenant_owner) - show executive dashboard
-  // Using unified userAccess utility for consistent role checks
   const isOwner = isTenantOwner(user)
 
   // Owner view - Financial focus
