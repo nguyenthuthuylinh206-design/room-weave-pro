@@ -4,3 +4,4 @@ export * from './useMarketingCampaigns';
 export * from './useRenewalReminders';
 export * from './usePricingManagement';
 export * from './useTenants';
+export * from './usePlatformSettings';

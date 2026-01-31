@@ -289,5 +289,57 @@
       "pdf": "Export PDF",
       "csv": "Export CSV"
     }
+  },
+  "settings": {
+    "title": "System Settings",
+    "subtitle": "Manage SaaS platform configuration",
+    "tabs": {
+      "payment": "Payment",
+      "platform": "Platform",
+      "email": "Email",
+      "maintenance": "Maintenance",
+      "audit": "Audit Log"
+    },
+    "platform": {
+      "subscriptionSettings": "Subscription Settings",
+      "trialPeriod": "Trial Period (days)",
+      "gracePeriod": "Grace Period (days)",
+      "defaultRooms": "Default Rooms",
+      "pricePerRoom": "Price per Room/Day (VND)",
+      "platformInfo": "Platform Information",
+      "platformName": "Platform Name",
+      "supportEmail": "Support Email"
+    },
+    "email": {
+      "smtpConfig": "SMTP Configuration",
+      "smtpHost": "SMTP Host",
+      "smtpPort": "SMTP Port",
+      "username": "Username",
+      "password": "Password",
+      "senderInfo": "Sender Information",
+      "senderEmail": "Sender Email",
+      "senderName": "Sender Name",
+      "testEmail": "Send Test Email",
+      "sendTest": "Send Test"
+    },
+    "maintenance": {
+      "maintenanceMode": "Maintenance Mode",
+      "maintenanceModeDesc": "When enabled, users will see maintenance page instead of the app",
+      "maintenanceMessage": "Maintenance Message",
+      "systemAnnouncement": "System Announcement",
+      "sendAnnouncement": "Send Announcement"
+    },
+    "audit": {
+      "title": "Activity History",
+      "search": "Search activities...",
+      "export": "Export CSV",
+      "time": "Time",
+      "admin": "Admin",
+      "action": "Action",
+      "entity": "Entity",
+      "details": "Details"
+    },
+    "save": "Save Settings",
+    "saved": "Settings Saved"
   }
 }
