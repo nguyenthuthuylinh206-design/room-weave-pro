@@ -1,74 +1,99 @@
 
 
-## Kế hoạch: Điều hướng Super Admin đúng trang
+## Kế hoạch: Sửa lỗi vòng lặp redirect cho Super Admin
 
-### VẤN ĐỀ HIỆN TẠI
+### NGUYÊN NHÂN
 
-Khi Super Admin truy cập route `/`:
-- `Dashboard.tsx` chỉ kiểm tra `isTenantOwner()` → false (vì Super Admin ≠ tenant_owner)
-- Không có logic cho Super Admin
-- **Kết quả**: Super Admin thấy OwnerDashboard (sai)
+Có sự **không nhất quán** giữa 2 cách kiểm tra Super Admin:
 
-```
-Luồng hiện tại:
-User → / → Dashboard.tsx → isTenantOwner? 
-                            ├─ Có → OwnerDashboard ❌ (Super Admin đang vào đây)
-                            └─ Không → ManagerDashboard
+```text
+Dashboard.tsx
+    └── useUser() → trả về user từ bảng `users` có `user_level_code`
+    └── isSuperAdmin(user) → ĐÚNG → redirect tới /super-admin
+
+SuperAdminLayout.tsx  
+    └── useSuperAdminAuth() → dùng useAuth() → auth user không có `user_level_code`
+    └── check user_level_code → KHÔNG CÓ → redirect về /
+    └── VÒNG LẶP VÔ TẬN
 ```
 
 ### GIẢI PHÁP
 
-Thêm kiểm tra `isSuperAdmin()` VÀO ĐẦU TIÊN trong `Dashboard.tsx`:
-- Nếu là Super Admin → Redirect tới `/super-admin`
-- Nếu là Tenant Owner → OwnerDashboard  
-- Nếu là Manager/Staff → ManagerDashboard
-
-```
-Luồng mới:
-User → / → Dashboard.tsx → isSuperAdmin?
-                            ├─ Có → Redirect /super-admin ✓
-                            └─ Không → isTenantOwner?
-                                        ├─ Có → OwnerDashboard
-                                        └─ Không → ManagerDashboard
-```
+Thống nhất cách kiểm tra Super Admin bằng cách sửa `useSuperAdminAuth.ts` để dùng `useUser()` thay vì `useAuth()` trực tiếp, vì `useUser()` trả về dữ liệu đầy đủ từ bảng `users`.
 
 ---
 
 ### CHI TIẾT THAY ĐỔI
 
-#### File: `src/pages/Dashboard.tsx`
+#### File: `src/hooks/useSuperAdminAuth.ts`
 
-**Thay đổi 1**: Import thêm `isSuperAdmin` và `Navigate`
+**Thay đổi chính:**
+- Import và sử dụng `useUser()` thay vì chỉ dùng `useAuth()`
+- Import `isSuperAdmin` từ `userAccess.ts` để thống nhất logic
+
+| Mục | Trước | Sau |
+|-----|-------|-----|
+| Lấy user data | `useAuth()` (auth user) | `useUser()` (user từ DB) |
+| Check super admin | `(user as any).user_level_code === 'super_admin'` | `isSuperAdmin(user)` từ userAccess |
+| Loading state | `loading` từ auth | `loading` từ auth + `isLoading` từ useUser |
+
+**Code mới:**
 
 ```typescript
-import { Navigate } from 'react-router-dom'
-import { isAdminUser, isTenantOwner, isSuperAdmin } from '@/lib/userAccess'
-```
+import { useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@/hooks/useUser';
+import { useToast } from '@/hooks/use-toast';
+import { isSuperAdmin } from '@/lib/userAccess';
 
-**Thay đổi 2**: Thêm kiểm tra Super Admin ngay đầu component
+export function useSuperAdminAuth() {
+  const { loading: authLoading, signOut: authSignOut } = useAuth();
+  const { user, isLoading: userLoading } = useUser();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
-```typescript
-export default function Dashboard() {
-  const { t } = useTranslation('dashboard')
-  const { user } = useUser()
-  const { selectedHotel, isAllHotelsMode } = useHotelContext()
-  const { data: stats, isLoading } = useDashboardStats()
-  const { isMobile } = useBreakpoint()
+  const isLoading = authLoading || userLoading;
+  const isSuperAdminUser = isSuperAdmin(user);
 
-  // Super Admin should use their dedicated dashboard
-  if (isSuperAdmin(user)) {
-    return <Navigate to="/super-admin" replace />
-  }
+  useEffect(() => {
+    // Wait for both auth and user data to load
+    if (isLoading) return;
 
-  // Check if user is owner (tenant_owner) - show executive dashboard
-  const isOwner = isTenantOwner(user)
+    // Check if user exists
+    if (!user) {
+      toast({
+        title: 'Yêu cầu đăng nhập',
+        description: 'Vui lòng đăng nhập để truy cập cổng quản trị.',
+        variant: 'destructive',
+      });
+      navigate('/auth/login');
+      return;
+    }
 
-  // Owner view - Financial focus
-  if (isOwner) {
-    return <OwnerDashboard />
-  }
+    // Check if user is super admin
+    if (!isSuperAdminUser) {
+      toast({
+        title: 'Truy cập bị từ chối',
+        description: 'Bạn không có quyền truy cập cổng quản trị viên cấp cao.',
+        variant: 'destructive',
+      });
+      navigate('/');
+      return;
+    }
+  }, [user, isLoading, isSuperAdminUser, navigate, toast]);
 
-  // ... rest of the component
+  const signOut = useCallback(async () => {
+    await authSignOut();
+    navigate('/auth/login');
+  }, [authSignOut, navigate]);
+
+  return { 
+    user, 
+    isLoading,
+    signOut,
+    isSuperAdmin: isSuperAdminUser,
+  };
 }
 ```
 
@@ -78,18 +103,18 @@ export default function Dashboard() {
 
 | File | Thay đổi |
 |------|----------|
-| `src/pages/Dashboard.tsx` | Thêm redirect cho Super Admin tới `/super-admin` |
+| `src/hooks/useSuperAdminAuth.ts` | Dùng `useUser()` + `isSuperAdmin()` từ userAccess thay vì check trực tiếp trên auth user |
 
-**Chỉ sửa 1 file**, thêm ~5 dòng code.
+**Chỉ sửa 1 file, ~30 dòng code**
 
 ---
 
 ### KẾT QUẢ MONG ĐỢI
 
-| User Role | Truy cập `/` | Kết quả |
-|-----------|-------------|---------|
-| **Super Admin** | `/` | Redirect → `/super-admin` |
-| Tenant Owner | `/` | OwnerDashboard |
-| Manager | `/` | ManagerDashboard |
-| Staff | `/` | MobileDashboard (mobile) / ManagerDashboard (desktop) |
+| User Role | Truy cập `/super-admin` | Kết quả |
+|-----------|-------------------------|---------|
+| Super Admin | `/super-admin` | Truy cập thành công, không còn flicker |
+| Tenant Owner | `/super-admin` | Redirect về `/` với toast "Truy cập bị từ chối" |
+| Manager/Staff | `/super-admin` | Redirect về `/` với toast "Truy cập bị từ chối" |
+| Chưa đăng nhập | `/super-admin` | Redirect về `/auth/login` |
 
