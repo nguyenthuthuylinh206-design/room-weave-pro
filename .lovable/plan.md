@@ -1,78 +1,87 @@
 
 
-## Kế hoạch: Sửa lỗi "Could not choose the best candidate function" cho confirm_receive_order
+## Kế hoạch: Sửa lỗi nút "GIAO" không hoạt động
 
-### NGUYÊN NHÂN
+### PHÂN TÍCH VẤN ĐỀ
 
-Database hiện có **2 function trùng tên** `confirm_receive_order`:
-- Phiên bản cũ: `(p_order_id uuid, p_actor_id uuid)`  
-- Phiên bản mới: `(p_order_id uuid, p_actor_id uuid, p_adjustments jsonb)`
+Dựa trên kiểm tra code và database, tôi phát hiện các vấn đề sau:
 
-Khi frontend gọi với 2 tham số, PostgreSQL không biết chọn function nào → lỗi "ambiguous function call".
+**1. Function `deliver_stop` bị trùng lặp trong database:**
+- Phiên bản cũ: `(p_stop_id uuid, p_actor_id uuid)` - 2 tham số
+- Phiên bản mới: `(p_room_order_id uuid, p_items_confirmed jsonb, p_actor_id uuid)` - 3 tham số
+
+Điều này tương tự lỗi `confirm_receive_order` đã sửa trước đó và có thể gây ra lỗi "ambiguous function call" trong một số trường hợp.
+
+**2. Quy trình giao hàng hiện tại:**
+```text
+pending → released → in_progress → completed → closed
+           ↑             ↑
+     (Kho giao)    (NV xác nhận)
+```
+
+Nút "GIAO" chỉ hoạt động khi phiếu ở trạng thái `in_progress`. Nếu chưa xác nhận nhận hàng, phiếu vẫn ở `released` và nút GIAO sẽ không hiển thị hoặc không hoạt động.
+
+**3. Lỗi tiếng Việt chưa được map:**
+Khi gọi `deliver_stop` thất bại, lỗi hiển thị bằng tiếng Anh kỹ thuật thay vì tiếng Việt thân thiện.
 
 ### GIẢI PHÁP
 
-**Phần 1: Sửa Database** - Xóa function cũ, chỉ giữ function mới có 3 tham số
-
-**Phần 2: Sửa Frontend** - Truyền đủ tham số `p_adjustments: null` và dịch lỗi sang tiếng Việt
-
----
-
-### THAY ĐỔI CHI TIẾT
-
-#### 1. Database Migration
+#### 1. Database Migration - Xóa function cũ
 
 ```sql
--- Xóa function cũ (2 tham số)
-DROP FUNCTION IF EXISTS public.confirm_receive_order(uuid, uuid);
-
--- Giữ lại function mới (3 tham số) đã có sẵn
+-- Xóa function deliver_stop cũ (2 tham số) để tránh conflict
+DROP FUNCTION IF EXISTS public.deliver_stop(uuid, uuid);
 ```
 
-#### 2. File: `src/hooks/useRouteBatch.ts`
+#### 2. Frontend - Map lỗi sang tiếng Việt
 
-**Dòng 555-560**: Thêm tham số `p_adjustments: null` để chỉ định rõ function cần gọi
+**File: `src/hooks/useRouteBatch.ts`**
 
-```typescript
-// Trước
-const { data, error } = await supabase.rpc('confirm_receive_order', {
-  p_order_id: orderId,
-  p_actor_id: user.id,
-})
-
-// Sau
-const { data, error } = await supabase.rpc('confirm_receive_order', {
-  p_order_id: orderId,
-  p_actor_id: user.id,
-  p_adjustments: null,  // Thêm để tránh ambiguous function call
-})
-```
-
-**Dòng 564-578**: Dịch thông báo lỗi sang tiếng Việt
+Thêm error mapping cho `useDeliverStop`:
 
 ```typescript
-// Sau khi nhận response, map error code sang tiếng Việt
-const ERROR_MESSAGES: Record<string, string> = {
-  ORDER_NOT_FOUND: 'Không tìm thấy phiếu giao hàng',
-  INVALID_STATUS: 'Phiếu chưa được giao từ kho hoặc đã được xác nhận rồi',
-  INSUFFICIENT_STOCK: 'Không đủ hàng trong kho để giao',
-  ADJUSTMENT_EXCEEDS_STOCK: 'Số lượng điều chỉnh vượt quá tồn kho',
-}
-
-if (!response.success) {
-  const errorCode = response.error || ''
-  const message = ERROR_MESSAGES[errorCode] || response.message || 'Có lỗi xảy ra, vui lòng thử lại'
-  throw new Error(message)
+const DELIVER_STOP_ERROR_MESSAGES: Record<string, string> = {
+  'Stop not found': 'Không tìm thấy phòng này trong phiếu',
+  'Room order not found': 'Không tìm thấy thông tin phòng',
+  'Order not in progress': 'Phiếu chưa ở trạng thái đang giao - vui lòng xác nhận nhận hàng trước',
+  'You are not assigned to this order': 'Bạn không được phân công cho phiếu này',
+  'You are not assigned to this route': 'Bạn không được phân công cho phiếu này',
+  'Batch not received yet': 'Hàng chưa được xác nhận nhận - vui lòng xác nhận nhận hàng trước',
+  'Batch not ready for delivery': 'Hàng chưa sẵn sàng để giao',
+  'Stop already processed': 'Phòng này đã được xử lý rồi',
 }
 ```
 
----
+Cập nhật `onError` để dịch message:
 
-### TÓM TẮT
+```typescript
+onError: (error: Error) => {
+  const originalMessage = error.message || ''
+  
+  // Tìm message phù hợp
+  let translatedMessage = 'Không thể giao hàng'
+  for (const [key, value] of Object.entries(DELIVER_STOP_ERROR_MESSAGES)) {
+    if (originalMessage.includes(key)) {
+      translatedMessage = value
+      break
+    }
+  }
+  
+  toast.error(translatedMessage)
+}
+```
+
+### TÓM TẮT THAY ĐỔI
 
 | Thay đổi | File | Mục đích |
 |----------|------|----------|
-| Migration | SQL | Xóa function cũ trùng lặp |
-| Thêm `p_adjustments: null` | useRouteBatch.ts | Tránh lỗi ambiguous call |
-| Error mapping | useRouteBatch.ts | Hiển thị lỗi tiếng Việt thay vì mã code |
+| Xóa function cũ | SQL Migration | Tránh conflict với function 2 tham số |
+| Thêm error mapping | useRouteBatch.ts | Hiển thị lỗi tiếng Việt dễ hiểu |
+
+### LƯU Ý CHO NGƯỜI DÙNG
+
+Để nút "GIAO" hoạt động, cần đảm bảo:
+1. Phiếu đã được quản lý kho "Giao hàng cho nhân viên" (chuyển từ `pending` → `released`)
+2. Nhân viên đã ấn "Xác nhận đã nhận đủ hàng" (chuyển từ `released` → `in_progress`)
+3. Chỉ nhân viên được phân công mới thấy và ấn được nút GIAO
 
