@@ -1,5 +1,6 @@
-import React, { useRef, useState, useEffect } from 'react'
+import React, { useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { triggerHaptic } from '@/lib/haptics'
 
 interface SwipeableCardProps {
   children: React.ReactNode
@@ -7,6 +8,7 @@ interface SwipeableCardProps {
   onSwipeRight?: () => void
   swipeThreshold?: number
   className?: string
+  hapticOnSwipe?: boolean
 }
 
 export function SwipeableCard({
@@ -14,11 +16,13 @@ export function SwipeableCard({
   onSwipeLeft,
   onSwipeRight,
   swipeThreshold = 100,
-  className
+  className,
+  hapticOnSwipe = true
 }: SwipeableCardProps) {
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
   const [swipeOffset, setSwipeOffset] = useState(0)
+  const [isSwiping, setIsSwiping] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
 
   const minSwipeDistance = 50
@@ -26,21 +30,25 @@ export function SwipeableCard({
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null)
     setTouchStart(e.targetTouches[0].clientX)
+    setIsSwiping(true)
   }
 
   const onTouchMove = (e: React.TouchEvent) => {
+    if (touchStart === null) return
+    
     setTouchEnd(e.targetTouches[0].clientX)
-    if (touchStart !== null) {
-      const distance = e.targetTouches[0].clientX - touchStart
-      // Apply resistance to swipe
-      const resistance = 0.4
-      setSwipeOffset(distance * resistance)
-    }
+    const distance = e.targetTouches[0].clientX - touchStart
+    
+    // Apply resistance to swipe - more resistance as distance increases
+    const maxOffset = 150
+    const resistance = 1 - Math.min(Math.abs(distance) / (maxOffset * 2), 0.6)
+    setSwipeOffset(distance * resistance)
   }
 
   const onTouchEnd = () => {
     if (!touchStart || !touchEnd) {
       setSwipeOffset(0)
+      setIsSwiping(false)
       return
     }
 
@@ -49,9 +57,11 @@ export function SwipeableCard({
     const isRightSwipe = distance < -minSwipeDistance
 
     if (isLeftSwipe && onSwipeLeft) {
+      if (hapticOnSwipe) triggerHaptic('medium')
       onSwipeLeft()
     }
     if (isRightSwipe && onSwipeRight) {
+      if (hapticOnSwipe) triggerHaptic('medium')
       onSwipeRight()
     }
 
@@ -59,6 +69,7 @@ export function SwipeableCard({
     setSwipeOffset(0)
     setTouchStart(null)
     setTouchEnd(null)
+    setIsSwiping(false)
   }
 
   return (
@@ -70,7 +81,8 @@ export function SwipeableCard({
       onTouchEnd={onTouchEnd}
       style={{
         transform: `translateX(${swipeOffset}px)`,
-        transition: swipeOffset === 0 ? 'transform 0.2s ease-out' : 'none'
+        transition: swipeOffset === 0 ? 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
+        willChange: isSwiping ? 'transform' : 'auto'
       }}
     >
       {children}
