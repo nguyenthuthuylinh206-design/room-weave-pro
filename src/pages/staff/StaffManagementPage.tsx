@@ -55,16 +55,16 @@ export default function StaffManagementPage() {
       {/* Tabs */}
       <Tabs defaultValue="list" className="flex-1 flex flex-col min-h-0">
         <TabsList className="mx-4 mt-2 w-fit">
-          <TabsTrigger value="list" className="gap-1.5">
+          <TabsTrigger value="list" className="gap-1.5 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:rounded-b-none">
             <Users className="h-4 w-4" />
             Danh sách
           </TabsTrigger>
-          <TabsTrigger value="activity" className="gap-1.5">
+          <TabsTrigger value="activity" className="gap-1.5 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:rounded-b-none">
             <Activity className="h-4 w-4" />
             Hoạt động
           </TabsTrigger>
           {canManageTasks && (
-            <TabsTrigger value="tasks" className="gap-1.5">
+            <TabsTrigger value="tasks" className="gap-1.5 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:rounded-b-none">
               <ClipboardList className="h-4 w-4" />
               Công việc
             </TabsTrigger>
