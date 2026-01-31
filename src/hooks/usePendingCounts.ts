@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
+import { isStaff } from '@/lib/userAccess'
 
 export interface PendingCounts {
   supplements: number
@@ -17,11 +18,12 @@ export interface PendingCounts {
 }
 
 export function usePendingCounts() {
-  const { tenantId } = useUser()
+  const { user, tenantId } = useUser()
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
+  const isStaffUser = isStaff(user)
 
   return useQuery({
-    queryKey: ['pending-counts-all', tenantId, selectedHotel?.id, isAllHotelsMode],
+    queryKey: ['pending-counts-all', tenantId, selectedHotel?.id, isAllHotelsMode, user?.id, isStaffUser],
     queryFn: async (): Promise<PendingCounts> => {
       if (!tenantId) {
         return {
@@ -60,6 +62,11 @@ export function usePendingCounts() {
         .eq('tenant_id', tenantId)
         .in('status', ['pending', 'released', 'in_progress'])
       if (hotelId) distributionsQuery = distributionsQuery.eq('hotel_id', hotelId)
+      // Staff chỉ thấy phiếu được giao cho mình
+      if (isStaffUser && user?.id) {
+        distributionsQuery = distributionsQuery.eq('assigned_to', user.id)
+      }
+      if (hotelId) distributionsQuery = distributionsQuery.eq('hotel_id', hotelId)
 
       let maintenanceQuery = supabase
         .from('maintenance_requests')
@@ -81,6 +88,10 @@ export function usePendingCounts() {
         .eq('tenant_id', tenantId)
         .in('status', ['pending', 'assigned'])
       if (hotelId) tasksQuery = tasksQuery.eq('hotel_id', hotelId)
+      // Staff chỉ thấy task được giao cho mình
+      if (isStaffUser && user?.id) {
+        tasksQuery = tasksQuery.eq('assigned_to', user.id)
+      }
 
       const [
         supplementsRes,
