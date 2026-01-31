@@ -1,340 +1,195 @@
 
 
-## Kế hoạch: Di chuyển Điều chỉnh Số lượng sang Bước Handover (Quản lý kho giao hàng)
+## Kế hoạch: Thêm Yêu cầu Phân công Nhân viên khi Phiếu chưa có Người giao
 
-### I. THAY ĐỔI FLOW
+### I. PHÂN TÍCH
 
-**Flow hiện tại:**
+**Vấn đề:**
+- Phiếu giao hàng có thể được tạo mà không có nhân viên được phân công (`assigned_to = null`)
+- Khi không có nhân viên, không thể giao hàng vì không biết giao cho ai
+- Hiện tại không có cảnh báo/hướng dẫn khi gặp tình huống này
+
+**Giải pháp:**
+- Hiển thị cảnh báo khi phiếu chưa có người được phân công
+- Cung cấp nút để mở dialog chỉnh sửa và phân công nhân viên
+- Ẩn nút "Giao hàng cho nhân viên" khi chưa có người được phân công
+
+### II. LOGIC KIỂM TRA
+
 ```text
-HANDOVER                    CONFIRM RECEIVE              GIAO PHÒNG
-(Quản lý kho)               (Nhân viên)                  (Nhân viên)
-    │                           │                            │
-    ▼                           ▼                            ▼
-Không kiểm tra           Kiểm tra + điều chỉnh         Giao từng phòng
-Không trừ kho            TRỪ KHO                       Cập nhật room_items
+Nếu order.assigned_to là null/rỗng VÀ status = 'pending':
+  → Hiển thị cảnh báo "Phiếu chưa có nhân viên được phân công"
+  → Hiển thị nút "Phân công ngay"
+  → Ẩn nút "Giao hàng cho nhân viên"
 ```
 
-**Flow mới:**
-```text
-HANDOVER                    CONFIRM RECEIVE              GIAO PHÒNG
-(Quản lý kho)               (Nhân viên)                  (Nhân viên)
-    │                           │                            │
-    ▼                           ▼                            ▼
-KIỂM TRA + ĐIỀU CHỈNH      Chỉ xác nhận                 Giao từng phòng
-TRỪ KHO                    (không trừ kho nữa)          Cập nhật room_items
-```
+### III. THAY ĐỔI UI
 
-### II. LÝ DO THAY ĐỔI
+#### 3.1. Trong `DistributionOrderDetailPage.tsx`
 
-| Vấn đề hiện tại | Giải pháp mới |
-|-----------------|---------------|
-| Nhân viên không biết kho có đủ không | Quản lý kho kiểm tra trước khi giao |
-| Nhân viên bị lỗi khi xác nhận | Quản lý kho đã điều chỉnh sẵn |
-| Không có cơ hội sửa nếu thiếu hàng | Quản lý kho điều chỉnh ngay tại kho |
-
-### III. THAY ĐỔI DATABASE
-
-#### 3.1. Sửa RPC `handover_batch`
-
-**Thêm tham số:**
-```sql
-CREATE OR REPLACE FUNCTION handover_batch(
-  p_batch_id uuid,
-  p_actor_id uuid DEFAULT NULL,
-  p_adjustments jsonb DEFAULT NULL  -- MỚI: Danh sách điều chỉnh
-) RETURNS jsonb
-```
-
-**Logic mới:**
-1. Nếu `p_adjustments = NULL`:
-   - Kiểm tra tồn kho tất cả items
-   - Nếu thiếu → Trả về `INSUFFICIENT_STOCK` + danh sách thiếu
-   - Nếu đủ → Trừ kho, cập nhật status
-   
-2. Nếu có `p_adjustments`:
-   - Sử dụng số lượng điều chỉnh
-   - Cập nhật `quantity_actual` cho từng item
-   - Trừ kho theo `quantity_actual`
-   - Cập nhật status
-
-#### 3.2. Đơn giản hóa RPC `confirm_receive_order`
-
-**Logic mới:**
-- Chỉ cập nhật status từ `released` → `in_progress`
-- KHÔNG trừ kho (đã trừ ở bước handover)
-- KHÔNG cần kiểm tra tồn kho
-
-### IV. THAY ĐỔI FRONTEND
-
-#### 4.1. Cập nhật Hook `useHandoverBatch`
-
+**Thêm logic kiểm tra:**
 ```typescript
-export function useHandoverBatch() {
-  return useMutation({
-    mutationFn: async ({ 
-      batchId, 
-      adjustments  // THÊM MỚI
-    }: { 
-      batchId: string
-      adjustments?: ItemAdjustment[]
-    }) => {
-      const { data, error } = await supabase.rpc('handover_batch', {
-        p_batch_id: batchId,
-        p_actor_id: user.id,
-        p_adjustments: adjustments || null,
-      })
-      // Xử lý INSUFFICIENT_STOCK error
-    }
-  })
-}
+const hasAssignee = !!order.assigned_to
 ```
 
-#### 4.2. Di chuyển AdjustQuantityDialog sang bước Handover
-
-**Trong `RouteDetailView.tsx`:**
-
-```typescript
-// Handover batch handler - now with stock check
-const handleHandoverFirstBatch = useCallback(async () => {
-  if (!firstPendingBatch) return
-  
-  const result = await handoverBatch.mutateAsync({ 
-    batchId: firstPendingBatch.id 
-  })
-  
-  // Nếu thiếu hàng, mở dialog điều chỉnh
-  if (!result.success && result.error === 'INSUFFICIENT_STOCK') {
-    setInsufficientItems(result.insufficient_items)
-    setAdjustDialogOpen(true)
-  }
-}, [firstPendingBatch, handoverBatch])
-
-// Confirm với adjustments
-const handleConfirmWithAdjustments = useCallback(async (
-  adjustments: ItemAdjustment[], 
-  reason: string
-) => {
-  if (!firstPendingBatch) return
-  
-  await handoverBatch.mutateAsync({ 
-    batchId: firstPendingBatch.id, 
-    adjustments 
-  })
-  
-  setAdjustDialogOpen(false)
-  toast.success('Đã giao hàng cho nhân viên với số lượng điều chỉnh')
-}, [firstPendingBatch, handoverBatch])
-```
-
-#### 4.3. Cập nhật DeliveryStepWizard
-
-**Thay đổi UI bước Handover:**
-
+**Thêm cảnh báo (Desktop):**
 ```tsx
-// Step 1: Pending - Warehouse manager hands over WITH stock check
-if (status === 'pending' && isWarehouseManager) {
-  return (
-    <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        Kiểm tra hàng trong kho, điều chỉnh số lượng nếu thiếu, 
-        sau đó giao cho nhân viên {assignedToName}
+{/* Warning when no assignee */}
+{order.status === 'pending' && !order.assigned_to && isWarehouseManager && (
+  <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
+    <CardContent className="p-4 flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <UserX className="h-5 w-5 text-amber-600" />
+        <p className="text-sm text-amber-800 dark:text-amber-200">
+          Phiếu chưa có nhân viên được phân công. Vui lòng phân công trước khi giao hàng.
+        </p>
+      </div>
+      <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
+        <UserPlus className="h-4 w-4 mr-2" />
+        Phân công ngay
+      </Button>
+    </CardContent>
+  </Card>
+)}
+```
+
+**Thêm cảnh báo (Mobile):**
+```tsx
+{/* Warning when no assignee - Mobile */}
+{order.status === 'pending' && !order.assigned_to && isWarehouseManager && (
+  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800">
+    <div className="flex items-center justify-between gap-2">
+      <p className="text-sm text-amber-800 dark:text-amber-200 flex-1">
+        <strong>Chưa phân công:</strong> Vui lòng chọn nhân viên giao hàng
       </p>
-      {onHandoverBatch && (
-        <Button onClick={onHandoverBatch} className="w-full h-12">
-          <Package className="h-5 w-5 mr-2" />
-          Kiểm tra & Giao hàng cho nhân viên
-        </Button>
-      )}
+      <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
+        Phân công
+      </Button>
     </div>
-  )
+  </div>
+)}
+```
+
+#### 3.2. Trong `DeliveryStepWizard.tsx`
+
+**Thêm prop mới:**
+```typescript
+interface DeliveryStepWizardProps {
+  // ... existing props
+  hasAssignee?: boolean  // THÊM MỚI
 }
 ```
 
-### V. FILES CẦN THAY ĐỔI
+**Cập nhật logic hiển thị:**
+```tsx
+// Step 1: Pending - Need to assign staff first if not assigned
+if (status === 'pending') {
+  if (!hasAssignee && isWarehouseManager) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
+          <UserX className="h-5 w-5" />
+          <p className="text-sm font-medium">Chưa có nhân viên được phân công</p>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Vui lòng phân công nhân viên giao hàng trước khi tiếp tục.
+        </p>
+      </div>
+    )
+  }
+  
+  if (isWarehouseManager) {
+    // ... existing handover logic
+  }
+}
+```
+
+#### 3.3. Trong `RouteDetailView.tsx`
+
+**Truyền prop mới cho DeliveryStepWizard:**
+```tsx
+<DeliveryStepWizard
+  // ... existing props
+  hasAssignee={!!route.assigned_to}  // THÊM
+  onHandoverBatch={
+    route.status === 'pending' && isStorekeeper && firstPendingBatch && route.assigned_to
+      ? handleHandoverFirstBatch
+      : undefined
+  }  // CHỈ CHO PHÉP NẾU CÓ ASSIGNEE
+/>
+```
+
+### IV. FILES CẦN THAY ĐỔI
 
 | File | Thay đổi |
 |------|----------|
-| **Database Migration** | Sửa `handover_batch` để kiểm tra + trừ kho |
-| **Database Migration** | Đơn giản hóa `confirm_receive_order` |
-| `useRouteBatch.ts` | Cập nhật `useHandoverBatch` để nhận adjustments |
-| `useRouteBatch.ts` | Đơn giản hóa `useConfirmReceiveOrder` |
-| `RouteDetailView.tsx` | Di chuyển logic AdjustQuantityDialog sang handover |
-| `DeliveryStepWizard.tsx` | Cập nhật text hướng dẫn |
+| `DistributionOrderDetailPage.tsx` | Thêm cảnh báo + nút phân công (Desktop & Mobile) |
+| `DeliveryStepWizard.tsx` | Thêm prop `hasAssignee`, cập nhật UI khi chưa phân công |
+| `RouteDetailView.tsx` | Truyền prop `hasAssignee`, chặn handover khi chưa phân công |
 
-### VI. QUY TRÌNH SAU KHI SỬA
+### V. UI/UX CHI TIẾT
+
+**Desktop - Khi chưa phân công:**
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│ DIS-20251231-164831-5295                 [Chỉnh sửa] [Hủy] [In phiếu]  │
+│ Chờ giao                                                                │
+│ Tạo bởi Nguyễn Đức Phước • 31/12/2025                                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│ ⚠ Phiếu chưa có nhân viên được phân công.          [Phân công ngay]    │
+│   Vui lòng phân công trước khi giao hàng.                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│ ┌───────────────────────────────────────────────────────────────────┐  │
+│ │ ○ Chuẩn bị ── ○ Nhận hàng ── ○ Giao hàng ── ○ Hoàn thành        │  │
+│ │                                                                    │  │
+│ │ ⚠ Chưa có nhân viên được phân công                               │  │
+│ │ Vui lòng phân công nhân viên giao hàng trước khi tiếp tục.        │  │
+│ └───────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Desktop - Khi đã phân công:**
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Bước tiếp theo: Ấn "Giao batch này" bên dưới để chuyển hàng            │
+│ cho nhân viên được gán                                                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│ ┌───────────────────────────────────────────────────────────────────┐  │
+│ │ ● Chuẩn bị ── ○ Nhận hàng ── ○ Giao hàng ── ○ Hoàn thành        │  │
+│ │                                                                    │  │
+│ │ Kiểm tra hàng trong kho. Sau đó giao cho nhân viên Nguyễn Văn A   │  │
+│ │                                                                    │  │
+│ │ [ Kiểm tra & Giao hàng cho nhân viên ]                            │  │
+│ └───────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### VI. FLOW SAU KHI SỬA
 
 ```text
-BƯỚC 1: QUẢN LÝ KHO GIAO HÀNG
-─────────────────────────────
-Manager ấn "Kiểm tra & Giao hàng cho nhân viên"
-    │
-    ▼
-RPC kiểm tra tồn kho
-    │
-    ├── ĐỦ HÀNG ───────────────────────────────┐
-    │                                          │
-    └── THIẾU HÀNG                             │
-        │                                      │
-        ▼                                      │
-    Mở AdjustQuantityDialog                    │
-        │                                      │
-        ├── [Điều chỉnh + Xác nhận]           │
-        │        │                             │
-        │        ▼                             │
-        │   RPC với adjustments ───────────────┼──┐
-        │                                      │  │
-        └── [Quay lại chỉnh sửa phiếu]        │  │
-                                               │  │
-    ◄──────────────────────────────────────────┘  │
-    │                                             │
-    ▼                                             │
-TRỪ KHO (quantity_in_stock ↓)  ◄──────────────────┘
-Batch status → 'handed_over'
-Order status → 'released'
-    │
-    ▼
-BƯỚC 2: NHÂN VIÊN XÁC NHẬN NHẬN HÀNG
-────────────────────────────────────
-Nhân viên ấn "Xác nhận đã nhận hàng"
-    │
-    ▼
-(KHÔNG trừ kho - đã trừ ở bước 1)
-Order status → 'in_progress'
-    │
-    ▼
-BƯỚC 3: GIAO ĐẾN TỪNG PHÒNG
-───────────────────────────
-Nhân viên giao hàng đến từng phòng
+PHIẾU CHƯA CÓ NHÂN VIÊN
+───────────────────────
+1. Manager mở phiếu
+2. Thấy cảnh báo "Chưa phân công"
+3. Click "Phân công ngay"
+4. EditDistributionDialog mở ra
+5. Chọn nhân viên từ dropdown
+6. Lưu → Phiếu được cập nhật
+7. Nút "Giao hàng cho nhân viên" xuất hiện
+8. Tiếp tục quy trình bình thường
+
+
+PHIẾU ĐÃ CÓ NHÂN VIÊN
+─────────────────────
+1. Manager mở phiếu
+2. Thấy hướng dẫn "Ấn Giao batch này..."
+3. Click "Kiểm tra & Giao hàng cho nhân viên"
+4. Tiếp tục quy trình bình thường
 ```
 
-### VII. LỢI ÍCH
+### VII. TÓM TẮT TRIỂN KHAI
 
-| Trước | Sau |
-|-------|-----|
-| Nhân viên gặp lỗi nếu kho thiếu | Quản lý kho đã xử lý trước |
-| 2 bước kiểm tra kho | 1 bước kiểm tra duy nhất |
-| Nhân viên bị stuck | Flow liền mạch |
-| Không rõ ai chịu trách nhiệm | Quản lý kho chịu trách nhiệm điều chỉnh |
-
-### VIII. CHI TIẾT TECHNICAL
-
-#### Migration SQL cho `handover_batch`:
-
-```sql
-CREATE OR REPLACE FUNCTION handover_batch(
-  p_batch_id uuid,
-  p_actor_id uuid DEFAULT NULL,
-  p_adjustments jsonb DEFAULT NULL
-) RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_actor_id uuid;
-  v_batch record;
-  v_order record;
-  v_item record;
-  v_insufficient jsonb := '[]'::jsonb;
-  v_qty_actual integer;
-  v_transaction_code text;
-BEGIN
-  v_actor_id := COALESCE(p_actor_id, auth.uid());
-  
-  -- Get batch and order info
-  SELECT * INTO v_batch FROM distribution_order_batches WHERE id = p_batch_id;
-  IF NOT FOUND THEN RAISE EXCEPTION 'Batch not found'; END IF;
-  
-  SELECT * INTO v_order FROM distribution_orders WHERE id = v_batch.distribution_order_id;
-  
-  -- Validate batch status
-  IF v_batch.status NOT IN ('open', 'pending') THEN
-    RAISE EXCEPTION 'Batch already handed over';
-  END IF;
-  
-  -- Check stock for all items in this batch
-  IF p_adjustments IS NULL THEN
-    FOR v_item IN
-      SELECT doi.item_id, i.name, i.code, 
-             SUM(doi.quantity) as required,
-             i.quantity_in_stock as available
-      FROM distribution_order_rooms dor
-      JOIN distribution_order_items doi ON doi.distribution_order_room_id = dor.id
-      JOIN items i ON i.id = doi.item_id
-      WHERE dor.distribution_order_id = v_order.id
-        AND (dor.batch_number = v_batch.batch_number OR v_batch.batch_number IS NULL)
-      GROUP BY doi.item_id, i.name, i.code, i.quantity_in_stock
-    LOOP
-      IF v_item.available < v_item.required THEN
-        v_insufficient := v_insufficient || jsonb_build_object(
-          'item_id', v_item.item_id,
-          'item_name', v_item.name,
-          'item_code', v_item.code,
-          'required', v_item.required,
-          'available', v_item.available,
-          'shortage', v_item.required - v_item.available
-        );
-      END IF;
-    END LOOP;
-    
-    -- If insufficient, return error with details
-    IF jsonb_array_length(v_insufficient) > 0 THEN
-      RETURN jsonb_build_object(
-        'success', false,
-        'error', 'INSUFFICIENT_STOCK',
-        'message', 'Một số mặt hàng không đủ trong kho',
-        'insufficient_items', v_insufficient
-      );
-    END IF;
-  END IF;
-  
-  -- Generate transaction code
-  v_transaction_code := 'TXN-HDO-' || to_char(now(), 'YYYYMMDD-HH24MISS');
-  
-  -- Deduct inventory and update quantity_actual
-  FOR v_item IN
-    SELECT doi.id as item_row_id, doi.item_id, doi.quantity,
-           i.hotel_id, i.tenant_id, i.quantity_in_stock, i.quantity_pending
-    FROM distribution_order_rooms dor
-    JOIN distribution_order_items doi ON doi.distribution_order_room_id = dor.id
-    JOIN items i ON i.id = doi.item_id
-    WHERE dor.distribution_order_id = v_order.id
-      AND (dor.batch_number = v_batch.batch_number OR v_batch.batch_number IS NULL)
-  LOOP
-    -- Get actual quantity (from adjustments or original)
-    IF p_adjustments IS NOT NULL THEN
-      SELECT (adj->>'quantity_actual')::integer INTO v_qty_actual
-      FROM jsonb_array_elements(p_adjustments) adj
-      WHERE (adj->>'item_id')::uuid = v_item.item_id;
-      
-      IF v_qty_actual IS NULL THEN
-        v_qty_actual := v_item.quantity;
-      END IF;
-      
-      -- Update quantity_actual
-      UPDATE distribution_order_items
-      SET quantity_actual = v_qty_actual
-      WHERE id = v_item.item_row_id;
-    ELSE
-      v_qty_actual := v_item.quantity;
-    END IF;
-    
-    -- Create inventory transaction
-    INSERT INTO inventory_transactions (...) VALUES (...);
-    
-    -- Update item stock
-    UPDATE items
-    SET quantity_in_stock = quantity_in_stock - v_qty_actual,
-        quantity_pending = COALESCE(quantity_pending, 0) + v_qty_actual
-    WHERE id = v_item.item_id;
-  END LOOP;
-  
-  -- Update batch and order status
-  UPDATE distribution_order_batches SET status = 'handed_over', ... WHERE id = p_batch_id;
-  UPDATE distribution_orders SET status = 'released', ... WHERE id = v_order.id;
-  
-  RETURN jsonb_build_object('success', true, ...);
-END;
-$$;
-```
+1. **DistributionOrderDetailPage.tsx**: Thêm Card cảnh báo với nút "Phân công ngay" cho cả desktop và mobile
+2. **DeliveryStepWizard.tsx**: Thêm prop `hasAssignee`, hiển thị trạng thái chưa phân công
+3. **RouteDetailView.tsx**: Truyền `hasAssignee` và chặn handover khi chưa có assignee
 
