@@ -1,258 +1,340 @@
 
 
-## Kế hoạch: Thêm Quy trình Điều chỉnh Số lượng Giao khi Kho Hết Đồ
+## Kế hoạch: Di chuyển Điều chỉnh Số lượng sang Bước Handover (Quản lý kho giao hàng)
 
-### I. PHÂN TÍCH VẤN ĐỀ
+### I. THAY ĐỔI FLOW
 
-**Tình huống hiện tại:**
-- Phiếu DIS-20260131-015918-4247 yêu cầu: **Khăn tắm lớn x 4**
-- Trong kho chỉ còn: **3** chiếc
-- Khi nhân viên ấn "Xác nhận đã nhận đủ hàng" → **Lỗi** vì không đủ tồn kho
-
-**Vấn đề:**
-1. Hệ thống chặn cứng, không cho phép tiếp tục
-2. Không có cách để điều chỉnh số lượng giao thực tế
-3. Nhân viên bị stuck, không biết phải làm gì
-
-### II. CÁC GIẢI PHÁP ĐỀ XUẤT
-
-| Giải pháp | Mô tả | Ưu điểm | Nhược điểm |
-|-----------|-------|---------|------------|
-| **A. Điều chỉnh trước khi giao** | Quay lại chỉnh sửa phiếu | Đơn giản, có sẵn EditDistributionDialog | Phải quay về status pending |
-| **B. Điều chỉnh tại bước nhận hàng** | Dialog cho phép nhập số lượng thực nhận | UX tốt, nhanh | Cần code mới |
-| **C. Giao một phần (Partial Receive)** | Nhận tất cả đồ có, thiếu gì ghi nhận | Linh hoạt | Phức tạp hơn |
-
-**Đề xuất: Kết hợp A + B**
-
-### III. THIẾT KẾ GIẢI PHÁP
-
-#### 3.1. Flow mới khi thiếu hàng
-
+**Flow hiện tại:**
 ```text
-NV ấn "Xác nhận nhận hàng"
-        │
-        ▼
-┌───────────────────────────────────┐
-│ RPC kiểm tra tồn kho              │
-│ → Phát hiện thiếu một số mặt hàng │
-└───────────────────────────────────┘
-        │
-        ▼
-┌───────────────────────────────────────────────────────────────┐
-│ HIỂN THỊ DIALOG "ĐIỀU CHỈNH SỐ LƯỢNG GIAO"                    │
-│ ─────────────────────────────────────────────────────         │
-│                                                               │
-│ ⚠ Một số mặt hàng không đủ tồn kho:                          │
-│                                                               │
-│ ┌─────────────────────────────────────────────────────────┐  │
-│ │ Mặt hàng          │ Yêu cầu │ Trong kho │ Giao thực tế │  │
-│ ├─────────────────────────────────────────────────────────┤  │
-│ │ Khăn tắm lớn      │    4    │     3     │   [ 3 ]  ▼  │  │
-│ │ Dầu gội đầu       │    2    │     2     │   [ 2 ]  ✓  │  │
-│ │ ...               │   ...   │    ...    │   [...]     │  │
-│ └─────────────────────────────────────────────────────────┘  │
-│                                                               │
-│ Ghi chú: ____________________                                 │
-│                                                               │
-│ [ Hủy ]  [ Quay lại chỉnh sửa phiếu ]  [ Xác nhận giao thiếu ]│
-└───────────────────────────────────────────────────────────────┘
+HANDOVER                    CONFIRM RECEIVE              GIAO PHÒNG
+(Quản lý kho)               (Nhân viên)                  (Nhân viên)
+    │                           │                            │
+    ▼                           ▼                            ▼
+Không kiểm tra           Kiểm tra + điều chỉnh         Giao từng phòng
+Không trừ kho            TRỪ KHO                       Cập nhật room_items
 ```
 
-#### 3.2. Thay đổi Database
-
-**Thêm cột mới vào `distribution_order_items`:**
-
-```sql
-ALTER TABLE distribution_order_items
-ADD COLUMN quantity_actual integer DEFAULT NULL;
-
-COMMENT ON COLUMN distribution_order_items.quantity_actual IS 
-'Số lượng giao thực tế (có thể khác quantity khi thiếu hàng)';
+**Flow mới:**
+```text
+HANDOVER                    CONFIRM RECEIVE              GIAO PHÒNG
+(Quản lý kho)               (Nhân viên)                  (Nhân viên)
+    │                           │                            │
+    ▼                           ▼                            ▼
+KIỂM TRA + ĐIỀU CHỈNH      Chỉ xác nhận                 Giao từng phòng
+TRỪ KHO                    (không trừ kho nữa)          Cập nhật room_items
 ```
 
-| Cột | Mô tả |
-|-----|-------|
-| `quantity` | Số lượng yêu cầu ban đầu |
-| `quantity_actual` | Số lượng giao thực tế (NULL = giao đủ) |
-| `quantity_confirmed` | Số lượng xác nhận tại phòng |
+### II. LÝ DO THAY ĐỔI
 
-#### 3.3. Thay đổi RPC
+| Vấn đề hiện tại | Giải pháp mới |
+|-----------------|---------------|
+| Nhân viên không biết kho có đủ không | Quản lý kho kiểm tra trước khi giao |
+| Nhân viên bị lỗi khi xác nhận | Quản lý kho đã điều chỉnh sẵn |
+| Không có cơ hội sửa nếu thiếu hàng | Quản lý kho điều chỉnh ngay tại kho |
 
-**Sửa `confirm_receive_order`:**
+### III. THAY ĐỔI DATABASE
 
+#### 3.1. Sửa RPC `handover_batch`
+
+**Thêm tham số:**
 ```sql
-CREATE OR REPLACE FUNCTION confirm_receive_order(
-  p_order_id uuid,
+CREATE OR REPLACE FUNCTION handover_batch(
+  p_batch_id uuid,
   p_actor_id uuid DEFAULT NULL,
-  p_adjustments jsonb DEFAULT NULL  -- THÊM THAM SỐ MỚI
-)
+  p_adjustments jsonb DEFAULT NULL  -- MỚI: Danh sách điều chỉnh
+) RETURNS jsonb
 ```
 
 **Logic mới:**
-1. Nếu `p_adjustments = NULL` → Kiểm tra tồn kho như cũ
-2. Nếu có `p_adjustments` → Sử dụng số lượng điều chỉnh, bỏ qua kiểm tra
+1. Nếu `p_adjustments = NULL`:
+   - Kiểm tra tồn kho tất cả items
+   - Nếu thiếu → Trả về `INSUFFICIENT_STOCK` + danh sách thiếu
+   - Nếu đủ → Trừ kho, cập nhật status
+   
+2. Nếu có `p_adjustments`:
+   - Sử dụng số lượng điều chỉnh
+   - Cập nhật `quantity_actual` cho từng item
+   - Trừ kho theo `quantity_actual`
+   - Cập nhật status
 
-**Format `p_adjustments`:**
-```json
-[
-  {
-    "item_id": "1415bc4c-...",
-    "quantity_actual": 3
-  }
-]
-```
+#### 3.2. Đơn giản hóa RPC `confirm_receive_order`
 
-#### 3.4. Thêm Dialog mới
+**Logic mới:**
+- Chỉ cập nhật status từ `released` → `in_progress`
+- KHÔNG trừ kho (đã trừ ở bước handover)
+- KHÔNG cần kiểm tra tồn kho
 
-**File mới: `AdjustQuantityDialog.tsx`**
+### IV. THAY ĐỔI FRONTEND
 
-```tsx
-interface AdjustQuantityDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  insufficientItems: InsufficientItem[]
-  orderId: string
-  onConfirm: (adjustments: ItemAdjustment[]) => void
-  onEditOrder: () => void  // Quay lại chỉnh sửa phiếu
-}
-```
-
-**Tính năng:**
-- Hiển thị bảng các item thiếu hàng
-- Input cho phép điều chỉnh số lượng (max = available)
-- Nút "Quay lại chỉnh sửa phiếu" → Mở EditDistributionDialog
-- Nút "Xác nhận giao thiếu" → Gọi RPC với adjustments
-
-#### 3.5. Cập nhật Hook
-
-**Sửa `useConfirmReceiveOrder`:**
+#### 4.1. Cập nhật Hook `useHandoverBatch`
 
 ```typescript
-export function useConfirmReceiveOrder() {
+export function useHandoverBatch() {
   return useMutation({
     mutationFn: async ({ 
-      orderId, 
-      adjustments  // THÊM
+      batchId, 
+      adjustments  // THÊM MỚI
     }: { 
-      orderId: string
-      adjustments?: { item_id: string; quantity_actual: number }[]
+      batchId: string
+      adjustments?: ItemAdjustment[]
     }) => {
-      // ...
-    },
-    onError: (error, variables, context) => {
-      // Thay vì chỉ toast.error, trả về data để component xử lý
+      const { data, error } = await supabase.rpc('handover_batch', {
+        p_batch_id: batchId,
+        p_actor_id: user.id,
+        p_adjustments: adjustments || null,
+      })
+      // Xử lý INSUFFICIENT_STOCK error
     }
   })
 }
 ```
 
-### IV. FILES CẦN THAY ĐỔI
+#### 4.2. Di chuyển AdjustQuantityDialog sang bước Handover
+
+**Trong `RouteDetailView.tsx`:**
+
+```typescript
+// Handover batch handler - now with stock check
+const handleHandoverFirstBatch = useCallback(async () => {
+  if (!firstPendingBatch) return
+  
+  const result = await handoverBatch.mutateAsync({ 
+    batchId: firstPendingBatch.id 
+  })
+  
+  // Nếu thiếu hàng, mở dialog điều chỉnh
+  if (!result.success && result.error === 'INSUFFICIENT_STOCK') {
+    setInsufficientItems(result.insufficient_items)
+    setAdjustDialogOpen(true)
+  }
+}, [firstPendingBatch, handoverBatch])
+
+// Confirm với adjustments
+const handleConfirmWithAdjustments = useCallback(async (
+  adjustments: ItemAdjustment[], 
+  reason: string
+) => {
+  if (!firstPendingBatch) return
+  
+  await handoverBatch.mutateAsync({ 
+    batchId: firstPendingBatch.id, 
+    adjustments 
+  })
+  
+  setAdjustDialogOpen(false)
+  toast.success('Đã giao hàng cho nhân viên với số lượng điều chỉnh')
+}, [firstPendingBatch, handoverBatch])
+```
+
+#### 4.3. Cập nhật DeliveryStepWizard
+
+**Thay đổi UI bước Handover:**
+
+```tsx
+// Step 1: Pending - Warehouse manager hands over WITH stock check
+if (status === 'pending' && isWarehouseManager) {
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        Kiểm tra hàng trong kho, điều chỉnh số lượng nếu thiếu, 
+        sau đó giao cho nhân viên {assignedToName}
+      </p>
+      {onHandoverBatch && (
+        <Button onClick={onHandoverBatch} className="w-full h-12">
+          <Package className="h-5 w-5 mr-2" />
+          Kiểm tra & Giao hàng cho nhân viên
+        </Button>
+      )}
+    </div>
+  )
+}
+```
+
+### V. FILES CẦN THAY ĐỔI
 
 | File | Thay đổi |
 |------|----------|
-| **Database** | Migration: Thêm cột `quantity_actual` |
-| **RPC** | Sửa `confirm_receive_order` để nhận `p_adjustments` |
-| **useRouteBatch.ts** | Sửa hook để hỗ trợ adjustments |
-| **AdjustQuantityDialog.tsx** | Tạo mới: Dialog điều chỉnh số lượng |
-| **RouteDetailView.tsx** | Thêm state và logic để mở dialog |
-| **DeliveryStepWizard.tsx** | Truyền thêm props cho error handling |
+| **Database Migration** | Sửa `handover_batch` để kiểm tra + trừ kho |
+| **Database Migration** | Đơn giản hóa `confirm_receive_order` |
+| `useRouteBatch.ts` | Cập nhật `useHandoverBatch` để nhận adjustments |
+| `useRouteBatch.ts` | Đơn giản hóa `useConfirmReceiveOrder` |
+| `RouteDetailView.tsx` | Di chuyển logic AdjustQuantityDialog sang handover |
+| `DeliveryStepWizard.tsx` | Cập nhật text hướng dẫn |
 
-### V. QUY TRÌNH SAU KHI SỬA
-
-```text
-TRƯỜNG HỢP 1: Kho ĐỦ đồ
-─────────────────────────
-NV ấn "Xác nhận nhận hàng"
-    │
-    ▼
-RPC check → OK
-    │
-    ▼
-Trừ tồn kho → Chuyển sang in_progress
-    │
-    ▼
-NV bắt đầu giao đến từng phòng
-
-
-TRƯỜNG HỢP 2: Kho THIẾU đồ
-──────────────────────────
-NV ấn "Xác nhận nhận hàng"
-    │
-    ▼
-RPC check → INSUFFICIENT_STOCK + danh sách thiếu
-    │
-    ▼
-Mở AdjustQuantityDialog
-    │
-    ├── [Quay lại chỉnh sửa] → Mở EditDistributionDialog
-    │                         → Chỉnh quantity → Lưu
-    │                         → Quay lại confirm
-    │
-    └── [Xác nhận giao thiếu] → Gọi RPC với adjustments
-                              → quantity_actual được ghi nhận
-                              → Trừ tồn kho theo quantity_actual
-                              → Chuyển sang in_progress
-                              │
-                              ▼
-                          NV giao với số lượng đã điều chỉnh
-                          (Phòng sẽ nhận ít hơn yêu cầu ban đầu)
-```
-
-### VI. UI/UX CHI TIẾT
-
-**AdjustQuantityDialog:**
+### VI. QUY TRÌNH SAU KHI SỬA
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                     Điều chỉnh số lượng giao                    │
-│ ────────────────────────────────────────────                    │
-│                                                                 │
-│  ⚠ Một số mặt hàng không đủ trong kho                          │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │ Mặt hàng        │ Yêu cầu │ Trong kho │ Sẽ giao          │  │
-│  ├──────────────────────────────────────────────────────────┤  │
-│  │ ⚠ Khăn tắm lớn │    4    │     3     │ [−] 3  [+]       │  │
-│  │   Dầu gội đầu   │    2    │     2     │ [−] 2  [+]  ✓   │  │
-│  │   Xà phòng      │    2    │   994     │ [−] 2  [+]  ✓   │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                 │
-│  Lý do điều chỉnh:                                             │
-│  ┌────────────────────────────────────────────────────────┐    │
-│  │ Thiếu khăn tắm lớn, đợi nhập hàng ngày mai           │    │
-│  └────────────────────────────────────────────────────────┘    │
-│                                                                 │
-│  ┌─────────────────────┐  ┌─────────────────────────────────┐  │
-│  │ Quay lại chỉnh sửa  │  │   Xác nhận giao thiếu           │  │
-│  └─────────────────────┘  └─────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
+BƯỚC 1: QUẢN LÝ KHO GIAO HÀNG
+─────────────────────────────
+Manager ấn "Kiểm tra & Giao hàng cho nhân viên"
+    │
+    ▼
+RPC kiểm tra tồn kho
+    │
+    ├── ĐỦ HÀNG ───────────────────────────────┐
+    │                                          │
+    └── THIẾU HÀNG                             │
+        │                                      │
+        ▼                                      │
+    Mở AdjustQuantityDialog                    │
+        │                                      │
+        ├── [Điều chỉnh + Xác nhận]           │
+        │        │                             │
+        │        ▼                             │
+        │   RPC với adjustments ───────────────┼──┐
+        │                                      │  │
+        └── [Quay lại chỉnh sửa phiếu]        │  │
+                                               │  │
+    ◄──────────────────────────────────────────┘  │
+    │                                             │
+    ▼                                             │
+TRỪ KHO (quantity_in_stock ↓)  ◄──────────────────┘
+Batch status → 'handed_over'
+Order status → 'released'
+    │
+    ▼
+BƯỚC 2: NHÂN VIÊN XÁC NHẬN NHẬN HÀNG
+────────────────────────────────────
+Nhân viên ấn "Xác nhận đã nhận hàng"
+    │
+    ▼
+(KHÔNG trừ kho - đã trừ ở bước 1)
+Order status → 'in_progress'
+    │
+    ▼
+BƯỚC 3: GIAO ĐẾN TỪNG PHÒNG
+───────────────────────────
+Nhân viên giao hàng đến từng phòng
 ```
 
-**Luật validate:**
-- Không được giao nhiều hơn số lượng trong kho
-- Có thể giao 0 (bỏ qua item đó)
-- Bắt buộc nhập lý do điều chỉnh
+### VII. LỢI ÍCH
 
-### VII. INVENTORY TRACKING
+| Trước | Sau |
+|-------|-----|
+| Nhân viên gặp lỗi nếu kho thiếu | Quản lý kho đã xử lý trước |
+| 2 bước kiểm tra kho | 1 bước kiểm tra duy nhất |
+| Nhân viên bị stuck | Flow liền mạch |
+| Không rõ ai chịu trách nhiệm | Quản lý kho chịu trách nhiệm điều chỉnh |
 
-**Sau khi giao thiếu:**
+### VIII. CHI TIẾT TECHNICAL
 
-| Cột | Giá trị | Ý nghĩa |
-|-----|---------|---------|
-| `quantity` | 4 | Số lượng yêu cầu ban đầu |
-| `quantity_actual` | 3 | Số lượng giao thực tế |
-| `quantity_confirmed` | 3 | Số lượng xác nhận tại phòng |
+#### Migration SQL cho `handover_batch`:
 
-**Báo cáo có thể truy xuất:**
-- Tổng số lượng yêu cầu vs giao thực tế
-- Tỷ lệ hoàn thành đơn hàng
-- Các mặt hàng thường xuyên thiếu
-
-### VIII. TÓM TẮT TRIỂN KHAI
-
-1. **Migration**: Thêm cột `quantity_actual`
-2. **RPC**: Sửa để nhận `p_adjustments`
-3. **Dialog**: Tạo `AdjustQuantityDialog.tsx`
-4. **Hook**: Cập nhật để xử lý insufficient stock
-5. **Integration**: Kết nối dialog vào flow hiện tại
+```sql
+CREATE OR REPLACE FUNCTION handover_batch(
+  p_batch_id uuid,
+  p_actor_id uuid DEFAULT NULL,
+  p_adjustments jsonb DEFAULT NULL
+) RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_actor_id uuid;
+  v_batch record;
+  v_order record;
+  v_item record;
+  v_insufficient jsonb := '[]'::jsonb;
+  v_qty_actual integer;
+  v_transaction_code text;
+BEGIN
+  v_actor_id := COALESCE(p_actor_id, auth.uid());
+  
+  -- Get batch and order info
+  SELECT * INTO v_batch FROM distribution_order_batches WHERE id = p_batch_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Batch not found'; END IF;
+  
+  SELECT * INTO v_order FROM distribution_orders WHERE id = v_batch.distribution_order_id;
+  
+  -- Validate batch status
+  IF v_batch.status NOT IN ('open', 'pending') THEN
+    RAISE EXCEPTION 'Batch already handed over';
+  END IF;
+  
+  -- Check stock for all items in this batch
+  IF p_adjustments IS NULL THEN
+    FOR v_item IN
+      SELECT doi.item_id, i.name, i.code, 
+             SUM(doi.quantity) as required,
+             i.quantity_in_stock as available
+      FROM distribution_order_rooms dor
+      JOIN distribution_order_items doi ON doi.distribution_order_room_id = dor.id
+      JOIN items i ON i.id = doi.item_id
+      WHERE dor.distribution_order_id = v_order.id
+        AND (dor.batch_number = v_batch.batch_number OR v_batch.batch_number IS NULL)
+      GROUP BY doi.item_id, i.name, i.code, i.quantity_in_stock
+    LOOP
+      IF v_item.available < v_item.required THEN
+        v_insufficient := v_insufficient || jsonb_build_object(
+          'item_id', v_item.item_id,
+          'item_name', v_item.name,
+          'item_code', v_item.code,
+          'required', v_item.required,
+          'available', v_item.available,
+          'shortage', v_item.required - v_item.available
+        );
+      END IF;
+    END LOOP;
+    
+    -- If insufficient, return error with details
+    IF jsonb_array_length(v_insufficient) > 0 THEN
+      RETURN jsonb_build_object(
+        'success', false,
+        'error', 'INSUFFICIENT_STOCK',
+        'message', 'Một số mặt hàng không đủ trong kho',
+        'insufficient_items', v_insufficient
+      );
+    END IF;
+  END IF;
+  
+  -- Generate transaction code
+  v_transaction_code := 'TXN-HDO-' || to_char(now(), 'YYYYMMDD-HH24MISS');
+  
+  -- Deduct inventory and update quantity_actual
+  FOR v_item IN
+    SELECT doi.id as item_row_id, doi.item_id, doi.quantity,
+           i.hotel_id, i.tenant_id, i.quantity_in_stock, i.quantity_pending
+    FROM distribution_order_rooms dor
+    JOIN distribution_order_items doi ON doi.distribution_order_room_id = dor.id
+    JOIN items i ON i.id = doi.item_id
+    WHERE dor.distribution_order_id = v_order.id
+      AND (dor.batch_number = v_batch.batch_number OR v_batch.batch_number IS NULL)
+  LOOP
+    -- Get actual quantity (from adjustments or original)
+    IF p_adjustments IS NOT NULL THEN
+      SELECT (adj->>'quantity_actual')::integer INTO v_qty_actual
+      FROM jsonb_array_elements(p_adjustments) adj
+      WHERE (adj->>'item_id')::uuid = v_item.item_id;
+      
+      IF v_qty_actual IS NULL THEN
+        v_qty_actual := v_item.quantity;
+      END IF;
+      
+      -- Update quantity_actual
+      UPDATE distribution_order_items
+      SET quantity_actual = v_qty_actual
+      WHERE id = v_item.item_row_id;
+    ELSE
+      v_qty_actual := v_item.quantity;
+    END IF;
+    
+    -- Create inventory transaction
+    INSERT INTO inventory_transactions (...) VALUES (...);
+    
+    -- Update item stock
+    UPDATE items
+    SET quantity_in_stock = quantity_in_stock - v_qty_actual,
+        quantity_pending = COALESCE(quantity_pending, 0) + v_qty_actual
+    WHERE id = v_item.item_id;
+  END LOOP;
+  
+  -- Update batch and order status
+  UPDATE distribution_order_batches SET status = 'handed_over', ... WHERE id = p_batch_id;
+  UPDATE distribution_orders SET status = 'released', ... WHERE id = v_order.id;
+  
+  RETURN jsonb_build_object('success', true, ...);
+END;
+$$;
+```
 
