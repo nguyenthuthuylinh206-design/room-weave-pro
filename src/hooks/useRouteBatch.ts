@@ -540,6 +540,15 @@ export interface ConfirmReceiveResult {
   insufficient_items?: InsufficientItem[]
 }
 
+// Vietnamese error messages mapping
+const CONFIRM_RECEIVE_ERROR_MESSAGES: Record<string, string> = {
+  ORDER_NOT_FOUND: 'Không tìm thấy phiếu giao hàng',
+  INVALID_STATUS: 'Phiếu chưa được giao từ kho hoặc đã được xác nhận rồi',
+  INSUFFICIENT_STOCK: 'Không đủ hàng trong kho để giao',
+  ADJUSTMENT_EXCEEDS_STOCK: 'Số lượng điều chỉnh vượt quá tồn kho',
+  NOT_ASSIGNEE: 'Bạn không phải là người được phân công nhận hàng',
+}
+
 export function useConfirmReceiveOrder() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
@@ -550,19 +559,29 @@ export function useConfirmReceiveOrder() {
     }: { 
       orderId: string
     }): Promise<ConfirmReceiveResult> => {
-      if (!user?.id) throw new Error('User not authenticated')
+      if (!user?.id) throw new Error('Chưa đăng nhập')
 
       const { data, error } = await supabase.rpc('confirm_receive_order', {
         p_order_id: orderId,
         p_actor_id: user.id,
+        p_adjustments: null, // Explicitly pass null to avoid ambiguous function call
       })
 
-      if (error) throw error
+      if (error) {
+        // Map Supabase error to Vietnamese
+        const errorMessage = error.message || ''
+        if (errorMessage.includes('Could not choose')) {
+          throw new Error('Lỗi hệ thống, vui lòng thử lại sau')
+        }
+        throw new Error('Có lỗi xảy ra, vui lòng thử lại')
+      }
       
       const response = data as unknown as ConfirmReceiveResponse
       
       if (!response.success) {
-        throw new Error(response.error || response.message || 'Unknown error')
+        const errorCode = response.error || ''
+        const message = CONFIRM_RECEIVE_ERROR_MESSAGES[errorCode] || response.message || 'Có lỗi xảy ra, vui lòng thử lại'
+        throw new Error(message)
       }
       
       return { success: true }
