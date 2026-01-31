@@ -261,3 +261,37 @@ export function useSubscriptionDistribution() {
     },
   })
 }
+
+// Get conversion metrics (trial to paid)
+export function useConversionMetrics(days: number = 30) {
+  return useQuery({
+    queryKey: ['conversion-metrics', days],
+    queryFn: async () => {
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - days)
+
+      const { data, error } = await supabase
+        .from('tenants')
+        .select('subscription_status, trial_ends_at, created_at')
+        .gte('created_at', startDate.toISOString())
+        .neq('id', '00000000-0000-0000-0000-000000000000')
+
+      if (error) throw error
+
+      // Calculate conversion metrics
+      const trials = data.filter(t => t.trial_ends_at)
+      const converted = data.filter(t => 
+        t.trial_ends_at && 
+        t.subscription_status === 'active'
+      )
+
+      return {
+        totalTrials: trials.length,
+        converted: converted.length,
+        conversionRate: trials.length > 0 
+          ? ((converted.length / trials.length) * 100).toFixed(2)
+          : '0'
+      }
+    },
+  })
+}
