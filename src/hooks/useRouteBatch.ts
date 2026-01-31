@@ -323,7 +323,30 @@ export function useDeliverStop() {
       }
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Không thể giao hàng')
+      const originalMessage = error.message || ''
+      
+      // Map technical errors to Vietnamese user-friendly messages
+      const DELIVER_STOP_ERROR_MESSAGES: Record<string, string> = {
+        'Stop not found': 'Không tìm thấy phòng này trong phiếu',
+        'Room order not found': 'Không tìm thấy thông tin phòng',
+        'Order not in progress': 'Phiếu chưa ở trạng thái đang giao - vui lòng xác nhận nhận hàng trước',
+        'You are not assigned to this order': 'Bạn không được phân công cho phiếu này',
+        'You are not assigned to this route': 'Bạn không được phân công cho phiếu này',
+        'Batch not received yet': 'Hàng chưa được xác nhận nhận - vui lòng xác nhận nhận hàng trước',
+        'Batch not ready for delivery': 'Hàng chưa sẵn sàng để giao',
+        'Stop already processed': 'Phòng này đã được xử lý rồi',
+        'Stop already delivered': 'Phòng này đã được giao rồi',
+      }
+      
+      let translatedMessage = 'Không thể giao hàng'
+      for (const [key, value] of Object.entries(DELIVER_STOP_ERROR_MESSAGES)) {
+        if (originalMessage.includes(key)) {
+          translatedMessage = value
+          break
+        }
+      }
+      
+      toast.error(translatedMessage)
     },
   })
 }
