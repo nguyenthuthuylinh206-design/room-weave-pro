@@ -89,10 +89,49 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
       </Avatar>
 
       <div className="flex-1 min-w-0">
+        {/* Row 1: Name + Status + Buttons */}
         <div className="flex items-center gap-2">
           <p className="font-medium text-sm truncate">{staff.full_name}</p>
           <StaffStatusBadge status={staff.status} size="sm" showLabel={false} />
+          
+          {/* Contact buttons inline */}
+          <div className="flex items-center gap-0.5 ml-auto">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-8 w-8",
+                hasTelegramConnection 
+                  ? "text-blue-500 hover:text-blue-600 hover:bg-blue-50" 
+                  : "text-muted-foreground/40 hover:text-muted-foreground/60"
+              )}
+              onClick={handleTelegram}
+              title={
+                staff.telegram_username 
+                  ? `Telegram @${staff.telegram_username}`
+                  : staff.phone 
+                    ? `Telegram ${formatPhoneForTelegram(staff.phone)}`
+                    : `${staff.full_name} chưa có SĐT - cần cập nhật trong Hồ sơ`
+              }
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+
+            {staff.phone && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                onClick={handleCall}
+                title={`Gọi ${staff.phone}`}
+              >
+                <Phone className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
+        
+        {/* Row 2: Position & Hotel */}
         <p className="text-xs text-muted-foreground truncate">
           {staff.position_name || staff.user_level_code || 'Nhân viên'}
           {staff.hotel_name && <span className="ml-1">• {staff.hotel_name}</span>}
@@ -119,42 +158,6 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
           <p className="mt-1 text-xs text-muted-foreground">
             Hoạt động {lastSeenText}
           </p>
-        )}
-      </div>
-
-      {/* Contact buttons group */}
-      <div className="flex items-center gap-1 flex-shrink-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "h-10 w-10 min-h-[44px] min-w-[44px]",
-            hasTelegramConnection 
-              ? "text-blue-500 hover:text-blue-600 hover:bg-blue-50" 
-              : "text-muted-foreground/40 hover:text-muted-foreground/60"
-          )}
-          onClick={handleTelegram}
-          title={
-            staff.telegram_username 
-              ? `Telegram @${staff.telegram_username}`
-              : staff.phone 
-                ? `Telegram ${formatPhoneForTelegram(staff.phone)}`
-                : `${staff.full_name} chưa có SĐT - cần cập nhật trong Hồ sơ`
-          }
-        >
-          <Send className="h-5 w-5" />
-        </Button>
-
-        {staff.phone && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground"
-            onClick={handleCall}
-            title={`Gọi ${staff.phone}`}
-          >
-            <Phone className="h-5 w-5" />
-          </Button>
         )}
       </div>
     </div>
