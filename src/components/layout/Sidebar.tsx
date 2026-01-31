@@ -441,7 +441,7 @@ export const Sidebar = () => {
                 >
                   <Icon className="h-5 w-5 flex-shrink-0" />
                   <span className="flex-1 text-left">{title}</span>
-                  {parentBadgeCount > 0 && (
+                  {!isExpanded && parentBadgeCount > 0 && (
                     <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs">
                       {parentBadgeCount > 99 ? '99+' : parentBadgeCount}
                     </Badge>
