@@ -112,7 +112,7 @@ export default function DistributionOrderDetailPage() {
           {/* Header */}
           <div className="sticky top-0 z-10 bg-background border-b p-4">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <Button variant="ghost" size="icon" onClick={() => navigate('/inventory/distributions')}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div className="flex-1">
@@ -231,7 +231,7 @@ export default function DistributionOrderDetailPage() {
     <div className="container mx-auto py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/inventory/distribution')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/inventory/distributions')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
