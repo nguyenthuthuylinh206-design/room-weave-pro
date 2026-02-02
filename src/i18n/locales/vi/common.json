@@ -171,5 +171,17 @@
     "licenses": "Giấy phép",
     "builtWith": "Xây dựng với ❤️ cho ngành khách sạn",
     "copyright": "© 2024 Room Weave Pro. Đã đăng ký bản quyền."
+  },
+  "shift": {
+    "title": "Ca làm việc",
+    "notOnShift": "Bạn chưa vào ca hôm nay",
+    "onShift": "Đang trong ca làm việc",
+    "startedAt": "Bắt đầu: {{time}}",
+    "duration": "{{duration}}",
+    "checkIn": "Vào ca ngay",
+    "checkOut": "Kết thúc ca",
+    "checkedIn": "Đã vào ca làm việc",
+    "checkedOut": "Đã kết thúc ca làm việc",
+    "onShiftBadge": "Đang trong ca"
   }
 }

@@ -44,6 +44,8 @@ import { toast } from 'sonner'
 import { MobileHotelSwitcher, MobileAlertsBanner } from '@/components/mobile'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { supabase } from '@/integrations/supabase/client'
+import { isStaff } from '@/lib/userAccess'
+import { ShiftCheckInCard } from '@/components/staff/ShiftCheckInCard'
 
 export function MobileDashboard() {
   const navigate = useNavigate()
@@ -53,6 +55,9 @@ export function MobileDashboard() {
   const { data: recentActivities } = useRecentActivities(5)
   const { data: topItems } = useTopItems(5)
   const queryClient = useQueryClient()
+  
+  // Check if user is staff for shift check-in card
+  const isStaffUser = isStaff(user)
 
   // Get room stats - separate queries to avoid mutation bug
   const { data: roomStats } = useQuery({
@@ -251,6 +256,13 @@ export function MobileDashboard() {
           </div>
           <MobileHotelSwitcher />
         </div>
+
+        {/* Shift Check-in Card - Only for staff */}
+        {isStaffUser && (
+          <div className="px-4">
+            <ShiftCheckInCard />
+          </div>
+        )}
 
         {/* Stats - Horizontal Scroll */}
         <div className="px-4">

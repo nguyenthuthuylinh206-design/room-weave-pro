@@ -8,13 +8,14 @@ import { QuickActions } from '@/components/dashboard/QuickActions'
 import { MobileDashboard } from '@/components/dashboard/MobileDashboard'
 import { HotelBreakdownCards } from '@/components/dashboard/HotelBreakdownCards'
 import { OwnerDashboard } from '@/components/dashboard/owner'
+import { ShiftCheckInCard } from '@/components/staff/ShiftCheckInCard'
 import { Package, Wind, AlertTriangle, BarChart3 } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useTranslation } from 'react-i18next'
-import { isTenantOwner, isSuperAdmin } from '@/lib/userAccess'
+import { isTenantOwner, isSuperAdmin, isStaff } from '@/lib/userAccess'
 
 export default function Dashboard() {
   const { t } = useTranslation('dashboard')
@@ -30,6 +31,9 @@ export default function Dashboard() {
 
   // Check if user is owner (tenant_owner) - show executive dashboard
   const isOwner = isTenantOwner(user)
+  
+  // Check if user is staff - show shift check-in card
+  const isStaffUser = isStaff(user)
 
   // Owner view - Financial focus
   if (isOwner) {
@@ -75,6 +79,13 @@ export default function Dashboard() {
           </div>
         )}
       </PageHeader>
+
+      {/* Shift Check-in Card - Only for staff */}
+      {isStaffUser && (
+        <div className="max-w-md">
+          <ShiftCheckInCard />
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
