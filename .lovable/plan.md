@@ -1,38 +1,38 @@
 
 
-## Kế hoạch: Hiển thị nút Kết thúc ca trên ShiftStatusBanner
+## Kế hoạch: Thêm xác nhận cho Vào ca / Kết thúc ca
 
-### VẤN ĐỀ HIỆN TẠI
+### MỤC TIÊU
 
-`ShiftStatusBanner` hiện tại **ẩn hoàn toàn** khi nhân viên đã vào ca (dòng 22: `if (isLoading || isOnShift) return null`). Điều này khiến nhân viên phải quay về Dashboard để kết thúc ca.
-
----
-
-### GIẢI PHÁP
-
-Cập nhật `ShiftStatusBanner` để hiển thị 2 trạng thái:
-
-| Trạng thái | Màu nền | Nội dung | Nút |
-|------------|---------|----------|-----|
-| Chưa vào ca | Vàng (`amber`) | "Bạn chưa vào ca hôm nay" | Vào ca ngay |
-| Đang trong ca | Xanh (`green`) | "Đang trong ca • HH:mm" | Kết thúc ca |
+Thêm AlertDialog xác nhận trước khi thực hiện Check-in và Check-out để tránh nhấn nhầm.
 
 ---
 
 ### THIẾT KẾ UI
 
-**Khi chưa vào ca (hiện tại):**
+**Dialog xác nhận Vào ca:**
 ```text
-┌────────────────────────────────────────────────────┐
-│ 🕐 Bạn chưa vào ca hôm nay    │  [Vào ca ngay →]  │  ← Nền vàng
-└────────────────────────────────────────────────────┘
+┌─────────────────────────────────────┐
+│  Xác nhận vào ca                    │
+│                                     │
+│  Bạn có chắc muốn bắt đầu ca làm    │
+│  việc ngay bây giờ?                 │
+│                                     │
+│         [Hủy]    [Vào ca]           │
+└─────────────────────────────────────┘
 ```
 
-**Khi đã vào ca (mới):**
+**Dialog xác nhận Kết thúc ca:**
 ```text
-┌────────────────────────────────────────────────────┐
-│ ✓ Đang trong ca • 08:30 (2h)  │  [Kết thúc ca]    │  ← Nền xanh
-└────────────────────────────────────────────────────┘
+┌─────────────────────────────────────┐
+│  Xác nhận kết thúc ca               │
+│                                     │
+│  Bạn đã làm việc được 2 giờ 30      │
+│  phút. Bạn có chắc muốn kết thúc    │
+│  ca làm việc?                       │
+│                                     │
+│         [Hủy]    [Kết thúc]         │
+└─────────────────────────────────────┘
 ```
 
 ---
@@ -41,89 +41,151 @@ Cập nhật `ShiftStatusBanner` để hiển thị 2 trạng thái:
 
 **Sửa file: `src/components/staff/ShiftStatusBanner.tsx`**
 
+Thêm 2 AlertDialog với state quản lý:
+
 ```typescript
-import { Clock, CheckCircle, ChevronRight, LogOut, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { useTranslation } from 'react-i18next'
+import { useState } from 'react'
 import {
-  useMyStaffStatus,
-  useShiftCheckIn,
-  useShiftCheckOut,  // Thêm hook checkout
-  isCurrentlyOnShift,
-  formatShiftStartTime,
-  calculateShiftDuration,
-} from '@/hooks/useShiftManagement'
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 export function ShiftStatusBanner() {
-  const { t } = useTranslation('common')
-  const { data: myStatus, isLoading } = useMyStaffStatus()
-  const { mutate: checkIn, isPending: isCheckingIn } = useShiftCheckIn()
-  const { mutate: checkOut, isPending: isCheckingOut } = useShiftCheckOut()
-
-  const isOnShift = isCurrentlyOnShift(myStatus)
-
-  // Chỉ ẩn khi đang loading
-  if (isLoading) return null
-
-  // Đang trong ca - Banner màu xanh
+  const [showCheckInConfirm, setShowCheckInConfirm] = useState(false)
+  const [showCheckOutConfirm, setShowCheckOutConfirm] = useState(false)
+  
+  // ... existing hooks
+  
+  const handleCheckIn = () => {
+    checkIn()
+    setShowCheckInConfirm(false)
+  }
+  
+  const handleCheckOut = () => {
+    checkOut()
+    setShowCheckOutConfirm(false)
+  }
+  
+  // On shift - Green banner
   if (isOnShift) {
-    const startTime = formatShiftStartTime(myStatus?.shift_start_at)
-    const duration = calculateShiftDuration(myStatus?.shift_start_at)
-    
     return (
-      <div className="bg-green-50 dark:bg-green-950 border-b border-green-200 dark:border-green-800 px-4 py-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
-            <CheckCircle className="h-4 w-4" />
-            <span className="text-sm font-medium">
-              {t('shift.onShift', 'Đang trong ca')} • {startTime}
-              {duration && ` (${duration})`}
-            </span>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs border-green-300 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900"
-            onClick={() => checkOut()}
-            disabled={isCheckingOut}
-          >
-            {isCheckingOut ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <>
-                <LogOut className="h-3 w-3 mr-1" />
-                {t('shift.checkOut', 'Kết thúc ca')}
-              </>
-            )}
+      <>
+        <div className="bg-green-50 ...">
+          {/* ... existing content */}
+          <Button onClick={() => setShowCheckOutConfirm(true)} ...>
+            Kết thúc ca
           </Button>
         </div>
-      </div>
+        
+        {/* Check-out confirmation dialog */}
+        <AlertDialog open={showCheckOutConfirm} onOpenChange={setShowCheckOutConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Xác nhận kết thúc ca</AlertDialogTitle>
+              <AlertDialogDescription>
+                Bạn đã làm việc được {duration}. 
+                Bạn có chắc muốn kết thúc ca làm việc?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Hủy</AlertDialogCancel>
+              <AlertDialogAction onClick={handleCheckOut} disabled={isCheckingOut}>
+                {isCheckingOut ? 'Đang xử lý...' : 'Kết thúc ca'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
     )
   }
-
-  // Chưa vào ca - Banner màu vàng (giữ nguyên code hiện tại)
+  
+  // Not on shift - Yellow banner
   return (
-    <div className="bg-amber-50 dark:bg-amber-950 border-b ...">
-      ...
-    </div>
+    <>
+      <div className="bg-amber-50 ...">
+        {/* ... existing content */}
+        <Button onClick={() => setShowCheckInConfirm(true)} ...>
+          Vào ca ngay
+        </Button>
+      </div>
+      
+      {/* Check-in confirmation dialog */}
+      <AlertDialog open={showCheckInConfirm} onOpenChange={setShowCheckInConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận vào ca</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc muốn bắt đầu ca làm việc ngay bây giờ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCheckIn} disabled={isCheckingIn}>
+              {isCheckingIn ? 'Đang xử lý...' : 'Vào ca'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }
 ```
 
 ---
 
-### TÓM TẮT THAY ĐỔI
+### CẬP NHẬT I18N
+
+**Thêm vào `src/i18n/locales/vi/common.json`:**
+
+```json
+{
+  "shift": {
+    "confirmCheckInTitle": "Xác nhận vào ca",
+    "confirmCheckInDescription": "Bạn có chắc muốn bắt đầu ca làm việc ngay bây giờ?",
+    "confirmCheckOutTitle": "Xác nhận kết thúc ca",
+    "confirmCheckOutDescription": "Bạn đã làm việc được {{duration}}. Bạn có chắc muốn kết thúc ca làm việc?",
+    "cancel": "Hủy",
+    "processing": "Đang xử lý..."
+  }
+}
+```
+
+**Thêm vào `src/i18n/locales/en/common.json`:**
+
+```json
+{
+  "shift": {
+    "confirmCheckInTitle": "Confirm Check-in",
+    "confirmCheckInDescription": "Are you sure you want to start your shift now?",
+    "confirmCheckOutTitle": "Confirm Check-out",
+    "confirmCheckOutDescription": "You've been working for {{duration}}. Are you sure you want to end your shift?",
+    "cancel": "Cancel",
+    "processing": "Processing..."
+  }
+}
+```
+
+---
+
+### TÓM TẮT FILES CẦN SỬA
 
 | File | Thay đổi |
 |------|----------|
-| `src/components/staff/ShiftStatusBanner.tsx` | Thêm trạng thái "Đang trong ca" với nút Kết thúc ca |
+| `src/components/staff/ShiftStatusBanner.tsx` | Thêm AlertDialog xác nhận cho cả Check-in và Check-out |
+| `src/i18n/locales/vi/common.json` | Thêm translations cho dialog xác nhận |
+| `src/i18n/locales/en/common.json` | Thêm translations cho dialog xác nhận |
 
 ---
 
 ### KẾT QUẢ MONG ĐỢI
 
-1. **Nhân viên chưa vào ca** → Banner vàng với nút "Vào ca ngay" (hiện tại)
-2. **Nhân viên đã vào ca** → Banner xanh với thời gian bắt đầu + thời lượng + nút "Kết thúc ca"
-3. **Sau khi kết thúc ca** → Banner chuyển lại màu vàng với nút "Vào ca ngay"
-4. **Hiển thị trên TẤT CẢ trang mobile** → Không cần quay về Dashboard
+1. **Nhấn "Vào ca ngay"** → Hiện dialog "Xác nhận vào ca" → Nhấn "Vào ca" mới thực sự check-in
+2. **Nhấn "Kết thúc ca"** → Hiện dialog "Xác nhận kết thúc ca" với thời gian đã làm → Nhấn "Kết thúc ca" mới thực sự check-out
+3. **Nhấn "Hủy"** → Đóng dialog, không thay đổi gì
 
