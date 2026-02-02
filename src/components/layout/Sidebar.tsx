@@ -36,9 +36,6 @@ import {
   Bell,
   Briefcase,
   Zap,
-  Plug,
-  Lock,
-  TestTube2,
   Tag,
   Truck,
   BarChart3,
@@ -109,8 +106,6 @@ const ownerNavigation: NavItem[] = [
       { titleKey: 'businessConfig', href: '/settings/business', icon: Briefcase },
       { titleKey: 'pricingRules', href: '/settings/pricing-rules', icon: DollarSign },
       { titleKey: 'automation', href: '/settings/workflows', icon: Zap },
-      { titleKey: 'integrations', href: '/settings/integrations', icon: Plug },
-      { titleKey: 'systemSecurity', href: '/settings/security', icon: Lock },
     ],
   },
 ]
@@ -240,8 +235,6 @@ const navigation: NavItem[] = [
       { titleKey: 'businessConfig', href: '/settings/business', icon: Briefcase },
       { titleKey: 'pricingRules', href: '/settings/pricing-rules', icon: DollarSign },
       { titleKey: 'automation', href: '/settings/workflows', icon: Zap },
-      { titleKey: 'integrations', href: '/settings/integrations', icon: Plug },
-      { titleKey: 'systemSecurity', href: '/settings/security', icon: Lock },
     ],
   },
 ]
