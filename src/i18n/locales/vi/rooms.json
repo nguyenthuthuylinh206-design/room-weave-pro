@@ -166,6 +166,7 @@
     "floorPlan": "Sơ đồ tầng"
   },
   "actions": {
+    "addRoom": "Thêm phòng",
     "viewDetail": "Xem chi tiết",
     "backToList": "Quay lại danh sách",
     "edit": "Sửa",
