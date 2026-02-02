@@ -16,7 +16,8 @@ import {
 } from '@/components/ui/select'
 import { useSupplementRequests, SupplementRequest } from '@/hooks/useSupplementRequests'
 import { useCreateDistributionFromSupplements } from '@/hooks/useCreateDistributionFromSupplements'
-import { useUsers } from '@/hooks/useUsers'
+import { useOnShiftStaffList } from '@/hooks/useOnShiftStaffList'
+import { useHotelContext } from '@/contexts/HotelContext'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { formatCurrency } from '@/lib/utils'
 import { cn } from '@/lib/utils'
@@ -32,8 +33,9 @@ export default function CreateFromSupplementsPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const isMobile = useIsMobile()
+  const { selectedHotel } = useHotelContext()
   const { data: requests = [], isLoading } = useSupplementRequests({ status: 'pending' })
-  const { users = [] } = useUsers()
+  const { data: staffUsers = [], isLoading: staffLoading } = useOnShiftStaffList(selectedHotel?.id)
   const { mutate: createFromSupplements, isPending } = useCreateDistributionFromSupplements()
 
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -51,11 +53,6 @@ export default function CreateFromSupplementsPage() {
       }
     }
   }, [searchParams, requests])
-
-  const staffUsers = users.filter(u => 
-    u.user_level_code === 'staff' || u.user_level_code === 'hotel_manager'
-  )
-
   const toggleSelection = (id: string) => {
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
@@ -189,21 +186,31 @@ export default function CreateFromSupplementsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Gán cho nhân viên</Label>
+                    <Label className="text-xs flex items-center gap-1">
+                      Gán cho nhân viên
+                      <span className="text-muted-foreground">(đang trong ca)</span>
+                    </Label>
                     <Select 
                       value={assignedTo || 'unassigned'} 
                       onValueChange={(val) => setAssignedTo(val === 'unassigned' ? '' : val)}
+                      disabled={staffLoading}
                     >
                       <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Chọn nhân viên..." />
+                        <SelectValue placeholder={staffLoading ? 'Đang tải...' : 'Chọn nhân viên...'} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="unassigned">Chưa phân công</SelectItem>
-                        {staffUsers.map(user => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.full_name}
-                          </SelectItem>
-                        ))}
+                        {staffUsers.length === 0 ? (
+                          <div className="py-2 px-3 text-sm text-muted-foreground">
+                            Không có nhân viên đang trong ca
+                          </div>
+                        ) : (
+                          staffUsers.map(user => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.full_name}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>

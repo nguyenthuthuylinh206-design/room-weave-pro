@@ -18,15 +18,8 @@ import {
 } from '@/components/ui/select'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Package, User, DoorOpen, Truck, AlertTriangle } from 'lucide-react'
-import { supabase } from '@/integrations/supabase/client'
+import { useOnShiftStaffList } from '@/hooks/useOnShiftStaffList'
 import type { SupplementRequestItem } from '@/hooks/useSupplementRequests'
-
-interface StaffMember {
-  id: string
-  full_name: string
-  email: string
-  avatar_url?: string
-}
 
 interface ApproveSupplementDialogProps {
   open: boolean
@@ -51,54 +44,18 @@ export function ApproveSupplementDialog({
   onConfirm,
   isPending,
 }: ApproveSupplementDialogProps) {
-  const [staffList, setStaffList] = useState<StaffMember[]>([])
   const [selectedStaff, setSelectedStaff] = useState<string>('')
-  const [isLoadingStaff, setIsLoadingStaff] = useState(false)
-
-  useEffect(() => {
-    if (open && hotelId) {
-      loadStaff()
-    }
-  }, [open, hotelId])
-
-  const loadStaff = async () => {
-    setIsLoadingStaff(true)
-    try {
-      const { data, error } = await supabase
-        .from('user_hotels')
-        .select(`
-          user_id,
-          users!user_hotels_user_id_fkey(id, full_name, email, avatar_url)
-        `)
-        .eq('hotel_id', hotelId)
-
-      if (error) throw error
-
-      const staff = data
-        ?.filter(item => (item.users as any) !== null)
-        ?.map(item => ({
-          id: (item.users as any).id,
-          full_name: (item.users as any).full_name,
-          email: (item.users as any).email,
-          avatar_url: (item.users as any).avatar_url,
-        })) || []
-
-      setStaffList(staff)
-    } catch (error) {
-      console.error('Error loading staff:', error)
-    } finally {
-      setIsLoadingStaff(false)
-    }
-  }
+  const { data: staffList = [], isLoading: isLoadingStaff } = useOnShiftStaffList(hotelId)
 
   const handleConfirm = () => {
     onConfirm(selectedStaff || null)
   }
 
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return '?'
     return name
       .split(' ')
-      .map(n => n[0])
+      .map(n => n?.[0] || '')
       .join('')
       .toUpperCase()
       .slice(0, 2)
@@ -149,8 +106,9 @@ export function ApproveSupplementDialog({
 
               {/* Staff Selector */}
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
                   Gán cho nhân viên
+                  <span>(đang trong ca)</span>
                 </label>
                 <Select
                   value={selectedStaff}

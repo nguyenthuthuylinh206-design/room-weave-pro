@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { useHotelStaffList, HotelStaffMember } from '@/hooks/useHotelStaffList'
+import { useOnShiftStaffList, OnShiftStaffMember } from '@/hooks/useOnShiftStaffList'
 import { useCheckoutInspection } from '@/hooks/useCheckoutInspection'
 import type { CheckoutInspectionRequestWithDetails } from '@/types/checkout-inspection.types'
 import { cn } from '@/lib/utils'
@@ -44,7 +44,7 @@ interface CheckoutInspectionSectionProps {
 }
 
 // Helper to open Telegram chat with staff
-function openTelegramChat(staff: HotelStaffMember) {
+function openTelegramChat(staff: OnShiftStaffMember) {
   let telegramUrl: string | null = null
   
   // Priority: username > phone > chat_id
@@ -93,7 +93,7 @@ export function CheckoutInspectionSection({
   const [selectedStaffId, setSelectedStaffId] = useState<string>('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   
-  const { data: staffList = [], isLoading: isLoadingStaff } = useHotelStaffList(hotelId)
+  const { data: staffList = [], isLoading: isLoadingStaff } = useOnShiftStaffList(hotelId)
   
   // Timer for in_progress status
   const [elapsedTime, setElapsedTime] = useState<string>('')
@@ -127,7 +127,7 @@ export function CheckoutInspectionSection({
   }, [inspection?.status, inspection?.started_at])
   
   // Get assigned staff info from staffList
-  const getAssignedStaff = (): HotelStaffMember | undefined => {
+  const getAssignedStaff = (): OnShiftStaffMember | undefined => {
     if (!inspection?.assigned_to) return undefined
     return staffList.find(s => s.id === inspection.assigned_to)
   }
@@ -306,7 +306,10 @@ export function CheckoutInspectionSection({
       </div>
       
       <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground">Chọn nhân viên kiểm tra</Label>
+        <Label className="text-xs text-muted-foreground flex items-center gap-1">
+          Chọn nhân viên kiểm tra
+          <span>(đang trong ca)</span>
+        </Label>
         <Select 
           value={selectedStaffId} 
           onValueChange={setSelectedStaffId}
@@ -316,7 +319,11 @@ export function CheckoutInspectionSection({
             <SelectValue placeholder={isLoadingStaff ? 'Đang tải...' : 'Chọn nhân viên'} />
           </SelectTrigger>
           <SelectContent>
-            {staffList.map((staff) => (
+            {staffList.length === 0 ? (
+              <div className="py-2 px-3 text-sm text-muted-foreground">
+                Không có nhân viên đang trong ca
+              </div>
+            ) : staffList.map((staff) => (
               <SelectItem key={staff.id} value={staff.id}>
                 <div className="flex items-center gap-2">
                   <Avatar className="h-6 w-6">

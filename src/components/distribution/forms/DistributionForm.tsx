@@ -12,7 +12,8 @@ import {
 } from '@/components/ui/select'
 import { RoomMultiSelect } from '@/components/distribution/RoomMultiSelect'
 import { ItemAllocator } from './ItemAllocator'
-import { useUsers } from '@/hooks/useUsers'
+import { useOnShiftStaffList } from '@/hooks/useOnShiftStaffList'
+import { useHotelContext } from '@/contexts/HotelContext'
 import { useIsMobile } from '@/hooks/use-mobile'
 import type { DistributionFormReturn } from '../hooks/useDistributionForm'
 
@@ -23,7 +24,8 @@ interface DistributionFormProps {
 
 export function DistributionForm({ form, showHeader = true }: DistributionFormProps) {
   const isMobile = useIsMobile()
-  const { users = [] } = useUsers()
+  const { selectedHotel } = useHotelContext()
+  const { data: staffUsers = [], isLoading: staffLoading } = useOnShiftStaffList(selectedHotel?.id)
   
   const {
     selectedRoomIds,
@@ -34,10 +36,6 @@ export function DistributionForm({ form, showHeader = true }: DistributionFormPr
     setNotes,
     stockValidation,
   } = form
-
-  const staffUsers = users.filter(u => 
-    u.user_level_code === 'staff' || u.user_level_code === 'hotel_manager'
-  )
 
   return (
     <div className={isMobile ? 'space-y-4' : 'grid grid-cols-1 lg:grid-cols-5 gap-4'}>
@@ -99,18 +97,31 @@ export function DistributionForm({ form, showHeader = true }: DistributionFormPr
         <CardContent className="pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">Người giao hàng</Label>
-              <Select value={assignedTo || 'unassigned'} onValueChange={(val) => setAssignedTo(val === 'unassigned' ? '' : val)}>
+              <Label className="text-xs flex items-center gap-1">
+                Người giao hàng
+                <span className="text-muted-foreground">(đang trong ca)</span>
+              </Label>
+              <Select 
+                value={assignedTo || 'unassigned'} 
+                onValueChange={(val) => setAssignedTo(val === 'unassigned' ? '' : val)}
+                disabled={staffLoading}
+              >
                 <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Chọn nhân viên..." />
+                  <SelectValue placeholder={staffLoading ? 'Đang tải...' : 'Chọn nhân viên...'} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="unassigned">Chưa phân công</SelectItem>
-                  {staffUsers.map(user => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.full_name}
-                    </SelectItem>
-                  ))}
+                  {staffUsers.length === 0 ? (
+                    <div className="py-2 px-3 text-sm text-muted-foreground">
+                      Không có nhân viên đang trong ca
+                    </div>
+                  ) : (
+                    staffUsers.map(user => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.full_name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
