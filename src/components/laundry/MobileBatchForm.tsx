@@ -67,12 +67,14 @@ export function MobileBatchForm() {
   const { mutate: createBatch, isPending } = useCreateLaundryBatch()
   
   // Fetch launderable categories - same logic as Desktop (CreateBatchStep2)
-  const { data: launderableCategories } = useQuery({
+  const { data: launderableCategories, isLoading: isLoadingCategories } = useQuery({
     queryKey: ['launderable-categories', tenantId],
     queryFn: async () => {
+      if (!tenantId) return []
       const { data, error } = await supabase
         .from('item_categories')
         .select('id')
+        .eq('tenant_id', tenantId)
         .eq('is_launderable', true)
         .eq('status', 'active')
       if (error) throw error
@@ -538,24 +540,36 @@ export function MobileBatchForm() {
             />
             
             <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-              {filteredItems?.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
-                  onClick={() => addItem(item)}
-                >
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">{item.code}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {t('mobileBatch.stock')}: {item.quantity_in_stock || 0} {item.unit}
-                    </p>
-                  </div>
-                  <Button size="sm">
-                    <Plus className="h-4 w-4" />
-                  </Button>
+              {isLoadingCategories ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>{t('common:loading', 'Đang tải...')}</p>
                 </div>
-              ))}
+              ) : !filteredItems || filteredItems.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>{t('createBatch.step2.noLaunderableItems', 'Không có đồ vải có thể giặt trong kho')}</p>
+                  <p className="text-xs mt-2">{t('mobileBatch.checkCategorySettings', 'Kiểm tra cài đặt danh mục hoặc tồn kho')}</p>
+                </div>
+              ) : (
+                filteredItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                    onClick={() => addItem(item)}
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{item.name}</p>
+                      <p className="text-xs text-muted-foreground">{item.code}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {t('mobileBatch.stock')}: {item.quantity_in_stock || 0} {item.unit}
+                      </p>
+                    </div>
+                    <Button size="sm">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </SheetContent>

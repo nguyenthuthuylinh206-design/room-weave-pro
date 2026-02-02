@@ -59,12 +59,14 @@ export function CreateBatchStep2({ initialData, step1Data, onComplete, onBack }:
   const itemsQuery = useItems({ status: 'active' }, 1, 1000)
   const { data: vendor } = useLaundryVendor(step1Data.vendor_id)
   
-  const { data: launderableCategories } = useQuery({
+  const { data: launderableCategories, isLoading: isLoadingCategories } = useQuery({
     queryKey: ['launderable-categories', tenantId],
     queryFn: async () => {
+      if (!tenantId) return []
       const { data, error } = await supabase
         .from('item_categories')
         .select('id')
+        .eq('tenant_id', tenantId)
         .eq('is_launderable', true)
         .eq('status', 'active')
       if (error) throw error
@@ -149,18 +151,28 @@ export function CreateBatchStep2({ initialData, step1Data, onComplete, onBack }:
                           <FormItem>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl><SelectTrigger><SelectValue placeholder={t('createBatch.step2.selectItem')} /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                {availableItems.map((item) => (
-                                  <SelectItem key={item.id} value={item.id}>
-                                    <div className="flex justify-between items-center w-full gap-3">
-                                      <span>{item.name} ({item.code})</span>
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-xs text-muted-foreground">{t('createBatch.step2.stockLabel')}: {item.quantity_in_stock} {item.unit}</span>
-                                        {(item.quantity_in_stock || 0) < 10 && <Badge variant="secondary" className="text-xs">{t('createBatch.step2.lowStock')}</Badge>}
-                                      </div>
-                                    </div>
+                      <SelectContent>
+                                {itemsQuery.isLoading || isLoadingCategories ? (
+                                  <SelectItem value="__loading__" disabled>
+                                    {t('common:loading', 'Đang tải...')}
                                   </SelectItem>
-                                ))}
+                                ) : availableItems.length === 0 ? (
+                                  <SelectItem value="__empty__" disabled>
+                                    {t('createBatch.step2.noLaunderableItems', 'Không có đồ vải có thể giặt trong kho')}
+                                  </SelectItem>
+                                ) : (
+                                  availableItems.map((item) => (
+                                    <SelectItem key={item.id} value={item.id}>
+                                      <div className="flex justify-between items-center w-full gap-3">
+                                        <span>{item.name} ({item.code})</span>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-xs text-muted-foreground">{t('createBatch.step2.stockLabel')}: {item.quantity_in_stock} {item.unit}</span>
+                                          {(item.quantity_in_stock || 0) < 10 && <Badge variant="secondary" className="text-xs">{t('createBatch.step2.lowStock')}</Badge>}
+                                        </div>
+                                      </div>
+                                    </SelectItem>
+                                  ))
+                                )}
                               </SelectContent>
                             </Select>
                             <FormMessage />
