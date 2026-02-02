@@ -40,8 +40,10 @@ const MainLayoutContent = () => {
     <div className="min-h-screen flex bg-background">
       <Sidebar />
       <div className="flex-1 flex flex-col">
-        <Header onMenuClick={() => {}} />
-        <main className="flex-1 overflow-auto">
+      <Header onMenuClick={() => {}} />
+      {/* Shift Status Banner - Only for staff who haven't checked in */}
+      {isStaffUser && <ShiftStatusBanner />}
+      <main className="flex-1 overflow-auto">
           <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
             <div className="mb-4">
               <QuotaWarningBanner />
