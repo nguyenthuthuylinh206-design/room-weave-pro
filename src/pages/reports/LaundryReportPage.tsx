@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Package, DollarSign, Star, Users } from 'lucide-react'
+import { ArrowLeft, Package, DollarSign, Star, Users, Download, FileSpreadsheet } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
@@ -26,8 +26,12 @@ import { useLaundryReport } from '@/hooks/useReports'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { MobileLaundryReportPage } from '@/components/reports/MobileLaundryReportPage'
 import { formatCurrency } from '@/lib/utils'
-import { subDays } from 'date-fns'
+import { subDays, format } from 'date-fns'
 import { Skeleton } from '@/components/ui/skeleton'
+import { toast } from 'sonner'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import * as XLSX from 'xlsx'
 
 export function LaundryReportPage() {
   const { isMobile } = useBreakpoint()
@@ -108,16 +112,113 @@ export function LaundryReportPage() {
     cost: item.total_cost || 0,
   }))
 
+  const handleExportPDF = () => {
+    const doc = new jsPDF()
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(16)
+    doc.text('Báo cáo Giặt là', 14, 15)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    doc.text(`Từ ${format(dateRange.start, 'dd/MM/yyyy')} đến ${format(dateRange.end, 'dd/MM/yyyy')}`, 14, 22)
+    
+    // Summary
+    doc.setFontSize(12)
+    doc.text('Tổng quan', 14, 35)
+    autoTable(doc, {
+      startY: 40,
+      head: [['Chỉ số', 'Giá trị']],
+      body: [
+        ['Tổng số lô', String(summary?.total_batches || 0)],
+        ['Tổng items', String(summary?.total_items || 0)],
+        ['Tổng chi phí', formatCurrency(summary?.total_cost || 0)],
+        ['Chi phí/kg', formatCurrency(summary?.avg_cost_per_kg || 0)],
+        ['Chất lượng TB', `${(summary?.avg_quality || 0).toFixed(1)}/5`],
+        ['Tỷ lệ đúng hạn', `${(summary?.on_time_rate || 0).toFixed(0)}%`],
+      ],
+      styles: { fontSize: 10 },
+    })
+    
+    // Vendor table
+    if (by_vendor.length > 0) {
+      doc.text('Hiệu suất nhà cung cấp', 14, (doc as any).lastAutoTable.finalY + 10)
+      autoTable(doc, {
+        startY: (doc as any).lastAutoTable.finalY + 15,
+        head: [['Nhà cung cấp', 'Số lô', 'Items', 'Chi phí', 'Đ/kg', 'Chất lượng', 'Đúng hạn']],
+        body: by_vendor.map((v: any) => [
+          v.vendor_name,
+          String(v.total_batches),
+          String(v.total_items || 0),
+          formatCurrency(v.total_cost || 0),
+          formatCurrency(v.avg_cost_per_kg || 0),
+          (v.avg_quality_rating || 0).toFixed(1),
+          `${(v.on_time_rate || 0).toFixed(0)}%`,
+        ]),
+        styles: { fontSize: 9 },
+      })
+    }
+    
+    doc.save(`bao-cao-giat-la_${format(new Date(), 'yyyyMMdd')}.pdf`)
+    toast.success('Xuất PDF thành công')
+  }
+
+  const handleExportExcel = () => {
+    const workbook = XLSX.utils.book_new()
+    
+    // Summary sheet
+    const summaryData = [
+      ['Chỉ số', 'Giá trị'],
+      ['Tổng số lô', summary?.total_batches || 0],
+      ['Tổng items', summary?.total_items || 0],
+      ['Tổng chi phí', summary?.total_cost || 0],
+      ['Chi phí/kg', summary?.avg_cost_per_kg || 0],
+      ['Chất lượng TB', summary?.avg_quality || 0],
+      ['Tỷ lệ đúng hạn (%)', summary?.on_time_rate || 0],
+    ]
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
+    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Tổng quan')
+    
+    // Vendor sheet
+    if (by_vendor.length > 0) {
+      const vendorData = [
+        ['Nhà cung cấp', 'Số lô', 'Items', 'Chi phí', 'Đ/kg', 'Chất lượng', 'Đúng hạn (%)'],
+        ...by_vendor.map((v: any) => [
+          v.vendor_name,
+          v.total_batches,
+          v.total_items || 0,
+          v.total_cost || 0,
+          v.avg_cost_per_kg || 0,
+          v.avg_quality_rating || 0,
+          v.on_time_rate || 0,
+        ])
+      ]
+      const vendorSheet = XLSX.utils.aoa_to_sheet(vendorData)
+      XLSX.utils.book_append_sheet(workbook, vendorSheet, 'Nhà cung cấp')
+    }
+    
+    XLSX.writeFile(workbook, `bao-cao-giat-la_${format(new Date(), 'yyyyMMdd')}.xlsx`)
+    toast.success('Xuất Excel thành công')
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Báo cáo Giặt là"
         description="Phân tích chi phí và hiệu suất dịch vụ giặt là"
       >
-        <Button variant="outline" onClick={() => navigate('/reports')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Quay lại
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportPDF}>
+            <Download className="mr-2 h-4 w-4" />
+            PDF
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportExcel}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            Excel
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/reports')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Quay lại
+          </Button>
+        </div>
       </PageHeader>
       
       {/* Date Range */}

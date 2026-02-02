@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Download, FileText, Package, Users, WashingMachine, Wrench, Trash2, MoreHorizontal } from 'lucide-react'
+import { ArrowLeft, Download, FileSpreadsheet, FileText, Package, Users, WashingMachine, Wrench, Trash2, MoreHorizontal } from 'lucide-react'
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -13,7 +13,11 @@ import { Calendar } from '@/components/ui/calendar'
 import { useOutboundReport } from '@/hooks/useOutboundReport'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency as formatCurrencyUtil } from '@/lib/utils'
+import { toast } from 'sonner'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import * as XLSX from 'xlsx'
 
 const CATEGORY_ICONS = {
   room_assign: Package,
@@ -144,6 +148,72 @@ export function OutboundReportPage() {
     )
   }
 
+  const handleExportPDF = () => {
+    const doc = new jsPDF()
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(16)
+    doc.text('Báo cáo Xuất kho', 14, 15)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    doc.text(`Từ ${format(dateRange.from, 'dd/MM/yyyy')} đến ${format(dateRange.to, 'dd/MM/yyyy')}`, 14, 22)
+    
+    // Summary
+    doc.setFontSize(12)
+    doc.text('Tổng quan', 14, 35)
+    autoTable(doc, {
+      startY: 40,
+      head: [['Loại', 'Số GD', 'Số lượng', 'Giá trị']],
+      body: data?.summary.map(s => [
+        t(`categories.${s.category}`),
+        String(s.transaction_count),
+        String(s.total_quantity),
+        formatCurrency(s.total_value),
+      ]) || [],
+      styles: { fontSize: 10 },
+    })
+    
+    doc.save(`bao-cao-xuat-kho_${format(new Date(), 'yyyyMMdd')}.pdf`)
+    toast.success('Xuất PDF thành công')
+  }
+
+  const handleExportExcel = () => {
+    const workbook = XLSX.utils.book_new()
+    
+    // Summary sheet
+    const summaryData = [
+      ['Loại', 'Số giao dịch', 'Số lượng', 'Giá trị'],
+      ...(data?.summary.map(s => [
+        t(`categories.${s.category}`),
+        s.transaction_count,
+        s.total_quantity,
+        s.total_value,
+      ]) || [])
+    ]
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
+    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Tổng quan')
+    
+    // Top items per category
+    Object.entries(data?.byCategory || {}).forEach(([cat, catData]) => {
+      if (catData.topItems.length > 0) {
+        const itemsData = [
+          ['Mã SP', 'Tên SP', 'Số lượt', 'Số lượng', 'Giá trị'],
+          ...catData.topItems.map(item => [
+            item.item_code,
+            item.item_name,
+            item.count,
+            item.quantity,
+            item.value,
+          ])
+        ]
+        const itemsSheet = XLSX.utils.aoa_to_sheet(itemsData)
+        XLSX.utils.book_append_sheet(workbook, itemsSheet, t(`categories.${cat}`).slice(0, 31))
+      }
+    })
+    
+    XLSX.writeFile(workbook, `bao-cao-xuat-kho_${format(new Date(), 'yyyyMMdd')}.xlsx`)
+    toast.success('Xuất Excel thành công')
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader title={t('title')} description={t('description')}>
@@ -151,6 +221,14 @@ export function OutboundReportPage() {
           <span className="text-sm text-muted-foreground">
             {format(dateRange.from, 'dd/MM/yyyy')} - {format(dateRange.to, 'dd/MM/yyyy')}
           </span>
+          <Button variant="outline" size="sm" onClick={handleExportPDF}>
+            <Download className="mr-2 h-4 w-4" />
+            PDF
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportExcel}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            Excel
+          </Button>
           <Button variant="outline" onClick={() => navigate('/reports')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             {t('back')}
