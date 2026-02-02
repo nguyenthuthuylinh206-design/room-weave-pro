@@ -8189,24 +8189,15 @@ export type Database = {
         Args: { p_hotel_id?: string; p_tenant_id: string }
         Returns: Json
       }
-      get_laundry_report:
-        | {
-            Args: {
-              p_end_date: string
-              p_hotel_id: string
-              p_start_date: string
-              p_tenant_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_end_date?: string
-              p_start_date?: string
-              p_tenant_id: string
-            }
-            Returns: Json
-          }
+      get_laundry_report: {
+        Args: {
+          p_end_date: string
+          p_hotel_id: string
+          p_start_date: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       get_low_stock_by_warehouses: {
         Args: { p_hotel_id?: string; p_limit?: number; p_tenant_id: string }
         Returns: {

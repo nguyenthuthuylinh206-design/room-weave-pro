@@ -70,27 +70,14 @@ export function MaintenanceReportPage() {
     first_time_fix_rate: rawStats?.firstTimeFixRate || 0,
   }
 
-  const costByType = [
-    { type: 'Điện', cost: 2500000, percentage: 35 },
-    { type: 'Nước', cost: 1800000, percentage: 25 },
-    { type: 'Điều hòa', cost: 1500000, percentage: 21 },
-    { type: 'Đồ gỗ', cost: 800000, percentage: 11 },
-    { type: 'Khác', cost: 600000, percentage: 8 },
-  ]
+  // Cost by type - simplified since detailed data not available from hook
+  const costByType: { type: string; cost: number; percentage: number }[] = []
 
-  const monthlyTrend = [
-    { month: 'T10', requests: 25, cost: 5200000, completed: 23 },
-    { month: 'T11', requests: 32, cost: 6800000, completed: 28 },
-    { month: 'T12', requests: 18, cost: 4500000, completed: 15 },
-  ]
+  // Monthly trend - not available from current hook
+  const monthlyTrend: { month: string; requests: number; cost: number; completed: number }[] = []
 
-  const recurringIssues = [
-    { issue: 'Điều hòa không lạnh', count: 8, avg_time: 2.5 },
-    { issue: 'Vòi nước rỉ', count: 6, avg_time: 1.2 },
-    { issue: 'Bóng đèn cháy', count: 5, avg_time: 0.5 },
-    { issue: 'Ổ khóa hỏng', count: 4, avg_time: 1.8 },
-    { issue: 'TV không hoạt động', count: 3, avg_time: 3.0 },
-  ]
+  // Recurring issues - not available from current hook  
+  const recurringIssues: { issue: string; count: number; avg_time: number }[] = []
 
   const statusDistribution = [
     { name: 'Hoàn thành', value: stats.completed, color: '#10b981' },

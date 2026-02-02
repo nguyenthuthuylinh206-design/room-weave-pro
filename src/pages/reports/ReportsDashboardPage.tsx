@@ -21,8 +21,6 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { QuickReportMetrics } from '@/components/reports/QuickReportMetrics'
-import { FavoriteReports } from '@/components/reports/FavoriteReports'
-import { ScheduledReports } from '@/components/reports/ScheduledReports'
 import { MobileReportsDashboard } from '@/components/reports/MobileReportsDashboard'
 import { StatCard } from '@/components/ui/stat-card'
 import { useQuickReport } from '@/hooks/useReports'
@@ -109,6 +107,39 @@ export function ReportsDashboardPage() {
       description: t('types.maintenance.description'),
       path: '/reports/maintenance',
       stats: t('types.maintenance.stats', { returnObjects: true }) as string[],
+    },
+    {
+      id: 'revenue',
+      title: t('types.revenue.title', 'Báo cáo Doanh thu'),
+      icon: TrendingUp,
+      color: 'bg-green-500',
+      bgColor: 'bg-green-500/10',
+      textColor: 'text-green-600',
+      description: t('types.revenue.description', 'Phân tích doanh thu theo thời gian'),
+      path: '/reports/revenue',
+      stats: [],
+    },
+    {
+      id: 'damages',
+      title: t('types.damages.title', 'Báo cáo Hỏng/Mất'),
+      icon: BarChart3,
+      color: 'bg-red-500',
+      bgColor: 'bg-red-500/10',
+      textColor: 'text-red-600',
+      description: t('types.damages.description', 'Thống kê tổn thất tài sản'),
+      path: '/reports/damages',
+      stats: [],
+    },
+    {
+      id: 'stock-audit',
+      title: t('types.stockAudit.title', 'Kiểm kê Kho'),
+      icon: FileText,
+      color: 'bg-indigo-500',
+      bgColor: 'bg-indigo-500/10',
+      textColor: 'text-indigo-600',
+      description: t('types.stockAudit.description', 'Báo cáo kiểm kê kho chi tiết'),
+      path: '/reports/stock-audit',
+      stats: [],
     },
   ]
 
@@ -271,12 +302,6 @@ export function ReportsDashboardPage() {
           <QuickReportMetrics data={quickReport} period={period} isLoading={isLoadingQuickReport} />
         </CardContent>
       </Card>
-      
-      {/* Favorite & Scheduled Reports */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <FavoriteReports />
-        <ScheduledReports />
-      </div>
     </div>
   )
 }
