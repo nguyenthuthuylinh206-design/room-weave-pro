@@ -1,214 +1,144 @@
 
 
-## Phân tích lỗi chọn Item trong Laundry Batch
+## Kế hoạch sửa lỗi: Định dạng tiền tệ và đơn vị giá phòng theo loại booking
 
-### VẤN ĐỀ ĐÃ XÁC ĐỊNH
+### VẤN ĐỀ HIỆN TẠI
 
-Sau khi kiểm tra code và dữ liệu, tôi phát hiện **2 vấn đề chính**:
+| Vấn đề | Hiện trạng | Yêu cầu |
+|--------|------------|---------|
+| **Input giá phòng** | Hiển thị `1500000` | Hiển thị `1.500.000` có dấu phân cách |
+| **Đơn vị giá** | Cố định "đ/đêm" | Thay đổi theo `bookingType` |
+| **Placeholder** | Cố định "Giá/đêm" | Thay đổi theo `bookingType` |
+| **Label tổng giá** | "Tổng giá phòng/đêm" | Thay đổi theo `bookingType` |
 
----
-
-### VẤN ĐỀ 1: Lỗi tìm kiếm trong CommandItem (cmdk)
-
-**File:** `src/components/laundry/CreateBatchStep2.tsx` (Line 150-165)
-
-**Nguyên nhân:**
-Component `Select` từ Radix UI hoạt động bình thường, nhưng khi kết hợp với tìm kiếm, có vấn đề về **filtering**:
-
-```typescript
-// Hiện tại - Line 150-151:
-<Select onValueChange={field.onChange} value={field.value}>
-  <FormControl><SelectTrigger><SelectValue placeholder={t('createBatch.step2.selectItem')} /></SelectTrigger></FormControl>
-  <SelectContent>
-    {availableItems.map((item) => (
-      <SelectItem key={item.id} value={item.id}>
-```
-
-**Vấn đề tiềm ẩn:**
-- `SelectContent` không có tìm kiếm built-in
-- Khi danh sách item dài, khó tìm item cần chọn
-- Không có empty state khi `availableItems` rỗng
-
----
-
-### VẤN ĐỀ 2: Query Categories thiếu filter `tenant_id`
-
-**File:** `src/components/laundry/CreateBatchStep2.tsx` (Line 62-74)
-
-```typescript
-const { data: launderableCategories } = useQuery({
-  queryKey: ['launderable-categories', tenantId],
-  queryFn: async () => {
-    const { data, error } = await supabase
-      .from('item_categories')
-      .select('id')
-      .eq('is_launderable', true)
-      .eq('status', 'active')
-      // ❌ THIẾU: .eq('tenant_id', tenantId)
-    if (error) throw error
-    return data?.map(cat => cat.id) || []
-  },
-  enabled: !!tenantId,
-})
-```
-
-**Hậu quả:**
-- Query lấy TẤT CẢ categories có `is_launderable = true` từ mọi tenant
-- Có thể gây lỗi match sai category_id giữa các tenant
-- RLS có thể chặn query nếu không đúng tenant
-
----
-
-### VẤN ĐỀ 3: Không có Empty State & Loading State
-
-**Hiện tượng:** Khi không có items (do filter hoặc RLS), dropdown hiển thị trống không có hướng dẫn.
-
----
-
-## SƠ ĐỒ LUỒNG HIỆN TẠI
+### SƠ ĐỒ LOGIC
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        LAUNDRY BATCH - STEP 2                           │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│   ┌─────────────────────┐     ┌─────────────────────┐                  │
-│   │   useItems()        │     │  Query Categories   │                  │
-│   │   status='active'   │     │  is_launderable=true│                  │
-│   │   hotelId=selected  │     │  ❌ MISSING tenant  │                  │
-│   └─────────┬───────────┘     └─────────┬───────────┘                  │
-│             │                           │                               │
-│             ▼                           ▼                               │
-│   ┌─────────────────────────────────────────────────┐                  │
-│   │              Filter availableItems              │                  │
-│   │   hasStock && category IN launderableCategories │                  │
-│   └─────────────────────────┬───────────────────────┘                  │
-│                             │                                           │
-│                             ▼                                           │
-│   ┌─────────────────────────────────────────────────┐                  │
-│   │          <Select> Component (Radix)             │                  │
-│   │   ❌ No search functionality                    │                  │
-│   │   ❌ No empty state when availableItems = []    │                  │
-│   │   ❌ No loading indicator                       │                  │
-│   └─────────────────────────────────────────────────┘                  │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                   state.bookingType                         │
+├────────────┬────────────────┬───────────────────────────────┤
+│   daily    │    hourly      │    monthly                    │
+├────────────┼────────────────┼───────────────────────────────┤
+│ Đơn vị:    │ Đơn vị:        │ Đơn vị:                       │
+│ đ/đêm      │ đ/giờ          │ đ/tháng                       │
+│            │                │                               │
+│ Placeholder:│ Placeholder:  │ Placeholder:                  │
+│ Giá/đêm    │ Giá/giờ        │ Giá/tháng                     │
+│            │                │                               │
+│ Dùng:      │ Dùng:          │ Dùng:                         │
+│ base_price │ hourly_price   │ monthly_price                 │
+│            │ hoặc tính từ   │ hoặc tính từ                  │
+│            │ base_price     │ base_price                    │
+└────────────┴────────────────┴───────────────────────────────┘
 ```
 
----
+### CHI TIẾT SỬA FILE
 
-## GIẢI PHÁP
+**File:** `src/components/bookings/booking-wizard/steps/RoomSelectionStep.tsx`
 
-### Sửa 1: Thêm `tenant_id` filter cho categories query
+#### 1. Thêm helper function để lấy text theo booking type
 
 ```typescript
-const { data: launderableCategories } = useQuery({
-  queryKey: ['launderable-categories', tenantId],
-  queryFn: async () => {
-    if (!tenantId) return []
-    const { data, error } = await supabase
-      .from('item_categories')
-      .select('id')
-      .eq('tenant_id', tenantId)  // ✅ THÊM FILTER NÀY
-      .eq('is_launderable', true)
-      .eq('status', 'active')
-    if (error) throw error
-    return data?.map(cat => cat.id) || []
-  },
-  enabled: !!tenantId,
-})
+// Thêm sau getRoomTypeLabel (khoảng line 52)
+const getPriceUnitLabel = (bookingType: string) => {
+  switch (bookingType) {
+    case 'hourly': return 'đ/giờ'
+    case 'monthly': return 'đ/tháng'
+    default: return 'đ/đêm' // daily
+  }
+}
+
+const getPricePlaceholder = (bookingType: string) => {
+  switch (bookingType) {
+    case 'hourly': return 'Giá/giờ'
+    case 'monthly': return 'Giá/tháng'
+    default: return 'Giá/đêm'
+  }
+}
+
+const getTotalLabel = (bookingType: string) => {
+  switch (bookingType) {
+    case 'hourly': return 'Tổng giá phòng/giờ:'
+    case 'monthly': return 'Tổng giá phòng/tháng:'
+    default: return 'Tổng giá phòng/đêm:'
+  }
+}
 ```
 
-### Sửa 2: Thêm Empty State & Loading State cho Select
+#### 2. Sửa Input giá để hiển thị dấu phân cách
 
 ```typescript
-<SelectContent>
-  {itemsQuery.isLoading ? (
-    <SelectItem value="loading" disabled>Đang tải...</SelectItem>
-  ) : availableItems.length === 0 ? (
-    <SelectItem value="empty" disabled>
-      Không có đồ vải có thể giặt trong kho
-    </SelectItem>
-  ) : (
-    availableItems.map((item) => (
-      <SelectItem key={item.id} value={item.id}>...</SelectItem>
-    ))
-  )}
-</SelectContent>
+// Thay đổi Input (Line 164-173)
+<Input
+  type="text"
+  inputMode="numeric"
+  value={room.customPrice > 0 ? formatNumber(room.customPrice) : ''}
+  onChange={(e) => {
+    // Loại bỏ tất cả ký tự không phải số
+    const value = e.target.value.replace(/[^0-9]/g, '')
+    onUpdateRoomPrice(room.id, parseInt(value) || 0)
+  }}
+  placeholder={getPricePlaceholder(state.bookingType)}
+  className="w-28 h-8 text-right"
+/>
 ```
 
-### Sửa 3: Áp dụng tương tự cho MobileBatchForm.tsx
+Cần import thêm `formatNumber` từ `@/lib/utils`.
 
-File này cũng có cùng vấn đề (Line 70-82) - thiếu `tenant_id` filter.
+#### 3. Sửa đơn vị giá (Line 175)
 
----
+```typescript
+// Từ:
+<span className="text-xs text-muted-foreground whitespace-nowrap">đ/đêm</span>
 
-## SƠ ĐỒ LUỒNG SAU KHI SỬA
-
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                   LAUNDRY BATCH - STEP 2 (FIXED)                        │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│   ┌─────────────────────┐     ┌─────────────────────┐                  │
-│   │   useItems()        │     │  Query Categories   │                  │
-│   │   status='active'   │     │  tenant_id=current  │ ✅               │
-│   │   hotelId=selected  │     │  is_launderable=true│                  │
-│   └─────────┬───────────┘     └─────────┬───────────┘                  │
-│             │                           │                               │
-│             ▼                           ▼                               │
-│   ┌─────────────────────────────────────────────────┐                  │
-│   │              Filter availableItems              │                  │
-│   │   hasStock && category IN launderableCategories │                  │
-│   └─────────────────────────┬───────────────────────┘                  │
-│                             │                                           │
-│              ┌──────────────┴──────────────┐                            │
-│              │                             │                            │
-│              ▼                             ▼                            │
-│   ┌──────────────────┐          ┌──────────────────┐                   │
-│   │  Loading State   │          │   Empty State    │                   │
-│   │  "Đang tải..."   │          │ "Không có đồ vải"│                   │
-│   └──────────────────┘          └──────────────────┘                   │
-│                             │                                           │
-│                             ▼                                           │
-│   ┌─────────────────────────────────────────────────┐                  │
-│   │     <Select> với danh sách items ✅             │                  │
-│   │     - Hiển thị tên, mã, tồn kho                 │                  │
-│   │     - Badge "Sắp hết" khi tồn < 10              │                  │
-│   └─────────────────────────────────────────────────┘                  │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+// Thành:
+<span className="text-xs text-muted-foreground whitespace-nowrap">
+  {getPriceUnitLabel(state.bookingType)}
+</span>
 ```
 
----
+#### 4. Sửa label tổng giá (Line 192)
 
-## FILES CẦN SỬA
+```typescript
+// Từ:
+<span className="text-muted-foreground">Tổng giá phòng/đêm:</span>
 
-| Action | File | Mô tả |
-|--------|------|-------|
-| Sửa | `src/components/laundry/CreateBatchStep2.tsx` | Thêm tenant_id filter, empty/loading state |
-| Sửa | `src/components/laundry/MobileBatchForm.tsx` | Thêm tenant_id filter |
+// Thành:
+<span className="text-muted-foreground">{getTotalLabel(state.bookingType)}</span>
+```
 
----
+#### 5. Sửa giá hiển thị trên room card (Line 117-120)
 
-## CHI TIẾT THAY ĐỔI
+Hiện tại luôn hiển thị `base_price`, cần thay đổi theo `bookingType`:
 
-### CreateBatchStep2.tsx
+```typescript
+// Thay đổi logic hiển thị giá trong room card
+{(() => {
+  let displayPrice = room.base_price
+  if (state.bookingType === 'hourly' && room.hourly_price) {
+    displayPrice = room.hourly_price
+  } else if (state.bookingType === 'monthly' && room.monthly_price) {
+    displayPrice = room.monthly_price
+  }
+  return displayPrice && displayPrice > 0 ? (
+    <span className="text-xs font-medium text-primary">
+      {formatCurrency(displayPrice)}
+    </span>
+  ) : null
+})()}
+```
 
-1. **Line 65**: Thêm `.eq('tenant_id', tenantId)` vào query categories
-2. **Line 152-163**: Thêm loading và empty state cho SelectContent
+### KẾT QUẢ MONG ĐỢI
 
-### MobileBatchForm.tsx
+| Booking Type | Input Display | Unit Label | Placeholder | Tổng Label |
+|--------------|--------------|------------|-------------|------------|
+| **daily** | 1.500.000 | đ/đêm | Giá/đêm | Tổng giá phòng/đêm: |
+| **hourly** | 200.000 | đ/giờ | Giá/giờ | Tổng giá phòng/giờ: |
+| **monthly** | 10.000.000 | đ/tháng | Giá/tháng | Tổng giá phòng/tháng: |
 
-1. **Line 74**: Thêm `.eq('tenant_id', tenantId)` vào query categories
-2. **Line 541-558**: Thêm empty state cho item sheet
+### FILES CẦN SỬA
 
----
-
-## KẾT QUẢ MONG ĐỢI
-
-1. Query categories chỉ lấy đúng categories của tenant hiện tại
-2. Hiển thị thông báo rõ ràng khi không có items
-3. Hiển thị loading state khi đang tải dữ liệu
-4. User có thể chọn item bình thường sau khi có đủ data
+| File | Thay đổi |
+|------|----------|
+| `src/components/bookings/booking-wizard/steps/RoomSelectionStep.tsx` | Thêm helper functions, sửa Input/Label/Unit |
 
