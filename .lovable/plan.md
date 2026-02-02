@@ -1,162 +1,263 @@
 
+# Báo cáo Phân tích Trang Báo cáo - Đánh giá & Gợi ý
 
-## Kế hoạch: Dọn dẹp mục Cài đặt - Loại bỏ các chức năng thừa
+## TỔNG QUAN
 
-### PHÂN TÍCH HIỆN TRẠNG
-
-Phần Settings hiện có **quá nhiều mục**, một số không hoạt động (chỉ là placeholder), trùng lặp, hoặc không phù hợp với workflow thực tế.
-
----
-
-### CÁC MỤC CẦN LOẠI BỎ
-
-| Trang | File | Lý do loại bỏ |
-|-------|------|---------------|
-| **SettingsPage.tsx** | `src/pages/settings/SettingsPage.tsx` | Trang cũ chỉ chứa giao diện demo (switch không hoạt động), đã bị thay thế bởi `GeneralSettingsPage` |
-| **IntegrationsPage.tsx** | `src/pages/settings/IntegrationsPage.tsx` | Trang placeholder - chỉ hiển thị mock data, không có logic thực sự (chỉ các button "Kết nối" giả) |
-| **SystemSecurityPage.tsx** | `src/pages/settings/SystemSecurityPage.tsx` | Trang phức tạp với settings không hoạt động (2FA, password policy, backup) - không có backend logic thực sự |
-| **SystemTestPage.tsx** | `src/pages/settings/SystemTestPage.tsx` | Trang debug/test cho developer, không nên hiển thị cho user |
+Hệ thống báo cáo hiện có **12 trang báo cáo** với nhiều vấn đề từ lỗi backend nghiêm trọng đến thiếu tính nhất quán về UI/UX.
 
 ---
 
-### CÁC MỤC TRONG SIDEBAR CẦN XÓA
+## VẤN ĐỀ NGHIÊM TRỌNG (CRITICAL)
 
-**Desktop Sidebar (`Sidebar.tsx`):**
-- `systemSecurity` → Xóa route `/settings/security`
-- `integrations` → Xóa route `/settings/integrations`
+### 1. Lỗi Database Function - Báo cáo Giặt là KHÔNG HOẠT ĐỘNG
 
-**Mobile Settings (`MobileSettingsPage.tsx`):**
-- `settings/email-templates` → Route không tồn tại
-- `settings/localization` → Route không tồn tại  
-- `settings/roles` → Route không tồn tại
-- `settings/categories` → Đã có trong Items (trùng lặp)
+| Mức độ | Vấn đề | File liên quan |
+|--------|--------|----------------|
+| **CRITICAL** | Hàm `get_laundry_report` bị lỗi SQL | Database function |
 
----
+**Chi tiết lỗi từ logs:**
+```
+Error: aggregate function calls cannot be nested
+Status: 400
+```
 
-### CÁC MỤC GIỮ LẠI (CÓ CHỨC NĂNG THỰC SỰ)
+**Nguyên nhân:** Hàm SQL có cú pháp sai - đang lồng các hàm aggregate (như `SUM(COUNT(...))`) không hợp lệ trong PostgreSQL.
 
-| Mục | Route | Lý do giữ |
-|-----|-------|-----------|
-| Cài đặt chung | `/settings/general` | Quản lý thông tin tenant, timezone, ngôn ngữ |
-| Khách sạn | `/settings/hotels` | Quản lý danh sách hotels |
-| Nhân viên | `/settings/users` | Quản lý users và permissions |
-| Đổi mật khẩu | `/settings/change-password` | Chức năng bảo mật cơ bản |
-| Gói dịch vụ | `/settings/subscription` | Quản lý subscription |
-| Sử dụng | `/settings/usage` | Theo dõi quota |
-| Thông báo | `/settings/notifications` | Push notifications, email settings |
-| Telegram | `/settings/telegram` | Kết nối Telegram bot |
-| Cấu hình nghiệp vụ | `/settings/business` | Settings cho inventory, laundry, rooms, maintenance |
-| Phụ thu & thuế | `/settings/pricing-rules` | Quản lý pricing rules theo hotel |
-| Quy trình tự động | `/settings/workflows` | Automation workflows |
-| Kho hàng | `/settings/warehouses` | Quản lý warehouses |
+**Hậu quả:** Trang `/reports/laundry` hiển thị thông báo lỗi, không có dữ liệu.
+
+**Khuyến nghị:** Cần sửa lại database function `get_laundry_report` ngay lập tức.
 
 ---
 
-### CHI TIẾT IMPLEMENTATION
+## VẤN ĐỀ CHỨC NĂNG (FUNCTIONAL)
 
-#### 1. Xóa routes trong App.tsx
+### 2. Components Placeholder - Không có backend thực sự
+
+| Component | File | Vấn đề |
+|-----------|------|--------|
+| `FavoriteReports` | `src/components/reports/FavoriteReports.tsx` | Dữ liệu mock cứng, không lưu vào DB |
+| `ScheduledReports` | `src/components/reports/ScheduledReports.tsx` | Dữ liệu mock, không có logic email |
 
 ```typescript
-// XÓA các routes:
-// - settings/integrations
-// - settings/security  
-// - settings/system-test
+// FavoriteReports.tsx - Line 23
+const [favorites] = useState<FavoriteReport[]>([
+  { id: '1', name: 'Báo cáo tồn kho cuối ngày', ... }, // MOCK DATA
+])
+// TODO: Load from user preferences - CHƯA IMPLEMENT
 ```
 
-#### 2. Cập nhật Sidebar.tsx
-
-Xóa khỏi ownerNavigation và navigation:
 ```typescript
-// XÓA:
-{ titleKey: 'integrations', href: '/settings/integrations', icon: Plug },
-{ titleKey: 'systemSecurity', href: '/settings/security', icon: Lock },
+// ScheduledReports.tsx - Line 24
+const [schedules, setSchedules] = useState<ScheduledReport[]>([
+  { id: '1', name: 'Tồn kho cuối ngày', ... }, // MOCK DATA
+])
+// Toggle chỉ thay đổi state local, không persist
 ```
 
-#### 3. Cập nhật MobileSettingsPage.tsx
+**Đánh giá:** 
+- Nút "Lên lịch email" trong các báo cáo không hoạt động
+- Chức năng yêu thích không lưu được
 
-Xóa các items không có route:
+**Khuyến nghị:** 
+- Tạo bảng `report_favorites` và `report_schedules` trong DB
+- Hoặc loại bỏ hoàn toàn các components này để tránh gây nhầm lẫn
+
+---
+
+### 3. Dữ liệu Mock trong Operations Report
+
+| File | Vấn đề |
+|------|--------|
+| `OperationsReportPage.tsx` | Dữ liệu `transactionTrend`, `topMovingItems`, `stocktakeResults`, `efficiencyMetrics` đều là MOCK |
+
 ```typescript
-// XÓA:
-route: '/settings/email-templates'  // Route không tồn tại
-route: '/settings/localization'     // Route không tồn tại
-route: '/settings/roles'            // Route không tồn tại
-route: '/settings/categories'       // Trùng với /items/categories
+// Lines 62-88 - Tất cả là dữ liệu giả
+const transactionTrend = [
+  { month: 'T10', inbound: 45, outbound: 38, adjustment: 5 },
+  { month: 'T11', inbound: 52, outbound: 48, adjustment: 8 },
+  ...
+]
+
+const topMovingItems = [
+  { name: 'Khăn tắm lớn', code: 'KTL-001', inbound: 200, ... },
+  ...
+]
 ```
 
-#### 4. Xóa các file không sử dụng
+**Đánh giá:** Trang hiển thị dữ liệu **KHÔNG THỰC** - gây hiểu nhầm cho người dùng.
 
-```text
-- src/pages/settings/IntegrationsPage.tsx → Xóa
-- src/pages/settings/SystemSecurityPage.tsx → Xóa
-- src/pages/settings/SystemTestPage.tsx → Xóa
-- src/pages/settings/SettingsPage.tsx → Xóa (đã redirect sang general)
-```
-
-#### 5. Cập nhật navigation.json
-
-Xóa các key không còn sử dụng:
-```json
-// XÓA từ en và vi:
-"integrations": "Integrations & API"
-"systemSecurity": "System & Security"
-```
+**Khuyến nghị:** Lấy dữ liệu từ `transaction_summary` trong `useInventoryReport` hoặc tạo RPC mới.
 
 ---
 
-### SIDEBAR SAU KHI DỌN DẸP
+### 4. Dữ liệu Mock trong Maintenance Report
 
-**Desktop (Owner):**
-```text
-Cài đặt
-├── Cài đặt chung
-├── Khách sạn
-├── Nhân viên & Phân quyền
-├── Đổi mật khẩu
-├── Gói dịch vụ
-├── Sử dụng
-├── Thông báo
-├── Telegram
-├── Cấu hình nghiệp vụ
-├── Phụ thu & thuế
-└── Quy trình tự động
+| File | Vấn đề |
+|------|--------|
+| `MaintenanceReportPage.tsx` | `costByType`, `monthlyTrend`, `recurringIssues` đều là MOCK |
+
+```typescript
+// Lines 73-93 - Dữ liệu giả
+const costByType = [
+  { type: 'Điện', cost: 2500000, percentage: 35 },
+  { type: 'Nước', cost: 1800000, percentage: 25 },
+  ...
+]
 ```
 
-**Mobile:**
-```text
-Hồ sơ
-├── Hồ sơ cá nhân
-
-Quản lý
-├── Khách sạn (Admin)
-├── Nhân viên (Admin)
-
-Hệ thống
-├── Thông báo
-├── Telegram
-```
+**Đánh giá:** Chỉ có `stats` từ hook thực, còn lại đều giả.
 
 ---
 
-### TÓM TẮT FILES CẦN SỬA/XÓA
+### 5. Financial Report - Dữ liệu Budget giả
 
-| Action | File |
-|--------|------|
-| Xóa | `src/pages/settings/IntegrationsPage.tsx` |
-| Xóa | `src/pages/settings/SystemSecurityPage.tsx` |
-| Xóa | `src/pages/settings/SystemTestPage.tsx` |
-| Xóa | `src/pages/settings/SettingsPage.tsx` |
-| Sửa | `src/App.tsx` - Xóa routes không dùng |
-| Sửa | `src/components/layout/Sidebar.tsx` - Xóa menu items |
-| Sửa | `src/components/settings/MobileSettingsPage.tsx` - Xóa items không có route |
-| Sửa | `src/i18n/locales/vi/navigation.json` - Xóa keys thừa |
-| Sửa | `src/i18n/locales/en/navigation.json` - Xóa keys thừa |
+| File | Vấn đề |
+|------|--------|
+| `FinancialReportPage.tsx` | Phần "Ngân sách vs Thực tế" và "KPIs" đều hardcode |
+
+```typescript
+// Lines 299-350 - Budget hardcode
+<span className="text-sm text-muted-foreground">
+  {formatCurrency(summary.purchase_cost)} / 20M  // HARDCODED "20M"
+</span>
+<Badge variant="default" className="bg-green-100 text-green-800">
+  90%  // HARDCODED
+</Badge>
+```
+
+**Khuyến nghị:** Cần tạo bảng `budget_settings` hoặc loại bỏ phần này.
 
 ---
 
-### KẾT QUẢ MONG ĐỢI
+## VẤN ĐỀ UI/UX
 
-1. Settings gọn gàng hơn, chỉ còn các mục thực sự hoạt động
-2. Không còn trang placeholder/demo
-3. Mobile và Desktop settings đồng bộ
-4. Loại bỏ ~4 files không sử dụng (~1500 lines code)
+### 6. Thiếu nhất quán về Export
 
+| Trang | PDF | Excel | Email Schedule |
+|-------|-----|-------|----------------|
+| Inventory | ✅ | ✅ | ❌ (Nút có nhưng không hoạt động) |
+| Laundry | ❌ | ❌ | ❌ |
+| Financial | ✅ | ✅ | ❌ |
+| Rooms | ✅ | ✅ | ❌ |
+| Operations | ❌ (Có nút nhưng disabled) | ❌ | ❌ |
+| Maintenance | ❌ (Có nút nhưng disabled) | ❌ | ❌ |
+| Revenue | ✅ | ❌ | ❌ |
+| Damages | ✅ | ❌ | ❌ |
+| Outbound | ❌ | ❌ | ❌ |
+| StockAudit | ✅ | ✅ | ❌ |
+
+**Đánh giá:** Chức năng export không đồng nhất giữa các trang.
+
+---
+
+### 7. Thiếu nhất quán về Layout
+
+| Trang | Card Style | Border Style | Header Position |
+|-------|------------|--------------|-----------------|
+| Inventory | `<Card>` | - | PageHeader |
+| Operations | `border rounded-lg` | ✅ | Inline Header |
+| Maintenance | `<Card>` | - | PageHeader |
+| Laundry | `border rounded-lg` | ✅ | PageHeader |
+
+**Khuyến nghị:** Cần thống nhất theo Design System - dùng `border rounded-lg` thay vì `<Card>`.
+
+---
+
+### 8. Mobile Support không đồng đều
+
+| Trang | Có Mobile Component riêng |
+|-------|---------------------------|
+| Inventory | ✅ MobileInventoryReportPage |
+| Laundry | ✅ MobileLaundryReportPage |
+| Financial | ✅ MobileFinancialReportPage |
+| Rooms | ✅ MobileRoomsReportPage |
+| Operations | ✅ MobileOperationsReportPage |
+| Maintenance | ✅ MobileMaintenanceReportPage |
+| **Revenue** | **❌ Không có** |
+| Damages | ✅ MobileDamagesReportPage |
+| Outbound | Inline (trong cùng file) |
+| StockAudit | ✅ MobileStockAuditReportPage |
+
+---
+
+## VẤN ĐỀ NAVIGATION
+
+### 9. Thiếu báo cáo trong Dashboard
+
+Dashboard báo cáo (`ReportsDashboardPage.tsx`) chỉ liệt kê **6 loại báo cáo**:
+- Inventory
+- Financial
+- Operations
+- Laundry
+- Rooms
+- Maintenance
+
+**Thiếu:**
+- Revenue Report
+- Damages Report
+- Outbound Report
+- Stock Audit Report
+
+---
+
+## ĐÁNH GIÁ TỔNG THỂ
+
+| Tiêu chí | Điểm (1-10) | Nhận xét |
+|----------|-------------|----------|
+| **Hoạt động (Functionality)** | 4/10 | 1 báo cáo bị lỗi hoàn toàn, nhiều dữ liệu mock |
+| **Độ tin cậy dữ liệu** | 5/10 | Một số trang hiển thị dữ liệu giả |
+| **Tính nhất quán UI** | 6/10 | Khác biệt về Card style, Header |
+| **Export features** | 5/10 | Không đồng nhất giữa các trang |
+| **Mobile support** | 8/10 | Đa số có component mobile riêng |
+| **Navigation** | 6/10 | Thiếu 4 báo cáo trong dashboard |
+
+---
+
+## KHUYẾN NGHỊ HÀNH ĐỘNG
+
+### Ưu tiên 1: Sửa lỗi nghiêm trọng
+1. **Sửa hàm `get_laundry_report`** - Loại bỏ nested aggregate functions
+
+### Ưu tiên 2: Loại bỏ/Sửa dữ liệu mock
+2. **OperationsReportPage** - Thay mock data bằng dữ liệu thực từ transaction_summary
+3. **MaintenanceReportPage** - Tạo RPC hoặc query thực cho cost/trend
+4. **FinancialReportPage** - Loại bỏ phần Budget vs Actual nếu không có dữ liệu
+
+### Ưu tiên 3: Cải thiện UX
+5. **FavoriteReports & ScheduledReports** - Implement backend hoặc loại bỏ
+6. **ReportsDashboardPage** - Thêm 4 báo cáo còn thiếu vào navigation
+7. **Export** - Thống nhất tất cả trang đều có PDF + Excel
+8. **RevenueReportPage** - Tạo mobile component
+
+### Ưu tiên 4: Chuẩn hóa Design
+9. **Thống nhất** dùng `border rounded-lg` thay vì `<Card>` theo Design System
+10. **Chuẩn hóa** header layout và button positions
+
+---
+
+## SƠ ĐỒ TRẠNG THÁI HIỆN TẠI
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                    REPORTS DASHBOARD                        │
+├─────────────────────────────────────────────────────────────┤
+│ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐            │
+│ │ Inventory   │ │ Financial   │ │ Operations  │            │
+│ │     ✅      │ │   ⚠️ Mock   │ │   ⚠️ Mock   │            │
+│ └─────────────┘ └─────────────┘ └─────────────┘            │
+│ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐            │
+│ │  Laundry    │ │   Rooms     │ │ Maintenance │            │
+│ │     ❌      │ │     ✅      │ │   ⚠️ Mock   │            │
+│ │   ERROR     │ │             │ │             │            │
+│ └─────────────┘ └─────────────┘ └─────────────┘            │
+│                                                             │
+│ ⚠️ HIDDEN FROM DASHBOARD:                                  │
+│ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌────────┐ │
+│ │  Revenue    │ │  Damages    │ │  Outbound   │ │ Stock  │ │
+│ │     ✅      │ │     ✅      │ │     ✅      │ │ Audit  │ │
+│ │ (No Mobile) │ │             │ │             │ │   ✅   │ │
+│ └─────────────┘ └─────────────┘ └─────────────┘ └────────┘ │
+└─────────────────────────────────────────────────────────────┘
+
+Legend: ✅ = OK  |  ⚠️ = Warning  |  ❌ = Error
+```
