@@ -182,6 +182,11 @@
     "checkOut": "End Shift",
     "checkedIn": "Shift started",
     "checkedOut": "Shift ended",
-    "onShiftBadge": "On shift"
+    "onShiftBadge": "On shift",
+    "confirmCheckInTitle": "Confirm Check-in",
+    "confirmCheckInDescription": "Are you sure you want to start your shift now?",
+    "confirmCheckOutTitle": "Confirm Check-out",
+    "confirmCheckOutDescription": "You've been working for {{duration}}. Are you sure you want to end your shift?",
+    "processing": "Processing..."
   }
 }
