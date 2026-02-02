@@ -182,6 +182,11 @@
     "checkOut": "Kết thúc ca",
     "checkedIn": "Đã vào ca làm việc",
     "checkedOut": "Đã kết thúc ca làm việc",
-    "onShiftBadge": "Đang trong ca"
+    "onShiftBadge": "Đang trong ca",
+    "confirmCheckInTitle": "Xác nhận vào ca",
+    "confirmCheckInDescription": "Bạn có chắc muốn bắt đầu ca làm việc ngay bây giờ?",
+    "confirmCheckOutTitle": "Xác nhận kết thúc ca",
+    "confirmCheckOutDescription": "Bạn đã làm việc được {{duration}}. Bạn có chắc muốn kết thúc ca làm việc?",
+    "processing": "Đang xử lý..."
   }
 }
