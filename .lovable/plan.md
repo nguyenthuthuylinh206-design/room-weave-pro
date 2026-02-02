@@ -1,142 +1,129 @@
 
 
-## Kế hoạch: Hiển thị ShiftCheckInCard nổi bật hơn cho Nhân viên
+## Kế hoạch: Hiển thị nút Kết thúc ca trên ShiftStatusBanner
 
 ### VẤN ĐỀ HIỆN TẠI
 
-`ShiftCheckInCard` hiện chỉ hiển thị tại trang Dashboard (`/`). Nếu nhân viên truy cập trực tiếp vào các trang khác (như `/items`, `/rooms`, `/laundry`), họ sẽ **không thấy** card này.
-
-**Yêu cầu ban đầu**: "hiển thị rõ ràng mỗi khi vào app" → Cần hiển thị ở vị trí cố định, luôn thấy được.
+`ShiftStatusBanner` hiện tại **ẩn hoàn toàn** khi nhân viên đã vào ca (dòng 22: `if (isLoading || isOnShift) return null`). Điều này khiến nhân viên phải quay về Dashboard để kết thúc ca.
 
 ---
 
-### GIẢI PHÁP: Thêm ShiftCheckInCard vào MobileHeader hoặc MainLayout
+### GIẢI PHÁP
 
-#### Phương án A: Banner nhỏ gọn trong MobileHeader (Đề xuất)
+Cập nhật `ShiftStatusBanner` để hiển thị 2 trạng thái:
 
-Thêm một banner/indicator nhỏ ngay dưới header trên **mọi trang** cho nhân viên chưa vào ca:
+| Trạng thái | Màu nền | Nội dung | Nút |
+|------------|---------|----------|-----|
+| Chưa vào ca | Vàng (`amber`) | "Bạn chưa vào ca hôm nay" | Vào ca ngay |
+| Đang trong ca | Xanh (`green`) | "Đang trong ca • HH:mm" | Kết thúc ca |
 
+---
+
+### THIẾT KẾ UI
+
+**Khi chưa vào ca (hiện tại):**
 ```text
-┌────────────────────────────────────────┐
-│ [Hotel Logo]  Hotel Name    🔔  ☰      │  ← MobileHeader
-├────────────────────────────────────────┤
-│ 🕐 Bạn chưa vào ca │ [Vào ca ngay →]  │  ← Banner mới (chỉ khi chưa check-in)
-├────────────────────────────────────────┤
-│                                        │
-│         [Page Content]                 │  ← Outlet
-│                                        │
-└────────────────────────────────────────┘
+┌────────────────────────────────────────────────────┐
+│ 🕐 Bạn chưa vào ca hôm nay    │  [Vào ca ngay →]  │  ← Nền vàng
+└────────────────────────────────────────────────────┘
 ```
 
-**Khi đã vào ca**: Banner sẽ thu gọn hoặc ẩn đi, chỉ hiển thị indicator nhỏ.
-
-#### Phương án B: Floating Action Button (FAB)
-
-Thêm FAB cố định ở góc màn hình cho chức năng check-in/out.
+**Khi đã vào ca (mới):**
+```text
+┌────────────────────────────────────────────────────┐
+│ ✓ Đang trong ca • 08:30 (2h)  │  [Kết thúc ca]    │  ← Nền xanh
+└────────────────────────────────────────────────────┘
+```
 
 ---
 
-### IMPLEMENTATION CHI TIẾT (Phương án A)
+### CHI TIẾT IMPLEMENTATION
 
-#### File cần tạo mới
-
-**1. `src/components/staff/ShiftStatusBanner.tsx`**
-
-Component banner nhỏ gọn hiển thị trạng thái ca:
+**Sửa file: `src/components/staff/ShiftStatusBanner.tsx`**
 
 ```typescript
+import { Clock, CheckCircle, ChevronRight, LogOut, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { useTranslation } from 'react-i18next'
+import {
+  useMyStaffStatus,
+  useShiftCheckIn,
+  useShiftCheckOut,  // Thêm hook checkout
+  isCurrentlyOnShift,
+  formatShiftStartTime,
+  calculateShiftDuration,
+} from '@/hooks/useShiftManagement'
+
 export function ShiftStatusBanner() {
+  const { t } = useTranslation('common')
   const { data: myStatus, isLoading } = useMyStaffStatus()
-  const { mutate: checkIn, isPending } = useShiftCheckIn()
-  
+  const { mutate: checkIn, isPending: isCheckingIn } = useShiftCheckIn()
+  const { mutate: checkOut, isPending: isCheckingOut } = useShiftCheckOut()
+
   const isOnShift = isCurrentlyOnShift(myStatus)
-  
-  // Không hiển thị nếu đã vào ca
-  if (isOnShift) return null
-  
-  return (
-    <div className="bg-amber-50 dark:bg-amber-950 border-b border-amber-200 dark:border-amber-800 px-4 py-2">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
-          <Clock className="h-4 w-4" />
-          <span className="text-sm font-medium">Bạn chưa vào ca</span>
+
+  // Chỉ ẩn khi đang loading
+  if (isLoading) return null
+
+  // Đang trong ca - Banner màu xanh
+  if (isOnShift) {
+    const startTime = formatShiftStartTime(myStatus?.shift_start_at)
+    const duration = calculateShiftDuration(myStatus?.shift_start_at)
+    
+    return (
+      <div className="bg-green-50 dark:bg-green-950 border-b border-green-200 dark:border-green-800 px-4 py-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
+            <CheckCircle className="h-4 w-4" />
+            <span className="text-sm font-medium">
+              {t('shift.onShift', 'Đang trong ca')} • {startTime}
+              {duration && ` (${duration})`}
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs border-green-300 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900"
+            onClick={() => checkOut()}
+            disabled={isCheckingOut}
+          >
+            {isCheckingOut ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <>
+                <LogOut className="h-3 w-3 mr-1" />
+                {t('shift.checkOut', 'Kết thúc ca')}
+              </>
+            )}
+          </Button>
         </div>
-        <Button 
-          size="sm" 
-          variant="outline"
-          className="h-7 text-xs"
-          onClick={() => checkIn()}
-          disabled={isPending}
-        >
-          {isPending ? 'Đang xử lý...' : 'Vào ca ngay'}
-          <ChevronRight className="h-3 w-3 ml-1" />
-        </Button>
       </div>
+    )
+  }
+
+  // Chưa vào ca - Banner màu vàng (giữ nguyên code hiện tại)
+  return (
+    <div className="bg-amber-50 dark:bg-amber-950 border-b ...">
+      ...
     </div>
   )
 }
 ```
 
-#### Files cần sửa
-
-**2. Sửa `src/components/layout/MainLayout.tsx`**
-
-Thêm `ShiftStatusBanner` vào layout cho mobile:
-
-```typescript
-import { ShiftStatusBanner } from '@/components/staff/ShiftStatusBanner'
-import { useUser } from '@/hooks/useUser'
-import { isStaff } from '@/lib/userAccess'
-
-const MainLayoutContent = () => {
-  const { isMobile } = useBreakpoint()
-  const { user } = useUser()
-  const isStaffUser = isStaff(user)
-
-  if (isMobile) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background overflow-x-hidden">
-        <MobileHeader />
-        
-        {/* Shift Status Banner - Only for staff */}
-        {isStaffUser && <ShiftStatusBanner />}
-        
-        <main className="flex-1 overflow-y-auto overflow-x-hidden pb-16">
-          ...
-        </main>
-        <BottomNav />
-      </div>
-    )
-  }
-  // Desktop layout unchanged
-}
-```
-
 ---
 
-### TÓM TẮT FILES CẦN TẠO/SỬA
+### TÓM TẮT THAY ĐỔI
 
-| File | Hành động | Mô tả |
-|------|-----------|-------|
-| `src/components/staff/ShiftStatusBanner.tsx` | **Tạo mới** | Banner nhỏ gọn hiển thị khi chưa vào ca |
-| `src/components/layout/MainLayout.tsx` | **Sửa** | Thêm ShiftStatusBanner vào mobile layout |
-| `src/components/dashboard/MobileDashboard.tsx` | **Giữ nguyên** | Vẫn giữ ShiftCheckInCard đầy đủ trên Dashboard |
+| File | Thay đổi |
+|------|----------|
+| `src/components/staff/ShiftStatusBanner.tsx` | Thêm trạng thái "Đang trong ca" với nút Kết thúc ca |
 
 ---
 
 ### KẾT QUẢ MONG ĐỢI
 
-| Trạng thái | Hiển thị trên mọi trang (Banner) | Hiển thị trên Dashboard (Card) |
-|------------|-----------------------------------|-------------------------------|
-| Chưa vào ca | Banner vàng "Bạn chưa vào ca" + nút "Vào ca ngay" | Card đầy đủ với nút "Vào ca ngay" |
-| Đã vào ca | Ẩn banner (hoặc indicator nhỏ) | Card hiển thị thời gian + nút "Kết thúc ca" |
-
----
-
-### PHONG CÁCH UI
-
-- Banner: màu vàng nhạt (`bg-amber-50`) để thu hút chú ý nhưng không quá đậm
-- Chiều cao compact: `py-2`
-- Button nhỏ gọn: `size="sm"`, `h-7`
-- Ẩn ngay khi đã check-in để không chiếm diện tích
+1. **Nhân viên chưa vào ca** → Banner vàng với nút "Vào ca ngay" (hiện tại)
+2. **Nhân viên đã vào ca** → Banner xanh với thời gian bắt đầu + thời lượng + nút "Kết thúc ca"
+3. **Sau khi kết thúc ca** → Banner chuyển lại màu vàng với nút "Vào ca ngay"
+4. **Hiển thị trên TẤT CẢ trang mobile** → Không cần quay về Dashboard
 
