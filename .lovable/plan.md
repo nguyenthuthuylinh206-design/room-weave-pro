@@ -1,423 +1,365 @@
 
 
-## Kế hoạch: Phát triển trang /super-admin/settings
+## Kế hoạch: Thêm nút Check-in/Check-out ca làm việc cho Nhân viên
 
-### TÌNH TRẠNG HIỆN TẠI
+### MỤC TIÊU
 
-| Thành phần | Trạng thái |
-|------------|-----------|
-| Route `/super-admin/settings` | Khai báo trong Navigation nhưng **CHƯA** có trong router |
-| Page component | **CHƯA** có `SettingsPage.tsx` trong `pages/admin/` |
-| Settings components | Đã có: `BankPaymentSettings.tsx` |
-| i18n | Đã có key `settings` trong navigation/titles nhưng **CHƯA** có nội dung chi tiết |
+Tạo một nút Check-in/Check-out nổi bật hiển thị mỗi khi nhân viên (user_level_code = 'staff') mở app, cho phép họ đánh dấu bắt đầu và kết thúc ca làm việc.
 
 ---
 
-### CẤU TRÚC TRANG SETTINGS
+### THIẾT KẾ UI/UX
 
 ```text
-/super-admin/settings
-├── PageHeader (Tiêu đề + Mô tả)
-├── Tabs
-│   ├── Tab: Thanh toán (Payment)
-│   │   └── BankPaymentSettings (đã có)
-│   ├── Tab: Nền tảng (Platform)
-│   │   ├── Platform branding (Logo, tên, tagline)
-│   │   ├── Default settings cho tenant mới
-│   │   └── Trial period settings
-│   ├── Tab: Email
-│   │   ├── SMTP settings
-│   │   ├── Email templates preview
-│   │   └── Test email
-│   ├── Tab: Bảo trì (Maintenance)
-│   │   ├── Maintenance mode toggle
-│   │   ├── Scheduled maintenance
-│   │   └── System announcements
-│   └── Tab: Audit Log
-│       ├── Admin activities log
-│       └── Export activities
+┌─────────────────────────────────────────────────────┐
+│  [Header - Hotel Name]                              │
+├─────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────┐    │
+│  │  🕐 Ca làm việc                              │    │
+│  │                                              │    │
+│  │  Trạng thái: CHƯA VÀO CA                     │    │
+│  │                                              │    │
+│  │  ┌─────────────────────────────────────┐    │    │
+│  │  │      📥 VÀO CA NGAY                 │    │    │
+│  │  └─────────────────────────────────────┘    │    │
+│  └─────────────────────────────────────────────┘    │
+│                                                     │
+│  [Rest of dashboard content...]                     │
+└─────────────────────────────────────────────────────┘
 ```
+
+**Khi đã vào ca:**
+```text
+┌─────────────────────────────────────────────────────┐
+│  ┌─────────────────────────────────────────────┐    │
+│  │  ✓ Đang trong ca làm việc                   │    │
+│  │  Bắt đầu: 08:30 (2 giờ 15 phút trước)       │    │
+│  │                                              │    │
+│  │  ┌─────────────────────────────────────┐    │    │
+│  │  │      📤 KẾT THÚC CA                 │    │    │
+│  │  └─────────────────────────────────────┘    │    │
+│  └─────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+### CẤU TRÚC DỮ LIỆU
+
+Bảng `staff_status` đã có sẵn các cột cần thiết:
+- `shift_start_at` - Thời điểm bắt đầu ca
+- `shift_end_at` - Thời điểm kết thúc ca
+
+**Logic xác định trạng thái:**
+| Điều kiện | Trạng thái |
+|-----------|------------|
+| `shift_start_at = NULL` hoặc `shift_end_at` >= `shift_start_at` | Chưa vào ca |
+| `shift_start_at != NULL` và (`shift_end_at = NULL` hoặc `shift_end_at` < `shift_start_at`) | Đang trong ca |
 
 ---
 
 ### CHI TIẾT IMPLEMENTATION
 
-#### Phase 1: Tạo Route và Page Component
+#### Phase 1: Tạo Component ShiftCheckInCard
 
-**File 1: `src/pages/admin/SuperAdminSettingsPage.tsx`**
+**File mới: `src/components/staff/ShiftCheckInCard.tsx`**
+
+Component hiển thị trạng thái ca làm việc và nút Check-in/Check-out:
 
 ```typescript
-import { SuperAdminSettings } from '@/components/super-admin/settings/SuperAdminSettings';
-
-export function SuperAdminSettingsPage() {
-  return <SuperAdminSettings />;
+interface ShiftCheckInCardProps {
+  className?: string
 }
-```
 
-**File 2: Cập nhật `src/App.tsx`**
-
-Thêm route vào block `/super-admin`:
-```typescript
-{ path: "settings", element: <SuperAdminSettingsPage /> },
-```
-
----
-
-#### Phase 2: Tạo Component Settings chính
-
-**File 3: `src/components/super-admin/settings/SuperAdminSettings.tsx`**
-
-| Tab | Chức năng |
-|-----|-----------|
-| payment | Cấu hình ngân hàng nhận thanh toán (BankPaymentSettings - đã có) |
-| platform | Cài đặt nền tảng SaaS: trial period, default rooms, branding |
-| email | Cấu hình SMTP, test gửi email |
-| maintenance | Chế độ bảo trì, thông báo hệ thống |
-| audit | Xem lịch sử hoạt động admin |
-
-**Logic chính:**
-```typescript
-export function SuperAdminSettings() {
-  const { t } = useTranslation('superAdmin');
-  const [activeTab, setActiveTab] = useState('payment');
-
-  return (
-    <div className="space-y-4">
-      <PageHeader
-        title={t('settings.title')}
-        description={t('settings.subtitle')}
-      />
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="payment">Thanh toán</TabsTrigger>
-          <TabsTrigger value="platform">Nền tảng</TabsTrigger>
-          <TabsTrigger value="email">Email</TabsTrigger>
-          <TabsTrigger value="maintenance">Bảo trì</TabsTrigger>
-          <TabsTrigger value="audit">Lịch sử</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="payment">
-          <BankPaymentSettings />
-        </TabsContent>
-        {/* ... other tabs */}
-      </Tabs>
-    </div>
-  );
-}
-```
-
----
-
-#### Phase 3: Tạo Components cho từng Tab
-
-**File 4: `src/components/super-admin/settings/PlatformSettings.tsx`**
-
-Cài đặt nền tảng:
-- **Trial Period**: Số ngày dùng thử mặc định cho tenant mới
-- **Default Rooms**: Số phòng mặc định khi đăng ký
-- **Grace Period**: Số ngày gia hạn sau khi hết hạn
-- **Platform Name**: Tên hiển thị của nền tảng
-- **Support Email**: Email hỗ trợ
-
-```typescript
-export function PlatformSettings() {
-  // Form với các fields trên
-  return (
-    <div className="space-y-6">
-      <div className="p-4 border rounded-lg">
-        <h3 className="font-medium mb-4">Cài đặt Subscription</h3>
-        <div className="grid gap-4 md:grid-cols-2">
-          <FormField label="Trial Period (ngày)" />
-          <FormField label="Grace Period (ngày)" />
-          <FormField label="Số phòng mặc định" />
-          <FormField label="Giá mỗi phòng/ngày" />
-        </div>
-      </div>
-      
-      <div className="p-4 border rounded-lg">
-        <h3 className="font-medium mb-4">Thông tin nền tảng</h3>
-        <FormField label="Tên nền tảng" />
-        <FormField label="Email hỗ trợ" />
-      </div>
-    </div>
-  );
-}
-```
-
-**File 5: `src/components/super-admin/settings/EmailSettings.tsx`**
-
-Cài đặt email:
-- **SMTP Host/Port**: Cấu hình SMTP server
-- **SMTP Username/Password**: Thông tin đăng nhập
-- **Sender Email/Name**: Email và tên người gửi
-- **Test Email**: Gửi email test
-
-```typescript
-export function EmailSettings() {
-  const [testEmail, setTestEmail] = useState('');
+export function ShiftCheckInCard({ className }: ShiftCheckInCardProps) {
+  const { user, tenantId } = useUser()
+  const { data: myStatus } = useMyStaffStatus()
+  const { mutate: checkIn, isPending: isCheckingIn } = useShiftCheckIn()
+  const { mutate: checkOut, isPending: isCheckingOut } = useShiftCheckOut()
+  
+  const isOnShift = isCurrentlyOnShift(myStatus)
+  const shiftDuration = calculateShiftDuration(myStatus?.shift_start_at)
   
   return (
-    <div className="space-y-6">
-      <div className="p-4 border rounded-lg">
-        <h3 className="font-medium mb-4">Cấu hình SMTP</h3>
-        <div className="grid gap-4 md:grid-cols-2">
-          <FormField label="SMTP Host" placeholder="smtp.gmail.com" />
-          <FormField label="SMTP Port" placeholder="587" />
-          <FormField label="Username" />
-          <FormField label="Password" type="password" />
-        </div>
+    <div className="p-4 border rounded-lg bg-card">
+      <div className="flex items-center gap-2 mb-3">
+        <Clock className="h-5 w-5 text-primary" />
+        <span className="font-medium">Ca làm việc</span>
       </div>
       
-      <div className="p-4 border rounded-lg">
-        <h3 className="font-medium mb-4">Thông tin gửi</h3>
-        <FormField label="Email gửi" />
-        <FormField label="Tên hiển thị" />
-      </div>
-      
-      <div className="p-4 border rounded-lg">
-        <h3 className="font-medium mb-4">Gửi email test</h3>
-        <div className="flex gap-2">
-          <Input placeholder="Email nhận test" value={testEmail} onChange={...} />
-          <Button>Gửi test</Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-```
-
-**File 6: `src/components/super-admin/settings/MaintenanceSettings.tsx`**
-
-Chế độ bảo trì:
-- **Maintenance Mode**: Bật/tắt chế độ bảo trì
-- **Maintenance Message**: Thông báo cho người dùng
-- **Scheduled Maintenance**: Lên lịch bảo trì
-- **System Announcement**: Thông báo hệ thống hiển thị cho tất cả
-
-```typescript
-export function MaintenanceSettings() {
-  const [maintenanceMode, setMaintenanceMode] = useState(false);
-  
-  return (
-    <div className="space-y-6">
-      <div className="p-4 border rounded-lg">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-medium">Chế độ bảo trì</h3>
-            <p className="text-xs text-muted-foreground">
-              Khi bật, người dùng sẽ thấy trang bảo trì thay vì ứng dụng
-            </p>
+      {isOnShift ? (
+        // Đang trong ca
+        <>
+          <div className="flex items-center gap-2 text-green-600 mb-2">
+            <CheckCircle className="h-4 w-4" />
+            <span>Đang trong ca làm việc</span>
           </div>
-          <Switch checked={maintenanceMode} onCheckedChange={setMaintenanceMode} />
-        </div>
-        
-        {maintenanceMode && (
-          <Textarea 
-            className="mt-4"
-            placeholder="Thông báo bảo trì..." 
-          />
-        )}
-      </div>
-      
-      <div className="p-4 border rounded-lg">
-        <h3 className="font-medium mb-4">Thông báo hệ thống</h3>
-        <Textarea placeholder="Nhập thông báo hiển thị cho tất cả người dùng..." />
-        <Button className="mt-2">Gửi thông báo</Button>
-      </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Bắt đầu: {formatTime(myStatus.shift_start_at)} ({shiftDuration})
+          </p>
+          <Button 
+            className="w-full" 
+            variant="outline"
+            onClick={checkOut}
+            disabled={isCheckingOut}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Kết thúc ca
+          </Button>
+        </>
+      ) : (
+        // Chưa vào ca
+        <>
+          <p className="text-sm text-muted-foreground mb-3">
+            Bạn chưa vào ca hôm nay
+          </p>
+          <Button 
+            className="w-full" 
+            onClick={checkIn}
+            disabled={isCheckingIn}
+          >
+            <LogIn className="h-4 w-4 mr-2" />
+            Vào ca ngay
+          </Button>
+        </>
+      )}
     </div>
-  );
-}
-```
-
-**File 7: `src/components/super-admin/settings/AuditLogSettings.tsx`**
-
-Lịch sử hoạt động admin:
-- Danh sách các hành động của Super Admin
-- Lọc theo loại, thời gian
-- Export CSV
-
-```typescript
-export function AuditLogSettings() {
-  const { data: activities } = useAdminActivities();
-  
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Input placeholder="Tìm kiếm hoạt động..." className="max-w-xs" />
-        <Button variant="outline">Xuất CSV</Button>
-      </div>
-      
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Thời gian</TableHead>
-              <TableHead>Admin</TableHead>
-              <TableHead>Hành động</TableHead>
-              <TableHead>Đối tượng</TableHead>
-              <TableHead>Chi tiết</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {activities?.map(activity => (...))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
-  );
-}
-```
-
----
-
-#### Phase 4: Tạo Database Table cho Settings
-
-**Migration: Tạo bảng `platform_settings`**
-
-```sql
-CREATE TABLE IF NOT EXISTS public.platform_settings (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  key TEXT NOT NULL UNIQUE,
-  value JSONB NOT NULL DEFAULT '{}',
-  description TEXT,
-  updated_by UUID REFERENCES auth.users(id),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
--- Default settings
-INSERT INTO public.platform_settings (key, value, description) VALUES
-  ('trial_period_days', '14', 'Số ngày dùng thử mặc định'),
-  ('grace_period_days', '7', 'Số ngày gia hạn sau khi hết hạn'),
-  ('default_rooms', '10', 'Số phòng mặc định khi đăng ký'),
-  ('price_per_room_day', '1000', 'Giá mỗi phòng mỗi ngày (VND)'),
-  ('platform_name', '"Hotel Asset Manager"', 'Tên nền tảng'),
-  ('support_email', '"support@example.com"', 'Email hỗ trợ'),
-  ('maintenance_mode', 'false', 'Chế độ bảo trì'),
-  ('maintenance_message', '""', 'Thông báo bảo trì');
-
--- RLS - Only super admin can manage
-ALTER TABLE public.platform_settings ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Super admin can manage platform settings"
-ON public.platform_settings FOR ALL
-USING (
-  EXISTS (
-    SELECT 1 FROM public.users 
-    WHERE id = auth.uid() 
-    AND user_level_code = 'super_admin'
   )
-);
+}
 ```
 
 ---
 
-#### Phase 5: Tạo Hook cho Platform Settings
+#### Phase 2: Tạo Hooks cho Shift Management
 
-**File 8: `src/hooks/super-admin/usePlatformSettings.ts`**
+**File mới: `src/hooks/useShiftManagement.ts`**
 
 ```typescript
-export function usePlatformSettings() {
+// Hook lấy trạng thái ca của user hiện tại
+export function useMyStaffStatus() {
+  const { user, tenantId } = useUser()
+  
   return useQuery({
-    queryKey: ['platform-settings'],
+    queryKey: ['my-staff-status', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('platform_settings')
-        .select('*');
+        .from('staff_status')
+        .select('*')
+        .eq('user_id', user!.id)
+        .single()
       
-      if (error) throw error;
-      
-      // Convert array to object for easy access
-      return data.reduce((acc, item) => {
-        acc[item.key] = JSON.parse(item.value);
-        return acc;
-      }, {} as Record<string, any>);
-    }
-  });
+      if (error && error.code !== 'PGRST116') throw error
+      return data
+    },
+    enabled: !!user?.id && !!tenantId
+  })
 }
 
-export function useUpdatePlatformSetting() {
-  const queryClient = useQueryClient();
+// Hook check-in ca làm việc
+export function useShiftCheckIn() {
+  const { user, tenantId } = useUser()
+  const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: async ({ key, value }: { key: string; value: any }) => {
-      const { error } = await supabase
-        .from('platform_settings')
-        .update({ 
-          value: JSON.stringify(value),
-          updated_at: new Date().toISOString()
-        })
-        .eq('key', key);
+    mutationFn: async () => {
+      const now = new Date().toISOString()
       
-      if (error) throw error;
+      const { error } = await supabase
+        .from('staff_status')
+        .upsert({
+          user_id: user!.id,
+          tenant_id: tenantId!,
+          shift_start_at: now,
+          shift_end_at: null,
+          status: 'available',
+          last_seen_at: now
+        }, { onConflict: 'user_id' })
+      
+      if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
+      queryClient.invalidateQueries({ queryKey: ['my-staff-status'] })
+      queryClient.invalidateQueries({ queryKey: ['staff-status'] })
+      toast.success('Đã vào ca làm việc')
     }
-  });
+  })
 }
+
+// Hook check-out ca làm việc
+export function useShiftCheckOut() {
+  const { user } = useUser()
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async () => {
+      const now = new Date().toISOString()
+      
+      const { error } = await supabase
+        .from('staff_status')
+        .update({
+          shift_end_at: now,
+          status: 'offline',
+          last_seen_at: now
+        })
+        .eq('user_id', user!.id)
+      
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-staff-status'] })
+      queryClient.invalidateQueries({ queryKey: ['staff-status'] })
+      toast.success('Đã kết thúc ca làm việc')
+    }
+  })
+}
+
+// Helper functions
+export function isCurrentlyOnShift(status: StaffStatus | null): boolean {
+  if (!status?.shift_start_at) return false
+  if (!status.shift_end_at) return true
+  return new Date(status.shift_start_at) > new Date(status.shift_end_at)
+}
+
+export function calculateShiftDuration(startAt: string | null): string {
+  if (!startAt) return ''
+  return formatDistanceToNow(new Date(startAt), { locale: vi })
+}
+```
+
+---
+
+#### Phase 3: Tích hợp vào MobileDashboard
+
+**Sửa file: `src/components/dashboard/MobileDashboard.tsx`**
+
+Thêm ShiftCheckInCard ngay dưới header cho nhân viên:
+
+```typescript
+import { isStaff } from '@/lib/userAccess'
+import { ShiftCheckInCard } from '@/components/staff/ShiftCheckInCard'
+
+export function MobileDashboard() {
+  const { user } = useUser()
+  const isStaffUser = isStaff(user)
+  
+  return (
+    <PullToRefresh onRefresh={handleRefresh}>
+      <div className="pb-4 space-y-4">
+        {/* Header */}
+        <div className="bg-gradient-to-br ...">
+          ...
+        </div>
+
+        {/* Shift Check-in Card - CHỈ HIỂN THỊ CHO STAFF */}
+        {isStaffUser && (
+          <div className="px-4">
+            <ShiftCheckInCard />
+          </div>
+        )}
+
+        {/* Stats - Horizontal Scroll */}
+        ...
+      </div>
+    </PullToRefresh>
+  )
+}
+```
+
+---
+
+#### Phase 4: Tích hợp vào Desktop Dashboard (Manager/Staff view)
+
+**Sửa file: `src/pages/Dashboard.tsx`**
+
+Thêm ShiftCheckInCard cho staff trên desktop:
+
+```typescript
+import { isStaff } from '@/lib/userAccess'
+import { ShiftCheckInCard } from '@/components/staff/ShiftCheckInCard'
+
+export default function Dashboard() {
+  const { user } = useUser()
+  const isStaffUser = isStaff(user)
+  
+  // ... existing code
+  
+  return (
+    <div className="space-y-6">
+      <PageHeader ... />
+
+      {/* Shift Check-in Card - CHỈ HIỂN THỊ CHO STAFF */}
+      {isStaffUser && (
+        <div className="max-w-md">
+          <ShiftCheckInCard />
+        </div>
+      )}
+
+      {/* Stats Grid */}
+      ...
+    </div>
+  )
+}
+```
+
+---
+
+#### Phase 5: Cập nhật Staff Management hiển thị trạng thái ca
+
+**Sửa file: `src/components/staff/StaffCard.tsx`**
+
+Thêm indicator cho nhân viên đang trong ca:
+
+```typescript
+// Thêm vào StaffWithStatus interface trong useStaffStatus.ts
+shift_start_at: string | null
+shift_end_at: string | null
+
+// Trong StaffCard, hiển thị badge "Đang trong ca"
+{isCurrentlyOnShift(staff) && (
+  <Badge variant="outline" className="text-green-600 border-green-600">
+    Đang trong ca
+  </Badge>
+)}
 ```
 
 ---
 
 #### Phase 6: Cập nhật i18n
 
-**File 9: Cập nhật `src/i18n/locales/vi/superAdmin.json`**
+**Sửa file: `src/i18n/locales/vi/common.json`**
 
 ```json
 {
-  "settings": {
-    "title": "Cài đặt hệ thống",
-    "subtitle": "Quản lý cấu hình nền tảng SaaS",
-    "tabs": {
-      "payment": "Thanh toán",
-      "platform": "Nền tảng",
-      "email": "Email",
-      "maintenance": "Bảo trì",
-      "audit": "Lịch sử"
-    },
-    "platform": {
-      "subscriptionSettings": "Cài đặt Subscription",
-      "trialPeriod": "Trial Period (ngày)",
-      "gracePeriod": "Grace Period (ngày)",
-      "defaultRooms": "Số phòng mặc định",
-      "pricePerRoom": "Giá mỗi phòng/ngày (VND)",
-      "platformInfo": "Thông tin nền tảng",
-      "platformName": "Tên nền tảng",
-      "supportEmail": "Email hỗ trợ"
-    },
-    "email": {
-      "smtpConfig": "Cấu hình SMTP",
-      "smtpHost": "SMTP Host",
-      "smtpPort": "SMTP Port",
-      "username": "Username",
-      "password": "Password",
-      "senderInfo": "Thông tin gửi",
-      "senderEmail": "Email gửi",
-      "senderName": "Tên hiển thị",
-      "testEmail": "Gửi email test",
-      "sendTest": "Gửi test"
-    },
-    "maintenance": {
-      "maintenanceMode": "Chế độ bảo trì",
-      "maintenanceModeDesc": "Khi bật, người dùng sẽ thấy trang bảo trì thay vì ứng dụng",
-      "maintenanceMessage": "Thông báo bảo trì",
-      "systemAnnouncement": "Thông báo hệ thống",
-      "sendAnnouncement": "Gửi thông báo"
-    },
-    "audit": {
-      "title": "Lịch sử hoạt động",
-      "search": "Tìm kiếm hoạt động...",
-      "export": "Xuất CSV",
-      "time": "Thời gian",
-      "admin": "Admin",
-      "action": "Hành động",
-      "entity": "Đối tượng",
-      "details": "Chi tiết"
-    },
-    "save": "Lưu cài đặt",
-    "saved": "Đã lưu cài đặt"
+  "shift": {
+    "title": "Ca làm việc",
+    "notOnShift": "Bạn chưa vào ca hôm nay",
+    "onShift": "Đang trong ca làm việc",
+    "startedAt": "Bắt đầu: {{time}}",
+    "duration": "{{duration}}",
+    "checkIn": "Vào ca ngay",
+    "checkOut": "Kết thúc ca",
+    "checkedIn": "Đã vào ca làm việc",
+    "checkedOut": "Đã kết thúc ca làm việc",
+    "onShiftBadge": "Đang trong ca"
+  }
+}
+```
+
+**Sửa file: `src/i18n/locales/en/common.json`**
+
+```json
+{
+  "shift": {
+    "title": "Work Shift",
+    "notOnShift": "You haven't started your shift today",
+    "onShift": "Currently on shift",
+    "startedAt": "Started: {{time}}",
+    "duration": "{{duration}}",
+    "checkIn": "Start Shift",
+    "checkOut": "End Shift",
+    "checkedIn": "Shift started",
+    "checkedOut": "Shift ended",
+    "onShiftBadge": "On shift"
   }
 }
 ```
@@ -428,41 +370,33 @@ export function useUpdatePlatformSetting() {
 
 | File | Hành động | Mô tả |
 |------|-----------|-------|
-| `src/pages/admin/SuperAdminSettingsPage.tsx` | **Tạo mới** | Page wrapper |
-| `src/App.tsx` | **Sửa** | Thêm route settings |
-| `src/components/super-admin/settings/SuperAdminSettings.tsx` | **Tạo mới** | Component chính với tabs |
-| `src/components/super-admin/settings/PlatformSettings.tsx` | **Tạo mới** | Cài đặt nền tảng |
-| `src/components/super-admin/settings/EmailSettings.tsx` | **Tạo mới** | Cài đặt email SMTP |
-| `src/components/super-admin/settings/MaintenanceSettings.tsx` | **Tạo mới** | Chế độ bảo trì |
-| `src/components/super-admin/settings/AuditLogSettings.tsx` | **Tạo mới** | Lịch sử hoạt động |
-| `src/hooks/super-admin/usePlatformSettings.ts` | **Tạo mới** | Hook quản lý settings |
-| `src/hooks/super-admin/index.ts` | **Sửa** | Export hook mới |
-| `src/i18n/locales/vi/superAdmin.json` | **Sửa** | Thêm settings keys |
-| `src/i18n/locales/en/superAdmin.json` | **Sửa** | Thêm settings keys (EN) |
-| **Database Migration** | **Tạo mới** | Bảng `platform_settings` |
+| `src/components/staff/ShiftCheckInCard.tsx` | **Tạo mới** | Component chính hiển thị nút Check-in/out |
+| `src/hooks/useShiftManagement.ts` | **Tạo mới** | Hooks: useMyStaffStatus, useShiftCheckIn, useShiftCheckOut |
+| `src/components/dashboard/MobileDashboard.tsx` | **Sửa** | Thêm ShiftCheckInCard cho staff |
+| `src/pages/Dashboard.tsx` | **Sửa** | Thêm ShiftCheckInCard cho staff (desktop) |
+| `src/hooks/useStaffStatus.ts` | **Sửa** | Thêm shift_start_at, shift_end_at vào StaffWithStatus |
+| `src/components/staff/StaffCard.tsx` | **Sửa** | Hiển thị badge "Đang trong ca" |
+| `src/i18n/locales/vi/common.json` | **Sửa** | Thêm shift translations |
+| `src/i18n/locales/en/common.json` | **Sửa** | Thêm shift translations |
+
+---
+
+### PHÂN QUYỀN HIỂN THỊ
+
+| User Level | Thấy ShiftCheckInCard | Thấy badge "Đang trong ca" trên StaffCard |
+|------------|----------------------|-------------------------------------------|
+| super_admin | Không | Có (trong Staff Management) |
+| tenant_owner | Không | Có (trong Staff Management) |
+| manager | Không | Có (trong Staff Management) |
+| staff | **CÓ** (trên dashboard) | Có |
 
 ---
 
 ### KẾT QUẢ MONG ĐỢI
 
-Trang `/super-admin/settings` hoàn chỉnh với:
-
-| Tab | Chức năng |
-|-----|-----------|
-| **Thanh toán** | Cấu hình ngân hàng nhận thanh toán VietQR |
-| **Nền tảng** | Trial period, grace period, default rooms, giá |
-| **Email** | SMTP settings, test email |
-| **Bảo trì** | Maintenance mode, system announcements |
-| **Lịch sử** | Audit log cho các hành động admin |
-
----
-
-### PHONG CÁCH UI (Enterprise SaaS Minimalist)
-
-- Sử dụng `PageHeader` từ shared components
-- Tabs gọn gàng với icons
-- Form sections với `border rounded-lg` thay vì Card
-- Padding compact: `p-4`
-- Font: `text-xs` labels, `text-sm` content
-- Màu chữ semantic cho status
+1. **Nhân viên mở app** → Thấy ngay card "Ca làm việc" với nút **Vào ca ngay**
+2. **Nhấn Vào ca** → Cập nhật `shift_start_at`, status = 'available', toast thông báo
+3. **Card đổi sang trạng thái** → Hiển thị "Đang trong ca" + thời gian + nút **Kết thúc ca**
+4. **Nhấn Kết thúc ca** → Cập nhật `shift_end_at`, status = 'offline', toast thông báo
+5. **Quản lý xem Staff Management** → Thấy badge "Đang trong ca" bên cạnh tên nhân viên đang làm việc
 
