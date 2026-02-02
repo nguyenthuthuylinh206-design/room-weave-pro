@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { cn, formatCurrency } from '@/lib/utils'
+import { cn, formatCurrency, formatNumber } from '@/lib/utils'
 import { useAvailableRooms, AvailableRoom } from '@/hooks/useAvailableRooms'
 
 // Helper to get status badge for rooms
@@ -48,6 +48,30 @@ const getRoomTypeLabel = (type: string) => {
     case 'deluxe': return 'Deluxe'
     case 'vip': return 'VIP'
     default: return type
+  }
+}
+
+const getPriceUnitLabel = (bookingType: string) => {
+  switch (bookingType) {
+    case 'hourly': return 'đ/giờ'
+    case 'monthly': return 'đ/tháng'
+    default: return 'đ/đêm'
+  }
+}
+
+const getPricePlaceholder = (bookingType: string) => {
+  switch (bookingType) {
+    case 'hourly': return 'Giá/giờ'
+    case 'monthly': return 'Giá/tháng'
+    default: return 'Giá/đêm'
+  }
+}
+
+const getTotalLabel = (bookingType: string) => {
+  switch (bookingType) {
+    case 'hourly': return 'Tổng giá phòng/giờ:'
+    case 'monthly': return 'Tổng giá phòng/tháng:'
+    default: return 'Tổng giá phòng/đêm:'
   }
 }
 
@@ -114,11 +138,19 @@ export function RoomSelectionStep({
                   <span className="text-xs text-muted-foreground">
                     T{room.floor} • {getRoomTypeLabel(room.room_type)}
                   </span>
-                  {room.base_price && room.base_price > 0 && (
-                    <span className="text-xs font-medium text-primary">
-                      {formatCurrency(room.base_price)}
-                    </span>
-                  )}
+                  {(() => {
+                    let displayPrice = room.base_price
+                    if (state.bookingType === 'hourly' && room.hourly_price) {
+                      displayPrice = room.hourly_price
+                    } else if (state.bookingType === 'monthly' && room.monthly_price) {
+                      displayPrice = room.monthly_price
+                    }
+                    return displayPrice && displayPrice > 0 ? (
+                      <span className="text-xs font-medium text-primary">
+                        {formatCurrency(displayPrice)}
+                      </span>
+                    ) : null
+                  })()}
                   {isAllHotelsMode && room.hotel_name && (
                     <span className="text-xs text-muted-foreground truncate max-w-full">
                       {room.hotel_name}
@@ -164,15 +196,15 @@ export function RoomSelectionStep({
                   <Input
                     type="text"
                     inputMode="numeric"
-                    value={room.customPrice > 0 ? room.customPrice.toString() : ''}
+                    value={room.customPrice > 0 ? formatNumber(room.customPrice) : ''}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^0-9]/g, '')
                       onUpdateRoomPrice(room.id, parseInt(value) || 0)
                     }}
-                    placeholder="Giá/đêm"
+                    placeholder={getPricePlaceholder(state.bookingType)}
                     className="w-28 h-8 text-right"
                   />
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">đ/đêm</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">{getPriceUnitLabel(state.bookingType)}</span>
                   <Button
                     type="button"
                     variant="ghost"
@@ -189,7 +221,7 @@ export function RoomSelectionStep({
           
           {/* Room total summary */}
           <div className="flex justify-between items-center pt-2 border-t text-sm">
-            <span className="text-muted-foreground">Tổng giá phòng/đêm:</span>
+            <span className="text-muted-foreground">{getTotalLabel(state.bookingType)}</span>
             <span className="font-medium text-primary">{formatCurrency(computed.totalRoomPrice)}</span>
           </div>
         </div>
