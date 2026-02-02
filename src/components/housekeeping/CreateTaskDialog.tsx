@@ -37,7 +37,7 @@ import { Button } from '@/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { useCreateTask } from '@/hooks/useHousekeepingTasks'
-import { useHotelStaffList } from '@/hooks/useHotelStaffList'
+import { useOnShiftStaffList } from '@/hooks/useOnShiftStaffList'
 import { cn } from '@/lib/utils'
 import type { TaskType, TaskPriority } from '@/types/housekeeping.types'
 import { TASK_TYPE_LABELS, PRIORITY_LABELS } from '@/types/housekeeping.types'
@@ -88,7 +88,7 @@ export function CreateTaskDialog({
   defaultTaskType = 'cleaning'
 }: CreateTaskDialogProps) {
   const { mutateAsync: createTask, isPending } = useCreateTask()
-  const { data: staffList } = useHotelStaffList(hotelId)
+  const { data: staffList = [], isLoading: staffLoading } = useOnShiftStaffList(hotelId)
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -219,19 +219,28 @@ export function CreateTaskDialog({
               name="assigned_to"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Giao cho (tùy chọn)</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <FormLabel className="flex items-center gap-1">
+                    Giao cho
+                    <span className="text-muted-foreground text-xs font-normal">(đang trong ca)</span>
+                  </FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange} disabled={staffLoading}>
                     <FormControl>
                       <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Chọn nhân viên" />
+                        <SelectValue placeholder={staffLoading ? 'Đang tải...' : 'Chọn nhân viên'} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {staffList?.map((staff) => (
-                        <SelectItem key={staff.id} value={staff.id}>
-                          {staff.full_name}
-                        </SelectItem>
-                      ))}
+                      {staffList.length === 0 ? (
+                        <div className="py-2 px-3 text-sm text-muted-foreground">
+                          Không có nhân viên đang trong ca
+                        </div>
+                      ) : (
+                        staffList.map((staff) => (
+                          <SelectItem key={staff.id} value={staff.id}>
+                            {staff.full_name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />

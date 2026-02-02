@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useHotelStaffList } from '@/hooks/useHotelStaffList'
+import { useOnShiftStaffList } from '@/hooks/useOnShiftStaffList'
 import { useCreateTask } from '@/hooks/useHousekeepingTasks'
 import { useUser } from '@/hooks/useUser'
 import { supabase } from '@/integrations/supabase/client'
@@ -49,7 +49,7 @@ export function CleaningRequestBanner({
   const [priority, setPriority] = useState<string>('medium')
   const [notes, setNotes] = useState('')
   
-  const { data: staffList, isLoading: staffLoading } = useHotelStaffList(hotelId)
+  const { data: staffList, isLoading: staffLoading } = useOnShiftStaffList(hotelId)
   const createTask = useCreateTask()
   
   // Check for existing cleaning task
@@ -252,7 +252,10 @@ export function CleaningRequestBanner({
           <div className="space-y-4 py-4">
             {/* Staff Select */}
             <div className="space-y-2">
-              <Label>Nhân viên</Label>
+              <Label className="flex items-center gap-1">
+                Nhân viên
+                <span className="text-muted-foreground text-xs font-normal">(đang trong ca)</span>
+              </Label>
               <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Chọn nhân viên..." />
@@ -275,7 +278,7 @@ export function CleaningRequestBanner({
                     ))
                   ) : (
                     <div className="py-2 px-3 text-sm text-muted-foreground">
-                      Không có nhân viên
+                      Không có nhân viên đang trong ca
                     </div>
                   )}
                 </SelectContent>

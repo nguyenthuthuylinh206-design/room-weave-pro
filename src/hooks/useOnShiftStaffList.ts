@@ -1,0 +1,87 @@
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/integrations/supabase/client'
+import { isCurrentlyOnShift } from './useShiftManagement'
+
+export interface OnShiftStaffMember {
+  id: string
+  full_name: string
+  avatar_url: string | null
+  email: string | null
+  phone: string | null
+  user_level_code: string | null
+  position_name: string | null
+  telegram_username: string | null
+  telegram_chat_id: string | null
+  shift_start_at: string | null
+}
+
+export function useOnShiftStaffList(hotelId: string | undefined) {
+  return useQuery({
+    queryKey: ['on-shift-staff-list', hotelId],
+    queryFn: async () => {
+      if (!hotelId) return []
+      
+      // Get all users assigned to this hotel with their info
+      const { data: userHotels, error: uhError } = await supabase
+        .from('user_hotels')
+        .select(`
+          user_id,
+          user:users!user_hotels_user_id_fkey(
+            id, full_name, avatar_url, email, phone, user_level_code,
+            telegram_username,
+            position:positions(name),
+            telegram_connections(chat_id, is_active)
+          )
+        `)
+        .eq('hotel_id', hotelId)
+      
+      if (uhError) throw uhError
+
+      // Get staff_status for all users
+      const userIds = userHotels?.map(uh => uh.user_id).filter(Boolean) || []
+      
+      if (userIds.length === 0) return []
+      
+      const { data: statuses, error: statusError } = await supabase
+        .from('staff_status')
+        .select('user_id, shift_start_at, shift_end_at')
+        .in('user_id', userIds)
+      
+      if (statusError) throw statusError
+
+      const statusMap = new Map(statuses?.map(s => [s.user_id, s]) || [])
+
+      // Filter only on-shift staff
+      const onShiftStaff: OnShiftStaffMember[] = userHotels
+        .filter(item => item.user)
+        .filter(item => {
+          const status = statusMap.get(item.user_id)
+          return isCurrentlyOnShift(status || null)
+        })
+        .map(item => {
+          const user = item.user as any
+          const status = statusMap.get(item.user_id)
+          const activeConnection = user.telegram_connections?.find((tc: any) => tc.is_active)
+          
+          return {
+            id: user.id,
+            full_name: user.full_name || 'Không tên',
+            avatar_url: user.avatar_url,
+            email: user.email,
+            phone: user.phone,
+            user_level_code: user.user_level_code,
+            position_name: user.position?.name || null,
+            telegram_username: user.telegram_username || null,
+            telegram_chat_id: activeConnection?.chat_id || null,
+            shift_start_at: status?.shift_start_at || null,
+          }
+        })
+      
+      // Sort by name
+      return onShiftStaff.sort((a, b) => a.full_name.localeCompare(b.full_name, 'vi'))
+    },
+    enabled: !!hotelId,
+    staleTime: 30 * 1000, // 30 seconds
+    refetchInterval: 60000, // Refetch every minute to update when staff clock in/out
+  })
+}
