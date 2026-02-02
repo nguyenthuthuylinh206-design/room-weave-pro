@@ -1,6 +1,7 @@
 import { Phone, MapPin, Clock, Send } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { StaffStatusBadge } from './StaffStatusBadge'
 import type { StaffWithStatus } from '@/hooks/useStaffStatus'
 import { formatDistanceToNow } from 'date-fns'
@@ -9,6 +10,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useNavigate } from 'react-router-dom'
 import { getTelegramPhoneLink, formatPhoneForTelegram, openTelegramWithFallback, getTelegramDownloadLink } from '@/lib/phone-utils'
+import { useTranslation } from 'react-i18next'
 
 interface StaffCardProps {
   staff: StaffWithStatus
@@ -17,6 +19,13 @@ interface StaffCardProps {
 
 export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
   const navigate = useNavigate()
+  const { t } = useTranslation('common')
+  
+  // Check if staff is currently on shift
+  const isOnShift = staff.shift_start_at && (
+    !staff.shift_end_at || 
+    new Date(staff.shift_start_at) > new Date(staff.shift_end_at)
+  )
   
   const initials = staff.full_name
     .split(' ')
@@ -93,6 +102,11 @@ export function StaffCard({ staff, onViewDetail }: StaffCardProps) {
         <div className="flex items-center gap-2">
           <p className="font-medium text-sm truncate">{staff.full_name}</p>
           <StaffStatusBadge status={staff.status} size="sm" showLabel={false} />
+          {isOnShift && (
+            <Badge variant="outline" className="text-green-600 border-green-600 text-[10px] px-1.5 py-0">
+              {t('shift.onShiftBadge', 'Đang trong ca')}
+            </Badge>
+          )}
           
           {/* Contact buttons inline */}
           <div className="flex items-center gap-0.5 ml-auto flex-shrink-0">

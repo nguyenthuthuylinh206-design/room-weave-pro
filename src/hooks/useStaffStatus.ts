@@ -38,6 +38,8 @@ export interface StaffWithStatus {
   last_seen_at: string | null
   telegram_username: string | null
   telegram_chat_id: string | null
+  shift_start_at: string | null
+  shift_end_at: string | null
 }
 
 export function useStaffStatus() {
@@ -114,6 +116,8 @@ export function useStaffStatus() {
           last_seen_at: status?.last_seen_at || null,
           telegram_username: (user as any).telegram_username || null,
           telegram_chat_id: activeTelegramConnection?.chat_id || null,
+          shift_start_at: status?.shift_start_at || null,
+          shift_end_at: status?.shift_end_at || null,
         }
       })
 

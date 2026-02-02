@@ -171,5 +171,17 @@
     "licenses": "Licenses",
     "builtWith": "Built with ❤️ for hotel professionals",
     "copyright": "© 2024 Room Weave Pro. All rights reserved."
+  },
+  "shift": {
+    "title": "Work Shift",
+    "notOnShift": "You haven't started your shift today",
+    "onShift": "Currently on shift",
+    "startedAt": "Started: {{time}}",
+    "duration": "{{duration}}",
+    "checkIn": "Start Shift",
+    "checkOut": "End Shift",
+    "checkedIn": "Shift started",
+    "checkedOut": "Shift ended",
+    "onShiftBadge": "On shift"
   }
 }
