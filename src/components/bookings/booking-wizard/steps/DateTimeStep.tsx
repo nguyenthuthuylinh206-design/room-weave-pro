@@ -225,6 +225,28 @@ function HourlyBookingForm({ state, computed, onUpdate }: DateTimeStepProps) {
     return `${String(endHour).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
   }
 
+  // Check if a time slot is in the past (for today's date)
+  const isTimeSlotDisabled = (time: string) => {
+    if (!state.hourlyDate) return false
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const selectedDate = new Date(state.hourlyDate.getFullYear(), state.hourlyDate.getMonth(), state.hourlyDate.getDate())
+    
+    // If not today, all time slots are available
+    if (selectedDate.getTime() !== today.getTime()) return false
+    
+    // If today, disable time slots that are in the past
+    const [slotHour, slotMin] = time.split(':').map(Number)
+    const currentHour = now.getHours()
+    const currentMin = now.getMinutes()
+    
+    // Disable if slot hour is before current hour, or same hour but slot minute is before current minute
+    return slotHour < currentHour || (slotHour === currentHour && slotMin < currentMin)
+  }
+
+  // Get available time slots
+  const availableTimeSlots = HOURLY_TIME_SLOTS.filter(time => !isTimeSlotDisabled(time))
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-4">
@@ -251,7 +273,16 @@ function HourlyBookingForm({ state, computed, onUpdate }: DateTimeStepProps) {
               <Calendar
                 mode="single"
                 selected={state.hourlyDate}
-                onSelect={(date) => onUpdate({ hourlyDate: date })}
+                onSelect={(date) => {
+                  onUpdate({ hourlyDate: date })
+                  // Reset start time if selected date changes and current time is invalid
+                  if (date && state.hourlyStartTime && isTimeSlotDisabled(state.hourlyStartTime)) {
+                    const firstAvailable = HOURLY_TIME_SLOTS.find(t => !isTimeSlotDisabled(t))
+                    if (firstAvailable) {
+                      onUpdate({ hourlyStartTime: firstAvailable })
+                    }
+                  }
+                }}
                 disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 locale={vi}
                 className="pointer-events-auto"
@@ -266,16 +297,29 @@ function HourlyBookingForm({ state, computed, onUpdate }: DateTimeStepProps) {
             <Clock className="h-4 w-4" />
             Giờ bắt đầu *
           </Label>
-          <Select value={state.hourlyStartTime} onValueChange={(v) => onUpdate({ hourlyStartTime: v })}>
+          <Select 
+            value={state.hourlyStartTime} 
+            onValueChange={(v) => onUpdate({ hourlyStartTime: v })}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Chọn giờ" />
             </SelectTrigger>
             <SelectContent>
               {HOURLY_TIME_SLOTS.map(time => (
-                <SelectItem key={time} value={time}>{time}</SelectItem>
+                <SelectItem 
+                  key={time} 
+                  value={time}
+                  disabled={isTimeSlotDisabled(time)}
+                >
+                  {time}
+                  {isTimeSlotDisabled(time) && ' (đã qua)'}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {state.hourlyDate && availableTimeSlots.length === 0 && (
+            <p className="text-xs text-destructive">Không còn khung giờ khả dụng hôm nay</p>
+          )}
         </div>
 
         {/* Hours */}

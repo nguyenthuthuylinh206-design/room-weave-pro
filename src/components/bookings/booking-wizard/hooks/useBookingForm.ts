@@ -320,9 +320,55 @@ export function useBookingForm() {
       checkOut = format(addMonths(state.monthlyStartDate!, state.bookingMonths), 'yyyy-MM-dd')
     }
 
-    // Validate no overlap for each room (for daily/monthly)
-    if (state.bookingType !== 'hourly') {
-      for (const room of state.selectedRooms) {
+    // Validate no overlap for each room
+    for (const room of state.selectedRooms) {
+      if (state.bookingType === 'hourly') {
+        // Validate hourly booking overlaps
+        const { data: hourlyData, error: hourlyError } = await supabase.rpc('validate_hourly_booking', {
+          p_room_id: room.id,
+          p_start_time: hourlyStartTime!,
+          p_end_time: hourlyEndTime!,
+          p_exclude_booking_id: null,
+        })
+
+        if (hourlyError) {
+          toast({ variant: 'destructive', title: 'Lỗi kiểm tra lịch đặt', description: hourlyError.message })
+          return false
+        }
+
+        const hourlyResult = hourlyData as { valid: boolean; message?: string; conflict?: any }
+        if (!hourlyResult.valid) {
+          toast({ 
+            variant: 'destructive', 
+            title: `Phòng ${room.room_number} đã có lịch đặt`, 
+            description: hourlyResult.message || 'Phòng đã có lịch đặt theo giờ trong thời gian này' 
+          })
+          return false
+        }
+
+        // Also check for daily/monthly overlaps on the same day
+        const { data: dailyData, error: dailyError } = await supabase.rpc('validate_hourly_against_daily', {
+          p_room_id: room.id,
+          p_booking_date: checkIn,
+          p_exclude_booking_id: null,
+        })
+
+        if (dailyError) {
+          toast({ variant: 'destructive', title: 'Lỗi kiểm tra lịch đặt', description: dailyError.message })
+          return false
+        }
+
+        const dailyResult = dailyData as { valid: boolean; message?: string }
+        if (!dailyResult.valid) {
+          toast({ 
+            variant: 'destructive', 
+            title: `Phòng ${room.room_number} đã có khách`, 
+            description: dailyResult.message || 'Phòng đã có khách đặt theo ngày/tháng trong ngày này' 
+          })
+          return false
+        }
+      } else {
+        // Validate daily/monthly booking overlaps
         const { data, error } = await supabase.rpc('validate_booking_dates', {
           p_room_id: room.id,
           p_check_in: checkIn,
