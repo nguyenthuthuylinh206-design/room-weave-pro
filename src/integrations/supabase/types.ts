@@ -8878,6 +8878,23 @@ export type Database = {
         }
         Returns: Json
       }
+      validate_hourly_against_daily: {
+        Args: {
+          p_booking_date: string
+          p_exclude_booking_id?: string
+          p_room_id: string
+        }
+        Returns: Json
+      }
+      validate_hourly_booking: {
+        Args: {
+          p_end_time: string
+          p_exclude_booking_id?: string
+          p_room_id: string
+          p_start_time: string
+        }
+        Returns: Json
+      }
       validate_plan_change: {
         Args: { p_new_plan_id: string; p_tenant_id: string }
         Returns: Json

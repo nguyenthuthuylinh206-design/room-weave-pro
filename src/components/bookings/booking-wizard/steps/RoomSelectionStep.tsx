@@ -1,3 +1,5 @@
+import { useMemo } from 'react'
+import { addMonths } from 'date-fns'
 import { Building2, CheckCircle2, Loader2, Sparkles, Wrench, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -82,9 +84,34 @@ export function RoomSelectionStep({
   onUpdateRoomPrice 
 }: RoomSelectionStepProps) {
   const { isAllHotelsMode } = useHotelContext()
+  
+  // Calculate availability dates based on booking type
+  const availabilityDates = useMemo(() => {
+    switch (state.bookingType) {
+      case 'hourly':
+        // For hourly, check the specific date
+        return { 
+          checkIn: state.hourlyDate, 
+          checkOut: state.hourlyDate 
+        }
+      case 'monthly':
+        // For monthly, calculate end date
+        return { 
+          checkIn: state.monthlyStartDate, 
+          checkOut: state.monthlyStartDate ? addMonths(state.monthlyStartDate, state.bookingMonths) : undefined 
+        }
+      default:
+        // For daily, use check-in/out dates
+        return { 
+          checkIn: state.checkInDate, 
+          checkOut: state.checkOutDate 
+        }
+    }
+  }, [state.bookingType, state.checkInDate, state.checkOutDate, state.hourlyDate, state.monthlyStartDate, state.bookingMonths])
+
   const { data: availableRooms, isLoading: isLoadingRooms } = useAvailableRooms(
-    state.checkInDate,
-    state.checkOutDate
+    availabilityDates.checkIn,
+    availabilityDates.checkOut
   )
 
   return (

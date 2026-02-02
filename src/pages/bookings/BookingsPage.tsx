@@ -91,6 +91,14 @@ interface BookingWithRoom {
   booking_source?: string
   ota_payment_type?: string | null
   ota_paid_amount?: number
+  // Booking type fields
+  booking_type?: 'daily' | 'hourly' | 'monthly'
+  hourly_rate?: number | null
+  hourly_start_time?: string | null
+  hourly_end_time?: string | null
+  booking_hours?: number | null
+  monthly_rate?: number | null
+  booking_months?: number | null
   room: {
     room_number: string
     room_type: string
@@ -187,7 +195,14 @@ export function BookingsPage() {
         .from('room_bookings')
         .select(`
           *,
-          room:rooms(room_number, room_type, floor, status)
+          room:rooms(room_number, room_type, floor, status),
+          booking_type,
+          hourly_rate,
+          hourly_start_time,
+          hourly_end_time,
+          booking_hours,
+          monthly_rate,
+          booking_months
         `)
         .order('check_in_date', { ascending: false })
         .limit(100)
@@ -325,7 +340,13 @@ export function BookingsPage() {
 
     setActionBooking(booking)
 
-    // If check-in is after standard time (14:00), no surcharge - check-in directly
+    // For hourly and monthly bookings, no early check-in surcharge applies
+    if (booking.booking_type === 'hourly' || booking.booking_type === 'monthly') {
+      performCheckIn(booking, 0)
+      return
+    }
+
+    // For daily bookings: If check-in is after standard time (14:00), no surcharge - check-in directly
     if (hours >= 14) {
       performCheckIn(booking, 0)
     } else {
@@ -990,8 +1011,8 @@ export function BookingsPage() {
                 <TableRow>
                   <TableHead>Khách</TableHead>
                   <TableHead>Phòng</TableHead>
-                  <TableHead>Check-in</TableHead>
-                  <TableHead>Check-out</TableHead>
+                  <TableHead>Thời gian</TableHead>
+                  <TableHead>Thời hạn</TableHead>
                   <TableHead>Tổng tiền</TableHead>
                   <TableHead>Thanh toán</TableHead>
                   <TableHead>Trạng thái</TableHead>
@@ -1032,30 +1053,73 @@ export function BookingsPage() {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{booking.room?.room_number}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{booking.room?.room_number}</p>
+                            {/* Booking type badge */}
+                            {booking.booking_type === 'hourly' && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-blue-300 text-blue-600">
+                                Giờ
+                              </Badge>
+                            )}
+                            {booking.booking_type === 'monthly' && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-purple-300 text-purple-600">
+                                Tháng
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground capitalize">
                             {booking.room?.room_type} • Tầng {booking.room?.floor}
                           </p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <p className={isToday(new Date(booking.check_in_date)) ? 'text-blue-600 font-medium' : ''}>
-                          {format(new Date(booking.check_in_date), 'dd/MM/yyyy', { locale: vi })}
-                        </p>
-                        {booking.actual_check_in && (
-                          <p className="text-xs text-muted-foreground">
-                            {format(new Date(booking.actual_check_in), 'HH:mm')}
-                          </p>
+                        {/* For hourly bookings, show time range */}
+                        {booking.booking_type === 'hourly' && booking.hourly_start_time ? (
+                          <div>
+                            <p className={isToday(new Date(booking.check_in_date)) ? 'text-blue-600 font-medium' : ''}>
+                              {format(new Date(booking.check_in_date), 'dd/MM', { locale: vi })}
+                            </p>
+                            <p className="text-xs text-blue-600 font-medium">
+                              {format(new Date(booking.hourly_start_time), 'HH:mm')} - {booking.hourly_end_time ? format(new Date(booking.hourly_end_time), 'HH:mm') : ''}
+                            </p>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className={isToday(new Date(booking.check_in_date)) ? 'text-blue-600 font-medium' : ''}>
+                              {format(new Date(booking.check_in_date), 'dd/MM/yyyy', { locale: vi })}
+                            </p>
+                            {booking.actual_check_in && (
+                              <p className="text-xs text-muted-foreground">
+                                {format(new Date(booking.actual_check_in), 'HH:mm')}
+                              </p>
+                            )}
+                          </div>
                         )}
                       </TableCell>
                       <TableCell>
-                        <p className={isToday(new Date(booking.check_out_date)) ? 'text-orange-600 font-medium' : ''}>
-                          {format(new Date(booking.check_out_date), 'dd/MM/yyyy', { locale: vi })}
-                        </p>
-                        {booking.actual_check_out && (
-                          <p className="text-xs text-muted-foreground">
-                            {format(new Date(booking.actual_check_out), 'HH:mm')}
-                          </p>
+                        {/* For hourly bookings, show duration instead */}
+                        {booking.booking_type === 'hourly' ? (
+                          <div>
+                            <p className="text-sm font-medium">{booking.booking_hours || 0}h</p>
+                          </div>
+                        ) : booking.booking_type === 'monthly' ? (
+                          <div>
+                            <p className="text-sm">{booking.booking_months || 1} tháng</p>
+                            <p className="text-xs text-muted-foreground">
+                              → {format(new Date(booking.check_out_date), 'dd/MM/yy', { locale: vi })}
+                            </p>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className={isToday(new Date(booking.check_out_date)) ? 'text-orange-600 font-medium' : ''}>
+                              {format(new Date(booking.check_out_date), 'dd/MM/yyyy', { locale: vi })}
+                            </p>
+                            {booking.actual_check_out && (
+                              <p className="text-xs text-muted-foreground">
+                                {format(new Date(booking.actual_check_out), 'HH:mm')}
+                              </p>
+                            )}
+                          </div>
                         )}
                       </TableCell>
                       <TableCell>
