@@ -10,14 +10,21 @@ import { QuotaWarningBanner } from '@/components/settings/usage/QuotaWarningBann
 import { HotelProvider } from '@/contexts/HotelContext'
 import { PushNotificationPrompt } from '@/components/notifications'
 import { PWAUpdatePrompt } from '@/components/pwa'
+import { ShiftStatusBanner } from '@/components/staff/ShiftStatusBanner'
+import { useUser } from '@/hooks/useUser'
+import { isStaff } from '@/lib/userAccess'
 
 const MainLayoutContent = () => {
   const { isMobile } = useBreakpoint()
+  const { user } = useUser()
+  const isStaffUser = isStaff(user)
 
   if (isMobile) {
     return (
       <div className="min-h-screen flex flex-col bg-background overflow-x-hidden">
         <MobileHeader />
+        {/* Shift Status Banner - Only for staff who haven't checked in */}
+        {isStaffUser && <ShiftStatusBanner />}
         <main className="flex-1 overflow-y-auto overflow-x-hidden pb-16">
           <div className="p-4">
             <QuotaWarningBanner />
