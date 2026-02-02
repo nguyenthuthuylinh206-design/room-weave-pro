@@ -59,33 +59,40 @@ export function OperationsReportPage() {
     net_change_value: 0,
   }
 
-  const transactionTrend = [
-    { month: 'T10', inbound: 45, outbound: 38, adjustment: 5 },
-    { month: 'T11', inbound: 52, outbound: 48, adjustment: 8 },
-    { month: 'T12', inbound: 38, outbound: 42, adjustment: 3 },
-  ]
+  // Transaction trend from real data (calculated from transaction_summary)
+  const transactionTrend = reportData?.transaction_summary ? [
+    { 
+      month: 'Kỳ này', 
+      inbound: transactionSummary.inbound_count, 
+      outbound: transactionSummary.outbound_count, 
+      adjustment: transactionSummary.total_transactions - transactionSummary.inbound_count - transactionSummary.outbound_count 
+    },
+  ] : []
 
-  const topMovingItems = [
-    { name: 'Khăn tắm lớn', code: 'KTL-001', inbound: 200, outbound: 185, turnover: 8.2 },
-    { name: 'Ga trải giường', code: 'GTG-001', inbound: 150, outbound: 142, turnover: 7.5 },
-    { name: 'Vỏ gối', code: 'VG-001', inbound: 180, outbound: 165, turnover: 6.8 },
-    { name: 'Khăn mặt', code: 'KM-001', inbound: 250, outbound: 230, turnover: 6.2 },
-    { name: 'Áo choàng', code: 'AC-001', inbound: 50, outbound: 45, turnover: 5.5 },
-  ]
+  // Top items from inventory data
+  const topMovingItems = reportData?.top_items_by_value?.slice(0, 5).map((item, index) => ({
+    name: item.item_name,
+    code: item.item_code,
+    inbound: 0, // Would need separate query for movement data
+    outbound: 0,
+    turnover: item.quantity > 0 ? (item.total_value / item.quantity / 1000) : 0,
+  })) || []
 
+  // Stocktake results placeholder - would need separate tracking
   const stocktakeResults = {
-    total_checks: 12,
-    items_checked: 450,
-    accuracy_rate: 98.5,
-    discrepancies: 8,
-    adjusted_value: 1250000,
+    total_checks: 0,
+    items_checked: reportData?.summary?.total_types || 0,
+    accuracy_rate: 0,
+    discrepancies: 0,
+    adjusted_value: 0,
   }
 
+  // Efficiency metrics placeholder
   const efficiencyMetrics = {
-    avg_processing_time: 2.5,
-    on_time_delivery_rate: 94.5,
-    error_rate: 1.2,
-    staff_productivity: 85,
+    avg_processing_time: 0,
+    on_time_delivery_rate: 0,
+    error_rate: 0,
+    staff_productivity: 0,
   }
 
   return (

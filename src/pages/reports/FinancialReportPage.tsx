@@ -295,60 +295,6 @@ export function FinancialReportPage() {
             </CardContent>
           </Card>
           
-          {/* Budget vs Actual */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Ngân sách vs Thực tế</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Mua sắm</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
-                        {formatCurrency(summary.purchase_cost)} / 20M
-                      </span>
-                      <Badge variant="default" className="bg-green-100 text-green-800">
-                        90%
-                      </Badge>
-                    </div>
-                  </div>
-                  <Progress value={90} className="h-2" />
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Giặt là</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
-                        {formatCurrency(summary.laundry_cost)} / 10M
-                      </span>
-                      <Badge variant="default" className="bg-yellow-100 text-yellow-800">
-                        120% Vượt
-                      </Badge>
-                    </div>
-                  </div>
-                  <Progress value={120} className="h-2" />
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Bảo trì</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
-                        {formatCurrency(summary.maintenance_cost)} / 3M
-                      </span>
-                      <Badge variant="default" className="bg-green-100 text-green-800">
-                        83%
-                      </Badge>
-                    </div>
-                  </div>
-                  <Progress value={83} className="h-2" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
         
         {/* TAB 2: ROI & Efficiency */}
