@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useRevenueReport } from '@/hooks/useRevenueReport'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useBreakpoint } from '@/lib/breakpoints'
+import { MobileRevenueReportPage } from '@/components/reports/MobileRevenueReportPage'
 import { 
   DollarSign, 
   TrendingUp, 
@@ -54,8 +56,13 @@ const formatCompact = (value: number) => {
 }
 
 export function RevenueReportPage() {
+  const { isMobile } = useBreakpoint()
   const { data: report, isLoading } = useRevenueReport()
   const [period, setPeriod] = useState('month')
+
+  if (isMobile) {
+    return <MobileRevenueReportPage />
+  }
 
   if (isLoading) {
     return (
