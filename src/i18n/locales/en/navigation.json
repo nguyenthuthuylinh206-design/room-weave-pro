@@ -64,8 +64,6 @@
   "businessConfig": "Business Configuration",
   "pricingRules": "Surcharges & Fees",
   "automation": "Automation",
-  "integrations": "Integrations & API",
-  "systemSecurity": "System & Security",
   "telegram": "Telegram",
   "notifications": "Notifications"
 }

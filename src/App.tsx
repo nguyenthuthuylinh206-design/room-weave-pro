@@ -45,7 +45,7 @@ import { ReceiveBatchPage } from "./pages/laundry/ReceiveBatchPage";
 import { VendorListPage } from "./pages/laundry/VendorListPage";
 import { VendorDetailPage } from "./pages/laundry/VendorDetailPage";
 import { VendorFormPage } from "./pages/laundry/VendorFormPage";
-import { SettingsPage } from "./pages/settings/SettingsPage";
+
 
 import { GeneralSettingsPage } from "./pages/settings/GeneralSettingsPage";
 import HotelsManagementPage from "./pages/settings/HotelsManagementPage";
@@ -54,14 +54,14 @@ import { SuperAdminErrorBoundary } from './components/super-admin/ErrorBoundary'
 import SubscriptionPage from "./pages/settings/SubscriptionPage";
 import SubscriptionPaymentPage from "./pages/settings/SubscriptionPaymentPage";
 import UsageDashboardPage from "./pages/settings/UsageDashboardPage";
-import SystemSecurityPage from "./pages/settings/SystemSecurityPage";
+
 import { NotificationSettingsPage } from "./pages/settings/NotificationSettingsPage";
 import PushDevicesPage from "./pages/settings/PushDevicesPage";
 import TelegramSettingsPage from "./pages/settings/TelegramSettingsPage";
 import { BusinessConfigurationPage } from "./pages/settings/BusinessConfigurationPage";
 import CategoryManagementPage from "./pages/settings/CategoryManagementPage";
 import WorkflowsPage from "./pages/settings/WorkflowsPage";
-import { SystemTestPage } from "./pages/settings/SystemTestPage";
+
 import WarehouseListPage from "./pages/settings/WarehouseListPage";
 import ChangePasswordPage from "./pages/settings/ChangePasswordPage";
 import { ReportsPage } from "./pages/reports/ReportsPage";
@@ -102,7 +102,7 @@ import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 import UsersPage from "./pages/users/UsersPage";
 import ProfilePage from "./pages/profile/ProfilePage";
-import IntegrationsPage from "./pages/settings/IntegrationsPage";
+
 import PricingRulesPage from "./pages/settings/PricingRulesPage";
 import { SuperAdminDashboard } from "./pages/admin/SuperAdminDashboard";
 import { TenantsPage } from "./pages/admin/TenantsPage";
@@ -681,30 +681,6 @@ const router = createBrowserRouter([
             <WorkflowsPage />
           </PermissionRoute>
         ),
-      },
-      { 
-        path: "settings/integrations", 
-        element: (
-          <PermissionRoute module="settings" action="manage">
-            <IntegrationsPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "settings/security", 
-        element: (
-          <PermissionRoute module="settings">
-            <SystemSecurityPage />
-          </PermissionRoute>
-        )
-      },
-      { 
-        path: "settings/system-test", 
-        element: (
-          <RoleGuard allowedRoles={['super_admin', 'owner']}>
-            <SystemTestPage />
-          </RoleGuard>
-        )
       },
       {
         path: "settings/pricing-rules",

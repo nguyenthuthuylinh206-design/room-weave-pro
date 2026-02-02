@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ChevronRight, User, Building2, Users, Mail, Globe, Shield, Database, Bell, LogOut, MessageCircle } from 'lucide-react'
+import { ChevronRight, User, Building2, Users, Bell, LogOut, MessageCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 interface SettingsItem {
@@ -57,27 +57,12 @@ export const MobileSettingsPage = () => {
           route: '/settings/users',
           requireAdmin: true,
         },
-        {
-          id: 'categories',
-          title: t('categories.title'),
-          description: t('categories.title'),
-          icon: Database,
-          route: '/settings/categories',
-        },
       ] as SettingsItem[],
     },
     {
       title: t('system.title'),
       items: [
         {
-          id: 'email-templates',
-          title: 'Email Templates',
-          description: 'Email Templates',
-          icon: Mail,
-          route: '/settings/email-templates',
-          requireAdmin: true,
-        },
-{
           id: 'notifications',
           title: t('notifications.title'),
           description: t('notifications.description'),
@@ -90,22 +75,6 @@ export const MobileSettingsPage = () => {
           description: 'Nhận thông báo qua Telegram',
           icon: MessageCircle,
           route: '/settings/telegram',
-        },
-        {
-          id: 'localization',
-          title: t('general.language'),
-          description: t('general.timezone'),
-          icon: Globe,
-          route: '/settings/localization',
-        },
-        {
-          id: 'roles',
-          title: t('security.title'),
-          description: t('security.description'),
-          icon: Shield,
-          route: '/settings/roles',
-          requireAdmin: true,
-          badge: 'Admin',
         },
       ] as SettingsItem[],
     },
