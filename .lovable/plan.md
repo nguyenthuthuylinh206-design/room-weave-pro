@@ -1,196 +1,245 @@
 
 
-## Kế hoạch: Mở rộng tính năng Theo dõi Ca làm việc
+## Giải pháp Toàn diện: Phân loại Đồ dùng trong Phòng
 
-### TỔNG QUAN YÊU CẦU
+### VẤN ĐỀ HIỆN TẠI
 
-Người dùng muốn mở rộng tab "Ca làm việc" với 3 tính năng mới:
+| Chỉ số | Giá trị | Mô tả |
+|--------|---------|-------|
+| Items bị phân loại sai | 63/426 (15%) | Ảnh hưởng hiển thị sai tab trong Room Check |
+| Nguyên nhân gốc | Thiếu liên kết Category → Item Type | Không có quy tắc gán tự động |
+| Ví dụ lỗi điển hình | "Ấm đun nước" trong category "Thiết bị" nhưng item_type = "consumable" | |
 
-1. **Theo dõi nhân viên đang trong ca** - Hiển thị realtime danh sách nhân viên đang làm việc
-2. **Tính thời gian thực tế** - Hiển thị thời gian làm việc liên tục cập nhật
-3. **Cài đặt ca làm việc + Nhắc nhở** - Cấu hình giờ làm chuẩn và gửi nhắc nhở khi quên kết thúc ca
+**Ví dụ Items bị sai:**
+- "Đồng hồ báo thức" → Category "Điện tử" → item_type = "linen" (SAI, phải là "equipment")
+- "Tủ lạnh mini" → Category "Điện tử" → item_type = "furniture" (SAI, phải là "equipment")
+- "Bột giặt" → Category "Vệ sinh" → item_type = "linen" (SAI, phải là "consumable")
 
 ---
 
-### SƠ ĐỒ GIAO DIỆN MỚI
+### GIẢI PHÁP TOÀN DIỆN (4 LỚP BẢO VỆ)
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  Tab: CA LÀM VIỆC                                                       │
+│                    4 LAYERS OF ITEM TYPE PROTECTION                     │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  ┌─────────────────────────────────────────┐ ┌────────────────────────┐│
-│  │ 📌 ĐANG TRONG CA (3)                    │ │ ⚙️ CÀI ĐẶT CA          ││
-│  ├─────────────────────────────────────────┤ ├────────────────────────┤│
-│  │ 👤 Nguyễn Văn A                         │ │ Giờ bắt đầu: 08:00    ││
-│  │    Vào ca: 08:00 • Đã làm: 2h 35p 🟢    │ │ Giờ kết thúc: 18:00   ││
-│  │                                         │ │ Thời gian tối đa: 12h ││
-│  │ 👤 Trần Thị B                           │ │                        ││
-│  │    Vào ca: 07:45 • Đã làm: 2h 50p 🟢    │ │ Nhắc nhở sau: 10h     ││
-│  │                                         │ │ [✓] Gửi push          ││
-│  │ 👤 Lê Văn C                             │ │ [✓] Gửi Telegram      ││
-│  │    Vào ca: 14:00 • Đã làm: 12h 30p 🔴   │ │                        ││
-│  │    ⚠️ Quá giờ làm việc tiêu chuẩn       │ │ [Lưu cài đặt]         ││
-│  └─────────────────────────────────────────┘ └────────────────────────┘│
+│  LỚP 1: DATABASE STRUCTURE                                              │
+│  ┌───────────────────────────────────────────────────────────────────┐ │
+│  │ item_categories.default_item_type                                 │ │
+│  │ Mỗi danh mục có loại đồ dùng mặc định                            │ │
+│  │ VD: "Đồ vải" → default_item_type = 'linen'                       │ │
+│  └───────────────────────────────────────────────────────────────────┘ │
 │                                                                         │
-│  ────────────── LỊCH SỬ CA ──────────────                               │
-│  [Bộ lọc: Nhân viên ▼] [Từ ngày] [Đến ngày]                            │
+│  LỚP 2: AUTO-CLASSIFICATION TRIGGER                                     │
+│  ┌───────────────────────────────────────────────────────────────────┐ │
+│  │ Trigger: auto_classify_item_type()                                │ │
+│  │ Khi INSERT/UPDATE item: Lấy default_item_type từ category        │ │
+│  │ Nếu category không có → fallback dựa vào từ khóa tên item        │ │
+│  └───────────────────────────────────────────────────────────────────┘ │
 │                                                                         │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐                   │
-│  │ 45 ca    │ │ 320 giờ  │ │ 7.1 giờ  │ │ 12 NV    │                   │
-│  │ Tổng ca  │ │ Tổng giờ │ │ TB/ca    │ │ Có đi ca │                   │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘                   │
+│  LỚP 3: UI GUIDANCE                                                     │
+│  ┌───────────────────────────────────────────────────────────────────┐ │
+│  │ Form tạo Item: Tự động chọn item_type dựa vào category           │ │
+│  │ Form tạo Category: Bắt buộc chọn default_item_type               │ │
+│  │ Highlight nếu user chọn khác gợi ý                               │ │
+│  └───────────────────────────────────────────────────────────────────┘ │
 │                                                                         │
-│  Bảng lịch sử ca làm việc...                                           │
+│  LỚP 4: DATA MIGRATION + VALIDATION TOOL                                │
+│  ┌───────────────────────────────────────────────────────────────────┐ │
+│  │ Migration: Fix 63 items đang bị sai                              │ │
+│  │ Admin Tool: Scan & Report misclassified items                    │ │
+│  │ Batch update function                                            │ │
+│  └───────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### PHẦN 1: DANH SÁCH NHÂN VIÊN ĐANG TRONG CA (REALTIME)
+### PHẦN 1: DATABASE CHANGES
 
-#### Tính năng:
-- Hiển thị tất cả nhân viên đang trong ca (`isCurrentlyOnShift = true`)
-- Thời gian làm việc được tính realtime (tự động cập nhật mỗi phút)
-- Màu sắc cảnh báo:
-  - 🟢 Xanh: Thời gian làm việc bình thường
-  - 🟠 Vàng: Sắp đến giới hạn (>8h mặc định)
-  - 🔴 Đỏ: Quá giờ làm việc tối đa (>10h mặc định)
+#### 1.1 Thêm cột `default_item_type` vào `item_categories`
 
-#### Thay đổi code:
-| File | Thay đổi |
-|------|----------|
-| `useOnShiftStaffList.ts` | Thêm hook mới filter theo tenant (không cần hotelId) |
-| `OnShiftStaffPanel.tsx` | Component hiển thị danh sách đang trong ca |
-| `ShiftHistoryTab.tsx` | Tích hợp panel mới |
-
----
-
-### PHẦN 2: TÍNH THỜI GIAN THỰC TẾ (LIVE TIMER)
-
-#### Tính năng:
-- Đếm thời gian làm việc từ `shift_start_at` đến hiện tại
-- Cập nhật mỗi 60 giây
-- Hiển thị định dạng: `Xh Yp` (ví dụ: 8h 30p)
-
-#### Thay đổi code:
-| File | Thay đổi |
-|------|----------|
-| `useShiftTimer.ts` | Hook mới với setInterval để tính thời gian live |
-| `LiveShiftDuration.tsx` | Component hiển thị thời gian đếm ngược |
-
----
-
-### PHẦN 3: CÀI ĐẶT CA LÀM VIỆC
-
-#### Cấu hình lưu trong `tenants.settings`:
-```json
-{
-  "shift_settings": {
-    "default_start_time": "08:00",
-    "default_end_time": "18:00",
-    "max_shift_hours": 12,
-    "warning_hours": 10,
-    "reminder_enabled": true,
-    "reminder_channels": ["push", "telegram"]
-  }
-}
+```sql
+ALTER TABLE item_categories 
+ADD COLUMN default_item_type TEXT 
+CHECK (default_item_type IN ('linen', 'consumable', 'equipment', 'furniture'));
 ```
 
-#### Thay đổi code:
-| File | Thay đổi |
-|------|----------|
-| `ShiftSettingsPanel.tsx` | Form cài đặt ca làm việc |
-| `useShiftSettings.ts` | Hook đọc/ghi settings từ tenants.settings |
+#### 1.2 Cập nhật categories hiện có với default_item_type
+
+Dựa vào tên category:
+- "Đồ vải", "Linen" → `linen`
+- "Vệ sinh", "Phòng tắm", "Ẩm thực", "Tiêu hao" → `consumable`
+- "Điện tử", "Thiết bị", "Thiết bị điện" → `equipment`
+- "Nội thất", "Phòng khách" → `furniture`
+
+#### 1.3 Tạo Trigger `auto_classify_item_type`
+
+```sql
+CREATE OR REPLACE FUNCTION auto_classify_item_type()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_default_type TEXT;
+BEGIN
+  -- Nếu user đã chọn item_type, giữ nguyên
+  IF NEW.item_type IS NOT NULL AND OLD IS NOT NULL AND NEW.item_type != OLD.item_type THEN
+    RETURN NEW;
+  END IF;
+
+  -- Lấy default_item_type từ category
+  SELECT default_item_type INTO v_default_type
+  FROM item_categories 
+  WHERE id = NEW.category_id;
+  
+  -- Gán nếu có
+  IF v_default_type IS NOT NULL THEN
+    NEW.item_type := v_default_type;
+  -- Fallback: Phân loại theo tên item nếu category không có default
+  ELSIF NEW.item_type IS NULL THEN
+    NEW.item_type := CASE
+      WHEN NEW.name ILIKE ANY(ARRAY['%khăn%','%ga%','%gối%','%chăn%','%màn%','%rèm%']) THEN 'linen'
+      WHEN NEW.name ILIKE ANY(ARRAY['%dầu gội%','%sữa tắm%','%kem%','%bàn chải%','%xà phòng%','%nước%','%giấy%']) THEN 'consumable'
+      WHEN NEW.name ILIKE ANY(ARRAY['%bàn%','%ghế%','%tủ%','%giường%','%sofa%','%kệ%']) THEN 'furniture'
+      ELSE 'equipment'
+    END;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+#### 1.4 Fix data items hiện có
+
+```sql
+UPDATE items i
+SET item_type = ic.default_item_type
+FROM item_categories ic
+WHERE i.category_id = ic.id
+  AND ic.default_item_type IS NOT NULL
+  AND i.item_type != ic.default_item_type;
+```
 
 ---
 
-### PHẦN 4: NHẮC NHỞ KHI QUÊN KẾT THÚC CA
+### PHẦN 2: UI CHANGES
 
-#### Logic:
-1. Cron job chạy mỗi 30 phút kiểm tra nhân viên đang trong ca quá lâu
-2. Nếu `(now - shift_start_at) > warning_hours` → Gửi nhắc nhở
-3. Kênh thông báo: Push notification + Telegram
+#### 2.1 Form tạo/sửa Category (CreateItemCategoryDialog)
 
-#### Thay đổi code:
-| Loại | File | Mô tả |
-|------|------|-------|
-| Edge Function | `check-shift-overtime` | Kiểm tra và gửi nhắc nhở |
-| Cron Job | SQL INSERT cron.schedule | Chạy mỗi 30 phút |
-| Database | `shift_reminders` | Bảng lưu lịch sử nhắc nhở (tránh spam) |
-
----
-
-### DATABASE CHANGES
-
-#### Bảng mới: `shift_reminders`
-| Cột | Kiểu | Mô tả |
-|-----|------|-------|
-| id | UUID | Primary key |
-| tenant_id | UUID | FK → tenants |
-| user_id | UUID | FK → users |
-| shift_start_at | TIMESTAMPTZ | Thời điểm bắt đầu ca |
-| reminded_at | TIMESTAMPTZ | Thời điểm gửi nhắc nhở |
-| reminder_type | TEXT | 'warning' / 'overtime' |
-
----
-
-### FILES CẦN TẠO/SỬA
-
-| Loại | File | Mô tả |
-|------|------|-------|
-| **Hook** | `src/hooks/useOnShiftStaffListAll.ts` | Lấy tất cả NV đang trong ca (không filter hotel) |
-| **Hook** | `src/hooks/useShiftTimer.ts` | Tính thời gian live |
-| **Hook** | `src/hooks/useShiftSettings.ts` | Đọc/ghi cài đặt ca |
-| **Component** | `src/components/staff/OnShiftStaffPanel.tsx` | Panel hiển thị NV đang trong ca |
-| **Component** | `src/components/staff/LiveShiftDuration.tsx` | Component đếm giờ live |
-| **Component** | `src/components/staff/ShiftSettingsPanel.tsx` | Form cài đặt |
-| **Sửa** | `src/components/staff/ShiftHistoryTab.tsx` | Tích hợp 2 panel mới |
-| **Migration** | `xxx_shift_reminders.sql` | Tạo bảng reminders |
-| **Edge Function** | `supabase/functions/check-shift-overtime` | Cron job nhắc nhở |
-| **Cron** | SQL INSERT | Lên lịch chạy mỗi 30 phút |
-
----
-
-### LUỒNG HOẠT ĐỘNG
+Thêm trường `default_item_type` bắt buộc:
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────┐
-│                      SHIFT REMINDER FLOW                                 │
-├──────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│   Cron Job (mỗi 30 phút)                                                │
-│   ┌────────────────┐                                                    │
-│   │ pg_cron        │────▶ Edge Function: check-shift-overtime           │
-│   └────────────────┘                                                    │
-│                            │                                             │
-│                            ▼                                             │
-│   ┌─────────────────────────────────────────────────────────────┐       │
-│   │ 1. Query staff_status WHERE isOnShift AND duration > 10h    │       │
-│   │ 2. Check shift_reminders để tránh gửi trùng                 │       │
-│   │ 3. Gửi Push + Telegram cho từng nhân viên                   │       │
-│   │ 4. INSERT vào shift_reminders                               │       │
-│   └─────────────────────────────────────────────────────────────┘       │
-│                            │                                             │
-│                            ▼                                             │
-│   ┌────────────────┐  ┌────────────────┐                                │
-│   │ Push Notif     │  │ Telegram Bot   │                                │
-│   │ "Nhắc nhở:     │  │ "⚠️ Bạn đã    │                                │
-│   │ Bạn đã làm     │  │ làm việc 10h,  │                                │
-│   │ 10h, kết thúc  │  │ nhớ kết thúc   │                                │
-│   │ ca nhé!"       │  │ ca!"           │                                │
-│   └────────────────┘  └────────────────┘                                │
-│                                                                          │
-└──────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│ Tạo Danh mục                            │
+├─────────────────────────────────────────┤
+│ Tên danh mục *: [Đồ vải            ]    │
+│ Mã:             [DO_VAI            ]    │
+│                                         │
+│ Loại đồ dùng mặc định *:               │
+│ [Đồ vải (linen) ▼]                      │
+│  ├─ Đồ vải (linen)                      │
+│  ├─ Tiêu hao (consumable)               │
+│  ├─ Thiết bị (equipment)                │
+│  └─ Nội thất (furniture)                │
+│                                         │
+│ Mô tả: [                           ]    │
+│ ...                                     │
+└─────────────────────────────────────────┘
+```
+
+#### 2.2 Form tạo/sửa Item (ItemFormPage)
+
+Auto-fill `item_type` khi chọn category:
+
+```typescript
+// Khi user chọn category_id
+const handleCategoryChange = (categoryId: string) => {
+  setValue('category_id', categoryId);
+  
+  const category = categories?.find(c => c.id === categoryId);
+  if (category?.default_item_type) {
+    setValue('item_type', category.default_item_type);
+    // Show toast: "Đã tự động chọn loại: Đồ vải"
+  }
+};
+```
+
+#### 2.3 Admin Tool: Scan & Fix Items
+
+Thêm tab trong Settings để quản trị viên:
+1. Xem danh sách items bị phân loại sai
+2. Batch fix theo category
+3. Export báo cáo
+
+---
+
+### PHẦN 3: FILES CẦN TẠO/SỬA
+
+| Loại | File | Thay đổi |
+|------|------|----------|
+| **Migration** | `xxx_item_type_classification.sql` | Thêm cột, trigger, fix data |
+| **Sửa** | `src/hooks/useItemCategories.ts` | Thêm field default_item_type |
+| **Sửa** | `src/components/settings/categories/CreateItemCategoryDialog.tsx` | Thêm select item_type |
+| **Sửa** | `src/pages/items/ItemFormPage.tsx` | Auto-fill item_type khi chọn category |
+| **Tạo** | `src/components/settings/ItemClassificationTool.tsx` | Tool scan & fix |
+| **Sửa** | `src/pages/settings/CategoryManagementPage.tsx` | Thêm tab Tool |
+
+---
+
+### PHẦN 4: QUY TRÌNH SAU TRIỂN KHAI
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    ITEM CLASSIFICATION FLOW                             │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   1. Admin tạo Category mới                                             │
+│      ┌─────────────────┐                                               │
+│      │ Chọn:           │                                               │
+│      │ - Tên: Đồ vải   │                                               │
+│      │ - Type: linen   │ ◄── BẮT BUỘC                                  │
+│      └────────┬────────┘                                               │
+│               │                                                         │
+│               ▼                                                         │
+│   2. Staff tạo Item mới                                                │
+│      ┌─────────────────┐                                               │
+│      │ Chọn Category:  │                                               │
+│      │ → Đồ vải        │                                               │
+│      │                 │                                               │
+│      │ Item Type:      │                                               │
+│      │ → [linen] ✓     │ ◄── TỰ ĐỘNG CHỌN                              │
+│      └────────┬────────┘                                               │
+│               │                                                         │
+│               ▼                                                         │
+│   3. Database Trigger                                                   │
+│      ┌─────────────────┐                                               │
+│      │ Validate &      │                                               │
+│      │ Override nếu    │ ◄── BACKUP PROTECTION                         │
+│      │ thiếu item_type │                                               │
+│      └────────┬────────┘                                               │
+│               │                                                         │
+│               ▼                                                         │
+│   4. Room Check hiển thị đúng tab                                      │
+│      ┌─────────────────┐                                               │
+│      │ Tab: ĐỒ VẢI     │                                               │
+│      │ - Khăn tắm  ✓   │ ◄── HIỂN THỊ ĐÚNG                             │
+│      │ - Ga giường ✓   │                                               │
+│      └─────────────────┘                                               │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ### KẾT QUẢ MONG ĐỢI
 
-1. **Realtime tracking** - Quản lý thấy ngay ai đang trong ca, làm được bao lâu
-2. **Live timer** - Thời gian cập nhật liên tục, không cần refresh
-3. **Cảnh báo trực quan** - Màu sắc phân biệt tình trạng làm việc
-4. **Nhắc nhở tự động** - Không để nhân viên quên kết thúc ca
-5. **Cài đặt linh hoạt** - Mỗi tenant có thể tùy chỉnh theo nhu cầu
+| Mục tiêu | Kết quả |
+|----------|---------|
+| Fix data hiện có | 63 items được phân loại lại đúng |
+| Ngăn lỗi tương lai | Trigger tự động gán item_type |
+| UX tốt hơn | Auto-fill khi chọn category |
+| Quản trị dễ dàng | Tool scan & batch fix |
+| Room Check chính xác | Items hiển thị đúng tab theo loại |
 
