@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Minus, Plus, AlertTriangle, Check, Loader2, WashingMachine, RefreshCw, PlusCircle, Ban, Wrench, Package, Droplets } from 'lucide-react'
+import { Minus, Plus, AlertTriangle, Check, Loader2, WashingMachine, RefreshCw, PlusCircle, Ban, Wrench, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -201,27 +201,6 @@ export function CategoryItemRow({
   const needsQuantity = ['laundry', 'add', 'change'].includes(status)
   const standardQuantity = item.standard_quantity || 1
 
-  // Render thumbnail
-  const renderThumbnail = () => {
-    if (item.item_thumbnail) {
-      return (
-        <img
-          src={item.item_thumbnail}
-          alt={item.item_name}
-          className="w-10 h-10 object-cover rounded-lg flex-shrink-0"
-        />
-      )
-    }
-    
-    // Default icon based on item type
-    const IconComponent = itemType === 'consumable' ? Droplets : Package
-    return (
-      <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
-        <IconComponent className="h-5 w-5 text-muted-foreground" />
-      </div>
-    )
-  }
-
   // Render inline info after action is taken
   const renderStatusInfo = () => {
     // Consumed item info
@@ -326,9 +305,6 @@ export function CategoryItemRow({
           {!isPending && !isOk && <Check className="h-3 w-3 text-white" />}
         </div>
 
-        {/* Thumbnail for consumables */}
-        {itemType === 'consumable' && renderThumbnail()}
-
         {/* Item info - Single line with quantity badge */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <span className="text-sm font-medium truncate">{item.item_name}</span>
@@ -396,13 +372,10 @@ export function CategoryItemRow({
       {expanded && pendingType === 'consumed' && (
         <div className="px-2 pb-3 pt-1">
           <div className="p-3 bg-muted/50 rounded-lg space-y-3">
-            {/* Thumbnail + Name */}
-            <div className="flex items-center gap-3">
-              {renderThumbnail()}
-              <div>
-                <span className="font-medium text-sm">{item.item_name}</span>
-                <p className="text-xs text-muted-foreground">Tiêu chuẩn: {standardQuantity}</p>
-              </div>
+            {/* Item Name */}
+            <div>
+              <span className="font-medium text-sm">{item.item_name}</span>
+              <p className="text-xs text-muted-foreground">Tiêu chuẩn: {standardQuantity}</p>
             </div>
 
             {/* Quantity selector */}
