@@ -1,74 +1,145 @@
-# Phân tích & Kế hoạch Cải thiện Hệ thống Đặt phòng
 
-## TỔNG QUAN TIẾN ĐỘ
 
-| Task | Trạng thái | Mô tả |
-|------|------------|-------|
-| 1. Tạo RPC validate_hourly_booking | ✅ DONE | Đã tạo migration với 2 RPC functions |
-| 2. Sửa useBookingForm.ts | ✅ DONE | Thêm validation cho hourly bookings |
-| 3. Sửa RoomSelectionStep.tsx | ✅ DONE | Truyền đúng dates theo bookingType |
-| 4. Sửa BookingsPage.tsx | ✅ DONE | Thêm booking_type badges + UI improvements |
-| 5. Sửa DateTimeStep.tsx | ✅ DONE | Thêm time slot validation |
+## Kế hoạch: Thêm Báo cáo Theo dõi Ca làm việc của Nhân viên
+
+### TỔNG QUAN
+
+Hiện tại hệ thống chỉ lưu trạng thái ca hiện tại (shift_start_at, shift_end_at) trong bảng `staff_status`, nhưng **không lưu lịch sử các ca làm việc**. Khi nhân viên kết thúc ca và bắt đầu ca mới, dữ liệu ca cũ bị ghi đè.
+
+Tính năng mới sẽ:
+- Lưu trữ lịch sử tất cả các ca làm việc
+- Hiển thị báo cáo thống kê giờ làm theo ngày/tuần/tháng
+- Cho phép quản lý xem chi tiết ca của từng nhân viên
 
 ---
 
-## CHI TIẾT ĐÃ TRIỂN KHAI
+### SƠ ĐỒ LUỒNG DỮ LIỆU
 
-### 1. Database Migration (validate_hourly_booking)
-
-Đã tạo 2 RPC functions:
-
-```sql
--- validate_hourly_booking: Kiểm tra trùng lặp giữa các booking theo giờ
--- validate_hourly_against_daily: Kiểm tra xung đột giữa hourly vs daily/monthly
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          SHIFT TRACKING FLOW                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   Nhân viên ấn "Vào ca"          Nhân viên ấn "Kết thúc ca"            │
+│   ┌───────────────────┐          ┌───────────────────┐                 │
+│   │ staff_status      │          │ staff_status      │                 │
+│   │ shift_start_at=NOW│          │ shift_end_at=NOW  │                 │
+│   └───────────────────┘          └─────────┬─────────┘                 │
+│                                            │                            │
+│                                            ▼                            │
+│                                  ┌───────────────────┐                 │
+│                                  │    TRIGGER        │                 │
+│                                  │ log_shift_history │                 │
+│                                  └─────────┬─────────┘                 │
+│                                            │                            │
+│                                            ▼                            │
+│                                  ┌───────────────────┐                 │
+│                                  │  shift_history    │                 │
+│                                  │  (bảng mới)       │                 │
+│                                  │  - user_id        │                 │
+│                                  │  - start_at       │                 │
+│                                  │  - end_at         │                 │
+│                                  │  - duration_mins  │                 │
+│                                  └───────────────────┘                 │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2. useBookingForm.ts
+---
 
-- Thêm validation cho hourly bookings sử dụng RPC mới
-- Validation đầy đủ cho cả 3 loại booking (daily, hourly, monthly)
+### PHẦN 1: DATABASE
 
-### 3. RoomSelectionStep.tsx
+#### 1.1 Tạo bảng `shift_history`
 
-- Thêm `useMemo` để tính `availabilityDates` theo `bookingType`
-- Import `addMonths` từ date-fns
-- Truyền đúng dates cho `useAvailableRooms`:
-  - hourly: `hourlyDate` → `hourlyDate`
-  - monthly: `monthlyStartDate` → `monthlyStartDate + bookingMonths`
-  - daily: `checkInDate` → `checkOutDate`
+| Cột | Kiểu | Mô tả |
+|-----|------|-------|
+| id | UUID | Primary key |
+| tenant_id | UUID | FK → tenants |
+| user_id | UUID | FK → users |
+| hotel_id | UUID | FK → hotels (nơi làm việc) |
+| start_at | TIMESTAMPTZ | Thời gian bắt đầu ca |
+| end_at | TIMESTAMPTZ | Thời gian kết thúc ca |
+| duration_minutes | INTEGER | Số phút làm việc (computed) |
+| notes | TEXT | Ghi chú (tùy chọn) |
+| created_at | TIMESTAMPTZ | Auto |
 
-### 4. DateTimeStep.tsx
+#### 1.2 Tạo Trigger tự động log khi kết thúc ca
 
-- Thêm function `isTimeSlotDisabled()` để kiểm tra time slot đã qua
-- Disable các time slots trong quá khứ khi đặt hourly booking hôm nay
-- Hiển thị "(đã qua)" cho các slot không khả dụng
-- Warning khi không còn khung giờ khả dụng
+Khi `staff_status.shift_end_at` được cập nhật và > `shift_start_at`, trigger sẽ tự động INSERT vào `shift_history`.
 
-### 5. BookingsPage.tsx
+#### 1.3 RLS Policies
 
-- Mở rộng interface `BookingWithRoom` với các trường booking_type
-- Mở rộng query để lấy thêm: `booking_type`, `hourly_rate`, `hourly_start_time`, `hourly_end_time`, `booking_hours`, `monthly_rate`, `booking_months`
-- Thêm badges phân loại (Giờ/Tháng) bên cạnh số phòng
-- Cập nhật cột "Check-in/Check-out" thành "Thời gian/Thời hạn":
-  - Hourly: Hiển thị ngày + time range (HH:mm - HH:mm)
-  - Monthly: Hiển thị số tháng + ngày kết thúc
-  - Daily: Giữ nguyên format cũ
-- Sửa logic check-in để bỏ qua phụ thu sớm cho hourly/monthly
+- Quản lý/Owner xem được tất cả ca trong tenant
+- Nhân viên chỉ xem được ca của chính mình
 
 ---
 
-## KẾT QUẢ
+### PHẦN 2: UI - TAB "CA LÀM VIỆC" MỚI
 
-1. ✅ **Hourly booking** được validate đúng - không còn đặt trùng thời gian
-2. ✅ **Room availability** hiển thị chính xác theo loại booking
-3. ✅ **Danh sách đặt phòng** phân biệt rõ các loại booking
-4. ✅ **Check-in** xử lý đúng logic theo từng loại hình (bỏ phụ thu cho hourly/monthly)
-5. ✅ **Time selection** ngăn chặn chọn thời gian không hợp lệ
+#### 2.1 Thêm Tab vào StaffManagementPage
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Quản lý Nhân sự                                          12 nhân viên  │
+├─────────────────────────────────────────────────────────────────────────┤
+│  [Danh sách]  [Hoạt động]  [Công việc]  [CA LÀM VIỆC ←NEW]             │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   Bộ lọc: [Chọn nhân viên ▼] [Ngày từ] [Đến ngày] [Lọc]                │
+│                                                                         │
+│   ┌─────────────────────────────────────────────────────────────────┐  │
+│   │ Thống kê tuần này                                               │  │
+│   │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐            │  │
+│   │ │ 45 ca    │ │ 320 giờ  │ │ 7.1 giờ  │ │ 12 NV    │            │  │
+│   │ │ Tổng ca  │ │ Tổng giờ │ │ TB/ca    │ │ Có đi ca │            │  │
+│   │ └──────────┘ └──────────┘ └──────────┘ └──────────┘            │  │
+│   └─────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+│   ┌─────────────────────────────────────────────────────────────────┐  │
+│   │ Nhân viên        │ Ngày       │ Vào ca  │ Ra ca   │ Thời gian  │  │
+│   ├─────────────────────────────────────────────────────────────────┤  │
+│   │ Nguyễn Văn A     │ 03/02/2026 │ 08:00   │ 17:30   │ 9h 30m     │  │
+│   │ Trần Thị B       │ 03/02/2026 │ 07:45   │ 16:00   │ 8h 15m     │  │
+│   │ Lê Văn C         │ 02/02/2026 │ 14:00   │ 22:00   │ 8h 00m     │  │
+│   └─────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 2.2 Tính năng bao gồm:
+
+| Tính năng | Mô tả |
+|-----------|-------|
+| **Bộ lọc** | Theo nhân viên, khoảng thời gian |
+| **Thống kê tổng quan** | Tổng ca, tổng giờ, trung bình/ca, số NV đi ca |
+| **Bảng chi tiết** | Danh sách từng ca với thông tin đầy đủ |
+| **Export** | Xuất Excel (tùy chọn - phase 2) |
 
 ---
 
-## VẤN ĐỀ CÒN LẠI (FUTURE IMPROVEMENTS)
+### PHẦN 3: CẬP NHẬT LOGIC CHECK-OUT
 
-1. **Query limit 100 bookings** - Cần thêm pagination cho scale lớn
-2. **Realtime hourly availability** - Có thể thêm hiển thị "Trống từ XX:XX" cho hourly
-3. **Check-out logic** - Có thể cần review thêm phụ thu trễ cho hourly
+Khi nhân viên kết thúc ca, ngoài việc cập nhật `staff_status`, hệ thống cũng ghi vào `shift_history` (thông qua trigger).
+
+---
+
+### FILES CẦN TẠO/SỬA
+
+| Loại | File | Mô tả |
+|------|------|-------|
+| **Migration** | `supabase/migrations/xxx_shift_history.sql` | Tạo bảng, trigger, RLS |
+| **Hook** | `src/hooks/useShiftHistory.ts` | Query lịch sử ca |
+| **Component** | `src/components/staff/ShiftHistoryTab.tsx` | Tab hiển thị báo cáo |
+| **Component** | `src/components/staff/ShiftHistoryStats.tsx` | Cards thống kê |
+| **Component** | `src/components/staff/ShiftHistoryTable.tsx` | Bảng chi tiết |
+| **Sửa** | `src/pages/staff/StaffManagementPage.tsx` | Thêm tab mới |
+
+---
+
+### KẾT QUẢ MONG ĐỢI
+
+1. **Lưu trữ đầy đủ** lịch sử tất cả các ca làm việc
+2. **Thống kê trực quan** giờ làm của nhân viên theo ngày/tuần/tháng
+3. **Báo cáo dễ đọc** với bộ lọc linh hoạt
+4. **Tự động log** khi nhân viên kết thúc ca (không cần thao tác thủ công)
+
