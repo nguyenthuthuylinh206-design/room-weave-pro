@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Package, Building2, Wrench, Ruler, Shirt } from 'lucide-react'
+import { Package, Building2, Wrench, Ruler, Shirt, Settings2 } from 'lucide-react'
 import { ItemCategoriesList } from '@/components/settings/categories/ItemCategoriesList'
 import { RoomTypesList } from '@/components/settings/categories/RoomTypesList'
 import { MaintenanceCategoriesList } from '@/components/settings/categories/MaintenanceCategoriesList'
 import { ItemUnitsList } from '@/components/settings/categories/ItemUnitsList'
 import { LaundryCategoriesList } from '@/components/settings/categories/LaundryCategoriesList'
+import { ItemClassificationTool } from '@/components/settings/categories/ItemClassificationTool'
 
 export default function CategoryManagementPage() {
   const [activeTab, setActiveTab] = useState('items')
@@ -20,7 +21,7 @@ export default function CategoryManagementPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="items" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
             <span className="hidden sm:inline">Item Categories</span>
@@ -40,6 +41,10 @@ export default function CategoryManagementPage() {
           <TabsTrigger value="laundry" className="flex items-center gap-2">
             <Shirt className="h-4 w-4" />
             <span className="hidden sm:inline">Laundry</span>
+          </TabsTrigger>
+          <TabsTrigger value="classification" className="flex items-center gap-2">
+            <Settings2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Classification</span>
           </TabsTrigger>
         </TabsList>
 
@@ -62,7 +67,12 @@ export default function CategoryManagementPage() {
         <TabsContent value="laundry" className="mt-6">
           <LaundryCategoriesList />
         </TabsContent>
+
+        <TabsContent value="classification" className="mt-6">
+          <ItemClassificationTool />
+        </TabsContent>
       </Tabs>
     </div>
   )
 }
+

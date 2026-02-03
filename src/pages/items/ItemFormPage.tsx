@@ -293,7 +293,15 @@ export function ItemFormPage() {
 
                 <div className="space-y-1.5">
                   <Label htmlFor="category_id" className="text-xs">{t('items:fields.category')} *</Label>
-                  <Select value={watch('category_id')} onValueChange={value => setValue('category_id', value)}>
+                  <Select value={watch('category_id')} onValueChange={value => {
+                    setValue('category_id', value)
+                    // Auto-fill item_type based on category's default_item_type
+                    const category = categories?.find(c => c.id === value)
+                    if (category?.default_item_type) {
+                      setValue('item_type', category.default_item_type as any)
+                      toast.info(`Đã tự động chọn loại: ${category.default_item_type === 'linen' ? 'Đồ vải' : category.default_item_type === 'consumable' ? 'Tiêu hao' : category.default_item_type === 'equipment' ? 'Thiết bị' : 'Nội thất'}`)
+                    }
+                  }}>
                     <SelectTrigger className="h-10">
                       <SelectValue placeholder={t('items:form.selectCategory')} />
                     </SelectTrigger>
@@ -466,7 +474,15 @@ export function ItemFormPage() {
 
             <div className="space-y-1.5">
               <Label htmlFor="category_id" className="text-xs">{t('items:fields.category')} *</Label>
-              <Select value={watch('category_id')} onValueChange={value => setValue('category_id', value)}>
+              <Select value={watch('category_id')} onValueChange={value => {
+                setValue('category_id', value)
+                // Auto-fill item_type based on category's default_item_type
+                const category = categories?.find(c => c.id === value)
+                if (category?.default_item_type) {
+                  setValue('item_type', category.default_item_type as any)
+                  toast.info(`Đã tự động chọn loại: ${category.default_item_type === 'linen' ? 'Đồ vải' : category.default_item_type === 'consumable' ? 'Tiêu hao' : category.default_item_type === 'equipment' ? 'Thiết bị' : 'Nội thất'}`)
+                }
+              }}>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder={t('items:form.selectCategory')} />
                 </SelectTrigger>
