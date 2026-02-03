@@ -354,7 +354,7 @@ export function CategoryItemRow({
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "h-9 min-w-[44px] px-2 text-xs gap-1",
+                    "h-9 px-2.5 text-xs font-medium",
                     config.color
                   )}
                   onClick={(e) => {
@@ -362,8 +362,7 @@ export function CategoryItemRow({
                     handleQuickAction(actionType)
                   }}
                 >
-                  <Icon className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">{config.label}</span>
+                  {config.label}
                 </Button>
               )
             })}
