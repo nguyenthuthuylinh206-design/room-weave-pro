@@ -1,248 +1,262 @@
 
 
-## Kế hoạch: Kiểm tra và hoàn thiện logic cho tất cả loại công việc Housekeeping
+## Kế hoạch: Tối ưu hiệu suất xác nhận hoàn tất kiểm tra phòng
 
-### TỔNG QUAN 6 LOẠI CÔNG VIỆC
+### VẤN ĐỀ HIỆN TẠI
 
-| Task Type | Tên hiển thị | Trạng thái hiện tại |
-|-----------|--------------|---------------------|
-| `checkout_inspection` | Kiểm tra checkout | ✅ **Có logic đầy đủ** - Auto navigate đến `/rooms/{id}/check?type=checkout` |
-| `cleaning` | Dọn phòng | ⚠️ **Thiếu logic** - Chỉ có nút "Hoàn thành" đơn giản |
-| `delivery_confirmation` | Xác nhận nhận hàng | ✅ **Đã fix** - Auto mở modal xác nhận |
-| `checkin_prep` | Chuẩn bị check-in | ❌ **Không có logic** - Chỉ có nút "Hoàn thành" |
-| `amenity_request` | Bổ sung đồ dùng | ❌ **Không có logic** - Chỉ có nút "Hoàn thành" |
-| `other` | Khác | ⚠️ **OK** - Generic, chỉ cần "Hoàn thành" |
+Khi nhấn "Xác nhận hoàn tất" kiểm tra phòng (checkout), hệ thống thực hiện **rất nhiều tác vụ tuần tự (sequential)**, mỗi tác vụ phải chờ tác vụ trước hoàn thành:
 
----
+| Bước | Tác vụ | Số lượng queries |
+|------|--------|------------------|
+| 1 | Lấy thông tin phòng | 1 |
+| 2 | Lấy unit_price cho từng item consumed | N (số items) |
+| 3 | Insert room_checks | 1 |
+| 4 | Xóa ảnh cũ từ 10 checks trước | 10+ |
+| 5 | processCheckoutCheck (bao gồm nhiều sub-tasks) | 10-20+ |
+| 6 | Apply itemQuantities | 1-2 |
+| 7 | Update last_checked_at cho room_items | 1 |
+| 8 | Gửi notifications | 5-10 |
+| 9 | Trigger workflows | 1-2 |
 
-### CHI TIẾT VẤN ĐỀ TỪNG LOẠI
+**Ước tính tổng**: 30-50+ database queries tuần tự, mỗi query mất ~50-200ms.
 
-#### 1. CLEANING (Dọn phòng) - CẦN CẢI THIỆN
-
-**Hiện tại:**
-- Bấm "Bắt đầu" → Chỉ update status thành `in_progress`
-- Bấm "Hoàn thành" → Update status thành `completed`
-- **KHÔNG** update trạng thái phòng từ `cleaning` → `vacant`
-- **KHÔNG** có checklist hay quy trình cụ thể
-
-**Nên có:**
-- Khi hoàn thành, **tự động update room.status = 'vacant'**
-- Hoặc navigate đến flow kiểm tra phòng (daily check) trước khi mở phòng
-- Liên kết với `CleaningCompleteDialog` đã có sẵn
-
----
-
-#### 2. CHECKIN_PREP (Chuẩn bị check-in) - CẦN XÂY DỰNG
-
-**Hiện tại:**
-- Bấm "Hoàn thành" → Chỉ update status
-- Không có logic thực sự
-
-**Nên có:**
-- Checklist các việc cần chuẩn bị (dựa trên room template)
-- Kiểm tra phòng đủ đồ dùng (`room_items`)
-- Có thể navigate đến form kiểm tra checkin hoặc hiển thị modal checklist
-
----
-
-#### 3. AMENITY_REQUEST (Bổ sung đồ dùng) - CẦN XÂY DỰNG
-
-**Hiện tại:**
-- Bấm "Hoàn thành" → Chỉ update status
-- Không biết cần bổ sung những gì
-
-**Nên có:**
-- Hiển thị danh sách đồ cần bổ sung (từ `description` hoặc link tới `room_items` thiếu)
-- Khi hoàn thành, **cập nhật `room_items`** để ghi nhận đã bổ sung
-- Hoặc navigate đến trang bổ sung đồ dùng
+#### Chi tiết processCheckoutCheck (bước 5):
+```text
+1. Loop qua laundry items → updateLaundryQuantities (N queries)
+2. Loop qua lost items → createLostItemTransaction (2N queries: select + insert + update)
+3. Loop qua consumed items → createConsumedItemTransaction (2N queries)
+4. applyRoomItemChanges (2 queries)
+5. completeCheckoutInspection (1-2 queries)
+6. Update room status (1 query)
+7. sendCleaningRequestNotifications (3-5 queries)
+8. Create housekeeping_task (1 query)
+9. createSupplementRequestFromCheck (nhiều queries)
+10. createLaundryRequestFromCheck (nhiều queries)
+11. createMaintenanceForDamagedItems (nhiều queries)
+```
 
 ---
 
 ### GIẢI PHÁP ĐỀ XUẤT
 
-#### Phương án 1: Quick Fix - Cải thiện flow Cleaning
+#### Phương án 1: Tối ưu hóa song song (Parallel Processing)
 
-**Thay đổi:**
-1. Khi bấm "Hoàn thành" task `cleaning`:
-   - Mở `CleaningCompleteDialog` (đã có sẵn)
-   - Cho phép user chọn: "Mở phòng ngay" hoặc "Kiểm tra trước"
-   - Update task status + room status
+Nhóm các tác vụ độc lập và chạy song song bằng `Promise.all()` hoặc `Promise.allSettled()`.
 
-**File cần sửa:**
-- `TaskCard.tsx` - Thêm logic mở dialog khi complete cleaning task
-- `TaskDetailDialog.tsx` - Tương tự
+**Thay đổi trong `useRoomChecks.ts`:**
+
+```typescript
+// TRƯỚC: Tuần tự
+const item1 = await createLostItemTransaction(params1)
+const item2 = await createLostItemTransaction(params2)
+const item3 = await createLostItemTransaction(params3)
+
+// SAU: Song song
+await Promise.all([
+  createLostItemTransaction(params1),
+  createLostItemTransaction(params2),
+  createLostItemTransaction(params3),
+])
+```
+
+**Nhóm có thể chạy song song:**
+- Tất cả `createLostItemTransaction` cho các items
+- Tất cả `createConsumedItemTransaction` cho các items  
+- `updateLaundryQuantities` cho các items
+- Notifications (đã dùng `Promise.allSettled`)
+- Non-blocking tasks (workflow trigger, cleanup ảnh cũ)
 
 ---
 
-#### Phương án 2: Full Implementation - Xây dựng đầy đủ logic
+#### Phương án 2: Background Processing (Đề xuất cho tương lai)
 
-##### A. CLEANING Task
-```text
-┌─────────────────────────────────────────────┐
-│              CLEANING TASK                  │
-└─────────────────────────────────────────────┘
-                    │
-                    ▼
-          [Bấm "Bắt đầu"]
-                    │
-                    ▼
-           Status: in_progress
-                    │
-                    ▼
-          [Bấm "Hoàn thành"]
-                    │
-        ┌───────────┴───────────┐
-        │                       │
-        ▼                       ▼
-  [Mở phòng ngay]         [Kiểm tra trước]
-        │                       │
-        ▼                       ▼
-  room.status = vacant    Navigate to /rooms/{id}/check?type=daily
-        │                       │
-        ▼                       ▼
-  Task completed          Task updated với room_check_id
-```
+Tách các tác vụ không cần kết quả ngay lập tức ra background:
 
-##### B. CHECKIN_PREP Task
 ```text
-┌─────────────────────────────────────────────┐
-│           CHECKIN_PREP TASK                 │
-└─────────────────────────────────────────────┘
-                    │
-                    ▼
-          [Bấm "Bắt đầu"]
-                    │
-        ┌───────────┼───────────┐
-        │           │           │
-        ▼           ▼           ▼
-  Status: in_progress
-                    │
-                    ▼
-  Mở modal/navigate hiển thị checklist:
-  - Danh sách đồ dùng cần có trong phòng
-  - Tick từng item đã chuẩn bị xong
-                    │
-                    ▼
-  [Hoàn thành checklist]
-                    │
-                    ▼
-  Task completed
-  → Room status = ready / waiting_checkin
-```
+Foreground (User cần đợi):
+├── Insert room_checks ✓
+├── Update room status ✓
+└── Complete checkout inspection ✓
 
-##### C. AMENITY_REQUEST Task
-```text
-┌─────────────────────────────────────────────┐
-│          AMENITY_REQUEST TASK               │
-└─────────────────────────────────────────────┘
-                    │
-                    ▼
-          [Bấm "Bắt đầu"]
-                    │
-                    ▼
-  Mở modal hiển thị:
-  - Phòng nào?
-  - Thiếu gì? (lấy từ description hoặc room_items)
-                    │
-                    ▼
-  [Nhân viên mang đồ đến phòng]
-                    │
-                    ▼
-  [Bấm "Xác nhận đã bổ sung"]
-                    │
-                    ▼
-  Update room_items.quantity
-  Task completed
+Background (Không cần đợi):
+├── Create inventory transactions
+├── Update item quantities  
+├── Create laundry/supplement requests
+├── Send notifications
+├── Trigger workflows
+└── Cleanup old photos
 ```
 
 ---
 
-### KẾ HOẠCH THỰC HIỆN (Phương án 1 - Quick Fix)
+#### Phương án 3: Quick Win - Tối ưu ngay
 
-#### File thay đổi:
+| Vị trí | Thay đổi | Tiết kiệm |
+|--------|----------|-----------|
+| `enrichItemsWithPrice` | Batch fetch thay vì N queries | ~(N-1) × 100ms |
+| `createLostItemTransaction` | Batch tất cả items cùng lúc | ~(N-1) × 150ms |
+| `createConsumedItemTransaction` | Batch tất cả items cùng lúc | ~(N-1) × 150ms |
+| `updateLaundryQuantities` | Batch update | ~(N-1) × 100ms |
+| Cleanup old photos | Move to background | ~500ms |
+| Non-critical notifications | Fire and forget | ~300ms |
+
+---
+
+### KẾ HOẠCH THỰC HIỆN (Quick Win)
+
+#### 1. Batch fetch unit_price (thay vì N queries riêng lẻ)
+
+**File**: `src/hooks/useRoomChecks.ts` (dòng 714-730)
+
+```typescript
+// TRƯỚC: N queries tuần tự
+consumedItemsWithPrice = await Promise.all(
+  consumedItemsWithPrice.map(async (item) => {
+    const { data: itemData } = await supabase
+      .from('items')
+      .select('unit_price')
+      .eq('id', item.item_id)
+      .maybeSingle()
+    return { ...item, unit_price: itemData?.unit_price || 0 }
+  })
+)
+
+// SAU: 1 query duy nhất
+const itemIds = consumedItemsWithPrice.map(i => i.item_id)
+const { data: itemsWithPrices } = await supabase
+  .from('items')
+  .select('id, unit_price')
+  .in('id', itemIds)
+
+const priceMap = Object.fromEntries(
+  (itemsWithPrices || []).map(i => [i.id, i.unit_price || 0])
+)
+consumedItemsWithPrice = consumedItemsWithPrice.map(item => ({
+  ...item,
+  unit_price: priceMap[item.item_id] || 0,
+}))
+```
+
+---
+
+#### 2. Batch create inventory transactions
+
+**File**: `src/hooks/useRoomChecks.ts` - Tạo hàm mới
+
+```typescript
+// Thay vì N lần createLostItemTransaction() tuần tự
+async function createLostItemTransactionsBatch(params: {
+  items: LostItem[]
+  tenantId: string
+  hotelId: string
+  roomNumber: string
+  checkId: string
+  userId: string
+}) {
+  const { items, tenantId, hotelId, roomNumber, checkId, userId } = params
+  if (items.length === 0) return
+  
+  // 1. Batch fetch current quantities (1 query)
+  const { data: currentItems } = await supabase
+    .from('items')
+    .select('id, quantity_in_stock, quantity_lost, unit_price')
+    .in('id', items.map(i => i.item_id))
+  
+  const itemMap = Object.fromEntries(
+    (currentItems || []).map(i => [i.id, i])
+  )
+  
+  // 2. Build batch transactions
+  const transactions = items.map(item => {
+    const current = itemMap[item.item_id]
+    if (!current) return null
+    
+    const quantityBefore = current.quantity_in_stock || 0
+    const quantityAfter = Math.max(0, quantityBefore - item.quantity)
+    
+    return {
+      tenant_id: tenantId,
+      hotel_id: hotelId,
+      transaction_code: generateTransactionCode('LOST'),
+      transaction_type: 'out',
+      transaction_category: 'lost',
+      item_id: item.item_id,
+      quantity: item.quantity,
+      quantity_before: quantityBefore,
+      quantity_after: quantityAfter,
+      unit_price: current.unit_price || 0,
+      total_value: (current.unit_price || 0) * item.quantity,
+      from_location: `Phòng ${roomNumber}`,
+      to_location: 'Mất/Thất lạc',
+      related_type: 'room_check',
+      related_id: checkId,
+      notes: `Mất trong khi kiểm tra checkout phòng ${roomNumber}`,
+      created_by: userId,
+    }
+  }).filter(Boolean)
+  
+  // 3. Batch insert transactions (1 query)
+  if (transactions.length > 0) {
+    await supabase.from('inventory_transactions').insert(transactions)
+  }
+  
+  // 4. Batch update items quantities (1 query)
+  // Sử dụng Promise.all cho mỗi update (hoặc chuyển sang stored procedure)
+  await Promise.all(items.map(async (item) => {
+    const current = itemMap[item.item_id]
+    if (!current) return
+    
+    await supabase.from('items').update({
+      quantity_lost: (current.quantity_lost || 0) + item.quantity,
+      quantity_in_stock: Math.max(0, (current.quantity_in_stock || 0) - item.quantity),
+    }).eq('id', item.item_id)
+  }))
+}
+```
+
+---
+
+#### 3. Move cleanup và notifications to fire-and-forget
+
+```typescript
+// Cleanup old photos - không cần await
+if (recentChecks && recentChecks.length > 1) {
+  // Fire and forget - không block user
+  cleanupOldPhotos(recentChecks.slice(1), deleteImage).catch(err => 
+    console.error('Cleanup failed:', err)
+  )
+}
+
+// Workflow trigger - đã có .catch(), bỏ await
+triggerWorkflow({ ... }).catch(err => console.error('Workflow failed:', err))
+// Không có await phía trước
+```
+
+---
+
+### KẾT QUẢ MONG ĐỢI
+
+| Metric | Trước | Sau (ước tính) |
+|--------|-------|----------------|
+| Thời gian submit checkout | 5-15 giây | 1-3 giây |
+| Số queries tuần tự | 30-50 | 10-15 |
+| UX | Spinner chờ lâu | Phản hồi nhanh |
+
+---
+
+### CHI TIẾT FILES CẦN SỬA
 
 | File | Thay đổi |
 |------|----------|
-| `TaskCard.tsx` | Import `CleaningCompleteDialog`, thêm state + logic mở dialog khi complete cleaning |
-| `TaskDetailDialog.tsx` | Tương tự TaskCard |
-
-#### Chi tiết code:
-
-**TaskCard.tsx / TaskDetailDialog.tsx:**
-```tsx
-// Thêm import
-import { CleaningCompleteDialog } from '@/components/rooms/CleaningCompleteDialog'
-
-// Thêm state
-const [showCleaningComplete, setShowCleaningComplete] = useState(false)
-
-// Sửa handleComplete
-const handleComplete = async () => {
-  // Nếu là cleaning task, mở dialog thay vì complete trực tiếp
-  if (task.task_type === 'cleaning') {
-    setShowCleaningComplete(true)
-    return
-  }
-  
-  // Các task type khác, complete bình thường
-  await updateStatus({ taskId: task.id, status: 'completed' })
-}
-
-// Thêm callback khi cleaning hoàn thành
-const handleCleaningCompleted = async () => {
-  // Dialog đã xử lý room status
-  // Chỉ cần update task status
-  await updateStatus({ taskId: task.id, status: 'completed' })
-  setShowCleaningComplete(false)
-}
-
-// Render dialog
-{task.task_type === 'cleaning' && task.room && (
-  <CleaningCompleteDialog
-    open={showCleaningComplete}
-    onOpenChange={setShowCleaningComplete}
-    roomId={task.room_id}
-    roomNumber={task.room.room_number}
-    onComplete={handleCleaningCompleted}  // Cần thêm prop này vào dialog
-  />
-)}
-```
-
-**CleaningCompleteDialog.tsx - Thêm prop onComplete:**
-```tsx
-interface CleaningCompleteDialogProps {
-  // ... existing props
-  onComplete?: () => void  // Callback sau khi hoàn thành
-}
-
-// Trong handleConfirm, gọi onComplete sau khi xong
-const handleConfirm = async () => {
-  if (option === 'check') {
-    onOpenChange(false)
-    navigate(`/rooms/${roomId}/check?type=daily`)
-  } else {
-    await markRoomReady.mutateAsync({ roomId, skipCheck: true })
-    onComplete?.()  // Gọi callback
-    onOpenChange(false)
-  }
-}
-```
-
----
-
-### KẾT QUẢ SAU KHI SỬA
-
-| Task Type | Flow mới |
-|-----------|----------|
-| `cleaning` | Bắt đầu → Làm → Hoàn thành → **Dialog chọn: Mở phòng/Kiểm tra** → Done |
-| `checkin_prep` | Giữ nguyên (phase 2) |
-| `amenity_request` | Giữ nguyên (phase 2) |
+| `src/hooks/useRoomChecks.ts` | Batch fetch prices, batch create transactions, fire-and-forget cleanup |
+| `src/pages/rooms/RoomCheckPage.tsx` | (Không cần sửa) |
 
 ---
 
 ### LƯU Ý
 
-- Phương án 1 chỉ fix `cleaning` vì đây là task phổ biến nhất và đã có `CleaningCompleteDialog` sẵn
-- `checkin_prep` và `amenity_request` cần thiết kế UI/UX riêng (phase 2)
-- Có thể mở rộng sau bằng cách tạo modal/flow cho từng loại task
+- Giữ nguyên logic business, chỉ tối ưu cách thực thi
+- Các tác vụ "fire-and-forget" vẫn có error logging để debug
+- Có thể mở rộng thêm bằng cách dùng database stored procedure cho batch operations
+- Test kỹ trên môi trường staging trước khi deploy
 
