@@ -1,131 +1,143 @@
 
 
-## Kế hoạch: Quay về trang trước đó khi hủy kiểm tra phòng
+## Kế hoạch: Hoàn thiện logic Xác nhận nhận hàng (Delivery Confirmation)
 
 ### VẤN ĐỀ HIỆN TẠI
 
-Trong hàm `confirmCancel` (dòng 675), logic điều hướng là:
-
-```tsx
-navigate(isManager ? `/rooms/${id}` : '/rooms')
-```
-
-- **Manager**: Luôn quay về `/rooms/${id}` (trang chi tiết phòng)
-- **Staff**: Luôn quay về `/rooms` (danh sách phòng)
-
-**Vấn đề**: Người dùng có thể vào trang kiểm tra từ nhiều nguồn khác nhau (danh sách phòng, chi tiết phòng, housekeeping tasks, distribution routes), nhưng luôn bị đưa về trang cố định.
+| Vấn đề | Mô tả |
+|--------|-------|
+| Flow 2 bước thừa | Bấm "Bắt đầu" chỉ update status, phải bấm thêm lần nữa để mở modal xác nhận |
+| Không nhất quán | `checkout_inspection` auto-navigate, nhưng `delivery_confirmation` thì không |
+| Lý do từ chối bị mất | Khi báo thiếu hàng, `rejectReason` không được lưu vào notes |
+| Thiếu thông báo | Manager không được thông báo khi nhân viên báo thiếu hàng |
 
 ---
 
-### GIẢI PHÁP ĐỀ XUẤT
+### GIẢI PHÁP
 
-Lưu trang nguồn (referrer) khi vào RoomCheckPage và sử dụng nó khi hủy hoặc hoàn thành.
+#### 1. Mở modal xác nhận ngay khi bấm "Bắt đầu" cho delivery task
 
-#### Phương án: Lưu referrer trong sessionStorage
-
-| Bước | Mô tả |
-|------|-------|
-| 1 | Khi RoomCheckPage mount, lưu `location.pathname` trước đó vào sessionStorage |
-| 2 | Khi hủy/hoàn thành, đọc referrer từ sessionStorage và navigate về đó |
-| 3 | Fallback về `/rooms/${id}` nếu không có referrer |
-
----
-
-### CHI TIẾT THAY ĐỔI
-
-**File**: `src/pages/rooms/RoomCheckPage.tsx`
-
-#### Thay đổi 1: Lưu referrer khi mount (thêm vào đầu component)
+**File**: `src/components/housekeeping/TaskCard.tsx` và `TaskDetailDialog.tsx`
 
 ```tsx
-// Thêm key cho sessionStorage
-const REFERRER_KEY = `room-check-referrer-${id}`
-
-// Trong useEffect khi mount
-useEffect(() => {
-  // Lưu trang referrer nếu chưa có (để tránh ghi đè khi refresh)
-  if (!sessionStorage.getItem(REFERRER_KEY)) {
-    // Lấy referrer từ document hoặc dùng default
-    const referrer = document.referrer 
-      ? new URL(document.referrer).pathname 
-      : `/rooms/${id}`
-    
-    // Chỉ lưu nếu referrer không phải là chính trang check này
-    if (!referrer.includes('/check')) {
-      sessionStorage.setItem(REFERRER_KEY, referrer)
-    }
+// TRƯỚC (TaskCard.tsx - handleStart):
+const handleStart = async () => {
+  await updateStatus({ taskId: task.id, status: 'in_progress' })
+  
+  if (task.task_type === 'checkout_inspection') {
+    navigate(`/rooms/${task.room_id}/check?type=checkout...`)
   }
-}, [id])
+  // delivery_confirmation: chỉ update status, không làm gì thêm
+}
+
+// SAU:
+const handleStart = async () => {
+  await updateStatus({ taskId: task.id, status: 'in_progress' })
+  
+  if (task.task_type === 'checkout_inspection') {
+    navigate(`/rooms/${task.room_id}/check?type=checkout...`)
+  } else if (task.task_type === 'delivery_confirmation') {
+    // Mở modal xác nhận ngay sau khi start
+    setShowDeliveryModal(true)
+  }
+}
 ```
 
-#### Thay đổi 2: Sử dụng referrer trong confirmCancel
+Áp dụng tương tự cho `TaskDetailDialog.tsx`.
+
+---
+
+#### 2. Lưu lý do từ chối vào notes khi báo thiếu hàng
+
+**File**: `src/components/housekeeping/DeliveryConfirmationModal.tsx`
 
 ```tsx
 // TRƯỚC:
-navigate(isManager ? `/rooms/${id}` : '/rooms')
-
-// SAU:
-const getReferrerPath = () => {
-  const savedReferrer = sessionStorage.getItem(REFERRER_KEY)
-  sessionStorage.removeItem(REFERRER_KEY) // Xóa sau khi sử dụng
-  
-  // Validate referrer (phải là internal path)
-  if (savedReferrer && savedReferrer.startsWith('/')) {
-    return savedReferrer
-  }
-  
-  // Fallback: Manager về chi tiết phòng, Staff về danh sách
-  return isManager ? `/rooms/${id}` : '/rooms'
+const handleReject = async () => {
+  await updateTaskStatus({ taskId, status: 'cancelled' })  // Không lưu reason
 }
 
-// Trong confirmCancel:
-navigate(getReferrerPath())
+// SAU:
+const handleReject = async () => {
+  // 1. Update task với notes chứa lý do từ chối
+  await updateTaskWithNotes({ 
+    taskId, 
+    status: 'cancelled',
+    notes: `Thiếu hàng: ${rejectReason.trim()}`
+  })
+  
+  // 2. Gửi thông báo cho manager (tùy chọn)
+  // triggerDeliveryRejectNotification(...)
+}
 ```
 
-#### Thay đổi 3: Cũng áp dụng cho navigation sau khi hoàn thành check
+**Cập nhật hook** `useUpdateTaskStatus` hoặc tạo mutation mới để hỗ trợ lưu notes.
 
-Tìm các chỗ navigate sau khi hoàn thành và áp dụng logic tương tự.
+---
+
+#### 3. (Tùy chọn) Gửi thông báo khi báo thiếu hàng
+
+Khi nhân viên báo thiếu hàng, trigger workflow/notification cho manager biết.
 
 ---
 
 ### FLOW SAU KHI SỬA
 
 ```text
-1. User từ /housekeeping → Click "Kiểm tra phòng" 
-   → sessionStorage lưu "/housekeeping"
-   → Vào RoomCheckPage
+┌─────────────────────────────────────────────────────────────────┐
+│                    DELIVERY CONFIRMATION TASK                   │
+└─────────────────────────────────────────────────────────────────┘
 
-2. User bấm "Hủy và thoát"
-   → Đọc referrer từ sessionStorage: "/housekeeping"
-   → navigate("/housekeeping")
-   → Xóa referrer khỏi sessionStorage
-
-3. HOẶC: User từ /rooms/123 → Click "Kiểm tra"
-   → sessionStorage lưu "/rooms/123"
-   → Hủy → Quay về "/rooms/123"
-
-4. HOẶC: User truy cập trực tiếp từ link/bookmark
-   → Không có referrer
-   → Fallback: Manager → /rooms/${id}, Staff → /rooms
+                     [Task đang PENDING]
+                            │
+                            ▼
+        ┌───────────────────────────────────────┐
+        │  Bấm "Bắt đầu thực hiện"              │
+        └───────────────────────────────────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        │                   │                   │
+        ▼                   ▼                   ▼
+  Update status       Mở modal             [Không cần
+  → in_progress       xác nhận              bấm thêm]
+                          │
+          ┌───────────────┴───────────────┐
+          │                               │
+          ▼                               ▼
+   [Nhận đủ hàng]                   [Thiếu hàng]
+          │                               │
+          ▼                               ▼
+  confirm_delivery_                 Nhập lý do
+  from_room_check()                       │
+          │                               ▼
+          ▼                         Cancel task
+  Update items                     + Lưu notes
+  → room_items                     + Thông báo
+          │                         manager
+          ▼                               │
+  Complete task                           ▼
+          │                         Task cancelled
+          ▼                         với ghi chú
+  Task completed                    chi tiết
 ```
 
 ---
 
-### KẾT QUẢ MONG ĐỢI
+### CHI TIẾT THAY ĐỔI
 
-| Nguồn truy cập | Trước | Sau |
-|----------------|-------|-----|
-| Từ trang chi tiết phòng | Manager: chi tiết, Staff: danh sách | ✅ Quay về chi tiết phòng |
-| Từ danh sách phòng | Manager: chi tiết, Staff: danh sách | ✅ Quay về danh sách phòng |
-| Từ housekeeping tasks | Manager: chi tiết, Staff: danh sách | ✅ Quay về housekeeping |
-| Từ distribution route | Manager: chi tiết, Staff: danh sách | ✅ Quay về distribution |
-| Truy cập trực tiếp | Như hiện tại | Fallback về chi tiết/danh sách |
+| File | Thay đổi |
+|------|----------|
+| `src/components/housekeeping/TaskCard.tsx` | Thêm logic mở modal ngay sau khi start delivery task |
+| `src/components/housekeeping/TaskDetailDialog.tsx` | Tương tự như TaskCard |
+| `src/components/housekeeping/DeliveryConfirmationModal.tsx` | Thêm logic lưu notes khi từ chối |
+| `src/hooks/useHousekeepingTasks.ts` | Mở rộng `useUpdateTaskStatus` để hỗ trợ notes |
 
 ---
 
-### LƯU Ý
+### LỢI ÍCH
 
-- Sử dụng `sessionStorage` thay vì `localStorage` để tự động xóa khi đóng tab
-- Validate referrer để tránh redirect ra ngoài app
-- Xóa referrer sau khi sử dụng để tránh behavior lạ khi quay lại trang check
+1. **Giảm số bước**: 2 bước → 1 bước cho delivery task
+2. **Nhất quán**: Tất cả task types đều có hành động ngay khi bấm "Bắt đầu"
+3. **Truy xuất được**: Lý do thiếu hàng được lưu lại, dễ theo dõi
+4. **Thông báo realtime**: Manager biết ngay khi có vấn đề về giao hàng
 
