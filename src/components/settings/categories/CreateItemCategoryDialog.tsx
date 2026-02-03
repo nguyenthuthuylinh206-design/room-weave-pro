@@ -20,7 +20,11 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCreateItemCategory } from '@/hooks/useItemCategories'
+import { ITEM_TYPE_LABELS, type ItemType } from '@/types/items.types'
+
+const ITEM_TYPES: ItemType[] = ['linen', 'consumable', 'equipment', 'furniture']
 
 const categorySchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -29,6 +33,9 @@ const categorySchema = z.object({
   description: z.string().optional(),
   icon: z.string().optional(),
   color: z.string().optional(),
+  default_item_type: z.enum(['linen', 'consumable', 'equipment', 'furniture'], {
+    required_error: 'Vui lòng chọn loại đồ dùng mặc định',
+  }),
   min_stock_level: z.coerce.number().optional(),
   max_stock_level: z.coerce.number().optional(),
   reorder_point: z.coerce.number().optional(),
@@ -58,6 +65,7 @@ export function CreateItemCategoryDialog({ open, onOpenChange }: CreateItemCateg
       description: '',
       icon: '📦',
       color: '#3b82f6',
+      default_item_type: 'equipment',
       depreciable: false,
       track_serial_numbers: false,
       require_inspection: false,
@@ -118,6 +126,34 @@ export function CreateItemCategoryDialog({ open, onOpenChange }: CreateItemCateg
                   <FormControl>
                     <Textarea {...field} placeholder="Description of this category" />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="default_item_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Loại đồ dùng mặc định *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn loại đồ dùng" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {ITEM_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {ITEM_TYPE_LABELS[type]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Items trong danh mục này sẽ tự động được phân loại theo loại này
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

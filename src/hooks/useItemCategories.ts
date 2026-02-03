@@ -28,6 +28,7 @@ export interface ItemCategory {
   require_inspection: boolean
   sort_order: number
   status: 'active' | 'inactive'
+  default_item_type?: 'linen' | 'consumable' | 'equipment' | 'furniture'
   created_at: string
   updated_at: string
   _count?: {

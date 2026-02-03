@@ -2379,6 +2379,7 @@ export type Database = {
           code: string | null
           color: string | null
           created_at: string | null
+          default_item_type: string | null
           depreciable: boolean | null
           depreciation_rate: number | null
           description: string | null
@@ -2406,6 +2407,7 @@ export type Database = {
           code?: string | null
           color?: string | null
           created_at?: string | null
+          default_item_type?: string | null
           depreciable?: boolean | null
           depreciation_rate?: number | null
           description?: string | null
@@ -2433,6 +2435,7 @@ export type Database = {
           code?: string | null
           color?: string | null
           created_at?: string | null
+          default_item_type?: string | null
           depreciable?: boolean | null
           depreciation_rate?: number | null
           description?: string | null

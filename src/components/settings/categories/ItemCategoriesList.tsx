@@ -20,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useQueryClient } from '@tanstack/react-query'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
+import { ITEM_TYPE_LABELS, type ItemType } from '@/types/items.types'
 
 export function ItemCategoriesList() {
   const [search, setSearch] = useState('')
@@ -133,6 +134,11 @@ export function ItemCategoriesList() {
                       <h3 className="font-semibold">{category.name}</h3>
                       {category.code && (
                         <Badge variant="secondary">{category.code}</Badge>
+                      )}
+                      {category.default_item_type && (
+                        <Badge variant="outline">
+                          {ITEM_TYPE_LABELS[category.default_item_type as ItemType]}
+                        </Badge>
                       )}
                       <Badge variant={category.status === 'active' ? 'default' : 'secondary'}>
                         {category.status === 'active' ? 'Hoạt động' : 'Tạm dừng'}
