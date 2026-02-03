@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { storeCredential } from '@/lib/credential-manager';
 
 const quickLoginSchema = z.object({
   password: z.string().min(1, 'Vui lòng nhập mật khẩu'),
@@ -37,6 +38,8 @@ export const QuickReLogin = ({ email, onSwitchAccount, onSuccess }: QuickReLogin
   const onSubmit = async (data: QuickLoginData) => {
     const { error } = await signIn(email, data.password);
     if (!error) {
+      // Trigger browser password manager save
+      await storeCredential(email, data.password);
       onSuccess();
     }
   };
@@ -63,20 +66,20 @@ export const QuickReLogin = ({ email, onSwitchAccount, onSuccess }: QuickReLogin
       </div>
 
       <Form {...form}>
-        <form id="quick-login-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          {/* Username input for browser credential manager - styled invisible but recognized by browsers */}
-          <input 
-            type="email"
-            name="username"
-            id="quick-login-username"
-            autoComplete="username"
-            value={email}
-            readOnly
-            tabIndex={-1}
-            aria-hidden="true"
-            className="absolute -left-[9999px] w-px h-px opacity-0"
-            onChange={() => {}} // Prevent React warning
-          />
+        <form id="quick-login-form" action="#" method="POST" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {/* Hidden username for credential manager - visually hidden but accessible */}
+          <div className="sr-only">
+            <input 
+              type="email"
+              name="username"
+              id="quick-login-username"
+              autoComplete="username"
+              value={email}
+              readOnly
+              tabIndex={-1}
+              onChange={() => {}}
+            />
+          </div>
           
           {/* Password */}
           <FormField
@@ -91,6 +94,7 @@ export const QuickReLogin = ({ email, onSwitchAccount, onSuccess }: QuickReLogin
                     <Input
                       {...field}
                       id="quick-login-password"
+                      name="password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
                       className="pl-10 pr-10"
