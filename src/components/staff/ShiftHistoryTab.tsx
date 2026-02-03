@@ -4,9 +4,12 @@ import { useShiftHistory, calculateShiftStats, type ShiftHistoryFilters } from '
 import { useStaffStatus } from '@/hooks/useStaffStatus'
 import { ShiftHistoryStats } from './ShiftHistoryStats'
 import { ShiftHistoryTable } from './ShiftHistoryTable'
+import { OnShiftStaffPanel } from './OnShiftStaffPanel'
+import { ShiftSettingsPanel } from './ShiftSettingsPanel'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
 
 export function ShiftHistoryTab() {
   const now = new Date()
@@ -25,6 +28,21 @@ export function ShiftHistoryTab() {
   return (
     <ScrollArea className="h-full">
       <div className="p-4 space-y-4">
+        {/* Top section: On-shift staff and Settings side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2">
+            <OnShiftStaffPanel />
+          </div>
+          <div>
+            <ShiftSettingsPanel />
+          </div>
+        </div>
+
+        <Separator className="my-4" />
+
+        {/* History section header */}
+        <h3 className="text-sm font-medium text-muted-foreground">Lịch sử ca làm việc</h3>
+
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           <Select

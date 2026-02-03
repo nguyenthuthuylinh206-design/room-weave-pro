@@ -5511,6 +5511,61 @@ export type Database = {
           },
         ]
       }
+      shift_reminders: {
+        Row: {
+          created_at: string
+          id: string
+          notification_channels: string[] | null
+          reminded_at: string
+          reminder_type: string
+          shift_start_at: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notification_channels?: string[] | null
+          reminded_at?: string
+          reminder_type?: string
+          shift_start_at: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notification_channels?: string[] | null
+          reminded_at?: string
+          reminder_type?: string
+          shift_start_at?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_reminders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_reminders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_reminders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_statistics: {
         Row: {
           average_task_completion_time: unknown
