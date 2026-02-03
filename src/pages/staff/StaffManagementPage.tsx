@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Users, Activity, ClipboardList } from 'lucide-react'
+import { Users, Activity, ClipboardList, Clock } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StaffStatsCards } from '@/components/staff/StaffStatsCards'
 import { StaffList } from '@/components/staff/StaffList'
 import { StaffDetailSheet } from '@/components/staff/StaffDetailSheet'
 import { StaffActivityTimeline } from '@/components/staff/StaffActivityTimeline'
 import { ManagerTasksTab } from '@/components/staff/ManagerTasksTab'
+import { ShiftHistoryTab } from '@/components/staff/ShiftHistoryTab'
 import { useStaffStatus, useStaffStatusStats, type StaffWithStatus, type StaffStatusType } from '@/hooks/useStaffStatus'
 import { useRecentStaffActivities } from '@/hooks/useStaffActivity'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -69,6 +70,12 @@ export default function StaffManagementPage() {
               Công việc
             </TabsTrigger>
           )}
+          {canManageTasks && (
+            <TabsTrigger value="shifts" className="gap-1.5 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:rounded-b-none">
+              <Clock className="h-4 w-4" />
+              Ca làm việc
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="list" className="flex-1 m-0 mt-2 min-h-0">
@@ -107,6 +114,14 @@ export default function StaffManagementPage() {
           <TabsContent value="tasks" className="flex-1 m-0 mt-2 min-h-0">
             <div className="h-full border-t">
               <ManagerTasksTab />
+            </div>
+          </TabsContent>
+        )}
+
+        {canManageTasks && (
+          <TabsContent value="shifts" className="flex-1 m-0 mt-2 min-h-0">
+            <div className="h-full border-t">
+              <ShiftHistoryTab />
             </div>
           </TabsContent>
         )}
