@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Search, CheckCircle2, Package } from 'lucide-react'
+import { Search, CheckCircle2, Package, Check } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -329,36 +330,95 @@ export function CategoryBasedItemsCheck({
     )
   }
 
+  // Get category checked count
+  const getCategoryCheckedCount = (categoryItems: ExtendedRoomItem[]) => {
+    return categoryItems.filter(item => 
+      getItemStatus(item.item_id, item.item_type) !== 'pending'
+    ).length
+  }
+
   return (
     <div className="space-y-3">
       {/* Compact Sticky Progress Header */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur -mx-4 px-4 py-1.5 border-b">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className={`h-4 w-4 ${progressPercent === 100 ? 'text-green-600' : 'text-muted-foreground'}`} />
-            <span className="text-sm font-medium tabular-nums">
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur -mx-4 px-4 py-2 border-b">
+        {/* Progress bar - larger and more visible */}
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-2 shrink-0">
+            <CheckCircle2 className={cn(
+              "h-5 w-5 transition-colors",
+              progressPercent === 100 ? 'text-green-600' : 'text-muted-foreground'
+            )} />
+            <span className={cn(
+              "text-sm font-semibold tabular-nums",
+              progressPercent === 100 && "text-green-600"
+            )}>
               {checkedCount}/{totalItems}
             </span>
-            <Progress value={progressPercent} className="w-16 h-1.5" />
           </div>
-          
-          {/* Compact summary badges */}
-          <div className="flex items-center gap-1 text-xs">
+          <Progress 
+            value={progressPercent} 
+            className={cn(
+              "h-2 flex-1",
+              progressPercent === 100 && "[&>div]:bg-green-500"
+            )} 
+          />
+        </div>
+        
+        {/* Summary with separators */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs">
             {laundryItems.length > 0 && (
-              <span className="text-blue-600">{laundryItems.length} giặt</span>
+              <span className="text-blue-600 font-medium">{laundryItems.length} giặt</span>
+            )}
+            {laundryItems.length > 0 && (lostItems.length > 0 || damagedItems.length > 0) && (
+              <span className="text-muted-foreground">•</span>
             )}
             {lostItems.length > 0 && (
-              <span className="text-destructive">{lostItems.length} mất</span>
+              <span className="text-destructive font-medium">{lostItems.length} mất</span>
+            )}
+            {lostItems.length > 0 && damagedItems.length > 0 && (
+              <span className="text-muted-foreground">•</span>
             )}
             {damagedItems.length > 0 && (
-              <span className="text-amber-600">{damagedItems.length} hỏng</span>
+              <span className="text-amber-600 font-medium">{damagedItems.length} hỏng</span>
             )}
-            {progressPercent === 100 && (
-              <Badge variant="outline" className="h-5 px-1.5 text-xs border-green-500 text-green-600 bg-green-50">
-                ✓
-              </Badge>
+            {consumedItems.length > 0 && (
+              <>
+                {(laundryItems.length > 0 || lostItems.length > 0 || damagedItems.length > 0) && (
+                  <span className="text-muted-foreground">•</span>
+                )}
+                <span className="text-cyan-600 font-medium">{consumedItems.length} thiếu</span>
+              </>
             )}
           </div>
+          
+          {/* Mark all OK button when items remaining */}
+          {checkedCount < totalItems && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-xs border-green-500 text-green-600 hover:bg-green-50"
+              onClick={() => {
+                itemsWithDetails.forEach(item => {
+                  const status = getItemStatus(item.item_id, item.item_type)
+                  if (status === 'pending') {
+                    setCheckedItems(prev => new Set(prev).add(item.item_id))
+                  }
+                })
+              }}
+            >
+              <Check className="h-3 w-3 mr-1" />
+              Tất cả OK
+            </Button>
+          )}
+          
+          {progressPercent === 100 && (
+            <Badge variant="outline" className="h-6 px-2 text-xs border-green-500 text-green-600 bg-green-50">
+              <Check className="h-3 w-3 mr-1" />
+              Hoàn thành
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -366,40 +426,60 @@ export function CategoryBasedItemsCheck({
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Tìm..."
+          placeholder="Tìm đồ dùng..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-8 h-8 text-sm"
+          className="pl-8 h-9 text-sm"
         />
       </div>
 
-      {/* Tabs by Category */}
+      {/* Tabs by Category - Horizontal scroll */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="h-auto w-full flex-wrap justify-start gap-0.5 bg-transparent p-0">
-          <TabsTrigger 
-            value="all" 
-            className="h-8 gap-1.5 px-3 text-xs data-[state=active]:bg-muted"
-          >
-            <Package className="h-3.5 w-3.5" />
-            Tất cả
-            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-              {totalItems}
-            </Badge>
-          </TabsTrigger>
-          
-          {categories.map((category) => (
+        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1">
+          <TabsList className="inline-flex gap-1 bg-transparent p-0 min-w-max">
             <TabsTrigger 
-              key={category.id} 
-              value={category.id}
-              className="h-8 gap-1.5 px-3 text-xs data-[state=active]:bg-muted"
+              value="all" 
+              className={cn(
+                "h-9 gap-1.5 px-3 text-xs rounded-full border",
+                "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary",
+                "data-[state=inactive]:bg-background data-[state=inactive]:border-border"
+              )}
             >
-              {category.name}
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                {category.items.length}
-              </Badge>
+              <Package className="h-3.5 w-3.5" />
+              Tất cả
+              <span className="bg-background/20 px-1.5 py-0.5 rounded text-[10px] font-medium">
+                {totalItems}
+              </span>
             </TabsTrigger>
-          ))}
-        </TabsList>
+            
+            {categories.map((category) => {
+              const catChecked = getCategoryCheckedCount(category.items)
+              const isComplete = catChecked === category.items.length
+              
+              return (
+                <TabsTrigger 
+                  key={category.id} 
+                  value={category.id}
+                  className={cn(
+                    "h-9 gap-1.5 px-3 text-xs rounded-full border",
+                    "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary",
+                    "data-[state=inactive]:bg-background data-[state=inactive]:border-border",
+                    isComplete && "data-[state=inactive]:border-green-300 data-[state=inactive]:bg-green-50"
+                  )}
+                >
+                  {category.name}
+                  {isComplete ? (
+                    <Check className="h-3.5 w-3.5 text-green-600 data-[state=active]:text-primary-foreground" />
+                  ) : (
+                    <span className="bg-background/20 px-1.5 py-0.5 rounded text-[10px] font-medium">
+                      {category.items.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+              )
+            })}
+          </TabsList>
+        </div>
 
         {/* All items tab */}
         <TabsContent value="all" className="mt-4">

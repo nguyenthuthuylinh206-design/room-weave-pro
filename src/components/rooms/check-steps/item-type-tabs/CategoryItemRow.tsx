@@ -1,16 +1,14 @@
 import { useState } from 'react'
-import { Minus, Plus, AlertTriangle, Check, Loader2 } from 'lucide-react'
+import { Minus, Plus, AlertTriangle, Check, Loader2, WashingMachine, RefreshCw, PlusCircle, Ban, Wrench, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils'
 import type { RoomItemWithDetails } from '@/types/rooms.types'
 import type { ItemType } from '@/types/items.types'
-import { ITEM_TYPE_LABELS } from '@/types/items.types'
 
 export type ItemAction = 
   | { type: 'ok' }
@@ -37,22 +35,26 @@ export interface CategoryItemRowProps {
 }
 
 const STATUS_CONFIG = {
-  ok: { label: 'OK', color: 'text-green-600' },
-  laundry: { label: 'Giặt', color: 'text-blue-600' },
-  add: { label: 'Thêm', color: 'text-green-600' },
-  change: { label: 'Đổi', color: 'text-primary' },
-  lost: { label: 'Mất', color: 'text-destructive' },
-  damaged: { label: 'Hỏng', color: 'text-amber-600' },
-  missing: { label: 'Thiếu', color: 'text-yellow-600' },
-  consumed: { label: 'Đã dùng', color: 'text-blue-600' },
-  pending: { label: '', color: '' },
+  ok: { label: 'OK', color: 'text-green-600', bg: 'bg-green-500' },
+  laundry: { label: 'Giặt', color: 'text-blue-600', bg: 'bg-blue-500' },
+  add: { label: 'Thêm', color: 'text-green-600', bg: 'bg-green-500' },
+  change: { label: 'Đổi', color: 'text-primary', bg: 'bg-primary' },
+  lost: { label: 'Mất', color: 'text-destructive', bg: 'bg-destructive' },
+  damaged: { label: 'Hỏng', color: 'text-amber-600', bg: 'bg-amber-500' },
+  missing: { label: 'Thiếu', color: 'text-yellow-600', bg: 'bg-yellow-500' },
+  consumed: { label: 'Đã dùng', color: 'text-blue-600', bg: 'bg-blue-500' },
+  pending: { label: '', color: '', bg: '' },
 }
 
-const ITEM_TYPE_BADGE_COLORS: Record<ItemType, string> = {
-  linen: 'bg-blue-100 text-blue-700 border-blue-200',
-  consumable: 'bg-rose-100 text-rose-700 border-rose-200',
-  equipment: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  furniture: 'bg-amber-100 text-amber-700 border-amber-200',
+// Action button configs với icon
+const ACTION_CONFIG: Record<string, { icon: typeof WashingMachine; label: string; color: string }> = {
+  laundry: { icon: WashingMachine, label: 'Giặt', color: 'text-blue-600 hover:bg-blue-50 active:bg-blue-100' },
+  change: { icon: RefreshCw, label: 'Đổi', color: 'text-primary hover:bg-primary/10 active:bg-primary/20' },
+  add: { icon: PlusCircle, label: 'Thêm', color: 'text-green-600 hover:bg-green-50 active:bg-green-100' },
+  lost: { icon: Ban, label: 'Mất', color: 'text-destructive hover:bg-destructive/10 active:bg-destructive/20' },
+  damaged: { icon: Wrench, label: 'Hỏng', color: 'text-amber-600 hover:bg-amber-50 active:bg-amber-100' },
+  consumed: { icon: Package, label: 'Thiếu', color: 'text-amber-600 hover:bg-amber-50 active:bg-amber-100' },
+  missing: { icon: Package, label: 'Thiếu', color: 'text-amber-600 hover:bg-amber-50 active:bg-amber-100' },
 }
 
 export function CategoryItemRow({
@@ -85,17 +87,18 @@ export function CategoryItemRow({
   }
 
   const handleQuickAction = (actionType: string) => {
-    setExpanded(true)
-    
     switch (actionType) {
       case 'laundry':
         onAction({ type: 'laundry', quantity })
+        setExpanded(true)
         break
       case 'add':
         onAction({ type: 'add', quantity })
+        setExpanded(true)
         break
       case 'change':
         onAction({ type: 'change', quantity })
+        setExpanded(true)
         break
       case 'missing':
         onAction({ type: 'missing', quantity })
@@ -105,10 +108,12 @@ export function CategoryItemRow({
         break
       case 'lost':
         setPendingType('lost')
+        setExpanded(true)
         break
       case 'damaged':
         setPendingType('damaged')
         setDamageCost(Math.round(unitPrice * 0.5))
+        setExpanded(true)
         break
     }
   }
@@ -137,33 +142,21 @@ export function CategoryItemRow({
   }
 
   // Build actions based on item_type and allowedActions
-  const getActionsForItemType = (): { label: string; color: string; actionType: string }[] => {
-    const actions: { label: string; color: string; actionType: string }[] = []
+  const getActionsForItemType = (): string[] => {
+    const actions: string[] = []
     
     if (itemType === 'linen') {
-      if (allowedActions.includes('laundry')) {
-        actions.push({ label: 'Giặt', color: 'text-blue-600 hover:bg-blue-50', actionType: 'laundry' })
-      }
-      if (allowedActions.includes('change')) {
-        actions.push({ label: 'Đổi', color: 'hover:bg-primary/10', actionType: 'change' })
-      }
-      if (allowedActions.includes('add')) {
-        actions.push({ label: 'Thêm', color: 'text-green-600 hover:bg-green-50', actionType: 'add' })
-      }
-      if (allowedActions.includes('lost')) {
-        actions.push({ label: 'Mất', color: 'text-destructive hover:bg-destructive/10', actionType: 'lost' })
-      }
+      if (allowedActions.includes('laundry')) actions.push('laundry')
+      if (allowedActions.includes('change')) actions.push('change')
+      if (allowedActions.includes('add')) actions.push('add')
+      if (allowedActions.includes('lost')) actions.push('lost')
     } else if (itemType === 'consumable') {
       if (allowedActions.includes('missing') || allowedActions.includes('empty')) {
-        actions.push({ label: 'Thiếu', color: 'text-amber-600 hover:bg-amber-50', actionType: 'consumed' })
+        actions.push('consumed')
       }
     } else if (itemType === 'equipment' || itemType === 'furniture') {
-      if (allowedActions.includes('damaged')) {
-        actions.push({ label: 'Hỏng', color: 'text-amber-600 hover:bg-amber-50', actionType: 'damaged' })
-      }
-      if (allowedActions.includes('lost')) {
-        actions.push({ label: 'Mất', color: 'text-destructive hover:bg-destructive/10', actionType: 'lost' })
-      }
+      if (allowedActions.includes('damaged')) actions.push('damaged')
+      if (allowedActions.includes('lost')) actions.push('lost')
     }
     
     return actions
@@ -172,10 +165,12 @@ export function CategoryItemRow({
   const itemActions = getActionsForItemType()
   const needsStockCheck = ['add', 'change'].includes(status)
   const isOverStock = needsStockCheck && quantity > availableStock
-  const needsQuantity = ['laundry', 'add', 'change', 'missing'].includes(status)
+  const needsQuantity = ['laundry', 'add', 'change'].includes(status)
+  const standardQuantity = item.standard_quantity || 1
 
   return (
     <div className="border-b border-border last:border-b-0">
+      {/* Main Row - Single line compact design */}
       <div
         role={isPending ? "button" : undefined}
         tabIndex={isPending ? 0 : undefined}
@@ -187,185 +182,191 @@ export function CategoryItemRow({
           }
         }}
         className={cn(
-          "flex items-center gap-2 py-2.5 px-2 transition-colors",
+          "flex items-center gap-2 py-3 px-2 transition-colors touch-manipulation",
           isPending && "cursor-pointer hover:bg-muted/50 active:bg-muted",
           isOk && "bg-green-50/30"
         )}
       >
-        {/* Status indicator */}
+        {/* Status indicator - Larger for touch */}
         <div className={cn(
-          "w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold",
-          isPending && "border border-dashed border-muted-foreground/40",
-          isOk && "bg-green-500 text-white",
-          !isPending && !isOk && "bg-muted"
+          "w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all",
+          isPending && "border-2 border-dashed border-muted-foreground/30",
+          !isPending && !isOk && statusInfo.bg,
+          isOk && "bg-green-500"
         )}>
-          {isOk && <Check className="h-3 w-3" />}
-          {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
+          {isOk && <Check className="h-3.5 w-3.5 text-white" />}
+          {isSaving && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+          {!isPending && !isOk && <Check className="h-3 w-3 text-white" />}
         </div>
 
-        {/* Item info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm truncate">{item.item_name}</span>
-            {item.standard_quantity && item.standard_quantity > 1 && (
-              <span className="text-xs text-muted-foreground">×{item.standard_quantity}</span>
-            )}
-          </div>
-          {/* Item type badge - small */}
-          <Badge 
-            variant="outline" 
-            className={cn("h-4 px-1 text-[10px] mt-0.5", ITEM_TYPE_BADGE_COLORS[itemType])}
-          >
-            {ITEM_TYPE_LABELS[itemType]}
-          </Badge>
+        {/* Item info - Single line with quantity badge */}
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <span className="text-sm font-medium truncate">{item.item_name}</span>
+          {standardQuantity > 1 && (
+            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
+              ×{standardQuantity}
+            </span>
+          )}
         </div>
 
-        {/* Actions or status */}
+        {/* Actions or Status display */}
         {isPending ? (
-          <div className="flex items-center gap-0.5 flex-shrink-0">
-            {itemActions.slice(0, 3).map((action, idx) => (
-              <Button
-                key={idx}
-                type="button"
-                variant="ghost"
-                size="sm"
-                className={cn("h-7 px-2 text-xs", action.color)}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleQuickAction(action.actionType)
-                }}
-              >
-                {action.label}
-              </Button>
-            ))}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {itemActions.map((actionType) => {
+              const config = ACTION_CONFIG[actionType]
+              if (!config) return null
+              const Icon = config.icon
+              
+              return (
+                <Button
+                  key={actionType}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "h-9 min-w-[44px] px-2 text-xs gap-1",
+                    config.color
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleQuickAction(actionType)
+                  }}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{config.label}</span>
+                </Button>
+              )
+            })}
           </div>
         ) : (
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {statusLabel && !isOk && (
-              <span className={cn("text-xs font-medium", statusColor || statusInfo.color)}>
-                {statusLabel || statusInfo.label}
-              </span>
-            )}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className={cn("text-xs font-medium", statusColor || statusInfo.color)}>
+              {statusLabel || statusInfo.label}
+              {needsQuantity && status !== 'ok' && ` ×${quantity}`}
+            </span>
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="h-6 w-6"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
               onClick={(e) => {
                 e.stopPropagation()
                 handleReset()
               }}
             >
-              <span className="text-muted-foreground text-xs">✕</span>
+              <span className="text-sm">✕</span>
             </Button>
           </div>
         )}
       </div>
 
-      {/* Expanded content for quantity adjustments */}
+      {/* Inline Quantity Adjuster - Compact */}
       {expanded && needsQuantity && !pendingType && (
-        <div className="px-2 pb-2">
-          <div className="space-y-1.5 pt-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Số lượng:</span>
-              <div className="flex items-center gap-0.5">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => {
-                    const newQty = quantity - 1
-                    handleQuantityChange(newQty)
-                    // Re-trigger action with new quantity
-                    if (status === 'laundry') onAction({ type: 'laundry', quantity: Math.max(1, newQty) })
-                    else if (status === 'add') onAction({ type: 'add', quantity: Math.max(1, newQty) })
-                    else if (status === 'change') onAction({ type: 'change', quantity: Math.max(1, newQty) })
-                  }}
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <Input
-                  type="number"
-                  value={quantity}
-                  onChange={(e) => {
-                    const newQty = parseInt(e.target.value) || 1
-                    handleQuantityChange(newQty)
-                  }}
-                  className={cn("w-12 h-7 text-center text-sm px-1", isOverStock && 'border-amber-500')}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => {
-                    const newQty = quantity + 1
-                    handleQuantityChange(newQty)
-                    if (status === 'laundry') onAction({ type: 'laundry', quantity: newQty })
-                    else if (status === 'add') onAction({ type: 'add', quantity: newQty })
-                    else if (status === 'change') onAction({ type: 'change', quantity: newQty })
-                  }}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
-              {needsStockCheck && (
-                <span className={cn("text-xs", isOverStock ? 'text-amber-600' : 'text-muted-foreground')}>
-                  Kho: {availableStock}
-                </span>
-              )}
+        <div className="px-2 pb-3 pt-1">
+          <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2">
+            <span className="text-xs text-muted-foreground shrink-0">Số lượng:</span>
+            <div className="flex items-center gap-1">
               <Button
                 type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs ml-auto"
-                onClick={() => setExpanded(false)}
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => {
+                  const newQty = Math.max(1, quantity - 1)
+                  handleQuantityChange(newQty)
+                  if (status === 'laundry') onAction({ type: 'laundry', quantity: newQty })
+                  else if (status === 'add') onAction({ type: 'add', quantity: newQty })
+                  else if (status === 'change') onAction({ type: 'change', quantity: newQty })
+                }}
               >
-                Xong
+                <Minus className="h-4 w-4" />
+              </Button>
+              <Input
+                type="number"
+                value={quantity}
+                onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
+                className={cn(
+                  "w-14 h-8 text-center text-sm font-medium",
+                  isOverStock && 'border-amber-500 bg-amber-50'
+                )}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => {
+                  const newQty = quantity + 1
+                  handleQuantityChange(newQty)
+                  if (status === 'laundry') onAction({ type: 'laundry', quantity: newQty })
+                  else if (status === 'add') onAction({ type: 'add', quantity: newQty })
+                  else if (status === 'change') onAction({ type: 'change', quantity: newQty })
+                }}
+              >
+                <Plus className="h-4 w-4" />
               </Button>
             </div>
-            {isOverStock && (
-              <div className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 rounded px-2 py-1">
-                <AlertTriangle className="h-3 w-3" />
-                <span>Kho chỉ còn {availableStock}, yêu cầu {quantity}</span>
-              </div>
+            
+            {needsStockCheck && (
+              <span className={cn(
+                "text-xs shrink-0",
+                isOverStock ? 'text-amber-600 font-medium' : 'text-muted-foreground'
+              )}>
+                Kho: {availableStock}
+              </span>
             )}
+            
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-8 px-3 text-xs ml-auto"
+              onClick={() => setExpanded(false)}
+            >
+              Xong
+            </Button>
           </div>
+          
+          {isOverStock && (
+            <div className="flex items-center gap-1.5 text-xs text-amber-600 mt-1.5 px-1">
+              <AlertTriangle className="h-3 w-3" />
+              <span>Kho chỉ còn {availableStock}, yêu cầu {quantity}</span>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Expanded form for lost */}
+      {/* Inline Lost Form - Compact */}
       {expanded && pendingType === 'lost' && (
-        <div className="px-2 pb-2">
-          <div className="space-y-2 p-2 bg-red-50 rounded-lg border border-red-200 mt-1">
+        <div className="px-2 pb-3 pt-1">
+          <div className="p-3 bg-red-50 rounded-lg border border-red-200 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-red-700">Giá đền bù</span>
-              <span className="text-xs text-muted-foreground font-mono">
+              <span className="text-xs font-medium text-red-700">Đền bù</span>
+              <span className="text-sm font-mono text-red-700">
                 {formatCurrency(unitPrice)}
               </span>
             </div>
             <Textarea
               value={actionNotes}
               onChange={(e) => setActionNotes(e.target.value)}
-              placeholder="Lý do mất..."
-              className="h-12 text-sm"
+              placeholder="Lý do mất (tùy chọn)..."
+              className="h-16 text-sm resize-none"
             />
             <div className="flex gap-2">
               <Button
                 type="button"
                 variant="destructive"
                 size="sm"
-                className="h-8"
+                className="h-9 flex-1"
                 onClick={handleConfirmLostDamaged}
               >
-                Xác nhận
+                Xác nhận mất
               </Button>
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="h-8"
+                className="h-9"
                 onClick={() => { setPendingType(null); setExpanded(false) }}
               >
                 Hủy
@@ -375,62 +376,61 @@ export function CategoryItemRow({
         </div>
       )}
 
-      {/* Expanded form for damaged */}
+      {/* Inline Damaged Form - Compact */}
       {expanded && pendingType === 'damaged' && (
-        <div className="px-2 pb-2">
-          <div className="space-y-2 p-2 bg-amber-50 rounded-lg border border-amber-200 mt-1">
+        <div className="px-2 pb-3 pt-1">
+          <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 space-y-3">
             <RadioGroup 
               value={damageType} 
               onValueChange={(v) => {
                 setDamageType(v as 'repairable' | 'replacement_needed')
                 setDamageCost(v === 'repairable' ? Math.round(unitPrice * 0.5) : unitPrice)
               }}
-              className="flex gap-3"
+              className="flex gap-4"
             >
-              <div className="flex items-center space-x-1.5">
+              <label className="flex items-center gap-2 cursor-pointer">
                 <RadioGroupItem value="repairable" id={`r-${item.item_id}`} />
-                <Label htmlFor={`r-${item.item_id}`} className="text-xs">Sửa (50%)</Label>
-              </div>
-              <div className="flex items-center space-x-1.5">
+                <span className="text-sm">Sửa chữa (50%)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
                 <RadioGroupItem value="replacement_needed" id={`rn-${item.item_id}`} />
-                <Label htmlFor={`rn-${item.item_id}`} className="text-xs">Thay (100%)</Label>
-              </div>
+                <span className="text-sm">Thay thế (100%)</span>
+              </label>
             </RadioGroup>
             
             <div className="flex items-center gap-2">
-              <Label className="text-xs text-amber-700">Chi phí:</Label>
+              <Label className="text-sm text-amber-700 shrink-0">Chi phí:</Label>
               <Input
                 type="text"
                 inputMode="numeric"
-                className="h-7 w-24 text-right font-mono text-sm"
-                value={damageCost > 0 ? damageCost.toString() : ''}
+                className="h-9 w-28 text-right font-mono"
+                value={damageCost > 0 ? damageCost.toLocaleString('vi-VN') : ''}
                 onChange={(e) => setDamageCost(parseInt(e.target.value.replace(/\D/g, '')) || 0)}
               />
-              <span className="text-xs">đ</span>
+              <span className="text-sm text-muted-foreground">đ</span>
             </div>
             
             <Textarea
               value={actionNotes}
               onChange={(e) => setActionNotes(e.target.value)}
-              placeholder="Mô tả hư hỏng..."
-              className="h-12 text-sm"
+              placeholder="Mô tả hư hỏng (tùy chọn)..."
+              className="h-16 text-sm resize-none"
             />
             
             <div className="flex gap-2">
               <Button
                 type="button"
-                variant="outline"
                 size="sm"
-                className="h-8 border-amber-300 text-amber-700"
+                className="h-9 flex-1 bg-amber-600 hover:bg-amber-700"
                 onClick={handleConfirmLostDamaged}
               >
-                Xác nhận
+                Xác nhận hỏng
               </Button>
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="h-8"
+                className="h-9"
                 onClick={() => { setPendingType(null); setExpanded(false) }}
               >
                 Hủy

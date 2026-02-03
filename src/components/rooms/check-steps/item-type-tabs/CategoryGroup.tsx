@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { ChevronDown, ChevronRight, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { RoomItemWithDetails } from '@/types/rooms.types'
 
@@ -51,63 +50,58 @@ export function CategoryGroup({
 
   return (
     <div className={cn(
-      "rounded-lg border overflow-hidden",
+      "rounded-lg border overflow-hidden transition-all",
       colors.border,
-      isComplete && "ring-1 ring-success/50"
+      isComplete && "ring-1 ring-green-400"
     )}>
-      {/* Sticky Header */}
-      <div className={cn(
-        "sticky top-0 z-10 w-full flex items-center justify-between px-4 py-2 transition-colors",
-        colors.bg
-      )}>
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-3 hover:opacity-90 cursor-pointer flex-1"
-        >
+      {/* Header - Improved touch target */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={cn(
+          "sticky top-0 z-10 w-full flex items-center justify-between px-3 py-2.5 transition-colors touch-manipulation",
+          colors.bg,
+          "active:opacity-80"
+        )}
+      >
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           {isOpen ? (
-            <ChevronDown className={cn("h-4 w-4", colors.text)} />
+            <ChevronDown className={cn("h-4 w-4 shrink-0", colors.text)} />
           ) : (
-            <ChevronRight className={cn("h-4 w-4", colors.text)} />
+            <ChevronRight className={cn("h-4 w-4 shrink-0", colors.text)} />
           )}
-          <span className={cn("font-semibold text-sm", colors.text)}>
+          <span className={cn("font-semibold text-sm truncate", colors.text)}>
             {categoryName}
           </span>
-          <Badge 
-            variant="secondary" 
-            className={cn(
-              "text-xs h-5",
-              colors.bg,
-              colors.text,
-              "border",
-              colors.border
-            )}
-          >
-            {itemCount}
-          </Badge>
+          
+          {/* Progress indicator */}
           {checkedCount !== undefined && (
-            <Badge 
-              variant={isComplete ? "default" : "outline"}
-              className={cn(
-                "text-xs",
-                isComplete && "bg-success text-success-foreground"
+            <div className="flex items-center gap-1.5 ml-auto mr-2">
+              <span className={cn(
+                "text-xs font-medium tabular-nums",
+                isComplete ? "text-green-600" : colors.text
+              )}>
+                {checkedCount}/{itemCount}
+              </span>
+              {isComplete && (
+                <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                  <Check className="h-3 w-3 text-white" />
+                </div>
               )}
-            >
-              {checkedCount}/{itemCount}
-            </Badge>
+            </div>
           )}
-        </button>
+        </div>
         
         {actions && (
-          <div className="ml-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+          <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
             {actions}
           </div>
         )}
-      </div>
+      </button>
 
-      {/* Content */}
+      {/* Content - No extra padding */}
       {isOpen && (
-        <div className="p-3 space-y-3 bg-background">
+        <div className="bg-background">
           {children}
         </div>
       )}
