@@ -1,49 +1,49 @@
 
 
-## Kế hoạch: Thay icon bằng text cho các nút action
+## Kế hoạch: Loại bỏ icon sản phẩm
 
 ### VẤN ĐỀ HIỆN TẠI
 
-Trong file `CategoryItemRow.tsx`, các nút action (Giặt, Đổi, Thêm, Mất, Hỏng...) hiện tại:
-- Hiển thị **icon + text** trên desktop (`sm:inline`)
-- Chỉ hiển thị **icon** trên mobile (`hidden sm:inline` cho text)
+Trong `CategoryItemRow.tsx`, mỗi item đang hiển thị icon/thumbnail sản phẩm:
+- Consumable items: Hiển thị thumbnail (nếu có) hoặc icon Droplets
+- Các loại khác: Hiển thị thumbnail hoặc icon Package
 
-```tsx
-// Dòng 365-366 hiện tại:
-<Icon className="h-3.5 w-3.5" />
-<span className="hidden sm:inline">{config.label}</span>
-```
+Icon này chiếm 40x40px không cần thiết và làm rối mắt.
 
 ### GIẢI PHÁP
 
-Bỏ icon, chỉ giữ lại text để dễ nhận biết chức năng hơn:
+Loại bỏ hoàn toàn việc hiển thị thumbnail/icon sản phẩm:
 
-```tsx
-// Thay đổi thành:
-<span className="text-xs font-medium">{config.label}</span>
-```
+1. **Xóa hàm `renderThumbnail()`** (dòng 205-223)
+2. **Xóa nơi gọi hàm** (dòng 330 và 401)
 
 ### CHI TIẾT THAY ĐỔI
 
 **File:** `src/components/rooms/check-steps/item-type-tabs/CategoryItemRow.tsx`
 
-| Dòng | Trước | Sau |
-|------|-------|-----|
-| 365-366 | `<Icon className="h-3.5 w-3.5" />` + `<span className="hidden sm:inline">` | Chỉ giữ `<span>{config.label}</span>` |
+| Vị trí | Thay đổi |
+|--------|----------|
+| Dòng 205-223 | Xóa toàn bộ hàm `renderThumbnail()` |
+| Dòng 330 | Xóa `{itemType === 'consumable' && renderThumbnail()}` |
+| Dòng 401 | Xóa `{renderThumbnail()}` trong expanded form |
 
-**Kết quả mong đợi:**
+### KẾT QUẢ
 
 ```text
-TRƯỚC (mobile):
-[🧺] [🔄] [➕] [🚫] [🔧]
+TRƯỚC:
+┌─────────────────────────────────────────────────────────┐
+│ [🖼️] ● Khăn tắm lớn ×2         [Giặt] [Đổi] [Mất]     │
+└─────────────────────────────────────────────────────────┘
 
-SAU (mobile):
-[Giặt] [Đổi] [Thêm] [Mất] [Hỏng]
+SAU:
+┌─────────────────────────────────────────────────────────┐
+│ ● Khăn tắm lớn ×2              [Giặt] [Đổi] [Mất]     │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ### LỢI ÍCH
 
-1. **Dễ nhận biết** - User không cần đoán icon nghĩa gì
-2. **Nhất quán** - Giống nhau trên mọi kích thước màn hình
-3. **Accessibility** - Text rõ ràng hơn icon
+1. **Gọn gàng hơn** - Tiết kiệm 40px chiều ngang mỗi row
+2. **Tập trung vào thông tin** - Tên item và actions rõ ràng hơn
+3. **Hiệu suất** - Bớt load hình ảnh thumbnail
 
