@@ -557,6 +557,7 @@ export const MobileRoomsPage = () => {
           <MobileRoomBulkActionsBar 
             selectedIds={selectedIds}
             onClearSelection={handleClearSelection}
+            rooms={filteredRooms.map((r: any) => ({ id: r.id, room_number: r.room_number, hotel_id: r.hotel_id }))}
           />
         </>
       )}

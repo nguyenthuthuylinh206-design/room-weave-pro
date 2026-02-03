@@ -86,6 +86,7 @@ export function RoomsPage() {
       <RoomBulkActionsBar
         selectedIds={selectedRoomIds}
         onClearSelection={() => setSelectedRoomIds([])}
+        rooms={rooms?.map(r => ({ id: r.id, room_number: r.room_number, hotel_id: r.hotel_id })) || []}
       />
 
       {viewMode === 'grid' && (

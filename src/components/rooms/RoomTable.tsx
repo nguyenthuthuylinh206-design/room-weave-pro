@@ -17,6 +17,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
   AlertDialog,
@@ -31,11 +34,19 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import { RoomStatusBadge } from './RoomStatusBadge'
+import { CreateTaskDialog } from '@/components/housekeeping/CreateTaskDialog'
 import { formatCurrency } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
 import { vi, enUS } from 'date-fns/locale'
 import { useDeleteRoom } from '@/hooks/useRooms'
+import { useUser } from '@/hooks/useUser'
+import { canCreateHousekeepingTask } from '@/lib/userAccess'
+import { TASK_TYPE_LABELS } from '@/types/housekeeping.types'
 import type { RoomWithStats } from '@/types/rooms.types'
+import type { TaskType } from '@/types/housekeeping.types'
+
+type ManualTaskType = 'checkout_inspection' | 'cleaning' | 'checkin_prep' | 'amenity_request' | 'other'
+const MANUAL_TASK_TYPES: ManualTaskType[] = ['checkout_inspection', 'cleaning', 'checkin_prep', 'amenity_request']
 
 interface RoomTableProps {
   rooms: RoomWithStats[]
@@ -172,12 +183,22 @@ function RoomActions({ room }: { room: RoomWithStats }) {
   const { t } = useTranslation(['rooms', 'common'])
   const navigate = useNavigate()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [taskType, setTaskType] = useState<ManualTaskType>('cleaning')
+  const [showTaskDialog, setShowTaskDialog] = useState(false)
   const deleteRoom = useDeleteRoom()
+  const { user } = useUser()
+  
+  const canCreateTask = canCreateHousekeepingTask(user)
   
   const handleDelete = () => {
     deleteRoom.mutate(room.id, {
       onSuccess: () => setShowDeleteDialog(false)
     })
+  }
+  
+  const openTaskDialog = (type: ManualTaskType) => {
+    setTaskType(type)
+    setShowTaskDialog(true)
   }
   
   return (
@@ -188,7 +209,7 @@ function RoomActions({ room }: { room: RoomWithStats }) {
             <MoreVertical className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" className="bg-background">
           <DropdownMenuItem onClick={() => navigate(`/rooms/${room.id}`)}>
             <Eye className="mr-2 h-4 w-4" />
             {t('actions.viewDetail')}
@@ -201,6 +222,24 @@ function RoomActions({ room }: { room: RoomWithStats }) {
             <ClipboardCheck className="mr-2 h-4 w-4" />
             {t('actions.checkRoom')}
           </DropdownMenuItem>
+          
+          {/* Request task submenu */}
+          {canCreateTask && (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <ClipboardCheck className="mr-2 h-4 w-4" />
+                {t('actions.requestTask', { defaultValue: 'Yêu cầu kiểm tra' })}
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="bg-background">
+                {MANUAL_TASK_TYPES.map((type) => (
+                  <DropdownMenuItem key={type} onClick={() => openTaskDialog(type)}>
+                    {TASK_TYPE_LABELS[type]}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          )}
+          
           <DropdownMenuSeparator />
           <DropdownMenuItem 
             className="text-destructive"
@@ -232,6 +271,16 @@ function RoomActions({ room }: { room: RoomWithStats }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* Create Task Dialog */}
+      <CreateTaskDialog
+        open={showTaskDialog}
+        onOpenChange={setShowTaskDialog}
+        roomId={room.id}
+        roomNumber={room.room_number}
+        hotelId={room.hotel_id}
+        defaultTaskType={taskType}
+      />
     </>
   )
 }
