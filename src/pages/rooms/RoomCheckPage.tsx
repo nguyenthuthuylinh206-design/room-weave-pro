@@ -664,11 +664,7 @@ export function RoomCheckPage() {
   }
   
   const handleCancel = () => {
-    if (currentStep === 1) {
-      navigate(isManager ? `/rooms/${id}` : '/rooms')
-    } else {
-      setShowCancelDialog(true)
-    }
+    setShowCancelDialog(true)
   }
   
   const confirmCancel = async () => {
