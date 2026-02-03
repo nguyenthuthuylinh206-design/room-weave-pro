@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { format, isToday, isTomorrow, isPast, differenceInDays, startOfDay, isBefore, isAfter } from 'date-fns'
@@ -20,6 +20,8 @@ import {
   XCircle,
   CalendarDays,
   Loader2,
+  Users,
+  Wallet,
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -52,8 +54,10 @@ import { CheckoutSummaryDialog } from '@/components/bookings/CheckoutSummaryDial
 import { MinimizedCheckoutWidget, type MinimizedCheckout } from '@/components/bookings/MinimizedCheckoutWidget'
 import { CheckInConfirmDialog } from '@/components/bookings/CheckInConfirmDialog'
 import { ExtendBookingDialog } from '@/components/bookings/ExtendBookingDialog'
+import { GroupPaymentDialog } from '@/components/bookings/GroupPaymentDialog'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
 import { formatCurrency } from '@/lib/utils'
+import { useGroupBookingCounts } from '@/hooks/useGroupBooking'
 import { BOOKING_SOURCES, OTA_SOURCES } from '@/lib/constants'
 import type { RoomStatus } from '@/types/rooms.types'
 import {
@@ -91,6 +95,7 @@ interface BookingWithRoom {
   booking_source?: string
   ota_payment_type?: string | null
   ota_paid_amount?: number
+  booking_group_id?: string | null
   // Booking type fields
   booking_type?: 'daily' | 'hourly' | 'monthly'
   hourly_rate?: number | null
@@ -125,6 +130,8 @@ export function BookingsPage() {
   const [showCheckinConfirm, setShowCheckinConfirm] = useState(false)
   const [showCheckoutSummary, setShowCheckoutSummary] = useState(false)
   const [showExtendDialog, setShowExtendDialog] = useState(false)
+  const [showGroupPaymentDialog, setShowGroupPaymentDialog] = useState(false)
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
   const [actionBooking, setActionBooking] = useState<BookingWithRoom | null>(null)
   const [suggestedEarlyCharge, setSuggestedEarlyCharge] = useState(0)
   const [checkoutCostBreakdown, setCheckoutCostBreakdown] = useState<BookingCostBreakdown | null>(null)
@@ -202,7 +209,8 @@ export function BookingsPage() {
           hourly_end_time,
           booking_hours,
           monthly_rate,
-          booking_months
+          booking_months,
+          booking_group_id
         `)
         .order('check_in_date', { ascending: false })
         .limit(100)
@@ -226,6 +234,13 @@ export function BookingsPage() {
     },
     enabled: !!tenantId,
   })
+  
+  // Get group booking counts for badge display
+  const groupIds = useMemo(() => 
+    bookings?.map(b => b.booking_group_id).filter((id): id is string => !!id) || [],
+    [bookings]
+  )
+  const { data: groupCounts } = useGroupBookingCounts(groupIds)
   
   const filteredBookings = (bookings?.filter(booking => {
     if (!searchQuery) return true
@@ -1066,6 +1081,13 @@ export function BookingsPage() {
                                 Tháng
                               </Badge>
                             )}
+                            {/* Group booking badge */}
+                            {booking.booking_group_id && groupCounts && groupCounts[booking.booking_group_id] > 1 && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 gap-0.5">
+                                <Users className="h-2.5 w-2.5" />
+                                {groupCounts[booking.booking_group_id]}
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-xs text-muted-foreground capitalize">
                             {booking.room?.room_type} • Tầng {booking.room?.floor}
@@ -1196,23 +1218,41 @@ export function BookingsPage() {
                             </Button>
                           )}
                           {booking.status === 'checked_in' && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs text-orange-600 border-orange-200 hover:bg-orange-50"
-                              disabled={isActionLoading && actionBooking?.id === booking.id}
-                              onClick={() => handleCheckOutClick(booking)}
-                            >
-                              {isActionLoading && actionBooking?.id === booking.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <>
-                                  <LogOut className="h-3 w-3 mr-1" />
-                                  Check-out
-                                </>
+                            <>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs text-orange-600 border-orange-200 hover:bg-orange-50"
+                                disabled={isActionLoading && actionBooking?.id === booking.id}
+                                onClick={() => handleCheckOutClick(booking)}
+                              >
+                                {isActionLoading && actionBooking?.id === booking.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <>
+                                    <LogOut className="h-3 w-3 mr-1" />
+                                    Check-out
+                                  </>
+                                )}
+                              </Button>
+                              {/* Group payment button */}
+                              {booking.booking_group_id && groupCounts && groupCounts[booking.booking_group_id] > 1 && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs"
+                                  onClick={() => {
+                                    setSelectedGroupId(booking.booking_group_id!)
+                                    setShowGroupPaymentDialog(true)
+                                  }}
+                                >
+                                  <Wallet className="h-3 w-3 mr-1" />
+                                  TT Nhóm
+                                </Button>
                               )}
-                            </Button>
+                            </>
                           )}
                           <ChevronRight className="h-4 w-4 text-muted-foreground" />
                         </div>
@@ -1324,6 +1364,24 @@ export function BookingsPage() {
           booking={actionBooking}
           onSuccess={() => {
             setActionBooking(null)
+          }}
+        />
+      )}
+
+      {/* Group Payment Dialog */}
+      {selectedGroupId && tenantId && selectedHotelId && (
+        <GroupPaymentDialog
+          open={showGroupPaymentDialog}
+          onOpenChange={(open) => {
+            setShowGroupPaymentDialog(open)
+            if (!open) setSelectedGroupId(null)
+          }}
+          bookingGroupId={selectedGroupId}
+          tenantId={tenantId}
+          hotelId={selectedHotelId}
+          onPaymentComplete={() => {
+            queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
+            queryClient.invalidateQueries({ queryKey: ['group-booking'] })
           }}
         />
       )}

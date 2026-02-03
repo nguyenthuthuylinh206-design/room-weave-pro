@@ -10,8 +10,9 @@
 | Chia tiền cọc đều cho các phòng | ✅ Có - trong `useBookingForm.ts` |
 | Checkout từng phòng riêng | ✅ Có - hoạt động tốt |
 | Thanh toán riêng từng phòng | ✅ Có - qua `BookingPaymentDialog` |
-| **Checkout chung cả nhóm** | ❌ Chưa có |
-| **Thanh toán chung cả nhóm** | ❌ Chưa có |
+| **Hiển thị badge nhóm** | ✅ Hoàn thành - Phase 1 |
+| **Thanh toán chung cả nhóm** | ✅ Hoàn thành - Phase 2 |
+| **Checkout chung cả nhóm** | ❌ Chưa có - Phase 3 (tương lai) |
 
 ### VẤN ĐỀ THỰC TẾ
 
