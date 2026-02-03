@@ -1,13 +1,16 @@
 import { useState } from 'react'
-import { Minus, Plus, AlertTriangle, Check, Loader2, WashingMachine, RefreshCw, PlusCircle, Ban, Wrench, Package } from 'lucide-react'
+import { Minus, Plus, AlertTriangle, Check, Loader2, WashingMachine, RefreshCw, PlusCircle, Ban, Wrench, Package, Droplets } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils'
-import type { RoomItemWithDetails } from '@/types/rooms.types'
+import type { RoomItemWithDetails, ConsumedItem, DamagedItem, LostItem, LaundryItem } from '@/types/rooms.types'
 import type { ItemType } from '@/types/items.types'
 
 export type ItemAction = 
@@ -15,13 +18,17 @@ export type ItemAction =
   | { type: 'laundry'; quantity: number }
   | { type: 'add'; quantity: number }
   | { type: 'change'; quantity: number }
-  | { type: 'lost'; quantity: number; estimatedValue?: number }
+  | { type: 'lost'; quantity: number; estimatedValue?: number; notes?: string }
   | { type: 'damaged'; damageType: 'repairable' | 'replacement_needed'; damageCost: number; notes?: string }
   | { type: 'missing'; quantity: number }
   | { type: 'consumed'; quantity: number; needRefill: boolean }
 
 export interface CategoryItemRowProps {
-  item: RoomItemWithDetails & { item_type?: ItemType; category_name?: string | null }
+  item: RoomItemWithDetails & { 
+    item_type?: ItemType
+    category_name?: string | null
+    item_thumbnail?: string | null
+  }
   itemType: ItemType
   status: 'pending' | 'ok' | 'laundry' | 'add' | 'change' | 'lost' | 'damaged' | 'missing' | 'consumed'
   statusLabel?: string
@@ -32,6 +39,11 @@ export interface CategoryItemRowProps {
   onAction: (action: ItemAction) => void
   onReset: () => void
   isSaving?: boolean
+  // Additional info for displaying after action
+  consumedInfo?: ConsumedItem | null
+  damagedInfo?: DamagedItem | null
+  lostInfo?: LostItem | null
+  laundryInfo?: LaundryItem | null
 }
 
 const STATUS_CONFIG = {
@@ -42,7 +54,7 @@ const STATUS_CONFIG = {
   lost: { label: 'Mất', color: 'text-destructive', bg: 'bg-destructive' },
   damaged: { label: 'Hỏng', color: 'text-amber-600', bg: 'bg-amber-500' },
   missing: { label: 'Thiếu', color: 'text-yellow-600', bg: 'bg-yellow-500' },
-  consumed: { label: 'Đã dùng', color: 'text-blue-600', bg: 'bg-blue-500' },
+  consumed: { label: 'Đã dùng', color: 'text-cyan-600', bg: 'bg-cyan-500' },
   pending: { label: '', color: '', bg: '' },
 }
 
@@ -69,17 +81,26 @@ export function CategoryItemRow({
   onAction,
   onReset,
   isSaving = false,
+  consumedInfo,
+  damagedInfo,
+  lostInfo,
+  laundryInfo,
 }: CategoryItemRowProps) {
   const [expanded, setExpanded] = useState(false)
-  const [pendingType, setPendingType] = useState<'lost' | 'damaged' | null>(null)
+  const [pendingType, setPendingType] = useState<'lost' | 'damaged' | 'consumed' | null>(null)
   const [quantity, setQuantity] = useState(item.standard_quantity || 1)
   const [damageType, setDamageType] = useState<'repairable' | 'replacement_needed'>('repairable')
   const [damageCost, setDamageCost] = useState(Math.round(unitPrice * 0.5))
   const [actionNotes, setActionNotes] = useState('')
+  const [needRefill, setNeedRefill] = useState(true)
+  const [consumedQty, setConsumedQty] = useState(1)
 
   const isPending = status === 'pending'
   const isOk = status === 'ok'
   const statusInfo = STATUS_CONFIG[status] || STATUS_CONFIG.pending
+
+  const isOutOfStock = availableStock === 0
+  const isLowStock = availableStock > 0 && availableStock <= 5
 
   const handleMarkOk = () => {
     onAction({ type: 'ok' })
@@ -104,7 +125,11 @@ export function CategoryItemRow({
         onAction({ type: 'missing', quantity })
         break
       case 'consumed':
-        onAction({ type: 'consumed', quantity, needRefill: true })
+        // Open form to enter quantity and need_refill
+        setPendingType('consumed')
+        setConsumedQty(1)
+        setNeedRefill(true)
+        setExpanded(true)
         break
       case 'lost':
         setPendingType('lost')
@@ -118,9 +143,15 @@ export function CategoryItemRow({
     }
   }
 
+  const handleConfirmConsumed = () => {
+    onAction({ type: 'consumed', quantity: consumedQty, needRefill })
+    setPendingType(null)
+    setExpanded(false)
+  }
+
   const handleConfirmLostDamaged = () => {
     if (pendingType === 'lost') {
-      onAction({ type: 'lost', quantity: 1, estimatedValue: unitPrice })
+      onAction({ type: 'lost', quantity: 1, estimatedValue: unitPrice, notes: actionNotes || undefined })
     } else if (pendingType === 'damaged') {
       onAction({ type: 'damaged', damageType, damageCost, notes: actionNotes || undefined })
     }
@@ -139,6 +170,8 @@ export function CategoryItemRow({
     setExpanded(false)
     setPendingType(null)
     setQuantity(item.standard_quantity || 1)
+    setConsumedQty(1)
+    setNeedRefill(true)
   }
 
   // Build actions based on item_type and allowedActions
@@ -151,7 +184,7 @@ export function CategoryItemRow({
       if (allowedActions.includes('add')) actions.push('add')
       if (allowedActions.includes('lost')) actions.push('lost')
     } else if (itemType === 'consumable') {
-      if (allowedActions.includes('missing') || allowedActions.includes('empty')) {
+      if (allowedActions.includes('missing') || allowedActions.includes('empty') || allowedActions.includes('consumed')) {
         actions.push('consumed')
       }
     } else if (itemType === 'equipment' || itemType === 'furniture') {
@@ -168,9 +201,100 @@ export function CategoryItemRow({
   const needsQuantity = ['laundry', 'add', 'change'].includes(status)
   const standardQuantity = item.standard_quantity || 1
 
+  // Render thumbnail
+  const renderThumbnail = () => {
+    if (item.item_thumbnail) {
+      return (
+        <img
+          src={item.item_thumbnail}
+          alt={item.item_name}
+          className="w-10 h-10 object-cover rounded-lg flex-shrink-0"
+        />
+      )
+    }
+    
+    // Default icon based on item type
+    const IconComponent = itemType === 'consumable' ? Droplets : Package
+    return (
+      <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+        <IconComponent className="h-5 w-5 text-muted-foreground" />
+      </div>
+    )
+  }
+
+  // Render inline info after action is taken
+  const renderStatusInfo = () => {
+    // Consumed item info
+    if (status === 'consumed' && consumedInfo) {
+      return (
+        <div className="px-3 pb-2 space-y-1.5">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="text-cyan-600 font-medium">Thiếu {consumedInfo.quantity}</span>
+            <span>•</span>
+            <span>{consumedInfo.need_refill ? 'Cần bổ sung' : 'Không bổ sung'}</span>
+          </div>
+          {consumedInfo.need_refill && isOutOfStock && (
+            <Alert variant="destructive" className="py-1.5 px-2">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              <AlertDescription className="text-xs">
+                Hết hàng trong kho! Không thể bổ sung ngay.
+              </AlertDescription>
+            </Alert>
+          )}
+          {consumedInfo.need_refill && isLowStock && (
+            <Alert className="py-1.5 px-2 border-amber-500/50 bg-amber-500/10">
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+              <AlertDescription className="text-xs text-amber-700">
+                Tồn kho thấp: còn {availableStock}
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+      )
+    }
+
+    // Damaged item info
+    if (status === 'damaged' && damagedInfo) {
+      return (
+        <div className="px-3 pb-2 text-xs text-muted-foreground">
+          <span className="text-amber-600 font-medium">
+            {damagedInfo.damage_type === 'repairable' ? 'Cần sửa' : 'Cần thay'}
+          </span>
+          <span className="mx-1">•</span>
+          <span className="font-mono">{formatCurrency(damagedInfo.damage_cost)}</span>
+          {damagedInfo.notes && (
+            <p className="mt-0.5 text-muted-foreground/80 italic">"{damagedInfo.notes}"</p>
+          )}
+        </div>
+      )
+    }
+
+    // Lost item info
+    if (status === 'lost' && lostInfo) {
+      return (
+        <div className="px-3 pb-2 text-xs text-muted-foreground">
+          <span className="text-destructive font-medium">Mất</span>
+          <span className="mx-1">•</span>
+          <span className="font-mono">{formatCurrency(lostInfo.estimated_value || unitPrice)}</span>
+        </div>
+      )
+    }
+
+    // Laundry with quantity
+    if (status === 'laundry' && laundryInfo) {
+      return (
+        <div className="px-3 pb-2 text-xs text-muted-foreground">
+          <span className="text-blue-600 font-medium">Giặt ×{laundryInfo.quantity}</span>
+        </div>
+      )
+    }
+
+    return null
+  }
+
   return (
     <div className="border-b border-border last:border-b-0">
-      {/* Main Row - Single line compact design */}
+      {/* Main Row - With thumbnail for consumables */}
       <div
         role={isPending ? "button" : undefined}
         tabIndex={isPending ? 0 : undefined}
@@ -184,7 +308,10 @@ export function CategoryItemRow({
         className={cn(
           "flex items-center gap-2 py-3 px-2 transition-colors touch-manipulation",
           isPending && "cursor-pointer hover:bg-muted/50 active:bg-muted",
-          isOk && "bg-green-50/30"
+          isOk && "bg-green-50/30",
+          status === 'consumed' && "bg-cyan-50/30",
+          status === 'damaged' && "bg-amber-50/30",
+          status === 'lost' && "bg-red-50/30"
         )}
       >
         {/* Status indicator - Larger for touch */}
@@ -198,6 +325,9 @@ export function CategoryItemRow({
           {isSaving && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
           {!isPending && !isOk && <Check className="h-3 w-3 text-white" />}
         </div>
+
+        {/* Thumbnail for consumables */}
+        {itemType === 'consumable' && renderThumbnail()}
 
         {/* Item info - Single line with quantity badge */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -260,7 +390,108 @@ export function CategoryItemRow({
         )}
       </div>
 
-      {/* Inline Quantity Adjuster - Compact */}
+      {/* Inline Status Info - After action taken */}
+      {!isPending && renderStatusInfo()}
+
+      {/* Inline Consumable Form - Full featured */}
+      {expanded && pendingType === 'consumed' && (
+        <div className="px-2 pb-3 pt-1">
+          <div className="p-3 bg-muted/50 rounded-lg space-y-3">
+            {/* Thumbnail + Name */}
+            <div className="flex items-center gap-3">
+              {renderThumbnail()}
+              <div>
+                <span className="font-medium text-sm">{item.item_name}</span>
+                <p className="text-xs text-muted-foreground">Tiêu chuẩn: {standardQuantity}</p>
+              </div>
+            </div>
+
+            {/* Quantity selector */}
+            <div className="flex items-center gap-2">
+              <Label className="text-xs shrink-0">Số lượng thiếu:</Label>
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setConsumedQty(Math.max(1, consumedQty - 1))}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <Input
+                  type="number"
+                  min={1}
+                  max={standardQuantity}
+                  value={consumedQty}
+                  onChange={(e) => setConsumedQty(Math.max(1, Math.min(parseInt(e.target.value) || 1, standardQuantity)))}
+                  className="w-14 h-8 text-center text-sm font-medium"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setConsumedQty(Math.min(standardQuantity, consumedQty + 1))}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              <span className="text-xs text-muted-foreground">/ {standardQuantity}</span>
+            </div>
+
+            {/* Need refill switch */}
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={needRefill}
+                onCheckedChange={setNeedRefill}
+              />
+              <Label className="text-sm">Cần bổ sung từ kho</Label>
+            </div>
+
+            {/* Stock warnings */}
+            {needRefill && isOutOfStock && (
+              <Alert variant="destructive" className="py-2">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  Hết hàng trong kho! Không thể bổ sung ngay.
+                </AlertDescription>
+              </Alert>
+            )}
+            {needRefill && isLowStock && (
+              <Alert className="py-2 border-amber-500/50 bg-amber-500/10">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-xs text-amber-700">
+                  Tồn kho thấp: còn {availableStock}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Action buttons */}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                className="h-9 flex-1"
+                onClick={handleConfirmConsumed}
+              >
+                Xác nhận
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={() => { setPendingType(null); setExpanded(false) }}
+              >
+                Hủy
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Inline Quantity Adjuster - For laundry/add/change */}
       {expanded && needsQuantity && !pendingType && (
         <div className="px-2 pb-3 pt-1">
           <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2">
