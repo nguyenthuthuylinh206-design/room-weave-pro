@@ -263,38 +263,40 @@ async function processCheckoutCheck(params: {
     await updateLaundryQuantities(laundryItems)
   }
   
-  // 2. Đồ mất → Giảm quantity, TẠO INVENTORY TRANSACTION
+  // 2. Đồ mất → Giảm quantity, TẠO INVENTORY TRANSACTION (parallel)
   const lostItems = data.items_lost || []
   for (const item of lostItems) {
     quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) - item.quantity
-    
-    if (tenantId && userId) {
-      await createLostItemTransaction({
-        item,
-        tenantId,
-        hotelId,
-        roomNumber,
-        checkId,
-        userId,
-      })
-    }
   }
   
-  // 3. Đồ tiêu hao → Giảm quantity, TẠO INVENTORY TRANSACTION
+  // 3. Đồ tiêu hao → Giảm quantity, TẠO INVENTORY TRANSACTION (parallel)
   const consumedItems = data.items_consumed || []
   for (const item of consumedItems) {
     quantityChanges[item.item_id] = (quantityChanges[item.item_id] || 0) - item.quantity
-    
-    if (tenantId && userId) {
-      await createConsumedItemTransaction({
+  }
+  
+  // Create all inventory transactions in parallel
+  if (tenantId && userId) {
+    await Promise.all([
+      // All lost items in parallel
+      ...lostItems.map(item => createLostItemTransaction({
         item,
         tenantId,
         hotelId,
         roomNumber,
         checkId,
         userId,
-      })
-    }
+      })),
+      // All consumed items in parallel
+      ...consumedItems.map(item => createConsumedItemTransaction({
+        item,
+        tenantId,
+        hotelId,
+        roomNumber,
+        checkId,
+        userId,
+      })),
+    ])
   }
   
   // 4. Đồ thay thế → Tăng quantity
@@ -470,34 +472,43 @@ async function processMaintenanceCheck(params: {
 // ===== HELPER FUNCTIONS =====
 
 async function updateLaundryQuantities(laundryItems: LaundryItem[]) {
-  for (const item of laundryItems) {
-    const { data: currentItem } = await supabase
-      .from('items')
-      .select('quantity_in_laundry, quantity_in_stock, name')
-      .eq('id', item.item_id)
-      .single()
+  if (laundryItems.length === 0) return
+  
+  // Batch fetch all items at once (1 query instead of N)
+  const itemIds = laundryItems.map(i => i.item_id)
+  const { data: currentItems } = await supabase
+    .from('items')
+    .select('id, quantity_in_laundry, quantity_in_stock, name')
+    .in('id', itemIds)
+  
+  if (!currentItems || currentItems.length === 0) return
+  
+  const itemMap = Object.fromEntries(currentItems.map(i => [i.id, i]))
+  
+  // Update all items in parallel
+  await Promise.all(laundryItems.map(async (item) => {
+    const currentItem = itemMap[item.item_id]
+    if (!currentItem) return
     
-    if (currentItem) {
-      const currentStock = currentItem.quantity_in_stock || 0
-      const actualDeduct = Math.min(item.quantity, currentStock)
-      
-      if (actualDeduct < item.quantity) {
-        console.warn(`Stock mismatch for ${currentItem.name}: requested ${item.quantity} for laundry, only ${actualDeduct} in stock`)
-      }
-      
-      const { error: updateError } = await supabase
-        .from('items')
-        .update({
-          quantity_in_laundry: (currentItem.quantity_in_laundry || 0) + item.quantity,
-          quantity_in_stock: Math.max(0, currentStock - actualDeduct),
-        })
-        .eq('id', item.item_id)
-      
-      if (updateError) {
-        console.error('Error updating quantity_in_laundry:', updateError)
-      }
+    const currentStock = currentItem.quantity_in_stock || 0
+    const actualDeduct = Math.min(item.quantity, currentStock)
+    
+    if (actualDeduct < item.quantity) {
+      console.warn(`Stock mismatch for ${currentItem.name}: requested ${item.quantity} for laundry, only ${actualDeduct} in stock`)
     }
-  }
+    
+    const { error: updateError } = await supabase
+      .from('items')
+      .update({
+        quantity_in_laundry: (currentItem.quantity_in_laundry || 0) + item.quantity,
+        quantity_in_stock: Math.max(0, currentStock - actualDeduct),
+      })
+      .eq('id', item.item_id)
+    
+    if (updateError) {
+      console.error('Error updating quantity_in_laundry:', updateError)
+    }
+  }))
 }
 
 async function createLostItemTransaction(params: {
@@ -711,22 +722,23 @@ export function useCreateRoomCheck() {
       const roomNumber = room.room_number
 
       // Enrich items_consumed with unit_price before saving (checkout only)
+      // OPTIMIZED: Batch fetch all prices in 1 query instead of N sequential queries
       let consumedItemsWithPrice = data.items_consumed || []
       if (data.check_type === 'checkout' && consumedItemsWithPrice.length > 0) {
-        consumedItemsWithPrice = await Promise.all(
-          consumedItemsWithPrice.map(async (item) => {
-            const { data: itemData } = await supabase
-              .from('items')
-              .select('unit_price')
-              .eq('id', item.item_id)
-              .maybeSingle()
-            
-            return {
-              ...item,
-              unit_price: itemData?.unit_price || 0,
-            }
-          })
+        const itemIds = consumedItemsWithPrice.map(i => i.item_id)
+        const { data: itemsWithPrices } = await supabase
+          .from('items')
+          .select('id, unit_price')
+          .in('id', itemIds)
+        
+        const priceMap = Object.fromEntries(
+          (itemsWithPrices || []).map(i => [i.id, i.unit_price || 0])
         )
+        
+        consumedItemsWithPrice = consumedItemsWithPrice.map(item => ({
+          ...item,
+          unit_price: priceMap[item.item_id] || 0,
+        }))
       }
 
       // Create room check record
@@ -773,38 +785,42 @@ export function useCreateRoomCheck() {
         throw error
       }
 
-      // Delete old photos from previous checks
-      const { data: recentChecks } = await supabase
-        .from('room_checks')
-        .select('id, photos')
-        .eq('room_id', roomId)
-        .order('checked_at', { ascending: false })
-        .limit(10)
-
-      if (recentChecks && recentChecks.length > 1) {
-        const oldChecks = recentChecks.slice(1)
-
-        for (const oldCheck of oldChecks) {
-          if (oldCheck.photos && Array.isArray(oldCheck.photos) && oldCheck.photos.length > 0) {
-            for (const photoUrl of oldCheck.photos) {
-              try {
-                const urlParts = photoUrl.split('/item-images/')
-                if (urlParts.length > 1) {
-                  const path = urlParts[1]
-                  await deleteImage(path)
-                }
-              } catch (err) {
-                console.error('Error deleting old photo:', err)
+      // Delete old photos from previous checks - FIRE AND FORGET (non-blocking)
+      // Wrap in async IIFE to handle properly
+      (async () => {
+        try {
+          const { data: recentChecks } = await supabase
+            .from('room_checks')
+            .select('id, photos')
+            .eq('room_id', roomId)
+            .order('checked_at', { ascending: false })
+            .limit(10)
+          
+          if (recentChecks && recentChecks.length > 1) {
+            const oldChecks = recentChecks.slice(1)
+            for (const oldCheck of oldChecks) {
+              if (oldCheck.photos && Array.isArray(oldCheck.photos) && oldCheck.photos.length > 0) {
+                // Delete photos in parallel
+                await Promise.allSettled(
+                  oldCheck.photos.map(async (photoUrl: string) => {
+                    const urlParts = photoUrl.split('/item-images/')
+                    if (urlParts.length > 1) {
+                      await deleteImage(urlParts[1])
+                    }
+                  })
+                )
+                // Clear photos array
+                await supabase
+                  .from('room_checks')
+                  .update({ photos: [] })
+                  .eq('id', oldCheck.id)
               }
             }
-
-            await supabase
-              .from('room_checks')
-              .update({ photos: [] })
-              .eq('id', oldCheck.id)
           }
+        } catch (err) {
+          console.error('Cleanup old photos failed:', err)
         }
-      }
+      })() // Fire and forget - no await
 
       // ===== PROCESS BY CHECK TYPE =====
       const baseParams = {
@@ -906,14 +922,15 @@ export function useCreateRoomCheck() {
         })
       }
       
-      // Trigger workflow
+      // Trigger workflow - FIRE AND FORGET (non-blocking)
       if (tenantId) {
         const hasIssues = 
           (data.items_missing?.length || 0) > 0 ||
           (data.items_damaged?.length || 0) > 0 ||
           (data.items_lost?.length || 0) > 0
         
-        await triggerWorkflow({
+        // Remove await - let it run in background
+        triggerWorkflow({
           triggerType: 'room_check_completed',
           eventData: {
             room_id: roomId,
