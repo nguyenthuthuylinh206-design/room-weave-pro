@@ -69,8 +69,12 @@ export function DeliveryConfirmationModal({
     if (!rejectReason.trim()) return
     
     try {
-      // Cancel the task with reason in notes
-      await updateTaskStatus({ taskId, status: 'cancelled' })
+      // Cancel the task with reason saved in notes
+      await updateTaskStatus({ 
+        taskId, 
+        status: 'cancelled',
+        notes: `Thiếu hàng: ${rejectReason.trim()}`
+      })
       
       onOpenChange(false)
       onSuccess?.()

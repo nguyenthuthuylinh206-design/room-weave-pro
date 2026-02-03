@@ -263,11 +263,13 @@ export function useUpdateTaskStatus() {
     mutationFn: async ({ 
       taskId, 
       status, 
-      roomCheckId 
+      roomCheckId,
+      notes 
     }: { 
       taskId: string
       status: TaskStatus
-      roomCheckId?: string 
+      roomCheckId?: string
+      notes?: string 
     }) => {
       const updates: Partial<HousekeepingTask> = { status }
 
@@ -280,6 +282,11 @@ export function useUpdateTaskStatus() {
         }
       } else if (status === 'cancelled') {
         updates.cancelled_at = new Date().toISOString()
+      }
+      
+      // Append notes if provided
+      if (notes) {
+        updates.notes = notes
       }
 
       const { data, error } = await supabase

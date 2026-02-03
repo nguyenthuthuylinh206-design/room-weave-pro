@@ -80,6 +80,9 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
         ? `&inspection=${task.checkout_inspection_id}` 
         : ''
       navigate(`/rooms/${task.room_id}/check?type=checkout${inspectionParam}`)
+    } else if (task.task_type === 'delivery_confirmation') {
+      // Open confirmation modal immediately after starting
+      setShowDeliveryModal(true)
     }
   }
 

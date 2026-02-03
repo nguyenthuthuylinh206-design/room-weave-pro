@@ -76,6 +76,9 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
           ? `&inspection=${task.checkout_inspection_id}` 
           : ''
         navigate(`/rooms/${task.room_id}/check?type=checkout${inspectionParam}`)
+      } else if (task.task_type === 'delivery_confirmation') {
+        // Open confirmation modal immediately after starting
+        setShowDeliveryModal(true)
       }
     } finally {
       setIsUpdating(false)
