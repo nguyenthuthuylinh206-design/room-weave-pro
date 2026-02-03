@@ -51,11 +51,37 @@ const CHECK_TYPE_ICONS: Record<CheckType, any> = {
   replenish: PackagePlus,
 }
 
+// Session storage key for referrer
+const getReferrerKey = (roomId: string) => `room-check-referrer-${roomId}`
+
 export function RoomCheckPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
+  
+  // Lưu referrer khi mount để quay về đúng trang khi hủy/hoàn thành
+  useEffect(() => {
+    if (!id) return
+    const REFERRER_KEY = getReferrerKey(id)
+    
+    // Chỉ lưu nếu chưa có (tránh ghi đè khi refresh)
+    if (!sessionStorage.getItem(REFERRER_KEY)) {
+      try {
+        // Lấy referrer từ document.referrer
+        const referrer = document.referrer 
+          ? new URL(document.referrer).pathname 
+          : null
+        
+        // Chỉ lưu nếu referrer hợp lệ và không phải trang check này
+        if (referrer && referrer.startsWith('/') && !referrer.includes('/check')) {
+          sessionStorage.setItem(REFERRER_KEY, referrer)
+        }
+      } catch {
+        // Ignore URL parsing errors
+      }
+    }
+  }, [id])
   const prefilledType = searchParams.get('type') as 'daily' | 'checkin' | 'checkout' | 'maintenance' | 'delivery' | 'replenish' | null
   const shouldAutoResume = searchParams.get('resume') === 'true'
   const inspectionIdFromUrl = searchParams.get('inspection') // Lấy checkout inspection ID từ URL
@@ -672,7 +698,19 @@ export function RoomCheckPage() {
       await deleteSession(id)
       setSessionCompleted(true)
     }
-    navigate(isManager ? `/rooms/${id}` : '/rooms')
+    
+    // Lấy referrer từ sessionStorage và navigate về đó
+    const REFERRER_KEY = getReferrerKey(id || '')
+    const savedReferrer = sessionStorage.getItem(REFERRER_KEY)
+    sessionStorage.removeItem(REFERRER_KEY) // Xóa sau khi sử dụng
+    
+    // Validate và navigate
+    if (savedReferrer && savedReferrer.startsWith('/')) {
+      navigate(savedReferrer)
+    } else {
+      // Fallback: Manager về chi tiết phòng, Staff về danh sách
+      navigate(isManager ? `/rooms/${id}` : '/rooms')
+    }
   }
   
   const getCheckTypeLabel = (type: string) => {
