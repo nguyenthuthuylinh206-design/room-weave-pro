@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAuth } from '@/contexts/AuthContext';
 import { loginSchema, LoginFormData } from '@/lib/validations/auth.schemas';
+import { storeCredential } from '@/lib/credential-manager';
 
 // Storage keys for remember me functionality
 const REMEMBERED_EMAIL_KEY = 'remembered_email';
@@ -49,6 +50,8 @@ export const LoginForm = () => {
 
     const { error } = await signIn(data.email, data.password);
     if (!error) {
+      // Trigger browser password manager save
+      await storeCredential(data.email, data.password);
       navigate('/auth/callback');
     }
   };
@@ -56,7 +59,7 @@ export const LoginForm = () => {
   return (
     <div className="w-full space-y-6">
       <Form {...form}>
-        <form id="login-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form id="login-form" action="#" method="POST" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* Email */}
           <FormField
             control={form.control}
@@ -70,6 +73,7 @@ export const LoginForm = () => {
                     <Input
                       {...field}
                       id="login-email"
+                      name="username"
                       type="email"
                       placeholder="email@example.com"
                       className="pl-10"
@@ -95,6 +99,7 @@ export const LoginForm = () => {
                     <Input
                       {...field}
                       id="login-password"
+                      name="password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
                       className="pl-10 pr-10"
