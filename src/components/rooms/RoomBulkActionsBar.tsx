@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
-import { X, Trash2, RefreshCw, CheckCircle } from 'lucide-react'
+import { X, Trash2, RefreshCw, CheckCircle, ClipboardList } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PermissionGate } from '@/components/auth/PermissionGate'
 import {
@@ -20,12 +20,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { BulkCreateTaskDialog } from '@/components/housekeeping/BulkCreateTaskDialog'
 import { useBulkDeleteRooms, useBulkUpdateRoomStatus } from '@/hooks/useBulkRoomActions'
+import { useUser } from '@/hooks/useUser'
+import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import type { RoomStatus } from '@/types/rooms.types'
+
+interface RoomInfo {
+  id: string
+  room_number: string
+  hotel_id: string
+}
 
 interface RoomBulkActionsBarProps {
   selectedIds: string[]
   onClearSelection: () => void
+  rooms?: RoomInfo[]
 }
 
 const statusKeys: RoomStatus[] = [
@@ -38,13 +48,20 @@ const statusKeys: RoomStatus[] = [
   'check_out',
 ]
 
-export function RoomBulkActionsBar({ selectedIds, onClearSelection }: RoomBulkActionsBarProps) {
+export function RoomBulkActionsBar({ selectedIds, onClearSelection, rooms = [] }: RoomBulkActionsBarProps) {
   const { t } = useTranslation('rooms')
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showBulkTaskDialog, setShowBulkTaskDialog] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState<RoomStatus | ''>('')
   
+  const { user } = useUser()
   const bulkDelete = useBulkDeleteRooms()
   const bulkUpdateStatus = useBulkUpdateRoomStatus()
+  
+  const canCreateTask = canCreateHousekeepingTask(user)
+  
+  // Filter rooms that are selected
+  const selectedRooms = rooms.filter(r => selectedIds.includes(r.id))
 
   const handleDelete = () => {
     bulkDelete.mutate(selectedIds, {
@@ -116,6 +133,18 @@ export function RoomBulkActionsBar({ selectedIds, onClearSelection }: RoomBulkAc
             </SelectContent>
           </Select>
 
+          {/* Request task button */}
+          {canCreateTask && selectedRooms.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowBulkTaskDialog(true)}
+            >
+              <ClipboardList className="mr-2 h-4 w-4" />
+              {t('bulkActions.requestTask', { defaultValue: 'Yêu cầu kiểm tra' })}
+            </Button>
+          )}
+
           {/* Delete button */}
           <PermissionGate module="rooms" action="delete">
             <Button
@@ -171,6 +200,14 @@ export function RoomBulkActionsBar({ selectedIds, onClearSelection }: RoomBulkAc
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bulk Create Task Dialog */}
+      <BulkCreateTaskDialog
+        open={showBulkTaskDialog}
+        onOpenChange={setShowBulkTaskDialog}
+        rooms={selectedRooms}
+        onSuccess={onClearSelection}
+      />
     </>
   )
 }

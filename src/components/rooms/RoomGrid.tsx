@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { 
@@ -9,19 +10,34 @@ import {
   Wind,
   Clock,
   Truck,
+  ClipboardList,
 } from 'lucide-react'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { RoomStatusSelector } from './RoomStatusSelector'
+import { CreateTaskDialog } from '@/components/housekeeping/CreateTaskDialog'
 import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
 import { usePendingRoomDistributions } from '@/hooks/usePendingRoomDistributions'
 import { useUser } from '@/hooks/useUser'
 import { hasPermission } from '@/lib/permissions'
+import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import { formatCurrency } from '@/lib/utils'
 import type { RoomWithStats, RoomStatus } from '@/types/rooms.types'
+import type { TaskType } from '@/types/housekeeping.types'
+import { TASK_TYPE_LABELS } from '@/types/housekeeping.types'
+
+type ManualTaskType = 'checkout_inspection' | 'cleaning' | 'checkin_prep' | 'amenity_request' | 'other'
+
+const MANUAL_TASK_TYPES: ManualTaskType[] = ['checkout_inspection', 'cleaning', 'checkin_prep', 'amenity_request']
 
 interface RoomGridProps {
   rooms: RoomWithStats[]
@@ -37,14 +53,25 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
   const { data: pendingDistributions } = usePendingRoomDistributions()
   const { user, role } = useUser()
   
+  // Task dialog state
+  const [taskRoom, setTaskRoom] = useState<{ id: string; number: string; hotelId: string } | null>(null)
+  const [taskType, setTaskType] = useState<ManualTaskType>('cleaning')
+  
   // Staff cannot view room details
   const canViewRoomDetail = hasPermission(role, 'manage_rooms') || role !== 'staff'
+  const canCreateTask = canCreateHousekeepingTask(user)
+  
   const handleSelectRoom = (roomId: string, checked: boolean) => {
     if (checked) {
       onSelectionChange([...selectedIds, roomId])
     } else {
       onSelectionChange(selectedIds.filter((id) => id !== roomId))
     }
+  }
+  
+  const openTaskDialog = (room: RoomWithStats, type: ManualTaskType) => {
+    setTaskType(type)
+    setTaskRoom({ id: room.id, number: room.room_number, hotelId: room.hotel_id })
   }
   
   const getCheckTypeLabel = (type: string) => {
@@ -199,6 +226,30 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
                 {t('actions.viewDetail')}
               </Button>
             )}
+            
+            {/* Request task dropdown - only for Manager/Admin */}
+            {canCreateTask && (
+              <div onClick={(e) => e.stopPropagation()}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="outline">
+                      <ClipboardList className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-background">
+                    {MANUAL_TASK_TYPES.map((type) => (
+                      <DropdownMenuItem 
+                        key={type}
+                        onClick={() => openTaskDialog(room, type)}
+                      >
+                        {TASK_TYPE_LABELS[type]}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+            
             <Button
               size="sm"
               className="flex-1"
@@ -218,6 +269,18 @@ export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: R
         </Card>
         )
       })}
+      
+      {/* Create Task Dialog */}
+      {taskRoom && (
+        <CreateTaskDialog
+          open={!!taskRoom}
+          onOpenChange={(open) => !open && setTaskRoom(null)}
+          roomId={taskRoom.id}
+          roomNumber={taskRoom.number}
+          hotelId={taskRoom.hotelId}
+          defaultTaskType={taskType}
+        />
+      )}
     </div>
   )
 }

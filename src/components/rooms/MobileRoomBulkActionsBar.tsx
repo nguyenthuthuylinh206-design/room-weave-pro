@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Trash2, RefreshCw, CheckCircle } from 'lucide-react'
+import { X, Trash2, RefreshCw, CheckCircle, ClipboardList } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PermissionGate } from '@/components/auth/PermissionGate'
 import {
@@ -19,12 +19,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { BulkCreateTaskDialog } from '@/components/housekeeping/BulkCreateTaskDialog'
 import { useBulkDeleteRooms, useBulkUpdateRoomStatus } from '@/hooks/useBulkRoomActions'
+import { useUser } from '@/hooks/useUser'
+import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import type { RoomStatus } from '@/types/rooms.types'
+
+interface RoomInfo {
+  id: string
+  room_number: string
+  hotel_id: string
+}
 
 interface MobileRoomBulkActionsBarProps {
   selectedIds: string[]
   onClearSelection: () => void
+  rooms?: RoomInfo[]
 }
 
 const statusOptions: { value: RoomStatus; label: string; color: string }[] = [
@@ -37,12 +47,17 @@ const statusOptions: { value: RoomStatus; label: string; color: string }[] = [
   { value: 'out_of_order', label: 'Hỏng', color: 'bg-red-100 text-red-700 border-red-200' },
 ]
 
-export function MobileRoomBulkActionsBar({ selectedIds, onClearSelection }: MobileRoomBulkActionsBarProps) {
+export function MobileRoomBulkActionsBar({ selectedIds, onClearSelection, rooms = [] }: MobileRoomBulkActionsBarProps) {
   const [showStatusSheet, setShowStatusSheet] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showBulkTaskDialog, setShowBulkTaskDialog] = useState(false)
   
+  const { user } = useUser()
   const bulkDelete = useBulkDeleteRooms()
   const bulkUpdateStatus = useBulkUpdateRoomStatus()
+  
+  const canCreateTask = canCreateHousekeepingTask(user)
+  const selectedRooms = rooms.filter(r => selectedIds.includes(r.id))
 
   const handleDelete = () => {
     bulkDelete.mutate(selectedIds, {
@@ -97,6 +112,19 @@ export function MobileRoomBulkActionsBar({ selectedIds, onClearSelection }: Mobi
               <RefreshCw className={`h-4 w-4 mr-1 ${bulkUpdateStatus.isPending ? 'animate-spin' : ''}`} />
               Đổi TT
             </Button>
+            
+            {/* Request task button */}
+            {canCreateTask && selectedRooms.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowBulkTaskDialog(true)}
+              >
+                <ClipboardList className="h-4 w-4 mr-1" />
+                Yêu cầu
+              </Button>
+            )}
+            
             <PermissionGate module="rooms" action="delete">
               <Button
                 variant="destructive"
@@ -164,6 +192,14 @@ export function MobileRoomBulkActionsBar({ selectedIds, onClearSelection }: Mobi
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bulk Create Task Dialog */}
+      <BulkCreateTaskDialog
+        open={showBulkTaskDialog}
+        onOpenChange={setShowBulkTaskDialog}
+        rooms={selectedRooms}
+        onSuccess={onClearSelection}
+      />
     </>
   )
 }
