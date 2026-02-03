@@ -1,245 +1,154 @@
 
+## Kế hoạch: Đổi Room Check sang phân loại theo Danh mục (Category)
 
-## Giải pháp Toàn diện: Phân loại Đồ dùng trong Phòng
+### PHÂN TÍCH HIỆN TẠI
 
-### VẤN ĐỀ HIỆN TẠI
+**Cấu trúc hiện tại của ItemsCheckStep:**
+```
+Tab Item Type (level 1)
+├── Đồ vải (linen)     → GroupByCategory → Ẩm thực, Phòng tắm, Đồ vải...
+├── Tiêu hao (consumable) → GroupByCategory
+├── Thiết bị (equipment)  → GroupByCategory  
+└── Nội thất (furniture)  → GroupByCategory
+```
 
-| Chỉ số | Giá trị | Mô tả |
-|--------|---------|-------|
-| Items bị phân loại sai | 63/426 (15%) | Ảnh hưởng hiển thị sai tab trong Room Check |
-| Nguyên nhân gốc | Thiếu liên kết Category → Item Type | Không có quy tắc gán tự động |
-| Ví dụ lỗi điển hình | "Ấm đun nước" trong category "Thiết bị" nhưng item_type = "consumable" | |
+**Cấu trúc mong muốn (giống Items page):**
+```
+Tab Category (level 1)
+├── Ẩm thực      → All items in category (mixed linen/consumable)
+├── Điện tử      → All items in category
+├── Phòng khách  → All items in category (mixed types)
+├── Phòng tắm    → All items in category (mixed types)
+├── Đồ vải       → All items in category
+└── ...
+```
 
-**Ví dụ Items bị sai:**
-- "Đồng hồ báo thức" → Category "Điện tử" → item_type = "linen" (SAI, phải là "equipment")
-- "Tủ lạnh mini" → Category "Điện tử" → item_type = "furniture" (SAI, phải là "equipment")
-- "Bột giặt" → Category "Vệ sinh" → item_type = "linen" (SAI, phải là "consumable")
+### VẤN ĐỀ CẦN GIẢI QUYẾT
 
----
+1. **Actions phụ thuộc item_type**: 
+   - Linen: Giặt, Đổi, Thêm, Mất
+   - Consumable: Đã dùng, Cần bổ sung
+   - Equipment: Hỏng, Mất
+   - Furniture: Hỏng, Mất
+   
+2. **Khi tab theo Category**: Một category có thể chứa nhiều item_type khác nhau (VD: "Phòng tắm" có cả consumable và linen)
 
-### GIẢI PHÁP TOÀN DIỆN (4 LỚP BẢO VỆ)
+3. **UI phức tạp hơn**: Trong cùng một category, các items khác type cần hiển thị actions khác nhau
+
+### GIẢI PHÁP ĐỀ XUẤT
+
+#### Phương án A: Tab Category + Actions động theo item_type (KHUYẾN NGHỊ)
+
+Tab chính theo Category, nhưng mỗi item hiển thị actions phù hợp với `item_type` của nó:
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    4 LAYERS OF ITEM TYPE PROTECTION                     │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  LỚP 1: DATABASE STRUCTURE                                              │
-│  ┌───────────────────────────────────────────────────────────────────┐ │
-│  │ item_categories.default_item_type                                 │ │
-│  │ Mỗi danh mục có loại đồ dùng mặc định                            │ │
-│  │ VD: "Đồ vải" → default_item_type = 'linen'                       │ │
-│  └───────────────────────────────────────────────────────────────────┘ │
-│                                                                         │
-│  LỚP 2: AUTO-CLASSIFICATION TRIGGER                                     │
-│  ┌───────────────────────────────────────────────────────────────────┐ │
-│  │ Trigger: auto_classify_item_type()                                │ │
-│  │ Khi INSERT/UPDATE item: Lấy default_item_type từ category        │ │
-│  │ Nếu category không có → fallback dựa vào từ khóa tên item        │ │
-│  └───────────────────────────────────────────────────────────────────┘ │
-│                                                                         │
-│  LỚP 3: UI GUIDANCE                                                     │
-│  ┌───────────────────────────────────────────────────────────────────┐ │
-│  │ Form tạo Item: Tự động chọn item_type dựa vào category           │ │
-│  │ Form tạo Category: Bắt buộc chọn default_item_type               │ │
-│  │ Highlight nếu user chọn khác gợi ý                               │ │
-│  └───────────────────────────────────────────────────────────────────┘ │
-│                                                                         │
-│  LỚP 4: DATA MIGRATION + VALIDATION TOOL                                │
-│  ┌───────────────────────────────────────────────────────────────────┐ │
-│  │ Migration: Fix 63 items đang bị sai                              │ │
-│  │ Admin Tool: Scan & Report misclassified items                    │ │
-│  │ Batch update function                                            │ │
-│  └───────────────────────────────────────────────────────────────────┘ │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│ Room Check                                                      │
+├─────────────────────────────────────────────────────────────────┤
+│ [Tất cả 12] [Ẩm thực 3] [Phòng tắm 5] [Điện tử 4]               │
+├─────────────────────────────────────────────────────────────────┤
+│ ▼ Phòng tắm (5 items)                                          │
+│   ┌─────────────────────────────────────────────────────┐      │
+│   │ 🧴 Dầu gội         [consumable] [Đã dùng] [Bổ sung] │      │
+│   │ 🧴 Sữa tắm         [consumable] [Đã dùng] [Bổ sung] │      │
+│   │ 🧺 Khăn tắm lớn    [linen]      [OK] [Giặt] [Đổi]   │      │
+│   │ 🧺 Khăn mặt        [linen]      [OK] [Giặt] [Đổi]   │      │
+│   │ 🔧 Giá treo khăn   [equipment]  [OK] [Hỏng] [Mất]   │      │
+│   └─────────────────────────────────────────────────────┘      │
+└─────────────────────────────────────────────────────────────────┘
 ```
+
+**Ưu điểm:**
+- Giống cấu trúc Items page - nhất quán UX
+- Actions vẫn đúng theo loại đồ dùng
+- Dễ tìm kiếm theo danh mục quen thuộc
+
+**Nhược điểm:**
+- Một category có thể có nhiều loại actions khác nhau
+
+#### Phương án B: Giữ Tab Item Type, fix data
+
+Giữ nguyên cấu trúc tabs theo item_type, nhưng:
+1. Fix 70 items đang bị phân loại sai
+2. Đồng bộ tất cả items về đúng category.default_item_type
 
 ---
 
-### PHẦN 1: DATABASE CHANGES
+### KẾ HOẠCH TRIỂN KHAI (Phương án A)
 
-#### 1.1 Thêm cột `default_item_type` vào `item_categories`
-
-```sql
-ALTER TABLE item_categories 
-ADD COLUMN default_item_type TEXT 
-CHECK (default_item_type IN ('linen', 'consumable', 'equipment', 'furniture'));
-```
-
-#### 1.2 Cập nhật categories hiện có với default_item_type
-
-Dựa vào tên category:
-- "Đồ vải", "Linen" → `linen`
-- "Vệ sinh", "Phòng tắm", "Ẩm thực", "Tiêu hao" → `consumable`
-- "Điện tử", "Thiết bị", "Thiết bị điện" → `equipment`
-- "Nội thất", "Phòng khách" → `furniture`
-
-#### 1.3 Tạo Trigger `auto_classify_item_type`
+#### 1. Database: Fix data items (ưu tiên)
 
 ```sql
-CREATE OR REPLACE FUNCTION auto_classify_item_type()
-RETURNS TRIGGER AS $$
-DECLARE
-  v_default_type TEXT;
-BEGIN
-  -- Nếu user đã chọn item_type, giữ nguyên
-  IF NEW.item_type IS NOT NULL AND OLD IS NOT NULL AND NEW.item_type != OLD.item_type THEN
-    RETURN NEW;
-  END IF;
-
-  -- Lấy default_item_type từ category
-  SELECT default_item_type INTO v_default_type
-  FROM item_categories 
-  WHERE id = NEW.category_id;
-  
-  -- Gán nếu có
-  IF v_default_type IS NOT NULL THEN
-    NEW.item_type := v_default_type;
-  -- Fallback: Phân loại theo tên item nếu category không có default
-  ELSIF NEW.item_type IS NULL THEN
-    NEW.item_type := CASE
-      WHEN NEW.name ILIKE ANY(ARRAY['%khăn%','%ga%','%gối%','%chăn%','%màn%','%rèm%']) THEN 'linen'
-      WHEN NEW.name ILIKE ANY(ARRAY['%dầu gội%','%sữa tắm%','%kem%','%bàn chải%','%xà phòng%','%nước%','%giấy%']) THEN 'consumable'
-      WHEN NEW.name ILIKE ANY(ARRAY['%bàn%','%ghế%','%tủ%','%giường%','%sofa%','%kệ%']) THEN 'furniture'
-      ELSE 'equipment'
-    END;
-  END IF;
-  
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-```
-
-#### 1.4 Fix data items hiện có
-
-```sql
+-- Đồng bộ tất cả items về đúng category.default_item_type
 UPDATE items i
-SET item_type = ic.default_item_type
+SET item_type = ic.default_item_type::item_type,
+    updated_at = NOW()
 FROM item_categories ic
 WHERE i.category_id = ic.id
   AND ic.default_item_type IS NOT NULL
-  AND i.item_type != ic.default_item_type;
+  AND i.item_type::TEXT != ic.default_item_type;
 ```
 
----
-
-### PHẦN 2: UI CHANGES
-
-#### 2.1 Form tạo/sửa Category (CreateItemCategoryDialog)
-
-Thêm trường `default_item_type` bắt buộc:
-
-```text
-┌─────────────────────────────────────────┐
-│ Tạo Danh mục                            │
-├─────────────────────────────────────────┤
-│ Tên danh mục *: [Đồ vải            ]    │
-│ Mã:             [DO_VAI            ]    │
-│                                         │
-│ Loại đồ dùng mặc định *:               │
-│ [Đồ vải (linen) ▼]                      │
-│  ├─ Đồ vải (linen)                      │
-│  ├─ Tiêu hao (consumable)               │
-│  ├─ Thiết bị (equipment)                │
-│  └─ Nội thất (furniture)                │
-│                                         │
-│ Mô tả: [                           ]    │
-│ ...                                     │
-└─────────────────────────────────────────┘
-```
-
-#### 2.2 Form tạo/sửa Item (ItemFormPage)
-
-Auto-fill `item_type` khi chọn category:
+#### 2. Tạo Component mới: CategoryBasedItemsCheck
 
 ```typescript
-// Khi user chọn category_id
-const handleCategoryChange = (categoryId: string) => {
-  setValue('category_id', categoryId);
-  
-  const category = categories?.find(c => c.id === categoryId);
-  if (category?.default_item_type) {
-    setValue('item_type', category.default_item_type);
-    // Show toast: "Đã tự động chọn loại: Đồ vải"
+// src/components/rooms/check-steps/CategoryBasedItemsCheck.tsx
+
+// Thay vì tabs theo item_type, tabs theo category
+// Trong mỗi category, render items với actions động theo item_type
+```
+
+#### 3. Cập nhật ItemsCheckStep
+
+```typescript
+// Thay đổi logic tabs
+// Từ: ['linen', 'consumable', 'equipment', 'furniture']
+// Sang: [categories từ items trong phòng]
+
+// Mỗi item render actions dựa vào item.item_type
+const getActionsForItem = (item) => {
+  switch (item.item_type) {
+    case 'linen': return ['ok', 'laundry', 'change', 'add', 'lost']
+    case 'consumable': return ['ok', 'used', 'refill']
+    case 'equipment': return ['ok', 'damaged', 'lost']
+    case 'furniture': return ['ok', 'damaged', 'lost']
   }
-};
+}
 ```
 
-#### 2.3 Admin Tool: Scan & Fix Items
+#### 4. Files cần sửa
 
-Thêm tab trong Settings để quản trị viên:
-1. Xem danh sách items bị phân loại sai
-2. Batch fix theo category
-3. Export báo cáo
-
----
-
-### PHẦN 3: FILES CẦN TẠO/SỬA
-
-| Loại | File | Thay đổi |
-|------|------|----------|
-| **Migration** | `xxx_item_type_classification.sql` | Thêm cột, trigger, fix data |
-| **Sửa** | `src/hooks/useItemCategories.ts` | Thêm field default_item_type |
-| **Sửa** | `src/components/settings/categories/CreateItemCategoryDialog.tsx` | Thêm select item_type |
-| **Sửa** | `src/pages/items/ItemFormPage.tsx` | Auto-fill item_type khi chọn category |
-| **Tạo** | `src/components/settings/ItemClassificationTool.tsx` | Tool scan & fix |
-| **Sửa** | `src/pages/settings/CategoryManagementPage.tsx` | Thêm tab Tool |
+| File | Thay đổi |
+|------|----------|
+| `ItemsCheckStep.tsx` | Đổi tabs từ item_type sang category |
+| `item-type-tabs/index.ts` | Có thể reuse hoặc tạo CategoryItemRow mới |
+| `useCategories.ts` | Đảm bảo trả về categories có items trong phòng |
 
 ---
 
-### PHẦN 4: QUY TRÌNH SAU TRIỂN KHAI
+### SO SÁNH 2 PHƯƠNG ÁN
 
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    ITEM CLASSIFICATION FLOW                             │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│   1. Admin tạo Category mới                                             │
-│      ┌─────────────────┐                                               │
-│      │ Chọn:           │                                               │
-│      │ - Tên: Đồ vải   │                                               │
-│      │ - Type: linen   │ ◄── BẮT BUỘC                                  │
-│      └────────┬────────┘                                               │
-│               │                                                         │
-│               ▼                                                         │
-│   2. Staff tạo Item mới                                                │
-│      ┌─────────────────┐                                               │
-│      │ Chọn Category:  │                                               │
-│      │ → Đồ vải        │                                               │
-│      │                 │                                               │
-│      │ Item Type:      │                                               │
-│      │ → [linen] ✓     │ ◄── TỰ ĐỘNG CHỌN                              │
-│      └────────┬────────┘                                               │
-│               │                                                         │
-│               ▼                                                         │
-│   3. Database Trigger                                                   │
-│      ┌─────────────────┐                                               │
-│      │ Validate &      │                                               │
-│      │ Override nếu    │ ◄── BACKUP PROTECTION                         │
-│      │ thiếu item_type │                                               │
-│      └────────┬────────┘                                               │
-│               │                                                         │
-│               ▼                                                         │
-│   4. Room Check hiển thị đúng tab                                      │
-│      ┌─────────────────┐                                               │
-│      │ Tab: ĐỒ VẢI     │                                               │
-│      │ - Khăn tắm  ✓   │ ◄── HIỂN THỊ ĐÚNG                             │
-│      │ - Ga giường ✓   │                                               │
-│      └─────────────────┘                                               │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+| Tiêu chí | Phương án A (Tab Category) | Phương án B (Tab Item Type) |
+|----------|---------------------------|----------------------------|
+| UX nhất quán với Items page | ✅ Có | ❌ Không |
+| Logic actions | Động theo item_type | Cố định theo tab |
+| Độ phức tạp code | Trung bình | Thấp |
+| Dễ tìm items | ✅ Theo danh mục quen thuộc | Cần nhớ loại đồ dùng |
+| Xử lý mixed types | ✅ Tự nhiên | Khó khăn |
 
 ---
 
-### KẾT QUẢ MONG ĐỢI
+### KẾT LUẬN
 
-| Mục tiêu | Kết quả |
-|----------|---------|
-| Fix data hiện có | 63 items được phân loại lại đúng |
-| Ngăn lỗi tương lai | Trigger tự động gán item_type |
-| UX tốt hơn | Auto-fill khi chọn category |
-| Quản trị dễ dàng | Tool scan & batch fix |
-| Room Check chính xác | Items hiển thị đúng tab theo loại |
+**Khuyến nghị: Phương án A** - Tab theo Category
 
+Lý do:
+1. **Nhất quán với Items page** - User đã quen cách phân loại này
+2. **Tự nhiên hơn** - "Tìm trong Phòng tắm" dễ hơn "Tìm đồ vải"
+3. **Linh hoạt** - Actions vẫn đúng theo từng loại đồ dùng
+4. **Giải quyết tận gốc** - Không cần lo về việc items bị xếp sai tab
+
+**Bước tiếp theo:**
+1. Fix data: Đồng bộ 70 items về đúng category default
+2. Cập nhật ItemsCheckStep để tabs theo category thay vì item_type
+3. Mỗi item row hiển thị actions động dựa vào item_type của nó
