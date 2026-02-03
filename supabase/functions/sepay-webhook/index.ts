@@ -238,8 +238,69 @@ Deno.serve(async (req) => {
                 throw updateBpError;
               }
 
-              // Update room_booking amount_paid
-              if (bp.booking) {
+              // Check if this is a group payment
+              const bpMetadata = (bp.metadata as Record<string, unknown>) || {};
+              const isGroupPayment = bpMetadata.is_group_payment === true;
+              const bookingIds = (bpMetadata.booking_ids as string[]) || (bp.booking_id ? [bp.booking_id] : []);
+
+              if (isGroupPayment && bookingIds.length > 1) {
+                // Handle group payment - distribute across all bookings
+                console.log(`Processing GROUP payment for ${bookingIds.length} bookings`);
+                
+                // Fetch all bookings in the group
+                const { data: groupBookings, error: groupQueryError } = await supabase
+                  .from('room_bookings')
+                  .select('id, total_amount, amount_paid, status')
+                  .in('id', bookingIds);
+
+                if (groupQueryError) {
+                  console.error('Error fetching group bookings:', groupQueryError);
+                } else if (groupBookings && groupBookings.length > 0) {
+                  // Sort: checked_out first, then checked_in, then others
+                  const sortedBookings = [...groupBookings].sort((a, b) => {
+                    const statusOrder = { 'checked_out': 0, 'checked_in': 1 };
+                    const aOrder = statusOrder[a.status as keyof typeof statusOrder] ?? 2;
+                    const bOrder = statusOrder[b.status as keyof typeof statusOrder] ?? 2;
+                    return aOrder - bOrder;
+                  });
+
+                  // Distribute payment across bookings
+                  let remainingAmount = bp.amount;
+                  for (const booking of sortedBookings) {
+                    if (remainingAmount <= 0) break;
+
+                    const currentPaid = booking.amount_paid || 0;
+                    const totalAmount = booking.total_amount || 0;
+                    const owed = totalAmount - currentPaid;
+
+                    if (owed <= 0) continue;
+
+                    const payForThis = Math.min(remainingAmount, owed);
+                    const newAmountPaid = currentPaid + payForThis;
+                    const paymentStatus = newAmountPaid >= totalAmount ? 'paid' : 'partial';
+
+                    console.log(`  Distributing ${payForThis} to booking ${booking.id} (owed: ${owed}, new paid: ${newAmountPaid})`);
+
+                    const { error: updateError } = await supabase
+                      .from('room_bookings')
+                      .update({
+                        amount_paid: newAmountPaid,
+                        payment_status: paymentStatus,
+                        paid_at: paymentStatus === 'paid' ? new Date().toISOString() : null,
+                      })
+                      .eq('id', booking.id);
+
+                    if (updateError) {
+                      console.error(`Error updating booking ${booking.id}:`, updateError);
+                    }
+
+                    remainingAmount -= payForThis;
+                  }
+
+                  console.log(`Group payment distribution complete. Remaining: ${remainingAmount}`);
+                }
+              } else if (bp.booking) {
+                // Single booking payment (existing logic)
                 const currentPaid = bp.booking.amount_paid || 0;
                 const newAmountPaid = currentPaid + bp.amount;
                 const totalAmount = bp.booking.total_amount || 0;
