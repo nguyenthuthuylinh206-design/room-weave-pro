@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils'
 import { useTaskById, useUpdateTaskStatus } from '@/hooks/useHousekeepingTasks'
 import { useDeliveryTaskItems } from '@/hooks/useDeliveryTaskItems'
 import { DeliveryConfirmationModal } from './DeliveryConfirmationModal'
+import { CleaningCompleteDialog } from '@/components/rooms/CleaningCompleteDialog'
 import { useState } from 'react'
 import type { TaskType, TaskPriority } from '@/types/housekeeping.types'
 import { TASK_TYPE_LABELS, PRIORITY_LABELS } from '@/types/housekeeping.types'
@@ -60,9 +61,11 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
   const { data: task, isLoading } = useTaskById(taskId)
   const { mutateAsync: updateStatus, isPending: isUpdating } = useUpdateTaskStatus()
   const [showDeliveryModal, setShowDeliveryModal] = useState(false)
+  const [showCleaningComplete, setShowCleaningComplete] = useState(false)
 
   // Fetch delivery items if this is a delivery confirmation task
   const isDeliveryTask = task?.task_type === 'delivery_confirmation'
+  const isCleaningTask = task?.task_type === 'cleaning'
   const { data: deliveryData } = useDeliveryTaskItems(
     isDeliveryTask ? task?.distribution_order_room_id : null
   )
@@ -88,7 +91,21 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
 
   const handleComplete = async () => {
     if (!task) return
+    
+    // For cleaning tasks, show dialog to choose: mark ready or check first
+    if (isCleaningTask) {
+      setShowCleaningComplete(true)
+      return
+    }
+    
     await updateStatus({ taskId: task.id, status: 'completed' })
+    onOpenChange(false)
+  }
+
+  const handleCleaningCompleted = async () => {
+    if (!task) return
+    await updateStatus({ taskId: task.id, status: 'completed' })
+    setShowCleaningComplete(false)
     onOpenChange(false)
   }
 
@@ -342,6 +359,17 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
           roomNumber={task.room?.room_number || ''}
           orderCode={deliveryData.orderCode}
           items={deliveryData.items}
+        />
+      )}
+
+      {/* Cleaning Complete Dialog */}
+      {isCleaningTask && task && task.room && (
+        <CleaningCompleteDialog
+          open={showCleaningComplete}
+          onOpenChange={setShowCleaningComplete}
+          roomId={task.room_id}
+          roomNumber={task.room.room_number}
+          onComplete={handleCleaningCompleted}
         />
       )}
     </>
