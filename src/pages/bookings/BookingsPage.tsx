@@ -442,6 +442,17 @@ export function BookingsPage() {
 
   // Handle Check-out click - validate date first, then show summary dialog
   const handleCheckOutClick = async (booking: BookingWithRoom) => {
+    // Check if this is a group booking - open GroupCheckoutDialog instead
+    const isGroupBooking = booking.booking_group_id && 
+      groupCounts && 
+      groupCounts[booking.booking_group_id] > 1
+
+    if (isGroupBooking) {
+      setSelectedGroupId(booking.booking_group_id!)
+      setShowGroupCheckoutDialog(true)
+      return
+    }
+
     const now = new Date()
     const today = startOfDay(now)
     const checkOutDate = startOfDay(new Date(booking.check_out_date))
@@ -1242,22 +1253,6 @@ export function BookingsPage() {
                                   </>
                                 )}
                               </Button>
-                              {/* Group payment button for confirmed */}
-                              {booking.booking_group_id && groupCounts && groupCounts[booking.booking_group_id] > 1 && (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-7 text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                                  onClick={() => {
-                                    setSelectedGroupId(booking.booking_group_id!)
-                                    setShowGroupPaymentDialog(true)
-                                  }}
-                                >
-                                  <Wallet className="h-3 w-3 mr-1" />
-                                  TT Nhóm
-                                </Button>
-                              )}
                             </>
                           )}
                           {/* Check-out and group actions for checked_in bookings */}
@@ -1280,37 +1275,6 @@ export function BookingsPage() {
                                   </>
                                 )}
                               </Button>
-                              {/* Group payment button */}
-                              {booking.booking_group_id && groupCounts && groupCounts[booking.booking_group_id] > 1 && (
-                                <>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-7 text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                                    onClick={() => {
-                                      setSelectedGroupId(booking.booking_group_id!)
-                                      setShowGroupPaymentDialog(true)
-                                    }}
-                                  >
-                                    <Wallet className="h-3 w-3 mr-1" />
-                                    TT Nhóm
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-7 text-xs bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
-                                    onClick={() => {
-                                      setSelectedGroupId(booking.booking_group_id!)
-                                      setShowGroupCheckoutDialog(true)
-                                    }}
-                                  >
-                                    <DoorOpen className="h-3 w-3 mr-1" />
-                                    CO Nhóm
-                                  </Button>
-                                </>
-                              )}
                             </>
                           )}
                           <ChevronRight className="h-4 w-4 text-muted-foreground" />
