@@ -1,157 +1,196 @@
 
 
-## Phân tích & Kế hoạch Cải thiện Logic Ca làm việc
+## Kế hoạch: Mở rộng tính năng Theo dõi Ca làm việc
 
-### TRẠNG THÁI HIỆN TẠI
+### TỔNG QUAN YÊU CẦU
 
-| Component | Status | Chi tiết |
-|-----------|--------|----------|
-| Bảng `shift_history` | ✅ OK | Đã tạo đúng cấu trúc |
-| Trigger log history | ✅ OK | Enabled và hoạt động |
-| RLS Policies | ✅ OK | Đã cấu hình đúng |
-| useShiftHistory hook | ✅ OK | Query đúng |
-| UI Components | ✅ OK | Hiển thị đúng |
+Người dùng muốn mở rộng tab "Ca làm việc" với 3 tính năng mới:
 
-**Lý do bảng trống:** Chưa có nhân viên nào hoàn thành ca làm việc (ấn "Kết thúc ca") kể từ khi tính năng được deploy.
+1. **Theo dõi nhân viên đang trong ca** - Hiển thị realtime danh sách nhân viên đang làm việc
+2. **Tính thời gian thực tế** - Hiển thị thời gian làm việc liên tục cập nhật
+3. **Cài đặt ca làm việc + Nhắc nhở** - Cấu hình giờ làm chuẩn và gửi nhắc nhở khi quên kết thúc ca
 
 ---
 
-### VẤN ĐỀ TIỀM ẨN CẦN SỬA
+### SƠ ĐỒ GIAO DIỆN MỚI
 
-#### Vấn đề 1: Trigger không log hotel_id chính xác
-
-**Trigger hiện tại:**
-```sql
-hotel_id,
-...
-NEW.current_location,  -- ❌ current_location là TEXT, không phải UUID
-```
-
-**Vấn đề:** 
-- `current_location` trong `staff_status` là kiểu `TEXT` (ví dụ: "Phòng 101", "Sảnh chính")
-- `hotel_id` trong `shift_history` là kiểu `UUID`
-- Điều này sẽ gây lỗi khi trigger chạy nếu `current_location` không phải là UUID hợp lệ
-
-**Giải pháp:** Lấy `hotel_id` từ bảng `users` thay vì dùng `current_location`:
-```sql
-(SELECT hotel_id FROM users WHERE id = NEW.user_id),
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Tab: CA LÀM VIỆC                                                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌─────────────────────────────────────────┐ ┌────────────────────────┐│
+│  │ 📌 ĐANG TRONG CA (3)                    │ │ ⚙️ CÀI ĐẶT CA          ││
+│  ├─────────────────────────────────────────┤ ├────────────────────────┤│
+│  │ 👤 Nguyễn Văn A                         │ │ Giờ bắt đầu: 08:00    ││
+│  │    Vào ca: 08:00 • Đã làm: 2h 35p 🟢    │ │ Giờ kết thúc: 18:00   ││
+│  │                                         │ │ Thời gian tối đa: 12h ││
+│  │ 👤 Trần Thị B                           │ │                        ││
+│  │    Vào ca: 07:45 • Đã làm: 2h 50p 🟢    │ │ Nhắc nhở sau: 10h     ││
+│  │                                         │ │ [✓] Gửi push          ││
+│  │ 👤 Lê Văn C                             │ │ [✓] Gửi Telegram      ││
+│  │    Vào ca: 14:00 • Đã làm: 12h 30p 🔴   │ │                        ││
+│  │    ⚠️ Quá giờ làm việc tiêu chuẩn       │ │ [Lưu cài đặt]         ││
+│  └─────────────────────────────────────────┘ └────────────────────────┘│
+│                                                                         │
+│  ────────────── LỊCH SỬ CA ──────────────                               │
+│  [Bộ lọc: Nhân viên ▼] [Từ ngày] [Đến ngày]                            │
+│                                                                         │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐                   │
+│  │ 45 ca    │ │ 320 giờ  │ │ 7.1 giờ  │ │ 12 NV    │                   │
+│  │ Tổng ca  │ │ Tổng giờ │ │ TB/ca    │ │ Có đi ca │                   │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘                   │
+│                                                                         │
+│  Bảng lịch sử ca làm việc...                                           │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-#### Vấn đề 2: Không invalidate cache shift-history sau check-out
+### PHẦN 1: DANH SÁCH NHÂN VIÊN ĐANG TRONG CA (REALTIME)
 
-**File:** `useShiftManagement.ts` - `useShiftCheckOut`
+#### Tính năng:
+- Hiển thị tất cả nhân viên đang trong ca (`isCurrentlyOnShift = true`)
+- Thời gian làm việc được tính realtime (tự động cập nhật mỗi phút)
+- Màu sắc cảnh báo:
+  - 🟢 Xanh: Thời gian làm việc bình thường
+  - 🟠 Vàng: Sắp đến giới hạn (>8h mặc định)
+  - 🔴 Đỏ: Quá giờ làm việc tối đa (>10h mặc định)
 
-**Hiện tại:**
-```typescript
-onSuccess: () => {
-  queryClient.invalidateQueries({ queryKey: ['my-staff-status'] })
-  queryClient.invalidateQueries({ queryKey: ['staff-status'] })
-  // ❌ Thiếu invalidate shift-history
+#### Thay đổi code:
+| File | Thay đổi |
+|------|----------|
+| `useOnShiftStaffList.ts` | Thêm hook mới filter theo tenant (không cần hotelId) |
+| `OnShiftStaffPanel.tsx` | Component hiển thị danh sách đang trong ca |
+| `ShiftHistoryTab.tsx` | Tích hợp panel mới |
+
+---
+
+### PHẦN 2: TÍNH THỜI GIAN THỰC TẾ (LIVE TIMER)
+
+#### Tính năng:
+- Đếm thời gian làm việc từ `shift_start_at` đến hiện tại
+- Cập nhật mỗi 60 giây
+- Hiển thị định dạng: `Xh Yp` (ví dụ: 8h 30p)
+
+#### Thay đổi code:
+| File | Thay đổi |
+|------|----------|
+| `useShiftTimer.ts` | Hook mới với setInterval để tính thời gian live |
+| `LiveShiftDuration.tsx` | Component hiển thị thời gian đếm ngược |
+
+---
+
+### PHẦN 3: CÀI ĐẶT CA LÀM VIỆC
+
+#### Cấu hình lưu trong `tenants.settings`:
+```json
+{
+  "shift_settings": {
+    "default_start_time": "08:00",
+    "default_end_time": "18:00",
+    "max_shift_hours": 12,
+    "warning_hours": 10,
+    "reminder_enabled": true,
+    "reminder_channels": ["push", "telegram"]
+  }
 }
 ```
 
-**Giải pháp:** Thêm invalidate để UI cập nhật realtime:
-```typescript
-queryClient.invalidateQueries({ queryKey: ['shift-history'] })
-```
+#### Thay đổi code:
+| File | Thay đổi |
+|------|----------|
+| `ShiftSettingsPanel.tsx` | Form cài đặt ca làm việc |
+| `useShiftSettings.ts` | Hook đọc/ghi settings từ tenants.settings |
 
 ---
 
-#### Vấn đề 3: Không xử lý edge case khi check-in liên tiếp
+### PHẦN 4: NHẮC NHỞ KHI QUÊN KẾT THÚC CA
 
-**Kịch bản lỗi:**
-1. Nhân viên check-in lúc 8:00 (`shift_start_at = 8:00`)
-2. Quên check-out, về nhà
-3. Hôm sau check-in lại lúc 8:00 (`shift_start_at = 8:00 mới` → ghi đè)
-4. **Kết quả:** Ca hôm trước KHÔNG được ghi vào history (vì không bao giờ update `shift_end_at`)
+#### Logic:
+1. Cron job chạy mỗi 30 phút kiểm tra nhân viên đang trong ca quá lâu
+2. Nếu `(now - shift_start_at) > warning_hours` → Gửi nhắc nhở
+3. Kênh thông báo: Push notification + Telegram
 
-**Giải pháp:** Trong `useShiftCheckIn`, kiểm tra nếu đang có ca chưa kết thúc, tự động kết thúc ca cũ trước:
-```typescript
-// Nếu có shift_start_at > shift_end_at, gọi check-out trước
-if (existingStatus?.shift_start_at && 
-    (!existingStatus.shift_end_at || 
-     new Date(existingStatus.shift_start_at) > new Date(existingStatus.shift_end_at))) {
-  // Auto check-out ca cũ
-}
-```
+#### Thay đổi code:
+| Loại | File | Mô tả |
+|------|------|-------|
+| Edge Function | `check-shift-overtime` | Kiểm tra và gửi nhắc nhở |
+| Cron Job | SQL INSERT cron.schedule | Chạy mỗi 30 phút |
+| Database | `shift_reminders` | Bảng lưu lịch sử nhắc nhở (tránh spam) |
 
 ---
 
-### KẾ HOẠCH SỬA LỖI
+### DATABASE CHANGES
 
-#### Bước 1: Sửa Trigger (Database Migration)
-
-Cập nhật trigger để lấy đúng `hotel_id`:
-```sql
-CREATE OR REPLACE FUNCTION public.log_shift_history()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_hotel_id UUID;
-BEGIN
-  IF NEW.shift_end_at IS NOT NULL 
-     AND OLD.shift_end_at IS DISTINCT FROM NEW.shift_end_at
-     AND NEW.shift_start_at IS NOT NULL
-     AND NEW.shift_end_at > NEW.shift_start_at
-  THEN
-    -- Lấy hotel_id từ bảng users
-    SELECT hotel_id INTO v_hotel_id 
-    FROM public.users 
-    WHERE id = NEW.user_id;
-
-    INSERT INTO public.shift_history (
-      tenant_id, user_id, hotel_id, start_at, end_at, notes
-    ) VALUES (
-      NEW.tenant_id,
-      NEW.user_id,
-      v_hotel_id,  -- Sửa: dùng hotel_id từ users
-      NEW.shift_start_at,
-      NEW.shift_end_at,
-      NULL
-    );
-  END IF;
-  RETURN NEW;
-END;
-$$;
-```
-
-#### Bước 2: Invalidate cache sau check-out
-
-**File:** `src/hooks/useShiftManagement.ts`
-
-Thêm vào `onSuccess` của `useShiftCheckOut`:
-```typescript
-queryClient.invalidateQueries({ queryKey: ['shift-history'] })
-```
-
-#### Bước 3: Xử lý ca cũ chưa đóng (Enhancement)
-
-**File:** `src/hooks/useShiftManagement.ts`
-
-Trong `useShiftCheckIn`, thêm logic:
-1. Kiểm tra nếu đang có ca cũ chưa kết thúc
-2. Tự động set `shift_end_at` = thời điểm hiện tại cho ca cũ (trigger sẽ log)
-3. Sau đó mới tạo ca mới
+#### Bảng mới: `shift_reminders`
+| Cột | Kiểu | Mô tả |
+|-----|------|-------|
+| id | UUID | Primary key |
+| tenant_id | UUID | FK → tenants |
+| user_id | UUID | FK → users |
+| shift_start_at | TIMESTAMPTZ | Thời điểm bắt đầu ca |
+| reminded_at | TIMESTAMPTZ | Thời điểm gửi nhắc nhở |
+| reminder_type | TEXT | 'warning' / 'overtime' |
 
 ---
 
-### FILES CẦN SỬA
+### FILES CẦN TẠO/SỬA
 
-| Thứ tự | File | Thay đổi |
-|--------|------|----------|
-| 1 | Database Migration | Sửa trigger lấy đúng hotel_id |
-| 2 | `src/hooks/useShiftManagement.ts` | Thêm invalidate cache + xử lý ca cũ |
+| Loại | File | Mô tả |
+|------|------|-------|
+| **Hook** | `src/hooks/useOnShiftStaffListAll.ts` | Lấy tất cả NV đang trong ca (không filter hotel) |
+| **Hook** | `src/hooks/useShiftTimer.ts` | Tính thời gian live |
+| **Hook** | `src/hooks/useShiftSettings.ts` | Đọc/ghi cài đặt ca |
+| **Component** | `src/components/staff/OnShiftStaffPanel.tsx` | Panel hiển thị NV đang trong ca |
+| **Component** | `src/components/staff/LiveShiftDuration.tsx` | Component đếm giờ live |
+| **Component** | `src/components/staff/ShiftSettingsPanel.tsx` | Form cài đặt |
+| **Sửa** | `src/components/staff/ShiftHistoryTab.tsx` | Tích hợp 2 panel mới |
+| **Migration** | `xxx_shift_reminders.sql` | Tạo bảng reminders |
+| **Edge Function** | `supabase/functions/check-shift-overtime` | Cron job nhắc nhở |
+| **Cron** | SQL INSERT | Lên lịch chạy mỗi 30 phút |
+
+---
+
+### LUỒNG HOẠT ĐỘNG
+
+```text
+┌──────────────────────────────────────────────────────────────────────────┐
+│                      SHIFT REMINDER FLOW                                 │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   Cron Job (mỗi 30 phút)                                                │
+│   ┌────────────────┐                                                    │
+│   │ pg_cron        │────▶ Edge Function: check-shift-overtime           │
+│   └────────────────┘                                                    │
+│                            │                                             │
+│                            ▼                                             │
+│   ┌─────────────────────────────────────────────────────────────┐       │
+│   │ 1. Query staff_status WHERE isOnShift AND duration > 10h    │       │
+│   │ 2. Check shift_reminders để tránh gửi trùng                 │       │
+│   │ 3. Gửi Push + Telegram cho từng nhân viên                   │       │
+│   │ 4. INSERT vào shift_reminders                               │       │
+│   └─────────────────────────────────────────────────────────────┘       │
+│                            │                                             │
+│                            ▼                                             │
+│   ┌────────────────┐  ┌────────────────┐                                │
+│   │ Push Notif     │  │ Telegram Bot   │                                │
+│   │ "Nhắc nhở:     │  │ "⚠️ Bạn đã    │                                │
+│   │ Bạn đã làm     │  │ làm việc 10h,  │                                │
+│   │ 10h, kết thúc  │  │ nhớ kết thúc   │                                │
+│   │ ca nhé!"       │  │ ca!"           │                                │
+│   └────────────────┘  └────────────────┘                                │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ### KẾT QUẢ MONG ĐỢI
 
-1. **Trigger hoạt động đúng** - không lỗi khi log hotel_id
-2. **UI cập nhật realtime** sau khi check-out
-3. **Không mất dữ liệu ca** khi nhân viên quên check-out
+1. **Realtime tracking** - Quản lý thấy ngay ai đang trong ca, làm được bao lâu
+2. **Live timer** - Thời gian cập nhật liên tục, không cần refresh
+3. **Cảnh báo trực quan** - Màu sắc phân biệt tình trạng làm việc
+4. **Nhắc nhở tự động** - Không để nhân viên quên kết thúc ca
+5. **Cài đặt linh hoạt** - Mỗi tenant có thể tùy chỉnh theo nhu cầu
 
