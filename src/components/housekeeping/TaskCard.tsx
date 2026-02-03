@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils'
 import { useUpdateTaskStatus, useClaimTask } from '@/hooks/useHousekeepingTasks'
 import { useDeliveryTaskItems } from '@/hooks/useDeliveryTaskItems'
 import { DeliveryConfirmationModal } from './DeliveryConfirmationModal'
+import { CleaningCompleteDialog } from '@/components/rooms/CleaningCompleteDialog'
 import type { HousekeepingTaskWithDetails, TaskType, TaskPriority } from '@/types/housekeeping.types'
 import { TASK_TYPE_LABELS, PRIORITY_LABELS, PRIORITY_COLORS } from '@/types/housekeeping.types'
 
@@ -52,11 +53,13 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
   const navigate = useNavigate()
   const [isUpdating, setIsUpdating] = useState(false)
   const [showDeliveryModal, setShowDeliveryModal] = useState(false)
+  const [showCleaningComplete, setShowCleaningComplete] = useState(false)
   const { mutateAsync: updateStatus } = useUpdateTaskStatus()
   const { mutateAsync: claimTask, isPending: isClaiming } = useClaimTask()
 
   // Fetch delivery items if this is a delivery confirmation task
   const isDeliveryTask = task.task_type === 'delivery_confirmation'
+  const isCleaningTask = task.task_type === 'cleaning'
   const { data: deliveryData } = useDeliveryTaskItems(
     isDeliveryTask ? task.distribution_order_room_id : null
   )
@@ -86,9 +89,25 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
   }
 
   const handleComplete = async () => {
+    // For cleaning tasks, show dialog to choose: mark ready or check first
+    if (isCleaningTask) {
+      setShowCleaningComplete(true)
+      return
+    }
+    
     setIsUpdating(true)
     try {
       await updateStatus({ taskId: task.id, status: 'completed' })
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleCleaningCompleted = async () => {
+    setIsUpdating(true)
+    try {
+      await updateStatus({ taskId: task.id, status: 'completed' })
+      setShowCleaningComplete(false)
     } finally {
       setIsUpdating(false)
     }
@@ -293,6 +312,17 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
           roomNumber={task.room?.room_number || ''}
           orderCode={deliveryData.orderCode}
           items={deliveryData.items}
+        />
+      )}
+
+      {/* Cleaning Complete Dialog */}
+      {isCleaningTask && task.room && (
+        <CleaningCompleteDialog
+          open={showCleaningComplete}
+          onOpenChange={setShowCleaningComplete}
+          roomId={task.room_id}
+          roomNumber={task.room.room_number}
+          onComplete={handleCleaningCompleted}
         />
       )}
     </>

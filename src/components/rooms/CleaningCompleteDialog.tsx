@@ -21,6 +21,7 @@ interface CleaningCompleteDialogProps {
   onOpenChange: (open: boolean) => void
   roomId: string
   roomNumber: string
+  onComplete?: () => void // Callback when cleaning is completed
 }
 
 export function CleaningCompleteDialog({
@@ -28,6 +29,7 @@ export function CleaningCompleteDialog({
   onOpenChange,
   roomId,
   roomNumber,
+  onComplete,
 }: CleaningCompleteDialogProps) {
   const navigate = useNavigate()
   const [option, setOption] = useState<'direct' | 'check'>('direct')
@@ -43,10 +45,12 @@ export function CleaningCompleteDialog({
     if (option === 'check') {
       // Navigate to room check page with daily check type
       onOpenChange(false)
+      onComplete?.() // Call callback before navigating
       navigate(`/rooms/${roomId}/check?type=daily`)
     } else {
       // Mark room as ready directly
       await markRoomReady.mutateAsync({ roomId, skipCheck: true })
+      onComplete?.() // Call callback after marking ready
       onOpenChange(false)
     }
   }
