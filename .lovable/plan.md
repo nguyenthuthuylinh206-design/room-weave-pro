@@ -1,143 +1,248 @@
 
 
-## Kế hoạch: Hoàn thiện logic Xác nhận nhận hàng (Delivery Confirmation)
+## Kế hoạch: Kiểm tra và hoàn thiện logic cho tất cả loại công việc Housekeeping
 
-### VẤN ĐỀ HIỆN TẠI
+### TỔNG QUAN 6 LOẠI CÔNG VIỆC
 
-| Vấn đề | Mô tả |
-|--------|-------|
-| Flow 2 bước thừa | Bấm "Bắt đầu" chỉ update status, phải bấm thêm lần nữa để mở modal xác nhận |
-| Không nhất quán | `checkout_inspection` auto-navigate, nhưng `delivery_confirmation` thì không |
-| Lý do từ chối bị mất | Khi báo thiếu hàng, `rejectReason` không được lưu vào notes |
-| Thiếu thông báo | Manager không được thông báo khi nhân viên báo thiếu hàng |
-
----
-
-### GIẢI PHÁP
-
-#### 1. Mở modal xác nhận ngay khi bấm "Bắt đầu" cho delivery task
-
-**File**: `src/components/housekeeping/TaskCard.tsx` và `TaskDetailDialog.tsx`
-
-```tsx
-// TRƯỚC (TaskCard.tsx - handleStart):
-const handleStart = async () => {
-  await updateStatus({ taskId: task.id, status: 'in_progress' })
-  
-  if (task.task_type === 'checkout_inspection') {
-    navigate(`/rooms/${task.room_id}/check?type=checkout...`)
-  }
-  // delivery_confirmation: chỉ update status, không làm gì thêm
-}
-
-// SAU:
-const handleStart = async () => {
-  await updateStatus({ taskId: task.id, status: 'in_progress' })
-  
-  if (task.task_type === 'checkout_inspection') {
-    navigate(`/rooms/${task.room_id}/check?type=checkout...`)
-  } else if (task.task_type === 'delivery_confirmation') {
-    // Mở modal xác nhận ngay sau khi start
-    setShowDeliveryModal(true)
-  }
-}
-```
-
-Áp dụng tương tự cho `TaskDetailDialog.tsx`.
+| Task Type | Tên hiển thị | Trạng thái hiện tại |
+|-----------|--------------|---------------------|
+| `checkout_inspection` | Kiểm tra checkout | ✅ **Có logic đầy đủ** - Auto navigate đến `/rooms/{id}/check?type=checkout` |
+| `cleaning` | Dọn phòng | ⚠️ **Thiếu logic** - Chỉ có nút "Hoàn thành" đơn giản |
+| `delivery_confirmation` | Xác nhận nhận hàng | ✅ **Đã fix** - Auto mở modal xác nhận |
+| `checkin_prep` | Chuẩn bị check-in | ❌ **Không có logic** - Chỉ có nút "Hoàn thành" |
+| `amenity_request` | Bổ sung đồ dùng | ❌ **Không có logic** - Chỉ có nút "Hoàn thành" |
+| `other` | Khác | ⚠️ **OK** - Generic, chỉ cần "Hoàn thành" |
 
 ---
 
-#### 2. Lưu lý do từ chối vào notes khi báo thiếu hàng
+### CHI TIẾT VẤN ĐỀ TỪNG LOẠI
 
-**File**: `src/components/housekeeping/DeliveryConfirmationModal.tsx`
+#### 1. CLEANING (Dọn phòng) - CẦN CẢI THIỆN
 
-```tsx
-// TRƯỚC:
-const handleReject = async () => {
-  await updateTaskStatus({ taskId, status: 'cancelled' })  // Không lưu reason
-}
+**Hiện tại:**
+- Bấm "Bắt đầu" → Chỉ update status thành `in_progress`
+- Bấm "Hoàn thành" → Update status thành `completed`
+- **KHÔNG** update trạng thái phòng từ `cleaning` → `vacant`
+- **KHÔNG** có checklist hay quy trình cụ thể
 
-// SAU:
-const handleReject = async () => {
-  // 1. Update task với notes chứa lý do từ chối
-  await updateTaskWithNotes({ 
-    taskId, 
-    status: 'cancelled',
-    notes: `Thiếu hàng: ${rejectReason.trim()}`
-  })
-  
-  // 2. Gửi thông báo cho manager (tùy chọn)
-  // triggerDeliveryRejectNotification(...)
-}
-```
-
-**Cập nhật hook** `useUpdateTaskStatus` hoặc tạo mutation mới để hỗ trợ lưu notes.
+**Nên có:**
+- Khi hoàn thành, **tự động update room.status = 'vacant'**
+- Hoặc navigate đến flow kiểm tra phòng (daily check) trước khi mở phòng
+- Liên kết với `CleaningCompleteDialog` đã có sẵn
 
 ---
 
-#### 3. (Tùy chọn) Gửi thông báo khi báo thiếu hàng
+#### 2. CHECKIN_PREP (Chuẩn bị check-in) - CẦN XÂY DỰNG
 
-Khi nhân viên báo thiếu hàng, trigger workflow/notification cho manager biết.
+**Hiện tại:**
+- Bấm "Hoàn thành" → Chỉ update status
+- Không có logic thực sự
+
+**Nên có:**
+- Checklist các việc cần chuẩn bị (dựa trên room template)
+- Kiểm tra phòng đủ đồ dùng (`room_items`)
+- Có thể navigate đến form kiểm tra checkin hoặc hiển thị modal checklist
 
 ---
 
-### FLOW SAU KHI SỬA
+#### 3. AMENITY_REQUEST (Bổ sung đồ dùng) - CẦN XÂY DỰNG
 
+**Hiện tại:**
+- Bấm "Hoàn thành" → Chỉ update status
+- Không biết cần bổ sung những gì
+
+**Nên có:**
+- Hiển thị danh sách đồ cần bổ sung (từ `description` hoặc link tới `room_items` thiếu)
+- Khi hoàn thành, **cập nhật `room_items`** để ghi nhận đã bổ sung
+- Hoặc navigate đến trang bổ sung đồ dùng
+
+---
+
+### GIẢI PHÁP ĐỀ XUẤT
+
+#### Phương án 1: Quick Fix - Cải thiện flow Cleaning
+
+**Thay đổi:**
+1. Khi bấm "Hoàn thành" task `cleaning`:
+   - Mở `CleaningCompleteDialog` (đã có sẵn)
+   - Cho phép user chọn: "Mở phòng ngay" hoặc "Kiểm tra trước"
+   - Update task status + room status
+
+**File cần sửa:**
+- `TaskCard.tsx` - Thêm logic mở dialog khi complete cleaning task
+- `TaskDetailDialog.tsx` - Tương tự
+
+---
+
+#### Phương án 2: Full Implementation - Xây dựng đầy đủ logic
+
+##### A. CLEANING Task
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                    DELIVERY CONFIRMATION TASK                   │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│              CLEANING TASK                  │
+└─────────────────────────────────────────────┘
+                    │
+                    ▼
+          [Bấm "Bắt đầu"]
+                    │
+                    ▼
+           Status: in_progress
+                    │
+                    ▼
+          [Bấm "Hoàn thành"]
+                    │
+        ┌───────────┴───────────┐
+        │                       │
+        ▼                       ▼
+  [Mở phòng ngay]         [Kiểm tra trước]
+        │                       │
+        ▼                       ▼
+  room.status = vacant    Navigate to /rooms/{id}/check?type=daily
+        │                       │
+        ▼                       ▼
+  Task completed          Task updated với room_check_id
+```
 
-                     [Task đang PENDING]
-                            │
-                            ▼
-        ┌───────────────────────────────────────┐
-        │  Bấm "Bắt đầu thực hiện"              │
-        └───────────────────────────────────────┘
-                            │
-        ┌───────────────────┼───────────────────┐
-        │                   │                   │
-        ▼                   ▼                   ▼
-  Update status       Mở modal             [Không cần
-  → in_progress       xác nhận              bấm thêm]
-                          │
-          ┌───────────────┴───────────────┐
-          │                               │
-          ▼                               ▼
-   [Nhận đủ hàng]                   [Thiếu hàng]
-          │                               │
-          ▼                               ▼
-  confirm_delivery_                 Nhập lý do
-  from_room_check()                       │
-          │                               ▼
-          ▼                         Cancel task
-  Update items                     + Lưu notes
-  → room_items                     + Thông báo
-          │                         manager
-          ▼                               │
-  Complete task                           ▼
-          │                         Task cancelled
-          ▼                         với ghi chú
-  Task completed                    chi tiết
+##### B. CHECKIN_PREP Task
+```text
+┌─────────────────────────────────────────────┐
+│           CHECKIN_PREP TASK                 │
+└─────────────────────────────────────────────┘
+                    │
+                    ▼
+          [Bấm "Bắt đầu"]
+                    │
+        ┌───────────┼───────────┐
+        │           │           │
+        ▼           ▼           ▼
+  Status: in_progress
+                    │
+                    ▼
+  Mở modal/navigate hiển thị checklist:
+  - Danh sách đồ dùng cần có trong phòng
+  - Tick từng item đã chuẩn bị xong
+                    │
+                    ▼
+  [Hoàn thành checklist]
+                    │
+                    ▼
+  Task completed
+  → Room status = ready / waiting_checkin
+```
+
+##### C. AMENITY_REQUEST Task
+```text
+┌─────────────────────────────────────────────┐
+│          AMENITY_REQUEST TASK               │
+└─────────────────────────────────────────────┘
+                    │
+                    ▼
+          [Bấm "Bắt đầu"]
+                    │
+                    ▼
+  Mở modal hiển thị:
+  - Phòng nào?
+  - Thiếu gì? (lấy từ description hoặc room_items)
+                    │
+                    ▼
+  [Nhân viên mang đồ đến phòng]
+                    │
+                    ▼
+  [Bấm "Xác nhận đã bổ sung"]
+                    │
+                    ▼
+  Update room_items.quantity
+  Task completed
 ```
 
 ---
 
-### CHI TIẾT THAY ĐỔI
+### KẾ HOẠCH THỰC HIỆN (Phương án 1 - Quick Fix)
+
+#### File thay đổi:
 
 | File | Thay đổi |
 |------|----------|
-| `src/components/housekeeping/TaskCard.tsx` | Thêm logic mở modal ngay sau khi start delivery task |
-| `src/components/housekeeping/TaskDetailDialog.tsx` | Tương tự như TaskCard |
-| `src/components/housekeeping/DeliveryConfirmationModal.tsx` | Thêm logic lưu notes khi từ chối |
-| `src/hooks/useHousekeepingTasks.ts` | Mở rộng `useUpdateTaskStatus` để hỗ trợ notes |
+| `TaskCard.tsx` | Import `CleaningCompleteDialog`, thêm state + logic mở dialog khi complete cleaning |
+| `TaskDetailDialog.tsx` | Tương tự TaskCard |
+
+#### Chi tiết code:
+
+**TaskCard.tsx / TaskDetailDialog.tsx:**
+```tsx
+// Thêm import
+import { CleaningCompleteDialog } from '@/components/rooms/CleaningCompleteDialog'
+
+// Thêm state
+const [showCleaningComplete, setShowCleaningComplete] = useState(false)
+
+// Sửa handleComplete
+const handleComplete = async () => {
+  // Nếu là cleaning task, mở dialog thay vì complete trực tiếp
+  if (task.task_type === 'cleaning') {
+    setShowCleaningComplete(true)
+    return
+  }
+  
+  // Các task type khác, complete bình thường
+  await updateStatus({ taskId: task.id, status: 'completed' })
+}
+
+// Thêm callback khi cleaning hoàn thành
+const handleCleaningCompleted = async () => {
+  // Dialog đã xử lý room status
+  // Chỉ cần update task status
+  await updateStatus({ taskId: task.id, status: 'completed' })
+  setShowCleaningComplete(false)
+}
+
+// Render dialog
+{task.task_type === 'cleaning' && task.room && (
+  <CleaningCompleteDialog
+    open={showCleaningComplete}
+    onOpenChange={setShowCleaningComplete}
+    roomId={task.room_id}
+    roomNumber={task.room.room_number}
+    onComplete={handleCleaningCompleted}  // Cần thêm prop này vào dialog
+  />
+)}
+```
+
+**CleaningCompleteDialog.tsx - Thêm prop onComplete:**
+```tsx
+interface CleaningCompleteDialogProps {
+  // ... existing props
+  onComplete?: () => void  // Callback sau khi hoàn thành
+}
+
+// Trong handleConfirm, gọi onComplete sau khi xong
+const handleConfirm = async () => {
+  if (option === 'check') {
+    onOpenChange(false)
+    navigate(`/rooms/${roomId}/check?type=daily`)
+  } else {
+    await markRoomReady.mutateAsync({ roomId, skipCheck: true })
+    onComplete?.()  // Gọi callback
+    onOpenChange(false)
+  }
+}
+```
 
 ---
 
-### LỢI ÍCH
+### KẾT QUẢ SAU KHI SỬA
 
-1. **Giảm số bước**: 2 bước → 1 bước cho delivery task
-2. **Nhất quán**: Tất cả task types đều có hành động ngay khi bấm "Bắt đầu"
-3. **Truy xuất được**: Lý do thiếu hàng được lưu lại, dễ theo dõi
-4. **Thông báo realtime**: Manager biết ngay khi có vấn đề về giao hàng
+| Task Type | Flow mới |
+|-----------|----------|
+| `cleaning` | Bắt đầu → Làm → Hoàn thành → **Dialog chọn: Mở phòng/Kiểm tra** → Done |
+| `checkin_prep` | Giữ nguyên (phase 2) |
+| `amenity_request` | Giữ nguyên (phase 2) |
+
+---
+
+### LƯU Ý
+
+- Phương án 1 chỉ fix `cleaning` vì đây là task phổ biến nhất và đã có `CleaningCompleteDialog` sẵn
+- `checkin_prep` và `amenity_request` cần thiết kế UI/UX riêng (phase 2)
+- Có thể mở rộng sau bằng cách tạo modal/flow cho từng loại task
 
