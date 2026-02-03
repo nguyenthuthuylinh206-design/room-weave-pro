@@ -1,145 +1,157 @@
 
 
-## Kế hoạch: Thêm Báo cáo Theo dõi Ca làm việc của Nhân viên
+## Phân tích & Kế hoạch Cải thiện Logic Ca làm việc
 
-### TỔNG QUAN
+### TRẠNG THÁI HIỆN TẠI
 
-Hiện tại hệ thống chỉ lưu trạng thái ca hiện tại (shift_start_at, shift_end_at) trong bảng `staff_status`, nhưng **không lưu lịch sử các ca làm việc**. Khi nhân viên kết thúc ca và bắt đầu ca mới, dữ liệu ca cũ bị ghi đè.
+| Component | Status | Chi tiết |
+|-----------|--------|----------|
+| Bảng `shift_history` | ✅ OK | Đã tạo đúng cấu trúc |
+| Trigger log history | ✅ OK | Enabled và hoạt động |
+| RLS Policies | ✅ OK | Đã cấu hình đúng |
+| useShiftHistory hook | ✅ OK | Query đúng |
+| UI Components | ✅ OK | Hiển thị đúng |
 
-Tính năng mới sẽ:
-- Lưu trữ lịch sử tất cả các ca làm việc
-- Hiển thị báo cáo thống kê giờ làm theo ngày/tuần/tháng
-- Cho phép quản lý xem chi tiết ca của từng nhân viên
+**Lý do bảng trống:** Chưa có nhân viên nào hoàn thành ca làm việc (ấn "Kết thúc ca") kể từ khi tính năng được deploy.
 
 ---
 
-### SƠ ĐỒ LUỒNG DỮ LIỆU
+### VẤN ĐỀ TIỀM ẨN CẦN SỬA
 
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          SHIFT TRACKING FLOW                            │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│   Nhân viên ấn "Vào ca"          Nhân viên ấn "Kết thúc ca"            │
-│   ┌───────────────────┐          ┌───────────────────┐                 │
-│   │ staff_status      │          │ staff_status      │                 │
-│   │ shift_start_at=NOW│          │ shift_end_at=NOW  │                 │
-│   └───────────────────┘          └─────────┬─────────┘                 │
-│                                            │                            │
-│                                            ▼                            │
-│                                  ┌───────────────────┐                 │
-│                                  │    TRIGGER        │                 │
-│                                  │ log_shift_history │                 │
-│                                  └─────────┬─────────┘                 │
-│                                            │                            │
-│                                            ▼                            │
-│                                  ┌───────────────────┐                 │
-│                                  │  shift_history    │                 │
-│                                  │  (bảng mới)       │                 │
-│                                  │  - user_id        │                 │
-│                                  │  - start_at       │                 │
-│                                  │  - end_at         │                 │
-│                                  │  - duration_mins  │                 │
-│                                  └───────────────────┘                 │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+#### Vấn đề 1: Trigger không log hotel_id chính xác
+
+**Trigger hiện tại:**
+```sql
+hotel_id,
+...
+NEW.current_location,  -- ❌ current_location là TEXT, không phải UUID
+```
+
+**Vấn đề:** 
+- `current_location` trong `staff_status` là kiểu `TEXT` (ví dụ: "Phòng 101", "Sảnh chính")
+- `hotel_id` trong `shift_history` là kiểu `UUID`
+- Điều này sẽ gây lỗi khi trigger chạy nếu `current_location` không phải là UUID hợp lệ
+
+**Giải pháp:** Lấy `hotel_id` từ bảng `users` thay vì dùng `current_location`:
+```sql
+(SELECT hotel_id FROM users WHERE id = NEW.user_id),
 ```
 
 ---
 
-### PHẦN 1: DATABASE
+#### Vấn đề 2: Không invalidate cache shift-history sau check-out
 
-#### 1.1 Tạo bảng `shift_history`
+**File:** `useShiftManagement.ts` - `useShiftCheckOut`
 
-| Cột | Kiểu | Mô tả |
-|-----|------|-------|
-| id | UUID | Primary key |
-| tenant_id | UUID | FK → tenants |
-| user_id | UUID | FK → users |
-| hotel_id | UUID | FK → hotels (nơi làm việc) |
-| start_at | TIMESTAMPTZ | Thời gian bắt đầu ca |
-| end_at | TIMESTAMPTZ | Thời gian kết thúc ca |
-| duration_minutes | INTEGER | Số phút làm việc (computed) |
-| notes | TEXT | Ghi chú (tùy chọn) |
-| created_at | TIMESTAMPTZ | Auto |
-
-#### 1.2 Tạo Trigger tự động log khi kết thúc ca
-
-Khi `staff_status.shift_end_at` được cập nhật và > `shift_start_at`, trigger sẽ tự động INSERT vào `shift_history`.
-
-#### 1.3 RLS Policies
-
-- Quản lý/Owner xem được tất cả ca trong tenant
-- Nhân viên chỉ xem được ca của chính mình
-
----
-
-### PHẦN 2: UI - TAB "CA LÀM VIỆC" MỚI
-
-#### 2.1 Thêm Tab vào StaffManagementPage
-
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│  Quản lý Nhân sự                                          12 nhân viên  │
-├─────────────────────────────────────────────────────────────────────────┤
-│  [Danh sách]  [Hoạt động]  [Công việc]  [CA LÀM VIỆC ←NEW]             │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│   Bộ lọc: [Chọn nhân viên ▼] [Ngày từ] [Đến ngày] [Lọc]                │
-│                                                                         │
-│   ┌─────────────────────────────────────────────────────────────────┐  │
-│   │ Thống kê tuần này                                               │  │
-│   │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐            │  │
-│   │ │ 45 ca    │ │ 320 giờ  │ │ 7.1 giờ  │ │ 12 NV    │            │  │
-│   │ │ Tổng ca  │ │ Tổng giờ │ │ TB/ca    │ │ Có đi ca │            │  │
-│   │ └──────────┘ └──────────┘ └──────────┘ └──────────┘            │  │
-│   └─────────────────────────────────────────────────────────────────┘  │
-│                                                                         │
-│   ┌─────────────────────────────────────────────────────────────────┐  │
-│   │ Nhân viên        │ Ngày       │ Vào ca  │ Ra ca   │ Thời gian  │  │
-│   ├─────────────────────────────────────────────────────────────────┤  │
-│   │ Nguyễn Văn A     │ 03/02/2026 │ 08:00   │ 17:30   │ 9h 30m     │  │
-│   │ Trần Thị B       │ 03/02/2026 │ 07:45   │ 16:00   │ 8h 15m     │  │
-│   │ Lê Văn C         │ 02/02/2026 │ 14:00   │ 22:00   │ 8h 00m     │  │
-│   └─────────────────────────────────────────────────────────────────┘  │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+**Hiện tại:**
+```typescript
+onSuccess: () => {
+  queryClient.invalidateQueries({ queryKey: ['my-staff-status'] })
+  queryClient.invalidateQueries({ queryKey: ['staff-status'] })
+  // ❌ Thiếu invalidate shift-history
+}
 ```
 
-#### 2.2 Tính năng bao gồm:
-
-| Tính năng | Mô tả |
-|-----------|-------|
-| **Bộ lọc** | Theo nhân viên, khoảng thời gian |
-| **Thống kê tổng quan** | Tổng ca, tổng giờ, trung bình/ca, số NV đi ca |
-| **Bảng chi tiết** | Danh sách từng ca với thông tin đầy đủ |
-| **Export** | Xuất Excel (tùy chọn - phase 2) |
+**Giải pháp:** Thêm invalidate để UI cập nhật realtime:
+```typescript
+queryClient.invalidateQueries({ queryKey: ['shift-history'] })
+```
 
 ---
 
-### PHẦN 3: CẬP NHẬT LOGIC CHECK-OUT
+#### Vấn đề 3: Không xử lý edge case khi check-in liên tiếp
 
-Khi nhân viên kết thúc ca, ngoài việc cập nhật `staff_status`, hệ thống cũng ghi vào `shift_history` (thông qua trigger).
+**Kịch bản lỗi:**
+1. Nhân viên check-in lúc 8:00 (`shift_start_at = 8:00`)
+2. Quên check-out, về nhà
+3. Hôm sau check-in lại lúc 8:00 (`shift_start_at = 8:00 mới` → ghi đè)
+4. **Kết quả:** Ca hôm trước KHÔNG được ghi vào history (vì không bao giờ update `shift_end_at`)
+
+**Giải pháp:** Trong `useShiftCheckIn`, kiểm tra nếu đang có ca chưa kết thúc, tự động kết thúc ca cũ trước:
+```typescript
+// Nếu có shift_start_at > shift_end_at, gọi check-out trước
+if (existingStatus?.shift_start_at && 
+    (!existingStatus.shift_end_at || 
+     new Date(existingStatus.shift_start_at) > new Date(existingStatus.shift_end_at))) {
+  // Auto check-out ca cũ
+}
+```
 
 ---
 
-### FILES CẦN TẠO/SỬA
+### KẾ HOẠCH SỬA LỖI
 
-| Loại | File | Mô tả |
-|------|------|-------|
-| **Migration** | `supabase/migrations/xxx_shift_history.sql` | Tạo bảng, trigger, RLS |
-| **Hook** | `src/hooks/useShiftHistory.ts` | Query lịch sử ca |
-| **Component** | `src/components/staff/ShiftHistoryTab.tsx` | Tab hiển thị báo cáo |
-| **Component** | `src/components/staff/ShiftHistoryStats.tsx` | Cards thống kê |
-| **Component** | `src/components/staff/ShiftHistoryTable.tsx` | Bảng chi tiết |
-| **Sửa** | `src/pages/staff/StaffManagementPage.tsx` | Thêm tab mới |
+#### Bước 1: Sửa Trigger (Database Migration)
+
+Cập nhật trigger để lấy đúng `hotel_id`:
+```sql
+CREATE OR REPLACE FUNCTION public.log_shift_history()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_hotel_id UUID;
+BEGIN
+  IF NEW.shift_end_at IS NOT NULL 
+     AND OLD.shift_end_at IS DISTINCT FROM NEW.shift_end_at
+     AND NEW.shift_start_at IS NOT NULL
+     AND NEW.shift_end_at > NEW.shift_start_at
+  THEN
+    -- Lấy hotel_id từ bảng users
+    SELECT hotel_id INTO v_hotel_id 
+    FROM public.users 
+    WHERE id = NEW.user_id;
+
+    INSERT INTO public.shift_history (
+      tenant_id, user_id, hotel_id, start_at, end_at, notes
+    ) VALUES (
+      NEW.tenant_id,
+      NEW.user_id,
+      v_hotel_id,  -- Sửa: dùng hotel_id từ users
+      NEW.shift_start_at,
+      NEW.shift_end_at,
+      NULL
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$;
+```
+
+#### Bước 2: Invalidate cache sau check-out
+
+**File:** `src/hooks/useShiftManagement.ts`
+
+Thêm vào `onSuccess` của `useShiftCheckOut`:
+```typescript
+queryClient.invalidateQueries({ queryKey: ['shift-history'] })
+```
+
+#### Bước 3: Xử lý ca cũ chưa đóng (Enhancement)
+
+**File:** `src/hooks/useShiftManagement.ts`
+
+Trong `useShiftCheckIn`, thêm logic:
+1. Kiểm tra nếu đang có ca cũ chưa kết thúc
+2. Tự động set `shift_end_at` = thời điểm hiện tại cho ca cũ (trigger sẽ log)
+3. Sau đó mới tạo ca mới
+
+---
+
+### FILES CẦN SỬA
+
+| Thứ tự | File | Thay đổi |
+|--------|------|----------|
+| 1 | Database Migration | Sửa trigger lấy đúng hotel_id |
+| 2 | `src/hooks/useShiftManagement.ts` | Thêm invalidate cache + xử lý ca cũ |
 
 ---
 
 ### KẾT QUẢ MONG ĐỢI
 
-1. **Lưu trữ đầy đủ** lịch sử tất cả các ca làm việc
-2. **Thống kê trực quan** giờ làm của nhân viên theo ngày/tuần/tháng
-3. **Báo cáo dễ đọc** với bộ lọc linh hoạt
-4. **Tự động log** khi nhân viên kết thúc ca (không cần thao tác thủ công)
+1. **Trigger hoạt động đúng** - không lỗi khi log hotel_id
+2. **UI cập nhật realtime** sau khi check-out
+3. **Không mất dữ liệu ca** khi nhân viên quên check-out
 
