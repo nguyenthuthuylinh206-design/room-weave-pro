@@ -1,154 +1,214 @@
 
-## Kế hoạch: Đổi Room Check sang phân loại theo Danh mục (Category)
+## Kế hoạch: Cải thiện UI Room Check - Dễ thao tác, Dễ nhìn, Gọn gàng
 
-### PHÂN TÍCH HIỆN TẠI
+### PHÂN TÍCH VẤN ĐỀ HIỆN TẠI
 
-**Cấu trúc hiện tại của ItemsCheckStep:**
-```
-Tab Item Type (level 1)
-├── Đồ vải (linen)     → GroupByCategory → Ẩm thực, Phòng tắm, Đồ vải...
-├── Tiêu hao (consumable) → GroupByCategory
-├── Thiết bị (equipment)  → GroupByCategory  
-└── Nội thất (furniture)  → GroupByCategory
-```
+Sau khi kiểm tra code, tôi phát hiện các vấn đề sau:
 
-**Cấu trúc mong muốn (giống Items page):**
-```
-Tab Category (level 1)
-├── Ẩm thực      → All items in category (mixed linen/consumable)
-├── Điện tử      → All items in category
-├── Phòng khách  → All items in category (mixed types)
-├── Phòng tắm    → All items in category (mixed types)
-├── Đồ vải       → All items in category
-└── ...
-```
+#### 1. **CategoryItemRow.tsx - Quá phức tạp**
+- Badge item_type hiển thị dưới tên item → Chiếm thêm không gian dọc
+- Actions buttons (Giặt, Đổi, Thêm) nhỏ và khó bấm trên mobile
+- Expanded form cho Lost/Damaged quá dài và phức tạp
+- Status indicator circle quá nhỏ (w-5 h-5)
 
-### VẤN ĐỀ CẦN GIẢI QUYẾT
+#### 2. **CategoryBasedItemsCheck.tsx - Tabs navigation chưa tối ưu**
+- TabsList có `flex-wrap` → Trên mobile có thể bị wrap nhiều dòng
+- Sticky header có quá nhiều thông tin nhỏ lẻ
+- Progress summary (giặt, mất, hỏng) bị dính sát nhau, khó đọc
 
-1. **Actions phụ thuộc item_type**: 
-   - Linen: Giặt, Đổi, Thêm, Mất
-   - Consumable: Đã dùng, Cần bổ sung
-   - Equipment: Hỏng, Mất
-   - Furniture: Hỏng, Mất
-   
-2. **Khi tab theo Category**: Một category có thể chứa nhiều item_type khác nhau (VD: "Phòng tắm" có cả consumable và linen)
+#### 3. **Thiếu nhất quán giữa item types**
+- `ConsumableTab` sử dụng Card layout với thumbnail
+- `CategoryItemRow` sử dụng compact row layout
+- → Khi gộp theo Category, trải nghiệm UI không đồng nhất
 
-3. **UI phức tạp hơn**: Trong cùng một category, các items khác type cần hiển thị actions khác nhau
-
-### GIẢI PHÁP ĐỀ XUẤT
-
-#### Phương án A: Tab Category + Actions động theo item_type (KHUYẾN NGHỊ)
-
-Tab chính theo Category, nhưng mỗi item hiển thị actions phù hợp với `item_type` của nó:
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│ Room Check                                                      │
-├─────────────────────────────────────────────────────────────────┤
-│ [Tất cả 12] [Ẩm thực 3] [Phòng tắm 5] [Điện tử 4]               │
-├─────────────────────────────────────────────────────────────────┤
-│ ▼ Phòng tắm (5 items)                                          │
-│   ┌─────────────────────────────────────────────────────┐      │
-│   │ 🧴 Dầu gội         [consumable] [Đã dùng] [Bổ sung] │      │
-│   │ 🧴 Sữa tắm         [consumable] [Đã dùng] [Bổ sung] │      │
-│   │ 🧺 Khăn tắm lớn    [linen]      [OK] [Giặt] [Đổi]   │      │
-│   │ 🧺 Khăn mặt        [linen]      [OK] [Giặt] [Đổi]   │      │
-│   │ 🔧 Giá treo khăn   [equipment]  [OK] [Hỏng] [Mất]   │      │
-│   └─────────────────────────────────────────────────────┘      │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Ưu điểm:**
-- Giống cấu trúc Items page - nhất quán UX
-- Actions vẫn đúng theo loại đồ dùng
-- Dễ tìm kiếm theo danh mục quen thuộc
-
-**Nhược điểm:**
-- Một category có thể có nhiều loại actions khác nhau
-
-#### Phương án B: Giữ Tab Item Type, fix data
-
-Giữ nguyên cấu trúc tabs theo item_type, nhưng:
-1. Fix 70 items đang bị phân loại sai
-2. Đồng bộ tất cả items về đúng category.default_item_type
+#### 4. **Mobile UX issues**
+- Không có touch feedback rõ ràng khi tap
+- Actions buttons quá nhỏ cho ngón tay
+- Expanded forms khó cuộn trong danh sách dài
 
 ---
 
-### KẾ HOẠCH TRIỂN KHAI (Phương án A)
+### KẾ HOẠCH CẢI THIỆN
 
-#### 1. Database: Fix data items (ưu tiên)
+#### Phần 1: Đơn giản hóa CategoryItemRow
 
-```sql
--- Đồng bộ tất cả items về đúng category.default_item_type
-UPDATE items i
-SET item_type = ic.default_item_type::item_type,
-    updated_at = NOW()
-FROM item_categories ic
-WHERE i.category_id = ic.id
-  AND ic.default_item_type IS NOT NULL
-  AND i.item_type::TEXT != ic.default_item_type;
+**Thay đổi:**
+
+```text
+TRƯỚC:
+┌──────────────────────────────────────────┐
+│ ○ Khăn tắm lớn              ×2           │
+│   [Đồ vải]                  [Giặt][Đổi]  │
+└──────────────────────────────────────────┘
+
+SAU:
+┌──────────────────────────────────────────────────┐
+│ ● Khăn tắm lớn ×2    [Giặt] [Đổi] [Thêm] [Mất]  │
+└──────────────────────────────────────────────────┘
 ```
 
-#### 2. Tạo Component mới: CategoryBasedItemsCheck
+- **Bỏ badge item_type** - Không cần vì đã phân theo Category
+- **Một dòng duy nhất** - Tên + số lượng + actions ngang hàng
+- **Status indicator lớn hơn** (w-6 h-6) với hiệu ứng rõ ràng
+- **Touch target tối thiểu 44px** cho buttons
 
-```typescript
-// src/components/rooms/check-steps/CategoryBasedItemsCheck.tsx
+#### Phần 2: Tối ưu Tabs Navigation
 
-// Thay vì tabs theo item_type, tabs theo category
-// Trong mỗi category, render items với actions động theo item_type
+**Thay đổi:**
+
+```text
+TRƯỚC:
+┌───────────────────────────────────────────────────┐
+│ [Tất cả 12] [Ẩm thực 3] [Phòng tắm 5] [Điện tử 4]│ ← Wrap nhiều dòng
+├───────────────────────────────────────────────────┤
+
+SAU:
+┌───────────────────────────────────────────────────┐
+│ ← [Ẩm thực] [Phòng tắm ✓] [Điện tử] [Đồ vải] →   │ ← Horizontal scroll
+├───────────────────────────────────────────────────┤
+│ 5/12 ━━━━━━━━━━○ 2 giặt • 1 mất                  │ ← Progress riêng
+└───────────────────────────────────────────────────┘
 ```
 
-#### 3. Cập nhật ItemsCheckStep
+- **Horizontal scroll** cho tabs thay vì wrap
+- **Progress bar riêng biệt** bên dưới tabs
+- **Hiển thị checkmark ✓** khi category hoàn thành
+- **Badge số lượng nhỏ gọn** - Không cần badge "Tất cả"
 
-```typescript
-// Thay đổi logic tabs
-// Từ: ['linen', 'consumable', 'equipment', 'furniture']
-// Sang: [categories từ items trong phòng]
+#### Phần 3: Cải thiện Actions UI
 
-// Mỗi item render actions dựa vào item.item_type
-const getActionsForItem = (item) => {
-  switch (item.item_type) {
-    case 'linen': return ['ok', 'laundry', 'change', 'add', 'lost']
-    case 'consumable': return ['ok', 'used', 'refill']
-    case 'equipment': return ['ok', 'damaged', 'lost']
-    case 'furniture': return ['ok', 'damaged', 'lost']
-  }
-}
+**Cho Linen (Đồ vải):**
+
+```text
+┌──────────────────────────────────────────────────┐
+│ ● Khăn tắm lớn ×2                                │
+│   ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐               │
+│   │ Giặt │ │ Đổi  │ │ Thêm │ │ Mất │               │
+│   └─────┘ └─────┘ └─────┘ └─────┘               │
+│                                                  │
+│   ▼ Số lượng: [-] 2 [+]  [Kho: 5]  [Xong]       │ ← Expanded inline
+└──────────────────────────────────────────────────┘
 ```
 
-#### 4. Files cần sửa
+- **Icon + Label** cho mỗi action button
+- **Inline quantity selector** khi bấm action
+- **Không cần confirm step** cho laundry/add/change
+
+**Cho Consumable (Tiêu hao):**
+
+```text
+┌──────────────────────────────────────────────────┐
+│ ● Dầu gội                   [Đủ] [Thiếu]        │
+└──────────────────────────────────────────────────┘
+```
+
+- **2 buttons đơn giản**: Đủ hoặc Thiếu
+- **Không cần quantity** - Mặc định thiếu = cần bổ sung
+
+**Cho Equipment/Furniture:**
+
+```text
+┌──────────────────────────────────────────────────┐
+│ ● TV 55 inch                [OK] [Hỏng] [Mất]   │
+└──────────────────────────────────────────────────┘
+```
+
+- **3 buttons**: OK, Hỏng (cần form), Mất (cần form)
+
+#### Phần 4: Compact Sticky Header
+
+```text
+┌───────────────────────────────────────────────────┐
+│ ✓ 8/12 ━━━━━━━━━━━━━━━━━━━━━━━━●                 │
+│ 2 giặt  •  1 mất  •  1 hỏng     [Tất cả OK]     │
+└───────────────────────────────────────────────────┘
+```
+
+- **Progress bar lớn hơn** (h-2 thay vì h-1.5)
+- **Summary dễ đọc hơn** với separator •
+- **Button "Tất cả OK" nổi bật** khi còn items pending
+
+---
+
+### FILES CẦN SỬA
 
 | File | Thay đổi |
 |------|----------|
-| `ItemsCheckStep.tsx` | Đổi tabs từ item_type sang category |
-| `item-type-tabs/index.ts` | Có thể reuse hoặc tạo CategoryItemRow mới |
-| `useCategories.ts` | Đảm bảo trả về categories có items trong phòng |
+| `CategoryItemRow.tsx` | Bỏ item_type badge, tăng touch target, đơn giản hóa layout |
+| `CategoryBasedItemsCheck.tsx` | Horizontal scroll tabs, tách progress header |
+| `BulkActionsHeader.tsx` | Progress bar lớn hơn, summary rõ ràng hơn |
+| `CategoryGroup.tsx` | Giảm padding header, tăng touch feedback |
 
 ---
 
-### SO SÁNH 2 PHƯƠNG ÁN
+### CHI TIẾT CẢI THIỆN CategoryItemRow
 
-| Tiêu chí | Phương án A (Tab Category) | Phương án B (Tab Item Type) |
-|----------|---------------------------|----------------------------|
-| UX nhất quán với Items page | ✅ Có | ❌ Không |
-| Logic actions | Động theo item_type | Cố định theo tab |
-| Độ phức tạp code | Trung bình | Thấp |
-| Dễ tìm items | ✅ Theo danh mục quen thuộc | Cần nhớ loại đồ dùng |
-| Xử lý mixed types | ✅ Tự nhiên | Khó khăn |
+**Trước:**
+```tsx
+// Row chứa badge item_type - chiếm 2 dòng
+<div className="flex items-center gap-2">
+  <span className="text-sm truncate">{item.item_name}</span>
+</div>
+<Badge variant="outline" className="...">
+  {ITEM_TYPE_LABELS[itemType]}
+</Badge>
+```
+
+**Sau:**
+```tsx
+// Row đơn giản - 1 dòng duy nhất
+<div className="flex items-center gap-2 flex-1 min-w-0">
+  <span className="text-sm font-medium truncate">{item.item_name}</span>
+  {standardQuantity > 1 && (
+    <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+      ×{standardQuantity}
+    </span>
+  )}
+</div>
+```
 
 ---
 
-### KẾT LUẬN
+### CHI TIẾT CẢI THIỆN Tabs Navigation
 
-**Khuyến nghị: Phương án A** - Tab theo Category
+**Trước:**
+```tsx
+<TabsList className="h-auto w-full flex-wrap justify-start gap-0.5 bg-transparent p-0">
+```
 
-Lý do:
-1. **Nhất quán với Items page** - User đã quen cách phân loại này
-2. **Tự nhiên hơn** - "Tìm trong Phòng tắm" dễ hơn "Tìm đồ vải"
-3. **Linh hoạt** - Actions vẫn đúng theo từng loại đồ dùng
-4. **Giải quyết tận gốc** - Không cần lo về việc items bị xếp sai tab
+**Sau:**
+```tsx
+<div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
+  <TabsList className="inline-flex gap-1 bg-transparent p-0 min-w-max">
+    {/* Tabs với horizontal scroll */}
+  </TabsList>
+</div>
+```
 
-**Bước tiếp theo:**
-1. Fix data: Đồng bộ 70 items về đúng category default
-2. Cập nhật ItemsCheckStep để tabs theo category thay vì item_type
-3. Mỗi item row hiển thị actions động dựa vào item_type của nó
+---
+
+### KẾT QUẢ MONG ĐỢI
+
+| Tiêu chí | Trước | Sau |
+|----------|-------|-----|
+| Số dòng mỗi item | 2-3 dòng | 1 dòng |
+| Touch target buttons | ~28px | 44px (chuẩn mobile) |
+| Tabs overflow | Wrap nhiều dòng | Horizontal scroll |
+| Item type badge | Hiển thị mỗi row | Ẩn (đã phân theo category) |
+| Progress visibility | Nhỏ, khó thấy | Lớn, rõ ràng |
+| Expanded form | Phức tạp | Inline đơn giản |
+
+---
+
+### NGUYÊN TẮC THIẾT KẾ ÁP DỤNG
+
+1. **Tap-to-OK**: Chạm vào row = Mark OK (action phổ biến nhất)
+2. **One-tap exceptions**: Bấm 1 lần để ghi nhận exception (Giặt, Thiếu, Hỏng)
+3. **Inline editing**: Điều chỉnh số lượng ngay trong row, không cần modal
+4. **Progressive disclosure**: Chỉ hiện form chi tiết khi cần (Lost/Damaged)
+5. **Visual hierarchy**: 
+   - ✓ Xanh = OK
+   - 🔵 Xanh dương = Giặt  
+   - 🟡 Vàng = Thiếu/Cảnh báo
+   - 🔴 Đỏ = Mất
+   - 🟠 Cam = Hỏng
