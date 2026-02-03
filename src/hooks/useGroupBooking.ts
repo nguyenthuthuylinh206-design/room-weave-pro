@@ -16,6 +16,10 @@ export interface GroupBookingRoom {
   amount_paid: number
   payment_status: string | null
   booking_type: 'daily' | 'hourly' | 'monthly'
+  deposit_amount: number
+  early_checkin_charge: number
+  late_checkout_charge: number
+  service_charges: number
   room: {
     room_number: string
     room_type: string
@@ -33,6 +37,11 @@ export interface GroupBookingData {
   someCheckedIn: boolean
   allPaid: boolean
   bookingGroupId: string
+  // NEW fields for checkout
+  totalDeposit: number
+  roomsCheckedOut: number
+  roomsRemaining: number
+  roomsCheckedIn: number
 }
 
 /**
@@ -62,6 +71,10 @@ export function useGroupBooking(bookingGroupId: string | null) {
           amount_paid,
           payment_status,
           booking_type,
+          deposit_amount,
+          early_checkin_charge,
+          late_checkout_charge,
+          service_charges,
           room:rooms(room_number, room_type)
         `)
         .eq('booking_group_id', bookingGroupId)
@@ -74,6 +87,11 @@ export function useGroupBooking(bookingGroupId: string | null) {
       const totalAmount = data.reduce((sum, b) => sum + (b.total_amount || 0), 0)
       const totalPaid = data.reduce((sum, b) => sum + (b.amount_paid || 0), 0)
       const remainingAmount = totalAmount - totalPaid
+      const totalDeposit = data.reduce((sum, b) => sum + (b.deposit_amount || 0), 0)
+      
+      const roomsCheckedOut = data.filter(b => b.status === 'checked_out').length
+      const roomsCheckedIn = data.filter(b => b.status === 'checked_in').length
+      const roomsRemaining = data.length - roomsCheckedOut
 
       return {
         bookings: data as GroupBookingRoom[],
@@ -86,6 +104,10 @@ export function useGroupBooking(bookingGroupId: string | null) {
         someCheckedIn: data.some(b => b.status === 'checked_in'),
         allPaid: remainingAmount <= 0,
         bookingGroupId,
+        totalDeposit,
+        roomsCheckedOut,
+        roomsRemaining,
+        roomsCheckedIn,
       }
     },
     enabled: !!bookingGroupId,

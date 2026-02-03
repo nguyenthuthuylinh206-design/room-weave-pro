@@ -10,7 +10,16 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Progress } from '@/components/ui/progress'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Users,
   DoorOpen,
@@ -21,15 +30,19 @@ import {
   Minimize2,
   CreditCard,
   ClipboardCheck,
+  Send,
+  CheckCircle2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { formatVNCurrency } from '@/lib/pricing'
 import { useGroupBooking, GroupBookingRoom } from '@/hooks/useGroupBooking'
+import { useOnShiftStaffList, OnShiftStaffMember } from '@/hooks/useOnShiftStaffList'
 import { supabase } from '@/integrations/supabase/client'
 import { cn } from '@/lib/utils'
 import { GroupPaymentDialog } from './GroupPaymentDialog'
+import { useUser } from '@/hooks/useUser'
 
 export interface GroupCheckoutDialogProps {
   open: boolean
@@ -45,10 +58,10 @@ interface InspectionStatus {
   bookingId: string
   roomId: string
   status: 'pending' | 'in_progress' | 'completed' | 'not_requested'
-  lateCheckoutCharge?: number
   damageCharge?: number
   inspectionId?: string
   startedAt?: string
+  assignedTo?: string
 }
 
 export function GroupCheckoutDialog({
@@ -61,13 +74,31 @@ export function GroupCheckoutDialog({
   onMinimize,
 }: GroupCheckoutDialogProps) {
   const queryClient = useQueryClient()
+  const { user } = useUser()
   const { data: groupData, isLoading: isLoadingGroup } = useGroupBooking(bookingGroupId)
+  const { data: staffList = [], isLoading: isLoadingStaff } = useOnShiftStaffList(hotelId)
   
   const [isProcessing, setIsProcessing] = useState(false)
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
+  
+  // NEW: Room selection state - default select all checked_in rooms
+  const [selectedRooms, setSelectedRooms] = useState<Set<string>>(new Set())
+  
+  // NEW: Staff assignments per booking - Map<bookingId, staffId>
+  const [staffAssignments, setStaffAssignments] = useState<Map<string, string>>(new Map())
+
+  // Initialize selected rooms when groupData loads
+  useEffect(() => {
+    if (groupData?.bookings) {
+      const checkedInRooms = groupData.bookings
+        .filter(b => b.status === 'checked_in')
+        .map(b => b.id)
+      setSelectedRooms(new Set(checkedInRooms))
+    }
+  }, [groupData?.bookings])
 
   // Fetch inspection statuses for all bookings in the group
-  const { data: inspectionStatuses, isLoading: isLoadingInspections } = useQuery({
+  const { data: inspectionStatuses, isLoading: isLoadingInspections, refetch: refetchInspections } = useQuery({
     queryKey: ['group-inspections', bookingGroupId],
     queryFn: async (): Promise<InspectionStatus[]> => {
       if (!groupData?.bookings) return []
@@ -111,7 +142,6 @@ export function GroupCheckoutDialog({
             bookingId: booking.id,
             roomId: booking.room_id,
             status: 'not_requested' as const,
-            lateCheckoutCharge: 0,
             damageCharge,
           }
         }
@@ -122,7 +152,7 @@ export function GroupCheckoutDialog({
           status: inspection.status as 'pending' | 'in_progress' | 'completed',
           inspectionId: inspection.id,
           startedAt: inspection.started_at,
-          lateCheckoutCharge: 0, // Would need to calculate from actual checkout time
+          assignedTo: inspection.assigned_to,
           damageCharge,
         }
       })
@@ -131,104 +161,256 @@ export function GroupCheckoutDialog({
     refetchInterval: 10000, // Refresh every 10 seconds
   })
 
-  // Calculate totals
-  const totals = useMemo(() => {
-    if (!groupData || !inspectionStatuses) {
-      return { roomTotal: 0, lateCharges: 0, damageCharges: 0, totalPaid: 0, grandTotal: 0, remaining: 0 }
-    }
-
-    const roomTotal = groupData.totalAmount
-    const lateCharges = inspectionStatuses.reduce((sum, i) => sum + (i.lateCheckoutCharge || 0), 0)
-    const damageCharges = inspectionStatuses.reduce((sum, i) => sum + (i.damageCharge || 0), 0)
-    const totalPaid = groupData.totalPaid
-    const grandTotal = roomTotal + lateCharges + damageCharges
-    const remaining = grandTotal - totalPaid
-
-    return { roomTotal, lateCharges, damageCharges, totalPaid, grandTotal, remaining }
-  }, [groupData, inspectionStatuses])
-
-  // Check if all rooms are ready for checkout
-  const allRoomsReady = useMemo(() => {
-    if (!inspectionStatuses) return false
-    return inspectionStatuses.every(i => 
-      i.status === 'completed' || i.status === 'not_requested'
-    )
+  // Create inspection map for quick lookup
+  const inspectionMap = useMemo(() => {
+    return new Map(inspectionStatuses?.map(i => [i.bookingId, i]) || [])
   }, [inspectionStatuses])
 
-  const roomsInProgress = inspectionStatuses?.filter(i => i.status === 'in_progress').length || 0
-  const roomsPending = inspectionStatuses?.filter(i => i.status === 'pending').length || 0
-
-  // Request inspection for a room
-  const handleRequestInspection = async (booking: GroupBookingRoom) => {
-    try {
-      // Get current user
-      const { data: userData } = await supabase.auth.getUser()
-      if (!userData.user) {
-        toast.error('Vui lòng đăng nhập lại')
-        return
+  // Calculate totals for SELECTED rooms only
+  const totals = useMemo(() => {
+    if (!groupData || !inspectionStatuses) {
+      return { 
+        roomTotal: 0, 
+        damageCharges: 0, 
+        totalPaid: 0, 
+        grandTotal: 0, 
+        remaining: 0,
+        depositApplied: 0,
+        holdingDeposit: 0,
+        isLastCheckout: false,
       }
+    }
 
-      // Create inspection request
-      const { error } = await supabase
-        .from('checkout_inspection_requests')
-        .insert({
-          tenant_id: tenantId,
-          hotel_id: hotelId,
-          booking_id: booking.id,
-          room_id: booking.room_id,
-          assigned_to: userData.user.id,
-          requested_by: userData.user.id,
-          status: 'pending',
-        })
+    const selectedBookings = groupData.bookings.filter(b => selectedRooms.has(b.id))
+    const remainingBookings = groupData.bookings.filter(
+      b => !selectedRooms.has(b.id) && b.status !== 'checked_out'
+    )
+    
+    const roomTotal = selectedBookings.reduce((sum, b) => sum + (b.total_amount || 0), 0)
+    const damageCharges = selectedBookings.reduce((sum, b) => {
+      const inspection = inspectionMap.get(b.id)
+      return sum + (inspection?.damageCharge || 0)
+    }, 0)
+    const totalPaid = selectedBookings.reduce((sum, b) => sum + (b.amount_paid || 0), 0)
+    
+    // Deposit logic: only apply if this is the last checkout
+    const isLastCheckout = remainingBookings.length === 0
+    const depositApplied = isLastCheckout ? groupData.totalDeposit : 0
+    const holdingDeposit = !isLastCheckout ? groupData.totalDeposit : 0
+    
+    const grandTotal = roomTotal + damageCharges
+    const remaining = grandTotal - totalPaid - depositApplied
 
-      if (error) throw error
+    return { 
+      roomTotal, 
+      damageCharges, 
+      totalPaid, 
+      grandTotal, 
+      remaining,
+      depositApplied,
+      holdingDeposit,
+      isLastCheckout,
+    }
+  }, [groupData, inspectionStatuses, selectedRooms, inspectionMap])
 
-      toast.success(`Đã gửi yêu cầu kiểm tra phòng ${booking.room?.room_number}`)
-      queryClient.invalidateQueries({ queryKey: ['group-inspections', bookingGroupId] })
-    } catch (error) {
-      console.error('Error requesting inspection:', error)
-      toast.error('Không thể gửi yêu cầu kiểm tra')
+  // Count rooms that are ready vs in progress
+  const roomStats = useMemo(() => {
+    if (!inspectionStatuses) return { ready: 0, inProgress: 0, pending: 0, needsRequest: 0 }
+    
+    const selectedInspections = inspectionStatuses.filter(i => selectedRooms.has(i.bookingId))
+    
+    return {
+      ready: selectedInspections.filter(i => i.status === 'completed').length,
+      inProgress: selectedInspections.filter(i => i.status === 'in_progress').length,
+      pending: selectedInspections.filter(i => i.status === 'pending').length,
+      needsRequest: selectedInspections.filter(i => i.status === 'not_requested').length,
+    }
+  }, [inspectionStatuses, selectedRooms])
+
+  // Handle select all toggle
+  const handleSelectAll = (checked: boolean) => {
+    if (checked && groupData) {
+      const checkedInRooms = groupData.bookings
+        .filter(b => b.status === 'checked_in')
+        .map(b => b.id)
+      setSelectedRooms(new Set(checkedInRooms))
+    } else {
+      setSelectedRooms(new Set())
     }
   }
 
-  // Perform group checkout
-  const handleGroupCheckout = async () => {
-    if (!groupData || totals.remaining > 0) {
+  // Handle individual room selection
+  const handleRoomSelect = (bookingId: string, checked: boolean) => {
+    const newSelected = new Set(selectedRooms)
+    if (checked) {
+      newSelected.add(bookingId)
+    } else {
+      newSelected.delete(bookingId)
+      // Also remove staff assignment
+      const newAssignments = new Map(staffAssignments)
+      newAssignments.delete(bookingId)
+      setStaffAssignments(newAssignments)
+    }
+    setSelectedRooms(newSelected)
+  }
+
+  // Handle staff assignment change
+  const handleStaffChange = (bookingId: string, staffId: string) => {
+    const newAssignments = new Map(staffAssignments)
+    newAssignments.set(bookingId, staffId)
+    setStaffAssignments(newAssignments)
+  }
+
+  // Batch send inspection requests
+  const handleBatchInspectionRequest = async () => {
+    const roomsToRequest = Array.from(selectedRooms).filter(bookingId => {
+      const inspection = inspectionMap.get(bookingId)
+      return !inspection || inspection.status === 'not_requested'
+    })
+    
+    // Check all have staff assigned
+    const missingStaff = roomsToRequest.filter(id => !staffAssignments.get(id))
+    if (missingStaff.length > 0) {
+      const booking = groupData?.bookings.find(b => b.id === missingStaff[0])
+      toast.error(`Chưa chọn nhân viên cho phòng ${booking?.room?.room_number}`)
+      return
+    }
+    
+    if (roomsToRequest.length === 0) {
+      toast.info('Tất cả phòng đã được gửi yêu cầu kiểm tra')
+      return
+    }
+    
+    setIsProcessing(true)
+    try {
+      for (const bookingId of roomsToRequest) {
+        const booking = groupData?.bookings.find(b => b.id === bookingId)
+        const staffId = staffAssignments.get(bookingId)
+        
+        if (!booking || !staffId) continue
+        
+        // Create inspection request
+        await supabase.from('checkout_inspection_requests').insert({
+          tenant_id: tenantId,
+          hotel_id: hotelId,
+          room_id: booking.room_id,
+          booking_id: bookingId,
+          assigned_to: staffId,
+          requested_by: user?.id,
+          status: 'pending',
+        })
+        
+        // Create housekeeping task
+        await supabase.from('housekeeping_tasks').insert({
+          tenant_id: tenantId,
+          hotel_id: hotelId,
+          room_id: booking.room_id,
+          booking_id: bookingId,
+          assigned_to: staffId,
+          requested_by: user?.id,
+          task_type: 'checkout_inspection',
+          title: `Kiểm tra checkout P.${booking.room?.room_number}`,
+          priority: 'high',
+          status: 'pending',
+        })
+      }
+      
+      toast.success(`Đã gửi ${roomsToRequest.length} yêu cầu kiểm tra`)
+      refetchInspections()
+    } catch (error) {
+      console.error('Error sending inspection requests:', error)
+      toast.error('Lỗi gửi yêu cầu kiểm tra')
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  // Perform selective checkout
+  const handleSelectiveCheckout = async () => {
+    if (!groupData) return
+    
+    // Get rooms that are ready (completed inspection or no request needed)
+    const readyRooms = Array.from(selectedRooms).filter(bookingId => {
+      const booking = groupData.bookings.find(b => b.id === bookingId)
+      if (!booking || booking.status === 'checked_out') return false
+      
+      const inspection = inspectionMap.get(bookingId)
+      // Allow checkout if inspection completed OR not requested (skip inspection)
+      return inspection?.status === 'completed' || inspection?.status === 'not_requested'
+    })
+    
+    if (readyRooms.length === 0) {
+      toast.error('Không có phòng nào sẵn sàng checkout. Vui lòng chờ kiểm tra hoàn thành.')
+      return
+    }
+    
+    // Check payment
+    if (totals.remaining > 0) {
       setShowPaymentDialog(true)
       return
     }
+    
+    await performCheckout(readyRooms)
+  }
 
+  // Actual checkout logic
+  const performCheckout = async (bookingIds: string[]) => {
+    if (!groupData) return
+    
     setIsProcessing(true)
     try {
       const now = new Date().toISOString()
-
-      // Update all bookings to checked_out
-      for (const booking of groupData.bookings) {
-        if (booking.status !== 'checked_out') {
+      
+      for (const bookingId of bookingIds) {
+        const booking = groupData.bookings.find(b => b.id === bookingId)
+        if (!booking || booking.status === 'checked_out') continue
+        
+        // Update booking to checked_out
+        await supabase
+          .from('room_bookings')
+          .update({
+            status: 'checked_out',
+            actual_check_out: now,
+          })
+          .eq('id', bookingId)
+        
+        // Update room status to cleaning
+        await supabase
+          .from('rooms')
+          .update({ status: 'cleaning' })
+          .eq('id', booking.room_id)
+          
+        // Complete inspection request if exists
+        const inspection = inspectionMap.get(bookingId)
+        if (inspection?.inspectionId) {
           await supabase
-            .from('room_bookings')
-            .update({
-              status: 'checked_out',
-              actual_check_out: now,
+            .from('checkout_inspection_requests')
+            .update({ 
+              status: 'completed',
+              completed_at: now,
             })
-            .eq('id', booking.id)
-
-          // Update room status to cleaning
-          await supabase
-            .from('rooms')
-            .update({ status: 'cleaning' })
-            .eq('id', booking.room_id)
+            .eq('id', inspection.inspectionId)
         }
       }
-
-      toast.success(`Đã checkout ${groupData.roomCount} phòng thành công!`)
-      onOpenChange(false)
-      onCheckoutComplete?.()
+      
+      toast.success(`Đã checkout ${bookingIds.length} phòng thành công!`)
+      
+      // Check if all rooms done
+      const allRoomsNowDone = groupData.bookings.every(b => 
+        b.status === 'checked_out' || bookingIds.includes(b.id)
+      )
+      
+      if (allRoomsNowDone) {
+        onOpenChange(false)
+        onCheckoutComplete?.()
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
+      queryClient.invalidateQueries({ queryKey: ['group-booking', bookingGroupId] })
     } catch (error) {
-      console.error('Error performing group checkout:', error)
-      toast.error('Không thể thực hiện checkout nhóm')
+      console.error('Error performing checkout:', error)
+      toast.error('Lỗi checkout')
     } finally {
       setIsProcessing(false)
     }
@@ -238,29 +420,35 @@ export function GroupCheckoutDialog({
     switch (status) {
       case 'completed':
         return (
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
             <CheckCircle className="h-3 w-3 mr-1" />
             Đã kiểm tra
           </Badge>
         )
       case 'in_progress':
         return (
-          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
             <Clock className="h-3 w-3 mr-1 animate-pulse" />
             Đang kiểm tra
           </Badge>
         )
       case 'pending':
         return (
-          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
             <Clock className="h-3 w-3 mr-1" />
             Chờ kiểm tra
           </Badge>
         )
       default:
-        return null
+        return (
+          <span className="text-xs text-muted-foreground">Chưa gửi yêu cầu</span>
+        )
     }
   }
+
+  // Calculate how many checked_in rooms there are
+  const checkedInRooms = groupData?.bookings.filter(b => b.status === 'checked_in') || []
+  const allSelected = selectedRooms.size === checkedInRooms.length && checkedInRooms.length > 0
 
   if (isLoadingGroup) {
     return (
@@ -303,80 +491,167 @@ export function GroupCheckoutDialog({
             </div>
             <p className="text-sm text-muted-foreground">
               {groupData.guestName} • {groupData.roomCount} phòng
+              {groupData.roomsCheckedOut > 0 && (
+                <span className="ml-1">({groupData.roomsCheckedOut} đã trả)</span>
+              )}
             </p>
           </DialogHeader>
 
           <div className="flex flex-col gap-3 px-4 pb-4 overflow-hidden">
-            {/* Room Inspection Status */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <ClipboardCheck className="h-4 w-4" />
-                Kiểm tra phòng
+            {/* Select All Checkbox */}
+            {checkedInRooms.length > 0 && (
+              <div className="flex items-center gap-2 pb-1">
+                <Checkbox
+                  id="select-all"
+                  checked={allSelected}
+                  onCheckedChange={handleSelectAll}
+                />
+                <Label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+                  Chọn tất cả ({checkedInRooms.length} phòng đang ở)
+                </Label>
               </div>
-              
-              <ScrollArea className="max-h-[180px]">
-                <div className="space-y-2">
-                  {groupData.bookings.map((booking) => {
-                    const inspection = inspectionStatuses?.find(i => i.bookingId === booking.id)
-                    const isCheckedOut = booking.status === 'checked_out'
-                    
-                    return (
-                      <div
-                        key={booking.id}
-                        className={cn(
-                          "border rounded-lg p-2.5 flex items-center justify-between",
-                          isCheckedOut && "bg-muted/50"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <DoorOpen className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="font-medium text-sm">
-                            P.{booking.room?.room_number}
-                          </span>
-                          {inspection?.damageCharge && inspection.damageCharge > 0 && (
-                            <span className="text-xs text-red-600">
-                              +{formatVNCurrency(inspection.damageCharge)}
-                            </span>
+            )}
+            
+            {/* Room List with Selection & Staff Assignment */}
+            <ScrollArea className="max-h-[220px]">
+              <div className="space-y-2">
+                {groupData.bookings.map((booking) => {
+                  const inspection = inspectionMap.get(booking.id)
+                  const isCheckedOut = booking.status === 'checked_out'
+                  const isSelected = selectedRooms.has(booking.id)
+                  const assignedStaff = staffAssignments.get(booking.id)
+                  const needsStaffAssignment = isSelected && !isCheckedOut && (!inspection || inspection.status === 'not_requested')
+                  
+                  return (
+                    <div
+                      key={booking.id}
+                      className={cn(
+                        "border rounded-lg p-3 transition-colors",
+                        isCheckedOut && "bg-muted/50 opacity-60",
+                        isSelected && !isCheckedOut && "bg-blue-50/50 border-blue-200"
+                      )}
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* Checkbox */}
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={(checked) => handleRoomSelect(booking.id, !!checked)}
+                          disabled={isCheckedOut}
+                          className="mt-0.5"
+                        />
+                        
+                        <div className="flex-1 space-y-2">
+                          {/* Room Info Row */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-sm">
+                                P.{booking.room?.room_number}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {booking.room?.room_type}
+                              </span>
+                              {inspection?.damageCharge && inspection.damageCharge > 0 && (
+                                <span className="text-xs text-red-600 font-medium">
+                                  +{formatVNCurrency(inspection.damageCharge)}
+                                </span>
+                              )}
+                            </div>
+                            
+                            {isCheckedOut ? (
+                              <Badge variant="secondary" className="text-xs">Đã trả</Badge>
+                            ) : (
+                              getInspectionStatusBadge(inspection?.status || 'not_requested')
+                            )}
+                          </div>
+                          
+                          {/* Staff Assignment - only show for selected rooms that need inspection */}
+                          {needsStaffAssignment && (
+                            <div className="flex items-center gap-2">
+                              <Label className="text-xs text-muted-foreground whitespace-nowrap">
+                                NV kiểm tra:
+                              </Label>
+                              <Select
+                                value={assignedStaff || ''}
+                                onValueChange={(value) => handleStaffChange(booking.id, value)}
+                              >
+                                <SelectTrigger className="h-8 text-xs flex-1">
+                                  <SelectValue placeholder="Chọn nhân viên..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {isLoadingStaff ? (
+                                    <div className="p-2 text-xs text-muted-foreground">
+                                      Đang tải...
+                                    </div>
+                                  ) : staffList.length === 0 ? (
+                                    <div className="p-2 text-xs text-muted-foreground">
+                                      Không có nhân viên trong ca
+                                    </div>
+                                  ) : (
+                                    staffList.map(staff => (
+                                      <SelectItem key={staff.id} value={staff.id}>
+                                        <div className="flex items-center gap-2">
+                                          <Avatar className="h-5 w-5">
+                                            <AvatarImage src={staff.avatar_url || undefined} />
+                                            <AvatarFallback className="text-xs">
+                                              {staff.full_name?.[0]}
+                                            </AvatarFallback>
+                                          </Avatar>
+                                          <span>{staff.full_name}</span>
+                                          <span className="text-xs text-green-600">(trong ca)</span>
+                                        </div>
+                                      </SelectItem>
+                                    ))
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            </div>
                           )}
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          {isCheckedOut ? (
-                            <Badge variant="outline" className="text-muted-foreground">
-                              Đã trả
-                            </Badge>
-                          ) : inspection ? (
-                            getInspectionStatusBadge(inspection.status)
-                          ) : (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs"
-                              onClick={() => handleRequestInspection(booking)}
-                            >
-                              Gửi yêu cầu
-                            </Button>
+                          
+                          {/* Show assigned staff for pending/in_progress inspections */}
+                          {isSelected && !isCheckedOut && inspection && ['pending', 'in_progress'].includes(inspection.status) && (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>Đang chờ:</span>
+                              {staffList.find(s => s.id === inspection.assignedTo)?.full_name || 'N/A'}
+                            </div>
                           )}
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
-              </ScrollArea>
+                    </div>
+                  )
+                })}
+              </div>
+            </ScrollArea>
 
-              {/* Inspection Progress */}
-              {(roomsInProgress > 0 || roomsPending > 0) && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-amber-600" />
-                  <span className="text-sm text-amber-700">
-                    {roomsInProgress > 0 && `${roomsInProgress} phòng đang kiểm tra`}
-                    {roomsInProgress > 0 && roomsPending > 0 && ', '}
-                    {roomsPending > 0 && `${roomsPending} phòng chờ kiểm tra`}
-                  </span>
-                </div>
-              )}
-            </div>
+            {/* Batch Inspection Request Button */}
+            {roomStats.needsRequest > 0 && selectedRooms.size > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleBatchInspectionRequest}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4 mr-2" />
+                )}
+                Gửi yêu cầu kiểm tra ({roomStats.needsRequest} phòng)
+              </Button>
+            )}
+
+            {/* Progress Warning */}
+            {(roomStats.inProgress > 0 || roomStats.pending > 0) && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                <span className="text-xs text-amber-700">
+                  {roomStats.inProgress > 0 && `${roomStats.inProgress} đang kiểm tra`}
+                  {roomStats.inProgress > 0 && roomStats.pending > 0 && ', '}
+                  {roomStats.pending > 0 && `${roomStats.pending} chờ kiểm tra`}
+                  . Có thể checkout sau khi hoàn thành.
+                </span>
+              </div>
+            )}
 
             <Separator />
 
@@ -385,20 +660,18 @@ export function GroupCheckoutDialog({
               <div className="flex items-center gap-2 text-sm font-medium">
                 <CreditCard className="h-4 w-4" />
                 Thanh toán
+                {selectedRooms.size > 0 && (
+                  <span className="text-muted-foreground font-normal">
+                    ({selectedRooms.size} phòng đã chọn)
+                  </span>
+                )}
               </div>
 
               <div className="bg-muted/50 rounded-lg p-3 space-y-1.5">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Tiền phòng ({groupData.roomCount} phòng)</span>
+                  <span className="text-muted-foreground">Tiền phòng</span>
                   <span className="font-mono">{formatVNCurrency(totals.roomTotal)}</span>
                 </div>
-                
-                {totals.lateCharges > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Phí checkout muộn</span>
-                    <span className="font-mono text-amber-600">+{formatVNCurrency(totals.lateCharges)}</span>
-                  </div>
-                )}
                 
                 {totals.damageCharges > 0 && (
                   <div className="flex justify-between text-sm">
@@ -412,6 +685,23 @@ export function GroupCheckoutDialog({
                   <span className="font-mono text-green-600">-{formatVNCurrency(totals.totalPaid)}</span>
                 </div>
                 
+                {totals.depositApplied > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Tiền cọc (áp dụng)</span>
+                    <span className="font-mono text-green-600">-{formatVNCurrency(totals.depositApplied)}</span>
+                  </div>
+                )}
+                
+                {totals.holdingDeposit > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      Tiền cọc (giữ)
+                      <span className="text-xs">(còn {groupData.roomsRemaining - selectedRooms.size} phòng)</span>
+                    </span>
+                    <span className="font-mono text-amber-600">{formatVNCurrency(totals.holdingDeposit)}</span>
+                  </div>
+                )}
+                
                 <Separator className="my-1.5" />
                 
                 <div className="flex justify-between font-medium">
@@ -420,7 +710,7 @@ export function GroupCheckoutDialog({
                     "font-mono text-lg",
                     totals.remaining > 0 ? "text-primary" : "text-green-600"
                   )}>
-                    {formatVNCurrency(totals.remaining)}
+                    {formatVNCurrency(Math.max(0, totals.remaining))}
                   </span>
                 </div>
               </div>
@@ -432,7 +722,7 @@ export function GroupCheckoutDialog({
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1"
+                  size="sm"
                   onClick={onMinimize}
                 >
                   <Minimize2 className="h-4 w-4 mr-1.5" />
@@ -442,19 +732,19 @@ export function GroupCheckoutDialog({
               
               <Button
                 className="flex-1"
-                disabled={isProcessing}
-                onClick={handleGroupCheckout}
+                disabled={isProcessing || selectedRooms.size === 0}
+                onClick={handleSelectiveCheckout}
               >
                 {isProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {totals.remaining > 0 ? (
                   <>
                     <CreditCard className="h-4 w-4 mr-1.5" />
-                    Thu tiền & Checkout
+                    Thu tiền & Checkout ({selectedRooms.size})
                   </>
                 ) : (
                   <>
-                    <CheckCircle className="h-4 w-4 mr-1.5" />
-                    Checkout tất cả
+                    <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                    Checkout ({selectedRooms.size} phòng)
                   </>
                 )}
               </Button>
@@ -473,10 +763,6 @@ export function GroupCheckoutDialog({
         onPaymentComplete={() => {
           setShowPaymentDialog(false)
           queryClient.invalidateQueries({ queryKey: ['group-booking', bookingGroupId] })
-          // If fully paid, proceed with checkout
-          if (totals.remaining <= 0) {
-            handleGroupCheckout()
-          }
         }}
       />
     </>
