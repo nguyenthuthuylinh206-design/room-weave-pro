@@ -41,6 +41,24 @@ export function useShiftCheckIn() {
 
       const now = new Date().toISOString()
 
+      // Check if there's an existing unclosed shift
+      const { data: existingStatus } = await supabase
+        .from('staff_status')
+        .select('shift_start_at, shift_end_at')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      // If there's an unclosed shift, close it first (trigger will log to history)
+      if (existingStatus?.shift_start_at && 
+          (!existingStatus.shift_end_at || 
+           new Date(existingStatus.shift_start_at) > new Date(existingStatus.shift_end_at))) {
+        await supabase
+          .from('staff_status')
+          .update({ shift_end_at: now })
+          .eq('user_id', user.id)
+      }
+
+      // Now create the new shift
       const { error } = await supabase
         .from('staff_status')
         .upsert(
@@ -99,6 +117,7 @@ export function useShiftCheckOut() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-staff-status'] })
       queryClient.invalidateQueries({ queryKey: ['staff-status'] })
+      queryClient.invalidateQueries({ queryKey: ['shift-history'] })
       toast.success('Đã kết thúc ca làm việc')
     },
     onError: (error) => {
