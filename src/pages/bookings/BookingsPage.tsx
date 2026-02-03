@@ -22,6 +22,7 @@ import {
   Loader2,
   Users,
   Wallet,
+  DoorOpen,
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -44,6 +45,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { supabase } from '@/integrations/supabase/client'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useTenant } from '@/hooks/useTenant'
@@ -55,6 +62,7 @@ import { MinimizedCheckoutWidget, type MinimizedCheckout } from '@/components/bo
 import { CheckInConfirmDialog } from '@/components/bookings/CheckInConfirmDialog'
 import { ExtendBookingDialog } from '@/components/bookings/ExtendBookingDialog'
 import { GroupPaymentDialog } from '@/components/bookings/GroupPaymentDialog'
+import { GroupCheckoutDialog } from '@/components/bookings/GroupCheckoutDialog'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
 import { formatCurrency } from '@/lib/utils'
 import { useGroupBookingCounts } from '@/hooks/useGroupBooking'
@@ -131,6 +139,7 @@ export function BookingsPage() {
   const [showCheckoutSummary, setShowCheckoutSummary] = useState(false)
   const [showExtendDialog, setShowExtendDialog] = useState(false)
   const [showGroupPaymentDialog, setShowGroupPaymentDialog] = useState(false)
+  const [showGroupCheckoutDialog, setShowGroupCheckoutDialog] = useState(false)
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
   const [actionBooking, setActionBooking] = useState<BookingWithRoom | null>(null)
   const [suggestedEarlyCharge, setSuggestedEarlyCharge] = useState(0)
@@ -1081,12 +1090,27 @@ export function BookingsPage() {
                                 Tháng
                               </Badge>
                             )}
-                            {/* Group booking badge */}
+                            {/* Group booking badge with tooltip */}
                             {booking.booking_group_id && groupCounts && groupCounts[booking.booking_group_id] > 1 && (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 gap-0.5">
-                                <Users className="h-2.5 w-2.5" />
-                                {groupCounts[booking.booking_group_id]}
-                              </Badge>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge 
+                                      variant="outline" 
+                                      className="text-xs px-1.5 py-0 h-5 gap-1 cursor-help bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800"
+                                    >
+                                      <Users className="h-3 w-3" />
+                                      Nhóm {groupCounts[booking.booking_group_id]}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="font-medium">Đặt phòng nhóm</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {groupCounts[booking.booking_group_id]} phòng • Bấm "TT Nhóm" để thanh toán chung
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground capitalize">
@@ -1198,25 +1222,45 @@ export function BookingsPage() {
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1">
+                          {/* Check-in button for confirmed bookings */}
                           {booking.status === 'confirmed' && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
-                              disabled={isActionLoading && actionBooking?.id === booking.id}
-                              onClick={() => handleCheckInClick(booking)}
-                            >
-                              {isActionLoading && actionBooking?.id === booking.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <>
-                                  <LogIn className="h-3 w-3 mr-1" />
-                                  Check-in
-                                </>
+                            <>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
+                                disabled={isActionLoading && actionBooking?.id === booking.id}
+                                onClick={() => handleCheckInClick(booking)}
+                              >
+                                {isActionLoading && actionBooking?.id === booking.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <>
+                                    <LogIn className="h-3 w-3 mr-1" />
+                                    Check-in
+                                  </>
+                                )}
+                              </Button>
+                              {/* Group payment button for confirmed */}
+                              {booking.booking_group_id && groupCounts && groupCounts[booking.booking_group_id] > 1 && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                                  onClick={() => {
+                                    setSelectedGroupId(booking.booking_group_id!)
+                                    setShowGroupPaymentDialog(true)
+                                  }}
+                                >
+                                  <Wallet className="h-3 w-3 mr-1" />
+                                  TT Nhóm
+                                </Button>
                               )}
-                            </Button>
+                            </>
                           )}
+                          {/* Check-out and group actions for checked_in bookings */}
                           {booking.status === 'checked_in' && (
                             <>
                               <Button
@@ -1238,19 +1282,34 @@ export function BookingsPage() {
                               </Button>
                               {/* Group payment button */}
                               {booking.booking_group_id && groupCounts && groupCounts[booking.booking_group_id] > 1 && (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-7 text-xs"
-                                  onClick={() => {
-                                    setSelectedGroupId(booking.booking_group_id!)
-                                    setShowGroupPaymentDialog(true)
-                                  }}
-                                >
-                                  <Wallet className="h-3 w-3 mr-1" />
-                                  TT Nhóm
-                                </Button>
+                                <>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                                    onClick={() => {
+                                      setSelectedGroupId(booking.booking_group_id!)
+                                      setShowGroupPaymentDialog(true)
+                                    }}
+                                  >
+                                    <Wallet className="h-3 w-3 mr-1" />
+                                    TT Nhóm
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 text-xs bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+                                    onClick={() => {
+                                      setSelectedGroupId(booking.booking_group_id!)
+                                      setShowGroupCheckoutDialog(true)
+                                    }}
+                                  >
+                                    <DoorOpen className="h-3 w-3 mr-1" />
+                                    CO Nhóm
+                                  </Button>
+                                </>
                               )}
                             </>
                           )}
@@ -1382,6 +1441,25 @@ export function BookingsPage() {
           onPaymentComplete={() => {
             queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
             queryClient.invalidateQueries({ queryKey: ['group-booking'] })
+          }}
+        />
+      )}
+
+      {/* Group Checkout Dialog */}
+      {selectedGroupId && tenantId && selectedHotelId && (
+        <GroupCheckoutDialog
+          open={showGroupCheckoutDialog}
+          onOpenChange={(open) => {
+            setShowGroupCheckoutDialog(open)
+            if (!open) setSelectedGroupId(null)
+          }}
+          bookingGroupId={selectedGroupId}
+          tenantId={tenantId}
+          hotelId={selectedHotelId}
+          onCheckoutComplete={() => {
+            queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
+            queryClient.invalidateQueries({ queryKey: ['group-booking'] })
+            queryClient.invalidateQueries({ queryKey: ['rooms'] })
           }}
         />
       )}

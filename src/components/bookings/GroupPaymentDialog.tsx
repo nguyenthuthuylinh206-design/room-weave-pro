@@ -9,10 +9,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Progress } from '@/components/ui/progress'
 import {
   Banknote,
   CreditCard,
@@ -87,6 +86,11 @@ export function GroupPaymentDialog({
   const handleAmountChange = (value: string) => {
     const numericValue = value.replace(/[^0-9]/g, '')
     setAmount(numericValue)
+  }
+
+  const setQuickAmount = (percentage: number) => {
+    const quickAmount = Math.round(remainingAmount * percentage)
+    setAmount(quickAmount.toString())
   }
 
   /**
@@ -297,20 +301,37 @@ export function GroupPaymentDialog({
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'checked_in':
-        return <Badge className="bg-green-500 text-[10px]">Đang ở</Badge>
+        return 'Đang ở'
       case 'checked_out':
-        return <Badge variant="outline" className="text-[10px]">Đã trả</Badge>
+        return 'Đã trả'
       case 'confirmed':
-        return <Badge variant="secondary" className="text-[10px]">Đã đặt</Badge>
+        return 'Đã đặt'
       default:
-        return null
+        return status
     }
+  }
+
+  const getPaymentPercentage = (booking: GroupBookingRoom) => {
+    const total = booking.total_amount || 0
+    const paid = booking.amount_paid || 0
+    if (total === 0) return 100
+    return Math.min(100, Math.round((paid / total) * 100))
+  }
+
+  const formatCompactCurrency = (amount: number) => {
+    if (amount >= 1000000) {
+      return `${(amount / 1000000).toFixed(1)}tr`
+    }
+    if (amount >= 1000) {
+      return `${Math.round(amount / 1000)}k`
+    }
+    return amount.toString()
   }
 
   if (isLoadingGroup) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-md">
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
@@ -326,71 +347,84 @@ export function GroupPaymentDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              {step === 'select' && `Thanh toán nhóm - ${groupData.guestName}`}
-              {step === 'qr' && 'Quét mã thanh toán nhóm'}
-              {step === 'success' && 'Thanh toán thành công'}
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col p-0">
+          {/* Header */}
+          <DialogHeader className="px-4 pt-4 pb-2">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Users className="h-4 w-4" />
+              {step === 'select' && 'Thanh toán nhóm'}
+              {step === 'qr' && 'Quét mã QR'}
+              {step === 'success' && 'Thành công'}
             </DialogTitle>
+            {step === 'select' && (
+              <p className="text-sm text-muted-foreground">
+                {groupData.guestName} • {groupData.roomCount} phòng
+              </p>
+            )}
           </DialogHeader>
 
           {/* Step: Select payment */}
           {step === 'select' && (
-            <div className="flex flex-col gap-4 overflow-hidden">
-              {/* Room list */}
-              <ScrollArea className="max-h-[280px] pr-4">
-                <div className="space-y-3">
+            <div className="flex flex-col gap-3 px-4 pb-4 overflow-hidden">
+              {/* Compact Room List with Progress Bars */}
+              <ScrollArea className="max-h-[200px]">
+                <div className="space-y-2">
                   {groupData.bookings.map((booking) => {
-                    const roomRemaining = (booking.total_amount || 0) - (booking.amount_paid || 0)
+                    const percentage = getPaymentPercentage(booking)
+                    const remaining = (booking.total_amount || 0) - (booking.amount_paid || 0)
+                    const isPaid = remaining <= 0
+                    
                     return (
                       <div
                         key={booking.id}
-                        className="border rounded-lg p-3 space-y-2"
+                        className={cn(
+                          "border rounded-lg p-2.5 space-y-1.5",
+                          isPaid && "bg-green-50 border-green-200 dark:bg-green-950/20"
+                        )}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <DoorOpen className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">
-                              Phòng {booking.room?.room_number}
+                            <DoorOpen className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="font-medium text-sm">
+                              {booking.room?.room_number}
                             </span>
-                            <span className="text-xs text-muted-foreground capitalize">
+                            <span className="text-xs text-muted-foreground">
                               {booking.room?.room_type}
                             </span>
                           </div>
-                          {getStatusLabel(booking.status)}
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Tổng:</span>
-                          <span className="font-mono">
-                            {formatVNCurrency(booking.total_amount || 0)}
+                          <span className={cn(
+                            "text-xs px-1.5 py-0.5 rounded",
+                            isPaid ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"
+                          )}>
+                            {isPaid ? '✓ Đã TT' : getStatusLabel(booking.status)}
                           </span>
                         </div>
-                        {(booking.amount_paid || 0) > 0 && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Đã TT:</span>
-                            <span className="font-mono text-green-600">
-                              -{formatVNCurrency(booking.amount_paid || 0)}
+                        
+                        {/* Progress bar */}
+                        <div className="flex items-center gap-2">
+                          <Progress 
+                            value={percentage} 
+                            className={cn(
+                              "h-1.5 flex-1",
+                              isPaid && "[&>div]:bg-green-500"
+                            )}
+                          />
+                          <span className="text-xs font-mono text-muted-foreground w-8 text-right">
+                            {percentage}%
+                          </span>
+                        </div>
+                        
+                        {/* Amount info */}
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">
+                            {formatCompactCurrency(booking.amount_paid || 0)} / {formatCompactCurrency(booking.total_amount || 0)}
+                          </span>
+                          {!isPaid && remaining > 0 && (
+                            <span className="text-amber-600 font-medium">
+                              Còn {formatCompactCurrency(remaining)}
                             </span>
-                          </div>
-                        )}
-                        {roomRemaining > 0 && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Còn:</span>
-                            <span className="font-mono text-amber-600">
-                              {formatVNCurrency(roomRemaining)}
-                            </span>
-                          </div>
-                        )}
-                        {roomRemaining <= 0 && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-green-600 font-medium flex items-center gap-1">
-                              <CheckCircle className="h-3 w-3" />
-                              Đã thanh toán đủ
-                            </span>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                     )
                   })}
@@ -399,23 +433,19 @@ export function GroupPaymentDialog({
 
               <Separator />
 
-              {/* Totals */}
-              <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+              {/* Totals Summary - Compact */}
+              <div className="bg-muted/50 rounded-lg p-3 space-y-1.5">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Tổng cộng ({groupData.roomCount} phòng):</span>
-                  <span className="font-mono font-medium">
-                    {formatVNCurrency(groupData.totalAmount)}
-                  </span>
+                  <span className="text-muted-foreground">Tổng ({groupData.roomCount} phòng)</span>
+                  <span className="font-mono">{formatVNCurrency(groupData.totalAmount)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Đã thanh toán:</span>
-                  <span className="font-mono text-green-600">
-                    -{formatVNCurrency(groupData.totalPaid)}
-                  </span>
+                  <span className="text-muted-foreground">Đã thanh toán</span>
+                  <span className="font-mono text-green-600">-{formatVNCurrency(groupData.totalPaid)}</span>
                 </div>
-                <Separator />
+                <Separator className="my-1.5" />
                 <div className="flex justify-between font-medium">
-                  <span>CÒN PHẢI THU:</span>
+                  <span>CÒN LẠI</span>
                   <span className="font-mono text-primary text-lg">
                     {formatVNCurrency(remainingAmount)}
                   </span>
@@ -424,106 +454,109 @@ export function GroupPaymentDialog({
 
               {remainingAmount > 0 ? (
                 <>
-                  {/* Amount Input */}
+                  {/* Quick Pay Full Button */}
+                  <Button
+                    className="w-full h-11"
+                    disabled={isProcessing}
+                    onClick={() => {
+                      setAmount(remainingAmount.toString())
+                      if (paymentMethod === 'cash') {
+                        handleCashPayment()
+                      } else {
+                        handleBankTransfer()
+                      }
+                    }}
+                  >
+                    {isProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Thanh toán đủ {formatVNCurrency(remainingAmount)}
+                  </Button>
+
+                  {/* Or Custom Amount */}
                   <div className="space-y-2">
-                    <Label>Số tiền thu</Label>
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      value={amount ? parseInt(amount).toLocaleString('vi-VN') : ''}
-                      onChange={(e) => handleAmountChange(e.target.value)}
-                      placeholder="Nhập số tiền"
-                      className="text-right font-mono text-lg"
-                    />
+                    <div className="flex items-center gap-2">
+                      <div className="h-px flex-1 bg-border" />
+                      <span className="text-xs text-muted-foreground">Hoặc nhập số tiền</span>
+                      <div className="h-px flex-1 bg-border" />
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        value={amount ? parseInt(amount).toLocaleString('vi-VN') : ''}
+                        onChange={(e) => handleAmountChange(e.target.value)}
+                        placeholder="Số tiền"
+                        className="flex-1 text-right font-mono h-9"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9 px-3"
+                        onClick={() => setQuickAmount(0.5)}
+                      >
+                        50%
+                      </Button>
+                    </div>
                     {parsedAmount > remainingAmount && (
-                      <p className="text-xs text-red-500">Số tiền vượt quá số còn lại</p>
+                      <p className="text-xs text-red-500">Vượt quá số còn lại</p>
                     )}
                   </div>
 
                   {/* Payment Method */}
-                  <div className="space-y-2">
-                    <Label>Phương thức thanh toán</Label>
-                    <RadioGroup
-                      value={paymentMethod}
-                      onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}
-                      className="grid grid-cols-2 gap-3"
-                    >
-                      <Label
-                        htmlFor="group-cash"
-                        className={cn(
-                          'flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors',
-                          paymentMethod === 'cash'
-                            ? 'border-primary bg-primary/5'
-                            : 'border-muted hover:border-muted-foreground/30'
-                        )}
-                      >
-                        <RadioGroupItem value="cash" id="group-cash" className="sr-only" />
-                        <Banknote
-                          className={cn(
-                            'h-6 w-6',
-                            paymentMethod === 'cash' ? 'text-primary' : 'text-muted-foreground'
-                          )}
-                        />
-                        <span
-                          className={cn(
-                            'text-sm font-medium',
-                            paymentMethod === 'cash' ? 'text-primary' : ''
-                          )}
-                        >
-                          Tiền mặt
-                        </span>
-                      </Label>
-
-                      <Label
-                        htmlFor="group-bank"
-                        className={cn(
-                          'flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors',
-                          paymentMethod === 'bank_transfer'
-                            ? 'border-primary bg-primary/5'
-                            : 'border-muted hover:border-muted-foreground/30',
-                          !bankSettings && 'opacity-50 cursor-not-allowed'
-                        )}
-                      >
-                        <RadioGroupItem
-                          value="bank_transfer"
-                          id="group-bank"
-                          className="sr-only"
-                          disabled={!bankSettings}
-                        />
-                        <CreditCard
-                          className={cn(
-                            'h-6 w-6',
-                            paymentMethod === 'bank_transfer'
-                              ? 'text-primary'
-                              : 'text-muted-foreground'
-                          )}
-                        />
-                        <span
-                          className={cn(
-                            'text-sm font-medium',
-                            paymentMethod === 'bank_transfer' ? 'text-primary' : ''
-                          )}
-                        >
-                          Chuyển khoản
-                        </span>
-                      </Label>
-                    </RadioGroup>
-                    {!bankSettings && (
-                      <p className="text-xs text-muted-foreground">
-                        Cần cấu hình tài khoản ngân hàng trong Cài đặt → Thanh toán
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Action Button */}
-                  <Button
-                    className="w-full"
-                    disabled={!isValidAmount || isProcessing}
-                    onClick={paymentMethod === 'cash' ? handleCashPayment : handleBankTransfer}
+                  <RadioGroup
+                    value={paymentMethod}
+                    onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}
+                    className="grid grid-cols-2 gap-2"
                   >
-                    {isProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    {paymentMethod === 'cash' ? 'Xác nhận đã nhận tiền' : 'Tạo mã QR thanh toán'}
-                  </Button>
+                    <Label
+                      htmlFor="group-cash"
+                      className={cn(
+                        'flex items-center justify-center gap-2 py-2.5 rounded-lg border cursor-pointer transition-colors',
+                        paymentMethod === 'cash'
+                          ? 'border-primary bg-primary/5 text-primary'
+                          : 'border-muted hover:border-muted-foreground/30'
+                      )}
+                    >
+                      <RadioGroupItem value="cash" id="group-cash" className="sr-only" />
+                      <Banknote className="h-4 w-4" />
+                      <span className="text-sm font-medium">Tiền mặt</span>
+                    </Label>
+
+                    <Label
+                      htmlFor="group-bank"
+                      className={cn(
+                        'flex items-center justify-center gap-2 py-2.5 rounded-lg border cursor-pointer transition-colors',
+                        paymentMethod === 'bank_transfer'
+                          ? 'border-primary bg-primary/5 text-primary'
+                          : 'border-muted hover:border-muted-foreground/30',
+                        !bankSettings && 'opacity-50 cursor-not-allowed'
+                      )}
+                    >
+                      <RadioGroupItem
+                        value="bank_transfer"
+                        id="group-bank"
+                        className="sr-only"
+                        disabled={!bankSettings}
+                      />
+                      <CreditCard className="h-4 w-4" />
+                      <span className="text-sm font-medium">Chuyển khoản</span>
+                    </Label>
+                  </RadioGroup>
+
+                  {/* Custom Amount Action Button */}
+                  {parsedAmount > 0 && parsedAmount < remainingAmount && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      disabled={!isValidAmount || isProcessing}
+                      onClick={paymentMethod === 'cash' ? handleCashPayment : handleBankTransfer}
+                    >
+                      {isProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      {paymentMethod === 'cash' ? 'Xác nhận tiền mặt' : 'Tạo mã QR'}
+                      {' '}({formatVNCurrency(parsedAmount)})
+                    </Button>
+                  )}
                 </>
               ) : (
                 <div className="py-4 text-center">
@@ -538,11 +571,9 @@ export function GroupPaymentDialog({
 
           {/* Step: QR Code */}
           {step === 'qr' && bankSettings && createdPayment && (
-            <div className="space-y-4">
+            <div className="space-y-3 px-4 pb-4">
               <div className="bg-muted/50 rounded-lg p-2 text-center text-sm">
-                <span className="text-muted-foreground">
-                  Thanh toán cho {groupData.roomCount} phòng:{' '}
-                </span>
+                <span className="text-muted-foreground">Phòng: </span>
                 <span className="font-medium">
                   {groupData.bookings.map(b => b.room?.room_number).join(', ')}
                 </span>
@@ -557,30 +588,30 @@ export function GroupPaymentDialog({
                 paymentContent={createdPayment.transaction_reference || ''}
               />
 
-              <Button
-                variant="outline"
-                className="w-full"
-                type="button"
-                onClick={() => setShowMobileQR(true)}
-              >
-                <Maximize2 className="h-4 w-4 mr-2" />
-                Mở QR toàn màn hình
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => setShowMobileQR(true)}
+                >
+                  <Maximize2 className="h-4 w-4 mr-1.5" />
+                  Toàn màn hình
+                </Button>
 
-              <Button
-                variant="outline"
-                className="w-full"
-                type="button"
-                onClick={handleSendQRNotification}
-                disabled={isSendingNotification}
-              >
-                {isSendingNotification ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Smartphone className="h-4 w-4 mr-2" />
-                )}
-                Gửi QR sang điện thoại
-              </Button>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={handleSendQRNotification}
+                  disabled={isSendingNotification}
+                >
+                  {isSendingNotification ? (
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  ) : (
+                    <Smartphone className="h-4 w-4 mr-1.5" />
+                  )}
+                  Gửi QR
+                </Button>
+              </div>
 
               <Button className="w-full" onClick={handleManualConfirm} disabled={isProcessing}>
                 {isProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
@@ -588,21 +619,21 @@ export function GroupPaymentDialog({
               </Button>
 
               <p className="text-xs text-center text-muted-foreground">
-                Hệ thống sẽ tự động xác nhận khi nhận được chuyển khoản
+                Tự động xác nhận khi nhận chuyển khoản
               </p>
             </div>
           )}
 
           {/* Step: Success */}
           {step === 'success' && (
-            <div className="py-8 flex flex-col items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-                <CheckCircle className="h-8 w-8 text-green-600" />
+            <div className="py-8 px-4 flex flex-col items-center gap-3">
+              <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="h-7 w-7 text-green-600" />
               </div>
               <div className="text-center">
-                <p className="font-semibold text-lg">Thanh toán nhóm thành công!</p>
-                <p className="text-muted-foreground">
-                  Đã nhận {formatVNCurrency(parsedAmount)} cho {groupData.roomCount} phòng
+                <p className="font-semibold">Thanh toán thành công!</p>
+                <p className="text-sm text-muted-foreground">
+                  {formatVNCurrency(parsedAmount)} cho {groupData.roomCount} phòng
                 </p>
               </div>
             </div>
