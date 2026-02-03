@@ -13,6 +13,7 @@ interface BulkActionsHeaderProps {
 
 /**
  * Compact header with progress + bulk actions for room check tabs
+ * Improved: Larger progress bar, clearer visual hierarchy
  */
 export function BulkActionsHeader({
   totalItems,
@@ -27,40 +28,50 @@ export function BulkActionsHeader({
 
   return (
     <div className={cn(
-      "flex items-center justify-between gap-2 py-2 px-1",
+      "flex items-center justify-between gap-3 py-2 px-2 bg-muted/30 rounded-lg",
       className
     )}>
-      {/* Progress indicator */}
-      <div className="flex items-center gap-2 flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
+      {/* Progress indicator - larger and more visible */}
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          {isComplete ? (
+            <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+              <Check className="h-4 w-4 text-white" />
+            </div>
+          ) : (
+            <div className="w-6 h-6 rounded-full border-2 border-muted-foreground/30 flex items-center justify-center">
+              <span className="text-xs font-medium text-muted-foreground">
+                {remaining}
+              </span>
+            </div>
+          )}
           <span className={cn(
-            "text-sm font-medium tabular-nums",
+            "text-sm font-semibold tabular-nums",
             isComplete ? "text-green-600" : "text-foreground"
           )}>
             {checkedCount}/{totalItems}
           </span>
-          {isComplete && <Check className="h-4 w-4 text-green-600" />}
         </div>
         <Progress 
           value={progressPercent} 
           className={cn(
-            "h-1.5 flex-1 max-w-24",
+            "h-2 flex-1 max-w-32",
             isComplete && "[&>div]:bg-green-500"
           )}
         />
       </div>
 
-      {/* Bulk actions */}
-      <div className="flex items-center gap-1">
+      {/* Bulk actions - larger touch targets */}
+      <div className="flex items-center gap-2">
         {remaining > 0 && (
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="h-7 px-2 text-xs border-green-500 text-green-600 hover:bg-green-50"
+            className="h-9 px-3 text-xs border-green-500 text-green-600 hover:bg-green-50 active:bg-green-100"
             onClick={onMarkAllOk}
           >
-            <Check className="h-3 w-3 mr-1" />
+            <Check className="h-4 w-4 mr-1" />
             Tất cả OK
           </Button>
         )}
@@ -69,10 +80,10 @@ export function BulkActionsHeader({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-7 px-2 text-xs text-muted-foreground"
+            className="h-9 px-3 text-xs text-muted-foreground hover:text-foreground"
             onClick={onResetAll}
           >
-            <RotateCcw className="h-3 w-3 mr-1" />
+            <RotateCcw className="h-4 w-4 mr-1" />
             Reset
           </Button>
         )}
