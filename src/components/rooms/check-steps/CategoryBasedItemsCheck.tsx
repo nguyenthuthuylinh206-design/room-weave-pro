@@ -27,6 +27,7 @@ interface ExtendedRoomItem extends RoomItemWithDetails {
   item_type: ItemType
   category_name: string | null
   category_id: string | null
+  item_thumbnail?: string | null
 }
 
 interface CategoryInfo {
@@ -130,6 +131,7 @@ export function CategoryBasedItemsCheck({
             item_type: (itemData?.item_type as ItemType) || 'equipment',
             category_name: category?.name || 'Khác',
             category_id: category?.id || null,
+            item_thumbnail: (item as any).item_thumbnail || null,
           }
         })
         
@@ -142,6 +144,7 @@ export function CategoryBasedItemsCheck({
           item_type: 'equipment' as ItemType,
           category_name: 'Khác',
           category_id: null,
+          item_thumbnail: (item as any).item_thumbnail || null,
         })))
       }
       setIsLoading(false)
@@ -527,6 +530,10 @@ export function CategoryBasedItemsCheck({
                     {filteredItems.map(item => {
                       const status = getItemStatus(item.item_id, item.item_type)
                       const allowedActions = getAllowedActions(item.item_type)
+                      const consumedInfo = consumedItems.find(c => c.item_id === item.item_id) || null
+                      const damagedInfo = damagedItems.find(d => d.item_id === item.item_id) || null
+                      const lostInfo = lostItems.find(l => l.item_id === item.item_id) || null
+                      const laundryInfo = laundryItems.find(l => l.item_id === item.item_id) || null
                       
                       return (
                         <CategoryItemRow
@@ -539,6 +546,10 @@ export function CategoryBasedItemsCheck({
                           allowedActions={allowedActions}
                           onAction={(action) => handleItemAction(item, action)}
                           onReset={() => handleResetItem(item)}
+                          consumedInfo={consumedInfo}
+                          damagedInfo={damagedInfo}
+                          lostInfo={lostInfo}
+                          laundryInfo={laundryInfo}
                         />
                       )
                     })}
@@ -565,6 +576,10 @@ export function CategoryBasedItemsCheck({
                 {filterBySearch(category.items).map(item => {
                   const status = getItemStatus(item.item_id, item.item_type)
                   const allowedActions = getAllowedActions(item.item_type)
+                  const consumedInfo = consumedItems.find(c => c.item_id === item.item_id) || null
+                  const damagedInfo = damagedItems.find(d => d.item_id === item.item_id) || null
+                  const lostInfo = lostItems.find(l => l.item_id === item.item_id) || null
+                  const laundryInfo = laundryItems.find(l => l.item_id === item.item_id) || null
                   
                   return (
                     <CategoryItemRow
@@ -577,6 +592,10 @@ export function CategoryBasedItemsCheck({
                       allowedActions={allowedActions}
                       onAction={(action) => handleItemAction(item, action)}
                       onReset={() => handleResetItem(item)}
+                      consumedInfo={consumedInfo}
+                      damagedInfo={damagedInfo}
+                      lostInfo={lostInfo}
+                      laundryInfo={laundryInfo}
                     />
                   )
                 })}
