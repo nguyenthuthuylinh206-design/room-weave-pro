@@ -4,7 +4,7 @@ export type LaundryVendor = Database['public']['Tables']['laundry_vendors']['Row
 export type LaundryBatch = Database['public']['Tables']['laundry_batches']['Row']
 export type LaundryBatchItem = Database['public']['Tables']['laundry_batch_items']['Row']
 
-export type BatchStatus = 'delivered' | 'washing' | 'ready' | 'received' | 'stocked' | 'cancelled'
+export type BatchStatus = 'draft' | 'delivered' | 'washing' | 'ready' | 'received' | 'stocked' | 'cancelled'
 export type VendorType = 'external' | 'in_house'
 
 export interface LaundryDashboardStats {

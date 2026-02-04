@@ -46,7 +46,7 @@ export function LaundryBatchesPage() {
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState<{
     vendorId?: string
-    status?: 'delivered' | 'washing' | 'ready' | 'received' | 'cancelled' | ''
+    status?: 'draft' | 'delivered' | 'washing' | 'ready' | 'received' | 'cancelled' | ''
     search?: string
   }>({
     vendorId: '',
@@ -175,6 +175,7 @@ export function LaundryBatchesPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">{t('filters.all')}</SelectItem>
+                    <SelectItem value="draft">{t('status.draft', 'Nháp')}</SelectItem>
                     <SelectItem value="delivered">{t('status.sent')}</SelectItem>
                     <SelectItem value="washing">{t('status.processing')}</SelectItem>
                     <SelectItem value="ready">{t('status.ready')}</SelectItem>
