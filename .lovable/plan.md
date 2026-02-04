@@ -1,355 +1,268 @@
 
 
-## Kế hoạch: Quy trình xử lý Khách Quá Hạn có Booking Conflict
+## Kế hoạch: Chặn Check-in khi Phòng đang Occupied
 
 ### VẤN ĐỀ HIỆN TẠI
 
-Khi khách ở quá ngày checkout mà **đã có khách khác đặt phòng**, hệ thống:
-- Chỉ hiển thị dialog "Gia hạn" yêu cầu chọn ngày mới
-- Chỉ báo conflict **khi chọn ngày** (chậm - người dùng đã mất thời gian)
-- **Không thông báo ngay** rằng phòng đang bị block bởi booking khác
-- **Không có quy trình xử lý** cho tình huống khẩn cấp này
+| Layer | Kiểm tra | Status |
+|-------|----------|--------|
+| Database RPC | Chỉ check booking status | THIẾU |
+| Client code | Chỉ check ngày check-in | THIẾU |
+| Kết quả | Cho phép check-in khi phòng đang có khách | BUG |
 
-**Ví dụ thực tế từ database:**
-
-| Phòng | Khách hiện tại | Ngày checkout dự kiến | Khách tiếp theo | Ngày check-in |
-|-------|---------------|----------------------|----------------|---------------|
-| P102 | Nguyễn Đức Phước | 31/01/2026 (QUÁ HẠN) | Nguyễn Đức Phuww | 03/02/2026 (ĐÃ QUA) |
-
-Khách tiếp theo đã đến ngày check-in nhưng không được thông báo!
+**Hậu quả nghiêm trọng:**
+- 2 booking cùng `checked_in` cho 1 phòng
+- Phòng P102: Khách cũ chưa checkout + Khách mới đã check-in
+- Dữ liệu không nhất quán, gây rối loạn vận hành
 
 ---
 
-### GIẢI PHÁP ĐỀ XUẤT
+### GIẢI PHÁP
 
-#### 1. Cải tiến ExtendBookingDialog - Phát hiện conflict ngay khi mở
+#### 1. Cập nhật RPC `perform_checkin` - Thêm validation room status
 
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│  ⚠️ TÌNH HUỐNG KHẨN CẤP                                              │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  🔴 PHÒNG P102 CÓ BOOKING CONFLICT!                                  │
-│                                                                      │
-│  Khách hiện tại: Nguyễn Đức Phước                                   │
-│  Đã quá hạn: 4 đêm (từ 31/01 → 04/02)                               │
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐    │
-│  │ ⚠️ KHÁCH TIẾP THEO ĐÃ ĐẾN NGÀY CHECK-IN!                    │    │
-│  │                                                              │    │
-│  │ Tên khách: Nguyễn Đức Phuww                                 │    │
-│  │ Ngày check-in: 03/02/2026 (đã qua 1 ngày)                   │    │
-│  │ Liên hệ: 0828686861                                          │    │
-│  └─────────────────────────────────────────────────────────────┘    │
-│                                                                      │
-│  CHỌN PHƯƠNG ÁN XỬ LÝ:                                              │
-│                                                                      │
-│  ○ 1. Checkout khách hiện tại ngay + Thông báo khách mới           │
-│       (Thu phí 4 đêm quá hạn, chuyển phòng sang cleaning)          │
-│                                                                      │
-│  ○ 2. Chuyển booking khách mới sang phòng khác                      │
-│       (Tìm phòng trống tương đương, thông báo khách mới)           │
-│                                                                      │
-│  ○ 3. Liên hệ khách mới để dời lịch                                │
-│       (Gọi điện/nhắn tin, đề xuất ngày mới hoặc hoàn tiền)         │
-│                                                                      │
-│  [Xem phòng trống]   [Gọi khách mới]   [Tiếp tục xử lý]            │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-#### 2. Thêm Alert cho Dashboard - Cảnh báo Conflict
-
-Thêm loại alert mới vào `OwnerSmartAlerts`:
-
-```typescript
-{
-  id: 'booking-conflict',
-  label: 'Conflict booking',
-  count: conflictBookings.length,
-  icon: AlertOctagon,
-  color: 'text-red-600',
-  bgColor: 'bg-red-100',
-  link: '/bookings?filter=conflict',
-  description: 'Cần xử lý gấp',
-  priority: 'urgent', // Hiển thị đầu tiên
-}
-```
-
-#### 3. Logic kiểm tra conflict
-
-Tạo hook mới `useBookingConflicts`:
-
-```typescript
-// Kiểm tra conflict khi khách quá hạn
-async function checkBookingConflicts(roomId: string, currentBookingId: string) {
-  const today = format(new Date(), 'yyyy-MM-dd')
+```sql
+CREATE OR REPLACE FUNCTION perform_checkin(
+  p_booking_id UUID,
+  p_room_id UUID,
+  p_early_checkin_charge NUMERIC DEFAULT 0
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_result JSONB;
+  v_now TIMESTAMPTZ := now();
+  v_room_status TEXT;
+  v_current_booking_id UUID;
+BEGIN
+  -- THÊM: Kiểm tra room status trước khi check-in
+  SELECT status INTO v_room_status
+  FROM rooms WHERE id = p_room_id FOR UPDATE;
   
-  const { data: conflicts } = await supabase
-    .from('room_bookings')
-    .select(`
-      id, guest_name, guest_phone, 
-      check_in_date, check_out_date, status,
-      booking_source, deposit_amount
-    `)
-    .eq('room_id', roomId)
-    .neq('id', currentBookingId)
-    .in('status', ['confirmed', 'checked_in'])
-    .lte('check_in_date', today)  // Check-in date đã đến
-    .order('check_in_date')
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Room not found';
+  END IF;
+  
+  -- THÊM: Chặn check-in nếu phòng đang occupied
+  IF v_room_status = 'occupied' THEN
+    -- Tìm booking hiện tại đang chiếm phòng
+    SELECT rb.id INTO v_current_booking_id
+    FROM room_bookings rb
+    WHERE rb.room_id = p_room_id 
+      AND rb.status = 'checked_in'
+      AND rb.id != p_booking_id
+    LIMIT 1;
     
-  return {
-    hasConflict: conflicts && conflicts.length > 0,
-    conflictBookings: conflicts || [],
-    urgencyLevel: calculateUrgency(conflicts),
-  }
-}
+    IF v_current_booking_id IS NOT NULL THEN
+      RAISE EXCEPTION 'Room is currently occupied by another guest. Please checkout existing booking first.';
+    END IF;
+  END IF;
+  
+  -- THÊM: Chỉ cho phép check-in nếu phòng vacant, cleaning, hoặc check_out
+  IF v_room_status NOT IN ('vacant', 'cleaning', 'check_out', 'reserved') THEN
+    RAISE EXCEPTION 'Room status (%) does not allow check-in. Room must be vacant or cleaned.', v_room_status;
+  END IF;
+
+  -- Giữ nguyên logic cũ...
+  UPDATE room_bookings
+  SET 
+    status = 'checked_in',
+    actual_check_in = v_now,
+    early_checkin_charge = p_early_checkin_charge,
+    updated_at = v_now
+  WHERE id = p_booking_id
+    AND status IN ('confirmed', 'pending');
+  
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Booking not found or already checked in/out';
+  END IF;
+
+  UPDATE rooms
+  SET 
+    status = 'occupied',
+    updated_at = v_now
+  WHERE id = p_room_id;
+
+  v_result := jsonb_build_object(
+    'success', true,
+    'booking_id', p_booking_id,
+    'room_id', p_room_id,
+    'checked_in_at', v_now
+  );
+
+  RETURN v_result;
+END;
+$$;
 ```
 
----
+#### 2. Cập nhật Client - Thêm validation trước khi gọi API
 
-### CHI TIẾT THAY ĐỔI
-
-#### File 1: `src/components/bookings/ExtendBookingDialog.tsx`
-
-**Thay đổi:**
-1. Thêm state `conflictData` để lưu booking xung đột
-2. Thêm `useEffect` fetch conflict khi dialog mở
-3. Thay đổi UI để hiển thị warning nếu có conflict
-4. Thêm các action buttons: Checkout ngay, Chuyển phòng, Liên hệ khách
+**File:** `src/pages/bookings/BookingsPage.tsx` - `handleCheckInClick`
 
 ```typescript
-// State mới
-const [conflictData, setConflictData] = useState<{
-  hasConflict: boolean
-  nextBooking: any | null
-  daysOverdue: number
-}>({ hasConflict: false, nextBooking: null, daysOverdue: 0 })
+const handleCheckInClick = async (booking: BookingWithRoom) => {
+  const now = new Date()
+  const today = startOfDay(now)
+  const checkInDate = startOfDay(new Date(booking.check_in_date))
 
-// Fetch conflict khi mở dialog
-useEffect(() => {
-  if (open && booking) {
-    checkForConflicts()
-  }
-}, [open, booking])
-
-const checkForConflicts = async () => {
-  const today = format(new Date(), 'yyyy-MM-dd')
-  
-  const { data } = await supabase
-    .from('room_bookings')
-    .select('id, guest_name, guest_phone, check_in_date, deposit_amount')
-    .eq('room_id', booking.room_id)
-    .neq('id', booking.id)
-    .in('status', ['confirmed'])
-    .lte('check_in_date', today)
-    .order('check_in_date')
-    .limit(1)
-    
-  if (data && data.length > 0) {
-    setConflictData({
-      hasConflict: true,
-      nextBooking: data[0],
-      daysOverdue: differenceInCalendarDays(
-        new Date(), 
-        parseISO(data[0].check_in_date)
-      ),
+  // Block check-in if today is before check_in_date
+  if (isBefore(today, checkInDate)) {
+    toast({
+      variant: 'destructive',
+      title: 'Chưa đến ngày nhận phòng',
+      description: `Lịch nhận phòng: ${format(checkInDate, 'dd/MM/yyyy', { locale: vi })}.`,
     })
+    return
   }
+
+  // THÊM: Kiểm tra room status trước khi check-in
+  const { data: roomData, error: roomError } = await supabase
+    .from('rooms')
+    .select('status')
+    .eq('id', booking.room_id)
+    .single()
+
+  if (roomError) {
+    toast({
+      variant: 'destructive',
+      title: 'Lỗi kiểm tra phòng',
+      description: roomError.message,
+    })
+    return
+  }
+
+  // THÊM: Chặn nếu phòng đang occupied
+  if (roomData.status === 'occupied') {
+    // Kiểm tra booking nào đang chiếm phòng
+    const { data: currentBooking } = await supabase
+      .from('room_bookings')
+      .select('id, guest_name, check_out_date')
+      .eq('room_id', booking.room_id)
+      .eq('status', 'checked_in')
+      .neq('id', booking.id)
+      .single()
+
+    if (currentBooking) {
+      toast({
+        variant: 'destructive',
+        title: 'Phòng đang có khách',
+        description: `Khách "${currentBooking.guest_name}" chưa checkout (dự kiến: ${format(new Date(currentBooking.check_out_date), 'dd/MM/yyyy')}). Vui lòng checkout khách hiện tại trước.`,
+      })
+      return
+    }
+  }
+
+  // THÊM: Chặn nếu phòng đang maintenance
+  if (roomData.status === 'maintenance' || roomData.status === 'out_of_order') {
+    toast({
+      variant: 'destructive',
+      title: 'Phòng không khả dụng',
+      description: `Phòng đang trong trạng thái "${roomData.status}". Không thể check-in.`,
+    })
+    return
+  }
+
+  // Tiếp tục logic check-in hiện tại...
+  setActionBooking(booking)
+  // ...
 }
 ```
 
-#### File 2: `src/hooks/useBookingConflicts.ts` (MỚI)
+#### 3. Cập nhật `RoomBookingDialog.tsx` - Tương tự
 
-Hook chuyên xử lý conflict:
+Thêm cùng logic validation vào `handleCheckInClick` trong component này.
+
+#### 4. Cập nhật `useBookingActions.ts` - Thêm validation
 
 ```typescript
-export interface BookingConflict {
-  currentBooking: {
-    id: string
-    guest_name: string
-    room_number: string
-    check_out_date: string
-    nights_overdue: number
+const handleCheckIn = async (bookingId: string, roomId: string) => {
+  setIsLoading(true)
+  try {
+    // THÊM: Kiểm tra room status
+    const { data: room, error: roomFetchError } = await supabase
+      .from('rooms')
+      .select('status')
+      .eq('id', roomId)
+      .single()
+
+    if (roomFetchError) throw roomFetchError
+
+    if (room.status === 'occupied') {
+      throw new Error('Phòng đang có khách. Vui lòng checkout trước khi check-in.')
+    }
+
+    if (room.status === 'maintenance' || room.status === 'out_of_order') {
+      throw new Error('Phòng đang bảo trì. Không thể check-in.')
+    }
+
+    // Giữ nguyên logic hiện tại...
+    const { data: result, error: rpcError } = await supabase.rpc('perform_checkin', {
+      p_booking_id: bookingId,
+      p_room_id: roomId,
+      p_early_checkin_charge: earlyCheckinCharge,
+    })
+
+    if (rpcError) throw rpcError
+    // ...
   }
-  nextBooking: {
-    id: string
-    guest_name: string
-    guest_phone: string
-    check_in_date: string
-    days_waiting: number
-    deposit_amount: number
-  }
-  urgency: 'critical' | 'high' | 'medium'
-}
-
-export function useBookingConflicts() {
-  const { tenantId } = useUser()
-  const { selectedHotel, isAllHotelsMode } = useHotelContext()
-
-  return useQuery({
-    queryKey: ['booking-conflicts', tenantId, selectedHotel?.id],
-    queryFn: async (): Promise<BookingConflict[]> => {
-      const today = format(new Date(), 'yyyy-MM-dd')
-      
-      // Find overdue checked-in bookings
-      const { data: overdueBookings } = await supabase
-        .from('room_bookings')
-        .select(`
-          id, guest_name, room_id, check_out_date,
-          room:rooms(room_number)
-        `)
-        .eq('tenant_id', tenantId)
-        .eq('status', 'checked_in')
-        .lt('check_out_date', today)
-        
-      // For each, check if there's a conflicting booking
-      const conflicts: BookingConflict[] = []
-      
-      for (const current of overdueBookings || []) {
-        const { data: next } = await supabase
-          .from('room_bookings')
-          .select('id, guest_name, guest_phone, check_in_date, deposit_amount')
-          .eq('room_id', current.room_id)
-          .neq('id', current.id)
-          .eq('status', 'confirmed')
-          .lte('check_in_date', today)
-          .order('check_in_date')
-          .limit(1)
-          
-        if (next && next.length > 0) {
-          const nightsOverdue = differenceInCalendarDays(
-            new Date(), 
-            parseISO(current.check_out_date)
-          )
-          const daysWaiting = differenceInCalendarDays(
-            new Date(),
-            parseISO(next[0].check_in_date)
-          )
-          
-          conflicts.push({
-            currentBooking: {
-              id: current.id,
-              guest_name: current.guest_name,
-              room_number: (current.room as any)?.room_number,
-              check_out_date: current.check_out_date,
-              nights_overdue: nightsOverdue,
-            },
-            nextBooking: {
-              id: next[0].id,
-              guest_name: next[0].guest_name,
-              guest_phone: next[0].guest_phone,
-              check_in_date: next[0].check_in_date,
-              days_waiting: daysWaiting,
-              deposit_amount: next[0].deposit_amount,
-            },
-            urgency: daysWaiting > 1 ? 'critical' : daysWaiting > 0 ? 'high' : 'medium',
-          })
-        }
-      }
-      
-      return conflicts.sort((a, b) => 
-        b.nextBooking.days_waiting - a.nextBooking.days_waiting
-      )
-    },
-    refetchInterval: 60000, // Refresh mỗi phút
-  })
-}
-```
-
-#### File 3: `src/components/dashboard/owner/OwnerSmartAlerts.tsx`
-
-Thêm alert cho booking conflicts:
-
-```typescript
-const { data: conflictData } = useBookingConflicts()
-
-// Thêm vào mảng alerts
-{
-  id: 'booking-conflict',
-  label: 'Xung đột lịch phòng',
-  count: conflictData?.length || 0,
-  icon: AlertOctagon,
-  color: 'text-red-600',
-  bgColor: 'bg-red-100 dark:bg-red-950/50',
-  borderColor: 'border-red-300 dark:border-red-800',
-  link: '/bookings?filter=conflict',
-  description: 'Khách mới đang chờ',
-  show: (conflictData?.length || 0) > 0,
-  priority: 0, // Highest priority - show first
-}
-```
-
-#### File 4: `src/hooks/useRevenueReport.ts`
-
-Cập nhật `useOwnerAlerts` để include conflicts:
-
-```typescript
-// Thêm query conflicts
-const { data: conflictingBookings } = await supabase
-  .rpc('get_booking_conflicts', { p_tenant_id: tenantId })
-  
-return {
-  overdueCheckouts: overdueCheckouts || [],
-  unpaidBookings: unpaidBookings || [],
-  unresolvedDamages: unresolvedDamages || [],
-  bookingConflicts: conflictingBookings || [], // NEW
-  totalAlerts: /* ... */,
 }
 ```
 
 ---
 
-### QUY TRÌNH NGƯỜI DÙNG SAU TRIỂN KHAI
+### ERROR MESSAGES TÙY CHỈNH
+
+| Room Status | Message | Action |
+|-------------|---------|--------|
+| `occupied` | "Phòng đang có khách [Tên]. Vui lòng checkout trước." | Link đến checkout |
+| `maintenance` | "Phòng đang bảo trì. Không thể check-in." | - |
+| `out_of_order` | "Phòng ngừng hoạt động. Không thể check-in." | - |
+| `cleaning` | Cho phép check-in (phòng sắp sẵn sàng) | - |
+
+---
+
+### QUY TRÌNH SAU KHI SỬA
 
 ```text
-                    ┌─────────────────────────┐
-                    │ Dashboard hiển thị      │
-                    │ 🔴 "Xung đột lịch: 1"   │
-                    └──────────┬──────────────┘
-                               │
-                    ┌──────────▼──────────────┐
-                    │ Click vào alert hoặc    │
-                    │ bấm Checkout phòng P102 │
-                    └──────────┬──────────────┘
-                               │
-         ┌─────────────────────▼─────────────────────┐
-         │ DIALOG HIỂN THỊ CẢNH BÁO CONFLICT         │
-         │                                            │
-         │ "Phòng P102 có booking conflict!          │
-         │  Khách Nguyễn Đức Phuww đã đến ngày       │
-         │  check-in từ 1 ngày trước."               │
-         │                                            │
-         │ Chọn phương án:                           │
-         │ [1] Checkout ngay   ← Phổ biến nhất       │
-         │ [2] Chuyển phòng khách mới                │
-         │ [3] Liên hệ khách mới                     │
-         └─────────────────────┬─────────────────────┘
-                               │
-          ┌────────────────────┼────────────────────┐
-          │                    │                    │
-  ┌───────▼──────┐   ┌────────▼───────┐   ┌───────▼──────┐
-  │ Checkout ngay │   │ Chuyển phòng  │   │ Liên hệ     │
-  ├──────────────┤   ├───────────────┤   ├──────────────┤
-  │ - Tính phí   │   │ - Hiển thị    │   │ - Copy SĐT  │
-  │   quá hạn    │   │   phòng trống │   │ - Gọi điện  │
-  │ - Checkout   │   │ - Update      │   │ - Gửi SMS   │
-  │   booking    │   │   booking mới │   │ - Ghi note  │
-  │ - Thông báo  │   │ - Thông báo   │   │              │
-  │   staff      │   │   lễ tân      │   │              │
-  └──────────────┘   └───────────────┘   └──────────────┘
+                    Bấm "Check-in"
+                          │
+              ┌───────────▼───────────┐
+              │ Kiểm tra Room Status  │
+              └───────────┬───────────┘
+                          │
+     ┌────────────────────┼────────────────────┐
+     │                    │                    │
+     ▼                    ▼                    ▼
+ occupied             cleaning           maintenance
+     │                    │                    │
+     ▼                    ▼                    ▼
+ ❌ CHẶN              ✅ CHO PHÉP          ❌ CHẶN
+"Phòng có khách"     "Check-in"       "Phòng bảo trì"
+     │                    │
+     ▼                    │
+"Checkout trước"          │
+                          ▼
+               ┌──────────────────────┐
+               │ Kiểm tra Booking     │
+               │ Status = confirmed?  │
+               └──────────────────────┘
+                          │
+                    ✅ Check-in
 ```
 
 ---
 
-### CÁC FILE CẦN THAY ĐỔI
+### FILES CẦN THAY ĐỔI
 
 | File | Thay đổi | Độ phức tạp |
 |------|----------|------------|
-| `src/hooks/useBookingConflicts.ts` | **TẠO MỚI** - Hook xử lý conflict | Trung bình |
-| `src/components/bookings/ExtendBookingDialog.tsx` | Cập nhật UI với conflict warning | Cao |
-| `src/components/dashboard/owner/OwnerSmartAlerts.tsx` | Thêm conflict alert | Thấp |
-| `src/hooks/useRevenueReport.ts` | Thêm conflicts vào alerts | Thấp |
-| `src/pages/bookings/BookingsPage.tsx` | Filter `?filter=conflict` | Thấp |
+| Database Migration | Cập nhật RPC `perform_checkin` với room status check | Cao |
+| `src/pages/bookings/BookingsPage.tsx` | Thêm validation room status trước check-in | Trung bình |
+| `src/components/rooms/RoomBookingDialog.tsx` | Thêm validation tương tự | Trung bình |
+| `src/hooks/useBookingActions.ts` | Thêm validation làm backup | Thấp |
 
 ---
 
@@ -357,9 +270,8 @@ return {
 
 | Metric | Trước | Sau |
 |--------|-------|-----|
-| Thời gian phát hiện conflict | Khi chọn ngày (chậm) | Ngay khi mở dialog |
-| Thông báo cho quản lý | Không có | Dashboard alert real-time |
-| Phương án xử lý | Chỉ gia hạn | 3 phương án rõ ràng |
-| Thông tin khách mới | Không hiển thị | SĐT, ngày chờ, số tiền cọc |
-| Urgency level | Không có | Critical/High/Medium |
+| Check-in khi phòng occupied | Cho phép (BUG) | Chặn + thông báo rõ |
+| 2 booking checked_in cùng phòng | Có thể xảy ra | Không thể |
+| Thông báo cho user | Không có | "Phòng đang có khách X, checkout trước" |
+| Database integrity | Không đảm bảo | Đảm bảo 100% |
 
