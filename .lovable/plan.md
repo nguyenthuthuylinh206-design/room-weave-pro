@@ -1,223 +1,103 @@
 
 
-## Kết quả kiểm tra: Các lỗi còn lại trong quy trình Lô Giặt Nháp
+## Kế hoạch: Sửa lỗi "relation categories does not exist"
 
-### TỔNG QUAN
+### NGUYÊN NHÂN LỖI
 
-Sau khi kiểm tra toàn bộ quy trình, tôi phát hiện **6 vấn đề** cần sửa:
+RPC `get_laundry_batch_detail` tại migration `20260204155337_ba14dc4f-b714-49b5-8256-52995bcb1b01.sql` có lỗi:
 
----
+```sql
+-- Dòng 49 - SAI:
+LEFT JOIN categories c ON c.id = i.category_id
 
-### VẤN ĐỀ 1: Thiếu xử lý URL query param `sendBatch` (CRITICAL)
-
-**Mô tả**: BatchDetailPage điều hướng đến `/laundry/requests?sendBatch=${id}` khi nhấn "Gửi đi giặt", nhưng LaundryRequestsTab KHÔNG xử lý query param này.
-
-**Hậu quả**: Khi click "Gửi đi giặt" từ trang chi tiết draft batch, dialog gửi lô giặt KHÔNG tự động mở.
-
-**Giải pháp**:
-- Sửa `LaundryDashboardPage.tsx` hoặc `LaundryRequestsTab.tsx` để:
-  - Đọc query param `sendBatch`
-  - Tự động chuyển sang tab "requests" 
-  - Tự động mở `SendLaundryBatchDialog` với batchId từ param
-
----
-
-### VẤN ĐỀ 2: Thiếu translation cho status "draft" (LOW)
-
-**Mô tả**: Các file translation `laundry.json` thiếu key `status.draft`.
-
-**Files cần sửa**:
-- `src/i18n/locales/vi/laundry.json`: Thêm `"draft": "Nháp"` vào object `status`
-- `src/i18n/locales/en/laundry.json`: Thêm `"draft": "Draft"` vào object `status`
-
-**Translation cần thêm**:
-```json
-"status": {
-  "draft": "Nháp",  // VI
-  "draft": "Draft",  // EN
-  ...
-}
+-- ĐÚNG:
+LEFT JOIN item_categories c ON c.id = i.category_id
 ```
 
-Và thêm vào `batchDetail.timeline`:
-```json
-"timeline": {
-  "draft": "Nháp",  // VI
-  "draft": "Draft",  // EN
-  ...
-}
-```
+Bảng `categories` KHÔNG tồn tại trong database. Bảng đúng là `item_categories`.
 
 ---
 
-### VẤN ĐỀ 3: BatchStatusTimeline không hiển thị step "draft" (MEDIUM)
+### GIẢI PHÁP
 
-**Mô tả**: Component `BatchStatusTimeline.tsx` chỉ hiển thị các bước từ "delivered" → "stocked", không có step cho "draft".
+Tạo database migration để sửa RPC `get_laundry_batch_detail`:
 
-**Hậu quả**: Khi xem draft batch, timeline hiển thị không chính xác.
-
-**Giải pháp**:
-- Thêm step đầu tiên "draft" khi batch.status === 'draft'
-- Điều kiện hiển thị: chỉ hiện draft step khi batch là draft
-
----
-
-### VẤN ĐỀ 4: Thiếu logic load batch cụ thể khi mở SendLaundryBatchDialog (MEDIUM)
-
-**Mô tả**: Hiện tại `SendLaundryBatchDialog` nhận batch từ `useDraftLaundryBatch()` hook chỉ trả về draft batch của hôm nay. Nhưng khi navigate từ BatchDetailPage với `sendBatch` param, cần load batch cụ thể theo ID.
-
-**Giải pháp**:
-- Khi có `sendBatch` query param → Load batch theo ID đó thay vì dùng draft batch mặc định
-
----
-
-### VẤN ĐỀ 5: Có thể xem batch detail của draft nhưng URL không đúng (LOW)
-
-**Mô tả**: Sau khi xử lý xong, nút "Gửi đi giặt" trong BatchDetailPage điều hướng đến `/laundry/requests?sendBatch=${id}` nhưng route này là Dashboard page, không phải Requests page riêng.
-
-**Hiện trạng**: Đây là do thiết kế UI - tab "Yêu cầu từ phòng" nằm trong Dashboard, nên URL là `/laundry?tab=requests`. Cần điều chỉnh navigation path.
-
-**Giải pháp**: Sửa navigation thành `/laundry?tab=requests&sendBatch=${id}`
-
----
-
-### VẤN ĐỀ 6: Thiếu nút xóa items khỏi draft batch (ENHANCEMENT)
-
-**Mô tả**: Hiện tại chỉ có thể thêm items vào draft batch, nhưng KHÔNG có chức năng xóa items nếu thêm nhầm.
-
-**Giải pháp** (tùy chọn):
-- Thêm nút xóa item trong BatchItemsTable khi status === 'draft'
-- Tạo RPC `remove_item_from_draft_batch`
-
----
-
-## KẾ HOẠCH THỰC HIỆN
-
-| # | Task | Độ phức tạp | Files |
-|---|------|-------------|-------|
-| 1 | Xử lý query param `sendBatch` và tự động mở dialog | **Cao** | `LaundryDashboardPage.tsx`, `LaundryRequestsTab.tsx` |
-| 2 | Sửa navigation path trong BatchDetailPage | **Thấp** | `BatchDetailPage.tsx`, `MobileBatchDetail.tsx` |
-| 3 | Thêm translation cho status "draft" | **Thấp** | `laundry.json` (vi + en) |
-| 4 | Cập nhật BatchStatusTimeline cho draft | **Trung bình** | `BatchStatusTimeline.tsx` |
-| 5 | Load batch cụ thể theo ID từ param | **Trung bình** | `LaundryRequestsTab.tsx` |
-
----
-
-## CHI TIẾT THAY ĐỔI
-
-### 1. LaundryDashboardPage.tsx
-
-```typescript
-// Thêm xử lý sendBatch param
-const sendBatchId = searchParams.get('sendBatch')
-
-useEffect(() => {
-  if (sendBatchId) {
-    // Auto switch to requests tab
-    setSearchParams({ tab: 'requests', sendBatch: sendBatchId })
-  }
-}, [sendBatchId])
-```
-
-### 2. LaundryRequestsTab.tsx
-
-```typescript
-// Thêm logic đọc sendBatch param và mở dialog
-const [searchParams] = useSearchParams()
-const sendBatchParam = searchParams.get('sendBatch')
-
-// State cho batch được chọn để gửi
-const [selectedBatchForSend, setSelectedBatchForSend] = useState<string | null>(null)
-
-// Thêm query để load batch theo ID khi có param
-const { data: batchToSend } = useQuery({
-  queryKey: ['laundry-batch-to-send', sendBatchParam],
-  queryFn: async () => {
-    if (!sendBatchParam) return null
-    const { data } = await supabase
-      .from('laundry_batches')
-      .select('id, batch_code, total_items, total_weight_kg')
-      .eq('id', sendBatchParam)
-      .single()
-    return data
-  },
-  enabled: !!sendBatchParam
-})
-
-// Auto open dialog when batchToSend loaded
-useEffect(() => {
-  if (batchToSend) {
-    setSendBatchDialogOpen(true)
-  }
-}, [batchToSend])
-```
-
-### 3. BatchDetailPage.tsx & MobileBatchDetail.tsx
-
-```typescript
-// Sửa navigation path
-// Trước:
-navigate(`/laundry/requests?sendBatch=${id}`)
-
-// Sau:
-navigate(`/laundry?tab=requests&sendBatch=${id}`)
-```
-
-### 4. laundry.json translations
-
-```json
-// VI:
-"status": {
-  "draft": "Nháp",
-  ...
-},
-"batchDetail": {
-  "timeline": {
-    "draft": "Nháp",
-    ...
-  }
-}
-
-// EN:
-"status": {
-  "draft": "Draft",
-  ...
-},
-"batchDetail": {
-  "timeline": {
-    "draft": "Draft",
-    ...
-  }
-}
-```
-
-### 5. BatchStatusTimeline.tsx
-
-```typescript
-// Thêm step draft nếu batch đang ở trạng thái draft
-const steps = batch.status === 'draft' 
-  ? [
-      {
-        key: 'draft',
-        label: t('batchDetail.timeline.draft'),
-        date: batch.created_at,
-        completed: true,
-      }
-    ]
-  : [
-      // existing steps: delivered, washing, ready, received, stocked
-      ...
-    ]
+```sql
+CREATE OR REPLACE FUNCTION public.get_laundry_batch_detail(p_batch_id UUID)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_result jsonb;
+BEGIN
+  SELECT jsonb_build_object(
+    'batch', to_jsonb(lb),
+    'vendor', CASE WHEN lv.id IS NOT NULL THEN to_jsonb(lv) ELSE NULL END,
+    'hotel', to_jsonb(h),
+    'delivery_staff', CASE WHEN ds.id IS NOT NULL THEN jsonb_build_object(
+      'id', ds.id,
+      'full_name', ds.full_name,
+      'avatar_url', ds.avatar_url
+    ) ELSE NULL END,
+    'return_staff', CASE WHEN rs.id IS NOT NULL THEN jsonb_build_object(
+      'id', rs.id,
+      'full_name', rs.full_name,
+      'avatar_url', rs.avatar_url
+    ) ELSE NULL END,
+    'items', COALESCE((
+      SELECT jsonb_agg(
+        jsonb_build_object(
+          'id', lbi.id,
+          'batch_id', lbi.batch_id,
+          'item_id', lbi.item_id,
+          'quantity_delivered', lbi.quantity_delivered,
+          'weight_kg', lbi.weight_kg,
+          'condition_note', lbi.condition_note,
+          'quantity_returned', lbi.quantity_returned,
+          'quantity_lost', lbi.quantity_lost,
+          'quantity_damaged', lbi.quantity_damaged,
+          'return_condition', lbi.return_condition,
+          'item_code', i.code,
+          'item_name', i.name,
+          'item_thumbnail', i.thumbnail_url,
+          'item_unit', i.unit,
+          'category_name', c.name
+        )
+      )
+      FROM laundry_batch_items lbi
+      JOIN items i ON i.id = lbi.item_id
+      LEFT JOIN item_categories c ON c.id = i.category_id  -- SỬA: categories → item_categories
+      WHERE lbi.batch_id = lb.id
+    ), '[]'::jsonb)
+  ) INTO v_result
+  FROM laundry_batches lb
+  LEFT JOIN laundry_vendors lv ON lv.id = lb.vendor_id
+  JOIN hotels h ON h.id = lb.hotel_id
+  LEFT JOIN users ds ON ds.id = lb.delivery_staff_id
+  LEFT JOIN users rs ON rs.id = lb.return_staff_id
+  WHERE lb.id = p_batch_id;
+  
+  RETURN v_result;
+END;
+$$;
 ```
 
 ---
 
-## KẾT QUẢ MONG ĐỢI
+### FILES CẦN THAY ĐỔI
 
-| Flow | Trước | Sau |
-|------|-------|-----|
-| Click "Gửi đi giặt" từ BatchDetail | Điều hướng đến `/laundry/requests?sendBatch=id` nhưng dialog không mở | Dialog tự động mở với batch đã chọn |
-| Xem draft batch timeline | Không hiển thị step draft | Hiển thị step "Nháp" đầu tiên |
-| Filter batches by draft | Hiển thị "draft" hardcoded | Hiển thị translation "Nháp" |
-| Toàn bộ flow draft → delivered | Hoạt động không trơn tru | Hoạt động hoàn chỉnh |
+| File | Thay đổi |
+|------|----------|
+| Database Migration (SQL) | Sửa `categories` → `item_categories` trong RPC |
+
+---
+
+### KẾT QUẢ MONG ĐỢI
+
+| Trước | Sau |
+|-------|-----|
+| Lỗi "relation categories does not exist" khi xem chi tiết lô giặt | Xem chi tiết lô giặt thành công |
+| Không thể xem draft batch | Xem được chi tiết draft batch với items và category |
 
