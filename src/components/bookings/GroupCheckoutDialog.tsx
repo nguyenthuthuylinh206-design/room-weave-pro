@@ -633,23 +633,23 @@ export function GroupCheckoutDialog({
             </p>
           </DialogHeader>
 
-          <div className="flex flex-col gap-3 px-4 pb-4 overflow-hidden">
-            {/* Select All Checkbox */}
-            {checkedInRooms.length > 0 && (
-              <div className="flex items-center gap-2 pb-1">
-                <Checkbox
-                  id="select-all"
-                  checked={allSelected}
-                  onCheckedChange={handleSelectAll}
-                />
-                <Label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
-                  Chọn tất cả ({checkedInRooms.length} phòng đang ở)
-                </Label>
-              </div>
-            )}
-            
-            {/* Room List with Selection & Staff Assignment */}
-            <ScrollArea className="max-h-[220px]">
+          <ScrollArea className="flex-1 overflow-auto">
+            <div className="flex flex-col gap-3 px-4 pb-4">
+              {/* Select All Checkbox */}
+              {checkedInRooms.length > 0 && (
+                <div className="flex items-center gap-2 pb-1">
+                  <Checkbox
+                    id="select-all"
+                    checked={allSelected}
+                    onCheckedChange={handleSelectAll}
+                  />
+                  <Label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+                    Chọn tất cả ({checkedInRooms.length} phòng đang ở)
+                  </Label>
+                </div>
+              )}
+              
+              {/* Room List with Selection & Staff Assignment */}
               <div className="space-y-2">
                 {groupData.bookings.map((booking) => {
                   const inspection = inspectionMap.get(booking.id)
@@ -756,7 +756,6 @@ export function GroupCheckoutDialog({
                   )
                 })}
               </div>
-            </ScrollArea>
 
             {/* Batch Inspection Request Button */}
             {roomStats.needsRequest > 0 && selectedRooms.size > 0 && (
@@ -885,7 +884,8 @@ export function GroupCheckoutDialog({
                 )}
               </Button>
             </div>
-          </div>
+            </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
 
