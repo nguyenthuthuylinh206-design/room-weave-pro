@@ -390,8 +390,8 @@ export function BookingsPage() {
     }
   }
 
-  // Handle Check-in click - validate date first, then show dialog if early check-in
-  const handleCheckInClick = (booking: BookingWithRoom) => {
+  // Handle Check-in click - validate date and room status first, then show dialog if early check-in
+  const handleCheckInClick = async (booking: BookingWithRoom) => {
     const now = new Date()
     const today = startOfDay(now)
     const checkInDate = startOfDay(new Date(booking.check_in_date))
@@ -402,6 +402,53 @@ export function BookingsPage() {
         variant: 'destructive',
         title: 'Chưa đến ngày nhận phòng',
         description: `Lịch nhận phòng: ${format(checkInDate, 'dd/MM/yyyy', { locale: vi })}. Vui lòng thay đổi lịch đặt nếu muốn nhận sớm.`,
+      })
+      return
+    }
+
+    // Validate room status before check-in
+    const { data: roomData, error: roomError } = await supabase
+      .from('rooms')
+      .select('status')
+      .eq('id', booking.room_id)
+      .single()
+
+    if (roomError) {
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi kiểm tra phòng',
+        description: roomError.message,
+      })
+      return
+    }
+
+    // Block if room is occupied
+    if (roomData.status === 'occupied') {
+      const { data: currentBooking } = await supabase
+        .from('room_bookings')
+        .select('id, guest_name, check_out_date')
+        .eq('room_id', booking.room_id)
+        .eq('status', 'checked_in')
+        .neq('id', booking.id)
+        .limit(1)
+        .single()
+
+      if (currentBooking) {
+        toast({
+          variant: 'destructive',
+          title: 'Phòng đang có khách',
+          description: `Khách "${currentBooking.guest_name}" chưa checkout (dự kiến: ${format(new Date(currentBooking.check_out_date), 'dd/MM/yyyy')}). Vui lòng checkout khách hiện tại trước.`,
+        })
+        return
+      }
+    }
+
+    // Block if room is under maintenance
+    if (roomData.status === 'maintenance' || roomData.status === 'out_of_order') {
+      toast({
+        variant: 'destructive',
+        title: 'Phòng không khả dụng',
+        description: `Phòng đang trong trạng thái "${roomData.status === 'maintenance' ? 'bảo trì' : 'ngừng hoạt động'}". Không thể check-in.`,
       })
       return
     }

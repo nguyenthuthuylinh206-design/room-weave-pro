@@ -307,7 +307,7 @@ export function RoomBookingDialog({
     }
   }
   
-  const handleCheckInClick = () => {
+  const handleCheckInClick = async () => {
     if (!booking) return
 
     const now = new Date()
@@ -320,6 +320,53 @@ export function RoomBookingDialog({
         variant: 'destructive',
         title: 'Chưa đến ngày nhận phòng',
         description: `Lịch nhận phòng: ${format(bookingCheckInDate, 'dd/MM/yyyy', { locale: vi })}. Vui lòng thay đổi lịch đặt nếu muốn nhận sớm.`,
+      })
+      return
+    }
+
+    // Validate room status before check-in
+    const { data: roomData, error: roomError } = await supabase
+      .from('rooms')
+      .select('status')
+      .eq('id', roomId)
+      .single()
+
+    if (roomError) {
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi kiểm tra phòng',
+        description: roomError.message,
+      })
+      return
+    }
+
+    // Block if room is occupied
+    if (roomData.status === 'occupied') {
+      const { data: currentBooking } = await supabase
+        .from('room_bookings')
+        .select('id, guest_name, check_out_date')
+        .eq('room_id', roomId)
+        .eq('status', 'checked_in')
+        .neq('id', booking.id)
+        .limit(1)
+        .single()
+
+      if (currentBooking) {
+        toast({
+          variant: 'destructive',
+          title: 'Phòng đang có khách',
+          description: `Khách "${currentBooking.guest_name}" chưa checkout (dự kiến: ${format(new Date(currentBooking.check_out_date), 'dd/MM/yyyy')}). Vui lòng checkout khách hiện tại trước.`,
+        })
+        return
+      }
+    }
+
+    // Block if room is under maintenance
+    if (roomData.status === 'maintenance' || roomData.status === 'out_of_order') {
+      toast({
+        variant: 'destructive',
+        title: 'Phòng không khả dụng',
+        description: `Phòng đang trong trạng thái "${roomData.status === 'maintenance' ? 'bảo trì' : 'ngừng hoạt động'}". Không thể check-in.`,
       })
       return
     }
