@@ -10,10 +10,11 @@ import {
   ChevronRight,
   DoorOpen,
   Plus,
+  Truck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Sheet,
@@ -33,6 +34,8 @@ import {
 import { cn } from '@/lib/utils'
 import { supabase } from '@/integrations/supabase/client'
 import { useQueryClient } from '@tanstack/react-query'
+import { AddToLaundryBatchDialog } from './AddToLaundryBatchDialog'
+import { SendLaundryBatchDialog } from './SendLaundryBatchDialog'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   pending: { label: 'Chờ xử lý', color: 'text-amber-600', icon: Clock },
@@ -44,6 +47,8 @@ export function LaundryRequestsTab() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [selectedRequest, setSelectedRequest] = useState<LaundryRequest | null>(null)
+  const [confirmDialogRequest, setConfirmDialogRequest] = useState<LaundryRequest | null>(null)
+  const [sendBatchDialogOpen, setSendBatchDialogOpen] = useState(false)
   
   const { data: requests, isLoading } = useLaundryRequests({ status: 'pending' })
   const { data: pendingCount } = usePendingLaundryRequestsCount()
@@ -61,6 +66,12 @@ export function LaundryRequestsTab() {
           queryClient.invalidateQueries({ queryKey: ['laundry-requests-pending-count'] })
         }
       )
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'laundry_batches' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['draft-laundry-batch'] })
+        }
+      )
       .subscribe()
     
     return () => { 
@@ -68,15 +79,31 @@ export function LaundryRequestsTab() {
     }
   }, [queryClient])
   
-  const handleAddToBatch = async (request: LaundryRequest) => {
+  // Open confirmation dialog before adding to batch
+  const handleOpenConfirmDialog = (request: LaundryRequest) => {
+    setSelectedRequest(null) // Close detail sheet
+    setConfirmDialogRequest(request)
+  }
+  
+  const handleConfirmAddToBatch = async () => {
+    if (!confirmDialogRequest) return
+    
     await addToBatch.mutateAsync({
-      requestId: request.id,
-      hotelId: request.hotel_id,
+      requestId: confirmDialogRequest.id,
+      hotelId: confirmDialogRequest.hotel_id,
     })
-    setSelectedRequest(null)
+    setConfirmDialogRequest(null)
   }
   
   const items = selectedRequest?.items as LaundryRequestItem[] || []
+  
+  // Format draft batch for dialogs
+  const draftBatchForDialog = draftBatch ? {
+    id: draftBatch.id,
+    batch_code: draftBatch.batch_code,
+    total_items: draftBatch.total_items,
+    total_weight_kg: draftBatch.total_weight_kg,
+  } : null
   
   return (
     <div className="space-y-4">
@@ -92,7 +119,7 @@ export function LaundryRequestsTab() {
           </p>
         </div>
         {pendingCount && pendingCount > 0 && (
-          <Badge variant="outline" className="text-amber-600 border-amber-600">
+          <Badge variant="secondary">
             {pendingCount} chờ xử lý
           </Badge>
         )}
@@ -100,23 +127,32 @@ export function LaundryRequestsTab() {
       
       {/* Draft Batch Info */}
       {draftBatch && (
-        <Card className="bg-blue-50/50 border-blue-200">
+        <Card className="bg-primary/5 border-primary/20">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-medium text-blue-900">Lô giặt nháp hôm nay</div>
-                <div className="text-sm text-blue-700">
+                <div className="font-medium">Lô giặt nháp hôm nay</div>
+                <div className="text-sm text-muted-foreground">
                   {draftBatch.batch_code} • {draftBatch.total_items || 0} món
                 </div>
               </div>
-              <Button 
-                size="sm" 
-                variant="outline"
-                className="border-blue-300 text-blue-700"
-                onClick={() => navigate(`/laundry/batches/${draftBatch.id}`)}
-              >
-                Xem lô giặt
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => navigate(`/laundry/batches/${draftBatch.id}`)}
+                >
+                  Xem lô giặt
+                </Button>
+                <Button 
+                  size="sm"
+                  onClick={() => setSendBatchDialogOpen(true)}
+                  disabled={(draftBatch.total_items || 0) === 0}
+                >
+                  <Truck className="h-4 w-4 mr-1" />
+                  Gửi đi
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -146,7 +182,7 @@ export function LaundryRequestsTab() {
                 key={request.id}
                 className={cn(
                   "hover:bg-muted/50 cursor-pointer transition-colors",
-                  request.status === 'pending' && "border-amber-200 bg-amber-50/30"
+                  request.status === 'pending' && "border-primary/30 bg-primary/5"
                 )}
                 onClick={() => setSelectedRequest(request)}
               >
@@ -251,8 +287,8 @@ export function LaundryRequestsTab() {
               
               {/* Batch Info */}
               {selectedRequest.batch && (
-                <div className="p-3 rounded-lg bg-green-50 border border-green-200">
-                  <div className="text-sm font-medium text-green-800">
+                <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                  <div className="text-sm font-medium">
                     Đã thêm vào lô: {selectedRequest.batch.batch_code}
                   </div>
                 </div>
@@ -262,7 +298,7 @@ export function LaundryRequestsTab() {
               {selectedRequest.status === 'pending' && (
                 <Button
                   className="w-full"
-                  onClick={() => handleAddToBatch(selectedRequest)}
+                  onClick={() => handleOpenConfirmDialog(selectedRequest)}
                   disabled={addToBatch.isPending}
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -273,6 +309,24 @@ export function LaundryRequestsTab() {
           )}
         </SheetContent>
       </Sheet>
+      
+      {/* Confirmation Dialog */}
+      <AddToLaundryBatchDialog
+        open={!!confirmDialogRequest}
+        onOpenChange={(open) => !open && setConfirmDialogRequest(null)}
+        request={confirmDialogRequest}
+        draftBatch={draftBatchForDialog}
+        onConfirm={handleConfirmAddToBatch}
+        isLoading={addToBatch.isPending}
+      />
+      
+      {/* Send Batch Dialog */}
+      <SendLaundryBatchDialog
+        open={sendBatchDialogOpen}
+        onOpenChange={setSendBatchDialogOpen}
+        batch={draftBatchForDialog}
+        onSuccess={() => setSendBatchDialogOpen(false)}
+      />
     </div>
   )
 }
