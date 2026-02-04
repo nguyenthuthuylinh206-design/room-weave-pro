@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { 
@@ -33,7 +33,7 @@ import {
 } from '@/hooks/useLaundryRequests'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/integrations/supabase/client'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { AddToLaundryBatchDialog } from './AddToLaundryBatchDialog'
 import { SendLaundryBatchDialog } from './SendLaundryBatchDialog'
 
@@ -45,15 +45,52 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof
 
 export function LaundryRequestsTab() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const [selectedRequest, setSelectedRequest] = useState<LaundryRequest | null>(null)
   const [confirmDialogRequest, setConfirmDialogRequest] = useState<LaundryRequest | null>(null)
   const [sendBatchDialogOpen, setSendBatchDialogOpen] = useState(false)
   
+  // Get sendBatch param from URL
+  const sendBatchParam = searchParams.get('sendBatch')
+  
   const { data: requests, isLoading } = useLaundryRequests({ status: 'pending' })
   const { data: pendingCount } = usePendingLaundryRequestsCount()
   const { data: draftBatch } = useDraftLaundryBatch()
   const addToBatch = useAddToDraftBatch()
+  
+  // Load specific batch by ID if sendBatch param exists
+  const { data: batchToSend } = useQuery({
+    queryKey: ['laundry-batch-to-send', sendBatchParam],
+    queryFn: async () => {
+      if (!sendBatchParam) return null
+      const { data, error } = await supabase
+        .from('laundry_batches')
+        .select('id, batch_code, total_items, total_weight_kg')
+        .eq('id', sendBatchParam)
+        .single()
+      if (error) return null
+      return data
+    },
+    enabled: !!sendBatchParam
+  })
+  
+  // Auto-open send dialog when batchToSend is loaded
+  useEffect(() => {
+    if (batchToSend && sendBatchParam) {
+      setSendBatchDialogOpen(true)
+    }
+  }, [batchToSend, sendBatchParam])
+  
+  // Clear sendBatch param when dialog closes
+  const handleSendDialogChange = (open: boolean) => {
+    setSendBatchDialogOpen(open)
+    if (!open && sendBatchParam) {
+      const newParams = new URLSearchParams(searchParams)
+      newParams.delete('sendBatch')
+      setSearchParams(newParams)
+    }
+  }
   
   // Realtime subscription
   useEffect(() => {
@@ -323,9 +360,9 @@ export function LaundryRequestsTab() {
       {/* Send Batch Dialog */}
       <SendLaundryBatchDialog
         open={sendBatchDialogOpen}
-        onOpenChange={setSendBatchDialogOpen}
-        batch={draftBatchForDialog}
-        onSuccess={() => setSendBatchDialogOpen(false)}
+        onOpenChange={handleSendDialogChange}
+        batch={batchToSend || draftBatchForDialog}
+        onSuccess={() => handleSendDialogChange(false)}
       />
     </div>
   )

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, Wind, DollarSign, Package, Star, Inbox } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -23,11 +24,21 @@ export function LaundryDashboardPage() {
   const { isMobile } = useBreakpoint()
   
   const activeTab = searchParams.get('tab') || 'batches'
+  const sendBatchId = searchParams.get('sendBatch')
   
   // Gọi TẤT CẢ hooks trước điều kiện isMobile
   const { data: stats, isLoading: statsLoading } = useLaundryDashboardStats()
   const { data: activeBatches, isLoading: batchesLoading } = useLaundryBatches({})
   const { data: pendingRequestsCount } = usePendingLaundryRequestsCount()
+  
+  // Auto switch to requests tab when sendBatch param exists
+  useEffect(() => {
+    if (sendBatchId && activeTab !== 'requests') {
+      const newParams = new URLSearchParams(searchParams)
+      newParams.set('tab', 'requests')
+      setSearchParams(newParams)
+    }
+  }, [sendBatchId, activeTab, searchParams, setSearchParams])
   
   // Kiểm tra mobile SAU KHI tất cả hooks đã được gọi
   if (isMobile) {
@@ -39,12 +50,12 @@ export function LaundryDashboardPage() {
   ) || []
   
   const handleTabChange = (value: string) => {
-    if (value === 'batches') {
-      searchParams.delete('tab')
-    } else {
-      searchParams.set('tab', value)
+    const newParams = new URLSearchParams()
+    if (value !== 'batches') {
+      newParams.set('tab', value)
     }
-    setSearchParams(searchParams)
+    // Clear sendBatch param when switching tabs
+    setSearchParams(newParams)
   }
   
   return (

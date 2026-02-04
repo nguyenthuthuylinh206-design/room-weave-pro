@@ -52,6 +52,7 @@
     "stockingIn": "Stocking...",
     "statusCard": "Status",
     "timeline": {
+      "draft": "Draft",
       "delivered": "Delivered",
       "washing": "Washing",
       "ready": "Ready to Receive",
@@ -237,6 +238,7 @@
     "expectedReturn": "Expected Return"
   },
   "status": {
+    "draft": "Draft",
     "pending": "Pending",
     "delivered": "Delivered",
     "sent": "Sent",

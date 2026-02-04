@@ -182,7 +182,7 @@ export function BatchDetailPage() {
           <PermissionGate module="laundry" action="update">
             {/* Send Draft Batch Button */}
             {batch.status === 'draft' && (
-              <Button onClick={() => navigate(`/laundry/requests?sendBatch=${id}`)}>
+              <Button onClick={() => navigate(`/laundry?tab=requests&sendBatch=${id}`)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Gửi đi giặt
               </Button>
@@ -286,7 +286,7 @@ export function BatchDetailPage() {
                 <p className="text-sm text-slate-600 mb-4">
                   Lô này đang ở trạng thái nháp. Bạn cần chọn đơn vị giặt và gửi đi để tiếp tục quy trình.
                 </p>
-                <Button onClick={() => navigate(`/laundry/requests?sendBatch=${id}`)}>
+                <Button onClick={() => navigate(`/laundry?tab=requests&sendBatch=${id}`)}>
                   <Edit className="mr-2 h-4 w-4" />
                   Gửi đi giặt
                 </Button>
