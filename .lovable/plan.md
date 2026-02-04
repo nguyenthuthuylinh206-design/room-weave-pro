@@ -1,256 +1,200 @@
 
 
-## Kế hoạch: Chặn Check-in khi Phòng đang Occupied
+## Kế hoạch: Thêm Dialog Xác nhận Check-in cho TẤT CẢ trường hợp
 
 ### VẤN ĐỀ HIỆN TẠI
 
-| Layer | Kiểm tra | Status |
-|-------|----------|--------|
-| Database RPC | Chỉ check booking status | THIẾU |
-| Client code | Chỉ check ngày check-in | THIẾU |
-| Kết quả | Cho phép check-in khi phòng đang có khách | BUG |
+| Loại Booking | Thời điểm | Dialog xác nhận |
+|--------------|-----------|-----------------|
+| Daily | Trước 14:00 | CO | 
+| Daily | Sau 14:00 | KHONG |
+| Hourly | Bất kỳ | KHONG |
+| Monthly | Bất kỳ | KHONG |
 
-**Hậu quả nghiêm trọng:**
-- 2 booking cùng `checked_in` cho 1 phòng
-- Phòng P102: Khách cũ chưa checkout + Khách mới đã check-in
-- Dữ liệu không nhất quán, gây rối loạn vận hành
+Người dùng bấm Check-in → Hệ thống check-in ngay mà không xác nhận → Dễ nhầm lẫn!
 
 ---
 
 ### GIẢI PHÁP
 
-#### 1. Cập nhật RPC `perform_checkin` - Thêm validation room status
+Sửa luồng để **LUÔN hiển thị dialog xác nhận** trước khi check-in, với đầy đủ thông tin:
 
-```sql
-CREATE OR REPLACE FUNCTION perform_checkin(
-  p_booking_id UUID,
-  p_room_id UUID,
-  p_early_checkin_charge NUMERIC DEFAULT 0
-)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_result JSONB;
-  v_now TIMESTAMPTZ := now();
-  v_room_status TEXT;
-  v_current_booking_id UUID;
-BEGIN
-  -- THÊM: Kiểm tra room status trước khi check-in
-  SELECT status INTO v_room_status
-  FROM rooms WHERE id = p_room_id FOR UPDATE;
-  
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Room not found';
-  END IF;
-  
-  -- THÊM: Chặn check-in nếu phòng đang occupied
-  IF v_room_status = 'occupied' THEN
-    -- Tìm booking hiện tại đang chiếm phòng
-    SELECT rb.id INTO v_current_booking_id
-    FROM room_bookings rb
-    WHERE rb.room_id = p_room_id 
-      AND rb.status = 'checked_in'
-      AND rb.id != p_booking_id
-    LIMIT 1;
-    
-    IF v_current_booking_id IS NOT NULL THEN
-      RAISE EXCEPTION 'Room is currently occupied by another guest. Please checkout existing booking first.';
-    END IF;
-  END IF;
-  
-  -- THÊM: Chỉ cho phép check-in nếu phòng vacant, cleaning, hoặc check_out
-  IF v_room_status NOT IN ('vacant', 'cleaning', 'check_out', 'reserved') THEN
-    RAISE EXCEPTION 'Room status (%) does not allow check-in. Room must be vacant or cleaned.', v_room_status;
-  END IF;
-
-  -- Giữ nguyên logic cũ...
-  UPDATE room_bookings
-  SET 
-    status = 'checked_in',
-    actual_check_in = v_now,
-    early_checkin_charge = p_early_checkin_charge,
-    updated_at = v_now
-  WHERE id = p_booking_id
-    AND status IN ('confirmed', 'pending');
-  
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Booking not found or already checked in/out';
-  END IF;
-
-  UPDATE rooms
-  SET 
-    status = 'occupied',
-    updated_at = v_now
-  WHERE id = p_room_id;
-
-  v_result := jsonb_build_object(
-    'success', true,
-    'booking_id', p_booking_id,
-    'room_id', p_room_id,
-    'checked_in_at', v_now
-  );
-
-  RETURN v_result;
-END;
-$$;
+```text
+┌──────────────────────────────────────────────────────────────┐
+│                   XÁC NHẬN CHECK-IN                         │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  Khách: Nguyễn Văn A              Phòng: P102               │
+│                                                              │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │ THÔNG TIN ĐẶT PHÒNG                                    │ │
+│  │                                                        │ │
+│  │ Loại booking:     Theo ngày                            │ │
+│  │ Ngày nhận phòng:  04/02/2026                           │ │
+│  │ Ngày trả phòng:   06/02/2026                           │ │
+│  │ Số đêm:           2 đêm                                │ │
+│  │ Giá phòng:        500.000đ/đêm                         │ │
+│  │ Tổng tiền phòng:  1.000.000đ                           │ │
+│  │ Đã cọc:           200.000đ                             │ │
+│  │ Còn lại:          800.000đ                             │ │
+│  └────────────────────────────────────────────────────────┘ │
+│                                                              │
+│  [Nếu có phụ thu check-in sớm - hiển thị bảng phụ thu]      │
+│                                                              │
+│  ✅ Giờ check-in: 15:30 (Không phụ thu)                     │
+│                                                              │
+│                        [Hủy]     [Xác nhận Check-in]        │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-#### 2. Cập nhật Client - Thêm validation trước khi gọi API
+---
 
-**File:** `src/pages/bookings/BookingsPage.tsx` - `handleCheckInClick`
+### CHI TIẾT THAY ĐỔI
+
+#### 1. Cập nhật `CheckInConfirmDialog.tsx`
+
+Thêm các props mới để hiển thị đầy đủ thông tin booking:
+
+```typescript
+interface CheckInConfirmDialogProps {
+  // Props hiện có
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  guestName: string
+  roomNumber: string
+  actualCheckInTime: string
+  roomPrice: number
+  suggestedCharge: number
+  bookingType?: 'daily' | 'hourly' | 'monthly'
+  bookingHours?: number
+  bookingMonths?: number
+  onConfirm: (finalCharge: number, adjustmentNote?: string) => void
+  isLoading?: boolean
+  
+  // THÊM MỚI - Thông tin booking chi tiết
+  checkInDate: Date
+  checkOutDate: Date
+  totalNights?: number
+  totalAmount: number
+  depositAmount: number
+  guestPhone?: string
+  bookingSource?: string
+}
+```
+
+Cập nhật UI để hiển thị:
+- Thông tin khách: Tên, SĐT
+- Thông tin phòng: Số phòng, loại phòng
+- Thông tin thời gian: Ngày nhận/trả, số đêm (hoặc số giờ/tháng)
+- Thông tin tài chính: Tổng tiền, đã cọc, còn lại
+- Nguồn đặt phòng (nếu có)
+- Bảng phụ thu (nếu check-in sớm)
+
+#### 2. Cập nhật `BookingsPage.tsx` - `handleCheckInClick`
+
+Sửa logic để **LUÔN mở dialog**:
 
 ```typescript
 const handleCheckInClick = async (booking: BookingWithRoom) => {
-  const now = new Date()
-  const today = startOfDay(now)
-  const checkInDate = startOfDay(new Date(booking.check_in_date))
+  // ... validation code hiện tại (ngày, room status) ...
+  
+  const actualTime = format(now, 'HH:mm')
+  const hours = parseInt(actualTime.split(':')[0])
+  const roomPrice = (booking as any).room_price || 0
 
-  // Block check-in if today is before check_in_date
-  if (isBefore(today, checkInDate)) {
-    toast({
-      variant: 'destructive',
-      title: 'Chưa đến ngày nhận phòng',
-      description: `Lịch nhận phòng: ${format(checkInDate, 'dd/MM/yyyy', { locale: vi })}.`,
-    })
-    return
-  }
-
-  // THÊM: Kiểm tra room status trước khi check-in
-  const { data: roomData, error: roomError } = await supabase
-    .from('rooms')
-    .select('status')
-    .eq('id', booking.room_id)
-    .single()
-
-  if (roomError) {
-    toast({
-      variant: 'destructive',
-      title: 'Lỗi kiểm tra phòng',
-      description: roomError.message,
-    })
-    return
-  }
-
-  // THÊM: Chặn nếu phòng đang occupied
-  if (roomData.status === 'occupied') {
-    // Kiểm tra booking nào đang chiếm phòng
-    const { data: currentBooking } = await supabase
-      .from('room_bookings')
-      .select('id, guest_name, check_out_date')
-      .eq('room_id', booking.room_id)
-      .eq('status', 'checked_in')
-      .neq('id', booking.id)
-      .single()
-
-    if (currentBooking) {
-      toast({
-        variant: 'destructive',
-        title: 'Phòng đang có khách',
-        description: `Khách "${currentBooking.guest_name}" chưa checkout (dự kiến: ${format(new Date(currentBooking.check_out_date), 'dd/MM/yyyy')}). Vui lòng checkout khách hiện tại trước.`,
-      })
-      return
-    }
-  }
-
-  // THÊM: Chặn nếu phòng đang maintenance
-  if (roomData.status === 'maintenance' || roomData.status === 'out_of_order') {
-    toast({
-      variant: 'destructive',
-      title: 'Phòng không khả dụng',
-      description: `Phòng đang trong trạng thái "${roomData.status}". Không thể check-in.`,
-    })
-    return
-  }
-
-  // Tiếp tục logic check-in hiện tại...
   setActionBooking(booking)
-  // ...
-}
-```
 
-#### 3. Cập nhật `RoomBookingDialog.tsx` - Tương tự
-
-Thêm cùng logic validation vào `handleCheckInClick` trong component này.
-
-#### 4. Cập nhật `useBookingActions.ts` - Thêm validation
-
-```typescript
-const handleCheckIn = async (bookingId: string, roomId: string) => {
-  setIsLoading(true)
-  try {
-    // THÊM: Kiểm tra room status
-    const { data: room, error: roomFetchError } = await supabase
-      .from('rooms')
-      .select('status')
-      .eq('id', roomId)
-      .single()
-
-    if (roomFetchError) throw roomFetchError
-
-    if (room.status === 'occupied') {
-      throw new Error('Phòng đang có khách. Vui lòng checkout trước khi check-in.')
-    }
-
-    if (room.status === 'maintenance' || room.status === 'out_of_order') {
-      throw new Error('Phòng đang bảo trì. Không thể check-in.')
-    }
-
-    // Giữ nguyên logic hiện tại...
-    const { data: result, error: rpcError } = await supabase.rpc('perform_checkin', {
-      p_booking_id: bookingId,
-      p_room_id: roomId,
-      p_early_checkin_charge: earlyCheckinCharge,
-    })
-
-    if (rpcError) throw rpcError
-    // ...
+  // Tính phụ thu (nếu có) cho daily booking check-in sớm
+  let suggestedCharge = 0
+  if (booking.booking_type === 'daily' && hours < 14) {
+    suggestedCharge = calculateEarlyCheckinCharge(actualTime, roomPrice)
   }
+  
+  setSuggestedEarlyCharge(suggestedCharge)
+  // LUÔN hiển thị dialog xác nhận
+  setShowCheckinConfirm(true)
 }
+```
+
+#### 3. Cập nhật props truyền vào `CheckInConfirmDialog`
+
+```tsx
+<CheckInConfirmDialog
+  open={showCheckinConfirm}
+  onOpenChange={(open) => {
+    setShowCheckinConfirm(open)
+    if (!open) setActionBooking(null)
+  }}
+  guestName={actionBooking.guest_name}
+  guestPhone={actionBooking.guest_phone}
+  roomNumber={actionBooking.room?.room_number || ''}
+  actualCheckInTime={format(new Date(), 'HH:mm')}
+  roomPrice={(actionBooking as any).room_price || 0}
+  suggestedCharge={suggestedEarlyCharge}
+  bookingType={actionBooking.booking_type || 'daily'}
+  bookingHours={actionBooking.booking_hours}
+  bookingMonths={actionBooking.booking_months}
+  // THÊM MỚI
+  checkInDate={new Date(actionBooking.check_in_date)}
+  checkOutDate={new Date(actionBooking.check_out_date)}
+  totalNights={calculateNights(actionBooking)}
+  totalAmount={actionBooking.total_amount || 0}
+  depositAmount={actionBooking.deposit_amount || 0}
+  bookingSource={actionBooking.booking_source}
+  onConfirm={(finalCharge, adjustmentNote) => performCheckIn(actionBooking, finalCharge, adjustmentNote)}
+  isLoading={isActionLoading}
+/>
 ```
 
 ---
 
-### ERROR MESSAGES TÙY CHỈNH
-
-| Room Status | Message | Action |
-|-------------|---------|--------|
-| `occupied` | "Phòng đang có khách [Tên]. Vui lòng checkout trước." | Link đến checkout |
-| `maintenance` | "Phòng đang bảo trì. Không thể check-in." | - |
-| `out_of_order` | "Phòng ngừng hoạt động. Không thể check-in." | - |
-| `cleaning` | Cho phép check-in (phòng sắp sẵn sàng) | - |
-
----
-
-### QUY TRÌNH SAU KHI SỬA
+### UI DESIGN CHO DIALOG MỚI
 
 ```text
-                    Bấm "Check-in"
-                          │
-              ┌───────────▼───────────┐
-              │ Kiểm tra Room Status  │
-              └───────────┬───────────┘
-                          │
-     ┌────────────────────┼────────────────────┐
-     │                    │                    │
-     ▼                    ▼                    ▼
- occupied             cleaning           maintenance
-     │                    │                    │
-     ▼                    ▼                    ▼
- ❌ CHẶN              ✅ CHO PHÉP          ❌ CHẶN
-"Phòng có khách"     "Check-in"       "Phòng bảo trì"
-     │                    │
-     ▼                    │
-"Checkout trước"          │
-                          ▼
-               ┌──────────────────────┐
-               │ Kiểm tra Booking     │
-               │ Status = confirmed?  │
-               └──────────────────────┘
-                          │
-                    ✅ Check-in
+┌─────────────────────────────────────────────────────────────────┐
+│  ✓ Xác nhận Check-in                                   [×]     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Khách: Nguyễn Văn A              Phòng: P102                  │
+│  SĐT: 0901234567                  Nguồn: Booking.com           │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ THÔNG TIN ĐẶT PHÒNG                                     │   │
+│  ├─────────────────────────────────────────────────────────┤   │
+│  │ Loại booking      Theo ngày                             │   │
+│  │ Ngày nhận phòng   04/02/2026                            │   │
+│  │ Ngày trả phòng    06/02/2026                            │   │
+│  │ Số đêm            2 đêm                                 │   │
+│  ├─────────────────────────────────────────────────────────┤   │
+│  │ Giá phòng         500.000đ/đêm                          │   │
+│  │ Tổng tiền phòng   1.000.000đ                            │   │
+│  │ Đã đặt cọc        200.000đ                              │   │
+│  │ Còn phải thu      800.000đ                      ← bold  │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ✅ Giờ check-in: 15:30                                        │
+│  ✅ Không áp dụng phụ thu check-in sớm                         │
+│                                                                 │
+│  ────────────────────────────────────────────────────          │
+│                            [Hủy]   [Xác nhận Check-in]         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Nếu check-in sớm (trước 14:00):**
+```text
+│  ⚠️ Giờ check-in: 10:30 (Check-in sớm)                         │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ BẢNG PHỤ THU CHECK-IN SỚM                               │   │
+│  ├─────────────────────────────────────────────────────────┤   │
+│  │ ✓ 09:00 - 14:00     30%    = 150.000đ          ← active │   │
+│  │   05:00 - 09:00     50%    = 250.000đ                   │   │
+│  │   Trước 05:00       100%   = 500.000đ                   │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  Phụ thu áp dụng: [_150.000_] đ                                │
+│                                                                 │
+│  [Miễn phí]   [Theo chuẩn (150.000đ)]                          │
 ```
 
 ---
@@ -259,10 +203,9 @@ const handleCheckIn = async (bookingId: string, roomId: string) => {
 
 | File | Thay đổi | Độ phức tạp |
 |------|----------|------------|
-| Database Migration | Cập nhật RPC `perform_checkin` với room status check | Cao |
-| `src/pages/bookings/BookingsPage.tsx` | Thêm validation room status trước check-in | Trung bình |
-| `src/components/rooms/RoomBookingDialog.tsx` | Thêm validation tương tự | Trung bình |
-| `src/hooks/useBookingActions.ts` | Thêm validation làm backup | Thấp |
+| `src/components/bookings/CheckInConfirmDialog.tsx` | Thêm props mới, cập nhật UI hiển thị thông tin booking | Cao |
+| `src/pages/bookings/BookingsPage.tsx` | Sửa logic luôn mở dialog, truyền thêm props | Trung bình |
+| `src/components/rooms/RoomBookingDialog.tsx` | Cập nhật tương tự cho dialog check-in | Trung bình |
 
 ---
 
@@ -270,8 +213,8 @@ const handleCheckIn = async (bookingId: string, roomId: string) => {
 
 | Metric | Trước | Sau |
 |--------|-------|-----|
-| Check-in khi phòng occupied | Cho phép (BUG) | Chặn + thông báo rõ |
-| 2 booking checked_in cùng phòng | Có thể xảy ra | Không thể |
-| Thông báo cho user | Không có | "Phòng đang có khách X, checkout trước" |
-| Database integrity | Không đảm bảo | Đảm bảo 100% |
+| Check-in có xác nhận | Chỉ khi check-in sớm | TẤT CẢ trường hợp |
+| Thông tin hiển thị | Chỉ phụ thu | Đầy đủ: thời gian, tài chính |
+| Khả năng nhầm lẫn | Cao (1-click check-in) | Thấp (phải xác nhận) |
+| Nhân viên review | Không có cơ hội | Xem đầy đủ trước khi xác nhận |
 
