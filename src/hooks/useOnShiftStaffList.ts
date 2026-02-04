@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { isCurrentlyOnShift } from './useShiftManagement'
+import type { StaffStatusType } from './useStaffStatus'
 
 export interface OnShiftStaffMember {
   id: string
@@ -13,6 +14,10 @@ export interface OnShiftStaffMember {
   telegram_username: string | null
   telegram_chat_id: string | null
   shift_start_at: string | null
+  // Status tracking fields
+  status: StaffStatusType
+  current_activity: string | null
+  current_location: string | null
 }
 
 export function useOnShiftStaffList(hotelId: string | undefined) {
@@ -37,14 +42,14 @@ export function useOnShiftStaffList(hotelId: string | undefined) {
       
       if (uhError) throw uhError
 
-      // Get staff_status for all users
+      // Get staff_status for all users (including status, activity, location)
       const userIds = userHotels?.map(uh => uh.user_id).filter(Boolean) || []
       
       if (userIds.length === 0) return []
       
       const { data: statuses, error: statusError } = await supabase
         .from('staff_status')
-        .select('user_id, shift_start_at, shift_end_at')
+        .select('user_id, shift_start_at, shift_end_at, status, current_activity, current_location')
         .in('user_id', userIds)
       
       if (statusError) throw statusError
@@ -74,6 +79,10 @@ export function useOnShiftStaffList(hotelId: string | undefined) {
             telegram_username: user.telegram_username || null,
             telegram_chat_id: activeConnection?.chat_id || null,
             shift_start_at: status?.shift_start_at || null,
+            // Status tracking
+            status: (status?.status as StaffStatusType) || 'offline',
+            current_activity: status?.current_activity || null,
+            current_location: status?.current_location || null,
           }
         })
       
