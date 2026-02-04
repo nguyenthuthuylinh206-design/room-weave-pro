@@ -375,15 +375,14 @@ export function RoomBookingDialog({
     const actualTime = format(now, 'HH:mm')
     const hours = parseInt(actualTime.split(':')[0])
     
-    // If check-in is after standard time (14:00), no surcharge - check-in directly
-    if (hours >= 14) {
-      performCheckIn(0)
-    } else {
-      // Show confirmation dialog with editable surcharge
-      const suggestedCharge = calculateEarlyCheckinCharge(actualTime, roomPrice)
-      setSuggestedEarlyCharge(suggestedCharge)
-      setShowCheckinConfirm(true)
+    // Calculate surcharge for early check-in (before 14:00)
+    let suggestedCharge = 0
+    if (hours < 14) {
+      suggestedCharge = calculateEarlyCheckinCharge(actualTime, roomPrice)
     }
+    setSuggestedEarlyCharge(suggestedCharge)
+    // ALWAYS show confirmation dialog
+    setShowCheckinConfirm(true)
   }
 
   const performCheckIn = async (finalEarlyCharge: number, adjustmentNote?: string) => {
@@ -1223,10 +1222,20 @@ export function RoomBookingDialog({
         open={showCheckinConfirm}
         onOpenChange={setShowCheckinConfirm}
         guestName={guestName}
+        guestPhone={guestPhone || undefined}
         roomNumber={roomNumber}
         actualCheckInTime={format(new Date(), 'HH:mm')}
         roomPrice={roomPrice}
         suggestedCharge={suggestedEarlyCharge}
+        bookingType={(booking as any)?.booking_type || 'daily'}
+        bookingHours={(booking as any)?.booking_hours || undefined}
+        bookingMonths={(booking as any)?.booking_months || undefined}
+        checkInDate={checkInDate}
+        checkOutDate={checkOutDate}
+        totalNights={nights}
+        totalAmount={costBreakdown.totalAmount}
+        depositAmount={depositAmount}
+        bookingSource={(booking as any)?.booking_source}
         onConfirm={performCheckIn}
         isLoading={isSubmitting}
       />
