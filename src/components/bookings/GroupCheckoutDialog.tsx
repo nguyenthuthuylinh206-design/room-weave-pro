@@ -46,7 +46,12 @@ import { GroupPaymentDialog } from './GroupPaymentDialog'
 import { GroupCheckoutConfirmDialog } from './GroupCheckoutConfirmDialog'
 import { useUser } from '@/hooks/useUser'
 import { useGroupCheckoutCalculations, GroupBookingCostData } from '@/hooks/useGroupCheckoutCalculations'
-import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
+import { 
+  triggerRoomCheckoutNotification,
+  sendPushNotification,
+  createInAppNotification,
+  sendTelegramNotification 
+} from '@/hooks/useNotificationTriggers'
 import { StaffDetailSheet } from '@/components/staff/StaffDetailSheet'
 import { InspectionStatusCard } from './InspectionStatusCard'
 import type { StaffWithStatus } from '@/hooks/useStaffStatus'
@@ -346,6 +351,53 @@ export function GroupCheckoutDialog({
           priority: 'high',
           status: 'pending',
         })
+        
+        // Send notifications (parallel)
+        const staff = staffList.find(s => s.id === staffId)
+        const staffName = staff?.full_name || 'Nhân viên'
+        const roomNumber = booking.room?.room_number || ''
+        const guestName = booking.guest_name
+        
+        await Promise.all([
+          // 1. Push notification for staff
+          sendPushNotification({
+            userId: staffId,
+            tenantId,
+            title: `Yêu cầu kiểm tra phòng ${roomNumber}`,
+            body: `Khách ${guestName} sắp checkout. Vui lòng kiểm tra phòng.`,
+            actionUrl: `/my-tasks`,
+            notificationType: 'room_checkout',
+          }),
+          // 2. In-app notification for staff
+          createInAppNotification({
+            userId: staffId,
+            tenantId,
+            title: `Yêu cầu kiểm tra phòng ${roomNumber}`,
+            body: `Khách ${guestName} sắp checkout. Vui lòng kiểm tra phòng.`,
+            type: 'room_checkout',
+            actionUrl: `/my-tasks`,
+          }),
+          // 3. Telegram to individual staff
+          sendTelegramNotification({
+            tenantId,
+            hotelId,
+            userIds: [staffId],
+            title: `🔍 Yêu cầu kiểm tra phòng ${roomNumber}`,
+            message: `Khách: ${guestName}\nVui lòng kiểm tra phòng trước khi checkout.`,
+            notificationType: 'checkout',
+            actionUrl: `/my-tasks`,
+          }),
+          // 4. Telegram to staff groups
+          sendTelegramNotification({
+            tenantId,
+            hotelId,
+            sendToStaffGroups: true,
+            title: `🔍 Yêu cầu kiểm tra phòng ${roomNumber}`,
+            message: `Khách: ${guestName}\n👤 Giao cho: ${staffName}\nVui lòng kiểm tra phòng trước khi checkout.`,
+            notificationType: 'checkout',
+            actionUrl: `/my-tasks`,
+          }),
+        ])
       }
       
       toast.success(`Đã gửi ${roomsToRequest.length} yêu cầu kiểm tra`)
