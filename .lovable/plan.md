@@ -1,205 +1,223 @@
 
 
-## Đánh giá toàn bộ quy trình Lô Giặt Nháp (Draft Laundry Batch)
+## Kết quả kiểm tra: Các lỗi còn lại trong quy trình Lô Giặt Nháp
 
-### LUỒNG HIỆN TẠI
+### TỔNG QUAN
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│ 1. KIỂM TRA PHÒNG (Room Check)                                                  │
-│    └── Checkout → Tự động tạo laundry_request (status: pending)                │
-│        └── items từ "items_sent_to_laundry"                                    │
-└─────────────────────────────────────────────────────────────────────────────────┘
-                                     │
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│ 2. TAB YÊU CẦU GIẶT (LaundryRequestsTab)                                        │
-│    ├── Hiển thị danh sách yêu cầu giặt pending                                 │
-│    ├── Hiển thị thông tin Draft Batch (nếu có)                                 │
-│    ├── Nút "Thêm vào lô giặt nháp" → Dialog xác nhận                           │
-│    └── Nút "Gửi đi" → Dialog gửi lô giặt                                       │
-└─────────────────────────────────────────────────────────────────────────────────┘
-                                     │
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│ 3. THÊM VÀO LÔ NHÁP (RPC: add_laundry_to_draft_batch)                          │
-│    ├── Tìm/tạo batch status='draft' cho hôm nay                                │
-│    ├── Thêm items vào laundry_batch_items                                      │
-│    ├── Cập nhật total_items                                                    │
-│    └── Cập nhật laundry_request.status = 'added_to_batch'                      │
-│                                                                                 │
-│    ✅ ĐÃ SỬA: Dùng quantity_delivered thay vì sent_quantity                    │
-│    ✅ ĐÃ SỬA: Thêm 'draft' vào constraint                                      │
-│    ✅ ĐÃ SỬA: vendor_id và delivery_date nullable                              │
-└─────────────────────────────────────────────────────────────────────────────────┘
-                                     │
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│ 4. GỬI LÔ GIẶT (RPC: send_draft_batch)                                          │
-│    ├── Kiểm tra batch.status = 'draft'                                         │
-│    ├── Cập nhật vendor_id, delivery_date, expected_return_date                 │
-│    ├── Cập nhật status = 'delivered'                                           │
-│    └── Tính estimated_cost từ vendor contract                                  │
-│                                                                                 │
-│    ✅ ĐÃ CÓ: send_draft_batch RPC                                              │
-└─────────────────────────────────────────────────────────────────────────────────┘
-                                     │
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│ 5. QUY TRÌNH SAU GỬI (delivered → ready → received → stocked)                   │
-│    ├── Đánh dấu sẵn sàng: delivered → ready                                    │
-│    ├── Nhận đồ về: ReceiveBatchPage → received                                 │
-│    └── Nhập kho: useStockInFromLaundry → stocked                               │
-│                                                                                 │
-│    ✅ ĐÃ CÓ: Đầy đủ                                                            │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+Sau khi kiểm tra toàn bộ quy trình, tôi phát hiện **6 vấn đề** cần sửa:
 
 ---
 
-### CÁC VẤN ĐỀ PHÁT HIỆN
+### VẤN ĐỀ 1: Thiếu xử lý URL query param `sendBatch` (CRITICAL)
 
-| # | Vấn đề | Mức độ | Mô tả |
-|---|--------|--------|-------|
-| 1 | RPC `get_laundry_batch_detail` không hỗ trợ draft batch | **CRITICAL** | Dùng `JOIN laundry_vendors` nhưng draft batch có `vendor_id = NULL` → Không thể xem chi tiết draft batch |
-| 2 | RPC `get_laundry_batches_filtered` không hiển thị draft batch | **HIGH** | Dùng `JOIN laundry_vendors` → Draft batches bị loại khỏi danh sách |
-| 3 | Thiếu UI xem/sửa draft batch | **MEDIUM** | Không có trang riêng để quản lý draft batch (thêm/xóa items) |
-| 4 | Filter status không có option 'draft' | **LOW** | LaundryBatchesPage không có option filter status='draft' |
-| 5 | Thiếu BatchStatusBadge cho status 'draft' | **LOW** | Badge component chưa định nghĩa style cho 'draft' |
-| 6 | Inventory deduction không xảy ra khi thêm vào draft | **MEDIUM** | Đồ giặt chưa bị trừ khỏi kho khi thêm vào draft (chỉ trừ khi send) |
+**Mô tả**: BatchDetailPage điều hướng đến `/laundry/requests?sendBatch=${id}` khi nhấn "Gửi đi giặt", nhưng LaundryRequestsTab KHÔNG xử lý query param này.
+
+**Hậu quả**: Khi click "Gửi đi giặt" từ trang chi tiết draft batch, dialog gửi lô giặt KHÔNG tự động mở.
+
+**Giải pháp**:
+- Sửa `LaundryDashboardPage.tsx` hoặc `LaundryRequestsTab.tsx` để:
+  - Đọc query param `sendBatch`
+  - Tự động chuyển sang tab "requests" 
+  - Tự động mở `SendLaundryBatchDialog` với batchId từ param
 
 ---
 
-### GIẢI PHÁP ĐỀ XUẤT
+### VẤN ĐỀ 2: Thiếu translation cho status "draft" (LOW)
 
-#### 1. Sửa RPC `get_laundry_batch_detail` (CRITICAL)
+**Mô tả**: Các file translation `laundry.json` thiếu key `status.draft`.
 
-**Vấn đề**: JOIN vendor_id = NULL sẽ không trả về kết quả.
+**Files cần sửa**:
+- `src/i18n/locales/vi/laundry.json`: Thêm `"draft": "Nháp"` vào object `status`
+- `src/i18n/locales/en/laundry.json`: Thêm `"draft": "Draft"` vào object `status`
 
-**Giải pháp**: Đổi từ `JOIN` sang `LEFT JOIN` cho laundry_vendors.
-
-```sql
-CREATE OR REPLACE FUNCTION get_laundry_batch_detail(p_batch_id UUID)
-RETURNS jsonb
-LANGUAGE plpgsql
-AS $$
-DECLARE
-  v_result jsonb;
-BEGIN
-  SELECT jsonb_build_object(
-    'batch', row_to_json(lb.*),
-    'vendor', CASE WHEN lv.id IS NOT NULL THEN row_to_json(lv.*) ELSE NULL END,
-    'hotel', row_to_json(h.*),
-    'delivery_staff', row_to_json(ds.*),
-    'return_staff', row_to_json(rs.*),
-    'items', (...)
-  ) INTO v_result
-  FROM laundry_batches lb
-  LEFT JOIN laundry_vendors lv ON lv.id = lb.vendor_id  -- Đổi từ JOIN sang LEFT JOIN
-  JOIN hotels h ON h.id = lb.hotel_id
-  LEFT JOIN users ds ON ds.id = lb.delivery_staff_id
-  LEFT JOIN users rs ON rs.id = lb.return_staff_id
-  WHERE lb.id = p_batch_id;
-  
-  RETURN v_result;
-END;
-$$;
-```
-
-#### 2. Sửa RPC `get_laundry_batches_filtered` (HIGH)
-
-**Vấn đề**: JOIN vendor loại bỏ draft batches.
-
-**Giải pháp**: Đổi sang `LEFT JOIN` và xử lý null values.
-
-```sql
-CREATE OR REPLACE FUNCTION get_laundry_batches_filtered(...)
-RETURNS TABLE (...) AS $$
-BEGIN
-  RETURN QUERY
-  WITH filtered_batches AS (
-    SELECT 
-      lb.*,
-      COALESCE(lv.name, 'Chưa chọn vendor') as vendor_name,  -- Handle NULL
-      lv.contract_info->>'logo_url' as vendor_logo,
-      lv.rating as vendor_rating
-    FROM laundry_batches lb
-    LEFT JOIN laundry_vendors lv ON lv.id = lb.vendor_id  -- Đổi từ JOIN sang LEFT JOIN
-    WHERE lb.tenant_id = p_tenant_id
-      AND (p_hotel_id IS NULL OR lb.hotel_id = p_hotel_id)
-      AND (p_vendor_id IS NULL OR lb.vendor_id = p_vendor_id)
-      AND (p_status IS NULL OR lb.status = p_status)
-      AND (p_from_date IS NULL OR lb.delivery_date::date >= p_from_date OR lb.delivery_date IS NULL)
-      AND (p_to_date IS NULL OR lb.delivery_date::date <= p_to_date OR lb.delivery_date IS NULL)
-  )
-  SELECT ... FROM filtered_batches fb
-  ORDER BY 
-    CASE WHEN fb.status = 'draft' THEN 0 ELSE 1 END,  -- Draft lên đầu
-    fb.created_at DESC;
-END;
-$$;
-```
-
-#### 3. Thêm status 'draft' vào BatchStatusBadge (LOW)
-
-**File**: `src/components/laundry/BatchStatusBadge.tsx`
-
-```typescript
-const STATUS_CONFIG = {
-  draft: { label: 'Nháp', color: 'bg-slate-100 text-slate-700', icon: FileText },
-  delivered: { label: 'Đã gửi', color: '...', icon: Truck },
-  // ...
+**Translation cần thêm**:
+```json
+"status": {
+  "draft": "Nháp",  // VI
+  "draft": "Draft",  // EN
+  ...
 }
 ```
 
-#### 4. Thêm filter option 'draft' vào LaundryBatchesPage (LOW)
-
-**File**: `src/pages/laundry/LaundryBatchesPage.tsx`
-
-```typescript
-<SelectItem value="draft">{t('status.draft')}</SelectItem>
+Và thêm vào `batchDetail.timeline`:
+```json
+"timeline": {
+  "draft": "Nháp",  // VI
+  "draft": "Draft",  // EN
+  ...
+}
 ```
 
-#### 5. Xử lý UI cho draft batch trong BatchDetailPage (MEDIUM)
+---
 
-**File**: `src/pages/laundry/BatchDetailPage.tsx`
+### VẤN ĐỀ 3: BatchStatusTimeline không hiển thị step "draft" (MEDIUM)
 
-- Hiển thị thông báo "Chưa chọn đơn vị giặt" khi vendor = null
-- Thêm nút "Gửi đi giặt" khi status = 'draft'
-- Cho phép thêm/xóa items khi status = 'draft'
+**Mô tả**: Component `BatchStatusTimeline.tsx` chỉ hiển thị các bước từ "delivered" → "stocked", không có step cho "draft".
+
+**Hậu quả**: Khi xem draft batch, timeline hiển thị không chính xác.
+
+**Giải pháp**:
+- Thêm step đầu tiên "draft" khi batch.status === 'draft'
+- Điều kiện hiển thị: chỉ hiện draft step khi batch là draft
 
 ---
 
-### ƯU TIÊN THỰC HIỆN
+### VẤN ĐỀ 4: Thiếu logic load batch cụ thể khi mở SendLaundryBatchDialog (MEDIUM)
 
-| Thứ tự | Task | Lý do |
-|--------|------|-------|
-| 1 | Sửa `get_laundry_batch_detail` | Không thể xem chi tiết draft batch → Block workflow |
-| 2 | Sửa `get_laundry_batches_filtered` | Draft batch không hiển thị trong danh sách |
-| 3 | Thêm status 'draft' vào BatchStatusBadge | UI consistency |
-| 4 | Cập nhật BatchDetailPage cho draft | UX khi xem draft batch |
-| 5 | Thêm filter 'draft' vào LaundryBatchesPage | Optional enhancement |
+**Mô tả**: Hiện tại `SendLaundryBatchDialog` nhận batch từ `useDraftLaundryBatch()` hook chỉ trả về draft batch của hôm nay. Nhưng khi navigate từ BatchDetailPage với `sendBatch` param, cần load batch cụ thể theo ID.
+
+**Giải pháp**:
+- Khi có `sendBatch` query param → Load batch theo ID đó thay vì dùng draft batch mặc định
 
 ---
 
-### FILES CẦN THAY ĐỔI
+### VẤN ĐỀ 5: Có thể xem batch detail của draft nhưng URL không đúng (LOW)
 
-| File | Loại | Thay đổi |
-|------|------|----------|
-| Database Migration | SQL | Sửa 2 RPC functions |
-| `src/components/laundry/BatchStatusBadge.tsx` | Frontend | Thêm status 'draft' |
-| `src/pages/laundry/BatchDetailPage.tsx` | Frontend | Handle draft batch UI |
-| `src/pages/laundry/LaundryBatchesPage.tsx` | Frontend | Thêm filter option 'draft' |
-| `src/components/laundry/MobileBatchDetail.tsx` | Frontend | Handle draft batch UI |
+**Mô tả**: Sau khi xử lý xong, nút "Gửi đi giặt" trong BatchDetailPage điều hướng đến `/laundry/requests?sendBatch=${id}` nhưng route này là Dashboard page, không phải Requests page riêng.
+
+**Hiện trạng**: Đây là do thiết kế UI - tab "Yêu cầu từ phòng" nằm trong Dashboard, nên URL là `/laundry?tab=requests`. Cần điều chỉnh navigation path.
+
+**Giải pháp**: Sửa navigation thành `/laundry?tab=requests&sendBatch=${id}`
 
 ---
 
-### KẾT QUẢ MONG ĐỢI SAU KHI SỬA
+### VẤN ĐỀ 6: Thiếu nút xóa items khỏi draft batch (ENHANCEMENT)
 
-| Tính năng | Hiện tại | Sau khi sửa |
-|-----------|----------|-------------|
-| Xem chi tiết draft batch | Lỗi (vendor NULL) | Hoạt động |
-| Danh sách hiển thị draft | Không hiển thị | Hiển thị với badge "Nháp" |
-| Nút "Xem lô giặt" trong LaundryRequestsTab | Lỗi khi click | Navigate và hiển thị đúng |
-| Workflow draft → delivered | Chỉ qua SendLaundryBatchDialog | Có thể xem detail trước khi send |
+**Mô tả**: Hiện tại chỉ có thể thêm items vào draft batch, nhưng KHÔNG có chức năng xóa items nếu thêm nhầm.
+
+**Giải pháp** (tùy chọn):
+- Thêm nút xóa item trong BatchItemsTable khi status === 'draft'
+- Tạo RPC `remove_item_from_draft_batch`
+
+---
+
+## KẾ HOẠCH THỰC HIỆN
+
+| # | Task | Độ phức tạp | Files |
+|---|------|-------------|-------|
+| 1 | Xử lý query param `sendBatch` và tự động mở dialog | **Cao** | `LaundryDashboardPage.tsx`, `LaundryRequestsTab.tsx` |
+| 2 | Sửa navigation path trong BatchDetailPage | **Thấp** | `BatchDetailPage.tsx`, `MobileBatchDetail.tsx` |
+| 3 | Thêm translation cho status "draft" | **Thấp** | `laundry.json` (vi + en) |
+| 4 | Cập nhật BatchStatusTimeline cho draft | **Trung bình** | `BatchStatusTimeline.tsx` |
+| 5 | Load batch cụ thể theo ID từ param | **Trung bình** | `LaundryRequestsTab.tsx` |
+
+---
+
+## CHI TIẾT THAY ĐỔI
+
+### 1. LaundryDashboardPage.tsx
+
+```typescript
+// Thêm xử lý sendBatch param
+const sendBatchId = searchParams.get('sendBatch')
+
+useEffect(() => {
+  if (sendBatchId) {
+    // Auto switch to requests tab
+    setSearchParams({ tab: 'requests', sendBatch: sendBatchId })
+  }
+}, [sendBatchId])
+```
+
+### 2. LaundryRequestsTab.tsx
+
+```typescript
+// Thêm logic đọc sendBatch param và mở dialog
+const [searchParams] = useSearchParams()
+const sendBatchParam = searchParams.get('sendBatch')
+
+// State cho batch được chọn để gửi
+const [selectedBatchForSend, setSelectedBatchForSend] = useState<string | null>(null)
+
+// Thêm query để load batch theo ID khi có param
+const { data: batchToSend } = useQuery({
+  queryKey: ['laundry-batch-to-send', sendBatchParam],
+  queryFn: async () => {
+    if (!sendBatchParam) return null
+    const { data } = await supabase
+      .from('laundry_batches')
+      .select('id, batch_code, total_items, total_weight_kg')
+      .eq('id', sendBatchParam)
+      .single()
+    return data
+  },
+  enabled: !!sendBatchParam
+})
+
+// Auto open dialog when batchToSend loaded
+useEffect(() => {
+  if (batchToSend) {
+    setSendBatchDialogOpen(true)
+  }
+}, [batchToSend])
+```
+
+### 3. BatchDetailPage.tsx & MobileBatchDetail.tsx
+
+```typescript
+// Sửa navigation path
+// Trước:
+navigate(`/laundry/requests?sendBatch=${id}`)
+
+// Sau:
+navigate(`/laundry?tab=requests&sendBatch=${id}`)
+```
+
+### 4. laundry.json translations
+
+```json
+// VI:
+"status": {
+  "draft": "Nháp",
+  ...
+},
+"batchDetail": {
+  "timeline": {
+    "draft": "Nháp",
+    ...
+  }
+}
+
+// EN:
+"status": {
+  "draft": "Draft",
+  ...
+},
+"batchDetail": {
+  "timeline": {
+    "draft": "Draft",
+    ...
+  }
+}
+```
+
+### 5. BatchStatusTimeline.tsx
+
+```typescript
+// Thêm step draft nếu batch đang ở trạng thái draft
+const steps = batch.status === 'draft' 
+  ? [
+      {
+        key: 'draft',
+        label: t('batchDetail.timeline.draft'),
+        date: batch.created_at,
+        completed: true,
+      }
+    ]
+  : [
+      // existing steps: delivered, washing, ready, received, stocked
+      ...
+    ]
+```
+
+---
+
+## KẾT QUẢ MONG ĐỢI
+
+| Flow | Trước | Sau |
+|------|-------|-----|
+| Click "Gửi đi giặt" từ BatchDetail | Điều hướng đến `/laundry/requests?sendBatch=id` nhưng dialog không mở | Dialog tự động mở với batch đã chọn |
+| Xem draft batch timeline | Không hiển thị step draft | Hiển thị step "Nháp" đầu tiên |
+| Filter batches by draft | Hiển thị "draft" hardcoded | Hiển thị translation "Nháp" |
+| Toàn bộ flow draft → delivered | Hoạt động không trơn tru | Hoạt động hoàn chỉnh |
 
