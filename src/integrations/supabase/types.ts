@@ -8925,6 +8925,18 @@ export type Database = {
         Returns: Json
       }
       schedule_renewal_reminders: { Args: never; Returns: undefined }
+      send_draft_batch: {
+        Args: {
+          p_batch_id: string
+          p_delivery_date: string
+          p_delivery_staff_id: string
+          p_expected_return_date: string
+          p_notes?: string
+          p_receiver_name: string
+          p_vendor_id: string
+        }
+        Returns: Json
+      }
       setup_new_tenant:
         | {
             Args: {
