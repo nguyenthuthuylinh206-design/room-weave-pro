@@ -422,6 +422,8 @@ Deno.serve(async (req) => {
 
         const updateData: Record<string, unknown> = {
           subscription_end_date: newEndDate.toISOString(),
+          subscription_status: 'active', // Reset to active on successful payment
+          grace_period_ends_at: null, // Clear grace period - will be recalculated by trigger
           updated_at: new Date().toISOString()
         };
 
@@ -434,7 +436,7 @@ Deno.serve(async (req) => {
           .update(updateData)
           .eq('id', tenantId);
 
-        console.log(`Updated tenant ${tenantId}: extended to ${newEndDate.toISOString()}`);
+        console.log(`Updated tenant ${tenantId}: extended to ${newEndDate.toISOString()}, status reset to active`);
       }
     } else if (metadata.type === 'add_rooms' && metadata.additional_rooms) {
       // Add rooms
@@ -451,11 +453,12 @@ Deno.serve(async (req) => {
           .from('tenants')
           .update({
             registered_rooms: newTotalRooms,
+            subscription_status: 'active', // Reset to active on successful payment
             updated_at: new Date().toISOString()
           })
           .eq('id', tenantId);
 
-        console.log(`Updated tenant ${tenantId}: added ${metadata.additional_rooms} rooms, total: ${newTotalRooms}`);
+        console.log(`Updated tenant ${tenantId}: added ${metadata.additional_rooms} rooms, total: ${newTotalRooms}, status reset to active`);
       }
     }
 
