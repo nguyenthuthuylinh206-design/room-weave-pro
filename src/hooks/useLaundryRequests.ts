@@ -275,7 +275,7 @@ export function useDraftLaundryBatch() {
           items:laundry_batch_items(
             id,
             item_id,
-            sent_quantity,
+            quantity_delivered,
             item:items(id, code, name)
           )
         `)
