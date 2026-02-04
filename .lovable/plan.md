@@ -1,84 +1,53 @@
-# Kế hoạch: Hoàn thiện Logic "Thêm vào lô giặt nháp"
 
-## TRẠNG THÁI: ✅ HOÀN THÀNH
 
----
+## Sửa lỗi: Nút "Xác nhận thêm" không hoạt động
 
-## FILES ĐÃ TẠO/CẬP NHẬT
+### NGUYÊN NHÂN
 
-| File | Mô tả | Trạng thái |
-|------|-------|------------|
-| `src/components/laundry/AddToLaundryBatchDialog.tsx` | Dialog xác nhận trước khi thêm vào batch | ✅ Tạo mới |
-| `src/components/laundry/SendLaundryBatchDialog.tsx` | Dialog gửi lô giặt (draft → delivered) | ✅ Tạo mới |
-| `src/hooks/useSendDraftBatch.ts` | Hook mutation gửi lô giặt | ✅ Tạo mới |
-| `src/components/laundry/LaundryRequestsTab.tsx` | Tích hợp 2 dialog mới | ✅ Cập nhật |
-| Database Migration | RPC `send_draft_batch` | ✅ Tạo mới |
+Khi nhấn nút "Xác nhận thêm", hệ thống gọi hook `useDraftLaundryBatch()` để lấy thông tin lô giặt nháp hiện tại. Query này đang lỗi vì:
 
----
-
-## QUY TRÌNH HOÀN CHỈNH
-
-```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ 1. ROOM CHECK → Tạo laundry_request (pending)                                │
-│    └── Inventory đã cập nhật: stock -, laundry +                            │
-└──────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ 2. XEM YÊU CẦU GIẶT                                                          │
-│    ├── Click "Thêm vào lô giặt nháp"                                        │
-│    └── Dialog xác nhận hiển thị (items, tổng, thông tin draft batch)        │
-│        └── Confirm → Thêm vào draft batch                                   │
-└──────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ 3. KHI ĐỦ ITEMS → "GỬI LÔ GIẶT"                                              │
-│    ├── Dialog yêu cầu: vendor, ngày giao, người giao, người nhận            │
-│    └── Confirm → status: draft → delivered                                  │
-│        └── Inventory: KHÔNG THAY ĐỔI (đã update ở step 1)                   │
-└──────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ 4. TIẾP TỤC QUY TRÌNH CHUẨN                                                  │
-│    delivered → ready → received → stocked                                   │
-└──────────────────────────────────────────────────────────────────────────────┘
+```
+GET /rest/v1/laundry_batches?select=...item:items(id,code,name,thumbnail)...
+Status: 400
+Error: column items_2.thumbnail does not exist
 ```
 
----
+**Vấn đề**: Query đang select cột `thumbnail` từ bảng `items`, nhưng cột này **KHÔNG TỒN TẠI** trong database.
 
-## KẾT QUẢ
+### SO SÁNH
 
-| Metric | Trước | Sau |
-|--------|-------|-----|
-| Xác nhận trước khi thêm | ❌ Không | ✅ Có dialog xác nhận |
-| Thông tin draft batch | ❌ Không hiển thị | ✅ Hiển thị số lượng hiện có/sau khi thêm |
-| Gửi lô giặt | ❌ Không có | ✅ Có dialog yêu cầu đầy đủ thông tin |
-| Vendor cho draft batch | ❌ Thiếu | ✅ Bổ sung khi gửi |
-| Flow hoàn chỉnh | ❌ Không | ✅ draft → delivered với đầy đủ data |
+| File | Query items | Có thumbnail? |
+|------|-------------|---------------|
+| `useMaintenanceRequests.ts` | `item:items(id, code, name)` | Không |
+| `useChargeableConsumptions.ts` | `item:items(id, name, code, charge_price, unit_price)` | Không |
+| `useBookingConsumables.ts` | `item:items(id, name, code, unit_price)` | Không |
+| **`useLaundryRequests.ts`** | `item:items(id, code, name, thumbnail)` | **CÓ - SAI** |
 
----
+### GIẢI PHÁP
 
-## CHỨC NĂNG CHI TIẾT
+Xóa cột `thumbnail` khỏi query vì nó không tồn tại trong bảng `items`.
 
-### AddToLaundryBatchDialog
-- Hiển thị mã yêu cầu, phòng
-- Liệt kê danh sách đồ giặt với số lượng
-- Hiển thị thông tin lô giặt nháp (nếu có) hoặc thông báo sẽ tạo mới
-- Hiển thị số lượng hiện có và sau khi thêm
-- Nút Hủy / Xác nhận thêm
+### FILE CẦN SỬA
 
-### SendLaundryBatchDialog  
-- Hiển thị thông tin lô giặt (mã, số lượng, trọng lượng)
-- Form nhập: đơn vị giặt, ngày giao, ngày dự kiến nhận, người giao, tên người nhận
-- Validation với Zod schema
-- Gọi RPC `send_draft_batch` để cập nhật status → delivered
+| File | Dòng | Thay đổi |
+|------|------|----------|
+| `src/hooks/useLaundryRequests.ts` | 279 | Xóa `thumbnail` khỏi select |
 
-### RPC send_draft_batch
-- Validate batch phải ở status 'draft' và có items
-- Lấy giá từ vendor contract_info
-- Tính estimated_cost = total_weight_kg × price_per_kg
-- Update batch với vendor, dates, staff, status
-- Update vendor stats (total_orders, total_value)
+### CHI TIẾT
+
+**Trước:**
+```typescript
+item:items(id, code, name, thumbnail)
+```
+
+**Sau:**
+```typescript
+item:items(id, code, name)
+```
+
+### KẾT QUẢ MONG ĐỢI
+
+- Query `useDraftLaundryBatch()` hoạt động bình thường (status 200)
+- Dialog "Xác nhận thêm" hiển thị thông tin lô giặt nháp chính xác
+- Nút "Xác nhận thêm" hoạt động và thêm được items vào batch
+
