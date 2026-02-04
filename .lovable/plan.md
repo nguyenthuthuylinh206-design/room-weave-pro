@@ -1,220 +1,247 @@
 
+## Phân tích: Chức năng Checkout Nhóm thiếu so với Checkout Cơ bản
 
-## Kế hoạch: Thêm Dialog Xác nhận Check-in cho TẤT CẢ trường hợp
+### SO SÁNH CHI TIẾT
 
-### VẤN ĐỀ HIỆN TẠI
-
-| Loại Booking | Thời điểm | Dialog xác nhận |
-|--------------|-----------|-----------------|
-| Daily | Trước 14:00 | CO | 
-| Daily | Sau 14:00 | KHONG |
-| Hourly | Bất kỳ | KHONG |
-| Monthly | Bất kỳ | KHONG |
-
-Người dùng bấm Check-in → Hệ thống check-in ngay mà không xác nhận → Dễ nhầm lẫn!
+| Chức năng | Checkout Cơ bản (CheckoutSummaryDialog) | Checkout Nhóm (GroupCheckoutDialog) |
+|-----------|----------------------------------------|-------------------------------------|
+| **RPC perform_checkout** | CO - Dùng RPC với đầy đủ params | THIEU - Dùng update trực tiếp |
+| **Tính phụ thu checkout trễ** | CO - Bảng phụ thu 4 mức (0%, 30%, 50%, 100%) | THIEU - Không tính |
+| **Điều chỉnh phụ thu** | CO - Có thể miễn/điều chỉnh + ghi note | THIEU |
+| **Phí đền bù (Damage Charges)** | CO - Chi tiết từng item, điều chỉnh được | THIEU - Chỉ hiển thị tổng |
+| **Điều chỉnh phí đền bù** | CO - Từng item, yêu cầu note nếu giảm | THIEU |
+| **Biên bản thiệt hại** | CO - In được | THIEU |
+| **Dịch vụ sử dụng (Consumables)** | CO - Tính từ chargeable_consumptions | THIEU - Không tính |
+| **VAT & Service Fee** | CO - Hiển thị % và số tiền | THIEU - Không tính |
+| **Subtotal breakdown** | CO - Chi tiết từng loại | THIEU - Chỉ hiển thị tổng tiền phòng |
+| **Gửi notification checkout** | CO - triggerRoomCheckoutNotification | THIEU |
+| **Cập nhật notes** | CO - Lưu lý do điều chỉnh vào booking | THIEU |
+| **Payment status** | CO - Update payment_status, paid_at | THIEU |
+| **Hourly/Monthly support** | CO - Tính phí vượt giờ, chiết khấu tháng | THIEU |
+| **Xác nhận cuối cùng** | CO - Hiển thị "Còn lại" rõ ràng, yêu cầu xác nhận | THIEU - Checkout thẳng |
 
 ---
 
-### GIẢI PHÁP
+### CHI TIẾT CÁC CHỨC NĂNG BỊ THIẾU
 
-Sửa luồng để **LUÔN hiển thị dialog xác nhận** trước khi check-in, với đầy đủ thông tin:
+#### 1. KHÔNG DÙNG RPC `perform_checkout` (QUAN TRỌNG NHẤT)
 
-```text
-┌──────────────────────────────────────────────────────────────┐
-│                   XÁC NHẬN CHECK-IN                         │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  Khách: Nguyễn Văn A              Phòng: P102               │
-│                                                              │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │ THÔNG TIN ĐẶT PHÒNG                                    │ │
-│  │                                                        │ │
-│  │ Loại booking:     Theo ngày                            │ │
-│  │ Ngày nhận phòng:  04/02/2026                           │ │
-│  │ Ngày trả phòng:   06/02/2026                           │ │
-│  │ Số đêm:           2 đêm                                │ │
-│  │ Giá phòng:        500.000đ/đêm                         │ │
-│  │ Tổng tiền phòng:  1.000.000đ                           │ │
-│  │ Đã cọc:           200.000đ                             │ │
-│  │ Còn lại:          800.000đ                             │ │
-│  └────────────────────────────────────────────────────────┘ │
-│                                                              │
-│  [Nếu có phụ thu check-in sớm - hiển thị bảng phụ thu]      │
-│                                                              │
-│  ✅ Giờ check-in: 15:30 (Không phụ thu)                     │
-│                                                              │
-│                        [Hủy]     [Xác nhận Check-in]        │
-└──────────────────────────────────────────────────────────────┘
+**Checkout cơ bản:**
+```typescript
+const { error } = await supabase.rpc('perform_checkout', {
+  p_booking_id: actionBooking.id,
+  p_room_id: actionBooking.room_id,
+  p_late_checkout_charge: adjustedLateCharge,
+  p_service_charges: serviceCharges,
+  p_subtotal: costBreakdown.subtotal,
+  p_vat_amount: costBreakdown.vatAmount,
+  p_service_fee_amount: costBreakdown.serviceFeeAmount,
+  p_total_amount: costBreakdown.totalAmount,
+  p_damage_charges: damageCharges,
+  p_damage_notes: damageAdjustmentNote,
+  p_damage_items: JSON.stringify(adjustedDamageItems),
+})
 ```
 
+**Checkout nhóm (thiếu):**
+```typescript
+// Chỉ update đơn giản
+await supabase.from('room_bookings').update({
+  status: 'checked_out',
+  actual_check_out: now,
+}).eq('id', bookingId)
+```
+
+**Hậu quả:**
+- Không cập nhật `late_checkout_charge`
+- Không cập nhật `service_charges`
+- Không cập nhật `total_amount` cuối cùng
+- Không lưu `damage_charges` và `damage_items`
+- Không cập nhật `payment_status`
+
+#### 2. KHÔNG TÍNH PHỤ THU CHECKOUT TRỄ
+
+Checkout cơ bản có bảng phụ thu:
+```
+| Thời gian      | % phụ thu |
+|----------------|-----------|
+| Trước 12:00    | 0%        |
+| 12:00 - 15:00  | 30%       |
+| 15:00 - 18:00  | 50%       |
+| Sau 18:00      | 100%      |
+```
+
+Checkout nhóm: **KHÔNG CÓ** - checkout lúc 17:00 vẫn không tính phụ thu 50%
+
+#### 3. KHÔNG HIỂN THỊ/ĐIỀU CHỈNH PHÍ ĐỀN BÙ CHI TIẾT
+
+Checkout cơ bản có `DamageChargesSection`:
+- Hiển thị từng item mất/hỏng
+- Điều chỉnh phí từng item
+- Nút "Miễn phí" / "Reset"
+- Yêu cầu note nếu giảm phí
+- In biên bản xác nhận
+
+Checkout nhóm: Chỉ hiển thị tổng `+{inspection.damageCharge}` không thể điều chỉnh
+
+#### 4. KHÔNG TÍNH DỊCH VỤ SỬ DỤNG (Consumables)
+
+Checkout cơ bản:
+```typescript
+const consumablesTotal = await calculateServiceChargesFromConsumables(booking.id)
+const { data: chargeableTotal } = await supabase
+  .rpc('get_booking_chargeable_total', { p_booking_id: booking.id })
+```
+
+Checkout nhóm: **KHÔNG TÍNH** - minibar, đồ uống trả phí không được cộng vào hóa đơn
+
+#### 5. KHÔNG GỬI NOTIFICATION CHECKOUT
+
+Checkout cơ bản:
+```typescript
+triggerRoomCheckoutNotification({
+  tenantId,
+  hotelId: actionBooking.hotel_id,
+  roomId: actionBooking.room_id,
+  roomNumber: actionBooking.room?.room_number || '',
+})
+```
+
+Checkout nhóm: **KHÔNG GỬI** - Housekeeping không nhận được thông báo dọn phòng
+
+#### 6. KHÔNG CÓ DIALOG XÁC NHẬN CUỐI CÙNG
+
+Checkout cơ bản: Hiển thị dialog chi tiết với:
+- Bảng kê chi phí đầy đủ
+- Số tiền còn lại nổi bật
+- Nút "Cho trả phòng (nợ X)" vs "Thu tiền & Trả phòng"
+- Yêu cầu xác nhận trước khi thực hiện
+
+Checkout nhóm: Bấm nút → Checkout thẳng, không có bước xác nhận cuối
+
 ---
 
-### CHI TIẾT THAY ĐỔI
+### KẾ HOẠCH SỬA LỖI
 
-#### 1. Cập nhật `CheckInConfirmDialog.tsx`
+#### File 1: `src/components/bookings/GroupCheckoutDialog.tsx`
 
-Thêm các props mới để hiển thị đầy đủ thông tin booking:
-
+**1. Thêm tính toán chi phí đầy đủ cho từng phòng:**
 ```typescript
-interface CheckInConfirmDialogProps {
-  // Props hiện có
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  guestName: string
-  roomNumber: string
-  actualCheckInTime: string
-  roomPrice: number
-  suggestedCharge: number
-  bookingType?: 'daily' | 'hourly' | 'monthly'
-  bookingHours?: number
-  bookingMonths?: number
-  onConfirm: (finalCharge: number, adjustmentNote?: string) => void
-  isLoading?: boolean
-  
-  // THÊM MỚI - Thông tin booking chi tiết
-  checkInDate: Date
-  checkOutDate: Date
-  totalNights?: number
-  totalAmount: number
-  depositAmount: number
-  guestPhone?: string
-  bookingSource?: string
+// Thêm state cho cost breakdown từng phòng
+const [bookingCosts, setBookingCosts] = useState<Map<string, BookingCostBreakdown>>()
+
+// Fetch chi phí khi chọn phòng
+const calculateRoomCosts = async (bookingId: string) => {
+  const booking = groupData.bookings.find(b => b.id === bookingId)
+  if (!booking) return
+
+  // Tính late checkout charge
+  const actualTime = format(new Date(), 'HH:mm')
+  const lateCharge = calculateLateCheckoutCharge(actualTime, booking.room_price)
+
+  // Get consumables
+  const consumablesTotal = await calculateServiceChargesFromConsumables(bookingId)
+  const { data: chargeableTotal } = await supabase
+    .rpc('get_booking_chargeable_total', { p_booking_id: bookingId })
+
+  // Get damage items
+  const damageItems = await fetchDamageItems(booking.room_id)
+
+  // Calculate full breakdown
+  const costBreakdown = calculateBookingCost({
+    roomPrice: booking.room_price,
+    nights,
+    lateCheckoutCharge: lateCharge,
+    serviceCharges: consumablesTotal + chargeableTotal,
+    damageCharges: totalDamageCharge,
+    damageItems,
+    // ...
+  })
+
+  setBookingCosts(prev => new Map(prev).set(bookingId, costBreakdown))
 }
 ```
 
-Cập nhật UI để hiển thị:
-- Thông tin khách: Tên, SĐT
-- Thông tin phòng: Số phòng, loại phòng
-- Thông tin thời gian: Ngày nhận/trả, số đêm (hoặc số giờ/tháng)
-- Thông tin tài chính: Tổng tiền, đã cọc, còn lại
-- Nguồn đặt phòng (nếu có)
-- Bảng phụ thu (nếu check-in sớm)
+**2. Thêm Dialog xác nhận trước checkout:**
 
-#### 2. Cập nhật `BookingsPage.tsx` - `handleCheckInClick`
-
-Sửa logic để **LUÔN mở dialog**:
-
+Tạo component mới `GroupCheckoutConfirmDialog.tsx`:
 ```typescript
-const handleCheckInClick = async (booking: BookingWithRoom) => {
-  // ... validation code hiện tại (ngày, room status) ...
-  
-  const actualTime = format(now, 'HH:mm')
-  const hours = parseInt(actualTime.split(':')[0])
-  const roomPrice = (booking as any).room_price || 0
+// Hiển thị chi tiết từng phòng:
+// - Phụ thu checkout trễ (có thể điều chỉnh)
+// - Phí đền bù (có thể điều chỉnh từng item)
+// - Dịch vụ sử dụng
+// - VAT, Service Fee
+// - Subtotal, Total, Remaining
+// - Nút Confirm / Cancel
+```
 
-  setActionBooking(booking)
-
-  // Tính phụ thu (nếu có) cho daily booking check-in sớm
-  let suggestedCharge = 0
-  if (booking.booking_type === 'daily' && hours < 14) {
-    suggestedCharge = calculateEarlyCheckinCharge(actualTime, roomPrice)
+**3. Sửa `performCheckout` để dùng RPC:**
+```typescript
+const performCheckout = async (bookingIds: string[]) => {
+  for (const bookingId of bookingIds) {
+    const booking = groupData.bookings.find(b => b.id === bookingId)
+    const costBreakdown = bookingCosts.get(bookingId)
+    
+    // Use RPC with full params
+    await supabase.rpc('perform_checkout', {
+      p_booking_id: bookingId,
+      p_room_id: booking.room_id,
+      p_late_checkout_charge: costBreakdown.lateCheckoutCharge,
+      p_service_charges: costBreakdown.serviceCharges,
+      p_subtotal: costBreakdown.subtotal,
+      p_vat_amount: costBreakdown.vatAmount,
+      p_service_fee_amount: costBreakdown.serviceFeeAmount,
+      p_total_amount: costBreakdown.totalAmount,
+      p_damage_charges: costBreakdown.damageCharges,
+      p_damage_items: JSON.stringify(costBreakdown.damageItems),
+    })
+    
+    // Send notification
+    await triggerRoomCheckoutNotification({
+      tenantId, hotelId, roomId: booking.room_id, roomNumber: booking.room.room_number
+    })
   }
-  
-  setSuggestedEarlyCharge(suggestedCharge)
-  // LUÔN hiển thị dialog xác nhận
-  setShowCheckinConfirm(true)
 }
 ```
 
-#### 3. Cập nhật props truyền vào `CheckInConfirmDialog`
+**4. Thêm hiển thị phí chi tiết cho từng phòng:**
+- Late checkout charge (có icon cảnh báo nếu > 0)
+- Damage charges (click để xem chi tiết + điều chỉnh)
+- Consumables total
+- Subtotal per room
 
-```tsx
-<CheckInConfirmDialog
-  open={showCheckinConfirm}
-  onOpenChange={(open) => {
-    setShowCheckinConfirm(open)
-    if (!open) setActionBooking(null)
-  }}
-  guestName={actionBooking.guest_name}
-  guestPhone={actionBooking.guest_phone}
-  roomNumber={actionBooking.room?.room_number || ''}
-  actualCheckInTime={format(new Date(), 'HH:mm')}
-  roomPrice={(actionBooking as any).room_price || 0}
-  suggestedCharge={suggestedEarlyCharge}
-  bookingType={actionBooking.booking_type || 'daily'}
-  bookingHours={actionBooking.booking_hours}
-  bookingMonths={actionBooking.booking_months}
-  // THÊM MỚI
-  checkInDate={new Date(actionBooking.check_in_date)}
-  checkOutDate={new Date(actionBooking.check_out_date)}
-  totalNights={calculateNights(actionBooking)}
-  totalAmount={actionBooking.total_amount || 0}
-  depositAmount={actionBooking.deposit_amount || 0}
-  bookingSource={actionBooking.booking_source}
-  onConfirm={(finalCharge, adjustmentNote) => performCheckIn(actionBooking, finalCharge, adjustmentNote)}
-  isLoading={isActionLoading}
-/>
-```
+#### File 2: `src/components/bookings/GroupCheckoutConfirmDialog.tsx` (MỚI)
+
+Dialog xác nhận cuối cùng với:
+- Tổng hợp tất cả phòng đã chọn
+- Chi tiết phụ thu từng phòng (có thể điều chỉnh)
+- Chi tiết phí đền bù (có thể điều chỉnh + in biên bản)
+- Tổng cần thu cho toàn bộ nhóm
+- Nút "Checkout (nợ X)" và "Thu tiền & Checkout"
 
 ---
 
-### UI DESIGN CHO DIALOG MỚI
+### PRIORITY ORDER
 
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│  ✓ Xác nhận Check-in                                   [×]     │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Khách: Nguyễn Văn A              Phòng: P102                  │
-│  SĐT: 0901234567                  Nguồn: Booking.com           │
-│                                                                 │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │ THÔNG TIN ĐẶT PHÒNG                                     │   │
-│  ├─────────────────────────────────────────────────────────┤   │
-│  │ Loại booking      Theo ngày                             │   │
-│  │ Ngày nhận phòng   04/02/2026                            │   │
-│  │ Ngày trả phòng    06/02/2026                            │   │
-│  │ Số đêm            2 đêm                                 │   │
-│  ├─────────────────────────────────────────────────────────┤   │
-│  │ Giá phòng         500.000đ/đêm                          │   │
-│  │ Tổng tiền phòng   1.000.000đ                            │   │
-│  │ Đã đặt cọc        200.000đ                              │   │
-│  │ Còn phải thu      800.000đ                      ← bold  │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  ✅ Giờ check-in: 15:30                                        │
-│  ✅ Không áp dụng phụ thu check-in sớm                         │
-│                                                                 │
-│  ────────────────────────────────────────────────────          │
-│                            [Hủy]   [Xác nhận Check-in]         │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Nếu check-in sớm (trước 14:00):**
-```text
-│  ⚠️ Giờ check-in: 10:30 (Check-in sớm)                         │
-│                                                                 │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │ BẢNG PHỤ THU CHECK-IN SỚM                               │   │
-│  ├─────────────────────────────────────────────────────────┤   │
-│  │ ✓ 09:00 - 14:00     30%    = 150.000đ          ← active │   │
-│  │   05:00 - 09:00     50%    = 250.000đ                   │   │
-│  │   Trước 05:00       100%   = 500.000đ                   │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  Phụ thu áp dụng: [_150.000_] đ                                │
-│                                                                 │
-│  [Miễn phí]   [Theo chuẩn (150.000đ)]                          │
-```
-
----
-
-### FILES CẦN THAY ĐỔI
-
-| File | Thay đổi | Độ phức tạp |
-|------|----------|------------|
-| `src/components/bookings/CheckInConfirmDialog.tsx` | Thêm props mới, cập nhật UI hiển thị thông tin booking | Cao |
-| `src/pages/bookings/BookingsPage.tsx` | Sửa logic luôn mở dialog, truyền thêm props | Trung bình |
-| `src/components/rooms/RoomBookingDialog.tsx` | Cập nhật tương tự cho dialog check-in | Trung bình |
+| # | Chức năng | Độ quan trọng | Lý do |
+|---|-----------|---------------|-------|
+| 1 | Dùng RPC `perform_checkout` | CRITICAL | Dữ liệu không được cập nhật đầy đủ |
+| 2 | Tính phụ thu checkout trễ | HIGH | Mất doanh thu |
+| 3 | Tính/hiển thị phí đền bù chi tiết | HIGH | Không thể điều chỉnh, không có biên bản |
+| 4 | Tính dịch vụ sử dụng | HIGH | Minibar không được tính |
+| 5 | Dialog xác nhận cuối cùng | MEDIUM | Tránh checkout nhầm |
+| 6 | Gửi notification | MEDIUM | Housekeeping không biết dọn phòng |
+| 7 | VAT/Service Fee breakdown | LOW | Hiện tại chưa dùng (rate = 0) |
 
 ---
 
 ### KẾT QUẢ MONG ĐỢI
 
-| Metric | Trước | Sau |
-|--------|-------|-----|
-| Check-in có xác nhận | Chỉ khi check-in sớm | TẤT CẢ trường hợp |
-| Thông tin hiển thị | Chỉ phụ thu | Đầy đủ: thời gian, tài chính |
-| Khả năng nhầm lẫn | Cao (1-click check-in) | Thấp (phải xác nhận) |
-| Nhân viên review | Không có cơ hội | Xem đầy đủ trước khi xác nhận |
-
+| Metric | Hiện tại | Sau khi sửa |
+|--------|----------|-------------|
+| Phụ thu checkout trễ | Không tính | Tính đúng theo bảng |
+| Phí đền bù | Chỉ hiển thị tổng | Chi tiết, điều chỉnh được |
+| Dịch vụ minibar | Không tính | Cộng vào hóa đơn |
+| Xác nhận checkout | Không có | Yêu cầu xác nhận |
+| Notification | Không gửi | Gửi đến housekeeping |
+| Data integrity | Thiếu nhiều trường | Đầy đủ như checkout cơ bản |
