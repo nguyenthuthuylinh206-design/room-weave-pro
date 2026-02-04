@@ -1,14 +1,30 @@
 
+## ✅ HOÀN THÀNH: Cập nhật Group Checkout với đầy đủ chức năng
+
+### Các thay đổi đã thực hiện:
+
+1. **Tạo hook `useGroupCheckoutCalculations.ts`** - Xử lý tính toán chi phí đầy đủ:
+   - Tính late checkout charge theo bảng 4 mức
+   - Fetch chargeable consumables (minibar)
+   - Fetch damage items từ room_checks
+   - Điều chỉnh phí linh hoạt với notes
+
+2. **Tạo `GroupCheckoutConfirmDialog.tsx`** - Dialog xác nhận cuối cùng:
+   - Hiển thị chi tiết từng phòng (collapsible)
+   - Điều chỉnh phụ thu checkout trễ
+   - Điều chỉnh phí đền bù từng item
+   - Yêu cầu note khi giảm phí
+   - Hiển thị tổng cần thu rõ ràng
+
+3. **Cập nhật `GroupCheckoutDialog.tsx`**:
+   - Dùng RPC `perform_checkout` thay vì update trực tiếp
+   - Tính đầy đủ: late charge, service charges, damage charges
+   - Gửi `triggerRoomCheckoutNotification` cho housekeeping
+   - Hiển thị dialog xác nhận trước khi checkout
+
+---
+
 ## Phân tích: Chức năng Checkout Nhóm thiếu so với Checkout Cơ bản
-
-### SO SÁNH CHI TIẾT
-
-| Chức năng | Checkout Cơ bản (CheckoutSummaryDialog) | Checkout Nhóm (GroupCheckoutDialog) |
-|-----------|----------------------------------------|-------------------------------------|
-| **RPC perform_checkout** | CO - Dùng RPC với đầy đủ params | THIEU - Dùng update trực tiếp |
-| **Tính phụ thu checkout trễ** | CO - Bảng phụ thu 4 mức (0%, 30%, 50%, 100%) | THIEU - Không tính |
-| **Điều chỉnh phụ thu** | CO - Có thể miễn/điều chỉnh + ghi note | THIEU |
-| **Phí đền bù (Damage Charges)** | CO - Chi tiết từng item, điều chỉnh được | THIEU - Chỉ hiển thị tổng |
 | **Điều chỉnh phí đền bù** | CO - Từng item, yêu cầu note nếu giảm | THIEU |
 | **Biên bản thiệt hại** | CO - In được | THIEU |
 | **Dịch vụ sử dụng (Consumables)** | CO - Tính từ chargeable_consumptions | THIEU - Không tính |
