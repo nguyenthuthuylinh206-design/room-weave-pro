@@ -1,17 +1,19 @@
-import { AlertTriangle, Clock, CreditCard, Package, ChevronRight, AlertCircle } from 'lucide-react'
+import { AlertTriangle, Clock, CreditCard, Package, ChevronRight, AlertCircle, AlertOctagon } from 'lucide-react'
 import { useOwnerAlerts } from '@/hooks/useRevenueReport'
 import { Link } from 'react-router-dom'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
 import { useLowStockItems } from '@/hooks/useInventoryDashboard'
+import { useBookingConflicts } from '@/hooks/useBookingConflicts'
 
 export function OwnerSmartAlerts() {
   const { data: ownerAlerts, isLoading: alertsLoading } = useOwnerAlerts()
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
   const { data: lowStockItems, isLoading: lowStockLoading } = useLowStockItems()
+  const { data: bookingConflicts, isLoading: conflictsLoading } = useBookingConflicts()
 
-  const isLoading = alertsLoading || statsLoading || lowStockLoading
+  const isLoading = alertsLoading || statsLoading || lowStockLoading || conflictsLoading
 
   if (isLoading) {
     return (
@@ -27,6 +29,19 @@ export function OwnerSmartAlerts() {
   }
 
   const alerts = [
+    // Booking conflicts - highest priority
+    {
+      id: 'booking-conflict',
+      label: 'Xung đột lịch phòng',
+      count: bookingConflicts?.length || 0,
+      icon: AlertOctagon,
+      color: 'text-red-600',
+      bgColor: 'bg-red-100 dark:bg-red-950/50',
+      borderColor: 'border-red-300 dark:border-red-800',
+      link: '/bookings?filter=conflict',
+      description: 'Khách mới đang chờ',
+      show: (bookingConflicts?.length || 0) > 0,
+    },
     {
       id: 'overdue-checkout',
       label: 'Quá hạn checkout',

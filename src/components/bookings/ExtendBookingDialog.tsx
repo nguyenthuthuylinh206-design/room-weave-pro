@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format, addDays, startOfDay, isBefore, parseISO, differenceInCalendarDays } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { Calendar as CalendarIcon, AlertTriangle, Loader2 } from 'lucide-react'
+import { Calendar as CalendarIcon, AlertTriangle, Loader2, AlertOctagon } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   Dialog,
@@ -18,6 +18,8 @@ import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrency } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import { useBookingConflictCheck } from '@/hooks/useBookingConflicts'
+import { ConflictWarningSection } from './ConflictWarningSection'
 
 interface ExtendBookingDialogProps {
   open: boolean
@@ -41,12 +43,32 @@ export function ExtendBookingDialog({
   onOpenChange,
   booking,
   onSuccess,
-}: ExtendBookingDialogProps) {
+  onCheckoutNow,
+  onTransferRoom,
+}: ExtendBookingDialogProps & {
+  onCheckoutNow?: () => void
+  onTransferRoom?: () => void
+}) {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [newCheckOutDate, setNewCheckOutDate] = useState<Date | undefined>(undefined)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
+  
+  // Check for conflicting booking when dialog opens
+  const { data: conflictBooking, isLoading: isCheckingConflict } = useBookingConflictCheck(
+    booking?.room_id,
+    booking?.id,
+    open && !!booking
+  )
+  
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setNewCheckOutDate(undefined)
+      setValidationError(null)
+    }
+  }, [open])
 
   if (!booking) return null
 
@@ -131,20 +153,55 @@ export function ExtendBookingDialog({
     }
   }
 
+  const hasConflict = !!conflictBooking
+  
+  const handleContactGuest = () => {
+    if (conflictBooking?.guest_phone) {
+      window.open(`tel:${conflictBooking.guest_phone}`, '_self')
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className={cn("max-w-md", hasConflict && "max-w-lg")}>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-amber-600">
-            <AlertTriangle className="h-5 w-5" />
-            Đã quá ngày trả phòng
+          <DialogTitle className={cn(
+            "flex items-center gap-2",
+            hasConflict ? "text-red-600" : "text-amber-600"
+          )}>
+            {hasConflict ? (
+              <>
+                <AlertOctagon className="h-5 w-5" />
+                Tình huống khẩn cấp - Có booking conflict!
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="h-5 w-5" />
+                Đã quá ngày trả phòng
+              </>
+            )}
           </DialogTitle>
           <DialogDescription>
-            Khách đã ở thêm {nightsOverdue} đêm so với lịch checkout ({format(currentCheckOut, 'dd/MM/yyyy')}). Vui lòng gia hạn booking trước khi checkout.
+            {hasConflict ? (
+              <>Khách đã ở thêm {nightsOverdue} đêm và <span className="text-red-600 font-medium">có khách mới đang chờ check-in</span>. Cần xử lý ngay!</>
+            ) : (
+              <>Khách đã ở thêm {nightsOverdue} đêm so với lịch checkout ({format(currentCheckOut, 'dd/MM/yyyy')}). Vui lòng gia hạn booking trước khi checkout.</>
+            )}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Conflict Warning - show first if exists */}
+          {hasConflict && conflictBooking && (
+            <ConflictWarningSection
+              nextBooking={conflictBooking}
+              onCheckoutNow={onCheckoutNow}
+              onTransferRoom={onTransferRoom}
+              onContactGuest={handleContactGuest}
+              showActions={true}
+            />
+          )}
+          
           {/* Booking info */}
           <div className="rounded-lg border p-3 space-y-2 text-sm">
             <div className="flex justify-between">

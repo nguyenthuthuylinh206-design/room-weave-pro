@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { format, isToday, isTomorrow, isPast, differenceInDays, startOfDay, isBefore, isAfter } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -66,6 +66,7 @@ import { GroupCheckoutDialog } from '@/components/bookings/GroupCheckoutDialog'
 import { RoomStatusBadge } from '@/components/rooms/RoomStatusBadge'
 import { formatCurrency } from '@/lib/utils'
 import { useGroupBookingCounts } from '@/hooks/useGroupBooking'
+import { useBookingConflicts } from '@/hooks/useBookingConflicts'
 import { BOOKING_SOURCES, OTA_SOURCES } from '@/lib/constants'
 import type { RoomStatus } from '@/types/rooms.types'
 import {
@@ -79,7 +80,7 @@ import {
 import { calculateServiceChargesFromConsumables } from '@/hooks/usePricingRules'
 import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
 
-type BookingStatus = 'all' | 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show'
+type BookingStatus = 'all' | 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show' | 'conflict' | 'overdue'
 
 interface BookingWithRoom {
   id: string
@@ -184,6 +185,24 @@ export function BookingsPage() {
   const [restoredFromWidget, setRestoredFromWidget] = useState(false)
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
+  
+  // Handle URL filter parameter from dashboard alerts
+  useEffect(() => {
+    const filterParam = searchParams.get('filter')
+    if (filterParam) {
+      if (filterParam === 'conflict') {
+        setStatusFilter('conflict')
+      } else if (filterParam === 'overdue') {
+        setStatusFilter('overdue')
+      } else if (filterParam === 'unpaid') {
+        // For unpaid, we don't have a specific status, show all checked_out
+        setStatusFilter('checked_out')
+      }
+      // Clear the URL parameter
+      setSearchParams({}, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   // Realtime subscription for bookings and rooms
   useEffect(() => {
@@ -204,6 +223,13 @@ export function BookingsPage() {
     }
   }, [queryClient])
 
+  // Get booking conflicts for filtering
+  const { data: bookingConflicts } = useBookingConflicts()
+  const conflictBookingIds = useMemo(() => 
+    new Set(bookingConflicts?.map(c => c.currentBooking.id) || []),
+    [bookingConflicts]
+  )
+  
   const { data: bookings, isLoading } = useQuery({
     queryKey: ['all-bookings', selectedHotelId, statusFilter],
     queryFn: async () => {
@@ -228,8 +254,14 @@ export function BookingsPage() {
         query = query.eq('hotel_id', selectedHotelId)
       }
       
-      if (statusFilter !== 'all') {
+      // Handle special filters
+      if (statusFilter !== 'all' && statusFilter !== 'conflict' && statusFilter !== 'overdue') {
         query = query.eq('status', statusFilter)
+      }
+      
+      // For conflict and overdue, we fetch checked_in only
+      if (statusFilter === 'conflict' || statusFilter === 'overdue') {
+        query = query.eq('status', 'checked_in')
       }
       
       const { data, error } = await query
@@ -252,13 +284,29 @@ export function BookingsPage() {
   const { data: groupCounts } = useGroupBookingCounts(groupIds)
   
   const filteredBookings = (bookings?.filter(booking => {
-    if (!searchQuery) return true
-    const query = searchQuery.toLowerCase()
-    return (
-      booking.guest_name.toLowerCase().includes(query) ||
-      booking.guest_phone?.toLowerCase().includes(query) ||
-      booking.room?.room_number?.toLowerCase().includes(query)
-    )
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      const matchesSearch = 
+        booking.guest_name.toLowerCase().includes(query) ||
+        booking.guest_phone?.toLowerCase().includes(query) ||
+        booking.room?.room_number?.toLowerCase().includes(query)
+      if (!matchesSearch) return false
+    }
+    
+    // Apply conflict filter - only show bookings that have conflicts
+    if (statusFilter === 'conflict') {
+      return conflictBookingIds.has(booking.id)
+    }
+    
+    // Apply overdue filter - checked_in but past checkout date
+    if (statusFilter === 'overdue') {
+      const today = startOfDay(new Date())
+      const checkOutDate = startOfDay(new Date(booking.check_out_date))
+      return booking.status === 'checked_in' && isBefore(checkOutDate, today)
+    }
+    
+    return true
   }) || []).sort((a, b) => {
     const now = new Date()
     const todayStart = startOfDay(now)
@@ -1010,6 +1058,10 @@ export function BookingsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tất cả</SelectItem>
+            <SelectItem value="conflict">
+              <span className="text-red-600">⚠️ Xung đột lịch ({bookingConflicts?.length || 0})</span>
+            </SelectItem>
+            <SelectItem value="overdue">Quá hạn checkout</SelectItem>
             <SelectItem value="confirmed">Đã đặt</SelectItem>
             <SelectItem value="checked_in">Đang ở</SelectItem>
             <SelectItem value="checked_out">Đã trả phòng</SelectItem>
@@ -1387,6 +1439,24 @@ export function BookingsPage() {
           booking={actionBooking}
           onSuccess={() => {
             setActionBooking(null)
+          }}
+          onCheckoutNow={() => {
+            // Close extend dialog and proceed with checkout
+            setShowExtendDialog(false)
+            // Force checkout flow - bypass the overdue check since we're handling it here
+            setShowCheckoutSummary(true)
+            toast({
+              title: 'Tiến hành checkout',
+              description: 'Vui lòng xác nhận thông tin và thanh toán',
+            })
+          }}
+          onTransferRoom={() => {
+            // Navigate to room transfer page
+            toast({
+              title: 'Chuyển phòng',
+              description: 'Tính năng chuyển phòng đang phát triển. Vui lòng xử lý thủ công.',
+              variant: 'default',
+            })
           }}
         />
       )}
