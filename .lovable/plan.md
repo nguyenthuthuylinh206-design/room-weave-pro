@@ -1,184 +1,111 @@
 
 
-## Kế hoạch: Bổ sung thông báo cho Group Checkout
+## Kế hoạch: Sửa lỗi Group Checkout
 
-### VẤN ĐỀ
+### VẤN ĐỀ 1: Số "0" hiển thị trên tên phòng
 
-Trong `GroupCheckoutDialog`, khi gửi yêu cầu kiểm tra phòng (`handleBatchInspectionRequest`), hệ thống **KHÔNG GỬI THÔNG BÁO** đến nhân viên được gán. Điều này khác với checkout lẻ (`CheckoutSummaryDialog`) - nơi gửi đầy đủ:
-
-- Push notification
-- In-app notification  
-- Telegram cá nhân
-- Telegram nhóm staff
-
-### GIẢI PHÁP
-
-Thêm gửi thông báo song song sau khi tạo inspection request và housekeeping task trong hàm `handleBatchInspectionRequest`:
-
-```typescript
-// Sau khi tạo inspection request và housekeeping task
-// Gửi thông báo song song (parallel)
-const staff = staffList.find(s => s.id === staffId)
-const staffName = staff?.full_name || 'Nhân viên'
-
-await Promise.all([
-  // 1. Push notification cho nhân viên
-  sendPushNotification({
-    userId: staffId,
-    tenantId,
-    title: `Yêu cầu kiểm tra phòng ${booking.room?.room_number}`,
-    body: `Khách ${booking.guest_name} sắp checkout. Vui lòng kiểm tra phòng.`,
-    actionUrl: `/my-tasks`,
-    notificationType: 'room_checkout',
-  }),
-  
-  // 2. In-app notification cho nhân viên
-  createInAppNotification({
-    userId: staffId,
-    tenantId,
-    title: `Yêu cầu kiểm tra phòng ${booking.room?.room_number}`,
-    body: `Khách ${booking.guest_name} sắp checkout. Vui lòng kiểm tra phòng.`,
-    type: 'room_checkout',
-    actionUrl: `/my-tasks`,
-  }),
-  
-  // 3. Telegram cho nhân viên cá nhân
-  sendTelegramNotification({
-    tenantId,
-    hotelId,
-    userIds: [staffId],
-    title: `🔍 Yêu cầu kiểm tra phòng ${booking.room?.room_number}`,
-    message: `Khách: ${booking.guest_name}\nVui lòng kiểm tra phòng trước khi checkout.`,
-    notificationType: 'checkout',
-    actionUrl: `/my-tasks`,
-  }),
-  
-  // 4. Telegram cho nhóm staff của hotel
-  sendTelegramNotification({
-    tenantId,
-    hotelId,
-    sendToStaffGroups: true,
-    title: `🔍 Yêu cầu kiểm tra phòng ${booking.room?.room_number}`,
-    message: `Khách: ${booking.guest_name}\n👤 Giao cho: ${staffName}\nVui lòng kiểm tra phòng trước khi checkout.`,
-    notificationType: 'checkout',
-    actionUrl: `/my-tasks`,
-  }),
-])
+**Nguyên nhân:** 
+Đây là `damageCharge` (phí hư hỏng) từ dòng 769-772:
+```tsx
+{inspection?.damageCharge && inspection.damageCharge > 0 && (
+  <span className="text-xs text-red-600 font-medium">
+    +{formatVNCurrency(inspection.damageCharge)}
+  </span>
+)}
 ```
+
+Nhưng `damageCharge` đang là `0` và JavaScript đánh giá `0 && ...` là falsy nên không render. Vấn đề thực sự là condition check `inspection?.damageCharge` - khi giá trị là 0, nó vẫn có thể render trong một số trường hợp do cách JavaScript xử lý falsy values.
+
+**Giải pháp:** Cập nhật điều kiện rõ ràng hơn:
+```tsx
+{typeof inspection?.damageCharge === 'number' && inspection.damageCharge > 0 && (
+  ...
+)}
+```
+
+---
+
+### VẤN ĐỀ 2: Không thể yêu cầu lại sau khi hủy
+
+**Nguyên nhân:**
+1. Khi hủy → database update status thành `'cancelled'`
+2. Query lấy inspection request → trả về status `'cancelled'` (dòng 189)
+3. Logic check `needsStaffAssignment` (dòng 739) chỉ check `'not_requested'`:
+   ```tsx
+   const needsStaffAssignment = isSelected && !isCheckedOut && 
+     (!inspection || inspection.status === 'not_requested')
+   ```
+4. Status `'cancelled'` không match → không hiện dropdown chọn nhân viên
+
+**Giải pháp:**
+1. Thêm `'cancelled'` vào interface InspectionStatus (dòng 72)
+2. Xử lý status `'cancelled'` trong query - coi như `'not_requested'` (dòng 189)
+3. Cập nhật `needsStaffAssignment` để bao gồm `'cancelled'`:
+   ```tsx
+   const needsStaffAssignment = isSelected && !isCheckedOut && 
+     (!inspection || inspection.status === 'not_requested' || inspection.status === 'cancelled')
+   ```
 
 ---
 
 ### THAY ĐỔI CẦN THỰC HIỆN
 
-#### 1. Thêm imports
+#### File: `src/components/bookings/GroupCheckoutDialog.tsx`
 
+**1. Cập nhật interface InspectionStatus (dòng 69-78):**
 ```typescript
-import { 
-  triggerRoomCheckoutNotification,
-  sendPushNotification,
-  createInAppNotification,
-  sendTelegramNotification 
-} from '@/hooks/useNotificationTriggers'
-```
-
-#### 2. Cập nhật hàm `handleBatchInspectionRequest`
-
-```typescript
-const handleBatchInspectionRequest = async () => {
-  // ... existing validation code ...
-  
-  setIsProcessing(true)
-  try {
-    for (const bookingId of roomsToRequest) {
-      const booking = groupData?.bookings.find(b => b.id === bookingId)
-      const staffId = staffAssignments.get(bookingId)
-      
-      if (!booking || !staffId) continue
-      
-      // Create inspection request (existing)
-      await supabase.from('checkout_inspection_requests').insert({...})
-      
-      // Create housekeeping task (existing)
-      await supabase.from('housekeeping_tasks').insert({...})
-      
-      // NEW: Send notifications (parallel)
-      const staff = staffList.find(s => s.id === staffId)
-      const staffName = staff?.full_name || 'Nhân viên'
-      const roomNumber = booking.room?.room_number || ''
-      const guestName = booking.guest_name
-      
-      await Promise.all([
-        // Push notification
-        sendPushNotification({
-          userId: staffId,
-          tenantId,
-          title: `Yêu cầu kiểm tra phòng ${roomNumber}`,
-          body: `Khách ${guestName} sắp checkout. Vui lòng kiểm tra phòng.`,
-          actionUrl: `/my-tasks`,
-          notificationType: 'room_checkout',
-        }),
-        // In-app notification
-        createInAppNotification({
-          userId: staffId,
-          tenantId,
-          title: `Yêu cầu kiểm tra phòng ${roomNumber}`,
-          body: `Khách ${guestName} sắp checkout. Vui lòng kiểm tra phòng.`,
-          type: 'room_checkout',
-          actionUrl: `/my-tasks`,
-        }),
-        // Telegram to individual staff
-        sendTelegramNotification({
-          tenantId,
-          hotelId,
-          userIds: [staffId],
-          title: `🔍 Yêu cầu kiểm tra phòng ${roomNumber}`,
-          message: `Khách: ${guestName}\nVui lòng kiểm tra phòng trước khi checkout.`,
-          notificationType: 'checkout',
-          actionUrl: `/my-tasks`,
-        }),
-        // Telegram to staff groups
-        sendTelegramNotification({
-          tenantId,
-          hotelId,
-          sendToStaffGroups: true,
-          title: `🔍 Yêu cầu kiểm tra phòng ${roomNumber}`,
-          message: `Khách: ${guestName}\n👤 Giao cho: ${staffName}\nVui lòng kiểm tra phòng trước khi checkout.`,
-          notificationType: 'checkout',
-          actionUrl: `/my-tasks`,
-        }),
-      ])
-    }
-    
-    toast.success(`Đã gửi ${roomsToRequest.length} yêu cầu kiểm tra`)
-    refetchInspections()
-  } catch (error) {
-    // ... existing error handling ...
-  } finally {
-    setIsProcessing(false)
-  }
+interface InspectionStatus {
+  bookingId: string
+  roomId: string
+  status: 'pending' | 'in_progress' | 'completed' | 'not_requested' | 'cancelled'
+  damageCharge?: number
+  inspectionId?: string
+  startedAt?: string
+  createdAt?: string
+  assignedTo?: string
 }
 ```
 
----
+**2. Xử lý status cancelled trong query (dòng 186-195):**
+```typescript
+// Treat cancelled as not_requested (allow re-requesting)
+const effectiveStatus = inspection.status === 'cancelled' 
+  ? 'not_requested' 
+  : inspection.status as 'pending' | 'in_progress' | 'completed'
 
-### FILES CẦN THAY ĐỔI
+return {
+  bookingId: booking.id,
+  roomId: booking.room_id,
+  status: effectiveStatus,
+  inspectionId: inspection.status !== 'cancelled' ? inspection.id : undefined,
+  startedAt: inspection.started_at,
+  createdAt: inspection.created_at,
+  assignedTo: inspection.assigned_to,
+  damageCharge,
+}
+```
 
-| # | File | Thay đổi |
-|---|------|----------|
-| 1 | `src/components/bookings/GroupCheckoutDialog.tsx` | Thêm imports và gửi thông báo trong `handleBatchInspectionRequest` |
+**3. Sửa điều kiện hiển thị damageCharge (dòng 769):**
+```tsx
+{inspection?.damageCharge != null && inspection.damageCharge > 0 && (
+  <span className="text-xs text-red-600 font-medium">
+    +{formatVNCurrency(inspection.damageCharge)}
+  </span>
+)}
+```
 
 ---
 
 ### KẾT QUẢ MONG ĐỢI
 
-Khi gửi yêu cầu kiểm tra phòng trong Group Checkout:
+| Trước | Sau |
+|-------|-----|
+| Hiển thị số "0" trên tên phòng | Chỉ hiển thị khi có phí hư hỏng > 0 |
+| Sau khi hủy → không yêu cầu lại được | Sau khi hủy → hiện lại dropdown chọn nhân viên để yêu cầu lại |
 
-| Kênh | Trước | Sau |
-|------|-------|-----|
-| Push notification | ❌ Không | ✅ Có |
-| In-app notification | ❌ Không | ✅ Có |
-| Telegram cá nhân | ❌ Không | ✅ Có |
-| Telegram nhóm | ❌ Không | ✅ Có |
-
-**Nhân viên sẽ nhận được thông báo ngay khi được giao kiểm tra phòng** - giống hệt với checkout lẻ.
+**Flow sau khi sửa:**
+1. User chọn nhân viên → Gửi yêu cầu
+2. Hiện InspectionStatusCard với trạng thái pending/in_progress
+3. User bấm "Hủy yêu cầu" → Status chuyển về `'not_requested'` (logic)
+4. Dropdown chọn nhân viên xuất hiện lại → User có thể gửi yêu cầu mới
 
