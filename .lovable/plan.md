@@ -1,266 +1,205 @@
 
 
-## Kế hoạch: Sửa lỗi Logic "Thêm vào lô giặt nháp"
+## Đánh giá toàn bộ quy trình Lô Giặt Nháp (Draft Laundry Batch)
 
-### NGUYÊN NHÂN LỖI
+### LUỒNG HIỆN TẠI
 
-Có **2 lỗi database** ngăn chặn việc thêm lô giặt:
-
-| # | Lỗi | Nguyên nhân |
-|---|-----|-------------|
-| 1 | `column sent_quantity does not exist` | RPC `add_laundry_to_draft_batch` dùng `sent_quantity` nhưng bảng `laundry_batch_items` có cột tên `quantity_delivered` |
-| 2 | `violates check constraint "laundry_batches_status_check"` | Status `'draft'` CHƯA được thêm vào constraint. Hiện tại chỉ cho phép: `'delivered', 'washing', 'ready', 'received', 'stocked', 'cancelled'` |
-
-### SO SÁNH SCHEMA
-
-**Bảng `laundry_batch_items` thực tế:**
-```
-| Column             | Type    |
-|--------------------|---------|
-| id                 | uuid    |
-| batch_id           | uuid    |
-| item_id            | uuid    |
-| quantity_delivered | integer |  ← Tên đúng
-| weight_kg          | numeric |
-| quantity_returned  | integer |
-| quantity_lost      | integer |
-| quantity_damaged   | integer |
-```
-
-**RPC `add_laundry_to_draft_batch` đang dùng:**
-```sql
-UPDATE laundry_batch_items
-SET sent_quantity = sent_quantity + v_item.quantity  ← SAI
-...
-INSERT INTO laundry_batch_items (batch_id, item_id, sent_quantity)  ← SAI
-```
-
-**Constraint hiện tại:**
-```sql
-CHECK (status IN ('delivered', 'washing', 'ready', 'received', 'stocked', 'cancelled'))
--- THIẾU 'draft'
+```text
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ 1. KIỂM TRA PHÒNG (Room Check)                                                  │
+│    └── Checkout → Tự động tạo laundry_request (status: pending)                │
+│        └── items từ "items_sent_to_laundry"                                    │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ 2. TAB YÊU CẦU GIẶT (LaundryRequestsTab)                                        │
+│    ├── Hiển thị danh sách yêu cầu giặt pending                                 │
+│    ├── Hiển thị thông tin Draft Batch (nếu có)                                 │
+│    ├── Nút "Thêm vào lô giặt nháp" → Dialog xác nhận                           │
+│    └── Nút "Gửi đi" → Dialog gửi lô giặt                                       │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ 3. THÊM VÀO LÔ NHÁP (RPC: add_laundry_to_draft_batch)                          │
+│    ├── Tìm/tạo batch status='draft' cho hôm nay                                │
+│    ├── Thêm items vào laundry_batch_items                                      │
+│    ├── Cập nhật total_items                                                    │
+│    └── Cập nhật laundry_request.status = 'added_to_batch'                      │
+│                                                                                 │
+│    ✅ ĐÃ SỬA: Dùng quantity_delivered thay vì sent_quantity                    │
+│    ✅ ĐÃ SỬA: Thêm 'draft' vào constraint                                      │
+│    ✅ ĐÃ SỬA: vendor_id và delivery_date nullable                              │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ 4. GỬI LÔ GIẶT (RPC: send_draft_batch)                                          │
+│    ├── Kiểm tra batch.status = 'draft'                                         │
+│    ├── Cập nhật vendor_id, delivery_date, expected_return_date                 │
+│    ├── Cập nhật status = 'delivered'                                           │
+│    └── Tính estimated_cost từ vendor contract                                  │
+│                                                                                 │
+│    ✅ ĐÃ CÓ: send_draft_batch RPC                                              │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ 5. QUY TRÌNH SAU GỬI (delivered → ready → received → stocked)                   │
+│    ├── Đánh dấu sẵn sàng: delivered → ready                                    │
+│    ├── Nhận đồ về: ReceiveBatchPage → received                                 │
+│    └── Nhập kho: useStockInFromLaundry → stocked                               │
+│                                                                                 │
+│    ✅ ĐÃ CÓ: Đầy đủ                                                            │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### GIẢI PHÁP
+### CÁC VẤN ĐỀ PHÁT HIỆN
 
-#### 1. Thêm status `'draft'` vào constraint
+| # | Vấn đề | Mức độ | Mô tả |
+|---|--------|--------|-------|
+| 1 | RPC `get_laundry_batch_detail` không hỗ trợ draft batch | **CRITICAL** | Dùng `JOIN laundry_vendors` nhưng draft batch có `vendor_id = NULL` → Không thể xem chi tiết draft batch |
+| 2 | RPC `get_laundry_batches_filtered` không hiển thị draft batch | **HIGH** | Dùng `JOIN laundry_vendors` → Draft batches bị loại khỏi danh sách |
+| 3 | Thiếu UI xem/sửa draft batch | **MEDIUM** | Không có trang riêng để quản lý draft batch (thêm/xóa items) |
+| 4 | Filter status không có option 'draft' | **LOW** | LaundryBatchesPage không có option filter status='draft' |
+| 5 | Thiếu BatchStatusBadge cho status 'draft' | **LOW** | Badge component chưa định nghĩa style cho 'draft' |
+| 6 | Inventory deduction không xảy ra khi thêm vào draft | **MEDIUM** | Đồ giặt chưa bị trừ khỏi kho khi thêm vào draft (chỉ trừ khi send) |
+
+---
+
+### GIẢI PHÁP ĐỀ XUẤT
+
+#### 1. Sửa RPC `get_laundry_batch_detail` (CRITICAL)
+
+**Vấn đề**: JOIN vendor_id = NULL sẽ không trả về kết quả.
+
+**Giải pháp**: Đổi từ `JOIN` sang `LEFT JOIN` cho laundry_vendors.
 
 ```sql
-ALTER TABLE laundry_batches 
-DROP CONSTRAINT IF EXISTS laundry_batches_status_check;
-
-ALTER TABLE laundry_batches
-ADD CONSTRAINT laundry_batches_status_check 
-CHECK (status IN ('draft', 'delivered', 'washing', 'ready', 'received', 'stocked', 'cancelled'));
+CREATE OR REPLACE FUNCTION get_laundry_batch_detail(p_batch_id UUID)
+RETURNS jsonb
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_result jsonb;
+BEGIN
+  SELECT jsonb_build_object(
+    'batch', row_to_json(lb.*),
+    'vendor', CASE WHEN lv.id IS NOT NULL THEN row_to_json(lv.*) ELSE NULL END,
+    'hotel', row_to_json(h.*),
+    'delivery_staff', row_to_json(ds.*),
+    'return_staff', row_to_json(rs.*),
+    'items', (...)
+  ) INTO v_result
+  FROM laundry_batches lb
+  LEFT JOIN laundry_vendors lv ON lv.id = lb.vendor_id  -- Đổi từ JOIN sang LEFT JOIN
+  JOIN hotels h ON h.id = lb.hotel_id
+  LEFT JOIN users ds ON ds.id = lb.delivery_staff_id
+  LEFT JOIN users rs ON rs.id = lb.return_staff_id
+  WHERE lb.id = p_batch_id;
+  
+  RETURN v_result;
+END;
+$$;
 ```
 
-#### 2. Sửa RPC `add_laundry_to_draft_batch`
+#### 2. Sửa RPC `get_laundry_batches_filtered` (HIGH)
 
-Thay đổi tất cả các reference từ `sent_quantity` sang `quantity_delivered`:
+**Vấn đề**: JOIN vendor loại bỏ draft batches.
+
+**Giải pháp**: Đổi sang `LEFT JOIN` và xử lý null values.
 
 ```sql
-CREATE OR REPLACE FUNCTION public.add_laundry_to_draft_batch(...)
-...
-  -- Thay đổi 1: UPDATE
-  UPDATE public.laundry_batch_items
-  SET quantity_delivered = quantity_delivered + v_item.quantity,
-      updated_at = now()
-  WHERE id = v_existing_item_id;
-
-  -- Thay đổi 2: INSERT
-  INSERT INTO public.laundry_batch_items (
-    batch_id, item_id, quantity_delivered
-  ) VALUES (
-    v_batch_id, v_item.item_id, v_item.quantity
-  );
-
-  -- Thay đổi 3: SUM
-  UPDATE public.laundry_batches
-  SET total_items = (
-    SELECT COALESCE(SUM(quantity_delivered), 0)
-    FROM public.laundry_batch_items
-    WHERE batch_id = v_batch_id
+CREATE OR REPLACE FUNCTION get_laundry_batches_filtered(...)
+RETURNS TABLE (...) AS $$
+BEGIN
+  RETURN QUERY
+  WITH filtered_batches AS (
+    SELECT 
+      lb.*,
+      COALESCE(lv.name, 'Chưa chọn vendor') as vendor_name,  -- Handle NULL
+      lv.contract_info->>'logo_url' as vendor_logo,
+      lv.rating as vendor_rating
+    FROM laundry_batches lb
+    LEFT JOIN laundry_vendors lv ON lv.id = lb.vendor_id  -- Đổi từ JOIN sang LEFT JOIN
+    WHERE lb.tenant_id = p_tenant_id
+      AND (p_hotel_id IS NULL OR lb.hotel_id = p_hotel_id)
+      AND (p_vendor_id IS NULL OR lb.vendor_id = p_vendor_id)
+      AND (p_status IS NULL OR lb.status = p_status)
+      AND (p_from_date IS NULL OR lb.delivery_date::date >= p_from_date OR lb.delivery_date IS NULL)
+      AND (p_to_date IS NULL OR lb.delivery_date::date <= p_to_date OR lb.delivery_date IS NULL)
   )
-  ...
+  SELECT ... FROM filtered_batches fb
+  ORDER BY 
+    CASE WHEN fb.status = 'draft' THEN 0 ELSE 1 END,  -- Draft lên đầu
+    fb.created_at DESC;
+END;
+$$;
 ```
 
-#### 3. Sửa Query trong `useDraftLaundryBatch`
+#### 3. Thêm status 'draft' vào BatchStatusBadge (LOW)
+
+**File**: `src/components/laundry/BatchStatusBadge.tsx`
 
 ```typescript
-// Hiện tại (SAI):
-items:laundry_batch_items(id, item_id, sent_quantity, ...)
-
-// Sửa thành (ĐÚNG):
-items:laundry_batch_items(id, item_id, quantity_delivered, ...)
+const STATUS_CONFIG = {
+  draft: { label: 'Nháp', color: 'bg-slate-100 text-slate-700', icon: FileText },
+  delivered: { label: 'Đã gửi', color: '...', icon: Truck },
+  // ...
+}
 ```
+
+#### 4. Thêm filter option 'draft' vào LaundryBatchesPage (LOW)
+
+**File**: `src/pages/laundry/LaundryBatchesPage.tsx`
+
+```typescript
+<SelectItem value="draft">{t('status.draft')}</SelectItem>
+```
+
+#### 5. Xử lý UI cho draft batch trong BatchDetailPage (MEDIUM)
+
+**File**: `src/pages/laundry/BatchDetailPage.tsx`
+
+- Hiển thị thông báo "Chưa chọn đơn vị giặt" khi vendor = null
+- Thêm nút "Gửi đi giặt" khi status = 'draft'
+- Cho phép thêm/xóa items khi status = 'draft'
+
+---
+
+### ƯU TIÊN THỰC HIỆN
+
+| Thứ tự | Task | Lý do |
+|--------|------|-------|
+| 1 | Sửa `get_laundry_batch_detail` | Không thể xem chi tiết draft batch → Block workflow |
+| 2 | Sửa `get_laundry_batches_filtered` | Draft batch không hiển thị trong danh sách |
+| 3 | Thêm status 'draft' vào BatchStatusBadge | UI consistency |
+| 4 | Cập nhật BatchDetailPage cho draft | UX khi xem draft batch |
+| 5 | Thêm filter 'draft' vào LaundryBatchesPage | Optional enhancement |
 
 ---
 
 ### FILES CẦN THAY ĐỔI
 
-| File | Thay đổi | Độ phức tạp |
-|------|----------|-------------|
-| Database Migration | Thêm `'draft'` vào constraint + Sửa RPC | Cao |
-| `src/hooks/useLaundryRequests.ts` | Sửa query `sent_quantity` → `quantity_delivered` | Thấp |
+| File | Loại | Thay đổi |
+|------|------|----------|
+| Database Migration | SQL | Sửa 2 RPC functions |
+| `src/components/laundry/BatchStatusBadge.tsx` | Frontend | Thêm status 'draft' |
+| `src/pages/laundry/BatchDetailPage.tsx` | Frontend | Handle draft batch UI |
+| `src/pages/laundry/LaundryBatchesPage.tsx` | Frontend | Thêm filter option 'draft' |
+| `src/components/laundry/MobileBatchDetail.tsx` | Frontend | Handle draft batch UI |
 
 ---
 
-### CHI TIẾT MIGRATION SQL
+### KẾT QUẢ MONG ĐỢI SAU KHI SỬA
 
-```sql
--- 1. Cập nhật constraint để cho phép status 'draft'
-ALTER TABLE public.laundry_batches 
-DROP CONSTRAINT IF EXISTS laundry_batches_status_check;
-
-ALTER TABLE public.laundry_batches
-ADD CONSTRAINT laundry_batches_status_check 
-CHECK (status IN ('draft', 'delivered', 'washing', 'ready', 'received', 'stocked', 'cancelled'));
-
--- 2. Sửa RPC add_laundry_to_draft_batch với column name đúng
-CREATE OR REPLACE FUNCTION public.add_laundry_to_draft_batch(
-  p_tenant_id UUID,
-  p_hotel_id UUID,
-  p_laundry_request_id UUID
-)
-RETURNS UUID
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-DECLARE
-  v_batch_id UUID;
-  v_today DATE := CURRENT_DATE;
-  v_batch_code TEXT;
-  v_request RECORD;
-  v_item RECORD;
-  v_existing_item_id UUID;
-BEGIN
-  -- Get the laundry request
-  SELECT * INTO v_request
-  FROM public.laundry_requests
-  WHERE id = p_laundry_request_id;
-
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Không tìm thấy yêu cầu giặt';
-  END IF;
-
-  IF v_request.status = 'added_to_batch' THEN
-    RAISE EXCEPTION 'Yêu cầu giặt đã được thêm vào lô khác';
-  END IF;
-
-  -- Find or create draft batch for today
-  SELECT id INTO v_batch_id
-  FROM public.laundry_batches
-  WHERE tenant_id = p_tenant_id
-    AND hotel_id = p_hotel_id
-    AND status = 'draft'
-    AND DATE(created_at) = v_today
-  LIMIT 1;
-
-  IF v_batch_id IS NULL THEN
-    -- Generate batch code
-    SELECT 'LB-' || TO_CHAR(v_today, 'YYMMDD') || '-' || 
-           LPAD((COUNT(*) + 1)::TEXT, 3, '0')
-    INTO v_batch_code
-    FROM public.laundry_batches
-    WHERE tenant_id = p_tenant_id
-      AND DATE(created_at) = v_today;
-
-    -- Create new draft batch
-    INSERT INTO public.laundry_batches (
-      tenant_id, hotel_id, batch_code, status, total_items, notes
-    ) VALUES (
-      p_tenant_id, p_hotel_id, v_batch_code, 'draft', 0, 'Tự động tạo từ kiểm tra phòng'
-    )
-    RETURNING id INTO v_batch_id;
-  END IF;
-
-  -- Add items to batch
-  FOR v_item IN SELECT * FROM jsonb_to_recordset(v_request.items) 
-    AS x(item_id UUID, item_name TEXT, quantity INTEGER, item_code TEXT)
-  LOOP
-    -- Check if item already exists in batch
-    SELECT id INTO v_existing_item_id
-    FROM public.laundry_batch_items
-    WHERE batch_id = v_batch_id AND item_id = v_item.item_id;
-
-    IF v_existing_item_id IS NOT NULL THEN
-      -- Update existing item quantity (SỬA: quantity_delivered thay vì sent_quantity)
-      UPDATE public.laundry_batch_items
-      SET quantity_delivered = quantity_delivered + v_item.quantity
-      WHERE id = v_existing_item_id;
-    ELSE
-      -- Insert new item (SỬA: quantity_delivered thay vì sent_quantity)
-      INSERT INTO public.laundry_batch_items (
-        batch_id, item_id, quantity_delivered
-      ) VALUES (
-        v_batch_id, v_item.item_id, v_item.quantity
-      );
-    END IF;
-  END LOOP;
-
-  -- Update batch total (SỬA: quantity_delivered thay vì sent_quantity)
-  UPDATE public.laundry_batches
-  SET total_items = (
-    SELECT COALESCE(SUM(quantity_delivered), 0)
-    FROM public.laundry_batch_items
-    WHERE batch_id = v_batch_id
-  ),
-  updated_at = now()
-  WHERE id = v_batch_id;
-
-  -- Update laundry request status
-  UPDATE public.laundry_requests
-  SET status = 'added_to_batch',
-      laundry_batch_id = v_batch_id,
-      added_at = now(),
-      updated_at = now()
-  WHERE id = p_laundry_request_id;
-
-  RETURN v_batch_id;
-END;
-$$;
-```
-
----
-
-### LUỒNG SAU KHI SỬA
-
-```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ 1. User click "Thêm vào lô giặt nháp"                                        │
-│    └── Dialog xác nhận mở                                                   │
-└──────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ 2. User click "Xác nhận thêm"                                                │
-│    └── Gọi RPC add_laundry_to_draft_batch                                   │
-│        ├── Tìm/tạo batch status='draft' (NOW ALLOWED)                       │
-│        ├── INSERT/UPDATE laundry_batch_items.quantity_delivered (NOW WORKS) │
-│        ├── UPDATE batch.total_items                                         │
-│        └── UPDATE laundry_request.status='added_to_batch'                   │
-└──────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ 3. UI cập nhật realtime                                                      │
-│    ├── Request biến mất khỏi danh sách "pending"                            │
-│    ├── Draft batch card hiển thị số lượng mới                               │
-│    └── Toast thông báo thành công                                           │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### KẾT QUẢ MONG ĐỢI
-
-| Metric | Trước | Sau |
-|--------|-------|-----|
-| Tạo draft batch | Lỗi constraint | Thành công |
-| Thêm items vào batch | Lỗi column | Thành công |
-| Query draft batch | Lỗi column | Thành công |
-| Quy trình hoàn chỉnh | Không hoạt động | draft → delivered → ... |
+| Tính năng | Hiện tại | Sau khi sửa |
+|-----------|----------|-------------|
+| Xem chi tiết draft batch | Lỗi (vendor NULL) | Hoạt động |
+| Danh sách hiển thị draft | Không hiển thị | Hiển thị với badge "Nháp" |
+| Nút "Xem lô giặt" trong LaundryRequestsTab | Lỗi khi click | Navigate và hiển thị đúng |
+| Workflow draft → delivered | Chỉ qua SendLaundryBatchDialog | Có thể xem detail trước khi send |
 
