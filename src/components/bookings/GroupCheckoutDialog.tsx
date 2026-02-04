@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Dialog,
@@ -34,7 +34,7 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { format } from 'date-fns'
+import { format, differenceInDays } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { formatVNCurrency } from '@/lib/pricing'
 import { useGroupBooking, GroupBookingRoom } from '@/hooks/useGroupBooking'
@@ -42,7 +42,10 @@ import { useOnShiftStaffList, OnShiftStaffMember } from '@/hooks/useOnShiftStaff
 import { supabase } from '@/integrations/supabase/client'
 import { cn } from '@/lib/utils'
 import { GroupPaymentDialog } from './GroupPaymentDialog'
+import { GroupCheckoutConfirmDialog } from './GroupCheckoutConfirmDialog'
 import { useUser } from '@/hooks/useUser'
+import { useGroupCheckoutCalculations, GroupBookingCostData } from '@/hooks/useGroupCheckoutCalculations'
+import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
 
 export interface GroupCheckoutDialogProps {
   open: boolean
@@ -78,13 +81,26 @@ export function GroupCheckoutDialog({
   const { data: groupData, isLoading: isLoadingGroup } = useGroupBooking(bookingGroupId)
   const { data: staffList = [], isLoading: isLoadingStaff } = useOnShiftStaffList(hotelId)
   
+  // NEW: Cost calculation hook for proper checkout
+  const {
+    roomCosts,
+    isCalculating,
+    calculateAllCosts,
+    adjustLateCharge,
+    adjustDamageItemCharge,
+    setDamageNote,
+    resetCosts,
+    getAggregatedTotals,
+  } = useGroupCheckoutCalculations()
+  
   const [isProcessing, setIsProcessing] = useState(false)
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   
-  // NEW: Room selection state - default select all checked_in rooms
+  // Room selection state - default select all checked_in rooms
   const [selectedRooms, setSelectedRooms] = useState<Set<string>>(new Set())
   
-  // NEW: Staff assignments per booking - Map<bookingId, staffId>
+  // Staff assignments per booking - Map<bookingId, staffId>
   const [staffAssignments, setStaffAssignments] = useState<Map<string, string>>(new Map())
 
   // Initialize selected rooms when groupData loads
@@ -96,6 +112,13 @@ export function GroupCheckoutDialog({
       setSelectedRooms(new Set(checkedInRooms))
     }
   }, [groupData?.bookings])
+  
+  // Reset costs when dialog closes
+  useEffect(() => {
+    if (!open) {
+      resetCosts()
+    }
+  }, [open, resetCosts])
 
   // Fetch inspection statuses for all bookings in the group
   const { data: inspectionStatuses, isLoading: isLoadingInspections, refetch: refetchInspections } = useQuery({
@@ -325,7 +348,7 @@ export function GroupCheckoutDialog({
     }
   }
 
-  // Perform selective checkout
+  // Perform selective checkout - now shows confirm dialog first
   const handleSelectiveCheckout = async () => {
     if (!groupData) return
     
@@ -344,41 +367,144 @@ export function GroupCheckoutDialog({
       return
     }
     
-    // Check payment
-    if (totals.remaining > 0) {
+    // Calculate costs for ready rooms before showing confirm dialog
+    const bookingsToCalculate: GroupBookingCostData[] = readyRooms.map(bookingId => {
+      const booking = groupData.bookings.find(b => b.id === bookingId)!
+      const checkIn = new Date(booking.check_in_date)
+      const checkOut = new Date(booking.check_out_date)
+      const nights = Math.max(1, differenceInDays(checkOut, checkIn))
+      
+      return {
+        bookingId: booking.id,
+        roomId: booking.room_id,
+        roomNumber: booking.room?.room_number || '',
+        bookingType: (booking.booking_type as 'daily' | 'hourly' | 'monthly') || 'daily',
+        roomPrice: (booking as any).room_price || 0,
+        nights,
+        hourlyRate: (booking as any).hourly_rate,
+        hours: (booking as any).booking_hours,
+        monthlyRate: (booking as any).monthly_rate,
+        months: (booking as any).booking_months,
+        totalAmount: booking.total_amount || 0,
+        depositAmount: booking.deposit_amount || 0,
+        amountPaid: booking.amount_paid || 0,
+        checkInDate: checkIn,
+        checkOutDate: checkOut,
+      }
+    })
+    
+    await calculateAllCosts(bookingsToCalculate)
+    setShowConfirmDialog(true)
+  }
+  
+  // Get confirm dialog data
+  const confirmRooms = useMemo(() => {
+    if (!groupData) return []
+    return Array.from(selectedRooms)
+      .map(bookingId => {
+        const booking = groupData.bookings.find(b => b.id === bookingId)
+        if (!booking || booking.status === 'checked_out') return null
+        
+        const inspection = inspectionMap.get(bookingId)
+        if (inspection?.status !== 'completed' && inspection?.status !== 'not_requested') return null
+        
+        return {
+          bookingId: booking.id,
+          roomNumber: booking.room?.room_number || '',
+          guestName: booking.guest_name,
+          roomPrice: (booking as any).room_price || 0,
+          bookingType: (booking.booking_type as 'daily' | 'hourly' | 'monthly') || 'daily',
+        }
+      })
+      .filter(Boolean) as { bookingId: string; roomNumber: string; guestName: string; roomPrice: number; bookingType: 'daily' | 'hourly' | 'monthly' }[]
+  }, [groupData, selectedRooms, inspectionMap])
+  
+  // Calculate aggregated totals for confirm dialog
+  const confirmTotals = useMemo(() => {
+    const remainingBookings = groupData?.bookings.filter(
+      b => !selectedRooms.has(b.id) && b.status !== 'checked_out'
+    ) || []
+    const isLastCheckout = remainingBookings.length === 0
+    const totalGroupDeposit = groupData?.totalDeposit || 0
+    
+    return getAggregatedTotals(
+      confirmRooms.map(r => r.bookingId),
+      totalGroupDeposit,
+      isLastCheckout
+    )
+  }, [confirmRooms, groupData, selectedRooms, getAggregatedTotals])
+  
+  // Handle confirm checkout (with or without payment)
+  const handleConfirmCheckout = async (withPayment: boolean = false) => {
+    if (!groupData) return
+    
+    const bookingIds = confirmRooms.map(r => r.bookingId)
+    
+    if (withPayment && confirmTotals.remaining > 0) {
+      setShowConfirmDialog(false)
       setShowPaymentDialog(true)
       return
     }
     
-    await performCheckout(readyRooms)
+    await performCheckout(bookingIds)
+    setShowConfirmDialog(false)
   }
 
-  // Actual checkout logic
+  // Actual checkout logic using RPC
   const performCheckout = async (bookingIds: string[]) => {
     if (!groupData) return
     
     setIsProcessing(true)
     try {
-      const now = new Date().toISOString()
-      
       for (const bookingId of bookingIds) {
         const booking = groupData.bookings.find(b => b.id === bookingId)
         if (!booking || booking.status === 'checked_out') continue
         
-        // Update booking to checked_out
-        await supabase
-          .from('room_bookings')
-          .update({
-            status: 'checked_out',
-            actual_check_out: now,
-          })
-          .eq('id', bookingId)
+        const cost = roomCosts.get(bookingId)
         
-        // Update room status to cleaning
-        await supabase
-          .from('rooms')
-          .update({ status: 'cleaning' })
-          .eq('id', booking.room_id)
+        // Prepare RPC params with cost data
+        const lateCharge = cost?.adjustedLateCharge || 0
+        const serviceCharges = cost?.serviceCharges || 0
+        const damageCharges = cost?.adjustedDamageItems.reduce((s, i) => s + i.charge_amount * i.quantity, 0) || 0
+        const costBreakdown = cost?.costBreakdown
+        
+        // Combine adjustment notes
+        const allNotes: string[] = []
+        if (cost?.lateAdjustmentNote) allNotes.push(`[Phụ thu: ${cost.lateAdjustmentNote}]`)
+        if (cost?.damageAdjustmentNote) allNotes.push(`[Đền bù: ${cost.damageAdjustmentNote}]`)
+        const damageNotesStr = allNotes.join(' | ') || null
+        
+        // Use RPC for atomic checkout with full params
+        const { error } = await supabase.rpc('perform_checkout', {
+          p_booking_id: bookingId,
+          p_room_id: booking.room_id,
+          p_late_checkout_charge: lateCharge,
+          p_service_charges: serviceCharges,
+          p_subtotal: costBreakdown?.subtotal || 0,
+          p_vat_amount: costBreakdown?.vatAmount || 0,
+          p_service_fee_amount: costBreakdown?.serviceFeeAmount || 0,
+          p_total_amount: costBreakdown?.totalAmount || booking.total_amount || 0,
+          p_damage_charges: damageCharges,
+          p_damage_notes: damageNotesStr,
+          p_damage_items: JSON.stringify(cost?.adjustedDamageItems || []),
+        })
+        
+        if (error) {
+          console.error('RPC perform_checkout error:', error)
+          throw error
+        }
+        
+        // Update notes if there were adjustments
+        if (allNotes.length > 0) {
+          const existingNotes = (booking as any).notes || ''
+          const updateNotes = existingNotes
+            ? `${existingNotes}\n${allNotes.join('\n')}`
+            : allNotes.join('\n')
+          await supabase
+            .from('room_bookings')
+            .update({ notes: updateNotes })
+            .eq('id', bookingId)
+        }
           
         // Complete inspection request if exists
         const inspection = inspectionMap.get(bookingId)
@@ -387,9 +513,19 @@ export function GroupCheckoutDialog({
             .from('checkout_inspection_requests')
             .update({ 
               status: 'completed',
-              completed_at: now,
+              completed_at: new Date().toISOString(),
             })
             .eq('id', inspection.inspectionId)
+        }
+        
+        // Send checkout notification
+        if (tenantId && hotelId) {
+          triggerRoomCheckoutNotification({
+            tenantId,
+            hotelId,
+            roomId: booking.room_id,
+            roomNumber: booking.room?.room_number || '',
+          }).catch(err => console.error('Failed to send checkout notification:', err))
         }
       }
       
@@ -764,6 +900,21 @@ export function GroupCheckoutDialog({
           setShowPaymentDialog(false)
           queryClient.invalidateQueries({ queryKey: ['group-booking', bookingGroupId] })
         }}
+      />
+      
+      {/* Confirm Checkout Dialog */}
+      <GroupCheckoutConfirmDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        rooms={confirmRooms}
+        roomCosts={roomCosts}
+        totals={confirmTotals}
+        onAdjustLateCharge={adjustLateCharge}
+        onAdjustDamageItem={adjustDamageItemCharge}
+        onSetDamageNote={setDamageNote}
+        onConfirm={() => handleConfirmCheckout(false)}
+        onPayAndCheckout={() => handleConfirmCheckout(true)}
+        isLoading={isProcessing || isCalculating}
       />
     </>
   )
