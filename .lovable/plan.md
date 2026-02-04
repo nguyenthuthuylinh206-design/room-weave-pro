@@ -1,253 +1,364 @@
 
-## ✅ HOÀN THÀNH: Cập nhật Group Checkout với đầy đủ chức năng
+## Kế hoạch: Hoàn thiện Logic "Thêm vào lô giặt nháp"
 
-### Các thay đổi đã thực hiện:
+### VẤN ĐỀ HIỆN TẠI
 
-1. **Tạo hook `useGroupCheckoutCalculations.ts`** - Xử lý tính toán chi phí đầy đủ:
-   - Tính late checkout charge theo bảng 4 mức
-   - Fetch chargeable consumables (minibar)
-   - Fetch damage items từ room_checks
-   - Điều chỉnh phí linh hoạt với notes
+| Bước | Quy trình chuẩn (`create_laundry_batch_with_items`) | RPC hiện tại (`add_laundry_to_draft_batch`) |
+|------|-----------------------------------------------------|---------------------------------------------|
+| 1. Kiểm tra tồn kho | CO - Validate `quantity_in_stock >= quantity` | THIEU - Không kiểm tra |
+| 2. Cập nhật inventory | CO - `stock -= quantity`, `laundry += quantity` | THIEU - Không cập nhật |
+| 3. Tạo batch items | CO | CO |
+| 4. Cập nhật batch total | CO | CO |
+| 5. Cập nhật request status | N/A | CO |
+| 6. Xác nhận người dùng | CO (3 bước) | THIEU - 1 click |
+| 7. Chọn vendor | CO | THIEU - Batch tự tạo không có vendor |
+| 8. Nhập ngày giao/nhận | CO | THIEU - Batch draft không có thông tin này |
 
-2. **Tạo `GroupCheckoutConfirmDialog.tsx`** - Dialog xác nhận cuối cùng:
-   - Hiển thị chi tiết từng phòng (collapsible)
-   - Điều chỉnh phụ thu checkout trễ
-   - Điều chỉnh phí đền bù từng item
-   - Yêu cầu note khi giảm phí
-   - Hiển thị tổng cần thu rõ ràng
+### PHÂN TÍCH NGHIỆP VỤ
 
-3. **Cập nhật `GroupCheckoutDialog.tsx`**:
-   - Dùng RPC `perform_checkout` thay vì update trực tiếp
-   - Tính đầy đủ: late charge, service charges, damage charges
-   - Gửi `triggerRoomCheckoutNotification` cho housekeeping
-   - Hiển thị dialog xác nhận trước khi checkout
+Quy trình Room Check → Laundry Request → Batch hiện tại:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 1. ROOM CHECK (checkout)                                                    │
+│    ├── items_sent_to_laundry → Đã cập nhật inventory (stock - , laundry +) │
+│    └── Tạo laundry_request (status: pending)                               │
+└────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 2. "THÊM VÀO LÔ GIẶT NHÁP" ← HIỆN TẠI                                       │
+│    ├── Tìm/tạo draft batch (status: draft)                                 │
+│    ├── Thêm items vào laundry_batch_items                                  │
+│    ├── Cập nhật request status → added_to_batch                            │
+│    └── ❌ KHÔNG cập nhật inventory (vì đã cập nhật ở step 1)               │
+└────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 3. GỬI LÔ GIẶT (status: delivered)                                          │
+│    ├── Chọn vendor, ngày giao, người giao                                   │
+│    └── Gửi đi đơn vị giặt                                                  │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+**KẾT LUẬN**: Inventory đã được cập nhật ở bước Room Check → RPC `add_laundry_to_draft_batch` **ĐÚNG** khi không cập nhật lại inventory.
+
+### VẤN ĐỀ THỰC SỰ
+
+| # | Vấn đề | Mức độ |
+|---|--------|--------|
+| 1 | **Không có xác nhận trước khi thêm** - 1 click thêm ngay, dễ nhầm | HIGH |
+| 2 | **Không hiển thị tổng hợp draft batch** - Không biết đã có bao nhiêu items | MEDIUM |
+| 3 | **Không có option chọn batch khác** - Luôn thêm vào draft hôm nay | MEDIUM |
+| 4 | **Không có option thêm nhiều request cùng lúc** - Phải thêm từng cái | LOW |
+| 5 | **Draft batch tự tạo không có vendor** - Thiếu thông tin quan trọng | HIGH |
+| 6 | **Không có flow "Gửi lô giặt"** - Draft → Delivered cần bổ sung thông tin | HIGH |
 
 ---
 
-## Phân tích: Chức năng Checkout Nhóm thiếu so với Checkout Cơ bản
-| **Điều chỉnh phí đền bù** | CO - Từng item, yêu cầu note nếu giảm | THIEU |
-| **Biên bản thiệt hại** | CO - In được | THIEU |
-| **Dịch vụ sử dụng (Consumables)** | CO - Tính từ chargeable_consumptions | THIEU - Không tính |
-| **VAT & Service Fee** | CO - Hiển thị % và số tiền | THIEU - Không tính |
-| **Subtotal breakdown** | CO - Chi tiết từng loại | THIEU - Chỉ hiển thị tổng tiền phòng |
-| **Gửi notification checkout** | CO - triggerRoomCheckoutNotification | THIEU |
-| **Cập nhật notes** | CO - Lưu lý do điều chỉnh vào booking | THIEU |
-| **Payment status** | CO - Update payment_status, paid_at | THIEU |
-| **Hourly/Monthly support** | CO - Tính phí vượt giờ, chiết khấu tháng | THIEU |
-| **Xác nhận cuối cùng** | CO - Hiển thị "Còn lại" rõ ràng, yêu cầu xác nhận | THIEU - Checkout thẳng |
+### GIẢI PHÁP
+
+#### 1. Thêm Dialog xác nhận trước khi thêm vào batch
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  XÁC NHẬN THÊM VÀO LÔ GIẶT                             [×]     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Yêu cầu: LRQ-260204-001                                       │
+│  Phòng: P102                                                   │
+│                                                                 │
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │ DANH SÁCH ĐỒ GIẶT                                         │ │
+│  ├───────────────────────────────────────────────────────────┤ │
+│  │ Ga trải giường             x 2                            │ │
+│  │ Vỏ gối                     x 4                            │ │
+│  │ Khăn tắm lớn               x 2                            │ │
+│  ├───────────────────────────────────────────────────────────┤ │
+│  │ Tổng cộng                  8 món                          │ │
+│  └───────────────────────────────────────────────────────────┘ │
+│                                                                 │
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │ 📦 LÔ GIẶT NHÁP: LB-260204-001                            │ │
+│  │    Hiện có: 24 món                                        │ │
+│  │    Sau khi thêm: 32 món                                   │ │
+│  └───────────────────────────────────────────────────────────┘ │
+│                                                                 │
+│                            [Hủy]     [Xác nhận thêm]           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 2. Cập nhật RPC để kiểm tra và xử lý draft batch đúng cách
+
+```sql
+-- Kiểm tra nếu KHÔNG có draft batch → Yêu cầu tạo batch mới
+-- Hiện tại: Tự động tạo draft nếu chưa có → ĐỔI thành:
+-- Option A: Yêu cầu user tạo batch trước với đầy đủ thông tin (vendor, ngày giao)
+-- Option B: Giữ nguyên auto-create nhưng thêm bước "Gửi lô giặt" để bổ sung thông tin
+```
+
+#### 3. Thêm flow "Gửi lô giặt" cho draft batch
+
+Sau khi thêm đủ items vào draft batch → User cần "Gửi lô giặt":
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  GỬI LÔ GIẶT                                           [×]     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Lô giặt: LB-260204-001                                        │
+│  Số lượng: 32 món                                              │
+│                                                                 │
+│  Đơn vị giặt: *                                                │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ Chọn đơn vị giặt                                    ▼   │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  Ngày giao: *               Dự kiến nhận:                      │
+│  ┌──────────────┐           ┌──────────────┐                   │
+│  │ 04/02/2026   │           │ 06/02/2026   │                   │
+│  └──────────────┘           └──────────────┘                   │
+│                                                                 │
+│  Người giao: *                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ Chọn nhân viên                                      ▼   │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  Tên người nhận tại đơn vị giặt: *                             │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                                                         │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│                        [Hủy]     [Gửi đi giặt]                 │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-### CHI TIẾT CÁC CHỨC NĂNG BỊ THIẾU
+### FILES CẦN THAY ĐỔI
 
-#### 1. KHÔNG DÙNG RPC `perform_checkout` (QUAN TRỌNG NHẤT)
-
-**Checkout cơ bản:**
-```typescript
-const { error } = await supabase.rpc('perform_checkout', {
-  p_booking_id: actionBooking.id,
-  p_room_id: actionBooking.room_id,
-  p_late_checkout_charge: adjustedLateCharge,
-  p_service_charges: serviceCharges,
-  p_subtotal: costBreakdown.subtotal,
-  p_vat_amount: costBreakdown.vatAmount,
-  p_service_fee_amount: costBreakdown.serviceFeeAmount,
-  p_total_amount: costBreakdown.totalAmount,
-  p_damage_charges: damageCharges,
-  p_damage_notes: damageAdjustmentNote,
-  p_damage_items: JSON.stringify(adjustedDamageItems),
-})
-```
-
-**Checkout nhóm (thiếu):**
-```typescript
-// Chỉ update đơn giản
-await supabase.from('room_bookings').update({
-  status: 'checked_out',
-  actual_check_out: now,
-}).eq('id', bookingId)
-```
-
-**Hậu quả:**
-- Không cập nhật `late_checkout_charge`
-- Không cập nhật `service_charges`
-- Không cập nhật `total_amount` cuối cùng
-- Không lưu `damage_charges` và `damage_items`
-- Không cập nhật `payment_status`
-
-#### 2. KHÔNG TÍNH PHỤ THU CHECKOUT TRỄ
-
-Checkout cơ bản có bảng phụ thu:
-```
-| Thời gian      | % phụ thu |
-|----------------|-----------|
-| Trước 12:00    | 0%        |
-| 12:00 - 15:00  | 30%       |
-| 15:00 - 18:00  | 50%       |
-| Sau 18:00      | 100%      |
-```
-
-Checkout nhóm: **KHÔNG CÓ** - checkout lúc 17:00 vẫn không tính phụ thu 50%
-
-#### 3. KHÔNG HIỂN THỊ/ĐIỀU CHỈNH PHÍ ĐỀN BÙ CHI TIẾT
-
-Checkout cơ bản có `DamageChargesSection`:
-- Hiển thị từng item mất/hỏng
-- Điều chỉnh phí từng item
-- Nút "Miễn phí" / "Reset"
-- Yêu cầu note nếu giảm phí
-- In biên bản xác nhận
-
-Checkout nhóm: Chỉ hiển thị tổng `+{inspection.damageCharge}` không thể điều chỉnh
-
-#### 4. KHÔNG TÍNH DỊCH VỤ SỬ DỤNG (Consumables)
-
-Checkout cơ bản:
-```typescript
-const consumablesTotal = await calculateServiceChargesFromConsumables(booking.id)
-const { data: chargeableTotal } = await supabase
-  .rpc('get_booking_chargeable_total', { p_booking_id: booking.id })
-```
-
-Checkout nhóm: **KHÔNG TÍNH** - minibar, đồ uống trả phí không được cộng vào hóa đơn
-
-#### 5. KHÔNG GỬI NOTIFICATION CHECKOUT
-
-Checkout cơ bản:
-```typescript
-triggerRoomCheckoutNotification({
-  tenantId,
-  hotelId: actionBooking.hotel_id,
-  roomId: actionBooking.room_id,
-  roomNumber: actionBooking.room?.room_number || '',
-})
-```
-
-Checkout nhóm: **KHÔNG GỬI** - Housekeeping không nhận được thông báo dọn phòng
-
-#### 6. KHÔNG CÓ DIALOG XÁC NHẬN CUỐI CÙNG
-
-Checkout cơ bản: Hiển thị dialog chi tiết với:
-- Bảng kê chi phí đầy đủ
-- Số tiền còn lại nổi bật
-- Nút "Cho trả phòng (nợ X)" vs "Thu tiền & Trả phòng"
-- Yêu cầu xác nhận trước khi thực hiện
-
-Checkout nhóm: Bấm nút → Checkout thẳng, không có bước xác nhận cuối
+| File | Thay đổi | Độ phức tạp |
+|------|----------|-------------|
+| `src/components/laundry/AddToLaundryBatchDialog.tsx` | MỚI - Dialog xác nhận trước khi thêm | Trung bình |
+| `src/components/laundry/SendLaundryBatchDialog.tsx` | MỚI - Dialog gửi lô giặt (draft → delivered) | Cao |
+| `src/components/laundry/LaundryRequestsTab.tsx` | Tích hợp dialog xác nhận, thêm nút "Gửi lô giặt" | Trung bình |
+| `src/hooks/useLaundryBatches.ts` | Thêm mutation `useSendDraftBatch` | Trung bình |
+| Database Migration | Cập nhật RPC `send_draft_batch` - cập nhật vendor, dates, status | Cao |
 
 ---
 
-### KẾ HOẠCH SỬA LỖI
+### CHI TIẾT KỸ THUẬT
 
-#### File 1: `src/components/bookings/GroupCheckoutDialog.tsx`
+#### 1. AddToLaundryBatchDialog.tsx
 
-**1. Thêm tính toán chi phí đầy đủ cho từng phòng:**
 ```typescript
-// Thêm state cho cost breakdown từng phòng
-const [bookingCosts, setBookingCosts] = useState<Map<string, BookingCostBreakdown>>()
+interface AddToLaundryBatchDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  request: LaundryRequest
+  draftBatch: DraftBatch | null
+  onConfirm: () => void
+  isLoading: boolean
+}
 
-// Fetch chi phí khi chọn phòng
-const calculateRoomCosts = async (bookingId: string) => {
-  const booking = groupData.bookings.find(b => b.id === bookingId)
-  if (!booking) return
-
-  // Tính late checkout charge
-  const actualTime = format(new Date(), 'HH:mm')
-  const lateCharge = calculateLateCheckoutCharge(actualTime, booking.room_price)
-
-  // Get consumables
-  const consumablesTotal = await calculateServiceChargesFromConsumables(bookingId)
-  const { data: chargeableTotal } = await supabase
-    .rpc('get_booking_chargeable_total', { p_booking_id: bookingId })
-
-  // Get damage items
-  const damageItems = await fetchDamageItems(booking.room_id)
-
-  // Calculate full breakdown
-  const costBreakdown = calculateBookingCost({
-    roomPrice: booking.room_price,
-    nights,
-    lateCheckoutCharge: lateCharge,
-    serviceCharges: consumablesTotal + chargeableTotal,
-    damageCharges: totalDamageCharge,
-    damageItems,
-    // ...
-  })
-
-  setBookingCosts(prev => new Map(prev).set(bookingId, costBreakdown))
+export function AddToLaundryBatchDialog({...}) {
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Xác nhận thêm vào lô giặt</AlertDialogTitle>
+        </AlertDialogHeader>
+        
+        {/* Request info */}
+        <div>
+          <p>Yêu cầu: {request.request_code}</p>
+          <p>Phòng: {request.room?.room_number}</p>
+        </div>
+        
+        {/* Items list */}
+        <div>
+          {request.items.map(item => (
+            <div key={item.item_id}>
+              {item.item_name} x {item.quantity}
+            </div>
+          ))}
+          <div>Tổng: {request.total_quantity} món</div>
+        </div>
+        
+        {/* Draft batch info */}
+        {draftBatch ? (
+          <div className="bg-blue-50 p-3 rounded">
+            <p>Lô giặt: {draftBatch.batch_code}</p>
+            <p>Hiện có: {draftBatch.total_items} món</p>
+            <p>Sau khi thêm: {draftBatch.total_items + request.total_quantity} món</p>
+          </div>
+        ) : (
+          <div className="bg-amber-50 p-3 rounded">
+            <p>Sẽ tạo lô giặt nháp mới</p>
+          </div>
+        )}
+        
+        <AlertDialogFooter>
+          <AlertDialogCancel>Hủy</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm} disabled={isLoading}>
+            Xác nhận thêm
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
 }
 ```
 
-**2. Thêm Dialog xác nhận trước checkout:**
+#### 2. SendLaundryBatchDialog.tsx
 
-Tạo component mới `GroupCheckoutConfirmDialog.tsx`:
 ```typescript
-// Hiển thị chi tiết từng phòng:
-// - Phụ thu checkout trễ (có thể điều chỉnh)
-// - Phí đền bù (có thể điều chỉnh từng item)
-// - Dịch vụ sử dụng
-// - VAT, Service Fee
-// - Subtotal, Total, Remaining
-// - Nút Confirm / Cancel
-```
+interface SendLaundryBatchDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  batch: DraftBatch
+  onSuccess: () => void
+}
 
-**3. Sửa `performCheckout` để dùng RPC:**
-```typescript
-const performCheckout = async (bookingIds: string[]) => {
-  for (const bookingId of bookingIds) {
-    const booking = groupData.bookings.find(b => b.id === bookingId)
-    const costBreakdown = bookingCosts.get(bookingId)
-    
-    // Use RPC with full params
-    await supabase.rpc('perform_checkout', {
-      p_booking_id: bookingId,
-      p_room_id: booking.room_id,
-      p_late_checkout_charge: costBreakdown.lateCheckoutCharge,
-      p_service_charges: costBreakdown.serviceCharges,
-      p_subtotal: costBreakdown.subtotal,
-      p_vat_amount: costBreakdown.vatAmount,
-      p_service_fee_amount: costBreakdown.serviceFeeAmount,
-      p_total_amount: costBreakdown.totalAmount,
-      p_damage_charges: costBreakdown.damageCharges,
-      p_damage_items: JSON.stringify(costBreakdown.damageItems),
-    })
-    
-    // Send notification
-    await triggerRoomCheckoutNotification({
-      tenantId, hotelId, roomId: booking.room_id, roomNumber: booking.room.room_number
+const sendBatchSchema = z.object({
+  vendor_id: z.string().uuid('Vui lòng chọn đơn vị giặt'),
+  delivery_date: z.date(),
+  expected_return_date: z.date(),
+  delivery_staff_id: z.string().uuid('Vui lòng chọn người giao'),
+  receiver_name: z.string().min(2, 'Vui lòng nhập tên người nhận'),
+})
+
+export function SendLaundryBatchDialog({...}) {
+  const form = useForm({
+    resolver: zodResolver(sendBatchSchema),
+    defaultValues: {
+      delivery_date: new Date(),
+      expected_return_date: addDays(new Date(), 2),
+    }
+  })
+  
+  const sendBatch = useSendDraftBatch()
+  
+  const onSubmit = (data) => {
+    sendBatch.mutate({
+      batchId: batch.id,
+      ...data,
+    }, {
+      onSuccess: () => {
+        onSuccess()
+        toast.success('Đã gửi lô giặt đi')
+      }
     })
   }
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {/* Form với vendor, dates, staff, receiver_name */}
+    </Dialog>
+  )
 }
 ```
 
-**4. Thêm hiển thị phí chi tiết cho từng phòng:**
-- Late checkout charge (có icon cảnh báo nếu > 0)
-- Damage charges (click để xem chi tiết + điều chỉnh)
-- Consumables total
-- Subtotal per room
+#### 3. Database RPC: send_draft_batch
 
-#### File 2: `src/components/bookings/GroupCheckoutConfirmDialog.tsx` (MỚI)
-
-Dialog xác nhận cuối cùng với:
-- Tổng hợp tất cả phòng đã chọn
-- Chi tiết phụ thu từng phòng (có thể điều chỉnh)
-- Chi tiết phí đền bù (có thể điều chỉnh + in biên bản)
-- Tổng cần thu cho toàn bộ nhóm
-- Nút "Checkout (nợ X)" và "Thu tiền & Checkout"
+```sql
+CREATE OR REPLACE FUNCTION public.send_draft_batch(
+  p_batch_id UUID,
+  p_vendor_id UUID,
+  p_delivery_date DATE,
+  p_expected_return_date DATE,
+  p_delivery_staff_id UUID,
+  p_receiver_name TEXT,
+  p_notes TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_batch RECORD;
+  v_vendor RECORD;
+  v_price_per_kg NUMERIC;
+  v_estimated_cost NUMERIC;
+BEGIN
+  -- Get batch (must be draft)
+  SELECT * INTO v_batch FROM laundry_batches WHERE id = p_batch_id;
+  
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Batch not found';
+  END IF;
+  
+  IF v_batch.status != 'draft' THEN
+    RAISE EXCEPTION 'Only draft batches can be sent';
+  END IF;
+  
+  -- Get vendor for pricing
+  SELECT * INTO v_vendor FROM laundry_vendors WHERE id = p_vendor_id;
+  v_price_per_kg := COALESCE((v_vendor.contract_info->>'price_per_kg')::numeric, 0);
+  v_estimated_cost := COALESCE(v_batch.total_weight_kg, 0) * v_price_per_kg;
+  
+  -- Update batch
+  UPDATE laundry_batches SET
+    vendor_id = p_vendor_id,
+    delivery_date = p_delivery_date,
+    expected_return_date = p_expected_return_date,
+    delivery_staff_id = p_delivery_staff_id,
+    receiver_name = p_receiver_name,
+    notes = COALESCE(p_notes, notes),
+    estimated_cost = v_estimated_cost,
+    status = 'delivered',
+    updated_at = now()
+  WHERE id = p_batch_id;
+  
+  -- Update vendor stats
+  UPDATE laundry_vendors SET
+    total_orders = COALESCE(total_orders, 0) + 1,
+    total_value = COALESCE(total_value, 0) + v_estimated_cost,
+    updated_at = now()
+  WHERE id = p_vendor_id;
+  
+  RETURN jsonb_build_object(
+    'success', true,
+    'batch_id', p_batch_id,
+    'status', 'delivered'
+  );
+END;
+$$;
+```
 
 ---
 
-### PRIORITY ORDER
+### QUY TRÌNH SAU KHI SỬA
 
-| # | Chức năng | Độ quan trọng | Lý do |
-|---|-----------|---------------|-------|
-| 1 | Dùng RPC `perform_checkout` | CRITICAL | Dữ liệu không được cập nhật đầy đủ |
-| 2 | Tính phụ thu checkout trễ | HIGH | Mất doanh thu |
-| 3 | Tính/hiển thị phí đền bù chi tiết | HIGH | Không thể điều chỉnh, không có biên bản |
-| 4 | Tính dịch vụ sử dụng | HIGH | Minibar không được tính |
-| 5 | Dialog xác nhận cuối cùng | MEDIUM | Tránh checkout nhầm |
-| 6 | Gửi notification | MEDIUM | Housekeeping không biết dọn phòng |
-| 7 | VAT/Service Fee breakdown | LOW | Hiện tại chưa dùng (rate = 0) |
+```text
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 1. ROOM CHECK → Tạo laundry_request (pending)                                │
+│    └── Inventory đã cập nhật: stock -, laundry +                            │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 2. XEM YÊU CẦU GIẶT                                                          │
+│    ├── Click "Thêm vào lô giặt nháp"                                        │
+│    └── Dialog xác nhận hiển thị (items, tổng, thông tin draft batch)        │
+│        └── Confirm → Thêm vào draft batch                                   │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 3. KHI ĐỦ ITEMS → "GỬI LÔ GIẶT"                                              │
+│    ├── Dialog yêu cầu: vendor, ngày giao, người giao, người nhận            │
+│    └── Confirm → status: draft → delivered                                  │
+│        └── Inventory: KHÔNG THAY ĐỔI (đã update ở step 1)                   │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 4. TIẾP TỤC QUY TRÌNH CHUẨN                                                  │
+│    delivered → ready → received → stocked                                   │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -255,9 +366,8 @@ Dialog xác nhận cuối cùng với:
 
 | Metric | Hiện tại | Sau khi sửa |
 |--------|----------|-------------|
-| Phụ thu checkout trễ | Không tính | Tính đúng theo bảng |
-| Phí đền bù | Chỉ hiển thị tổng | Chi tiết, điều chỉnh được |
-| Dịch vụ minibar | Không tính | Cộng vào hóa đơn |
-| Xác nhận checkout | Không có | Yêu cầu xác nhận |
-| Notification | Không gửi | Gửi đến housekeeping |
-| Data integrity | Thiếu nhiều trường | Đầy đủ như checkout cơ bản |
+| Xác nhận trước khi thêm | Không | Có dialog xác nhận |
+| Thông tin draft batch | Không hiển thị | Hiển thị số lượng hiện có/sau khi thêm |
+| Gửi lô giặt | Không có | Có dialog yêu cầu đầy đủ thông tin |
+| Vendor cho draft batch | Thiếu | Bổ sung khi gửi |
+| Flow hoàn chỉnh | Không | draft → delivered với đầy đủ data |
