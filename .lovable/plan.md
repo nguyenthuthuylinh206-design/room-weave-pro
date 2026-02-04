@@ -1,280 +1,215 @@
 
-## Kế hoạch: Thêm chức năng Grace Period 7 ngày khi hết hạn gói
 
-### TỔNG QUAN
+## Kế hoạch: Thêm chức năng Theo dõi và Gọi nhân viên trong Group Checkout
 
-Khi gói đăng ký hết hạn, tenant được phép tiếp tục sử dụng trong **7 ngày gia hạn (grace period)**. Trong thời gian này:
-- Hệ thống hiển thị cảnh báo rõ ràng yêu cầu gia hạn
-- Một số tính năng có thể bị giới hạn
-- Sau 7 ngày, nếu không gia hạn → tài khoản bị tạm ngưng
+### VẤN ĐỀ HIỆN TẠI
+
+Trong dialog Group Checkout, khi phòng đang chờ kiểm tra (pending/in_progress), chỉ hiển thị tên nhân viên được gán:
+
+```text
+┌─────────────────────────────────────────────┐
+│ P.P106  deluxe                    [Chờ kiểm tra]
+│ Đang chờ: NV Linh                            
+└─────────────────────────────────────────────┘
+```
+
+**Thiếu:**
+- Trạng thái nhân viên (Available/Busy/Offline)
+- Nút gọi điện & Telegram để liên lạc nhanh
+- Khả năng xem chi tiết nhân viên (vị trí, hoạt động)
 
 ---
 
-### LOGIC HOẠT ĐỘNG
+### GIẢI PHÁP
+
+Cập nhật phần hiển thị nhân viên được gán để bao gồm:
+1. **Status badge** cho thấy nhân viên đang Available/Busy/Offline
+2. **Nút Telegram** để gửi tin nhắn nhanh
+3. **Nút gọi điện** nếu có số điện thoại
+4. **Click vào tên** để mở StaffDetailSheet xem chi tiết
+
+**UI mới:**
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                    SUBSCRIPTION TIMELINE                         │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  [Subscription Active]  [Grace Period]  [Suspended]              │
-│  ──────────────────────►──────────────►─────────────────         │
-│                         │             │                          │
-│                    subscription_   grace_period_                 │
-│                    end_date       ends_at                        │
-│                         │     (+7 days)│                         │
-│                         ▼              ▼                         │
-│                    Hiện cảnh báo    Chặn truy cập                │
-│                    "Còn X ngày"     yêu cầu gia hạn              │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│ P.P106  deluxe                    [Chờ kiểm tra]
+│ NV kiểm tra: Linh 🟢 [Telegram] [📞]         
+└─────────────────────────────────────────────┘
 ```
-
-**Các trạng thái subscription_status:**
-- `active`: Đang hoạt động bình thường
-- `grace_period`: Đã hết hạn, đang trong 7 ngày gia hạn
-- `suspended`: Quá grace period, chưa thanh toán → tạm ngưng
-- `cancelled`: Đã hủy bởi user
 
 ---
 
 ### THAY ĐỔI CẦN THỰC HIỆN
 
-#### 1. Database Migration
-
-**Thêm cột `grace_period_ends_at` vào bảng `tenants`:**
-
-```sql
-ALTER TABLE tenants 
-ADD COLUMN grace_period_ends_at TIMESTAMPTZ;
-```
-
-**Tạo function tự động cập nhật grace period:**
-
-```sql
-CREATE OR REPLACE FUNCTION calculate_grace_period_end()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- When subscription_end_date changes, calculate grace period (7 days after)
-  IF NEW.subscription_end_date IS NOT NULL THEN
-    NEW.grace_period_ends_at := NEW.subscription_end_date + INTERVAL '7 days';
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-```
-
----
-
-#### 2. Frontend Components
-
-**Files cần tạo/sửa:**
-
-| File | Thay đổi |
-|------|----------|
-| `src/lib/pricing.ts` | Thêm hàm `calculateGracePeriodStatus()` |
-| `src/hooks/useSubscription.ts` | Thêm logic kiểm tra grace period |
-| `src/hooks/useGracePeriod.ts` | **MỚI** - Hook quản lý grace period |
-| `src/components/settings/subscription/SubscriptionOverview.tsx` | Hiển thị cảnh báo grace period |
-| `src/components/settings/subscription/GracePeriodAlert.tsx` | **MỚI** - Component cảnh báo |
-| `src/components/layout/GracePeriodBanner.tsx` | **MỚI** - Banner cảnh báo toàn app |
-
----
-
-#### 3. Chi tiết Implementation
-
-**A. Hook useGracePeriod (MỚI):**
+#### 1. Thêm imports và state cần thiết
 
 ```typescript
-// src/hooks/useGracePeriod.ts
-export function useGracePeriod() {
-  const { data: subscription } = useTenantSubscription();
-  
-  const now = new Date();
-  const endDate = subscription?.subscription_end_date 
-    ? new Date(subscription.subscription_end_date) 
-    : null;
-  const graceEndDate = subscription?.grace_period_ends_at
-    ? new Date(subscription.grace_period_ends_at)
-    : null;
-  
-  // Calculate status
-  const isExpired = endDate && endDate < now;
-  const isInGracePeriod = isExpired && graceEndDate && now < graceEndDate;
-  const isGracePeriodExpired = graceEndDate && now >= graceEndDate;
-  
-  const graceDaysRemaining = isInGracePeriod 
-    ? Math.ceil((graceEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-    : 0;
-  
-  return {
-    isExpired,
-    isInGracePeriod,
-    isGracePeriodExpired,
-    graceDaysRemaining,
-    graceEndDate,
-    subscriptionEndDate: endDate,
-  };
+// Thêm imports
+import { StaffStatusBadge } from '@/components/staff/StaffStatusBadge'
+import { StaffDetailSheet } from '@/components/staff/StaffDetailSheet'
+import { Phone, Send } from 'lucide-react'
+import { getTelegramPhoneLink, openTelegramWithFallback, getTelegramDownloadLink } from '@/lib/phone-utils'
+import { StaffWithStatus } from '@/hooks/useStaffStatus'
+
+// Thêm state cho sheet chi tiết
+const [selectedStaffForDetail, setSelectedStaffForDetail] = useState<StaffWithStatus | null>(null)
+const [staffDetailOpen, setStaffDetailOpen] = useState(false)
+```
+
+#### 2. Cập nhật hook useOnShiftStaffList
+
+Thêm thông tin status từ `staff_status` table để có thể hiển thị trạng thái nhân viên:
+
+```typescript
+// useOnShiftStaffList.ts - mở rộng interface
+export interface OnShiftStaffMember {
+  // ... existing fields
+  status: 'available' | 'busy' | 'break' | 'offline'
+  current_activity: string | null
+  current_location: string | null
 }
 ```
 
-**B. GracePeriodBanner Component (MỚI):**
+#### 3. Cập nhật phần hiển thị nhân viên trong GroupCheckoutDialog
 
-```typescript
-// src/components/layout/GracePeriodBanner.tsx
-export function GracePeriodBanner() {
-  const { isInGracePeriod, graceDaysRemaining } = useGracePeriod();
-  const navigate = useNavigate();
+Thay thế dòng 746-751:
+
+```tsx
+{/* Show assigned staff for pending/in_progress inspections */}
+{isSelected && !isCheckedOut && inspection && ['pending', 'in_progress'].includes(inspection.status) && (
+  <AssignedStaffRow
+    staffId={inspection.assignedTo}
+    staffList={staffList}
+    onViewDetail={(staff) => {
+      setSelectedStaffForDetail(staff)
+      setStaffDetailOpen(true)
+    }}
+  />
+)}
+```
+
+#### 4. Tạo component AssignedStaffRow
+
+Hiển thị nhân viên được gán với các nút liên lạc:
+
+```tsx
+function AssignedStaffRow({ 
+  staffId, 
+  staffList, 
+  onViewDetail 
+}: { 
+  staffId: string | undefined
+  staffList: OnShiftStaffMember[]
+  onViewDetail: (staff: StaffWithStatus) => void 
+}) {
+  const staff = staffList.find(s => s.id === staffId)
   
-  if (!isInGracePeriod) return null;
+  if (!staff) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span>NV kiểm tra:</span>
+        <span className="text-amber-600">Không xác định</span>
+      </div>
+    )
+  }
+  
+  const hasTelegramConnection = staff.telegram_username || staff.phone || staff.telegram_chat_id
+  
+  const handleTelegram = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    let url: string | null = null
+    if (staff.telegram_username) url = `tg://resolve?domain=${staff.telegram_username}`
+    else if (staff.phone) url = getTelegramPhoneLink(staff.phone)
+    else if (staff.telegram_chat_id) url = `tg://user?id=${staff.telegram_chat_id}`
+    
+    if (url) {
+      openTelegramWithFallback(url, () => {
+        toast.info(...)
+      })
+    }
+  }
+  
+  const handleCall = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (staff.phone) window.location.href = `tel:${staff.phone}`
+  }
   
   return (
-    <div className="bg-amber-500 text-white px-4 py-2 flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <AlertTriangle className="h-4 w-4" />
-        <span>
-          Gói đăng ký đã hết hạn! Còn <strong>{graceDaysRemaining} ngày</strong> để gia hạn.
-        </span>
-      </div>
-      <Button 
-        size="sm" 
-        variant="secondary"
-        onClick={() => navigate('/settings/subscription')}
+    <div className="flex items-center gap-2 text-xs">
+      <span className="text-muted-foreground">NV kiểm tra:</span>
+      
+      {/* Staff name - clickable to view detail */}
+      <button 
+        type="button"
+        onClick={() => onViewDetail(staff as StaffWithStatus)}
+        className="font-medium text-primary hover:underline"
       >
-        Gia hạn ngay
-      </Button>
+        {staff.full_name}
+      </button>
+      
+      {/* Status badge */}
+      <StaffStatusBadge status={staff.status} size="sm" showLabel={false} />
+      
+      {/* Quick action buttons */}
+      <div className="flex items-center gap-0.5 ml-auto">
+        {hasTelegramConnection && (
+          <Button variant="ghost" size="icon" className="h-6 w-6 text-blue-500" onClick={handleTelegram}>
+            <Send className="h-3 w-3" />
+          </Button>
+        )}
+        {staff.phone && (
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCall}>
+            <Phone className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
     </div>
-  );
+  )
 }
 ```
 
-**C. Cập nhật SubscriptionOverview.tsx:**
+#### 5. Thêm StaffDetailSheet vào cuối dialog
 
-Thêm logic hiển thị trạng thái grace period:
-
-```typescript
-// Thêm vào statusConfig
-const statusConfig = {
-  // ...existing
-  grace_period: { label: 'Gia hạn (Grace Period)', variant: 'destructive' },
-  suspended: { label: 'Tạm ngưng', variant: 'outline' },
-};
-
-// Thêm alert cho grace period
-{isInGracePeriod && (
-  <Alert variant="destructive" className="bg-amber-500/10 border-amber-500">
-    <AlertTriangle className="h-4 w-4 text-amber-600" />
-    <AlertDescription className="text-amber-700">
-      <strong>Gói đăng ký đã hết hạn!</strong> Bạn còn {graceDaysRemaining} ngày 
-      để gia hạn trước khi tài khoản bị tạm ngưng.
-    </AlertDescription>
-  </Alert>
-)}
-
-{isGracePeriodExpired && (
-  <Alert variant="destructive">
-    <AlertTriangle className="h-4 w-4" />
-    <AlertDescription>
-      <strong>Tài khoản đã bị tạm ngưng!</strong> Vui lòng gia hạn để tiếp tục sử dụng.
-    </AlertDescription>
-  </Alert>
-)}
-```
-
-**D. Cập nhật sepay-webhook (Edge Function):**
-
-Khi thanh toán thành công, cập nhật `subscription_status` và xóa grace period:
-
-```typescript
-// Thêm vào logic update tenant
-const updateData = {
-  subscription_end_date: newEndDate.toISOString(),
-  subscription_status: 'active', // Reset về active
-  grace_period_ends_at: null, // Xóa grace period
-  updated_at: new Date().toISOString()
-};
+```tsx
+{/* Staff Detail Sheet */}
+<StaffDetailSheet
+  staff={selectedStaffForDetail}
+  open={staffDetailOpen}
+  onOpenChange={setStaffDetailOpen}
+/>
 ```
 
 ---
 
-#### 4. Scheduled Job (Cron)
-
-Cần tạo một edge function chạy định kỳ để:
-1. Cập nhật `subscription_status = 'grace_period'` khi hết hạn
-2. Cập nhật `subscription_status = 'suspended'` khi hết grace period
-
-```typescript
-// supabase/functions/check-subscription-status/index.ts
-Deno.serve(async () => {
-  const now = new Date().toISOString();
-  
-  // Mark expired subscriptions as grace_period
-  await supabase
-    .from('tenants')
-    .update({ subscription_status: 'grace_period' })
-    .lt('subscription_end_date', now)
-    .gte('grace_period_ends_at', now)
-    .eq('subscription_status', 'active');
-  
-  // Mark grace period expired as suspended
-  await supabase
-    .from('tenants')
-    .update({ subscription_status: 'suspended' })
-    .lt('grace_period_ends_at', now)
-    .eq('subscription_status', 'grace_period');
-});
-```
-
----
-
-### FILES CẦN TẠO/SỬA
+### FILES CẦN THAY ĐỔI
 
 | # | File | Thay đổi |
 |---|------|----------|
-| 1 | Database Migration | Thêm cột `grace_period_ends_at`, trigger tự động tính |
-| 2 | `src/hooks/useGracePeriod.ts` | **MỚI** - Hook quản lý grace period |
-| 3 | `src/lib/pricing.ts` | Thêm hàm `calculateGracePeriodStatus()` |
-| 4 | `src/components/layout/GracePeriodBanner.tsx` | **MỚI** - Banner cảnh báo toàn app |
-| 5 | `src/components/settings/subscription/SubscriptionOverview.tsx` | Cập nhật hiển thị grace period |
-| 6 | `src/components/settings/subscription/GracePeriodAlert.tsx` | **MỚI** - Component cảnh báo chi tiết |
-| 7 | `src/pages/AppLayout.tsx` hoặc `MainLayout.tsx` | Thêm GracePeriodBanner |
-| 8 | `supabase/functions/sepay-webhook/index.ts` | Reset grace period khi thanh toán |
-| 9 | `supabase/functions/check-subscription-status/index.ts` | **MỚI** - Cron job kiểm tra status |
+| 1 | `src/hooks/useOnShiftStaffList.ts` | Thêm fields: status, current_activity, current_location |
+| 2 | `src/components/bookings/GroupCheckoutDialog.tsx` | Thêm component AssignedStaffRow với nút Telegram/Phone + StaffDetailSheet |
 
 ---
 
 ### KẾT QUẢ MONG ĐỢI
 
-| Trạng thái | Hiển thị | Quyền truy cập |
-|------------|----------|----------------|
-| **active** | Badge xanh "Đang hoạt động" | Đầy đủ |
-| **grace_period** | Banner cam "Còn X ngày để gia hạn" | Đầy đủ, hiện cảnh báo |
-| **suspended** | Banner đỏ + chặn truy cập | Chỉ trang gia hạn |
-
----
-
-### UI MOCKUP
-
-**Grace Period Banner (hiển thị ở đầu trang):**
+**Trước:**
 ```text
-┌────────────────────────────────────────────────────────────────┐
-│ ⚠️ Gói đăng ký đã hết hạn! Còn 5 ngày để gia hạn.  [Gia hạn]  │
-└────────────────────────────────────────────────────────────────┘
+Đang chờ: NV Linh
 ```
 
-**Subscription Overview Card:**
+**Sau:**
 ```text
-┌────────────────────────────────────────────────────────────────┐
-│ 📦 Gói Tiêu Chuẩn                           [Gia hạn (5 ngày)]│
-├────────────────────────────────────────────────────────────────┤
-│ ┌──────────┐ ┌──────────┐ ┌──────────────┐                    │
-│ │    50    │ │  1.000đ  │ │  -3 (hết hạn)│                    │
-│ │Phòng ĐK  │ │/phòng/ng │ │   Ngày       │                    │
-│ └──────────┘ └──────────┘ └──────────────┘                    │
-│                                                                │
-│ ⚠️ GÓI ĐĂNG KÝ ĐÃ HẾT HẠN!                                    │
-│ Bạn còn 5 ngày để gia hạn trước khi tài khoản bị tạm ngưng.   │
-│                                                                │
-│ [Gia hạn ngay]                                                 │
-└────────────────────────────────────────────────────────────────┘
+NV kiểm tra: Linh 🟢 [📤] [📞]
+                ↑     ↑    ↑
+          Status  Telegram  Gọi điện
+          badge
 ```
+
+**Khi click vào tên nhân viên:** Mở StaffDetailSheet hiển thị:
+- Avatar, tên, chức vụ
+- Trạng thái hiện tại (Available/Busy/Offline)
+- Hoạt động hiện tại (nếu đang busy)
+- Vị trí hiện tại
+- Lịch sử hoạt động gần đây
+- Nút Telegram, Gọi điện, Email
+
