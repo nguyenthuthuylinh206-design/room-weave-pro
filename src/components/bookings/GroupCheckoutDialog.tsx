@@ -47,9 +47,8 @@ import { GroupCheckoutConfirmDialog } from './GroupCheckoutConfirmDialog'
 import { useUser } from '@/hooks/useUser'
 import { useGroupCheckoutCalculations, GroupBookingCostData } from '@/hooks/useGroupCheckoutCalculations'
 import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
-import { StaffStatusBadge } from '@/components/staff/StaffStatusBadge'
 import { StaffDetailSheet } from '@/components/staff/StaffDetailSheet'
-import { getTelegramPhoneLink, openTelegramWithFallback, getTelegramDownloadLink } from '@/lib/phone-utils'
+import { InspectionStatusCard } from './InspectionStatusCard'
 import type { StaffWithStatus } from '@/hooks/useStaffStatus'
 
 export interface GroupCheckoutDialogProps {
@@ -69,6 +68,7 @@ interface InspectionStatus {
   damageCharge?: number
   inspectionId?: string
   startedAt?: string
+  createdAt?: string
   assignedTo?: string
 }
 
@@ -184,6 +184,7 @@ export function GroupCheckoutDialog({
           status: inspection.status as 'pending' | 'in_progress' | 'completed',
           inspectionId: inspection.id,
           startedAt: inspection.started_at,
+          createdAt: inspection.created_at,
           assignedTo: inspection.assigned_to,
           damageCharge,
         }
@@ -354,6 +355,24 @@ export function GroupCheckoutDialog({
       toast.error('Lỗi gửi yêu cầu kiểm tra')
     } finally {
       setIsProcessing(false)
+    }
+  }
+
+  // Handle cancelling inspection request
+  const handleCancelInspection = async (inspectionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('checkout_inspection_requests')
+        .update({ status: 'cancelled' })
+        .eq('id', inspectionId)
+
+      if (error) throw error
+
+      toast.success('Đã hủy yêu cầu kiểm tra')
+      refetchInspections()
+    } catch (error) {
+      console.error('Error cancelling inspection:', error)
+      toast.error('Lỗi hủy yêu cầu kiểm tra')
     }
   }
 
@@ -752,15 +771,17 @@ export function GroupCheckoutDialog({
                             </div>
                           )}
                           
-                          {/* Show assigned staff for pending/in_progress inspections */}
-                          {isSelected && !isCheckedOut && inspection && ['pending', 'in_progress'].includes(inspection.status) && (
-                            <AssignedStaffRow
-                              staffId={inspection.assignedTo}
+                          {/* Show inspection status card for pending/in_progress/completed */}
+                          {isSelected && !isCheckedOut && inspection && ['pending', 'in_progress', 'completed'].includes(inspection.status) && (
+                            <InspectionStatusCard
+                              inspection={inspection}
                               staffList={staffList}
                               onViewDetail={(staff) => {
                                 setSelectedStaffForDetail(staff as StaffWithStatus)
                                 setStaffDetailOpen(true)
                               }}
+                              onCancelInspection={handleCancelInspection}
+                              isProcessing={isProcessing}
                             />
                           )}
                         </div>
@@ -937,113 +958,5 @@ export function GroupCheckoutDialog({
         onOpenChange={setStaffDetailOpen}
       />
     </>
-  )
-}
-
-// Component to display assigned staff with status and contact buttons
-function AssignedStaffRow({ 
-  staffId, 
-  staffList, 
-  onViewDetail 
-}: { 
-  staffId: string | undefined
-  staffList: OnShiftStaffMember[]
-  onViewDetail: (staff: OnShiftStaffMember) => void 
-}) {
-  const staff = staffList.find(s => s.id === staffId)
-  
-  if (!staff) {
-    return (
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span>NV kiểm tra:</span>
-        <span className="text-amber-600">Không xác định</span>
-      </div>
-    )
-  }
-  
-  const hasTelegramConnection = staff.telegram_username || staff.phone || staff.telegram_chat_id
-  
-  const handleTelegram = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    let url: string | null = null
-    if (staff.telegram_username) {
-      url = `tg://resolve?domain=${staff.telegram_username}`
-    } else if (staff.phone) {
-      url = getTelegramPhoneLink(staff.phone)
-    } else if (staff.telegram_chat_id) {
-      url = `tg://user?id=${staff.telegram_chat_id}`
-    }
-    
-    if (url) {
-      openTelegramWithFallback(url, () => {
-        const downloadLink = getTelegramDownloadLink()
-        toast.info(
-          <div className="flex flex-col gap-2">
-            <span>Chưa cài Telegram trên máy</span>
-            <a 
-              href={downloadLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 underline font-medium"
-            >
-              Tải Telegram ngay
-            </a>
-          </div>,
-          { duration: 8000 }
-        )
-      })
-    }
-  }
-  
-  const handleCall = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (staff.phone) window.location.href = `tel:${staff.phone}`
-  }
-  
-  return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="text-muted-foreground">NV kiểm tra:</span>
-      
-      {/* Staff name - clickable to view detail */}
-      <button 
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation()
-          onViewDetail(staff)
-        }}
-        className="font-medium text-primary hover:underline"
-      >
-        {staff.full_name}
-      </button>
-      
-      {/* Status badge */}
-      <StaffStatusBadge status={staff.status} size="sm" showLabel={false} />
-      
-      {/* Quick action buttons */}
-      <div className="flex items-center gap-0.5 ml-auto">
-        {hasTelegramConnection && (
-          <Button 
-            type="button"
-            variant="ghost" 
-            size="icon" 
-            className="h-6 w-6 text-blue-500 hover:text-blue-600" 
-            onClick={handleTelegram}
-          >
-            <Send className="h-3 w-3" />
-          </Button>
-        )}
-        {staff.phone && (
-          <Button 
-            type="button"
-            variant="ghost" 
-            size="icon" 
-            className="h-6 w-6" 
-            onClick={handleCall}
-          >
-            <Phone className="h-3 w-3" />
-          </Button>
-        )}
-      </div>
-    </div>
   )
 }
