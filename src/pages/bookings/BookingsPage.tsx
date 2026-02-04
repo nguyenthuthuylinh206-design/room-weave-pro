@@ -459,21 +459,15 @@ export function BookingsPage() {
 
     setActionBooking(booking)
 
-    // For hourly and monthly bookings, no early check-in surcharge applies
-    if (booking.booking_type === 'hourly' || booking.booking_type === 'monthly') {
-      performCheckIn(booking, 0)
-      return
+    // Calculate surcharge for daily bookings with early check-in
+    let suggestedCharge = 0
+    if (booking.booking_type === 'daily' && hours < 14) {
+      suggestedCharge = calculateEarlyCheckinCharge(actualTime, roomPrice)
     }
-
-    // For daily bookings: If check-in is after standard time (14:00), no surcharge - check-in directly
-    if (hours >= 14) {
-      performCheckIn(booking, 0)
-    } else {
-      // Show confirmation dialog with editable surcharge
-      const suggestedCharge = calculateEarlyCheckinCharge(actualTime, roomPrice)
-      setSuggestedEarlyCharge(suggestedCharge)
-      setShowCheckinConfirm(true)
-    }
+    
+    setSuggestedEarlyCharge(suggestedCharge)
+    // ALWAYS show confirmation dialog for ALL booking types
+    setShowCheckinConfirm(true)
   }
 
   // Perform check-in with optional adjusted charge
@@ -1419,10 +1413,20 @@ export function BookingsPage() {
             if (!open) setActionBooking(null)
           }}
           guestName={actionBooking.guest_name}
+          guestPhone={actionBooking.guest_phone}
           roomNumber={actionBooking.room?.room_number || ''}
           actualCheckInTime={format(new Date(), 'HH:mm')}
           roomPrice={(actionBooking as any).room_price || 0}
           suggestedCharge={suggestedEarlyCharge}
+          bookingType={actionBooking.booking_type || 'daily'}
+          bookingHours={actionBooking.booking_hours || undefined}
+          bookingMonths={actionBooking.booking_months || undefined}
+          checkInDate={new Date(actionBooking.check_in_date)}
+          checkOutDate={new Date(actionBooking.check_out_date)}
+          totalNights={differenceInDays(new Date(actionBooking.check_out_date), new Date(actionBooking.check_in_date))}
+          totalAmount={actionBooking.total_amount || 0}
+          depositAmount={actionBooking.deposit_amount || 0}
+          bookingSource={actionBooking.booking_source}
           onConfirm={(finalCharge, adjustmentNote) => performCheckIn(actionBooking, finalCharge, adjustmentNote)}
           isLoading={isActionLoading}
         />
