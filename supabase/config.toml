@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.notify-chargeable]
 verify_jwt = false
+
+[functions.check-subscription-status]
+verify_jwt = false

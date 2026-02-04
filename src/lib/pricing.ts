@@ -84,3 +84,47 @@ export function calculateRemainingDays(endDate: Date | string | null): number {
   const diff = end.getTime() - now.getTime();
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
+
+/**
+ * Grace period duration in days
+ */
+export const GRACE_PERIOD_DAYS = 7;
+
+/**
+ * Calculate grace period end date from subscription end date
+ */
+export function calculateGracePeriodEndDate(subscriptionEndDate: Date | string): Date {
+  const endDate = new Date(subscriptionEndDate);
+  const graceEndDate = new Date(endDate);
+  graceEndDate.setDate(graceEndDate.getDate() + GRACE_PERIOD_DAYS);
+  return graceEndDate;
+}
+
+/**
+ * Check if subscription is in grace period
+ */
+export function isInGracePeriod(
+  subscriptionEndDate: Date | string | null,
+  gracePeriodEndsAt: Date | string | null
+): boolean {
+  if (!subscriptionEndDate || !gracePeriodEndsAt) return false;
+  
+  const now = new Date();
+  const endDate = new Date(subscriptionEndDate);
+  const graceEndDate = new Date(gracePeriodEndsAt);
+  
+  return endDate < now && now < graceEndDate;
+}
+
+/**
+ * Get remaining grace period days
+ */
+export function getGraceDaysRemaining(gracePeriodEndsAt: Date | string | null): number {
+  if (!gracePeriodEndsAt) return 0;
+  
+  const now = new Date();
+  const graceEndDate = new Date(gracePeriodEndsAt);
+  const diff = graceEndDate.getTime() - now.getTime();
+  
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}

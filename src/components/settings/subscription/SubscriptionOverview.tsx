@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { useTenantSubscription } from '@/hooks/useSubscription';
 import { useRoomSubscriptionLimit } from '@/hooks/useRoomSubscriptionLimit';
+import { useGracePeriod } from '@/hooks/useGracePeriod';
 import {
   Package,
   Calendar,
@@ -28,6 +29,7 @@ import {
 import { useState } from 'react';
 import { PlanChangeDialog } from './PlanChangeDialog';
 import { AddRoomsDialog } from './AddRoomsDialog';
+import { GracePeriodAlert } from './GracePeriodAlert';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -37,12 +39,15 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
   past_due: { label: 'Quá hạn', variant: 'destructive' },
   canceled: { label: 'Đã hủy', variant: 'outline' },
   inactive: { label: 'Không hoạt động', variant: 'outline' },
+  grace_period: { label: 'Gia hạn (Grace)', variant: 'destructive' },
+  suspended: { label: 'Tạm ngưng', variant: 'outline' },
 };
 
 export function SubscriptionOverview() {
   const queryClient = useQueryClient();
   const { data: subscription, isLoading, error } = useTenantSubscription();
   const { registeredRooms, actualRooms, remainingSlots, canCreateRoom } = useRoomSubscriptionLimit();
+  const { isInGracePeriod, isGracePeriodExpired, graceDaysRemaining } = useGracePeriod();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [addRoomsDialogOpen, setAddRoomsDialogOpen] = useState(false);
 
@@ -92,7 +97,10 @@ export function SubscriptionOverview() {
 
   const remainingDays = calculateRemainingDays(subscription.subscription_end_date);
   const status = subscription.subscription_status || 'inactive';
-  const statusInfo = statusConfig[status] || statusConfig.inactive;
+  
+  // Override status based on grace period state
+  const effectiveStatus = isGracePeriodExpired ? 'suspended' : (isInGracePeriod ? 'grace_period' : status);
+  const statusInfo = statusConfig[effectiveStatus] || statusConfig.inactive;
 
   const isExpiringSoon = remainingDays > 0 && remainingDays <= 7;
   const isExpired = remainingDays === 0 && subscription.subscription_end_date;
@@ -185,17 +193,22 @@ export function SubscriptionOverview() {
             )}
           </div>
 
+          {/* Grace Period Alert */}
+          {(isInGracePeriod || isGracePeriodExpired) && (
+            <GracePeriodAlert onExtendClick={() => setDialogOpen(true)} />
+          )}
+
           {/* Warnings */}
-          {isExpiringSoon && (
-            <Alert variant="default" className="border-yellow-500/50 bg-yellow-500/10">
-              <AlertTriangle className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-yellow-700">
+          {!isInGracePeriod && !isGracePeriodExpired && isExpiringSoon && (
+            <Alert variant="default" className="border-amber-500/50 bg-amber-500/10">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-700">
                 Gói đăng ký sẽ hết hạn trong {remainingDays} ngày. Vui lòng gia hạn để tiếp tục sử dụng.
               </AlertDescription>
             </Alert>
           )}
 
-          {isExpired && (
+          {!isInGracePeriod && !isGracePeriodExpired && isExpired && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
@@ -204,7 +217,7 @@ export function SubscriptionOverview() {
             </Alert>
           )}
 
-          {status === 'past_due' && (
+          {effectiveStatus === 'past_due' && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
@@ -216,9 +229,11 @@ export function SubscriptionOverview() {
           {/* CTAs */}
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => setDialogOpen(true)}>
-              {isExpired || status === 'past_due' ? 'Gia hạn ngay' : 'Gia hạn gói'}
+              {isInGracePeriod || isGracePeriodExpired || isExpired || effectiveStatus === 'past_due' 
+                ? 'Gia hạn ngay' 
+                : 'Gia hạn gói'}
             </Button>
-            {!isExpired && remainingDays > 0 && (
+            {!isInGracePeriod && !isGracePeriodExpired && !isExpired && remainingDays > 0 && (
               <Button variant="outline" onClick={() => setAddRoomsDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Mua thêm phòng

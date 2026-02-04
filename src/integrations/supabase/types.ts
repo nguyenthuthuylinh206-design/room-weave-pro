@@ -6449,6 +6449,7 @@ export type Database = {
           billing_email: string | null
           created_at: string | null
           email: string
+          grace_period_ends_at: string | null
           id: string
           logo_url: string | null
           name: string
@@ -6482,6 +6483,7 @@ export type Database = {
           billing_email?: string | null
           created_at?: string | null
           email: string
+          grace_period_ends_at?: string | null
           id?: string
           logo_url?: string | null
           name: string
@@ -6515,6 +6517,7 @@ export type Database = {
           billing_email?: string | null
           created_at?: string | null
           email?: string
+          grace_period_ends_at?: string | null
           id?: string
           logo_url?: string | null
           name?: string
