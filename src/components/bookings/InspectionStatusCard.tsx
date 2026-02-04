@@ -19,7 +19,7 @@ import { getTelegramPhoneLink, openTelegramWithFallback, getTelegramDownloadLink
 interface InspectionData {
   bookingId: string
   roomId: string
-  status: 'pending' | 'in_progress' | 'completed' | 'not_requested'
+  status: 'pending' | 'in_progress' | 'completed' | 'not_requested' | 'cancelled'
   inspectionId?: string
   startedAt?: string
   createdAt?: string

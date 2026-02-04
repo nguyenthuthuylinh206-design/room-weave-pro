@@ -69,7 +69,7 @@ export interface GroupCheckoutDialogProps {
 interface InspectionStatus {
   bookingId: string
   roomId: string
-  status: 'pending' | 'in_progress' | 'completed' | 'not_requested'
+  status: 'pending' | 'in_progress' | 'completed' | 'not_requested' | 'cancelled'
   damageCharge?: number
   inspectionId?: string
   startedAt?: string
@@ -183,11 +183,16 @@ export function GroupCheckoutDialog({
           }
         }
 
+        // Treat cancelled as not_requested (allow re-requesting)
+        const effectiveStatus = inspection.status === 'cancelled' 
+          ? 'not_requested' 
+          : inspection.status as 'pending' | 'in_progress' | 'completed'
+
         return {
           bookingId: booking.id,
           roomId: booking.room_id,
-          status: inspection.status as 'pending' | 'in_progress' | 'completed',
-          inspectionId: inspection.id,
+          status: effectiveStatus,
+          inspectionId: inspection.status !== 'cancelled' ? inspection.id : undefined,
           startedAt: inspection.started_at,
           createdAt: inspection.created_at,
           assignedTo: inspection.assigned_to,
@@ -766,7 +771,7 @@ export function GroupCheckoutDialog({
                               <span className="text-xs text-muted-foreground">
                                 {booking.room?.room_type}
                               </span>
-                              {inspection?.damageCharge && inspection.damageCharge > 0 && (
+                              {inspection?.damageCharge != null && inspection.damageCharge > 0 && (
                                 <span className="text-xs text-red-600 font-medium">
                                   +{formatVNCurrency(inspection.damageCharge)}
                                 </span>
