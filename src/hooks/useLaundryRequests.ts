@@ -276,7 +276,7 @@ export function useDraftLaundryBatch() {
             id,
             item_id,
             sent_quantity,
-            item:items(id, code, name, thumbnail)
+            item:items(id, code, name)
           )
         `)
         .eq('tenant_id', tenantId)
