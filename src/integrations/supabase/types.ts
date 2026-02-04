@@ -2826,7 +2826,7 @@ export type Database = {
           batch_code: string
           compensation_amount: number | null
           created_at: string | null
-          delivery_date: string
+          delivery_date: string | null
           delivery_person_name: string | null
           delivery_photos: string[] | null
           delivery_staff_id: string | null
@@ -2848,7 +2848,7 @@ export type Database = {
           total_items: number
           total_weight_kg: number
           updated_at: string | null
-          vendor_id: string
+          vendor_id: string | null
         }
         Insert: {
           actual_cost?: number | null
@@ -2856,7 +2856,7 @@ export type Database = {
           batch_code: string
           compensation_amount?: number | null
           created_at?: string | null
-          delivery_date: string
+          delivery_date?: string | null
           delivery_person_name?: string | null
           delivery_photos?: string[] | null
           delivery_staff_id?: string | null
@@ -2876,9 +2876,9 @@ export type Database = {
           tenant_id: string
           timeliness_rating?: number | null
           total_items: number
-          total_weight_kg: number
+          total_weight_kg?: number
           updated_at?: string | null
-          vendor_id: string
+          vendor_id?: string | null
         }
         Update: {
           actual_cost?: number | null
@@ -2886,7 +2886,7 @@ export type Database = {
           batch_code?: string
           compensation_amount?: number | null
           created_at?: string | null
-          delivery_date?: string
+          delivery_date?: string | null
           delivery_person_name?: string | null
           delivery_photos?: string[] | null
           delivery_staff_id?: string | null
@@ -2908,7 +2908,7 @@ export type Database = {
           total_items?: number
           total_weight_kg?: number
           updated_at?: string | null
-          vendor_id?: string
+          vendor_id?: string | null
         }
         Relationships: [
           {
