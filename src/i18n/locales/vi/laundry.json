@@ -52,6 +52,7 @@
     "stockingIn": "Đang nhập...",
     "statusCard": "Trạng thái",
     "timeline": {
+      "draft": "Nháp",
       "delivered": "Đã giao",
       "washing": "Đang giặt",
       "ready": "Sẵn sàng nhận",
@@ -237,6 +238,7 @@
     "expectedReturn": "Dự kiến trả"
   },
   "status": {
+    "draft": "Nháp",
     "pending": "Chờ xử lý",
     "delivered": "Đã giao",
     "sent": "Đã gửi",

@@ -1,4 +1,4 @@
-import { Check, Circle } from 'lucide-react'
+import { Check, Circle, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { vi, enUS } from 'date-fns/locale'
@@ -11,6 +11,29 @@ interface BatchStatusTimelineProps {
 export function BatchStatusTimeline({ batch }: BatchStatusTimelineProps) {
   const { t, i18n } = useTranslation('laundry')
   const dateLocale = i18n.language === 'vi' ? vi : enUS
+  
+  // For draft batches, show only draft step
+  if (batch.status === 'draft') {
+    return (
+      <div className="space-y-4">
+        <div className="flex gap-4">
+          <div className="flex flex-col items-center">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-primary bg-primary text-primary-foreground">
+              <FileText className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="flex-1 pb-4">
+            <p className="font-medium text-foreground">
+              {t('batchDetail.timeline.draft', 'Nháp')}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {format(new Date(batch.created_at), 'PPP HH:mm', { locale: dateLocale })}
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
   
   const steps = [
     {

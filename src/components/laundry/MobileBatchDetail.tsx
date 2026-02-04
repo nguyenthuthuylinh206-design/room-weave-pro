@@ -301,7 +301,7 @@ export function MobileBatchDetail() {
             {batch.status === 'draft' && (
               <Button 
                 className="w-full" 
-                onClick={() => navigate(`/laundry/requests?sendBatch=${id}`)}
+                onClick={() => navigate(`/laundry?tab=requests&sendBatch=${id}`)}
               >
                 <Send className="mr-2 h-4 w-4" />
                 {t('batchDetail.sendToLaundry', 'Gửi đi giặt')}
