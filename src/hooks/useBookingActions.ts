@@ -48,6 +48,32 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
    * Check-in: Update booking status to 'checked_in' AND room status to 'occupied'
    * Uses database transaction (RPC) to ensure atomicity for concurrent users
    */
+  // Error messages mapping for RPC errors
+  const ERROR_MESSAGES: Record<string, string> = {
+    'ROOM_NOT_FOUND': 'Phòng không tồn tại',
+    'ROOM_OCCUPIED': 'Phòng đang có khách. Vui lòng checkout khách hiện tại trước.',
+    'INVALID_ROOM_STATUS': 'Phòng không ở trạng thái có thể check-in (đang bảo trì hoặc ngừng hoạt động).',
+    'BOOKING_NOT_VALID': 'Booking không hợp lệ hoặc đã được check-in.',
+  }
+
+  const parseRpcError = (errorMessage: string): string => {
+    // Check for error codes like "ROOM_OCCUPIED:Guest Name"
+    for (const [code, message] of Object.entries(ERROR_MESSAGES)) {
+      if (errorMessage.includes(code)) {
+        // Extract additional info after colon if present
+        const parts = errorMessage.split(':')
+        if (parts.length > 1 && code === 'ROOM_OCCUPIED') {
+          return `Phòng đang có khách "${parts[1]}". Vui lòng checkout trước.`
+        }
+        if (parts.length > 1 && code === 'INVALID_ROOM_STATUS') {
+          return `Phòng đang ở trạng thái "${parts[1]}". Không thể check-in.`
+        }
+        return message
+      }
+    }
+    return errorMessage
+  }
+
   const handleCheckIn = async (bookingId: string, roomId: string) => {
     setIsLoading(true)
     try {
@@ -72,6 +98,7 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
       }
 
       // Use transaction-safe RPC function to update both booking and room atomically
+      // The RPC now validates room status - will reject if occupied, maintenance, out_of_order
       const { data: result, error: rpcError } = await supabase.rpc('perform_checkin', {
         p_booking_id: bookingId,
         p_room_id: roomId,
@@ -91,12 +118,11 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
       return true
     } catch (error: any) {
       console.error('Check-in error:', error)
+      const errorMessage = parseRpcError(error.message || '')
       toast({
         variant: 'destructive',
         title: 'Lỗi check-in',
-        description: error.message?.includes('already checked') 
-          ? 'Booking đã được check-in hoặc không hợp lệ'
-          : error.message,
+        description: errorMessage,
       })
       return false
     } finally {
