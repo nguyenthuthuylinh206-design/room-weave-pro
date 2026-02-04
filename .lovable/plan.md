@@ -1,182 +1,208 @@
 
 
-## Kế hoạch: Thêm chức năng Theo dõi và Gọi nhân viên trong Group Checkout
+## Kế hoạch: Cập nhật Group Checkout để giống Check-out lẻ
 
 ### VẤN ĐỀ HIỆN TẠI
 
-Trong dialog Group Checkout, khi phòng đang chờ kiểm tra (pending/in_progress), chỉ hiển thị tên nhân viên được gán:
+Trong **Group Checkout Dialog**, phần hiển thị trạng thái kiểm tra phòng quá đơn giản so với **Checkout lẻ** (`CheckoutInspectionSection`):
 
-```text
-┌─────────────────────────────────────────────┐
-│ P.P106  deluxe                    [Chờ kiểm tra]
-│ Đang chờ: NV Linh                            
-└─────────────────────────────────────────────┘
-```
-
-**Thiếu:**
-- Trạng thái nhân viên (Available/Busy/Offline)
-- Nút gọi điện & Telegram để liên lạc nhanh
-- Khả năng xem chi tiết nhân viên (vị trí, hoạt động)
+| Tính năng | Checkout lẻ | Group Checkout |
+|-----------|-------------|----------------|
+| Card UI với màu sắc theo status | ✅ Có (amber/blue/green) | ❌ Không |
+| Timer đếm thời gian `in_progress` | ✅ Có | ❌ Không |
+| Nút "Hủy yêu cầu" | ✅ Có | ❌ Không |
+| Icon trạng thái rõ ràng | ✅ Có (AlertCircle, Loader2, CheckCircle2) | ❌ Chỉ có badge nhỏ |
+| Thông tin thời gian chi tiết | ✅ Có (bắt đầu lúc, yêu cầu lúc) | ❌ Không |
 
 ---
 
 ### GIẢI PHÁP
 
-Cập nhật phần hiển thị nhân viên được gán để bao gồm:
-1. **Status badge** cho thấy nhân viên đang Available/Busy/Offline
-2. **Nút Telegram** để gửi tin nhắn nhanh
-3. **Nút gọi điện** nếu có số điện thoại
-4. **Click vào tên** để mở StaffDetailSheet xem chi tiết
+Thay thế `AssignedStaffRow` bằng một component mới `InspectionStatusCard` có đầy đủ tính năng giống `CheckoutInspectionSection`:
 
-**UI mới:**
+**UI Mới cho Group Checkout:**
 
 ```text
-┌─────────────────────────────────────────────┐
-│ P.P106  deluxe                    [Chờ kiểm tra]
-│ NV kiểm tra: Linh 🟢 [Telegram] [📞]         
-└─────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│ ☐ P.P106                deluxe                    [750.000đ]   │
+│    ─────────────────────────────────────────────────────────   │
+│    ┌───────────────────────────────────────────────────────┐   │
+│    │ ⏳ Đang chờ kiểm tra                                  │   │
+│    │ 👤 NV: [Linh] 🟢  [📤] [📞]                           │   │
+│    │ 🕐 Yêu cầu lúc: 10:30 04/02                           │   │
+│    │ [Hủy yêu cầu]                                         │   │
+│    └───────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Trạng thái đang kiểm tra:**
+
+```text
+┌───────────────────────────────────────────────────────┐
+│ 🔄 Đang kiểm tra phòng                    [05:32]    │
+│ 👤 NV: [Linh] 🟢  [📤] [📞]                          │
+│ 🕐 Bắt đầu: 10:30 04/02                              │
+│ [Hủy yêu cầu]                                        │
+└───────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ### THAY ĐỔI CẦN THỰC HIỆN
 
-#### 1. Thêm imports và state cần thiết
+#### 1. Tạo component `InspectionStatusCard`
+
+Thay thế `AssignedStaffRow` bằng component mới với đầy đủ tính năng:
 
 ```typescript
-// Thêm imports
-import { StaffStatusBadge } from '@/components/staff/StaffStatusBadge'
-import { StaffDetailSheet } from '@/components/staff/StaffDetailSheet'
-import { Phone, Send } from 'lucide-react'
-import { getTelegramPhoneLink, openTelegramWithFallback, getTelegramDownloadLink } from '@/lib/phone-utils'
-import { StaffWithStatus } from '@/hooks/useStaffStatus'
-
-// Thêm state cho sheet chi tiết
-const [selectedStaffForDetail, setSelectedStaffForDetail] = useState<StaffWithStatus | null>(null)
-const [staffDetailOpen, setStaffDetailOpen] = useState(false)
-```
-
-#### 2. Cập nhật hook useOnShiftStaffList
-
-Thêm thông tin status từ `staff_status` table để có thể hiển thị trạng thái nhân viên:
-
-```typescript
-// useOnShiftStaffList.ts - mở rộng interface
-export interface OnShiftStaffMember {
-  // ... existing fields
-  status: 'available' | 'busy' | 'break' | 'offline'
-  current_activity: string | null
-  current_location: string | null
-}
-```
-
-#### 3. Cập nhật phần hiển thị nhân viên trong GroupCheckoutDialog
-
-Thay thế dòng 746-751:
-
-```tsx
-{/* Show assigned staff for pending/in_progress inspections */}
-{isSelected && !isCheckedOut && inspection && ['pending', 'in_progress'].includes(inspection.status) && (
-  <AssignedStaffRow
-    staffId={inspection.assignedTo}
-    staffList={staffList}
-    onViewDetail={(staff) => {
-      setSelectedStaffForDetail(staff)
-      setStaffDetailOpen(true)
-    }}
-  />
-)}
-```
-
-#### 4. Tạo component AssignedStaffRow
-
-Hiển thị nhân viên được gán với các nút liên lạc:
-
-```tsx
-function AssignedStaffRow({ 
-  staffId, 
-  staffList, 
-  onViewDetail 
-}: { 
-  staffId: string | undefined
+interface InspectionStatusCardProps {
+  inspection: InspectionStatus
   staffList: OnShiftStaffMember[]
-  onViewDetail: (staff: StaffWithStatus) => void 
-}) {
-  const staff = staffList.find(s => s.id === staffId)
+  onViewDetail: (staff: OnShiftStaffMember) => void
+  onCancelInspection: (inspectionId: string) => Promise<void>
+  isProcessing: boolean
+}
+
+function InspectionStatusCard({
+  inspection,
+  staffList,
+  onViewDetail,
+  onCancelInspection,
+  isProcessing,
+}: InspectionStatusCardProps) {
+  // Timer state for in_progress
+  const [elapsedTime, setElapsedTime] = useState('')
   
-  if (!staff) {
+  // Timer effect (giống CheckoutInspectionSection)
+  useEffect(() => {
+    if (inspection.status !== 'in_progress' || !inspection.startedAt) {
+      setElapsedTime('')
+      return
+    }
+    // ... timer logic
+  }, [inspection.status, inspection.startedAt])
+  
+  const staff = staffList.find(s => s.id === inspection.assignedTo)
+  
+  // Render card với màu sắc theo status
+  if (inspection.status === 'in_progress') {
     return (
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span>NV kiểm tra:</span>
-        <span className="text-amber-600">Không xác định</span>
+      <div className="p-2.5 border border-blue-500/50 rounded-lg bg-blue-50 dark:bg-blue-950/30">
+        {/* Header với timer */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5 text-blue-700">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-xs font-medium">Đang kiểm tra</span>
+          </div>
+          {elapsedTime && (
+            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-blue-100 rounded">
+              <Clock className="h-3 w-3 text-blue-600" />
+              <span className="font-mono text-xs">{elapsedTime}</span>
+            </div>
+          )}
+        </div>
+        
+        {/* Staff info với status + contact buttons */}
+        <StaffInfoLine staff={staff} onViewDetail={onViewDetail} />
+        
+        {/* Time info */}
+        {inspection.startedAt && (
+          <div className="flex items-center gap-1.5 text-xs text-blue-600 mt-1.5">
+            <Clock className="h-3 w-3" />
+            <span>Bắt đầu: {format(...)}</span>
+          </div>
+        )}
+        
+        {/* Actions */}
+        <div className="mt-2 flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleCancel}>
+            Hủy yêu cầu
+          </Button>
+        </div>
       </div>
     )
   }
   
-  const hasTelegramConnection = staff.telegram_username || staff.phone || staff.telegram_chat_id
-  
-  const handleTelegram = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    let url: string | null = null
-    if (staff.telegram_username) url = `tg://resolve?domain=${staff.telegram_username}`
-    else if (staff.phone) url = getTelegramPhoneLink(staff.phone)
-    else if (staff.telegram_chat_id) url = `tg://user?id=${staff.telegram_chat_id}`
-    
-    if (url) {
-      openTelegramWithFallback(url, () => {
-        toast.info(...)
-      })
-    }
-  }
-  
-  const handleCall = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (staff.phone) window.location.href = `tel:${staff.phone}`
-  }
-  
-  return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="text-muted-foreground">NV kiểm tra:</span>
-      
-      {/* Staff name - clickable to view detail */}
-      <button 
-        type="button"
-        onClick={() => onViewDetail(staff as StaffWithStatus)}
-        className="font-medium text-primary hover:underline"
-      >
-        {staff.full_name}
-      </button>
-      
-      {/* Status badge */}
-      <StaffStatusBadge status={staff.status} size="sm" showLabel={false} />
-      
-      {/* Quick action buttons */}
-      <div className="flex items-center gap-0.5 ml-auto">
-        {hasTelegramConnection && (
-          <Button variant="ghost" size="icon" className="h-6 w-6 text-blue-500" onClick={handleTelegram}>
-            <Send className="h-3 w-3" />
+  if (inspection.status === 'pending') {
+    return (
+      <div className="p-2.5 border border-amber-500/50 rounded-lg bg-amber-50 dark:bg-amber-950/30">
+        {/* Header */}
+        <div className="flex items-center gap-1.5 text-amber-700 mb-2">
+          <AlertCircle className="h-4 w-4" />
+          <span className="text-xs font-medium">Đang chờ kiểm tra</span>
+        </div>
+        
+        {/* Staff info */}
+        <StaffInfoLine staff={staff} onViewDetail={onViewDetail} />
+        
+        {/* Actions */}
+        <div className="mt-2 flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleCancel}>
+            Hủy yêu cầu
           </Button>
-        )}
-        {staff.phone && (
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCall}>
-            <Phone className="h-3 w-3" />
-          </Button>
-        )}
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
+  
+  if (inspection.status === 'completed') {
+    return (
+      <div className="p-2.5 border border-green-500/50 rounded-lg bg-green-50 dark:bg-green-950/30">
+        <div className="flex items-center gap-1.5 text-green-700">
+          <CheckCircle2 className="h-4 w-4" />
+          <span className="text-xs font-medium">Kiểm tra hoàn thành</span>
+        </div>
+      </div>
+    )
+  }
+  
+  return null
 }
 ```
 
-#### 5. Thêm StaffDetailSheet vào cuối dialog
+#### 2. Thêm function hủy yêu cầu kiểm tra
 
+```typescript
+const handleCancelInspection = async (inspectionId: string) => {
+  try {
+    await supabase
+      .from('checkout_inspection_requests')
+      .update({ status: 'cancelled' })
+      .eq('id', inspectionId)
+    
+    toast.success('Đã hủy yêu cầu kiểm tra')
+    refetchInspections()
+  } catch (error) {
+    toast.error('Lỗi hủy yêu cầu')
+  }
+}
+```
+
+#### 3. Cập nhật phần render trong room list
+
+Thay thế:
 ```tsx
-{/* Staff Detail Sheet */}
-<StaffDetailSheet
-  staff={selectedStaffForDetail}
-  open={staffDetailOpen}
-  onOpenChange={setStaffDetailOpen}
-/>
+{/* Show assigned staff for pending/in_progress inspections */}
+{isSelected && !isCheckedOut && inspection && ['pending', 'in_progress'].includes(inspection.status) && (
+  <AssignedStaffRow ... />
+)}
+```
+
+Bằng:
+```tsx
+{/* Show inspection status card */}
+{isSelected && !isCheckedOut && inspection && ['pending', 'in_progress', 'completed'].includes(inspection.status) && (
+  <InspectionStatusCard
+    inspection={inspection}
+    staffList={staffList}
+    onViewDetail={(staff) => {
+      setSelectedStaffForDetail(staff as StaffWithStatus)
+      setStaffDetailOpen(true)
+    }}
+    onCancelInspection={handleCancelInspection}
+    isProcessing={isProcessing}
+  />
+)}
 ```
 
 ---
@@ -185,31 +211,22 @@ function AssignedStaffRow({
 
 | # | File | Thay đổi |
 |---|------|----------|
-| 1 | `src/hooks/useOnShiftStaffList.ts` | Thêm fields: status, current_activity, current_location |
-| 2 | `src/components/bookings/GroupCheckoutDialog.tsx` | Thêm component AssignedStaffRow với nút Telegram/Phone + StaffDetailSheet |
+| 1 | `src/components/bookings/GroupCheckoutDialog.tsx` | Thêm component `InspectionStatusCard` thay thế `AssignedStaffRow`, thêm timer, thêm nút hủy yêu cầu |
 
 ---
 
 ### KẾT QUẢ MONG ĐỢI
 
-**Trước:**
-```text
-Đang chờ: NV Linh
-```
+| Trạng thái | Trước | Sau |
+|------------|-------|-----|
+| **pending** | `NV kiểm tra: Linh 🟢 [📤][📞]` | Card màu amber với icon ⚠️, thời gian yêu cầu, nút hủy |
+| **in_progress** | `NV kiểm tra: Linh 🟢 [📤][📞]` | Card màu blue với icon 🔄, **timer đếm thời gian**, nút hủy |
+| **completed** | Chỉ badge "Đã KT" | Card màu green với icon ✅ |
 
-**Sau:**
-```text
-NV kiểm tra: Linh 🟢 [📤] [📞]
-                ↑     ↑    ↑
-          Status  Telegram  Gọi điện
-          badge
-```
-
-**Khi click vào tên nhân viên:** Mở StaffDetailSheet hiển thị:
-- Avatar, tên, chức vụ
-- Trạng thái hiện tại (Available/Busy/Offline)
-- Hoạt động hiện tại (nếu đang busy)
-- Vị trí hiện tại
-- Lịch sử hoạt động gần đây
-- Nút Telegram, Gọi điện, Email
+**Tính năng mới:**
+1. ✅ Card UI với màu sắc theo trạng thái (amber/blue/green)
+2. ✅ Timer đếm thời gian realtime khi đang kiểm tra
+3. ✅ Nút "Hủy yêu cầu" cho pending/in_progress
+4. ✅ Hiển thị thời gian chi tiết (yêu cầu lúc / bắt đầu lúc)
+5. ✅ Giữ nguyên tính năng: Click tên → StaffDetailSheet, nút Telegram/Phone
 
