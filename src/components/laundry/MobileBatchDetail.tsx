@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Package, Truck, CheckCircle, DollarSign, Clock, Warehouse } from 'lucide-react'
+import { ArrowLeft, Package, Truck, CheckCircle, DollarSign, Clock, Warehouse, FileText, Send } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -51,6 +51,7 @@ export function MobileBatchDetail() {
   const returnStaff = batchData?.return_staff
 
   const statusSteps = [
+    { status: 'draft', label: t('batchDetail.timeline.draft', 'Nháp'), icon: FileText, date: batch.created_at },
     { status: 'delivered', label: t('batchDetail.timeline.delivered'), icon: Truck, date: batch.delivery_date },
     { status: 'washing', label: t('batchDetail.timeline.washing'), icon: Package, date: null },
     { status: 'ready', label: t('batchDetail.timeline.ready'), icon: CheckCircle, date: null },
@@ -58,7 +59,12 @@ export function MobileBatchDetail() {
     { status: 'stocked', label: t('batchDetail.timeline.stocked'), icon: CheckCircle, date: null }
   ]
 
-  const currentStatusIndex = statusSteps.findIndex(s => s.status === batch.status)
+  // For draft, only show first step; for others, filter out draft step
+  const displaySteps = batch.status === 'draft' 
+    ? statusSteps.slice(0, 1)
+    : statusSteps.filter(s => s.status !== 'draft')
+
+  const currentStatusIndex = displaySteps.findIndex(s => s.status === batch.status)
 
   const handleStatusChange = (newStatus: string) => {
     updateStatusMutation.mutate({ batchId: id!, status: newStatus as any })
@@ -79,7 +85,7 @@ export function MobileBatchDetail() {
     })
   }
 
-  const showActionBar = ['delivered', 'ready', 'received'].includes(batch.status)
+  const showActionBar = ['draft', 'delivered', 'ready', 'received'].includes(batch.status)
 
   return (
     <div className={`min-h-screen bg-background ${showActionBar ? 'pb-24' : 'pb-20'}`}>
@@ -93,7 +99,9 @@ export function MobileBatchDetail() {
           </Link>
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-semibold truncate">{batch.batch_code}</h1>
-            <p className="text-sm text-muted-foreground">{vendor.name}</p>
+            <p className="text-sm text-muted-foreground">
+              {vendor?.name || t('batchDetail.noVendorSelected', 'Chưa chọn đơn vị giặt')}
+            </p>
           </div>
           <BatchStatusBadge status={batch.status} />
         </div>
@@ -105,7 +113,7 @@ export function MobileBatchDetail() {
           <Card className="p-4">
             <h3 className="font-semibold mb-4">{t('batchDetail.progress')}</h3>
             <div className="space-y-3">
-              {statusSteps.map((step, index) => (
+              {displaySteps.map((step, index) => (
                 <div key={step.status} className="flex items-start gap-3">
                   <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                     index <= currentStatusIndex ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
@@ -126,6 +134,15 @@ export function MobileBatchDetail() {
               ))}
             </div>
           </Card>
+
+          {/* Draft Notice */}
+          {batch.status === 'draft' && (
+            <Card className="p-4 bg-slate-50 border-slate-200">
+              <p className="text-sm text-slate-600 mb-3">
+                {t('batchDetail.draftNotice', 'Lô này đang ở trạng thái nháp. Bạn cần chọn đơn vị giặt và gửi đi để tiếp tục quy trình.')}
+              </p>
+            </Card>
+          )}
 
           {/* Summary Stats */}
           <div className="grid grid-cols-2 gap-3">
@@ -167,61 +184,65 @@ export function MobileBatchDetail() {
             </Card>
           </div>
 
-          {/* Vendor Info */}
-          <Card className="p-4">
-            <h3 className="font-semibold mb-3">{t('batchDetail.vendor')}</h3>
-            <div className="flex items-center gap-3 mb-3">
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={vendor.logo_url} alt={vendor.name} />
-                <AvatarFallback>{vendor.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-medium">{vendor.name}</p>
-                <p className="text-sm text-muted-foreground">{vendor.phone}</p>
-              </div>
-            </div>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{t('batchDetail.type')}:</span>
-                <span>{vendor.type === 'external' ? t('batchDetail.external') : t('batchDetail.internal')}</span>
-              </div>
-              {vendor.rating && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t('batchDetail.rating')}:</span>
-                  <span>⭐ {vendor.rating.toFixed(1)}</span>
+          {/* Vendor Info - only show if vendor exists */}
+          {vendor && (
+            <Card className="p-4">
+              <h3 className="font-semibold mb-3">{t('batchDetail.vendor')}</h3>
+              <div className="flex items-center gap-3 mb-3">
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={vendor.logo_url} alt={vendor.name} />
+                  <AvatarFallback>{vendor.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">{vendor.name}</p>
+                  <p className="text-sm text-muted-foreground">{vendor.phone}</p>
                 </div>
-              )}
-            </div>
-          </Card>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t('batchDetail.type')}:</span>
+                  <span>{vendor.type === 'external' ? t('batchDetail.external') : t('batchDetail.internal')}</span>
+                </div>
+                {vendor.rating && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{t('batchDetail.rating')}:</span>
+                    <span>⭐ {vendor.rating.toFixed(1)}</span>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
 
-          {/* Dates */}
-          <Card className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                {t('batchDetail.deliveryDate')}
-              </span>
-              <span className="font-medium">{formatDate(batch.delivery_date)}</span>
-            </div>
-            {batch.expected_return_date && (
+          {/* Dates - only show if delivery_date exists */}
+          {batch.delivery_date && (
+            <Card className="p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground flex items-center gap-2">
                   <Clock className="w-4 h-4" />
-                  {t('batchDetail.expectedReturn')}
+                  {t('batchDetail.deliveryDate')}
                 </span>
-                <span className="font-medium">{formatDate(batch.expected_return_date)}</span>
+                <span className="font-medium">{formatDate(batch.delivery_date)}</span>
               </div>
-            )}
-            {batch.actual_return_date && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4" />
-                  {t('batchDetail.actualReturn')}
-                </span>
-                <span className="font-medium">{formatDate(batch.actual_return_date)}</span>
-              </div>
-            )}
-          </Card>
+              {batch.expected_return_date && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    {t('batchDetail.expectedReturn')}
+                  </span>
+                  <span className="font-medium">{formatDate(batch.expected_return_date)}</span>
+                </div>
+              )}
+              {batch.actual_return_date && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    {t('batchDetail.actualReturn')}
+                  </span>
+                  <span className="font-medium">{formatDate(batch.actual_return_date)}</span>
+                </div>
+              )}
+            </Card>
+          )}
 
           {/* Items List */}
           <Card className="p-4">
@@ -277,6 +298,15 @@ export function MobileBatchDetail() {
       <PermissionGate module="laundry" action="update">
         {showActionBar && (
           <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t safe-area-pb">
+            {batch.status === 'draft' && (
+              <Button 
+                className="w-full" 
+                onClick={() => navigate(`/laundry/requests?sendBatch=${id}`)}
+              >
+                <Send className="mr-2 h-4 w-4" />
+                {t('batchDetail.sendToLaundry', 'Gửi đi giặt')}
+              </Button>
+            )}
             {batch.status === 'delivered' && (
               <Button 
                 className="w-full" 

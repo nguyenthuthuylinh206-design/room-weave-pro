@@ -8281,40 +8281,76 @@ export type Database = {
             }[]
           }
       get_laundry_batch_detail: { Args: { p_batch_id: string }; Returns: Json }
-      get_laundry_batches_filtered: {
-        Args: {
-          p_from_date?: string
-          p_hotel_id?: string
-          p_limit?: number
-          p_offset?: number
-          p_status?: string
-          p_tenant_id: string
-          p_to_date?: string
-          p_vendor_id?: string
-        }
-        Returns: {
-          actual_cost: number
-          actual_return_date: string
-          batch_code: string
-          created_at: string
-          delivery_date: string
-          estimated_cost: number
-          expected_return_date: string
-          id: string
-          items_damaged: number
-          items_lost: number
-          quality_rating: number
-          status: string
-          timeliness_rating: number
-          total_count: number
-          total_items: number
-          total_weight_kg: number
-          vendor_id: string
-          vendor_logo: string
-          vendor_name: string
-          vendor_rating: number
-        }[]
-      }
+      get_laundry_batches_filtered:
+        | {
+            Args: {
+              p_from_date?: string
+              p_hotel_id?: string
+              p_limit?: number
+              p_offset?: number
+              p_status?: string
+              p_tenant_id: string
+              p_to_date?: string
+              p_vendor_id?: string
+            }
+            Returns: {
+              actual_cost: number
+              actual_return_date: string
+              batch_code: string
+              created_at: string
+              delivery_date: string
+              estimated_cost: number
+              expected_return_date: string
+              id: string
+              items_damaged: number
+              items_lost: number
+              quality_rating: number
+              status: string
+              timeliness_rating: number
+              total_count: number
+              total_items: number
+              total_weight_kg: number
+              vendor_id: string
+              vendor_logo: string
+              vendor_name: string
+              vendor_rating: number
+            }[]
+          }
+        | {
+            Args: {
+              p_from_date?: string
+              p_hotel_id?: string
+              p_page?: number
+              p_page_size?: number
+              p_search?: string
+              p_status?: string
+              p_tenant_id: string
+              p_to_date?: string
+              p_vendor_id?: string
+            }
+            Returns: {
+              actual_cost: number
+              actual_return_date: string
+              batch_code: string
+              created_at: string
+              delivery_date: string
+              estimated_cost: number
+              expected_return_date: string
+              hotel_id: string
+              id: string
+              notes: string
+              status: string
+              tenant_id: string
+              total_count: number
+              total_items: number
+              total_weight_kg: number
+              updated_at: string
+              vendor_id: string
+              vendor_logo: string
+              vendor_name: string
+              vendor_rating: number
+            }[]
+          }
       get_laundry_dashboard_stats: {
         Args: { p_hotel_id?: string; p_tenant_id: string }
         Returns: Json

@@ -171,7 +171,7 @@ export function BatchDetailPage() {
     <div className="space-y-6">
       <PageHeader
         title={batch.batch_code}
-        description={`Lô giặt - ${vendor?.name || ''}`}
+        description={`Lô giặt - ${vendor?.name || 'Chưa chọn đơn vị giặt'}`}
       >
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={() => navigate('/laundry')}>
@@ -180,6 +180,14 @@ export function BatchDetailPage() {
           </Button>
           
           <PermissionGate module="laundry" action="update">
+            {/* Send Draft Batch Button */}
+            {batch.status === 'draft' && (
+              <Button onClick={() => navigate(`/laundry/requests?sendBatch=${id}`)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Gửi đi giặt
+              </Button>
+            )}
+            
             {/* Update Cost Button */}
             {['delivered', 'washing', 'ready'].includes(batch.status) && (
               <Button 
@@ -268,69 +276,96 @@ export function BatchDetailPage() {
             </Card>
           )}
           
-          {/* Delivery Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Thông tin giao hàng</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid grid-cols-2 gap-4">
-                <div>
-                  <dt className="text-sm text-muted-foreground">Đơn vị giặt</dt>
-                  <dd className="font-medium">
-                    <Link 
-                      to={`/laundry/vendors/${batch.vendor_id}`}
-                      className="hover:underline"
-                    >
-                      {vendor?.name || 'N/A'}
-                    </Link>
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm text-muted-foreground">Ngày giao</dt>
-                  <dd className="font-medium">
-                    {format(new Date(batch.delivery_date), 'PPP HH:mm', { locale: vi })}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm text-muted-foreground">Người giao</dt>
-                  <dd className="flex items-center gap-2">
-                    {deliveryStaff ? (
-                      <>
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={deliveryStaff.avatar_url || undefined} />
-                          <AvatarFallback>
-                            {deliveryStaff.full_name?.charAt(0) || '?'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="font-medium">{deliveryStaff.full_name}</span>
-                      </>
-                    ) : (
-                      <span className="text-muted-foreground">N/A</span>
-                    )}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm text-muted-foreground">Người nhận</dt>
-                  <dd className="font-medium">{batch.receiver_name || 'N/A'}</dd>
-                </div>
-              </dl>
-              
-              {batch.notes && (
-                <div className="mt-4 pt-4 border-t">
-                  <dt className="text-sm text-muted-foreground mb-1">Ghi chú</dt>
-                  <dd className="text-sm">{batch.notes}</dd>
-                </div>
-              )}
-              
-              {batch.delivery_photos && batch.delivery_photos.length > 0 && (
-                <div className="mt-4 pt-4 border-t">
-                  <dt className="text-sm text-muted-foreground mb-2">Ảnh giao hàng</dt>
-                  <PhotoGallery photos={batch.delivery_photos} />
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Draft Batch Notice */}
+          {batch.status === 'draft' && (
+            <Card className="border-slate-200 bg-slate-50">
+              <CardHeader>
+                <CardTitle className="text-slate-700">Lô giặt nháp</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-slate-600 mb-4">
+                  Lô này đang ở trạng thái nháp. Bạn cần chọn đơn vị giặt và gửi đi để tiếp tục quy trình.
+                </p>
+                <Button onClick={() => navigate(`/laundry/requests?sendBatch=${id}`)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Gửi đi giặt
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Delivery Info - Only show if not draft */}
+          {batch.status !== 'draft' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Thông tin giao hàng</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <dl className="grid grid-cols-2 gap-4">
+                  <div>
+                    <dt className="text-sm text-muted-foreground">Đơn vị giặt</dt>
+                    <dd className="font-medium">
+                      {vendor ? (
+                        <Link 
+                          to={`/laundry/vendors/${batch.vendor_id}`}
+                          className="hover:underline"
+                        >
+                          {vendor.name}
+                        </Link>
+                      ) : (
+                        <span className="text-muted-foreground">Chưa chọn</span>
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-muted-foreground">Ngày giao</dt>
+                    <dd className="font-medium">
+                      {batch.delivery_date 
+                        ? format(new Date(batch.delivery_date), 'PPP HH:mm', { locale: vi })
+                        : <span className="text-muted-foreground">Chưa xác định</span>
+                      }
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-muted-foreground">Người giao</dt>
+                    <dd className="flex items-center gap-2">
+                      {deliveryStaff ? (
+                        <>
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src={deliveryStaff.avatar_url || undefined} />
+                            <AvatarFallback>
+                              {deliveryStaff.full_name?.charAt(0) || '?'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium">{deliveryStaff.full_name}</span>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">N/A</span>
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-muted-foreground">Người nhận</dt>
+                    <dd className="font-medium">{batch.receiver_name || 'N/A'}</dd>
+                  </div>
+                </dl>
+                
+                {batch.notes && (
+                  <div className="mt-4 pt-4 border-t">
+                    <dt className="text-sm text-muted-foreground mb-1">Ghi chú</dt>
+                    <dd className="text-sm">{batch.notes}</dd>
+                  </div>
+                )}
+                
+                {batch.delivery_photos && batch.delivery_photos.length > 0 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <dt className="text-sm text-muted-foreground mb-2">Ảnh giao hàng</dt>
+                    <PhotoGallery photos={batch.delivery_photos} />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
           
           {/* Return Info (if received) */}
           {batch.status === 'received' && (
