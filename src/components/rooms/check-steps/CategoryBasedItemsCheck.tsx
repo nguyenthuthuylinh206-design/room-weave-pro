@@ -55,7 +55,7 @@ interface CategoryBasedItemsCheckProps {
   onLinenStatusChange: (item: RoomItemWithDetails, status: 'ok' | 'laundry' | 'add' | 'change' | 'lost' | 'missing', quantity: number) => void
   onMarkConsumed: (item: RoomItemWithDetails, quantity: number, needRefill: boolean) => void
   onEquipmentLost: (item: RoomItemWithDetails, quantity: number, estimatedValue?: number) => void
-  onMarkDamaged: (item: RoomItemWithDetails, damageInfo: { damage_type: 'repairable' | 'replacement_needed'; damage_cost: number; notes?: string }) => void
+  onMarkDamaged: (item: RoomItemWithDetails, damageInfo: { damage_type: 'repairable' | 'replacement_needed'; damage_cost: number; notes?: string; item_type?: ItemType }) => void
   onResetLinen: (itemId: string) => void
   onRemoveFromLaundry: (itemId: string) => void
   onRemoveFromLost: (itemId: string) => void
@@ -245,6 +245,7 @@ export function CategoryBasedItemsCheck({
           damage_type: action.damageType,
           damage_cost: action.damageCost,
           notes: action.notes,
+          item_type: item.item_type,
         })
         toast({ title: 'Đã đánh dấu hỏng', description: item.item_name })
         break
