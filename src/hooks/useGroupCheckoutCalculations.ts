@@ -70,7 +70,7 @@ export function useGroupCheckoutCalculations() {
         item_name: item.item_name || 'Unknown',
         item_type: 'lost',
         quantity: item.quantity || 1,
-        charge_amount: item.charge_amount || 0,
+        charge_amount: item.estimated_value || 0,
         notes: item.notes,
       })
     }
@@ -83,7 +83,7 @@ export function useGroupCheckoutCalculations() {
         item_name: item.item_name || 'Unknown',
         item_type: 'damaged',
         quantity: item.quantity || 1,
-        charge_amount: item.charge_amount || 0,
+        charge_amount: item.damage_cost || 0,
         damage_type: item.damage_type,
         notes: item.notes,
       })
