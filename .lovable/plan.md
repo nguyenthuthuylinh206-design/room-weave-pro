@@ -1,91 +1,91 @@
 
+## Kế hoạch: Sửa lỗi tạo phiếu giao hàng từ Supplement Request
 
-## Phân tích: Nút "Tự động" không cộng dồn số lượng
+### VẤN ĐỀ ĐÃ XÁC ĐỊNH
 
-### HÀNH VI HIỆN TẠI
+**Lỗi**: `PGRST203 - Could not choose the best candidate function`
 
-Nút **"Tự động"** hoạt động theo logic:
+**Nguyên nhân**: Database có 2 versions của RPC `create_distribution_order`:
+- Version 6 params: `(p_tenant_id, p_hotel_id, p_created_by, p_assigned_to, p_rooms, p_notes)`
+- Version 8 params: `(p_tenant_id, p_hotel_id, p_created_by, p_assigned_to, p_rooms, p_notes, p_auto_release, p_supplement_request_ids)`
 
-```text
-Lần 1: 
-- Query database: Phòng thiếu 3 khăn (tiêu chuẩn 5, hiện có 2)
-- Điền: +3 khăn ✅
-- Kho: 10 → tính còn 7
+Khi hook `useCreateDistributionFromSupplement.ts` gọi RPC với 6 params, PostgreSQL không thể quyết định dùng version nào vì cả 2 đều có thể match (version 8 có default values cho 2 params cuối).
 
-Lần 2:
-- Query database: Phòng vẫn thiếu 3 khăn (database chưa cập nhật)
-- Nhưng getRemainingStock() kiểm tra allocations đã có 3 khăn
-- canAllocate = min(3, 7-3=4) = 3
-- Điền: existingItems[idx].quantity + 3 = 3 + 3 = 6 ❌ BUG!
-```
+### SO SÁNH CÁC HOOKS
 
-**Thực tế đang có BUG**: Code ở dòng 401-405 **ĐANG CỘNG DỒN** nếu còn kho! Vấn đề là nếu tồn kho đã hết thì `canAllocate = 0` nên không thêm được gì.
-
----
-
-### NGUYÊN NHÂN THỰC SỰ
-
-Sau khi phân tích kỹ, vấn đề là:
-
-1. **RPC chỉ trả về items có `quantity_in_stock > 0`** (dòng 44 trong SQL)
-2. **Nếu kho đã cạn** sau lần điền đầu tiên → RPC không trả về item đó nữa
-3. **Kết quả**: `missingItems` trống hoặc thiếu items → không có gì để cộng dồn
+| Hook | Params | Trạng thái |
+|------|--------|------------|
+| `useDistributionOrders.ts` | 8 params (có `p_auto_release`, `p_supplement_request_ids`) | OK |
+| `useCreateDistributionFromSupplements.ts` | 8 params (có `p_auto_release`, `p_supplement_request_ids`) | OK |
+| `useCreateDistributionFromSupplement.ts` | 6 params (thiếu 2 params) | LOI |
 
 ---
 
 ### GIẢI PHÁP
 
-Thay đổi logic để khi ấn "Tự động" lần 2:
-- Vẫn tính số thiếu từ database 
-- **Nhưng chỉ cộng thêm phần CHƯA được điền** (so với allocations hiện tại)
-- Tránh điền trùng lặp
+**File**: `src/hooks/useCreateDistributionFromSupplement.ts`
 
+Thêm 2 params còn thiếu để tránh function overloading ambiguity:
+
+**Trước (dòng 42-55)**:
 ```typescript
-// Trong autoFillMissingItemsForRoom
-for (const m of missingItems) {
-  // Lấy số đã điền trong allocations
-  const existingAlloc = prev.find(a => a.room_id === roomId)
-  const alreadyAllocated = existingAlloc?.items.find(i => i.item_id === m.item_id)?.quantity || 0
-  
-  // Số cần thêm = số thiếu - số đã điền
-  const needToAdd = Math.max(0, m.missing_qty - alreadyAllocated)
-  
-  if (needToAdd > 0) {
-    // Tính kho còn
-    const remaining = getRemainingStock(m.item_id, m.item_stock)
-    const canAllocate = Math.min(needToAdd, remaining)
-    // ...
-  }
-}
+const { data: result, error: createError } = await supabase.rpc('create_distribution_order', {
+  p_tenant_id: tenant.id,
+  p_hotel_id: request.hotel_id,
+  p_created_by: user.id,
+  p_assigned_to: assignedTo || null,
+  p_rooms: [{
+    room_id: request.room_id,
+    items: requestItems.map(item => ({
+      item_id: item.item_id,
+      quantity: item.quantity,
+    })),
+  }],
+  p_notes: `Bổ sung theo yêu cầu ${request.request_code}`,
+})
+```
+
+**Sau**:
+```typescript
+const { data: result, error: createError } = await supabase.rpc('create_distribution_order', {
+  p_tenant_id: tenant.id,
+  p_hotel_id: request.hotel_id,
+  p_created_by: user.id,
+  p_assigned_to: assignedTo || null,
+  p_rooms: [{
+    room_id: request.room_id,
+    items: requestItems.map(item => ({
+      item_id: item.item_id,
+      quantity: item.quantity,
+    })),
+  }],
+  p_notes: `Bổ sung theo yêu cầu ${request.request_code}`,
+  p_auto_release: !!assignedTo, // Auto release nếu có assigned
+  p_supplement_request_ids: [supplementRequestId], // Truyền supplement request ID
+})
 ```
 
 ---
 
-### THAY ĐỔI CẦN THỰC HIỆN
+### THAY ĐỔI CHI TIẾT
 
-| # | File | Thay đổi |
-|---|------|----------|
-| 1 | `useDistributionForm.ts` | Cập nhật `autoFillMissingItemsForRoom` để trừ số đã điền trước khi tính thêm |
-| 2 | `useDistributionForm.ts` | Cập nhật `autoFillMissingItems` tương tự |
+| # | Thay đổi | Lý do |
+|---|----------|-------|
+| 1 | Thêm `p_auto_release: !!assignedTo` | Tự động release phiếu nếu có chọn nhân viên |
+| 2 | Thêm `p_supplement_request_ids: [supplementRequestId]` | Để RPC có thể xử lý link ngược (nếu có logic) |
 
 ---
 
-### HÀNH VI SAU KHI SỬA
+### BONUS: Loại bỏ Code Thừa
 
-```text
-Lần 1:
-- Phòng thiếu 3 khăn, đã điền 0
-- Thêm: min(3-0, kho) = 3 ✅
+Vì RPC version 8 có thể tự động cập nhật `supplement_request_id` trong `distribution_orders`, có thể loại bỏ bước thủ công ở dòng 74-84 trong hook. Tuy nhiên, để an toàn, giữ lại bước update supplement request status thủ công vì RPC chính chỉ link distribution order đến supplement requests.
 
-Lần 2:
-- Phòng thiếu 3 khăn, đã điền 3
-- Thêm: min(3-3, kho) = 0 
-- Message: "Phòng đã đủ tiêu chuẩn" ✅
+---
 
-Nếu user XÓA bớt 1:
-- Đã điền còn 2
-- Ấn Tự động: thêm min(3-2, kho) = 1 ✅
-```
+### KẾT QUẢ MONG ĐỢI
 
-**Kết quả**: Nút "Tự động" luôn điền **đúng số thiếu theo tiêu chuẩn**, không cộng dồn vô hạn, và thông báo rõ ràng khi đã đủ.
-
+| Trước | Sau |
+|-------|-----|
+| Lỗi PGRST203 khi ấn "Duyệt & Tạo phiếu giao" | Tạo phiếu giao hàng thành công |
+| Status 300 từ API | Status 200 từ API |
+| Toast "Lỗi tạo phiếu giao hàng" | Toast "Đã duyệt yêu cầu và tạo phiếu giao hàng" |
