@@ -102,7 +102,7 @@ export function SupplementRequestSheet({
 
   const handleViewDistributionOrder = () => {
     if (request?.distribution_order_id) {
-      navigate(`/distribution?orderId=${request.distribution_order_id}`)
+      navigate(`/inventory/distributions/${request.distribution_order_id}`)
       onOpenChange(false)
     }
   }
