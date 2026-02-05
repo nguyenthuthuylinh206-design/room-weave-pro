@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Loader2, ClipboardCheck, Sparkles, DoorOpen, Package, MoreHorizontal } from 'lucide-react'
+import { supabase } from '@/integrations/supabase/client'
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
+import { toast } from 'sonner'
 import { useCreateTask } from '@/hooks/useHousekeepingTasks'
 import { useOnShiftStaffList } from '@/hooks/useOnShiftStaffList'
 import { cn } from '@/lib/utils'
@@ -64,6 +68,7 @@ export function BulkCreateTaskDialog({
   const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [progress, setProgress] = useState({ current: 0, total: 0 })
+  const [skippedRooms, setSkippedRooms] = useState<string[]>([])
 
   // Get hotel ID from first room (all rooms should be from same hotel)
   const hotelId = rooms[0]?.hotel_id || ''
@@ -73,13 +78,38 @@ export function BulkCreateTaskDialog({
     if (rooms.length === 0) return
     
     setIsSubmitting(true)
+    setSkippedRooms([])
     setProgress({ current: 0, total: rooms.length })
+
+    // Pre-check for existing tasks to avoid duplicates
+    const { data: existingTasks } = await supabase
+      .from('housekeeping_tasks')
+      .select('room_id')
+      .in('room_id', rooms.map(r => r.id))
+      .eq('task_type', taskType)
+      .in('status', ['pending', 'in_progress'])
+    
+    const existingRoomIds = new Set(existingTasks?.map(t => t.room_id) || [])
+    const roomsToCreate = rooms.filter(r => !existingRoomIds.has(r.id))
+    const skipped = rooms.filter(r => existingRoomIds.has(r.id)).map(r => r.room_number)
+    
+    if (skipped.length > 0) {
+      setSkippedRooms(skipped)
+      toast.warning(`Bỏ qua ${skipped.length} phòng đã có công việc "${TASK_TYPE_LABELS[taskType]}"`)
+    }
+    
+    if (roomsToCreate.length === 0) {
+      setIsSubmitting(false)
+      return
+    }
+    
+    setProgress({ current: 0, total: roomsToCreate.length })
 
     let successCount = 0
     let failCount = 0
 
-    for (let i = 0; i < rooms.length; i++) {
-      const room = rooms[i]
+    for (let i = 0; i < roomsToCreate.length; i++) {
+      const room = roomsToCreate[i]
       try {
         await createTask({
           hotel_id: room.hotel_id,
@@ -88,18 +118,22 @@ export function BulkCreateTaskDialog({
           priority,
           assigned_to: assignedTo || undefined,
           notes: notes || undefined,
+          skipDuplicateCheck: true, // Already checked above
         })
         successCount++
       } catch (error) {
         console.error(`Failed to create task for room ${room.room_number}:`, error)
         failCount++
       }
-      setProgress({ current: i + 1, total: rooms.length })
+      setProgress({ current: i + 1, total: roomsToCreate.length })
     }
 
     setIsSubmitting(false)
     
     if (failCount === 0) {
+      if (successCount > 0) {
+        toast.success(`Đã tạo ${successCount} yêu cầu công việc`)
+      }
       onSuccess?.()
       onOpenChange(false)
       // Reset form
@@ -107,12 +141,14 @@ export function BulkCreateTaskDialog({
       setPriority('medium')
       setAssignedTo('')
       setNotes('')
+      setSkippedRooms([])
     }
   }
 
   const handleClose = () => {
     if (!isSubmitting) {
       onOpenChange(false)
+      setSkippedRooms([])
     }
   }
 
@@ -140,6 +176,17 @@ export function BulkCreateTaskDialog({
               )}
             </div>
           </div>
+
+          {/* Skipped rooms warning */}
+          {skippedRooms.length > 0 && (
+            <Alert className="border-amber-200 bg-amber-50">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="ml-2 text-amber-800 text-sm">
+                Đã bỏ qua {skippedRooms.length} phòng có công việc trùng: {skippedRooms.slice(0, 5).join(', ')}
+                {skippedRooms.length > 5 && ` và ${skippedRooms.length - 5} phòng khác`}
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Task Type */}
           <div>
