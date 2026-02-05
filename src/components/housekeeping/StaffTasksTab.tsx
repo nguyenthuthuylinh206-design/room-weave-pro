@@ -1,28 +1,32 @@
 import { useState, useEffect } from 'react'
-import { CheckCircle2, Clock, AlertTriangle, Inbox, Plus, Users } from 'lucide-react'
+import { CheckCircle2, Clock, AlertTriangle, Inbox, Plus, Users, ClipboardCheck, PackageSearch } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { TaskCard } from './TaskCard'
+import { UnifiedTaskCard } from './UnifiedTaskCard'
 import { RoomSelectDialog } from './RoomSelectDialog'
 import { CreateTaskDialog } from './CreateTaskDialog'
 import { TaskDetailDialog } from './TaskDetailDialog'
-import { useMyTasks, useUnassignedTasks } from '@/hooks/useHousekeepingTasks'
+import { useUnassignedTasks } from '@/hooks/useHousekeepingTasks'
+import { useUnifiedTasks, TaskSource } from '@/hooks/useUnifiedTasks'
 import { useUser } from '@/hooks/useUser'
 import { canCreateHousekeepingTask } from '@/lib/userAccess'
 import { cn } from '@/lib/utils'
 
-type FilterType = 'all' | 'pending' | 'in_progress'
+type StatusFilter = 'all' | 'pending' | 'in_progress'
+type SourceFilter = 'all' | TaskSource
 
 interface StaffTasksTabProps {
   initialTaskId?: string | null
 }
 
 export function StaffTasksTab({ initialTaskId }: StaffTasksTabProps) {
-  const { data: myTasks, isLoading: isLoadingMyTasks } = useMyTasks()
+  const { data: unifiedTasks, isLoading: isLoadingUnified } = useUnifiedTasks()
   const { data: unassignedTasks, isLoading: isLoadingUnassigned } = useUnassignedTasks()
   const { user } = useUser()
   const canCreateTask = canCreateHousekeepingTask(user)
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all')
   
   // Dialog states
   const [showRoomSelect, setShowRoomSelect] = useState(false)
@@ -42,16 +46,23 @@ export function StaffTasksTab({ initialTaskId }: StaffTasksTabProps) {
     }
   }, [initialTaskId])
 
-  // Separate my tasks by status
-  const pendingTasks = myTasks?.filter(t => t.status === 'pending') || []
-  const inProgressTasks = myTasks?.filter(t => t.status === 'in_progress') || []
+  // Filter tasks by source first
+  const filteredBySource = unifiedTasks?.filter(t => 
+    sourceFilter === 'all' || t.source === sourceFilter
+  ) || []
+  
+  // Separate by status
+  const pendingTasks = filteredBySource.filter(t => t.status === 'pending' || t.status === 'draft')
+  const inProgressTasks = filteredBySource.filter(t => t.status === 'in_progress')
   const urgentTasks = pendingTasks.filter(t => t.priority === 'urgent' || t.priority === 'high')
 
-  // Total count for display
-  const totalMyTasks = (myTasks?.length || 0)
+  // Counts
+  const totalTasks = unifiedTasks?.length || 0
+  const housekeepingCount = unifiedTasks?.filter(t => t.source === 'housekeeping').length || 0
+  const stockAdjustmentCount = unifiedTasks?.filter(t => t.source === 'stock_adjustment').length || 0
   const totalUnassigned = (unassignedTasks?.length || 0)
 
-  const isLoading = isLoadingMyTasks || isLoadingUnassigned
+  const isLoading = isLoadingUnified || isLoadingUnassigned
 
   // Handle room selection for creating new task
   const handleRoomSelect = (room: {
@@ -76,7 +87,7 @@ export function StaffTasksTab({ initialTaskId }: StaffTasksTabProps) {
   }
 
   // Empty state - no tasks at all
-  if (!myTasks?.length && !unassignedTasks?.length) {
+  if (!unifiedTasks?.length && !unassignedTasks?.length) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center px-6">
         <div className="w-20 h-20 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center mb-4">
@@ -117,28 +128,28 @@ export function StaffTasksTab({ initialTaskId }: StaffTasksTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Quick Stats */}
+      {/* Status Stats */}
       <div className="grid grid-cols-3 gap-2 px-4 pt-4">
         <button
           type="button"
-          onClick={() => setActiveFilter('all')}
+          onClick={() => setStatusFilter('all')}
           className={cn(
             'flex flex-col items-center p-3 rounded-lg border transition-colors',
-            activeFilter === 'all' 
+            statusFilter === 'all' 
               ? 'border-primary bg-primary/5' 
               : 'border-border hover:bg-muted/50'
           )}
         >
-          <span className="text-2xl font-bold">{totalMyTasks}</span>
+          <span className="text-2xl font-bold">{totalTasks}</span>
           <span className="text-xs text-muted-foreground">Của tôi</span>
         </button>
         
         <button
           type="button"
-          onClick={() => setActiveFilter('pending')}
+          onClick={() => setStatusFilter('pending')}
           className={cn(
             'flex flex-col items-center p-3 rounded-lg border transition-colors',
-            activeFilter === 'pending' 
+            statusFilter === 'pending' 
               ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20' 
               : 'border-border hover:bg-muted/50'
           )}
@@ -154,10 +165,10 @@ export function StaffTasksTab({ initialTaskId }: StaffTasksTabProps) {
         
         <button
           type="button"
-          onClick={() => setActiveFilter('in_progress')}
+          onClick={() => setStatusFilter('in_progress')}
           className={cn(
             'flex flex-col items-center p-3 rounded-lg border transition-colors',
-            activeFilter === 'in_progress' 
+            statusFilter === 'in_progress' 
               ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
               : 'border-border hover:bg-muted/50'
           )}
@@ -169,8 +180,44 @@ export function StaffTasksTab({ initialTaskId }: StaffTasksTabProps) {
         </button>
       </div>
 
+      {/* Source Filter - Only show if there are tasks from multiple sources */}
+      {(housekeepingCount > 0 || stockAdjustmentCount > 0) && (
+        <div className="flex gap-2 px-4 overflow-x-auto pb-1">
+          <Button
+            variant={sourceFilter === 'all' ? 'default' : 'outline'}
+            size="sm"
+            className="h-7 text-xs shrink-0"
+            onClick={() => setSourceFilter('all')}
+          >
+            Tất cả ({totalTasks})
+          </Button>
+          {housekeepingCount > 0 && (
+            <Button
+              variant={sourceFilter === 'housekeeping' ? 'default' : 'outline'}
+              size="sm"
+              className="h-7 text-xs shrink-0"
+              onClick={() => setSourceFilter('housekeeping')}
+            >
+              <ClipboardCheck className="h-3 w-3 mr-1" />
+              Buồng phòng ({housekeepingCount})
+            </Button>
+          )}
+          {stockAdjustmentCount > 0 && (
+            <Button
+              variant={sourceFilter === 'stock_adjustment' ? 'default' : 'outline'}
+              size="sm"
+              className="h-7 text-xs shrink-0"
+              onClick={() => setSourceFilter('stock_adjustment')}
+            >
+              <PackageSearch className="h-3 w-3 mr-1" />
+              Kiểm kê ({stockAdjustmentCount})
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Urgent Alert */}
-      {urgentTasks.length > 0 && activeFilter !== 'in_progress' && (
+      {urgentTasks.length > 0 && statusFilter !== 'in_progress' && (
         <div className="mx-4 p-3 rounded-lg bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800">
           <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
             <AlertTriangle className="h-4 w-4" />
@@ -184,43 +231,57 @@ export function StaffTasksTab({ initialTaskId }: StaffTasksTabProps) {
       {/* Task List */}
       <div className="px-4 space-y-4 pb-24">
         {/* In Progress Section */}
-        {inProgressTasks.length > 0 && (activeFilter === 'all' || activeFilter === 'in_progress') && (
+        {inProgressTasks.length > 0 && (statusFilter === 'all' || statusFilter === 'in_progress') && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium text-blue-600">
               <Clock className="h-4 w-4" />
               Đang thực hiện ({inProgressTasks.length})
             </div>
             {inProgressTasks.map(task => (
-              <TaskCard 
-                key={task.id} 
-                task={task} 
-                onClick={() => setSelectedTaskId(task.id)}
-              />
+              task.source === 'housekeeping' && task.originalHousekeepingTask ? (
+                <TaskCard 
+                  key={task.id} 
+                  task={task.originalHousekeepingTask} 
+                  onClick={() => setSelectedTaskId(task.id)}
+                />
+              ) : (
+                <UnifiedTaskCard
+                  key={task.id}
+                  task={task}
+                />
+              )
             ))}
           </div>
         )}
 
         {/* Pending Section */}
-        {pendingTasks.length > 0 && (activeFilter === 'all' || activeFilter === 'pending') && (
+        {pendingTasks.length > 0 && (statusFilter === 'all' || statusFilter === 'pending') && (
           <div className="space-y-2">
-            {(activeFilter === 'all' && inProgressTasks.length > 0) && (
+            {(statusFilter === 'all' && inProgressTasks.length > 0) && (
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mt-4">
                 <Inbox className="h-4 w-4" />
                 Chờ xử lý ({pendingTasks.length})
               </div>
             )}
             {pendingTasks.map(task => (
-              <TaskCard 
-                key={task.id} 
-                task={task} 
-                onClick={() => setSelectedTaskId(task.id)}
-              />
+              task.source === 'housekeeping' && task.originalHousekeepingTask ? (
+                <TaskCard 
+                  key={task.id} 
+                  task={task.originalHousekeepingTask} 
+                  onClick={() => setSelectedTaskId(task.id)}
+                />
+              ) : (
+                <UnifiedTaskCard
+                  key={task.id}
+                  task={task}
+                />
+              )
             ))}
           </div>
         )}
 
         {/* Unassigned Tasks Section */}
-        {totalUnassigned > 0 && activeFilter === 'all' && (
+        {totalUnassigned > 0 && statusFilter === 'all' && sourceFilter === 'all' && (
           <div className="space-y-2 pt-4 border-t">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <Users className="h-4 w-4" />
@@ -241,11 +302,13 @@ export function StaffTasksTab({ initialTaskId }: StaffTasksTabProps) {
         )}
 
         {/* Empty state for filtered view */}
-        {activeFilter !== 'all' && (
-          activeFilter === 'pending' ? pendingTasks.length === 0 : inProgressTasks.length === 0
+        {(statusFilter !== 'all' || sourceFilter !== 'all') && (
+          statusFilter === 'pending' ? pendingTasks.length === 0 : 
+          statusFilter === 'in_progress' ? inProgressTasks.length === 0 : 
+          filteredBySource.length === 0
         ) && (
           <div className="text-center py-8 text-muted-foreground">
-            <p>Không có công việc {activeFilter === 'pending' ? 'chờ xử lý' : 'đang thực hiện'}</p>
+            <p>Không có công việc phù hợp với bộ lọc</p>
           </div>
         )}
 
