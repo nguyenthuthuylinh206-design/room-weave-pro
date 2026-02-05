@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { useUser } from './useUser'
+import { sendTelegramNotification, createInAppNotification } from './useNotificationTriggers'
 import type { CheckoutInspectionRequest, CheckoutInspectionRequestWithDetails } from '@/types/checkout-inspection.types'
 
 export function useCheckoutInspection(bookingId: string | undefined) {
@@ -277,7 +278,7 @@ export function usePendingInspections(roomId: string | undefined) {
         })
         .eq('id', inspectionId)
         .eq('status', 'pending') // Chỉ update nếu đang pending (tránh duplicate/race condition)
-        .select('id, status, started_at')
+        .select('id, status, started_at, requested_by, hotel_id, room_id')
         .maybeSingle() // Dùng maybeSingle thay vì single để tránh lỗi khi 0 rows
       
       if (error) {
@@ -294,13 +295,51 @@ export function usePendingInspections(roomId: string | undefined) {
       console.log('[usePendingInspections.startInspection] Success, data:', data)
       return data
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       console.log('[usePendingInspections.startInspection] onSuccess:', data)
       queryClient.invalidateQueries({ queryKey: ['pending-inspection', roomId, user?.id] })
       queryClient.invalidateQueries({ queryKey: ['checkout-inspection'] })
       queryClient.invalidateQueries({ queryKey: ['room-has-pending-inspection', roomId] })
       if (data) {
         toast.success('Đã bắt đầu kiểm tra phòng')
+        
+        // THÊM: Gửi thông báo ngược cho người yêu cầu (requested_by)
+        if (data.requested_by && user?.tenant_id) {
+          // Lấy thông tin phòng
+          const { data: roomData } = await supabase
+            .from('rooms')
+            .select('room_number')
+            .eq('id', data.room_id)
+            .single()
+          
+          const roomNumber = roomData?.room_number || ''
+          const staffName = user?.full_name || 'Nhân viên'
+          
+          console.log('[usePendingInspections] Sending reverse notifications to requested_by:', data.requested_by)
+          
+          // Gửi thông báo song song
+          await Promise.allSettled([
+            // 1. In-app notification
+            createInAppNotification({
+              userId: data.requested_by,
+              tenantId: user.tenant_id,
+              title: `Đang kiểm tra phòng ${roomNumber}`,
+              body: `${staffName} đã bắt đầu kiểm tra phòng.`,
+              type: 'room_checkout',
+              actionUrl: '/bookings',
+            }),
+            // 2. Telegram notification
+            sendTelegramNotification({
+              tenantId: user.tenant_id,
+              hotelId: data.hotel_id,
+              userIds: [data.requested_by],
+              title: `🔄 Đang kiểm tra phòng ${roomNumber}`,
+              message: `${staffName} đã bắt đầu kiểm tra phòng.`,
+              notificationType: 'checkout',
+              actionUrl: '/bookings',
+            }),
+          ])
+        }
       }
     },
     onError: (error: Error) => {

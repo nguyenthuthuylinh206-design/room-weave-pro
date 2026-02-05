@@ -31,6 +31,7 @@ import { usePendingInspections, useRoomHasPendingInspection, useAutoCreateChecko
 import { useCreateMultipleChargeableConsumptions, type CreateChargeableConsumptionInput } from '@/hooks/useChargeableConsumptions'
 import { toast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
+import { sendTelegramNotification, createInAppNotification } from '@/hooks/useNotificationTriggers'
 import { CheckTypeStep } from '@/components/rooms/check-steps/CheckTypeStep'
 import { ItemsCheckStep } from '@/components/rooms/check-steps/ItemsCheckStep'
 import { ReviewStep } from '@/components/rooms/check-steps/ReviewStep'
@@ -786,6 +787,14 @@ export function RoomCheckPage() {
       // Auto-complete related housekeeping task if this is a checkout
       if (data.check_type === 'checkout' && room?.id && user?.id) {
         try {
+          // Lấy thông tin inspection để gửi thông báo ngược
+          const { data: inspectionData } = await supabase
+            .from('checkout_inspection_requests')
+            .select('id, requested_by, hotel_id')
+            .eq('room_id', room.id)
+            .in('status', ['pending', 'in_progress'])
+            .maybeSingle()
+          
           const { data: relatedTask } = await supabase
             .from('housekeeping_tasks')
             .select('id')
@@ -809,6 +818,37 @@ export function RoomCheckPage() {
             queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
             queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
             queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
+          }
+          
+          // THÊM: Gửi thông báo ngược cho người yêu cầu khi hoàn thành
+          if (inspectionData?.requested_by && user?.tenant_id) {
+            const roomNumber = room?.room_number || ''
+            const staffName = user?.full_name || 'Nhân viên'
+            
+            console.log('[RoomCheckPage] Sending checkout completion notification to:', inspectionData.requested_by)
+            
+            // Gửi thông báo song song
+            await Promise.allSettled([
+              // 1. In-app notification
+              createInAppNotification({
+                userId: inspectionData.requested_by,
+                tenantId: user.tenant_id,
+                title: `✅ Hoàn thành kiểm tra phòng ${roomNumber}`,
+                body: `${staffName} đã hoàn thành kiểm tra checkout.`,
+                type: 'room_checkout',
+                actionUrl: '/bookings',
+              }),
+              // 2. Telegram notification
+              sendTelegramNotification({
+                tenantId: user.tenant_id,
+                hotelId: inspectionData.hotel_id,
+                userIds: [inspectionData.requested_by],
+                title: `✅ Hoàn thành kiểm tra phòng ${roomNumber}`,
+                message: `${staffName} đã hoàn thành kiểm tra checkout. Phòng sẵn sàng để checkout.`,
+                notificationType: 'checkout',
+                actionUrl: '/bookings',
+              }),
+            ])
           }
         } catch (taskError) {
           console.error('[RoomCheckPage] Error auto-completing housekeeping task:', taskError)
