@@ -375,20 +375,37 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
           stockTracker[m.item_id] = getRemainingStock(m.item_id, m.item_stock)
         }
         
-        const canAllocate = Math.min(m.missing_qty, stockTracker[m.item_id])
+        // Get already allocated quantity for this item in this room
+        const existingAlloc = allocations.find(a => a.room_id === roomId)
+        const alreadyAllocated = existingAlloc?.items.find(i => i.item_id === m.item_id)?.quantity || 0
+        
+        // Calculate how much more we need to add (avoid double allocation)
+        const needToAdd = Math.max(0, m.missing_qty - alreadyAllocated)
+        
+        const canAllocate = Math.min(needToAdd, stockTracker[m.item_id])
         if (canAllocate > 0) {
           itemsToAdd.push({ item_id: m.item_id, quantity: canAllocate })
           stockTracker[m.item_id] -= canAllocate
           addedQty += canAllocate
         }
         
-        if (canAllocate < m.missing_qty) {
-          unfilledQty += (m.missing_qty - canAllocate)
+        if (canAllocate < needToAdd) {
+          unfilledQty += (needToAdd - canAllocate)
         }
       }
       
       if (itemsToAdd.length === 0) {
-        return { success: true, message: 'Không đủ tồn kho để cấp phát', count: 0, unfilled: unfilledQty }
+        // Check if room already has all required items
+        const allFilled = missingItems.every(m => {
+          const existingAlloc = allocations.find(a => a.room_id === roomId)
+          const alreadyAllocated = existingAlloc?.items.find(i => i.item_id === m.item_id)?.quantity || 0
+          return alreadyAllocated >= m.missing_qty
+        })
+        
+        if (allFilled) {
+          return { success: true, message: 'Phòng đã đủ số lượng theo tiêu chuẩn', count: 0, unfilled: 0 }
+        }
+        return { success: true, message: 'Không đủ tồn kho để cấp phát thêm', count: 0, unfilled: unfilledQty }
       }
       
       // Update allocations
@@ -399,6 +416,7 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
         itemsToAdd.forEach(({ item_id, quantity }) => {
           const itemIdx = existingItems.findIndex(i => i.item_id === item_id)
           if (itemIdx >= 0) {
+            // Add to existing quantity (we already calculated the delta)
             existingItems[itemIdx] = {
               ...existingItems[itemIdx],
               quantity: existingItems[itemIdx].quantity + quantity,
@@ -461,7 +479,14 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
           stockTracker[m.item_id] = getRemainingStock(m.item_id, m.item_stock)
         }
         
-        const canAllocate = Math.min(m.missing_qty, stockTracker[m.item_id])
+        // Get already allocated quantity for this item in this room
+        const existingAlloc = allocations.find(a => a.room_id === m.room_id)
+        const alreadyAllocated = existingAlloc?.items.find(i => i.item_id === m.item_id)?.quantity || 0
+        
+        // Calculate how much more we need to add (avoid double allocation)
+        const needToAdd = Math.max(0, m.missing_qty - alreadyAllocated)
+        
+        const canAllocate = Math.min(needToAdd, stockTracker[m.item_id])
         if (canAllocate > 0) {
           if (!byRoom[m.room_id]) byRoom[m.room_id] = []
           byRoom[m.room_id].push({ item_id: m.item_id, quantity: canAllocate })
@@ -469,13 +494,23 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
           totalAdded += canAllocate
         }
         
-        if (canAllocate < m.missing_qty) {
-          totalUnfilled += (m.missing_qty - canAllocate)
+        if (canAllocate < needToAdd) {
+          totalUnfilled += (needToAdd - canAllocate)
         }
       }
       
       if (Object.keys(byRoom).length === 0) {
-        return { success: true, message: 'Không đủ tồn kho để cấp phát', count: 0, unfilled: totalUnfilled }
+        // Check if all rooms already have required items
+        const allFilled = missingItems.every(m => {
+          const existingAlloc = allocations.find(a => a.room_id === m.room_id)
+          const alreadyAllocated = existingAlloc?.items.find(i => i.item_id === m.item_id)?.quantity || 0
+          return alreadyAllocated >= m.missing_qty
+        })
+        
+        if (allFilled) {
+          return { success: true, message: 'Tất cả phòng đã đủ số lượng theo tiêu chuẩn', count: 0, unfilled: 0 }
+        }
+        return { success: true, message: 'Không đủ tồn kho để cấp phát thêm', count: 0, unfilled: totalUnfilled }
       }
       
       // Merge with existing allocations
@@ -490,6 +525,7 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
             items.forEach(({ item_id, quantity }) => {
               const itemIdx = existingItems.findIndex(i => i.item_id === item_id)
               if (itemIdx >= 0) {
+                // Add to existing quantity (we already calculated the delta)
                 existingItems[itemIdx] = {
                   ...existingItems[itemIdx],
                   quantity: existingItems[itemIdx].quantity + quantity,
