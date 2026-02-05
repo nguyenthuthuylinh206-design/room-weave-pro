@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -36,11 +37,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
 import { useCreateTask } from '@/hooks/useHousekeepingTasks'
 import { useOnShiftStaffList } from '@/hooks/useOnShiftStaffList'
 import { cn } from '@/lib/utils'
-import type { TaskType, TaskPriority } from '@/types/housekeeping.types'
-import { TASK_TYPE_LABELS, PRIORITY_LABELS } from '@/types/housekeeping.types'
+import type { TaskType, TaskPriority, DuplicateTaskInfo } from '@/types/housekeeping.types'
+import { TASK_TYPE_LABELS, PRIORITY_LABELS, parseDuplicateTaskError } from '@/types/housekeeping.types'
 
 const TASK_ICONS: Record<TaskType, typeof ClipboardCheck> = {
   checkout_inspection: ClipboardCheck,
@@ -87,8 +90,10 @@ export function CreateTaskDialog({
   bookingId,
   defaultTaskType = 'cleaning'
 }: CreateTaskDialogProps) {
+  const navigate = useNavigate()
   const { mutateAsync: createTask, isPending } = useCreateTask()
   const { data: staffList = [], isLoading: staffLoading } = useOnShiftStaffList(hotelId)
+  const [duplicateTask, setDuplicateTask] = useState<DuplicateTaskInfo | null>(null)
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -105,6 +110,8 @@ export function CreateTaskDialog({
   const selectedTaskType = form.watch('task_type')
 
   const onSubmit = async (data: FormData) => {
+    setDuplicateTask(null)
+    
     try {
       await createTask({
         hotel_id: hotelId,
@@ -121,8 +128,19 @@ export function CreateTaskDialog({
       form.reset()
       onOpenChange(false)
     } catch (error) {
-      // Error handled in hook
+      // Check for duplicate task error
+      const duplicateInfo = parseDuplicateTaskError(error as Error)
+      if (duplicateInfo) {
+        setDuplicateTask(duplicateInfo)
+        return
+      }
+      // Other errors handled in hook
     }
+  }
+
+  const handleViewExistingTask = () => {
+    onOpenChange(false)
+    navigate(`/my-tasks?task=${duplicateTask?.id}`)
   }
 
   return (
@@ -134,6 +152,40 @@ export function CreateTaskDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Duplicate Task Warning */}
+            {duplicateTask && (
+              <Alert variant="destructive" className="border-amber-500 bg-amber-50 text-amber-900">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="ml-2">
+                  <p className="font-medium">Phòng này đã có công việc "{TASK_TYPE_LABELS[selectedTaskType]}"</p>
+                  <p className="text-sm mt-1">
+                    Trạng thái: {duplicateTask.status === 'in_progress' ? 'Đang thực hiện' : 'Chờ xử lý'}
+                    {duplicateTask.assignedName && ` • ${duplicateTask.assignedName}`}
+                  </p>
+                  <div className="mt-2 flex gap-2">
+                    <Button 
+                      type="button" 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={handleViewExistingTask}
+                      className="h-7 text-xs"
+                    >
+                      Xem công việc
+                    </Button>
+                    <Button 
+                      type="button" 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={() => setDuplicateTask(null)}
+                      className="h-7 text-xs"
+                    >
+                      Đóng
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Task Type */}
             <FormField
               control={form.control}

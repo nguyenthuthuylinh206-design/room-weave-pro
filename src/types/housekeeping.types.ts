@@ -111,3 +111,23 @@ export const STATUS_LABELS: Record<TaskStatus, string> = {
   completed: 'Hoàn thành',
   cancelled: 'Đã hủy'
 }
+
+// Duplicate task error structure
+export interface DuplicateTaskInfo {
+  id: string
+  status: TaskStatus
+  assignedName: string
+}
+
+export function parseDuplicateTaskError(error: Error): DuplicateTaskInfo | null {
+  if (!error.message.startsWith('DUPLICATE_TASK:')) return null
+  
+  const parts = error.message.split(':')
+  if (parts.length < 4) return null
+  
+  return {
+    id: parts[1],
+    status: parts[2] as TaskStatus,
+    assignedName: parts[3] || ''
+  }
+}

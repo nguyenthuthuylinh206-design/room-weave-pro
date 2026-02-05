@@ -14,7 +14,8 @@ import type {
   HousekeepingTask, 
   HousekeepingTaskWithDetails, 
   CreateTaskInput, 
-  TaskStatus 
+  TaskStatus,
+  TaskType
 } from '@/types/housekeeping.types'
 
 // Fetch a single task by ID
@@ -176,8 +177,31 @@ export function useCreateTask() {
   const userId = user?.id
 
   return useMutation({
-    mutationFn: async (input: CreateTaskInput) => {
+    mutationFn: async (input: CreateTaskInput & { skipDuplicateCheck?: boolean }) => {
       if (!tenantId) throw new Error('Không tìm thấy tenant')
+
+      // Check for duplicate active task (same room + task_type + status pending/in_progress)
+      if (!input.skipDuplicateCheck) {
+        const { data: existingTask } = await supabase
+          .from('housekeeping_tasks')
+          .select(`
+            id, 
+            status, 
+            assigned_to,
+            assigned_user:users!housekeeping_tasks_assigned_to_fkey(full_name)
+          `)
+          .eq('room_id', input.room_id)
+          .eq('task_type', input.task_type)
+          .in('status', ['pending', 'in_progress'])
+          .maybeSingle()
+
+        if (existingTask) {
+          const assignedName = (existingTask.assigned_user as any)?.full_name || ''
+          throw new Error(
+            `DUPLICATE_TASK:${existingTask.id}:${existingTask.status}:${assignedName}`
+          )
+        }
+      }
 
       const { data, error } = await supabase
         .from('housekeeping_tasks')
