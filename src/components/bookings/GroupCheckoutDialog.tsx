@@ -367,7 +367,9 @@ export function GroupCheckoutDialog({
         if (!booking || !staffId) continue
         
         // Create inspection request
-        await supabase.from('checkout_inspection_requests').insert({
+        const { data: inspectionData, error: inspectionError } = await supabase
+          .from('checkout_inspection_requests')
+          .insert({
           tenant_id: tenantId,
           hotel_id: hotelId,
           room_id: booking.room_id,
@@ -376,6 +378,13 @@ export function GroupCheckoutDialog({
           requested_by: user?.id,
           status: 'pending',
         })
+          .select('id')
+          .single()
+
+        if (inspectionError) {
+          console.error('Error creating inspection request:', inspectionError)
+          continue
+        }
         
         // Create housekeeping task
         await supabase.from('housekeeping_tasks').insert({
@@ -389,6 +398,7 @@ export function GroupCheckoutDialog({
           title: `Kiểm tra checkout P.${booking.room?.room_number}`,
           priority: 'high',
           status: 'pending',
+          checkout_inspection_id: inspectionData.id,
         })
         
         // Send notifications (parallel)

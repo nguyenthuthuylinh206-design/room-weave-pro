@@ -1,4 +1,31 @@
 
+## ✅ HOÀN THÀNH: Tích hợp tất cả công việc vào "Công việc của tôi"
+
+### THAY ĐỔI ĐÃ THỰC HIỆN
+
+#### 1. Sửa lỗi Group Checkout thiếu liên kết ✅
+- **File:** `src/components/bookings/GroupCheckoutDialog.tsx`
+- Thêm `.select('id').single()` khi insert `checkout_inspection_requests`
+- Truyền `checkout_inspection_id` vào `housekeeping_tasks`
+
+#### 2. Tạo Unified Task Hook ✅
+- **File mới:** `src/hooks/useUnifiedTasks.ts`
+- Query song song housekeeping_tasks và stock_adjustments
+- Transform về format `UnifiedTask` chung
+- Realtime subscriptions cho cả 2 bảng
+
+#### 3. Tạo UnifiedTaskCard Component ✅
+- **File mới:** `src/components/housekeeping/UnifiedTaskCard.tsx`
+- Hiển thị task từ nhiều nguồn với icon khác nhau
+- Navigate đến đúng module khi click
+
+#### 4. Cập nhật StaffTasksTab ✅
+- **File:** `src/components/housekeeping/StaffTasksTab.tsx`
+- Thay `useMyTasks()` bằng `useUnifiedTasks()`
+- Thêm source filter (Tất cả, Buồng phòng, Kiểm kê)
+- Render đúng card component theo source
+
+---
 
 ## Kế hoạch: Tích hợp tất cả công việc vào "Công việc của tôi"
 
