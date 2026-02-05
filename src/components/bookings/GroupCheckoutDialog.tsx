@@ -584,9 +584,27 @@ export function GroupCheckoutDialog({
           guestName: booking.guest_name,
           roomPrice: (booking as any).room_price || 0,
           bookingType: (booking.booking_type as 'daily' | 'hourly' | 'monthly') || 'daily',
+          checkOutDate: new Date(),
+          scheduledCheckOutDate: booking.check_out_date ? new Date(booking.check_out_date) : new Date(),
+          hourlyRate: (booking as any).hourly_rate || 0,
+          hours: (booking as any).booking_hours || 0,
+          monthlyRate: (booking as any).monthly_rate || 0,
+          months: (booking as any).booking_months || 0,
         }
       })
-      .filter(Boolean) as { bookingId: string; roomNumber: string; guestName: string; roomPrice: number; bookingType: 'daily' | 'hourly' | 'monthly' }[]
+      .filter(Boolean) as {
+        bookingId: string
+        roomNumber: string
+        guestName: string
+        roomPrice: number
+        bookingType: 'daily' | 'hourly' | 'monthly'
+        checkOutDate?: Date
+        scheduledCheckOutDate?: Date
+        hourlyRate?: number
+        hours?: number
+        monthlyRate?: number
+        months?: number
+      }[]
   }, [groupData, selectedRooms, inspectionMap])
   
   // Calculate aggregated totals for confirm dialog
