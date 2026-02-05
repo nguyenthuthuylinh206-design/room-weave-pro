@@ -1,84 +1,147 @@
 
-## Kế hoạch: Sửa lỗi tạo phiếu giao hàng từ Supplement Request
+
+## Kế hoạch: Sửa lỗi không tạo yêu cầu bảo trì từ đồ bị hỏng
 
 ### VẤN ĐỀ ĐÃ XÁC ĐỊNH
 
-**Lỗi**: `PGRST203 - Could not choose the best candidate function`
+Khi kiểm tra phòng và đánh dấu đồ bị hỏng (damaged), hệ thống gửi thông báo về đồ hỏng nhưng **KHÔNG tạo yêu cầu bảo trì** vì thiếu thông tin `item_type`.
 
-**Nguyên nhân**: Database có 2 versions của RPC `create_distribution_order`:
-- Version 6 params: `(p_tenant_id, p_hotel_id, p_created_by, p_assigned_to, p_rooms, p_notes)`
-- Version 8 params: `(p_tenant_id, p_hotel_id, p_created_by, p_assigned_to, p_rooms, p_notes, p_auto_release, p_supplement_request_ids)`
+### PHÂN TÍCH KỸ THUẬT
 
-Khi hook `useCreateDistributionFromSupplement.ts` gọi RPC với 6 params, PostgreSQL không thể quyết định dùng version nào vì cả 2 đều có thể match (version 8 có default values cho 2 params cuối).
+**Logic kiểm tra trong `createMaintenanceForDamagedItems`:**
+```text
+// useRoomChecks.ts - dòng 1527-1530
+const equipmentTypes = ['equipment', 'furniture']
+const maintenanceItems = damagedItems.filter(item => 
+  equipmentTypes.includes(item.item_type || '')  // ← Kiểm tra item_type
+)
 
-### SO SÁNH CÁC HOOKS
+if (maintenanceItems.length === 0) return []  // ← Không tạo nếu không match
+```
 
-| Hook | Params | Trạng thái |
-|------|--------|------------|
-| `useDistributionOrders.ts` | 8 params (có `p_auto_release`, `p_supplement_request_ids`) | OK |
-| `useCreateDistributionFromSupplements.ts` | 8 params (có `p_auto_release`, `p_supplement_request_ids`) | OK |
-| `useCreateDistributionFromSupplement.ts` | 6 params (thiếu 2 params) | LOI |
+**Dữ liệu thực tế trong database:**
+```text
+room_checks.items_damaged = [
+  {
+    "item_id": "...",
+    "item_name": "Điện thoại bàn",
+    "damage_cost": 225000,
+    "damage_type": "repairable",
+    "quantity": 1,
+    "notes": "Hỏng dây"
+    // ❌ THIẾU: "item_type": "equipment"
+  }
+]
+```
+
+**Kết quả:**
+- `item.item_type` = `undefined`
+- `item.item_type || ''` = `''`
+- `equipmentTypes.includes('')` = `false`
+- `maintenanceItems.length` = `0`
+- **Không tạo yêu cầu bảo trì → Không có thông báo**
+
+---
+
+### NGUYÊN NHÂN GỐC
+
+**File:** `src/components/rooms/check-steps/ItemsCheckStep.tsx`
+
+Hàm `handleMarkDamaged` (dòng 248-258) **không truyền `item_type`** khi tạo DamagedItem:
+
+```typescript
+const handleMarkDamaged = (item: RoomItemWithDetails, damageInfo: {...}) => {
+  setDamagedItems(prev => [...prev, {
+    item_id: item.item_id,
+    item_name: item.item_name,
+    item_code: item.item_code,
+    quantity: 1,
+    damage_type: damageInfo.damage_type,
+    damage_cost: damageInfo.damage_cost,
+    notes: damageInfo.notes,
+    // ❌ THIẾU: item_type: (item as any).item_type
+  }]);
+};
+```
+
+Mặc dù `CategoryBasedItemsCheck` fetch và enrich `item_type` từ database, nhưng thông tin này **bị mất** khi gọi `onMarkDamaged`.
 
 ---
 
 ### GIẢI PHÁP
 
-**File**: `src/hooks/useCreateDistributionFromSupplement.ts`
+#### 1. Cập nhật interface `onMarkDamaged` để nhận thêm `item_type`
 
-Thêm 2 params còn thiếu để tránh function overloading ambiguity:
+**File:** `src/components/rooms/check-steps/ItemsCheckStep.tsx`
 
-**Trước (dòng 42-55)**:
 ```typescript
-const { data: result, error: createError } = await supabase.rpc('create_distribution_order', {
-  p_tenant_id: tenant.id,
-  p_hotel_id: request.hotel_id,
-  p_created_by: user.id,
-  p_assigned_to: assignedTo || null,
-  p_rooms: [{
-    room_id: request.room_id,
-    items: requestItems.map(item => ({
-      item_id: item.item_id,
-      quantity: item.quantity,
-    })),
-  }],
-  p_notes: `Bổ sung theo yêu cầu ${request.request_code}`,
-})
+// Sửa handleMarkDamaged để bao gồm item_type
+const handleMarkDamaged = (
+  item: RoomItemWithDetails, 
+  damageInfo: { 
+    damage_type: 'repairable' | 'replacement_needed'; 
+    damage_cost: number; 
+    notes?: string;
+    item_type?: 'linen' | 'consumable' | 'equipment' | 'furniture';  // THÊM
+  }
+) => {
+  setDamagedItems(prev => [...prev, {
+    item_id: item.item_id,
+    item_name: item.item_name,
+    item_code: item.item_code,
+    quantity: 1,
+    damage_type: damageInfo.damage_type,
+    damage_cost: damageInfo.damage_cost,
+    notes: damageInfo.notes,
+    item_type: damageInfo.item_type || (item as any).item_type,  // THÊM
+  }]);
+};
 ```
 
-**Sau**:
+#### 2. Cập nhật `CategoryBasedItemsCheck` để truyền `item_type`
+
+**File:** `src/components/rooms/check-steps/CategoryBasedItemsCheck.tsx`
+
 ```typescript
-const { data: result, error: createError } = await supabase.rpc('create_distribution_order', {
-  p_tenant_id: tenant.id,
-  p_hotel_id: request.hotel_id,
-  p_created_by: user.id,
-  p_assigned_to: assignedTo || null,
-  p_rooms: [{
-    room_id: request.room_id,
-    items: requestItems.map(item => ({
-      item_id: item.item_id,
-      quantity: item.quantity,
-    })),
-  }],
-  p_notes: `Bổ sung theo yêu cầu ${request.request_code}`,
-  p_auto_release: !!assignedTo, // Auto release nếu có assigned
-  p_supplement_request_ids: [supplementRequestId], // Truyền supplement request ID
-})
+// Dòng 243-249: Thêm item_type vào damageInfo
+case 'damaged':
+  onMarkDamaged(item, {
+    damage_type: action.damageType,
+    damage_cost: action.damageCost,
+    notes: action.notes,
+    item_type: item.item_type,  // THÊM - item đã có item_type từ ExtendedRoomItem
+  })
+  break
+```
+
+#### 3. Cập nhật props interface
+
+**File:** `src/components/rooms/check-steps/CategoryBasedItemsCheck.tsx`
+
+```typescript
+// Cập nhật type cho onMarkDamaged trong interface
+onMarkDamaged: (
+  item: RoomItemWithDetails, 
+  damageInfo: { 
+    damage_type: 'repairable' | 'replacement_needed'; 
+    damage_cost: number; 
+    notes?: string;
+    item_type?: ItemType;  // THÊM
+  }
+) => void
 ```
 
 ---
 
 ### THAY ĐỔI CHI TIẾT
 
-| # | Thay đổi | Lý do |
-|---|----------|-------|
-| 1 | Thêm `p_auto_release: !!assignedTo` | Tự động release phiếu nếu có chọn nhân viên |
-| 2 | Thêm `p_supplement_request_ids: [supplementRequestId]` | Để RPC có thể xử lý link ngược (nếu có logic) |
-
----
-
-### BONUS: Loại bỏ Code Thừa
-
-Vì RPC version 8 có thể tự động cập nhật `supplement_request_id` trong `distribution_orders`, có thể loại bỏ bước thủ công ở dòng 74-84 trong hook. Tuy nhiên, để an toàn, giữ lại bước update supplement request status thủ công vì RPC chính chỉ link distribution order đến supplement requests.
+| # | File | Thay đổi |
+|---|------|----------|
+| 1 | `ItemsCheckStep.tsx` | Thêm `item_type` vào `handleMarkDamaged` và object DamagedItem |
+| 2 | `CategoryBasedItemsCheck.tsx` | Truyền `item.item_type` khi gọi `onMarkDamaged` |
+| 3 | `CategoryBasedItemsCheck.tsx` | Cập nhật interface props cho `onMarkDamaged` |
+| 4 | `EquipmentTab.tsx` (nếu dùng) | Truyền `item_type` tương tự |
+| 5 | `FurnitureTab.tsx` (nếu dùng) | Truyền `item_type` tương tự |
 
 ---
 
@@ -86,6 +149,24 @@ Vì RPC version 8 có thể tự động cập nhật `supplement_request_id` tr
 
 | Trước | Sau |
 |-------|-----|
-| Lỗi PGRST203 khi ấn "Duyệt & Tạo phiếu giao" | Tạo phiếu giao hàng thành công |
-| Status 300 từ API | Status 200 từ API |
-| Toast "Lỗi tạo phiếu giao hàng" | Toast "Đã duyệt yêu cầu và tạo phiếu giao hàng" |
+| `items_damaged` không có `item_type` | `items_damaged` có `item_type: "equipment"` |
+| `maintenanceItems.length = 0` | `maintenanceItems.length > 0` |
+| Không tạo maintenance request | Tạo maintenance request thành công |
+| Không có thông báo bảo trì | Có thông báo Telegram/Push/In-app |
+
+**Flow sau khi sửa:**
+
+```text
+Nhân viên đánh dấu "Điện thoại bàn" hỏng
+    ↓
+DamagedItem = { item_name: "Điện thoại bàn", item_type: "equipment", ... }
+    ↓
+room_checks.items_damaged lưu với item_type
+    ↓
+createMaintenanceForDamagedItems filter → maintenanceItems = [1 item]
+    ↓
+Tạo maintenance_request "Sửa chữa Điện thoại bàn - Phòng P103"
+    ↓
+Gửi thông báo đến manager qua Push/In-app/Telegram
+```
+
