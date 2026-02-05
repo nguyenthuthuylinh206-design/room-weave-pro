@@ -134,6 +134,7 @@ export function GroupCheckoutDialog({
     }
   }, [open, resetCosts])
 
+
   // Fetch inspection statuses for all bookings in the group
   const { data: inspectionStatuses, isLoading: isLoadingInspections, refetch: refetchInspections } = useQuery({
     queryKey: ['group-inspections', bookingGroupId],
@@ -203,6 +204,39 @@ export function GroupCheckoutDialog({
     enabled: !!groupData?.bookings && open,
     refetchInterval: 10000, // Refresh every 10 seconds
   })
+
+  // Realtime subscription for inspection status changes
+  useEffect(() => {
+    if (!groupData?.bookings || !open) return
+    
+    const bookingIds = groupData.bookings.map(b => b.id)
+    
+    // Subscribe to checkout_inspection_requests changes for this group
+    const channel = supabase
+      .channel(`group-inspections-realtime-${bookingGroupId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'checkout_inspection_requests',
+          filter: `booking_id=in.(${bookingIds.join(',')})`,
+        },
+        (payload) => {
+          console.log('[GroupCheckout Realtime] Inspection changed:', payload)
+          refetchInspections()
+          // Also invalidate cost calculations to update damage charges
+          queryClient.invalidateQueries({ queryKey: ['group-inspections', bookingGroupId] })
+        }
+      )
+      .subscribe((status) => {
+        console.log('[GroupCheckout Realtime] Channel status:', status)
+      })
+    
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [groupData?.bookings, bookingGroupId, open, refetchInspections, queryClient])
 
   // Create inspection map for quick lookup
   const inspectionMap = useMemo(() => {
