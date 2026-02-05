@@ -52,6 +52,8 @@ export function useCreateDistributionFromSupplement() {
           })),
         }],
         p_notes: `Bổ sung theo yêu cầu ${request.request_code}`,
+      p_auto_release: !!assignedTo,
+      p_supplement_request_ids: [supplementRequestId],
       })
 
       if (createError) throw createError
