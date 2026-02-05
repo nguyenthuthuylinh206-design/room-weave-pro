@@ -170,9 +170,15 @@ export function GroupCheckoutDialog({
         if (roomCheck) {
           const lost = roomCheck.items_lost as any[] || []
           const damaged = roomCheck.items_damaged as any[] || []
-          damageCharge = [...lost, ...damaged].reduce((sum, item) => 
-            sum + (item.charge_amount || 0) * (item.quantity || 1), 0
+          // Calculate lost items with estimated_value
+          const lostTotal = lost.reduce((sum, item) => 
+            sum + (item.estimated_value || 0) * (item.quantity || 1), 0
           )
+          // Calculate damaged items with damage_cost
+          const damagedTotal = damaged.reduce((sum, item) => 
+            sum + (item.damage_cost || 0) * (item.quantity || 1), 0
+          )
+          damageCharge = lostTotal + damagedTotal
         }
 
         if (!inspection) {
@@ -210,6 +216,7 @@ export function GroupCheckoutDialog({
     if (!groupData?.bookings || !open) return
     
     const bookingIds = groupData.bookings.map(b => b.id)
+    const roomIds = groupData.bookings.map(b => b.room_id)
     
     // Subscribe to checkout_inspection_requests changes for this group
     const channel = supabase
@@ -233,8 +240,42 @@ export function GroupCheckoutDialog({
         console.log('[GroupCheckout Realtime] Channel status:', status)
       })
     
+    // Subscribe to room_checks changes to get damage data immediately
+    const roomChecksChannel = supabase
+      .channel(`group-roomchecks-realtime-${bookingGroupId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'room_checks',
+          filter: `room_id=in.(${roomIds.join(',')})`,
+        },
+        (payload) => {
+          console.log('[GroupCheckout Realtime] Room check inserted:', payload)
+          refetchInspections()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'room_checks',
+          filter: `room_id=in.(${roomIds.join(',')})`,
+        },
+        (payload) => {
+          console.log('[GroupCheckout Realtime] Room check updated:', payload)
+          refetchInspections()
+        }
+      )
+      .subscribe((status) => {
+        console.log('[GroupCheckout Realtime] Room checks channel status:', status)
+      })
+    
     return () => {
       supabase.removeChannel(channel)
+      supabase.removeChannel(roomChecksChannel)
     }
   }, [groupData?.bookings, bookingGroupId, open, refetchInspections, queryClient])
 
