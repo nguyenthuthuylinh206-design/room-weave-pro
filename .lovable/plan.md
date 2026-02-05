@@ -1,146 +1,91 @@
 
 
-## Kế hoạch: Bổ sung đồng bộ thông báo cho Group Checkout
+## Phân tích: Nút "Tự động" không cộng dồn số lượng
 
-### VẤN ĐỀ ĐÃ XÁC ĐỊNH
+### HÀNH VI HIỆN TẠI
 
-Sau khi phân tích code và database, tôi tìm thấy **2 vấn đề chính**:
+Nút **"Tự động"** hoạt động theo logic:
 
----
-
-### VẤN ĐỀ 1: Thiếu Realtime Subscription
-
-**Hiện trạng:** `GroupCheckoutDialog` chỉ dùng `refetchInterval: 10000` (polling mỗi 10 giây) - KHÔNG có realtime subscription để theo dõi thay đổi status của inspection requests.
-
-**So sánh:**
-| Component | Realtime | Cơ chế |
-|-----------|----------|--------|
-| Checkout lẻ (`useCheckoutInspection`) | ✅ Có | `supabase.channel().on('postgres_changes')` |
-| Group Checkout (`GroupCheckoutDialog`) | ❌ Không | Chỉ có polling 10s |
-
-**Kết quả:** Khi NV Linh bắt đầu/hoàn thành kiểm tra phòng, UI của GroupCheckoutDialog không cập nhật ngay lập tức.
-
----
-
-### VẤN ĐỀ 2: Thiếu Thông báo Ngược (Reverse Notification)
-
-**Hiện trạng:** Khi gửi yêu cầu kiểm tra → có thông báo đến nhân viên ✅
-
-Nhưng khi nhân viên **BẮT ĐẦU** hoặc **HOÀN THÀNH** kiểm tra → **KHÔNG có thông báo ngược** cho lễ tân/quản lý ❌
-
-**Flow hiện tại:**
 ```text
-Quản lý → [Gửi yêu cầu] → [Push/InApp/Telegram] → NV Linh
-NV Linh → [Bắt đầu kiểm tra] → ❌ Không thông báo cho Quản lý
-NV Linh → [Hoàn thành] → ❌ Không thông báo cho Quản lý
+Lần 1: 
+- Query database: Phòng thiếu 3 khăn (tiêu chuẩn 5, hiện có 2)
+- Điền: +3 khăn ✅
+- Kho: 10 → tính còn 7
+
+Lần 2:
+- Query database: Phòng vẫn thiếu 3 khăn (database chưa cập nhật)
+- Nhưng getRemainingStock() kiểm tra allocations đã có 3 khăn
+- canAllocate = min(3, 7-3=4) = 3
+- Điền: existingItems[idx].quantity + 3 = 3 + 3 = 6 ❌ BUG!
 ```
+
+**Thực tế đang có BUG**: Code ở dòng 401-405 **ĐANG CỘNG DỒN** nếu còn kho! Vấn đề là nếu tồn kho đã hết thì `canAllocate = 0` nên không thêm được gì.
+
+---
+
+### NGUYÊN NHÂN THỰC SỰ
+
+Sau khi phân tích kỹ, vấn đề là:
+
+1. **RPC chỉ trả về items có `quantity_in_stock > 0`** (dòng 44 trong SQL)
+2. **Nếu kho đã cạn** sau lần điền đầu tiên → RPC không trả về item đó nữa
+3. **Kết quả**: `missingItems` trống hoặc thiếu items → không có gì để cộng dồn
 
 ---
 
 ### GIẢI PHÁP
 
-#### 1. Thêm Realtime Subscription vào GroupCheckoutDialog
+Thay đổi logic để khi ấn "Tự động" lần 2:
+- Vẫn tính số thiếu từ database 
+- **Nhưng chỉ cộng thêm phần CHƯA được điền** (so với allocations hiện tại)
+- Tránh điền trùng lặp
 
 ```typescript
-// Thêm useEffect để subscribe realtime changes
-useEffect(() => {
-  if (!groupData?.bookings || !open) return
+// Trong autoFillMissingItemsForRoom
+for (const m of missingItems) {
+  // Lấy số đã điền trong allocations
+  const existingAlloc = prev.find(a => a.room_id === roomId)
+  const alreadyAllocated = existingAlloc?.items.find(i => i.item_id === m.item_id)?.quantity || 0
   
-  const bookingIds = groupData.bookings.map(b => b.id)
+  // Số cần thêm = số thiếu - số đã điền
+  const needToAdd = Math.max(0, m.missing_qty - alreadyAllocated)
   
-  const channel = supabase
-    .channel(`group-inspections-${bookingGroupId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'checkout_inspection_requests',
-        filter: `booking_id=in.(${bookingIds.join(',')})`,
-      },
-      (payload) => {
-        console.log('[GroupCheckout Realtime] Inspection changed:', payload)
-        refetchInspections()
-        // Invalidate cost calculations if needed
-        queryClient.invalidateQueries({ queryKey: ['group-inspections', bookingGroupId] })
-      }
-    )
-    .subscribe()
-  
-  return () => {
-    supabase.removeChannel(channel)
-  }
-}, [groupData?.bookings, bookingGroupId, open, refetchInspections, queryClient])
-```
-
-#### 2. Thêm Thông báo Ngược khi Nhân viên Bắt đầu/Hoàn thành
-
-Cập nhật `useCheckoutInspection.ts` - hàm `startInspection`:
-
-```typescript
-// Trong onSuccess của startInspection
-onSuccess: (data) => {
-  // ... existing code ...
-  
-  // THÊM: Gửi thông báo cho người yêu cầu
-  if (data && pendingInspection?.requested_by) {
-    const roomNumber = pendingInspection.room?.room_number || ''
-    const staffName = user?.full_name || 'Nhân viên'
-    
-    sendTelegramNotification({
-      tenantId: user?.tenantId,
-      hotelId: pendingInspection.hotel_id,
-      userIds: [pendingInspection.requested_by],
-      title: `🔄 Đang kiểm tra phòng ${roomNumber}`,
-      message: `${staffName} đã bắt đầu kiểm tra phòng.`,
-      notificationType: 'checkout',
-    })
-    
-    createInAppNotification({
-      userId: pendingInspection.requested_by,
-      tenantId: user?.tenantId,
-      title: `Đang kiểm tra phòng ${roomNumber}`,
-      body: `${staffName} đã bắt đầu kiểm tra phòng.`,
-      type: 'room_checkout',
-    })
+  if (needToAdd > 0) {
+    // Tính kho còn
+    const remaining = getRemainingStock(m.item_id, m.item_stock)
+    const canAllocate = Math.min(needToAdd, remaining)
+    // ...
   }
 }
 ```
 
-Tương tự cho khi hoàn thành kiểm tra (trong `RoomCheckPage` sau khi submit).
-
 ---
 
-### FILES CẦN THAY ĐỔI
+### THAY ĐỔI CẦN THỰC HIỆN
 
 | # | File | Thay đổi |
 |---|------|----------|
-| 1 | `src/components/bookings/GroupCheckoutDialog.tsx` | Thêm realtime subscription cho checkout_inspection_requests |
-| 2 | `src/hooks/useCheckoutInspection.ts` | Thêm reverse notifications trong `startInspection` |
-| 3 | `src/pages/RoomCheckPage.tsx` | Thêm thông báo cho `requested_by` khi hoàn thành checkout check |
+| 1 | `useDistributionForm.ts` | Cập nhật `autoFillMissingItemsForRoom` để trừ số đã điền trước khi tính thêm |
+| 2 | `useDistributionForm.ts` | Cập nhật `autoFillMissingItems` tương tự |
 
 ---
 
-### KẾT QUẢ MONG ĐỢI
+### HÀNH VI SAU KHI SỬA
 
-**Sau khi sửa:**
-
-| Sự kiện | Trước | Sau |
-|---------|-------|-----|
-| Gửi yêu cầu kiểm tra | ✅ NV nhận thông báo | ✅ Giữ nguyên |
-| NV bắt đầu kiểm tra | ❌ Không thông báo | ✅ Quản lý nhận Telegram + In-app |
-| NV hoàn thành kiểm tra | ❌ Không thông báo | ✅ Quản lý nhận Telegram + In-app |
-| UI GroupCheckout | ❌ Cập nhật chậm (10s) | ✅ Cập nhật realtime |
-
-**Flow sau khi sửa:**
 ```text
-Quản lý → [Gửi yêu cầu] → [Push/InApp/Telegram] → NV Linh
-NV Linh → [Bắt đầu] → [InApp/Telegram] → Quản lý
-           ↓
-   [Realtime] → UI GroupCheckout cập nhật ngay
-           ↓
-NV Linh → [Hoàn thành] → [InApp/Telegram] → Quản lý
-           ↓
-   [Realtime] → UI GroupCheckout hiển thị ✅ Hoàn thành
+Lần 1:
+- Phòng thiếu 3 khăn, đã điền 0
+- Thêm: min(3-0, kho) = 3 ✅
+
+Lần 2:
+- Phòng thiếu 3 khăn, đã điền 3
+- Thêm: min(3-3, kho) = 0 
+- Message: "Phòng đã đủ tiêu chuẩn" ✅
+
+Nếu user XÓA bớt 1:
+- Đã điền còn 2
+- Ấn Tự động: thêm min(3-2, kho) = 1 ✅
 ```
+
+**Kết quả**: Nút "Tự động" luôn điền **đúng số thiếu theo tiêu chuẩn**, không cộng dồn vô hạn, và thông báo rõ ràng khi đã đủ.
 
