@@ -245,7 +245,7 @@ export function ItemsCheckStep({
     }]);
   };
 
-  const handleMarkDamaged = (item: RoomItemWithDetails, damageInfo: { damage_type: 'repairable' | 'replacement_needed'; damage_cost: number; notes?: string }) => {
+const handleMarkDamaged = (item: RoomItemWithDetails, damageInfo: { damage_type: 'repairable' | 'replacement_needed'; damage_cost: number; notes?: string; item_type?: 'linen' | 'consumable' | 'equipment' | 'furniture' }) => {
     setDamagedItems(prev => [...prev, {
       item_id: item.item_id,
       item_name: item.item_name,
@@ -254,6 +254,7 @@ export function ItemsCheckStep({
       damage_type: damageInfo.damage_type,
       damage_cost: damageInfo.damage_cost,
       notes: damageInfo.notes,
+      item_type: damageInfo.item_type || (item as any).item_type,
     }]);
   };
 
