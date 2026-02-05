@@ -1,147 +1,123 @@
 
 
-## Kế hoạch: Sửa lỗi không tạo yêu cầu bảo trì từ đồ bị hỏng
+## Kế hoạch: Tích hợp tất cả công việc vào "Công việc của tôi"
 
-### VẤN ĐỀ ĐÃ XÁC ĐỊNH
+### PHÂN TÍCH HIỆN TRẠNG
 
-Khi kiểm tra phòng và đánh dấu đồ bị hỏng (damaged), hệ thống gửi thông báo về đồ hỏng nhưng **KHÔNG tạo yêu cầu bảo trì** vì thiếu thông tin `item_type`.
+Hệ thống hiện có 6 loại task trong `housekeeping_tasks`:
 
-### PHÂN TÍCH KỸ THUẬT
+| Task Type | Mô tả | Nguồn tạo |
+|-----------|-------|-----------|
+| `checkout_inspection` | Kiểm tra checkout | Group Checkout, Checkout Summary |
+| `cleaning` | Dọn phòng | Cleaning Banner, Manual |
+| `checkin_prep` | Chuẩn bị check-in | Manual |
+| `amenity_request` | Bổ sung đồ dùng | Manual |
+| `delivery_confirmation` | Xác nhận nhận hàng | Distribution workflow (auto) |
+| `other` | Khác | Manual |
 
-**Logic kiểm tra trong `createMaintenanceForDamagedItems`:**
+### VẤN ĐỀ 1: Group Checkout thiếu liên kết (ĐÃ CÓ PLAN)
+
+Task tạo từ Group Checkout không có `checkout_inspection_id`, gây:
+- Task không được auto-complete khi room check xong
+- Inspection và Task không đồng bộ
+
+**Fix**: Đã có plan chờ implement
+
+### VẤN ĐỀ 2: Các công việc khác không hiển thị ở "Công việc của tôi"
+
+Các module sau có công việc riêng nhưng KHÔNG đổ về My Tasks:
+
+| Module | Bảng dữ liệu | Hiển thị ở | Vấn đề |
+|--------|--------------|------------|--------|
+| Giặt là | `laundry_requests` | `/laundry` → Tab "Yêu cầu giặt" | Staff phải vào riêng |
+| Kiểm kê kho | `stock_adjustments` | `/inventory/adjustments` | Staff phải vào riêng |
+| Bảo trì | `maintenance_requests` | `/maintenance` | Staff phải vào riêng |
+| Bổ sung đồ | `supplement_requests` | `/supplements` | Staff phải vào riêng |
+
+---
+
+### GIẢI PHÁP ĐỀ XUẤT
+
+#### Phương án: Unified Task View
+
+Tạo view tổng hợp tất cả công việc được giao cho nhân viên tại `/my-tasks`, bao gồm:
+
+1. **Housekeeping Tasks** (đã có)
+2. **Laundry Requests** - Yêu cầu giặt được assign
+3. **Stock Adjustments** - Phiếu kiểm kê được assign
+4. **Maintenance Requests** - Yêu cầu bảo trì được assign
+
+**Luồng dữ liệu:**
+
 ```text
-// useRoomChecks.ts - dòng 1527-1530
-const equipmentTypes = ['equipment', 'furniture']
-const maintenanceItems = damagedItems.filter(item => 
-  equipmentTypes.includes(item.item_type || '')  // ← Kiểm tra item_type
-)
-
-if (maintenanceItems.length === 0) return []  // ← Không tạo nếu không match
-```
-
-**Dữ liệu thực tế trong database:**
-```text
-room_checks.items_damaged = [
-  {
-    "item_id": "...",
-    "item_name": "Điện thoại bàn",
-    "damage_cost": 225000,
-    "damage_type": "repairable",
-    "quantity": 1,
-    "notes": "Hỏng dây"
-    // ❌ THIẾU: "item_type": "equipment"
-  }
-]
-```
-
-**Kết quả:**
-- `item.item_type` = `undefined`
-- `item.item_type || ''` = `''`
-- `equipmentTypes.includes('')` = `false`
-- `maintenanceItems.length` = `0`
-- **Không tạo yêu cầu bảo trì → Không có thông báo**
-
----
-
-### NGUYÊN NHÂN GỐC
-
-**File:** `src/components/rooms/check-steps/ItemsCheckStep.tsx`
-
-Hàm `handleMarkDamaged` (dòng 248-258) **không truyền `item_type`** khi tạo DamagedItem:
-
-```typescript
-const handleMarkDamaged = (item: RoomItemWithDetails, damageInfo: {...}) => {
-  setDamagedItems(prev => [...prev, {
-    item_id: item.item_id,
-    item_name: item.item_name,
-    item_code: item.item_code,
-    quantity: 1,
-    damage_type: damageInfo.damage_type,
-    damage_cost: damageInfo.damage_cost,
-    notes: damageInfo.notes,
-    // ❌ THIẾU: item_type: (item as any).item_type
-  }]);
-};
-```
-
-Mặc dù `CategoryBasedItemsCheck` fetch và enrich `item_type` từ database, nhưng thông tin này **bị mất** khi gọi `onMarkDamaged`.
-
----
-
-### GIẢI PHÁP
-
-#### 1. Cập nhật interface `onMarkDamaged` để nhận thêm `item_type`
-
-**File:** `src/components/rooms/check-steps/ItemsCheckStep.tsx`
-
-```typescript
-// Sửa handleMarkDamaged để bao gồm item_type
-const handleMarkDamaged = (
-  item: RoomItemWithDetails, 
-  damageInfo: { 
-    damage_type: 'repairable' | 'replacement_needed'; 
-    damage_cost: number; 
-    notes?: string;
-    item_type?: 'linen' | 'consumable' | 'equipment' | 'furniture';  // THÊM
-  }
-) => {
-  setDamagedItems(prev => [...prev, {
-    item_id: item.item_id,
-    item_name: item.item_name,
-    item_code: item.item_code,
-    quantity: 1,
-    damage_type: damageInfo.damage_type,
-    damage_cost: damageInfo.damage_cost,
-    notes: damageInfo.notes,
-    item_type: damageInfo.item_type || (item as any).item_type,  // THÊM
-  }]);
-};
-```
-
-#### 2. Cập nhật `CategoryBasedItemsCheck` để truyền `item_type`
-
-**File:** `src/components/rooms/check-steps/CategoryBasedItemsCheck.tsx`
-
-```typescript
-// Dòng 243-249: Thêm item_type vào damageInfo
-case 'damaged':
-  onMarkDamaged(item, {
-    damage_type: action.damageType,
-    damage_cost: action.damageCost,
-    notes: action.notes,
-    item_type: item.item_type,  // THÊM - item đã có item_type từ ExtendedRoomItem
-  })
-  break
-```
-
-#### 3. Cập nhật props interface
-
-**File:** `src/components/rooms/check-steps/CategoryBasedItemsCheck.tsx`
-
-```typescript
-// Cập nhật type cho onMarkDamaged trong interface
-onMarkDamaged: (
-  item: RoomItemWithDetails, 
-  damageInfo: { 
-    damage_type: 'repairable' | 'replacement_needed'; 
-    damage_cost: number; 
-    notes?: string;
-    item_type?: ItemType;  // THÊM
-  }
-) => void
+┌─────────────────────────────────────────────────────┐
+│              /my-tasks (Unified View)               │
+├─────────────────────────────────────────────────────┤
+│ ┌─────────────────┐  ┌─────────────────┐           │
+│ │ Housekeeping    │  │ Laundry         │           │
+│ │ Tasks           │  │ Requests        │           │
+│ │ (checkout,      │  │ (assigned_to)   │           │
+│ │  cleaning...)   │  │                 │           │
+│ └─────────────────┘  └─────────────────┘           │
+│ ┌─────────────────┐  ┌─────────────────┐           │
+│ │ Stock           │  │ Maintenance     │           │
+│ │ Adjustments     │  │ Requests        │           │
+│ │ (assigned_to)   │  │ (assigned_to)   │           │
+│ └─────────────────┘  └─────────────────┘           │
+└─────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### THAY ĐỔI CHI TIẾT
+### THAY ĐỔI CẦN THỰC HIỆN
 
-| # | File | Thay đổi |
-|---|------|----------|
-| 1 | `ItemsCheckStep.tsx` | Thêm `item_type` vào `handleMarkDamaged` và object DamagedItem |
-| 2 | `CategoryBasedItemsCheck.tsx` | Truyền `item.item_type` khi gọi `onMarkDamaged` |
-| 3 | `CategoryBasedItemsCheck.tsx` | Cập nhật interface props cho `onMarkDamaged` |
-| 4 | `EquipmentTab.tsx` (nếu dùng) | Truyền `item_type` tương tự |
-| 5 | `FurnitureTab.tsx` (nếu dùng) | Truyền `item_type` tương tự |
+#### Bước 1: Sửa lỗi Group Checkout (ưu tiên cao)
+
+**File:** `src/components/bookings/GroupCheckoutDialog.tsx`
+
+- Thêm `.select('id').single()` khi insert `checkout_inspection_requests`
+- Truyền `checkout_inspection_id` vào `housekeeping_tasks`
+
+#### Bước 2: Tạo Unified Task Hook
+
+**File mới:** `src/hooks/useUnifiedTasks.ts`
+
+Hook này sẽ:
+- Query song song 4 bảng dữ liệu
+- Transform về format chung
+- Gom lại thành 1 danh sách
+
+```typescript
+interface UnifiedTask {
+  id: string
+  source: 'housekeeping' | 'laundry' | 'adjustment' | 'maintenance'
+  title: string
+  description: string
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  status: string
+  room_number?: string
+  created_at: string
+  due_at?: string
+  actionUrl: string
+}
+```
+
+#### Bước 3: Cập nhật StaffTasksTab
+
+**File:** `src/components/housekeeping/StaffTasksTab.tsx`
+
+- Thay `useMyTasks()` bằng `useUnifiedTasks()`
+- Hiển thị icon khác nhau theo `source`
+- Điều hướng đến đúng module khi click
+
+#### Bước 4: Thêm Tab Filter
+
+Cho phép lọc theo loại:
+- Tất cả
+- Buồng phòng (housekeeping)
+- Giặt là (laundry)
+- Kiểm kê (adjustment)
+- Bảo trì (maintenance)
 
 ---
 
@@ -149,24 +125,47 @@ onMarkDamaged: (
 
 | Trước | Sau |
 |-------|-----|
-| `items_damaged` không có `item_type` | `items_damaged` có `item_type: "equipment"` |
-| `maintenanceItems.length = 0` | `maintenanceItems.length > 0` |
-| Không tạo maintenance request | Tạo maintenance request thành công |
-| Không có thông báo bảo trì | Có thông báo Telegram/Push/In-app |
+| Staff phải vào 4 module khác nhau | Staff chỉ cần xem `/my-tasks` |
+| Dễ bỏ sót công việc | Tất cả công việc tập trung 1 chỗ |
+| Không có cái nhìn tổng quan | Biết tổng số công việc cần làm |
 
-**Flow sau khi sửa:**
+---
 
-```text
-Nhân viên đánh dấu "Điện thoại bàn" hỏng
-    ↓
-DamagedItem = { item_name: "Điện thoại bàn", item_type: "equipment", ... }
-    ↓
-room_checks.items_damaged lưu với item_type
-    ↓
-createMaintenanceForDamagedItems filter → maintenanceItems = [1 item]
-    ↓
-Tạo maintenance_request "Sửa chữa Điện thoại bàn - Phòng P103"
-    ↓
-Gửi thông báo đến manager qua Push/In-app/Telegram
+### PHẦN KỸ THUẬT
+
+#### Query cho Unified Tasks
+
+```typescript
+// Parallel queries for speed
+const [housekeeping, laundry, adjustments, maintenance] = await Promise.all([
+  supabase.from('housekeeping_tasks')
+    .select('*')
+    .eq('assigned_to', userId)
+    .in('status', ['pending', 'in_progress']),
+    
+  supabase.from('laundry_requests')
+    .select('*')
+    .eq('assigned_to', userId)
+    .in('status', ['pending', 'ready']),
+    
+  supabase.from('stock_adjustments')
+    .select('*')
+    .contains('assigned_to', [userId])
+    .in('status', ['draft', 'in_progress']),
+    
+  supabase.from('maintenance_requests')
+    .select('*')
+    .eq('assigned_to', userId)
+    .in('status', ['pending', 'in_progress']),
+])
 ```
+
+#### Icon theo Source
+
+| Source | Icon | Color |
+|--------|------|-------|
+| housekeeping | ClipboardCheck | Default |
+| laundry | Shirt | Blue |
+| adjustment | PackageSearch | Amber |
+| maintenance | Wrench | Orange |
 
