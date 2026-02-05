@@ -1,204 +1,222 @@
 
-## Triển khai: PWA Auto-Update Realtime
 
-### THAY ĐỔI SẼ THỰC HIỆN
+## Kế hoạch: Xử lý Nhiệm vụ Trùng Lặp (Duplicate Task Prevention)
+
+### VẤN ĐỀ HIỆN TẠI
+
+Hệ thống có nhiều task trùng lặp trong database:
+- Phòng P104: 3 task "Kiểm tra checkout" đang pending
+- Phòng P109: 2 task "Kiểm tra checkout" đang in_progress (cách nhau 2 phút)
+- Nhiều phòng khác có 2+ task cùng loại, cùng status
+
+**Nguyên nhân**: Có 5+ điểm tạo task trong hệ thống, nhưng chỉ 1 điểm (CleaningRequestBanner) có kiểm tra trùng lặp.
+
+### GIẢI PHÁP
+
+Triển khai logic kiểm tra trùng lặp ở 3 tầng:
 
 ---
 
-### 1. Cập nhật `src/hooks/usePWAUpdate.ts`
+### 1. Database Level - Unique Constraint + Helper Function
 
-**Thay đổi chính:**
-- Giảm interval từ 1 giờ xuống **2 phút** (120 giây)
-- Thêm **visibility check** - check update ngay khi user quay lại tab
-- Thêm **controllerchange listener** - tự động reload khi SW mới activate
-- Thêm **toast thông báo** trước khi reload (2 giây)
+Tạo function kiểm tra task trùng lặp và sử dụng ở mọi nơi:
+
+```sql
+-- Function để kiểm tra task đang active cho room + task_type
+CREATE OR REPLACE FUNCTION check_duplicate_housekeeping_task(
+  p_room_id UUID,
+  p_task_type TEXT,
+  p_exclude_task_id UUID DEFAULT NULL
+) RETURNS TABLE (
+  id UUID,
+  status TEXT,
+  assigned_to UUID,
+  assigned_name TEXT
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    ht.id,
+    ht.status::TEXT,
+    ht.assigned_to,
+    u.full_name::TEXT
+  FROM housekeeping_tasks ht
+  LEFT JOIN users u ON u.id = ht.assigned_to
+  WHERE ht.room_id = p_room_id
+    AND ht.task_type = p_task_type
+    AND ht.status IN ('pending', 'in_progress')
+    AND (p_exclude_task_id IS NULL OR ht.id != p_exclude_task_id)
+  LIMIT 1;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+---
+
+### 2. Hook Level - Centralized Validation
+
+Cập nhật `useCreateTask()` trong `src/hooks/useHousekeepingTasks.ts`:
 
 ```typescript
-import { useEffect, useRef } from 'react';
-import { useRegisterSW } from 'virtual:pwa-register/react';
-import { toast } from 'sonner';
-
-const UPDATE_CHECK_INTERVAL = 2 * 60 * 1000; // 2 minutes
-
-export function usePWAUpdate() {
-  const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
-
-  const {
-    needRefresh: [needRefresh, setNeedRefresh],
-    offlineReady: [offlineReady],
-    updateServiceWorker,
-  } = useRegisterSW({
-    onRegistered(registration) {
-      console.log('[PWA] Service Worker registered');
-      registrationRef.current = registration || null;
+// useCreateTask - Thêm duplicate check
+export function useCreateTask() {
+  // ...existing code...
+  
+  return useMutation({
+    mutationFn: async (input: CreateTaskInput & { skipDuplicateCheck?: boolean }) => {
+      if (!tenantId) throw new Error('Không tìm thấy tenant')
       
-      if (registration) {
-        // Check for updates every 2 minutes
-        setInterval(() => {
-          console.log('[PWA] Periodic update check...');
-          registration.update();
-        }, UPDATE_CHECK_INTERVAL);
+      // Check for duplicate task (nếu không bỏ qua)
+      if (!input.skipDuplicateCheck) {
+        const { data: existingTask } = await supabase
+          .from('housekeeping_tasks')
+          .select('id, status, assigned_to, users:assigned_to(full_name)')
+          .eq('room_id', input.room_id)
+          .eq('task_type', input.task_type)
+          .in('status', ['pending', 'in_progress'])
+          .maybeSingle()
+        
+        if (existingTask) {
+          const assignedName = (existingTask.users as any)?.full_name || 'Chưa giao'
+          throw new Error(
+            `DUPLICATE_TASK:${existingTask.id}:${existingTask.status}:${assignedName}`
+          )
+        }
       }
+      
+      // Proceed with insert...
     },
-    onRegisterError(error) {
-      console.error('[PWA] SW registration error:', error);
-    },
-    onNeedRefresh() {
-      console.log('[PWA] New version available');
-    },
-    onOfflineReady() {
-      console.log('[PWA] App ready offline');
-    },
-  });
-
-  // Auto-reload when new SW takes control
-  useEffect(() => {
-    const handleControllerChange = () => {
-      console.log('[PWA] New SW activated, reloading...');
-      toast.info('Đang cập nhật phiên bản mới...', { duration: 2000 });
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-    };
-
-    navigator.serviceWorker?.addEventListener('controllerchange', handleControllerChange);
-    return () => {
-      navigator.serviceWorker?.removeEventListener('controllerchange', handleControllerChange);
-    };
-  }, []);
-
-  // Check for updates when user returns to tab
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && registrationRef.current) {
-        console.log('[PWA] Tab visible, checking updates...');
-        registrationRef.current.update();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
-
-  const update = async () => {
-    console.log('[PWA] Manual update...');
-    await updateServiceWorker(true);
-  };
-
-  const dismiss = () => {
-    setNeedRefresh(false);
-  };
-
-  const checkForUpdate = async () => {
-    const registration = await navigator.serviceWorker?.getRegistration();
-    if (registration) await registration.update();
-  };
-
-  return { needRefresh, offlineReady, update, dismiss, checkForUpdate };
+  })
 }
 ```
 
 ---
 
-### 2. Cập nhật `src/sw.ts`
+### 3. UI Level - Smart Handling
 
-Thêm xử lý `FORCE_RELOAD` message để admin có thể force reload tất cả clients khi cần:
-
-```typescript
-// Handle message from main thread
-self.addEventListener('message', (event) => {
-  console.log('[SW] Message received:', event.data);
-  
-  if (event.data?.type === 'SKIP_WAITING') {
-    console.log('[SW] SKIP_WAITING received, activating...');
-    self.skipWaiting();
-  }
-  
-  // Force reload all clients (for critical updates)
-  if (event.data?.type === 'FORCE_RELOAD') {
-    console.log('[SW] FORCE_RELOAD received, reloading all clients...');
-    self.clients.matchAll({ type: 'window' }).then(clients => {
-      clients.forEach(client => {
-        (client as WindowClient).navigate(client.url);
-      });
-    });
-  }
-});
-```
-
----
-
-### 3. Cập nhật `PWAUpdatePrompt.tsx` (Optional Enhancement)
-
-Thêm auto-update sau 10 giây nếu user không dismiss:
+**A. Cập nhật CreateTaskDialog.tsx:**
 
 ```typescript
-// Auto-update after 10 seconds if not dismissed
-useEffect(() => {
-  if (needRefresh && !isUpdating) {
-    const timer = setTimeout(() => {
-      handleUpdate();
-    }, 10000); // 10 seconds
-    
-    return () => clearTimeout(timer);
+// Thêm state và logic
+const [duplicateTask, setDuplicateTask] = useState<{
+  id: string
+  status: string
+  assignedName: string
+} | null>(null)
+
+const onSubmit = async (data: FormData) => {
+  try {
+    await createTask({...})
+    onOpenChange(false)
+  } catch (error) {
+    // Parse duplicate error
+    if (error.message.startsWith('DUPLICATE_TASK:')) {
+      const [_, id, status, assignedName] = error.message.split(':')
+      setDuplicateTask({ id, status, assignedName })
+      return
+    }
+    // Handle other errors
   }
-}, [needRefresh, isUpdating]);
+}
+
+// Hiển thị thông báo duplicate
+{duplicateTask && (
+  <Alert variant="warning">
+    <AlertCircle className="h-4 w-4" />
+    <AlertDescription>
+      Phòng này đã có task "{TASK_TYPE_LABELS[selectedTaskType]}" 
+      đang {duplicateTask.status === 'in_progress' ? 'thực hiện' : 'chờ xử lý'}
+      {duplicateTask.assignedName !== 'Chưa giao' && ` bởi ${duplicateTask.assignedName}`}
+    </AlertDescription>
+    <div className="mt-2 flex gap-2">
+      <Button size="sm" variant="outline" onClick={() => navigate(`/my-tasks?task=${duplicateTask.id}`)}>
+        Xem task
+      </Button>
+      <Button size="sm" variant="ghost" onClick={() => setDuplicateTask(null)}>
+        Đóng
+      </Button>
+    </div>
+  </Alert>
+)}
+```
+
+**B. Cập nhật BulkCreateTaskDialog.tsx:**
+
+```typescript
+// Thêm check và skip logic cho bulk create
+const handleSubmit = async () => {
+  // Pre-check for existing tasks
+  const { data: existingTasks } = await supabase
+    .from('housekeeping_tasks')
+    .select('room_id')
+    .in('room_id', rooms.map(r => r.id))
+    .eq('task_type', taskType)
+    .in('status', ['pending', 'in_progress'])
+  
+  const existingRoomIds = new Set(existingTasks?.map(t => t.room_id) || [])
+  const roomsWithoutDuplicates = rooms.filter(r => !existingRoomIds.has(r.id))
+  const skippedCount = rooms.length - roomsWithoutDuplicates.length
+  
+  if (skippedCount > 0) {
+    // Show warning toast
+    toast.warning(`Bỏ qua ${skippedCount} phòng đã có task`)
+  }
+  
+  // Create only for rooms without existing tasks
+  for (const room of roomsWithoutDuplicates) {
+    await createTask({...})
+  }
+}
 ```
 
 ---
 
-### FLOW SAU KHI TRIỂN KHAI
+### 4. Cleanup Tool - Xử Lý Data Cũ
 
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ BẠN PUBLISH PHIÊN BẢN MỚI                                   │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│ User đang dùng app (SW cũ)                                  │
-│                                                             │
-│ Trigger check update:                                       │
-│ • Mỗi 2 phút (interval)                                     │
-│ • HOẶC khi user quay lại tab (visibility)                   │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│ SW phát hiện version mới → Download → Install               │
-│ skipWaiting() → SW mới activate                             │
-│ clients.claim() → SW mới control page                       │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│ Event 'controllerchange' fire                               │
-│ usePWAUpdate hook catch event                               │
-│ Toast: "Đang cập nhật phiên bản mới..."                     │
-│ setTimeout 2s → window.location.reload()                    │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│ User thấy phiên bản mới - KHÔNG CẦN LÀM GÌ!               │
-└─────────────────────────────────────────────────────────────┘
+Tạo tool cho Manager dọn dẹp duplicate cũ:
+
+**File mới: `src/components/housekeeping/DuplicateTasksCleanup.tsx`**
+
+```typescript
+// Component hiển thị danh sách duplicate và cho phép:
+// 1. Giữ lại 1 task (mới nhất hoặc đang in_progress)
+// 2. Hủy các task còn lại
+// 3. Merge notes/history nếu cần
 ```
 
 ---
 
-### FILES SẼ SỬA
+### 5. Files Cần Sửa
 
 | # | File | Thay đổi |
 |---|------|----------|
-| 1 | `src/hooks/usePWAUpdate.ts` | Interval 2 phút, visibility check, controllerchange listener, toast trước reload |
-| 2 | `src/sw.ts` | Thêm FORCE_RELOAD handler |
-| 3 | `src/components/pwa/PWAUpdatePrompt.tsx` | (Optional) Auto-update sau 10s |
+| 1 | Database Migration | Tạo function `check_duplicate_housekeeping_task` |
+| 2 | `src/hooks/useHousekeepingTasks.ts` | Thêm duplicate check trong `useCreateTask()` |
+| 3 | `src/hooks/useCheckoutInspection.ts` | Thêm check trước khi insert housekeeping_task |
+| 4 | `src/components/housekeeping/CreateTaskDialog.tsx` | UI xử lý duplicate warning |
+| 5 | `src/components/housekeeping/BulkCreateTaskDialog.tsx` | Pre-filter rooms có duplicate |
+| 6 | `src/components/bookings/GroupCheckoutDialog.tsx` | Check duplicate trước khi tạo task |
+| 7 | `src/types/housekeeping.types.ts` | Thêm type cho duplicate error |
+| 8 | **(Mới)** `src/components/housekeeping/DuplicateTasksCleanup.tsx` | Tool cleanup cho Manager |
 
 ---
 
-### KẾT QUẢ
+### 6. Edge Cases Xử Lý
 
-| Trước | Sau |
-|-------|-----|
-| Check update 1 giờ/lần | Check 2 phút/lần + khi quay lại tab |
-| User phải bấm "Cập nhật" | Tự động reload sau 2s thông báo |
-| Có thể dùng bản cũ cả ngày | Max 2 phút là có bản mới |
-| Xóa cache thủ công | Không cần, tự động |
+| Tình huống | Xử lý |
+|------------|-------|
+| Task đang pending, muốn tạo mới | Hỏi user: "Thay thế" hoặc "Xem task hiện tại" |
+| Task đang in_progress | Chỉ cho xem, không tạo mới |
+| Bulk create có 1 số phòng duplicate | Skip và hiển thị số lượng bỏ qua |
+| Group checkout | Check từng booking trước khi tạo |
+| Workflow automation | Cho phép skip duplicate check (cờ) |
+
+---
+
+### 7. Kết Quả Sau Triển Khai
+
+- Không còn task trùng lặp mới được tạo
+- UI thông báo rõ ràng khi phát hiện duplicate
+- Manager có tool dọn dẹp data cũ
+- Workflow automation vẫn hoạt động bình thường
+
