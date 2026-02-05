@@ -1,4 +1,4 @@
-import { useState } from 'react';
+ import { useState, useEffect } from 'react';
 import { RefreshCw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,6 +8,17 @@ export function PWAUpdatePrompt() {
   const { needRefresh, update, dismiss } = usePWAUpdate();
   const [isUpdating, setIsUpdating] = useState(false);
 
+   // Auto-update after 10 seconds if not dismissed
+   useEffect(() => {
+     if (needRefresh && !isUpdating) {
+       const timer = setTimeout(() => {
+         handleUpdate();
+       }, 10000);
+       
+       return () => clearTimeout(timer);
+     }
+   }, [needRefresh, isUpdating]);
+ 
   if (!needRefresh) return null;
 
   const handleUpdate = async () => {

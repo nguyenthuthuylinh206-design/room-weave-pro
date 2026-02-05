@@ -268,10 +268,21 @@ self.addEventListener('pushsubscriptionchange', (event: Event) => {
 // Handle message from main thread
 self.addEventListener('message', (event) => {
   console.log('[SW] Message received:', event.data);
+   
   if (event.data?.type === 'SKIP_WAITING') {
-    console.log('[SW] SKIP_WAITING received, activating new SW...');
+     console.log('[SW] SKIP_WAITING received, activating...');
     self.skipWaiting();
   }
+   
+   // Force reload all clients (for critical updates)
+   if (event.data?.type === 'FORCE_RELOAD') {
+     console.log('[SW] FORCE_RELOAD received, reloading all clients...');
+     self.clients.matchAll({ type: 'window' }).then(clients => {
+       clients.forEach(client => {
+         (client as WindowClient).navigate(client.url);
+       });
+     });
+   }
 });
 
 // Skip waiting and claim clients immediately
