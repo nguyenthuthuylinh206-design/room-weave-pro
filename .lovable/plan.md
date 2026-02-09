@@ -1,140 +1,109 @@
 
 
-## Kiem tra mobile UX/UI cho nhan vien buong phong - Dot tiep theo
+## Kiem tra lai mobile UX/UI cho nhan vien buong phong - Ket qua
 
-Sau khi cac fix truoc da duoc ap dung (auto-skip modal, auto-skip phase1, gop cleaning+review, giam toast, label "Het", nut X huy, compact header), toi da kiem tra lai toan bo luong tren mobile va phat hien cac van de con ton tai.
-
----
-
-### PHAN 1: NHUNG GI DA LAM TOT (Xac nhan)
-
-| # | Tinh nang | Trang thai |
-|---|-----------|------------|
-| 1 | Auto-skip CheckTypeSelector khi phong cleaning/checkout | Da xong |
-| 2 | Auto-skip Phase1 Confirm khi khong co phu thu | Da xong |
-| 3 | Gop Cleaning + Review thanh 1 buoc (5 buoc checkout) | Da xong |
-| 4 | Toast chi hien cho mat/hong | Da xong |
-| 5 | Compact header, an PageHeader tren mobile | Da xong |
-| 6 | Nut Huy thanh X o goc tren phai | Da xong |
-| 7 | Label "Het" cho consumable | Da xong |
-| 8 | Tap-to-OK, Mark All OK, Category tabs | Da co |
-| 9 | Session persistence qua localStorage | Da co |
+Sau khi doc ky toan bo code hien tai, day la danh gia chi tiet ve nhung gi da duoc fix va cac van de con lai:
 
 ---
 
-### PHAN 2: VAN DE CON TON TAI TREN MOBILE
+### PHAN 1: XAC NHAN CAC FIX DA AP DUNG DUNG
 
-#### VAN DE 1: Nut "Tiep theo" / "Hoan thanh" bi an duoi cung trang (QUAN TRONG)
+| # | Fix | Trang thai | Ghi chu |
+|---|-----|------------|---------|
+| 1 | Auto-skip CheckTypeSelector khi cleaning/checkout | OK | `StaffRoomCheckView.tsx` dong 83-91: navigate thang, khong mo modal |
+| 2 | Auto-skip Phase1 Confirm khi khong co phu thu | OK | `RoomCheckPage.tsx` dong 552-564: skip step 3, nhay thang step 4 |
+| 3 | Gop Cleaning + Review (5 buoc checkout) | OK | `RoomCheckPage.tsx` dong 1327-1331: Step 5 render CleaningRequestStep + ReviewStep |
+| 4 | Toast chi hien cho mat/hong | OK | `CategoryBasedItemsCheck.tsx` dong 236-248: chi `lost` va `damaged` co toast |
+| 5 | Compact header, an PageHeader tren mobile | OK | `RoomCheckPage.tsx` dong 1112: `hidden sm:block` |
+| 6 | Nut Huy thanh X o goc tren phai | OK | `RoomCheckPage.tsx` dong 1141-1149: nut X trong header |
+| 7 | Label "Het" cho consumable | OK | `CategoryItemRow.tsx` dong 57, 68: `consumed: { label: 'Het' }` |
+| 8 | Sticky bottom navigation | OK | `RoomCheckPage.tsx` dong 1340: `sticky bottom-0` |
+| 9 | Photo remove button hien tren mobile | OK | `ReviewStep.tsx` dong 383: `sm:opacity-0 sm:group-hover:opacity-100` |
+| 10 | Phase1ConfirmStep dung div thay Card | OK | `Phase1ConfirmStep.tsx` dong 86: `div className="border border-orange-200 rounded-lg"` |
+| 11 | An search bar khi it items | OK | `CategoryBasedItemsCheck.tsx` dong 425: `totalItems > 10 &&` |
+| 12 | Sticky progress header offset | OK | `CategoryBasedItemsCheck.tsx` dong 342: `sticky top-12 z-10` |
 
-**Hien tai**: Nut "Quay lai" va "Tiep theo" nam trong `<div className="flex items-center justify-between pt-6 border-t">` o **cuoi cung** cua form. Khi nhan vien kiem tra 20-30 items, phai cuon xuong cuoi trang moi thay nut "Tiep theo".
-
-**Van de tren mobile**: 
-- Nhan vien kiem tra xong tat ca items (progress 100%) nhung khong thay nut chuyen buoc
-- Phai cuon xuong, mat thoi gian va tao cam giac "khong biet lam gi tiep"
-- Dac biet anh huong o buoc Items Check (buoc dai nhat)
-
-**Giai phap**: Lam nut dieu huong **sticky o bottom** tren mobile. Dung `sticky bottom-0` voi background de phu len noi dung, dam bao nhan vien luon thay duoc nut chuyen buoc.
-
----
-
-#### VAN DE 2: ReviewStep lap lai Check Type Header (Trung lap UI)
-
-**Hien tai**: `ReviewStep.tsx` dong 111-120 render **lai** mot "Check Type Header" giong het cai da co o `RoomCheckPage.tsx` dong 1120-1170. Tren mobile, nguoi dung thay 2 khoi header giong nhau:
-- Header chinh cua trang (voi progress bar)
-- Header trong ReviewStep (voi mo ta)
-
-**Van de**: Lap thong tin, chiem them ~60px tren mobile.
-
-**Giai phap**: Xoa Check Type Header trong ReviewStep. Thong tin da duoc hien thi o header chinh cua trang.
+**Tat ca 12 fix da duoc ap dung dung.** Khong co fix nao bi thieu hoac bi revert.
 
 ---
 
-#### VAN DE 3: Photo remove button khong hoat dong tot tren touch
+### PHAN 2: VAN DE CON TON TAI (nho, khong anh huong nghiem trong)
 
-**Hien tai**: `ReviewStep.tsx` dong 393 dung `opacity-0 group-hover:opacity-100` cho nut xoa anh. Tren mobile (touch), `hover` khong hoat dong nhu tren desktop.
+#### VAN DE 1: Sticky bottom nav bi de len boi MobileBottomNav (TRUNG BINH)
 
-**Van de**: Nhan vien khong thay nut xoa anh tren dien thoai, hoac phai tap 2 lan (lan 1 trigger hover, lan 2 moi tap duoc).
+**Hien tai**: `RoomCheckPage.tsx` dong 1340 dung `sticky bottom-0 z-10`. Nhung `MobileBottomNav.tsx` dong 72 la `fixed bottom-0 z-50`. Tren mobile, MobileBottomNav se de len cac nut "Tiep theo"/"Hoan thanh".
 
-**Giai phap**: Hien thi nut xoa anh luon (bo `opacity-0 group-hover:opacity-100` tren mobile), hoac dung pattern khac nhu long-press.
+**Van de cu the**: Sticky bottom nav cua RoomCheckPage (`z-10`) nam **duoi** MobileBottomNav (`z-50, fixed`), nghia la nhan vien se thay MobileBottomNav (Home, Tasks, Phong...) phu len nut "Tiep theo". Tuy nhien, day phu thuoc vao viec trang `/rooms/:id/check` co render MobileBottomNav hay khong - can xac nhan.
 
----
-
-#### VAN DE 4: Phase1ConfirmStep con dung `Card` component (Vi pham design guidelines)
-
-**Hien tai**: `Phase1ConfirmStep.tsx` dong 86-199 van dung `<Card>`, `<CardHeader>`, `<CardContent>` - trai voi design guidelines cua du an (thay Card bang div voi border).
-
-**Van de**: Khong nhat quan voi phan con lai cua trang da duoc sua. Card co padding lon hon, gay lech padding tren mobile.
-
-**Giai phap**: Doi `<Card>` thanh `<div className="border rounded-lg">`, bo `CardHeader`/`CardContent` thanh padding truc tiep.
+**Giai phap**: Them `pb-16` (padding-bottom 64px = chieu cao MobileBottomNav) vao container chinh cua RoomCheckPage tren mobile, hoac an MobileBottomNav khi dang o trang check. Cach tot nhat la an MobileBottomNav khi pathname chua `/check` vi nhan vien dang tap trung kiem tra, khong can nav bar.
 
 ---
 
-#### VAN DE 5: Buoc "Chon loai kiem tra" (Step 1) van hien thi khi da auto-skip
+#### VAN DE 2: `handleBack` khi checkout skip buoc khong chinh xac
 
-**Hien tai**: Logic auto-skip dung `initialStep = shouldAutoSkip ? 2 : 1` (dong 130). Tuy nhien, trong phan render step titles (dong 1177), `currentStep === 1 && 'Chon loai kiem tra'` van hien khi `currentStep === 1`. Buoc 1 chi hien thi khi **khong co** `type` param tu URL.
+**Hien tai**: `handleBack()` dong 701-704 chi don gian la `setCurrentStep(currentStep - 1)`. Nhung khi Phase1 duoc auto-skip (tu step 2 nhay thang step 4), nhan "Quay lai" o step 4 se ve step 3 (Phase1 Confirm) - mot buoc ma ban dau da skip vi khong co phu thu.
 
-**Thuc te**: Day khong phai bug vi step 1 chi render khi can. Nhung nen xac nhan: khi nhan vien vao tu StaffRoomCheckView voi `type=daily` hoac `type=checkout`, step 1 **khong hien** -> **Dung**, khong co van de.
+**Van de**: Nhan vien se thay man hinh Phase1 Confirm trang (khong co phu thu) - gay nham lan. Nen skip nguoc ve step 2.
 
----
-
-#### VAN DE 6: Search bar trong ItemsCheck chiem khong gian khi so luong items nho
-
-**Hien tai**: `CategoryBasedItemsCheck.tsx` dong 424-433 luon hien thi search bar. Voi phong chi co 5-8 items, search bar chiem them ~40px nhung khong can thiet.
-
-**Giai phap**: An search bar khi so luong items <= 10. Chi hien khi co nhieu items.
+**Giai phap**: Trong `handleBack()`, kiem tra neu `currentStep === 4 && isCheckoutType && phase1Submitted && !hasChargesInPhase1` thi nhay ve step 2 thay vi step 3.
 
 ---
 
-#### VAN DE 7: Sticky progress header trong CategoryBasedItemsCheck bi chong len header chinh
+#### VAN DE 3: Checkout step 3 an nut "Tiep theo" nhung khong co chi dan ro rang
 
-**Hien tai**: Progress header trong `CategoryBasedItemsCheck.tsx` dung `sticky top-0 z-20` (dong 342). Header chinh cua trang (Check Type Header) cung sticky. Khi cuon, 2 sticky elements co the chong len nhau hoac header check type bi an mat.
+**Hien tai**: `RoomCheckPage.tsx` dong 1357: `(currentStep === 3 && isCheckoutType && !phase1Submitted) ? null : (...)`. Khi nhan vien o step 3 va chua gui bao cao, nut "Tiep theo" bi an hoan toan. Nhan vien chi thay nut "Quay lai" va khong biet lam gi de chuyen buoc.
 
-**Van de**: Tren mobile, nhan vien mat thong tin progress hoac check type khi cuon.
+**Thuc te**: Phase1ConfirmStep co nut "Gui cho le tan & Tiep tuc" rieng (dong 213-230), va sau khi submit se hien nut "Tiep tuc kiem tra do bo sung" (dong 64-67). Nhung khi phase1Submitted = true va nhan vien o step 3, sticky bottom nav chi co nut "Quay lai" va **khong co** "Tiep theo" vi `onContinue` (dong 1306) goi `setCurrentStep(4)` truc tiep tu Phase1ConfirmStep.
 
-**Giai phap**: Doi `top-0` cua progress header thanh gia tri phu hop de nam duoi header chinh, hoac loai bo sticky cua 1 trong 2 (giu progress header vi huu ich hon khi kiem tra items).
+**Van de**: Logic nay dung nhung UX khong nhat quan - o moi buoc khac, nhan vien dung nut "Tiep theo" o bottom. Rieng step 3 phai dung nut trong noi dung. Co the gay nham lan.
+
+**Giai phap**: Khi `phase1Submitted === true` o step 3, hien lai nut "Tiep theo" trong sticky bottom (thay vi an hoan toan). Logic hien tai `handleNext` dong 572-583 da handle case nay (return isValid = true khi phase1Submitted).
 
 ---
 
-### PHAN 3: TONG KET VA THU TU UU TIEN
+#### VAN DE 4: `occupied` rooms khong co action nao tren StaffRoomCheckView
+
+**Hien tai**: `CompactRoomRow` chi render action buttons cho `check_out`, `cleaning`, va `vacant`. Phong `occupied` khong co nut nao. Nhan vien muon lam daily check cho phong `occupied` (vi du kiem tra minibar) phai lam sao?
+
+**Van de**: Nhan vien khong the bat dau kiem tra phong `occupied` tu danh sach. Phai vao chi tiet phong roi moi tim cach kiem tra.
+
+**Giai phap**: Them nut "Kiem tra" cho phong `occupied`, navigate thang `/rooms/{id}/check?type=daily`.
+
+---
+
+### PHAN 3: TONG KET
 
 | # | Van de | Muc do | Thay doi |
 |---|--------|--------|----------|
-| 1 | Nut dieu huong bi an duoi cung | **Cao** | Sticky bottom navigation bar tren mobile |
-| 2 | ReviewStep lap lai header | **Trung binh** | Xoa duplicate header trong ReviewStep |
-| 3 | Photo remove button touch | **Trung binh** | Hien nut xoa anh luon tren mobile |
-| 4 | Phase1ConfirmStep dung Card | **Thap** | Doi Card thanh div border |
-| 5 | Search bar khong can voi phong nho | **Thap** | An khi <= 10 items |
-| 6 | Sticky header bi chong | **Trung binh** | Dieu chinh z-index va top offset |
+| 1 | Sticky bottom bi MobileBottomNav de len | **Trung binh** | An MobileBottomNav khi dang o trang `/rooms/:id/check` |
+| 2 | handleBack skip buoc khong dung | **Thap** | Them logic skip nguoc trong handleBack |
+| 3 | Step 3 checkout an nut "Tiep theo" | **Thap** | Hien lai "Tiep theo" khi phase1Submitted |
+| 4 | Phong occupied khong co nut kiem tra | **Thap** | Them nut "Kiem tra" cho occupied rooms |
 
 ---
 
 ### KE HOACH THUC HIEN
 
-#### Fix 1: Sticky bottom navigation bar
-- **File**: `src/pages/rooms/RoomCheckPage.tsx` dong 1340-1395
-- **Thay doi**: Wrap navigation buttons trong `<div className="sticky bottom-0 bg-background border-t p-3 -mx-4 z-10 safe-area-bottom">`. Phan biet mobile va desktop de khong anh huong layout desktop.
+#### Fix 1: An MobileBottomNav khi dang kiem tra phong
+- **File**: `src/components/layout/MobileBottomNav.tsx`
+- **Thay doi**: Kiem tra `location.pathname` chua `/check` -> return null (khong render). Dieu nay giai phong khong gian cho sticky bottom nav cua RoomCheckPage va giup nhan vien tap trung vao quy trinh kiem tra.
 
-#### Fix 2: Xoa duplicate header trong ReviewStep
-- **File**: `src/components/rooms/check-steps/ReviewStep.tsx` dong 111-120
-- **Thay doi**: Xoa khoi `<div className={cn('p-3 rounded-lg border', config.headerColor)}>...</div>`. Thong tin check type da co o header chinh.
+#### Fix 2: handleBack skip dung buoc khi Phase1 da auto-skip
+- **File**: `src/pages/rooms/RoomCheckPage.tsx` dong 701-704
+- **Thay doi**: Them dieu kien: neu `currentStep === 4 && isCheckoutType && phase1Submitted` va khong co charges (chargeableItems.length === 0 va items_lost/items_damaged rong) thi `setCurrentStep(2)` thay vi `setCurrentStep(3)`.
 
-#### Fix 3: Photo remove button luon hien tren mobile
-- **File**: `src/components/rooms/check-steps/ReviewStep.tsx` dong 393
-- **Thay doi**: Doi `opacity-0 group-hover:opacity-100` thanh `sm:opacity-0 sm:group-hover:opacity-100` de luon hien tren mobile nhung van co hover effect tren desktop.
+#### Fix 3: Hien "Tiep theo" khi phase1 da submitted o step 3
+- **File**: `src/pages/rooms/RoomCheckPage.tsx` dong 1357
+- **Thay doi**: Doi dieu kien tu `!phase1Submitted ? null` thanh chi an khi `!phase1Submitted`. Khi `phase1Submitted === true`, hien nut "Tiep theo" binh thuong de nhat quan UX.
 
-#### Fix 4: Phase1ConfirmStep - doi Card thanh div
-- **File**: `src/components/rooms/check-steps/Phase1ConfirmStep.tsx` dong 86-199
-- **Thay doi**: 
-  - `<Card className="border-orange-200">` -> `<div className="border border-orange-200 rounded-lg">`
-  - `<CardHeader className="pb-2">` -> `<div className="p-3 pb-2">`
-  - `<CardTitle>` -> `<h3 className="text-base font-semibold flex items-center justify-between">`
-  - `<CardContent>` -> `<div className="px-3 pb-3">`
-
-#### Fix 5: An search bar khi it items
-- **File**: `src/components/rooms/check-steps/CategoryBasedItemsCheck.tsx` dong 424-433
-- **Thay doi**: Wrap search trong `{totalItems > 10 && (...)}` hoac dung Collapsible mac dinh dong.
-
-#### Fix 6: Fix sticky header chong nhau
-- **File**: `src/components/rooms/check-steps/CategoryBasedItemsCheck.tsx` dong 342
-- **Thay doi**: Giu sticky progress header nhung loai bo Check Type Header khoi sticky (vi progress bar huu ich hon khi dang kiem tra items). Hoac dieu chinh top offset de items progress header nam ben duoi.
+#### Fix 4: Them nut kiem tra cho phong occupied
+- **File**: `src/components/rooms/StaffRoomCheckView.tsx` dong 341
+- **Thay doi**: Them block render cho `room.status === 'occupied' && !hasSession`:
+```text
+<Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs gap-1"
+  onClick={(e) => { e.stopPropagation(); onStartCheck(room.id, room.status) }}>
+  <ClipboardList className="h-3 w-3" />
+  <span className="hidden sm:inline">Kiem tra</span>
+</Button>
+```
 
