@@ -8,7 +8,6 @@ import { roomCheckFormSchema } from '@/lib/validations/rooms.schemas'
 import { getCheckTypeConfig, type CheckType } from '@/lib/roomCheckConfig'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Form } from '@/components/ui/form'
@@ -187,7 +186,7 @@ export function RoomCheckPage() {
   
   const getTotalSteps = () => {
     if (quickMode) return 2
-    if (isCheckoutType) return 6 // Type -> Phase1 Items -> Phase1 Confirm -> Phase2 Items -> Cleaning -> Review
+    if (isCheckoutType) return 5 // Type -> Phase1 Items -> Phase1 Confirm (may auto-skip) -> Phase2 Items -> Review+Cleaning
     if (isDeliveryType) return 3 // Type -> DeliveryItems/Cleaning -> Review
     if (isReplenishType) return 3 // Type -> Items+Cleaning -> Review
     return 3 // Type -> Items -> Review
@@ -546,8 +545,26 @@ export function RoomCheckPage() {
     } else if (currentStep === 2 && !quickMode && (isDeliveryType || isReplenishType)) {
       // Delivery/Replenish step 2 = Items + Cleaning - không cần validate strict
       isValid = true
+    } else if (currentStep === 2 && !quickMode && isCheckoutType) {
+      // Step 2 Checkout: Phase 1 Items
+      isValid = await form.trigger(['items_complete', 'items_missing', 'items_damaged'])
+      
+      // AUTO-SKIP Phase1 Confirm: Nếu không có phụ thu/mất/hỏng
+      if (isValid) {
+        const lostItems = (form.getValues('items_lost') || []) as LostItem[]
+        const damagedItems = (form.getValues('items_damaged') || []) as DamagedItem[]
+        const hasCharges = chargeableItems.length > 0 || lostItems.length > 0 || damagedItems.length > 0
+        
+        if (!hasCharges) {
+          // Không có gì để báo lễ tân -> skip Phase1 Confirm, vào Phase 2
+          setPhase1Submitted(true)
+          setCurrentPhase(2)
+          setCurrentStep(4) // Skip step 3 (Phase1 Confirm), go to step 4 (Phase2 Items)
+          return
+        }
+      }
     } else if (currentStep === 2 && !quickMode && !isDeliveryType && !isReplenishType) {
-      // Step 2: Items check (Phase 1 for checkout, regular for others)
+      // Step 2: Items check (regular for others)
       isValid = await form.trigger(['items_complete', 'items_missing', 'items_damaged'])
     } else if (currentStep === 2 && quickMode) {
       // Quick mode: step 2 là review cuối
@@ -569,9 +586,6 @@ export function RoomCheckPage() {
       isValid = await form.trigger(['cleanliness_score'])
     } else if (currentStep === 4 && isCheckoutType) {
       // Checkout step 4 = Phase 2 Items (bổ sung/giặt/thay)
-      isValid = true
-    } else if (currentStep === 5 && isCheckoutType) {
-      // Checkout step 5 = Cleaning Request - có defaults, không cần validate
       isValid = true
     } else if (currentStep === 3 && !isCheckoutType && !isDeliveryType && !isReplenishType) {
       // Non-checkout/non-delivery/non-replenish: step 3 là Review cuối
@@ -1093,112 +1107,113 @@ export function RoomCheckPage() {
         </AlertDialogContent>
       </AlertDialog>
       
-      <div className="space-y-6">
-        <PageHeader
-          title={`Kiểm tra phòng ${room.room_number}`}
-          description={`${room.room_type} - Tầng ${room.floor}`}
-        />
+      <div className="space-y-4">
+        {/* Page header - hidden on mobile, info already in check type header */}
+        <div className="hidden sm:block">
+          <PageHeader
+            title={`Kiểm tra phòng ${room.room_number}`}
+            description={`${room.room_type} - Tầng ${room.floor}`}
+          />
+        </div>
         
-      {/* Pending Deliveries removed - now handled via housekeeping tasks */}
-      {/* Check Type Header - Color coded with icon */}
+      {/* Compact Check Type Header + Progress - merged into one section */}
       {(() => {
         const checkTypeConfig = getCheckTypeConfig(watchedCheckType)
         const CheckTypeIcon = CHECK_TYPE_ICONS[watchedCheckType as CheckType]
         return (
           <div className={cn('p-3 rounded-lg border', checkTypeConfig.headerColor)}>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 {CheckTypeIcon && <CheckTypeIcon className={cn('h-5 w-5', checkTypeConfig.headerTextColor)} />}
                 <div>
-                  <h3 className={cn('font-medium', checkTypeConfig.headerTextColor)}>
-                    {checkTypeConfig.label}
-                  </h3>
-                  <p className="text-xs text-muted-foreground">{checkTypeConfig.description}</p>
+                  <div className="flex items-center gap-2">
+                    <h3 className={cn('font-medium text-sm', checkTypeConfig.headerTextColor)}>
+                      {checkTypeConfig.label}
+                    </h3>
+                    {/* Mobile-only: room number */}
+                    <span className="sm:hidden text-xs font-semibold text-foreground">
+                      P.{room.room_number}
+                    </span>
+                  </div>
                 </div>
               </div>
-              {checkTypeConfig.showBookingInfo && currentBooking && (
-                <div className="text-right">
-                  <p className="text-sm font-medium">{currentBooking.guest_name || 'Khách'}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {currentBooking.check_in_date && currentBooking.check_out_date && 
-                      `${new Date(currentBooking.check_in_date).toLocaleDateString('vi-VN')} - ${new Date(currentBooking.check_out_date).toLocaleDateString('vi-VN')}`
-                    }
-                  </p>
-                </div>
-              )}
+              {/* Cancel button as X icon in top right */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                onClick={handleCancel}
+              >
+                <span className="text-lg">✕</span>
+              </Button>
             </div>
+            {/* Inline progress */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground">
+                {currentStep}/{totalSteps}
+              </span>
+              <Progress value={progress} className="h-1.5 flex-1" />
+            </div>
+            {checkTypeConfig.showBookingInfo && currentBooking && (
+              <div className="mt-2 pt-2 border-t border-inherit flex items-center justify-between">
+                <p className="text-sm font-medium">{currentBooking.guest_name || 'Khách'}</p>
+                <p className="text-xs text-muted-foreground">
+                  {currentBooking.check_in_date && currentBooking.check_out_date && 
+                    `${new Date(currentBooking.check_in_date).toLocaleDateString('vi-VN')} - ${new Date(currentBooking.check_out_date).toLocaleDateString('vi-VN')}`
+                  }
+                </p>
+              </div>
+            )}
           </div>
         )
       })()}
       
-      <Card>
-        <CardHeader>
-          <div className="space-y-4">
-            <CardTitle className="flex items-center gap-2">
-              <span>Bước {currentStep}/{totalSteps}:</span>
-              {currentStep === 1 && 'Chọn loại kiểm tra'}
-              {/* Delivery type - step 2 */}
-              {currentStep === 2 && !quickMode && isDeliveryType && 'Xác nhận đồ giao & Dọn dẹp'}
-              {/* Replenish type - step 2 */}
-              {currentStep === 2 && !quickMode && isReplenishType && 'Bổ sung đồ & Tình trạng dọn dẹp'}
-              {/* Non-checkout, non-delivery, non-replenish - step 2 */}
-              {currentStep === 2 && !quickMode && !isCheckoutType && !isDeliveryType && !isReplenishType && 'Kiểm tra đồ dùng trong phòng'}
-              {currentStep === 2 && !quickMode && isCheckoutType && (
-                <>
-                  <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300">GĐ1</Badge>
-                  Kiểm tra đồ tính phí & mất/hỏng
-                </>
-              )}
-              {currentStep === 2 && quickMode && 'Đánh giá & Hoàn tất'}
-              {currentStep === 3 && !quickMode && isCheckoutType && (
-                <>
-                  <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300">GĐ1</Badge>
-                  Gửi báo cáo cho lễ tân
-                </>
-              )}
-              {/* Delivery/Replenish type - step 3 = Review */}
-              {currentStep === 3 && !quickMode && (isDeliveryType || isReplenishType) && 'Đánh giá & Hoàn tất'}
-              {/* Non-checkout, non-delivery, non-replenish - step 3 = Review */}
-              {currentStep === 3 && !quickMode && !isCheckoutType && !isDeliveryType && !isReplenishType && 'Đánh giá & Hoàn tất'}
-              {currentStep === 4 && isCheckoutType && (
-                <>
-                  <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">GĐ2</Badge>
-                  Kiểm tra đồ bổ sung & giặt/thay
-                </>
-              )}
-              {currentStep === 5 && isCheckoutType && (
-                <>
-                  <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">GĐ2</Badge>
-                  Tình trạng phòng & Dọn dẹp
-                </>
-              )}
-              {currentStep === 6 && isCheckoutType && (
-                <>
-                  <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">Hoàn tất</Badge>
-                  Đánh giá & Hoàn tất
-                </>
-              )}
-            </CardTitle>
-            <div className="space-y-2">
-              <Progress value={progress} />
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span className={currentStep === 1 ? 'font-medium text-foreground' : ''}>
-                  Loại kiểm tra
-                </span>
-                {!quickMode && (
-                  <span className={currentStep === 2 ? 'font-medium text-foreground' : ''}>
-                    Đồ dùng
-                  </span>
-                )}
-                <span className={currentStep === totalSteps ? 'font-medium text-foreground' : ''}>
-                  Đánh giá
-                </span>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
+      {/* Main content - div instead of Card for compact mobile */}
+      <div className="border rounded-lg">
+        <div className="p-3 border-b">
+          <h4 className="text-sm font-medium flex items-center gap-2">
+            <span>Bước {currentStep}/{totalSteps}:</span>
+            {currentStep === 1 && 'Chọn loại kiểm tra'}
+            {/* Delivery type - step 2 */}
+            {currentStep === 2 && !quickMode && isDeliveryType && 'Xác nhận đồ giao & Dọn dẹp'}
+            {/* Replenish type - step 2 */}
+            {currentStep === 2 && !quickMode && isReplenishType && 'Bổ sung đồ & Tình trạng dọn dẹp'}
+            {/* Non-checkout, non-delivery, non-replenish - step 2 */}
+            {currentStep === 2 && !quickMode && !isCheckoutType && !isDeliveryType && !isReplenishType && 'Kiểm tra đồ dùng trong phòng'}
+            {currentStep === 2 && !quickMode && isCheckoutType && (
+              <>
+                <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300 text-[10px] px-1.5">GĐ1</Badge>
+                Kiểm tra đồ tính phí & mất/hỏng
+              </>
+            )}
+            {currentStep === 2 && quickMode && 'Đánh giá & Hoàn tất'}
+            {currentStep === 3 && !quickMode && isCheckoutType && (
+              <>
+                <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300 text-[10px] px-1.5">GĐ1</Badge>
+                Gửi báo cáo cho lễ tân
+              </>
+            )}
+            {/* Delivery/Replenish type - step 3 = Review */}
+            {currentStep === 3 && !quickMode && (isDeliveryType || isReplenishType) && 'Đánh giá & Hoàn tất'}
+            {/* Non-checkout, non-delivery, non-replenish - step 3 = Review */}
+            {currentStep === 3 && !quickMode && !isCheckoutType && !isDeliveryType && !isReplenishType && 'Đánh giá & Hoàn tất'}
+            {currentStep === 4 && isCheckoutType && (
+              <>
+                <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300 text-[10px] px-1.5">GĐ2</Badge>
+                Kiểm tra đồ bổ sung & giặt/thay
+              </>
+            )}
+            {currentStep === 5 && isCheckoutType && (
+              <>
+                <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300 text-[10px] px-1.5">Hoàn tất</Badge>
+                Đánh giá & Dọn dẹp
+              </>
+            )}
+          </h4>
+        </div>
         
-        <CardContent>
+        <div className="p-4">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {currentStep === 1 && (
@@ -1308,21 +1323,23 @@ export function RoomCheckPage() {
                   onQuantitiesChange={setItemQuantities}
                 />
               )}
-              {/* Step 5 for Checkout: Cleaning Request */}
+              {/* Step 5 for Checkout: Review + Cleaning (merged) */}
               {currentStep === 5 && !quickMode && isCheckoutType && (
-                <CleaningRequestStep form={form} />
+                <div className="space-y-6">
+                  <CleaningRequestStep form={form} />
+                  <ReviewStep form={form} room={room} checkType={watchedCheckType as CheckType} currentBooking={currentBooking} />
+                </div>
               )}
               {/* Review Step - adjusts based on check type */}
               {((currentStep === 2 && quickMode) || 
                 (currentStep === 3 && !isCheckoutType && !isDeliveryType && !isReplenishType) ||
-                (currentStep === 3 && (isDeliveryType || isReplenishType)) ||
-                (currentStep === 6 && isCheckoutType)) && (
+                (currentStep === 3 && (isDeliveryType || isReplenishType))) && (
                 <ReviewStep form={form} room={room} checkType={watchedCheckType as CheckType} currentBooking={currentBooking} />
               )}
               
               <div className="flex items-center justify-between pt-6 border-t">
                 <div className="flex gap-2">
-                  {currentStep > 1 ? (
+                  {currentStep > 1 && (
                     <Button
                       type="button"
                       variant="outline"
@@ -1330,15 +1347,6 @@ export function RoomCheckPage() {
                     >
                       <ChevronLeft className="mr-2 h-4 w-4" />
                       Quay lại
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleCancel}
-                    >
-                      <ChevronLeft className="mr-2 h-4 w-4" />
-                      Hủy
                     </Button>
                   )}
                 </div>
@@ -1387,8 +1395,8 @@ export function RoomCheckPage() {
               </div>
             </form>
           </Form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
     </>
   )
