@@ -26,6 +26,11 @@ export const MobileBottomNav = () => {
   const { data: pendingTaskCount = 0 } = usePendingTaskCount()
   const { data: pendingCounts } = usePendingCounts()
 
+  // Hide MobileBottomNav when on room check pages (staff needs full screen for check workflow)
+  if (location.pathname.includes('/check')) {
+    return null
+  }
+
   // Navigation items for all roles (operations)
   const NAV_ITEMS: NavItem[] = [
     { id: 'home', label: 'Home', icon: Home, path: '/' },

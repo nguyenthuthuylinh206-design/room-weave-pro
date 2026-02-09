@@ -389,6 +389,23 @@ function CompactRoomRow({ room, checkSession, onStartCheck, onCleaningComplete, 
           </>
         )}
 
+        {/* Occupied room: Show daily check button */}
+        {room.status === 'occupied' && !hasSession && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 px-2 text-xs gap-1"
+            onClick={(e) => {
+              e.stopPropagation()
+              onStartCheck(room.id, room.status)
+            }}
+          >
+            <ClipboardList className="h-3 w-3" />
+            <span className="hidden sm:inline">Kiểm tra</span>
+          </Button>
+        )}
+
         {/* Vacant room without session: Show arrow */}
         {room.status === 'vacant' && !hasSession && (
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
