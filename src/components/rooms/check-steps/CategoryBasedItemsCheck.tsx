@@ -339,7 +339,7 @@ export function CategoryBasedItemsCheck({
   return (
     <div className="space-y-3">
       {/* Compact Sticky Progress Header */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur -mx-4 px-4 py-2 border-b">
+      <div className="sticky top-12 z-10 bg-background/95 backdrop-blur -mx-4 px-4 py-2 border-b">
         {/* Progress bar - larger and more visible */}
         <div className="flex items-center gap-3 mb-2">
           <div className="flex items-center gap-2 shrink-0">
@@ -421,16 +421,18 @@ export function CategoryBasedItemsCheck({
         </div>
       </div>
 
-      {/* Compact Search */}
-      <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Tìm đồ dùng..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-8 h-9 text-sm"
-        />
-      </div>
+      {/* Compact Search - only show when many items */}
+      {totalItems > 10 && (
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Tìm đồ dùng..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 h-9 text-sm"
+          />
+        </div>
+      )}
 
       {/* Tabs by Category - Horizontal scroll */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
