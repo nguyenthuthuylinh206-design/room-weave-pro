@@ -43,7 +43,7 @@ export function useRoomDistributionHistory(roomId: string | undefined) {
           delivered_at,
           rejection_reason,
           created_at,
-          distribution_orders!inner (
+          distribution_orders!distribution_order_rooms_distribution_order_id_fkey (
             id,
             order_code,
             status,

@@ -19,7 +19,7 @@ export function usePendingRoomDistributions() {
         .select(`
           room_id,
           status,
-          distribution_orders!inner(hotel_id, status)
+          distribution_orders!distribution_order_rooms_distribution_order_id_fkey(hotel_id, status)
         `)
         .in('status', ['pending', 'delivered'])
         .neq('distribution_orders.status', 'cancelled')
