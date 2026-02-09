@@ -7,7 +7,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { ModuleToggle } from './ModuleToggle'
 import { HotelAssignmentSection } from './HotelAssignmentSection'
 import { useUserPermissionConfiguration } from '@/hooks/useUserPermissionConfiguration'
-import { MODULES } from '@/hooks/useUserPermissions'
+import { MODULES, MODULE_ACTIONS, getModuleActions } from '@/hooks/useUserPermissions'
 import { Info, Save, Shield, Building2, AlertTriangle, Key } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
@@ -72,31 +72,22 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
       [module]: enabled,
     }))
 
-    // When enabling module, enable all actions
+    // When enabling module, enable all applicable actions
     if (enabled) {
+      const applicableActionCodes = MODULE_ACTIONS[module] || ['view', 'create', 'update', 'delete', 'export', 'approve']
+      const actionsObj: Record<string, boolean> = {}
+      applicableActionCodes.forEach(a => { actionsObj[a] = true })
       setLocalActions((prev) => ({
         ...prev,
-        [module]: {
-          view: true,
-          create: true,
-          update: true,
-          delete: true,
-          export: true,
-          approve: true,
-        },
+        [module]: actionsObj,
       }))
     } else {
-      // When disabling module, clear actions
+      const applicableActionCodes = MODULE_ACTIONS[module] || ['view', 'create', 'update', 'delete', 'export', 'approve']
+      const actionsObj: Record<string, boolean> = {}
+      applicableActionCodes.forEach(a => { actionsObj[a] = false })
       setLocalActions((prev) => ({
         ...prev,
-        [module]: {
-          view: false,
-          create: false,
-          update: false,
-          delete: false,
-          export: false,
-          approve: false,
-        },
+        [module]: actionsObj,
       }))
     }
     setHasActionChanges(true)
@@ -229,6 +220,7 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
                       disabled={isProtectedUser}
                       actions={localActions[module.code]}
                       onActionChange={(action, enabled) => handleActionToggle(module.code, action, enabled)}
+                      applicableActions={getModuleActions(module.code)}
                     />
                   ))}
                 </div>
