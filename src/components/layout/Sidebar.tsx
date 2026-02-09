@@ -61,56 +61,7 @@ interface NavItem {
   children?: Omit<NavItem, 'children'>[]
 }
 
-// Owner-specific navigation (strategic focus)
-const ownerNavigation: NavItem[] = [
-  {
-    titleKey: 'dashboard',
-    href: '/',
-    icon: LayoutDashboard,
-  },
-  {
-    titleKey: 'bookings',
-    href: '/bookings',
-    icon: CalendarDays,
-  },
-  {
-    titleKey: 'rooms',
-    href: '/rooms',
-    icon: Hotel,
-  },
-  {
-    titleKey: 'reports',
-    icon: BarChart3,
-    children: [
-      { titleKey: 'reportsDashboard', href: '/reports', icon: LayoutDashboard },
-      { titleKey: 'revenueReport', href: '/reports/revenue', icon: DollarSign },
-      { titleKey: 'inventoryReport', href: '/reports/inventory', icon: Warehouse },
-      { titleKey: 'roomsReport', href: '/reports/rooms', icon: Hotel },
-      { titleKey: 'laundryReport', href: '/reports/laundry', icon: Wind },
-      { titleKey: 'damagesReport', href: '/reports/damages', icon: AlertCircle },
-      { titleKey: 'maintenanceReport', href: '/reports/maintenance', icon: Wrench },
-    ],
-  },
-  {
-    titleKey: 'settings',
-    icon: Settings,
-    children: [
-      { titleKey: 'generalSettings', href: '/settings/general', icon: Settings },
-      { titleKey: 'hotels', href: '/settings/hotels', icon: Building2 },
-      { titleKey: 'usersPermissions', href: '/settings/users', icon: Users },
-      { titleKey: 'changePassword', href: '/settings/change-password', icon: KeyRound },
-      { titleKey: 'subscription', href: '/settings/subscription', icon: CreditCard },
-      { titleKey: 'usage', href: '/settings/usage', icon: BarChart3 },
-      { titleKey: 'notifications', href: '/settings/notifications', icon: Bell },
-      { titleKey: 'telegram', href: '/settings/telegram', icon: MessageCircle },
-      { titleKey: 'businessConfig', href: '/settings/business', icon: Briefcase },
-      { titleKey: 'pricingRules', href: '/settings/pricing-rules', icon: DollarSign },
-      { titleKey: 'automation', href: '/settings/workflows', icon: Zap },
-    ],
-  },
-]
-
-// Manager/Staff navigation (operational details)
+// Navigation for all roles (operational details)
 const navigation: NavItem[] = [
   {
     titleKey: 'dashboard',
@@ -322,7 +273,7 @@ export const Sidebar = () => {
   }
 
   // Select navigation based on role
-  const effectiveNavigation = role === 'owner' ? ownerNavigation : navigation
+  const effectiveNavigation = navigation
 
   // Filter navigation based on permissions
   const filteredNavigation = effectiveNavigation.filter((item) => {

@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Home, Package, DoorOpen, Shirt, Wrench, BarChart3, Building2, Settings, CalendarDays, ClipboardList } from 'lucide-react'
+import { Home, DoorOpen, Shirt, Wrench, ClipboardList } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { useUser } from '@/hooks/useUser'
@@ -26,16 +26,7 @@ export const MobileBottomNav = () => {
   const { data: pendingTaskCount = 0 } = usePendingTaskCount()
   const { data: pendingCounts } = usePendingCounts()
 
-  // Owner-specific navigation (strategic focus)
-  const OWNER_NAV_ITEMS: NavItem[] = [
-    { id: 'home', label: 'Home', icon: Home, path: '/' },
-    { id: 'bookings', label: 'Đặt phòng', icon: CalendarDays, path: '/bookings' },
-    { id: 'reports', label: 'Báo cáo', icon: BarChart3, path: '/reports' },
-    { id: 'hotels', label: 'KS', icon: Building2, path: '/settings/hotels' },
-    { id: 'settings', label: 'Cài đặt', icon: Settings, path: '/settings' },
-  ]
-
-  // Manager/Staff navigation (operations)
+  // Navigation items for all roles (operations)
   const NAV_ITEMS: NavItem[] = [
     { id: 'home', label: 'Home', icon: Home, path: '/' },
     { id: 'my-tasks', label: 'Tasks', icon: ClipboardList, path: '/my-tasks', badgeKey: 'tasks' },
@@ -44,8 +35,7 @@ export const MobileBottomNav = () => {
     { id: 'maintenance', label: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badgeKey: 'maintenanceTotal' },
   ]
 
-  // Select nav items based on role
-  const effectiveNavItems = role === 'owner' ? OWNER_NAV_ITEMS : NAV_ITEMS
+  const effectiveNavItems = NAV_ITEMS
 
   // Check if user has module access
   const hasModuleAccess = (moduleCode?: string): boolean => {
