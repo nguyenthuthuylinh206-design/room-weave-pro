@@ -617,11 +617,34 @@ export function BookingsPage() {
       )
 
       // Calculate cost breakdown with damage
+      // Determine booking type params
+      const bType = booking.booking_type || 'daily'
+      const bHourlyRate = booking.hourly_rate || 0
+      const bHours = booking.booking_hours || 0
+      const bMonthlyRate = booking.monthly_rate || 0
+      const bMonths = booking.booking_months || 0
+
+      // Calculate hourly overtime if applicable
+      let hourlyOvertimeCharge = 0
+      if (bType === 'hourly' && booking.hourly_end_time) {
+        const scheduledEnd = new Date(`${booking.check_out_date}T${booking.hourly_end_time}`)
+        const overtimeMinutes = (now.getTime() - scheduledEnd.getTime()) / (1000 * 60)
+        if (overtimeMinutes > 0) {
+          hourlyOvertimeCharge = Math.ceil(overtimeMinutes / 60) * bHourlyRate
+        }
+      }
+
       const costBreakdown = calculateBookingCost({
+        bookingType: bType,
         roomPrice,
         nights,
-        earlyCheckinCharge: (booking as any).early_checkin_charge || 0,
-        lateCheckoutCharge: calculatedLateCharge,
+        earlyCheckinCharge: bType === 'daily' ? ((booking as any).early_checkin_charge || 0) : 0,
+        lateCheckoutCharge: bType === 'daily' ? calculatedLateCharge : 0,
+        hourlyRate: bHourlyRate,
+        hours: bHours,
+        hourlyOvertimeCharge,
+        monthlyRate: bMonthlyRate,
+        months: bMonths,
         serviceCharges,
         extraCharges: ((booking as any).extra_charges || 0) + extraChargeableAmount,
         damageCharges: totalDamageCharge,
@@ -666,12 +689,19 @@ export function BookingsPage() {
       const checkOut = new Date(actionBooking.check_out_date)
       const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
 
-      // Recalculate with adjusted late charge and damage
+      // Recalculate with adjusted late charge and damage (with bookingType)
+      const bType = actionBooking.booking_type || 'daily'
       const adjustedCostBreakdown = calculateBookingCost({
+        bookingType: bType,
         roomPrice,
         nights,
         earlyCheckinCharge: checkoutCostBreakdown.earlyCheckinCharge,
         lateCheckoutCharge: adjustedLateCharge,
+        hourlyRate: actionBooking.hourly_rate || 0,
+        hours: actionBooking.booking_hours || 0,
+        hourlyOvertimeCharge: bType === 'hourly' ? adjustedLateCharge : 0,
+        monthlyRate: actionBooking.monthly_rate || 0,
+        months: actionBooking.booking_months || 0,
         serviceCharges: checkoutCostBreakdown.serviceCharges,
         extraCharges: checkoutCostBreakdown.extraCharges,
         damageCharges: damageCharges || 0,
@@ -762,12 +792,19 @@ export function BookingsPage() {
       const checkOut = new Date(actionBooking.check_out_date)
       const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
 
-      // Recalculate with adjusted late charge and damage
+      // Recalculate with adjusted late charge and damage (with bookingType)
+      const bType2 = actionBooking.booking_type || 'daily'
       const adjustedCostBreakdown = calculateBookingCost({
+        bookingType: bType2,
         roomPrice,
         nights,
         earlyCheckinCharge: checkoutCostBreakdown.earlyCheckinCharge,
         lateCheckoutCharge: adjustedLateCharge,
+        hourlyRate: actionBooking.hourly_rate || 0,
+        hours: actionBooking.booking_hours || 0,
+        hourlyOvertimeCharge: bType2 === 'hourly' ? adjustedLateCharge : 0,
+        monthlyRate: actionBooking.monthly_rate || 0,
+        months: actionBooking.booking_months || 0,
         serviceCharges: checkoutCostBreakdown.serviceCharges,
         extraCharges: checkoutCostBreakdown.extraCharges,
         damageCharges: damageCharges || 0,
@@ -780,19 +817,7 @@ export function BookingsPage() {
 
       const newAmountPaid = adjustedCostBreakdown.totalAmount - checkoutCostBreakdown.depositAmount
 
-      // Update payment first
-      const { error: paymentError } = await supabase
-        .from('room_bookings')
-        .update({
-          amount_paid: newAmountPaid,
-          payment_status: 'paid',
-          paid_at: new Date().toISOString(),
-        })
-        .eq('id', actionBooking.id)
-
-      if (paymentError) throw paymentError
-
-      // Use RPC for atomic checkout with damage params
+      // Use RPC for atomic pay & checkout (p_new_amount_paid handles payment atomically)
       const { error } = await supabase.rpc('perform_checkout', {
         p_booking_id: actionBooking.id,
         p_room_id: actionBooking.room_id,
@@ -805,6 +830,7 @@ export function BookingsPage() {
         p_damage_charges: damageCharges || 0,
         p_damage_notes: damageAdjustmentNote || null,
         p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
+        p_new_amount_paid: newAmountPaid,
       })
 
       if (error) throw error
@@ -920,11 +946,18 @@ export function BookingsPage() {
             .rpc('get_booking_chargeable_total', { p_booking_id: actionBooking.id })
           const extraChargeableAmount = chargeableTotal || 0
           
+          const bType = actionBooking.booking_type || 'daily'
           const newCostBreakdown = calculateBookingCost({
+            bookingType: bType,
             roomPrice,
             nights,
             earlyCheckinCharge: checkoutCostBreakdown.earlyCheckinCharge,
             lateCheckoutCharge: checkoutCostBreakdown.lateCheckoutCharge,
+            hourlyRate: actionBooking.hourly_rate || 0,
+            hours: actionBooking.booking_hours || 0,
+            hourlyOvertimeCharge: checkoutCostBreakdown.hourlyOvertimeCharge || 0,
+            monthlyRate: actionBooking.monthly_rate || 0,
+            months: actionBooking.booking_months || 0,
             serviceCharges: checkoutCostBreakdown.serviceCharges,
             extraCharges: ((actionBooking as any).extra_charges || 0) + extraChargeableAmount,
             damageCharges: totalDamageCharge,
@@ -1450,6 +1483,12 @@ export function BookingsPage() {
           actualCheckoutDate={new Date()}
           scheduledCheckoutDate={actionBooking.check_out_date ? new Date(actionBooking.check_out_date) : new Date()}
           costBreakdown={checkoutCostBreakdown}
+          bookingType={actionBooking.booking_type || 'daily'}
+          hourlyRate={actionBooking.hourly_rate || undefined}
+          bookingHours={actionBooking.booking_hours || undefined}
+          scheduledEndTime={actionBooking.hourly_end_time ? new Date(`${actionBooking.check_out_date}T${actionBooking.hourly_end_time}`) : undefined}
+          monthlyRate={actionBooking.monthly_rate || undefined}
+          bookingMonths={actionBooking.booking_months || undefined}
           damageItems={checkoutDamageItems}
           onConfirmCheckout={performCheckOut}
           onPayAndCheckout={handlePayAndCheckout}
@@ -1491,15 +1530,106 @@ export function BookingsPage() {
           onSuccess={() => {
             setActionBooking(null)
           }}
-          onCheckoutNow={() => {
-            // Close extend dialog and proceed with checkout
+          onCheckoutNow={async () => {
+            // Close extend dialog first
             setShowExtendDialog(false)
-            // Force checkout flow - bypass the overdue check since we're handling it here
-            setShowCheckoutSummary(true)
-            toast({
-              title: 'Tiến hành checkout',
-              description: 'Vui lòng xác nhận thông tin và thanh toán',
-            })
+            
+            if (!actionBooking) return
+            setIsActionLoading(true)
+            
+            try {
+              const now = new Date()
+              const todayStr = format(now, 'yyyy-MM-dd')
+              
+              // Auto-extend check_out_date to today
+              await supabase
+                .from('room_bookings')
+                .update({ check_out_date: todayStr })
+                .eq('id', actionBooking.id)
+              
+              // Update local state
+              const updatedBooking = { ...actionBooking, check_out_date: todayStr }
+              setActionBooking(updatedBooking)
+              
+              // Calculate costs (same logic as handleCheckOutClick)
+              const actualTime = format(now, 'HH:mm')
+              const roomPrice = (updatedBooking as any).room_price || 0
+              const bType = updatedBooking.booking_type || 'daily'
+              const calculatedLateCharge = bType === 'daily' ? calculateLateCheckoutCharge(actualTime, roomPrice) : 0
+              
+              const checkIn = new Date(updatedBooking.check_in_date)
+              const checkOut = new Date(todayStr)
+              const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
+              
+              const consumablesTotal = await calculateServiceChargesFromConsumables(updatedBooking.id)
+              const serviceCharges = consumablesTotal > 0 ? consumablesTotal : ((updatedBooking as any).service_charges || 0)
+              
+              const { data: chargeableTotal } = await supabase
+                .rpc('get_booking_chargeable_total', { p_booking_id: updatedBooking.id })
+              const extraChargeableAmount = chargeableTotal || 0
+              
+              const { data: latestCheck } = await supabase
+                .from('room_checks')
+                .select('items_lost, items_damaged, items_consumed')
+                .eq('room_id', updatedBooking.room_id)
+                .in('check_type', ['checkout', 'daily'])
+                .order('checked_at', { ascending: false })
+                .limit(1)
+                .maybeSingle()
+              
+              const damageItems: DamageChargeItem[] = [
+                ...((latestCheck?.items_lost as any[]) || []).map(item => ({
+                  item_id: item.item_id, item_name: item.item_name, item_type: 'lost' as const,
+                  quantity: item.quantity, charge_amount: item.estimated_value || 0,
+                })),
+                ...((latestCheck?.items_damaged as any[]) || []).map(item => ({
+                  item_id: item.item_id, item_name: item.item_name, item_type: 'damaged' as const,
+                  quantity: item.quantity, charge_amount: item.damage_cost || 0, damage_type: item.damage_type,
+                })),
+                ...((latestCheck?.items_consumed as any[]) || []).map(item => ({
+                  item_id: item.item_id, item_name: item.item_name, item_type: 'consumed' as const,
+                  quantity: item.quantity, charge_amount: item.unit_price || 0,
+                })),
+              ]
+              
+              const totalDamageCharge = damageItems.reduce((sum, item) => sum + item.charge_amount * item.quantity, 0)
+              
+              let hourlyOvertimeCharge = 0
+              if (bType === 'hourly' && updatedBooking.hourly_end_time) {
+                const scheduledEnd = new Date(`${todayStr}T${updatedBooking.hourly_end_time}`)
+                const overtimeMinutes = (now.getTime() - scheduledEnd.getTime()) / (1000 * 60)
+                if (overtimeMinutes > 0) hourlyOvertimeCharge = Math.ceil(overtimeMinutes / 60) * (updatedBooking.hourly_rate || 0)
+              }
+              
+              const costBreakdown = calculateBookingCost({
+                bookingType: bType,
+                roomPrice, nights,
+                earlyCheckinCharge: bType === 'daily' ? ((updatedBooking as any).early_checkin_charge || 0) : 0,
+                lateCheckoutCharge: bType === 'daily' ? calculatedLateCharge : 0,
+                hourlyRate: updatedBooking.hourly_rate || 0,
+                hours: updatedBooking.booking_hours || 0,
+                hourlyOvertimeCharge,
+                monthlyRate: updatedBooking.monthly_rate || 0,
+                months: updatedBooking.booking_months || 0,
+                serviceCharges,
+                extraCharges: ((updatedBooking as any).extra_charges || 0) + extraChargeableAmount,
+                damageCharges: totalDamageCharge,
+                damageItems,
+                vatRate: (updatedBooking as any).vat_rate ?? DEFAULT_PRICING_RULES.vatRate,
+                serviceFeeRate: (updatedBooking as any).service_fee_rate ?? DEFAULT_PRICING_RULES.serviceFeeRate,
+                depositAmount: (updatedBooking as any).deposit_amount || 0,
+                amountPaid: (updatedBooking as any).amount_paid || 0,
+              })
+              
+              setCheckoutDamageItems(damageItems)
+              setCheckoutCostBreakdown(costBreakdown)
+              setShowCheckoutSummary(true)
+            } catch (error: any) {
+              toast({ variant: 'destructive', title: 'Lỗi tính toán', description: error.message })
+              setActionBooking(null)
+            } finally {
+              setIsActionLoading(false)
+            }
           }}
           onTransferRoom={() => {
             // Navigate to room transfer page

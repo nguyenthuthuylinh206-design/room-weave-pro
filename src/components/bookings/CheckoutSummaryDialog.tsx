@@ -489,6 +489,19 @@ export function CheckoutSummaryDialog({
                     </p>
                   </div>
                 </>
+              ) : currentHour <= 12 ? (
+                <>
+                  <Separator />
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <Check className="h-4 w-4" />
+                      <span className="font-medium">Checkout đúng giờ - Không phụ thu</span>
+                    </div>
+                    <p className="text-xs text-green-600 mt-1">
+                      Checkout trước/đúng 12:00 → không phụ thu.
+                    </p>
+                  </div>
+                </>
               ) : (
                 <>
                   <Separator />
@@ -522,11 +535,6 @@ export function CheckoutSummaryDialog({
                         )
                       })}
                     </div>
-                    {currentHour <= 12 && (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">
-                        Checkout trước/đúng giờ tiêu chuẩn → không phụ thu.
-                      </div>
-                    )}
                   </div>
                 </>
               )}
@@ -813,8 +821,8 @@ export function CheckoutSummaryDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         
-        <AlertDialogFooter className="gap-2">
-          <AlertDialogCancel disabled={isLoading}>Hủy</AlertDialogCancel>
+        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+          <AlertDialogCancel disabled={isLoading} className="w-full sm:w-auto">Hủy</AlertDialogCancel>
           
           {hasOutstandingBalance ? (
             <>
@@ -822,20 +830,21 @@ export function CheckoutSummaryDialog({
                 variant="outline"
                 onClick={handleConfirm}
                 disabled={isLoading || !canProceed}
+                className="w-full sm:w-auto"
               >
                 Cho trả phòng (nợ {formatCurrency(adjustedCostBreakdown.remainingAmount)})
               </Button>
               <Button
                 onClick={handlePayAndCheckout}
                 disabled={isLoading || !canProceed}
-                className="gap-2"
+                className="gap-2 w-full sm:w-auto"
               >
                 <CreditCard className="h-4 w-4" />
                 Thu tiền & Trả phòng
               </Button>
             </>
           ) : (
-            <Button onClick={handleConfirm} disabled={isLoading || !canProceed}>
+            <Button onClick={handleConfirm} disabled={isLoading || !canProceed} className="w-full sm:w-auto">
               Xác nhận Check-out
             </Button>
           )}
