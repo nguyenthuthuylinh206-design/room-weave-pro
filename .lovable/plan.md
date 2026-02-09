@@ -1,63 +1,144 @@
 
 
-## Mở rộng Sidebar Owner - Đầy đủ tất cả chức năng
+## Phan tich van de he thong phan quyen
 
-### Van de hien tai
+### VAN DE 1: MODULES thieu so voi thuc te
 
-Sidebar cua Owner (`ownerNavigation` trong `Sidebar.tsx`) chi co 5 muc:
-- Dashboard
-- Bookings
-- Rooms
-- Reports (gioi han)
-- Settings
+Danh sach `MODULES` trong `useUserPermissions.ts` co **12 module**, nhung thuc te he thong su dung cac module khong co trong danh sach nay:
 
-**Thieu hoan toan** cac module quan trong:
-- Inventory (Kho & Tai san) - 12 sub-items
-- Laundry (Giat la) - 6 sub-items
-- Vendors (Nha cung cap) - 5 sub-items
-- Maintenance (Bao tri) - 3 sub-items
-- Staff Management (Quan ly nhan su)
+| Module thuc te (dung trong App.tsx) | Co trong MODULES? | Hau qua |
+|---|---|---|
+| `dashboard` | Co | OK |
+| `items` | Co | OK |
+| `rooms` | Co | OK |
+| `laundry` | Co | OK |
+| `inventory` | Co | OK |
+| `maintenance` | Co | OK |
+| `vendors` | Co | OK |
+| `purchase_orders` | Co | OK |
+| `reports` | Co | OK |
+| `users` | Co | OK |
+| `settings` | Co | OK |
+| `hotels` | Co | OK |
+| `bookings` | **KHONG** (dung chung `rooms`) | Khong the phan quyen rieng Dat phong va Quan ly phong |
+| `housekeeping` | **KHONG** (khong co route check) | Khong the phan quyen rieng Housekeeping |
 
-Trong khi Manager lai co day du tat ca cac module nay. Owner la cap cao nhat nhung lai bi gioi han navigation.
+**Van de**: Bookings (Dat phong) dang dung chung module `rooms`, nen khong the cho phep 1 user chi xem Dat phong ma khong xem Phong, hoac nguoc lai.
 
-### Giai phap
+---
 
-**Xoa bo `ownerNavigation` rieng biet**, thay vao do cho Owner su dung cung `navigation` voi Manager/Staff (vi Owner da co quyen truy cap tat ca module). Chi can sua 1 dong logic trong Sidebar.tsx.
+### VAN DE 2: ACTIONS thieu `assign` va `manage`
 
-### Chi tiet thay doi
+Danh sach `ACTIONS` co 6 quyen: `view, create, update, delete, export, approve`
 
-**File: `src/components/layout/Sidebar.tsx`**
+Nhung `PermissionRoute` co dinh nghia type `PermissionAction` bao gom ca `assign` va `manage` (dung o `settings/workflows` voi `action="manage"`). Nhung 2 action nay **khong hien thi** trong UI phan quyen, nen admin khong the cap quyen `manage` hoac `assign` cho ai.
 
-| Thay doi | Chi tiet |
-|----------|----------|
-| Xoa mang `ownerNavigation` (dong 65-111) | Khong can navigation rieng cho Owner nua |
-| Sua logic chon navigation (dong 325) | Xoa dieu kien `role === 'owner' ? ownerNavigation : navigation`, luon dung `navigation` |
+---
 
-Logic hien tai:
+### VAN DE 3: Badge trang thai khong ro rang
+
+Trong `ModuleToggle.tsx`:
+- Module tat: hien "Khong co quyen" (Badge secondary)
+- Module bat + tat ca actions bat: khong hien gi
+- Module bat + mot so actions bat: hien "Tuy chinh" (Badge outline)
+
+**Van de**: "Tuy chinh" khong cho biet user co nhung quyen gi. Admin phai bam mo expand tung module de xem chi tiet. Voi 12 module, viec nay rat mat thoi gian.
+
+---
+
+### VAN DE 4: Khong co Preset/Template quyen
+
+Moi lan tao user moi, admin phai bat/tat tung module va tung action thu cong. Khong co cach:
+- Ap dung template quyen nhanh (vd: "Staff phong", "Staff kho", "Manager toan quyen")
+- Copy quyen tu user khac
+
+---
+
+### VAN DE 5: Khong phan biet actions theo module
+
+Tat ca 12 module deu hien **6 actions giong nhau** (view, create, update, delete, export, approve). Nhung thuc te:
+- `dashboard`: chi can `view` (khong can create/delete/approve)
+- `reports`: chi can `view` va `export` (khong can create/delete)
+- `settings`: can `view` va `manage` (khong can export/approve)
+- `hotels`: can `view`, `create`, `update`, `delete` (khong can export/approve)
+
+Hien 6 actions cho dashboard la thua va gay nhau lan.
+
+---
+
+### GIAI PHAP DE XUAT
+
+### 1. Them module `bookings` vao MODULES
+
+**File: `src/hooks/useUserPermissions.ts`**
+- Them `{ code: 'bookings', name: 'Dat phong', icon: 'CalendarDays' }` vao mang MODULES
+
+**File: `src/App.tsx`**
+- Doi cac route bookings tu `module="rooms"` sang `module="bookings"`
+
+### 2. Them actions `assign` va `manage` vao ACTIONS
+
+**File: `src/hooks/useUserPermissions.ts`**
+- Them `{ code: 'assign', name: 'Phan cong', color: 'cyan' }` va `{ code: 'manage', name: 'Quan ly', color: 'orange' }` vao mang ACTIONS
+
+### 3. Dinh nghia actions phu hop cho tung module
+
+**File: `src/hooks/useUserPermissions.ts`**
+- Them `MODULE_ACTIONS` map de chi dinh actions ap dung cho tung module:
+
+```text
+dashboard  -> [view]
+items      -> [view, create, update, delete, export]
+rooms      -> [view, create, update, delete]
+bookings   -> [view, create, update, delete, export]
+laundry    -> [view, create, update, delete, export, approve]
+inventory  -> [view, create, update, delete, export, approve]
+maintenance-> [view, create, update, delete, assign, approve]
+vendors    -> [view, create, update, delete]
+purchase_orders -> [view, create, update, delete, approve]
+reports    -> [view, export]
+users      -> [view, create, update, delete]
+settings   -> [view, update, manage]
+hotels     -> [view, create, update, delete]
 ```
-const effectiveNavigation = role === 'owner' ? ownerNavigation : navigation
-```
 
-Sua thanh:
-```
-const effectiveNavigation = navigation
-```
+**File: `src/components/permissions/ModuleToggle.tsx`**
+- Nhan prop `applicableActions` de chi hien cac action phu hop
 
-Mang `navigation` da co `roles: ['owner', ...]` o moi muc, nen Owner se tu dong thay tat ca. Dong thoi `hasModuleAccess` cung da return `true` cho `role === 'owner'`.
+### 4. Hien thi tom tat quyen tren badge
 
-### Ket qua
+**File: `src/components/permissions/ModuleToggle.tsx`**
+- Thay badge "Tuy chinh" bang tom tat cu the, vd: "Xem, Sua" hoac "3/5 quyen"
+
+### 5. Them Preset quyen (Optional - giai doan sau)
+
+Tao san 3-4 template quyen de admin ap dung nhanh:
+- "Nhan vien phong": rooms (view, update), laundry (view), maintenance (view, create)
+- "Nhan vien kho": inventory (full), items (view, update)
+- "Quan ly toan quyen": tat ca modules (tru settings/manage)
+
+---
+
+### FILES CAN SUA
+
+| # | File | Thay doi |
+|---|------|----------|
+| 1 | `src/hooks/useUserPermissions.ts` | Them module `bookings`, them actions `assign`/`manage`, them `MODULE_ACTIONS` map |
+| 2 | `src/App.tsx` | Doi bookings routes tu `module="rooms"` sang `module="bookings"` |
+| 3 | `src/components/permissions/ModuleToggle.tsx` | Filter actions theo module, hien tom tat quyen tren badge |
+| 4 | `src/components/permissions/UserPermissionPanel.tsx` | Truyen `applicableActions` vao ModuleToggle |
+| 5 | `src/hooks/useUserPermissionConfiguration.ts` | Cap nhat logic save de chi luu applicable actions |
+| 6 | `src/components/auth/PermissionRoute.tsx` | Them `bookings` vao PermissionModule type |
+
+---
+
+### KET QUA SAU THAY DOI
 
 | Truoc | Sau |
 |-------|-----|
-| Owner chi thay 5 muc sidebar | Owner thay day du tat ca module nhu Manager |
-| Thieu Inventory, Laundry, Vendors, Maintenance, Staff | Co day du voi badge counts, sub-menus |
-| Phai vao Settings de truy cap mot so chuc nang | Truy cap truc tiep tu sidebar |
-| Reports chi co revenue + financial | Them operations, rooms, inventory, laundry, maintenance reports |
-
-### Pham vi anh huong
-
-- Chi sua 1 file: `src/components/layout/Sidebar.tsx`
-- Khong anh huong mobile (BottomNav va MorePage da day du cho Owner)
-- Khong anh huong permissions - Owner van co full access
-- Khong anh huong routing - tat ca routes da ho tro Owner
+| 12 modules, thieu bookings | 13 modules, day du |
+| 6 actions giong nhau cho moi module | Actions phu hop tung module (dashboard chi co view) |
+| Badge chi hien "Tuy chinh" mo ho | Hien cu the "Xem, Sua" hoac "3/5 quyen" |
+| Thieu assign/manage action | Co du 8 actions |
+| Bookings va Rooms chung quyen | Tach rieng, phan quyen doc lap |
 
