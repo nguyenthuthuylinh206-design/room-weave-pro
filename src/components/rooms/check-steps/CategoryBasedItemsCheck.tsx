@@ -226,19 +226,16 @@ export function CategoryBasedItemsCheck({
         break
       case 'laundry':
         onLinenStatusChange(item, 'laundry', action.quantity)
-        toast({ title: 'Lấy giặt', description: `${action.quantity}x ${item.item_name}` })
         break
       case 'add':
         onLinenStatusChange(item, 'add', action.quantity)
-        toast({ title: 'Bổ sung đồ', description: `${action.quantity}x ${item.item_name}` })
         break
       case 'change':
         onLinenStatusChange(item, 'change', action.quantity)
-        toast({ title: 'Thay đổi', description: `${action.quantity}x ${item.item_name}` })
         break
       case 'lost':
         onEquipmentLost(item, action.quantity, action.estimatedValue)
-        toast({ title: 'Đã đánh dấu mất', description: item.item_name, variant: 'destructive' })
+        toast({ title: '⚠️ Đánh dấu mất', description: item.item_name, variant: 'destructive' })
         break
       case 'damaged':
         onMarkDamaged(item, {
@@ -247,15 +244,13 @@ export function CategoryBasedItemsCheck({
           notes: action.notes,
           item_type: item.item_type,
         })
-        toast({ title: 'Đã đánh dấu hỏng', description: item.item_name })
+        toast({ title: '⚠️ Đánh dấu hỏng', description: item.item_name, variant: 'destructive' })
         break
       case 'missing':
         onLinenStatusChange(item, 'missing', action.quantity)
-        toast({ title: 'Thiếu đồ', description: `${item.item_name}: thiếu ${action.quantity}` })
         break
       case 'consumed':
         onMarkConsumed(item, action.quantity, action.needRefill)
-        toast({ title: 'Đã ghi nhận', description: `${action.quantity}x ${item.item_name}` })
         break
     }
   }
@@ -391,7 +386,7 @@ export function CategoryBasedItemsCheck({
                 {(laundryItems.length > 0 || lostItems.length > 0 || damagedItems.length > 0) && (
                   <span className="text-muted-foreground">•</span>
                 )}
-                <span className="text-cyan-600 font-medium">{consumedItems.length} thiếu</span>
+                <span className="text-cyan-600 font-medium">{consumedItems.length} hết</span>
               </>
             )}
           </div>

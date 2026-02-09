@@ -79,7 +79,17 @@ export function StaffRoomCheckView() {
     return acc
   }, {} as Record<number, typeof filteredRooms>)
 
-  const handleStartCheck = (roomId: string) => {
+  const handleStartCheck = (roomId: string, roomStatus?: string) => {
+    // Auto-navigate khi phong cleaning/check_out - khong can hoi loai kiem tra
+    if (roomStatus === 'cleaning') {
+      navigate(`/rooms/${roomId}/check?type=daily`)
+      return
+    }
+    if (roomStatus === 'check_out') {
+      navigate(`/rooms/${roomId}/check?type=checkout`)
+      return
+    }
+    // Chi hien modal chon loai cho phong vacant hoac cac trang thai khac
     setSelectedRoomId(roomId)
     setShowCheckSelector(true)
   }
@@ -234,7 +244,7 @@ export function StaffRoomCheckView() {
 interface CompactRoomRowProps {
   room: any
   checkSession?: any
-  onStartCheck: (roomId: string) => void
+  onStartCheck: (roomId: string, roomStatus?: string) => void
   onCleaningComplete: (roomId: string, roomNumber: string) => void
   onRecheck: (roomId: string) => void
 }
@@ -261,7 +271,7 @@ function CompactRoomRow({ room, checkSession, onStartCheck, onCleaningComplete, 
       )}
       onClick={() => {
         if (room.status === 'vacant' && !hasSession) {
-          onStartCheck(room.id)
+          onStartCheck(room.id, room.status)
         }
       }}
     >

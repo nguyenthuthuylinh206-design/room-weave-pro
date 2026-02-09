@@ -54,7 +54,7 @@ const STATUS_CONFIG = {
   lost: { label: 'Mất', color: 'text-destructive', bg: 'bg-destructive' },
   damaged: { label: 'Hỏng', color: 'text-amber-600', bg: 'bg-amber-500' },
   missing: { label: 'Thiếu', color: 'text-yellow-600', bg: 'bg-yellow-500' },
-  consumed: { label: 'Đã dùng', color: 'text-cyan-600', bg: 'bg-cyan-500' },
+  consumed: { label: 'Hết', color: 'text-cyan-600', bg: 'bg-cyan-500' },
   pending: { label: '', color: '', bg: '' },
 }
 
@@ -65,7 +65,7 @@ const ACTION_CONFIG: Record<string, { icon: typeof WashingMachine; label: string
   add: { icon: PlusCircle, label: 'Thêm', color: 'text-green-600 hover:bg-green-50 active:bg-green-100' },
   lost: { icon: Ban, label: 'Mất', color: 'text-destructive hover:bg-destructive/10 active:bg-destructive/20' },
   damaged: { icon: Wrench, label: 'Hỏng', color: 'text-amber-600 hover:bg-amber-50 active:bg-amber-100' },
-  consumed: { icon: Package, label: 'Thiếu', color: 'text-amber-600 hover:bg-amber-50 active:bg-amber-100' },
+  consumed: { icon: Package, label: 'Hết', color: 'text-cyan-600 hover:bg-cyan-50 active:bg-cyan-100' },
   missing: { icon: Package, label: 'Thiếu', color: 'text-amber-600 hover:bg-amber-50 active:bg-amber-100' },
 }
 
@@ -208,7 +208,7 @@ export function CategoryItemRow({
       return (
         <div className="px-3 pb-2 space-y-1.5">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="text-cyan-600 font-medium">Thiếu {consumedInfo.quantity}</span>
+            <span className="text-cyan-600 font-medium">Hết {consumedInfo.quantity}</span>
             <span>•</span>
             <span>{consumedInfo.need_refill ? 'Cần bổ sung' : 'Không bổ sung'}</span>
           </div>
@@ -380,7 +380,7 @@ export function CategoryItemRow({
 
             {/* Quantity selector */}
             <div className="flex items-center gap-2">
-              <Label className="text-xs shrink-0">Số lượng thiếu:</Label>
+              <Label className="text-xs shrink-0">Số lượng hết:</Label>
               <div className="flex items-center gap-1">
                 <Button
                   type="button"
