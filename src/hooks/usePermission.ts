@@ -7,6 +7,7 @@ export type PermissionModule =
   | 'dashboard'
   | 'items'
   | 'rooms'
+  | 'bookings'
   | 'laundry'
   | 'inventory'
   | 'reports'
@@ -26,6 +27,7 @@ export const ALL_MODULES: { code: PermissionModule; name: string }[] = [
   { code: 'inventory', name: 'Kho hàng' },
   { code: 'items', name: 'Tài sản' },
   { code: 'rooms', name: 'Phòng' },
+  { code: 'bookings', name: 'Đặt phòng' },
   { code: 'laundry', name: 'Giặt là' },
   { code: 'maintenance', name: 'Bảo trì' },
   { code: 'vendors', name: 'Nhà cung cấp' },
@@ -44,6 +46,8 @@ export const ALL_ACTIONS: { code: PermissionAction; name: string }[] = [
   { code: 'delete', name: 'Xóa' },
   { code: 'export', name: 'Xuất dữ liệu' },
   { code: 'approve', name: 'Phê duyệt' },
+  { code: 'assign', name: 'Phân công' },
+  { code: 'manage', name: 'Quản lý' },
 ]
 
 export function usePermissions() {

@@ -175,8 +175,9 @@ export function useUserPermissionConfiguration(userId?: string) {
               }
             })
           } else {
-            // No action details, enable all actions
-            allActions.forEach((action) => {
+            // No action details, enable only applicable actions for this module
+            const applicableActions = MODULE_ACTIONS[module] || allActions
+            applicableActions.forEach((action) => {
               permissionsToInsert.push({
                 user_id: userId,
                 tenant_id: tenantId,

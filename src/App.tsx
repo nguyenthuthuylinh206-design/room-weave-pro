@@ -474,7 +474,7 @@ const router = createBrowserRouter([
       { 
         path: "bookings", 
         element: (
-          <PermissionRoute module="rooms">
+          <PermissionRoute module="bookings">
             <BookingsPage />
           </PermissionRoute>
         )
@@ -482,7 +482,7 @@ const router = createBrowserRouter([
       { 
         path: "bookings/:id", 
         element: (
-          <PermissionRoute module="rooms">
+          <PermissionRoute module="bookings">
             <BookingDetailPage />
           </PermissionRoute>
         )
