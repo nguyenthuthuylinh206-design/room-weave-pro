@@ -10,6 +10,8 @@ export interface PermissionSummary {
   can_delete: boolean
   can_export: boolean
   can_approve: boolean
+  can_assign: boolean
+  can_manage: boolean
 }
 
 export function useUserModulePermissions() {

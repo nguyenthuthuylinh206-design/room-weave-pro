@@ -1,3 +1,11 @@
+/**
+ * @deprecated This file uses the legacy role-based permission system (user_roles -> roles -> role_permissions -> permissions).
+ * For new code, use `usePermission.ts` (useHasPermission) or `useUserPermissions.ts` (useCheckUserPermission) instead.
+ * These hooks query the `user_permissions` table directly via `has_user_permission` RPC.
+ * 
+ * This file is kept only for backward compatibility with role management UI.
+ */
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
@@ -59,7 +67,7 @@ export const usePermissionsByModule = () => {
   })
 }
 
-// Fetch user's permissions
+/** @deprecated Use useHasPermission from usePermission.ts instead */
 export const useUserPermissions = () => {
   const { user } = useUser()
 
@@ -74,7 +82,6 @@ export const useUserPermissions = () => {
 
       if (error) throw error
       
-      // Map the response to UserPermission format
       return (data || []).map((item: any) => ({
         code: item.code,
         module: item.module,
@@ -86,7 +93,7 @@ export const useUserPermissions = () => {
   })
 }
 
-// Check if user has a specific permission
+/** @deprecated Use useHasPermission from usePermission.ts instead */
 export const useHasPermission = (permissionCode: string) => {
   const { user } = useUser()
 
@@ -95,7 +102,6 @@ export const useHasPermission = (permissionCode: string) => {
     queryFn: async () => {
       if (!user?.id) return false
 
-      // Use direct query instead of RPC for better type safety
       const { data, error } = await supabase
         .from('user_roles')
         .select(`
@@ -112,7 +118,6 @@ export const useHasPermission = (permissionCode: string) => {
 
       if (error) throw error
 
-      // Check if permission code exists in user's permissions
       return data?.some((userRole: any) => {
         return userRole.roles?.role_permissions?.some((rp: any) => {
           return rp.permissions?.code === permissionCode
@@ -123,7 +128,7 @@ export const useHasPermission = (permissionCode: string) => {
   })
 }
 
-// Check if user has module permission
+/** @deprecated Use useHasPermission from usePermission.ts instead */
 export const useHasModulePermission = (module: string, action: string) => {
   const { user } = useUser()
 
@@ -132,7 +137,6 @@ export const useHasModulePermission = (module: string, action: string) => {
     queryFn: async () => {
       if (!user?.id) return false
 
-      // Use direct query for better type safety
       const { data, error } = await supabase
         .from('user_roles')
         .select(`
@@ -150,7 +154,6 @@ export const useHasModulePermission = (module: string, action: string) => {
 
       if (error) throw error
 
-      // Check if module/action combination exists in user's permissions
       return data?.some((userRole: any) => {
         return userRole.roles?.role_permissions?.some((rp: any) => {
           return rp.permissions?.module === module && rp.permissions?.action === action
@@ -198,7 +201,6 @@ export const useAssignPermissionsToRole = () => {
     }) => {
       if (!user?.id) throw new Error('User not found')
 
-      // First, remove all existing permissions for this role
       const { error: deleteError } = await supabase
         .from('role_permissions')
         .delete()
@@ -206,7 +208,6 @@ export const useAssignPermissionsToRole = () => {
 
       if (deleteError) throw deleteError
 
-      // Then, insert new permissions
       const rolePermissions: RolePermissionInsert[] = permissionIds.map((permissionId) => ({
         role_id: roleId,
         permission_id: permissionId,
