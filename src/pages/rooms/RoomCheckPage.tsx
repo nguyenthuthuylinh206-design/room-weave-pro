@@ -1337,7 +1337,8 @@ export function RoomCheckPage() {
                 <ReviewStep form={form} room={room} checkType={watchedCheckType as CheckType} currentBooking={currentBooking} />
               )}
               
-              <div className="flex items-center justify-between pt-6 border-t">
+              <div className="sticky bottom-0 z-10 bg-background border-t p-3 -mx-4 md:relative md:mx-0 md:p-0 md:pt-6 md:border-t">
+                <div className="flex items-center justify-between">
                 <div className="flex gap-2">
                   {currentStep > 1 && (
                     <Button
@@ -1392,6 +1393,7 @@ export function RoomCheckPage() {
                     {(createCheck.isPending || isSubmitting) ? 'Đang lưu...' : 'Hoàn thành'}
                   </Button>
                 )}
+                </div>
               </div>
             </form>
           </Form>

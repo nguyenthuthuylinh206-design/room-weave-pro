@@ -108,16 +108,6 @@ export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStep
   
   return (
     <div className="space-y-4">
-      {/* Check Type Header - Styled by type */}
-      <div className={cn('p-3 rounded-lg border', config.headerColor)}>
-        <div className="flex items-center gap-2">
-          <CheckTypeIcon className={cn('h-5 w-5', config.headerTextColor)} />
-          <div>
-            <h4 className={cn('font-medium text-sm', config.headerTextColor)}>{config.label}</h4>
-            <p className="text-xs text-muted-foreground">{config.description}</p>
-          </div>
-        </div>
-      </div>
       
       {/* Check-in Readiness Alert */}
       {checkType === 'checkin' && (
@@ -390,7 +380,7 @@ export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStep
               <button
                 type="button"
                 onClick={() => removePhoto(index)}
-                className="absolute -top-1 -right-1 rounded-full bg-destructive p-0.5 text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute -top-1 -right-1 rounded-full bg-destructive p-0.5 text-destructive-foreground sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
               >
                 <X className="h-3 w-3" />
               </button>

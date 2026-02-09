@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Bell, AlertTriangle, Package, Loader2, CheckCircle, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
@@ -83,18 +83,18 @@ export function Phase1ConfirmStep({
       </p>
 
       {/* Summary Card */}
-      <Card className="border-orange-200">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center justify-between">
+      <div className="border border-orange-200 rounded-lg">
+        <div className="p-3 pb-2">
+          <h3 className="text-base font-semibold flex items-center justify-between">
             <span>📋 Tóm tắt phụ thu - Phòng {roomNumber}</span>
             {guestName && (
               <Badge variant="outline" className="font-normal">
                 {guestName}
               </Badge>
             )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </h3>
+        </div>
+        <div className="px-3 pb-3 space-y-4">
           {hasNoCharges ? (
             <div className="py-6 text-center text-muted-foreground">
               <Package className="h-10 w-10 mx-auto mb-2 opacity-50" />
@@ -195,8 +195,8 @@ export function Phase1ConfirmStep({
               </div>
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Info Alert */}
       <Alert>
