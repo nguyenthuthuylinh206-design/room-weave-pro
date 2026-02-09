@@ -42,10 +42,6 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
 
   /**
    * Check-in: Update booking status to 'checked_in' AND room status to 'occupied'
-   * Automatically calculates early check-in surcharge
-   */
-  /**
-   * Check-in: Update booking status to 'checked_in' AND room status to 'occupied'
    * Uses database transaction (RPC) to ensure atomicity for concurrent users
    */
   // Error messages mapping for RPC errors
