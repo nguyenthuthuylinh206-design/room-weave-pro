@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { useUser } from './useUser'
-import { MODULES } from './useUserPermissions'
+import { MODULES, MODULE_ACTIONS } from './useUserPermissions'
 
 export interface ModulePermissionState {
   module: string
@@ -54,17 +54,14 @@ export function useUserPermissionConfiguration(userId?: string) {
 
         // Get action-level details
         const modulePermissions = detailData?.filter((p: any) => p.module === module.code) || []
-        const actions: Record<string, boolean> = {
-          view: false,
-          create: false,
-          update: false,
-          delete: false,
-          export: false,
-          approve: false,
-        }
+        const applicableActionCodes = MODULE_ACTIONS[module.code] || ['view', 'create', 'update', 'delete', 'export', 'approve']
+        const actions: Record<string, boolean> = {}
+        applicableActionCodes.forEach(code => { actions[code] = false })
 
         modulePermissions.forEach((p: any) => {
-          actions[p.action] = p.enabled
+          if (applicableActionCodes.includes(p.action)) {
+            actions[p.action] = p.enabled
+          }
         })
         
         moduleStates[module.code] = {
@@ -93,8 +90,7 @@ export function useUserPermissionConfiguration(userId?: string) {
     }) => {
       if (!tenantId) throw new Error('No tenant')
 
-      // Define all 6 actions
-      const actions = ['view', 'create', 'update', 'delete', 'export', 'approve']
+      const actions = MODULE_ACTIONS[module] || ['view', 'create', 'update', 'delete', 'export', 'approve']
       
       // Delete existing permissions for this module
       await supabase
@@ -147,7 +143,7 @@ export function useUserPermissionConfiguration(userId?: string) {
     }) => {
       if (!tenantId) throw new Error('No tenant')
 
-      const allActions = ['view', 'create', 'update', 'delete', 'export', 'approve']
+      const allActions = ['view', 'create', 'update', 'delete', 'export', 'approve', 'assign', 'manage']
       
       // Delete all existing user permissions
       const { error: deleteError } = await supabase

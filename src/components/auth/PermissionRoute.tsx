@@ -11,6 +11,7 @@ export type PermissionModule =
   | 'dashboard'
   | 'items'
   | 'rooms'
+  | 'bookings'
   | 'laundry'
   | 'inventory'
   | 'reports'

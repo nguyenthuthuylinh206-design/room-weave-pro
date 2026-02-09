@@ -3,8 +3,13 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import { ACTIONS } from '@/hooks/useUserPermissions'
 import { cn } from '@/lib/utils'
+
+interface ActionDef {
+  code: string
+  name: string
+  color?: string
+}
 
 interface ModuleToggleProps {
   moduleName: string
@@ -12,9 +17,9 @@ interface ModuleToggleProps {
   source: 'role' | 'custom' | null
   onChange: (enabled: boolean) => void
   disabled?: boolean
-  // Action-level control
   actions?: Record<string, boolean>
   onActionChange?: (action: string, enabled: boolean) => void
+  applicableActions: ActionDef[]
 }
 
 export function ModuleToggle({
@@ -25,12 +30,23 @@ export function ModuleToggle({
   disabled = false,
   actions,
   onActionChange,
+  applicableActions,
 }: ModuleToggleProps) {
   const [expanded, setExpanded] = useState(false)
   
-  const hasActionControl = actions && onActionChange
-  const allActionsEnabled = hasActionControl && Object.values(actions).every(v => v)
-  const someActionsEnabled = hasActionControl && Object.values(actions).some(v => v) && !allActionsEnabled
+  const hasActionControl = actions && onActionChange && applicableActions.length > 1
+  
+  // Count enabled actions among applicable ones
+  const enabledActions = applicableActions.filter(a => actions?.[a.code])
+  const allActionsEnabled = enabledActions.length === applicableActions.length
+  const someActionsEnabled = enabledActions.length > 0 && !allActionsEnabled
+
+  // Build summary text for badge
+  const actionSummary = someActionsEnabled && enabled
+    ? enabledActions.length <= 2
+      ? enabledActions.map(a => a.name).join(', ')
+      : `${enabledActions.length}/${applicableActions.length} quyền`
+    : null
 
   return (
     <div className={cn(
@@ -42,6 +58,7 @@ export function ModuleToggle({
         <div className="flex items-center gap-3 flex-1">
           {hasActionControl && (
             <button
+              type="button"
               onClick={() => enabled && setExpanded(!expanded)}
               className={cn(
                 "p-0.5 rounded transition-colors",
@@ -75,9 +92,14 @@ export function ModuleToggle({
         </div>
         
         <div className="flex items-center gap-2">
-          {someActionsEnabled && enabled && (
+          {actionSummary && (
             <Badge variant="outline" className="text-xs">
-              Tùy chỉnh
+              {actionSummary}
+            </Badge>
+          )}
+          {enabled && allActionsEnabled && applicableActions.length > 1 && (
+            <Badge variant="outline" className="text-xs text-green-600 border-green-200">
+              Toàn quyền
             </Badge>
           )}
           {!enabled && (
@@ -93,7 +115,7 @@ export function ModuleToggle({
         </div>
       </div>
 
-      {/* Actions Detail - Only show when enabled */}
+      {/* Actions Detail */}
       {expanded && hasActionControl && enabled && (
         <div className="border-t bg-muted/30 p-4 space-y-2">
           <p className="text-xs text-muted-foreground mb-3">
@@ -101,14 +123,14 @@ export function ModuleToggle({
           </p>
           
           <div className="grid grid-cols-2 gap-2">
-            {ACTIONS.map((action) => (
+            {applicableActions.map((action) => (
               <div
                 key={action.code}
                 className="flex items-center gap-2 p-2 rounded bg-background border"
               >
                 <Switch
-                  checked={actions[action.code] || false}
-                  onCheckedChange={(checked) => onActionChange(action.code, checked)}
+                  checked={actions?.[action.code] || false}
+                  onCheckedChange={(checked) => onActionChange!(action.code, checked)}
                   disabled={disabled}
                   className="scale-90"
                 />

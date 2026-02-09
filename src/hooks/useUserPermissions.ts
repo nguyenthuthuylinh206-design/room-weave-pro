@@ -36,6 +36,7 @@ export const MODULES = [
   { code: 'dashboard', name: 'Trang chủ', icon: 'LayoutDashboard' },
   { code: 'items', name: 'Tài sản', icon: 'Package' },
   { code: 'rooms', name: 'Phòng', icon: 'DoorClosed' },
+  { code: 'bookings', name: 'Đặt phòng', icon: 'CalendarDays' },
   { code: 'laundry', name: 'Giặt là', icon: 'Shirt' },
   { code: 'inventory', name: 'Kho', icon: 'Warehouse' },
   { code: 'maintenance', name: 'Bảo trì', icon: 'Wrench' },
@@ -54,7 +55,32 @@ export const ACTIONS = [
   { code: 'delete', name: 'Xóa', color: 'red' },
   { code: 'export', name: 'Xuất dữ liệu', color: 'purple' },
   { code: 'approve', name: 'Phê duyệt', color: 'indigo' },
+  { code: 'assign', name: 'Phân công', color: 'cyan' },
+  { code: 'manage', name: 'Quản lý', color: 'orange' },
 ]
+
+// Define which actions are applicable for each module
+export const MODULE_ACTIONS: Record<string, string[]> = {
+  dashboard: ['view'],
+  items: ['view', 'create', 'update', 'delete', 'export'],
+  rooms: ['view', 'create', 'update', 'delete'],
+  bookings: ['view', 'create', 'update', 'delete', 'export'],
+  laundry: ['view', 'create', 'update', 'delete', 'export', 'approve'],
+  inventory: ['view', 'create', 'update', 'delete', 'export', 'approve'],
+  maintenance: ['view', 'create', 'update', 'delete', 'assign', 'approve'],
+  vendors: ['view', 'create', 'update', 'delete'],
+  purchase_orders: ['view', 'create', 'update', 'delete', 'approve'],
+  reports: ['view', 'export'],
+  users: ['view', 'create', 'update', 'delete'],
+  settings: ['view', 'update', 'manage'],
+  hotels: ['view', 'create', 'update', 'delete'],
+}
+
+// Get applicable actions for a module
+export function getModuleActions(moduleCode: string) {
+  const applicableCodes = MODULE_ACTIONS[moduleCode] || ['view', 'create', 'update', 'delete', 'export', 'approve']
+  return ACTIONS.filter(a => applicableCodes.includes(a.code))
+}
 
 export function useUserPermissionsDetail(userId?: string) {
   return useQuery({
