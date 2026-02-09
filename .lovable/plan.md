@@ -1,149 +1,180 @@
 
 
-## Kiem tra sau toan bo du an - Dot 3: Chuc nang tung phan
+## Phan tich UX/UI quy trinh kiem tra phong cho nhan vien buong phong
 
-Sau khi kiem tra ky cac hooks, components, va logic nghiep vu cua tung module, phat hien cac van de sau:
-
----
-
-### VAN DE 1: `useBookingStats.ts` - Thieu `tenant_id` filter (QUAN TRONG)
-
-**Muc do**: Trung binh (RLS bao ve, nhung anh huong performance)
-
-File `src/hooks/useBookingStats.ts` co **6 queries** toi `room_bookings` va `rooms` nhung **KHONG query nao filter theo `tenant_id`**:
-- `useBookingStats()` - 5 queries (totalRooms, occupied, checkIns, checkOuts, revenue)
-- `useTodayCheckouts()` - 1 query
-- `useTodayCheckins()` - 1 query
-
-**Thuc te**: RLS policies DA bao ve bang cach filter `tenant_id` qua `auth.uid()`, nen khong co data leak. Nhung:
-1. Database phai lam them viec de filter (performance)
-2. Khong nhat quan voi cac hooks khac (code quality)
-3. Neu RLS bi vo tinh tat, se thanh van de nghiem trong
-
-**Fix**: Them `.eq('tenant_id', tenantId)` vao tat ca queries trong file nay.
-
-**File**: `src/hooks/useBookingStats.ts`
+Toi da kiem tra ky toan bo luong kiem tra phong, tu man hinh danh sach phong (StaffRoomCheckView) den RoomCheckPage voi 6 loai kiem tra khac nhau. Duoi day la phan tich chi tiet va de xuat cai thien.
 
 ---
 
-### VAN DE 2: `useRoomBooking.ts` - Thieu `tenant_id` filter
+### PHAN 1: TONG QUAN LUONG HIEN TAI
 
-**Muc do**: Trung binh (RLS bao ve)
-
-`useRoomBookings()` query `room_bookings` chi filter theo `room_id`, khong filter `tenant_id`. Tuong tu van de 1.
-
-**File**: `src/hooks/useRoomBooking.ts`
-
----
-
-### VAN DE 3: Hai he thong Toast song song (Code quality)
-
-**Muc do**: Thap (khong anh huong chuc nang)
-
-Du an dung **2 he thong toast khac nhau** cung luc:
-
-| He thong | Import | Dung trong |
-|----------|--------|------------|
-| Radix Toast | `useToast` from `@/hooks/use-toast` | 16 files (useBookingActions, useMaintenanceRequests, useLaundryBatches...) |
-| Sonner | `toast` from `sonner` | 44 files (useCheckoutInspection, useDistributionOrders, useHotels...) |
-
-**Van de**:
-- 2 files import CA HAI: `useInventoryTransactions.ts`, `useStockAdjustments.ts`
-- Toast hien thi o 2 vi tri khac nhau tren man hinh
-- UX khong nhat quan cho nguoi dung
-
-**Giai phap**: Chuan hoa ve **sonner** (don gian hon, dang duoc dung nhieu hon - 44 vs 16 files). Khong thuc hien trong dot nay vi anh huong 16 files.
-
----
-
-### VAN DE 4: `useBookingConflicts.ts` - Inner loop N+1 query
-
-**Muc do**: Trung binh (performance)
-
-`useBookingConflicts()` thuc hien **N+1 queries**: 
-1. Query 1: Lay tat ca overdue bookings
-2. Loop qua tung booking, moi booking query 1 lan de tim next booking
-
-Voi 10 phong overdue = 11 queries. Voi 50 phong = 51 queries.
-
-**Fix**: Gop thanh 1 RPC function de xu ly logic tren server.
-
-**File**: `src/hooks/useBookingConflicts.ts`
-
----
-
-### VAN DE 5: `useMaintenanceRequests.ts` - Sort priority bang text khong dung
-
-**Muc do**: Thap
-
-Dong 124: `query.order('priority', { ascending: false })` - sort `priority` dang text field. Gia tri la 'low', 'medium', 'high', 'urgent'. Sort alphabetically descending se cho thu tu: urgent > medium > low > high. **Sai** - 'high' bi xep sau 'low'.
-
-**Fix dung**: Dung CASE expression trong SQL hoac sort tren client voi custom order.
-
-**File**: `src/hooks/useMaintenanceRequests.ts`
-
----
-
-### VAN DE 6: `useLaundryBatches.ts` - `useReceiveLaundryBatch` khong atomic
-
-**Muc do**: Trung binh
-
-`useReceiveLaundryBatch()` thuc hien **nhieu operations rieng le** thay vi 1 transaction:
-1. Update batch (1 query)
-2. Loop update tung batch item (N queries)
-3. Insert notification (1 query)
-
-Neu step 2 fail giua chung, data bi inconsistent (batch da update nhung items chua).
-
-**Giai phap**: Tao RPC function `receive_laundry_batch` de xu ly atomic. Khong thuc hien trong dot nay vi can tao migration.
-
----
-
-### VAN DE 7: `useBookingActions.ts` - Duplicate comment blocks
-
-**Muc do**: Thap (code quality)
-
-Dong 43-50 co 2 JSDoc comments lien tiep cho `handleCheckIn`:
 ```text
-/** Check-in: Update booking status... */
-/** Check-in: Update booking status... Uses database transaction */
+StaffRoomCheckView           RoomCheckPage
++-------------------+       +------------------------------------+
+| Danh sach phong   |       | Buoc 1: Chon loai kiem tra         |
+| (Group theo tang) | --->  | Buoc 2: Kiem tra do dung           |
+| Tap phong -> Modal|       | Buoc 3: Danh gia & Hoan tat       |
++-------------------+       +------------------------------------+
+                             (Checkout: 6 buoc, Delivery: 3, ...)
 ```
 
-Comment dau la legacy, nen xoa.
+---
 
-**File**: `src/hooks/useBookingActions.ts`
+### PHAN 2: DIEM TOT (Da lam duoc)
+
+1. **Tap-to-OK pattern**: Nhan vao dong item -> tu dong danh dau OK. Rat nhanh.
+2. **Mark All OK**: Nut "Tat ca OK" o header va theo category. Tiet kiem thoi gian.
+3. **Sticky progress header**: Hien thi tien do kiem tra luon o dau trang.
+4. **Category tabs voi checkmark**: Biet ngay category nao da xong.
+5. **Session persistence**: Luu tien do vao localStorage, cho phep tiep tuc khi bi gian doan.
+6. **Auto-skip Step 1**: Khi vao tu URL co `type=checkout`, bo qua buoc chon loai.
+7. **Inline forms**: Form nhap thong tin "Mat/Hong" xuat hien ngay tai cho, khong mo modal.
 
 ---
 
-### TONG KET VA THU TU UU TIEN
+### PHAN 3: VAN DE UX CAN CAI THIEN
 
-| # | Van de | Muc do | Fix |
-|---|--------|--------|-----|
-| 1 | `useBookingStats` thieu tenant_id | **Trung binh** | Them tenant_id filter vao 7 queries |
-| 2 | `useRoomBooking` thieu tenant_id | **Trung binh** | Them tenant_id filter |
-| 3 | Hai he thong toast | **Thap** | Ghi nhan, chuyen sang sonner dan |
-| 4 | N+1 query trong useBookingConflicts | **Trung binh** | Tao RPC (giai doan sau) |
-| 5 | Sort priority sai | **Thap** | Sort tren client |
-| 6 | useReceiveLaundryBatch khong atomic | **Trung binh** | Tao RPC (giai doan sau) |
-| 7 | Duplicate comments | **Thap** | Xoa comment thua |
+#### VAN DE 1: Buoc 1 "Chon loai kiem tra" thua khi di tu luong co ngoc canh (QUAN TRONG)
+
+**Hien tai**: Khi nhan vien tap vao phong co trang thai `cleaning` va chon "Kiem tra", he thong mo `CheckTypeSelector` modal de chon loai kiem tra. Sau do vao `RoomCheckPage` va lai hien thi **Step 1: Chon loai kiem tra** nua.
+
+**Van de**: 
+- Phong dang `cleaning` -> kiem tra luon la `daily`. Khong can hoi 2 lan.
+- Phong dang `check_out` -> kiem tra luon la `checkout`. Khong can hoi.
+- Chi co phong `vacant` moi that su can hoi loai kiem tra.
+
+**Giai phap**: 
+- Khi nhan vien tap vao phong `cleaning` -> navigate thang `/rooms/{id}/check?type=daily` (bo qua modal).
+- Khi tap vao phong `check_out` -> da dung, navigate thang voi `type=checkout`.
+- Chi hien `CheckTypeSelector` modal khi phong `vacant`.
 
 ---
 
-### KE HOACH THUC HIEN (Dot nay)
+#### VAN DE 2: Nhan vien khong biet phong nao can kiem tra gap nhat
 
-Chi thuc hien cac fix don gian, khong can migration:
+**Hien tai**: Danh sach phong chi hien thi "X phut truoc" cho lan kiem tra cuoi. Khong co chi bao uu tien.
 
-| # | File | Thay doi |
-|---|------|----------|
-| 1 | `src/hooks/useBookingStats.ts` | Them `.eq('tenant_id', tenantId)` vao tat ca queries trong `useBookingStats`, `useTodayCheckouts`, `useTodayCheckins` |
-| 2 | `src/hooks/useMaintenanceRequests.ts` | Sort priority tren client voi custom order map |
-| 3 | `src/hooks/useBookingActions.ts` | Xoa duplicate comment block (dong 43-48) |
+**Giai phap**: Them badge "Chua KT" (chua kiem tra hom nay) hoac sap xep phong chua kiem tra len dau trong moi tang.
 
-### DE LAI CHO GIAI DOAN SAU
+---
 
-| # | File | Ly do |
-|---|------|-------|
-| 4 | Toast standardization | Anh huong 16+ files, can plan rieng |
-| 5 | N+1 query fix | Can tao RPC/migration |
-| 6 | Atomic receive batch | Can tao RPC/migration |
+#### VAN DE 3: Checkout 6 buoc - Qua nhieu buoc cho 1 quy trinh
+
+**Hien tai** (Checkout flow):
+1. Chon loai (thuong auto-skip)
+2. Kiem tra do tinh phi/mat/hong (GD1)
+3. Gui bao cao cho le tan (GD1 Confirm)
+4. Kiem tra do bo sung/giat/thay (GD2)
+5. Tinh trang don dep
+6. Danh gia & Hoan tat
+
+**Van de**: 
+- Buoc 3 (Phase1 Confirm) la buoc "xem lai va gui". Nhung neu KHONG co phu thu nao, nhan vien van phai qua buoc nay va nhan nut "Khong co phu thu - Tiep tuc". Day la tap thua.
+- Buoc 5 (Cleaning) va Buoc 6 (Review) co the gop lai. Review da co "Danh gia do sach" va "Ghi chu", Cleaning co "Tinh trang phong" va "Yeu cau don dep". Ca hai deu la buoc cuoi, khong can tach.
+
+**Giai phap**:
+- Khi khong co phu thu o buoc 2 (khong co item mat/hong/tinh phi) -> **Tu dong skip buoc 3**, chuyen thang sang buoc 4 (GD2).
+- Gop buoc 5 (Cleaning) vao buoc 6 (Review) -> Con 5 buoc (hoac 4 neu auto-skip).
+
+---
+
+#### VAN DE 4: Nhan vien dung app o man hinh nho nhung Card + CardHeader chiem nhieu khong gian
+
+**Hien tai**: `RoomCheckPage` wrap toan bo form trong `<Card>` voi `<CardHeader>` chua tieu de buoc va progress bar. Tren mobile, rieng header da chiem ~120px, cong voi PageHeader (~60px) va Check Type Header (~60px) = ~240px truoc khi nhan vien thay noi dung chinh.
+
+**Giai phap**: 
+- Thay Card bang div don gian voi border (theo design guidelines cua du an).
+- Gop Check Type Header vao progress bar (1 dong: icon + ten loai + progress).
+- Loai bo PageHeader tren mobile (thong tin da co trong Check Type Header).
+
+---
+
+#### VAN DE 5: Nut "Quay lai" va "Huy" cung o ben trai, gay nham lan
+
+**Hien tai**: 
+- Buoc 1: Nut "Huy" (ben trai)
+- Buoc 2+: Nut "Quay lai" (ben trai)
+
+Ca hai deu co icon `ChevronLeft`, nhung "Huy" se huy toan bo qua trinh (co dialog xac nhan), con "Quay lai" chi quay ve buoc truoc. Nhan vien co the nham khi thao tac nhanh.
+
+**Giai phap**: 
+- Nut "Huy" -> Doi thanh icon X nho o goc tren phai (nhu close button).
+- Nut "Quay lai" -> Giu nguyen ben trai voi ChevronLeft.
+- Tach biet ro rang 2 hanh dong nay.
+
+---
+
+#### VAN DE 6: Toast lien tuc khi kiem tra do dung
+
+**Hien tai**: Moi lan nhan vien chon action cho 1 item (Giat, Mat, Hong...), he thong hien 1 toast thong bao. Voi phong co 20-30 items, se co rat nhieu toast xuat hien lien tuc, gay mat tap trung.
+
+**Giai phap**: Loai bo toast cho cac action thong thuong (giat, them, doi, thieu). Chi giu toast cho action nghiem trong (mat, hong) de canh bao. Trang thai item da duoc hien thi truc tiep tren dong item (mau xanh/do/vang) nen khong can toast nua.
+
+---
+
+#### VAN DE 7: "empty" va "consumed" mapping khong ro rang cho consumable
+
+**Hien tai**: Trong `roomCheckConfig.ts`, daily check co `consumableActions: ['ok', 'empty']` nhung trong `CategoryItemRow.tsx`, nut action label hien thi la "Thieu" (dong 68-69). Logic mapping o `getActionsForItemType()` (dong 187): neu `allowedActions` chua `empty` hoac `consumed` -> hien nut `consumed`. Nhung "consumed" (da dung) va "empty" (het) la 2 khai niem khac nhau:
+- "empty/consumed" = khach da dung het -> can bo sung
+- "missing" = khong thay do dau -> co the mat
+
+Label "Thieu" cho consumed khong chinh xac. Nen doi thanh "Het" hoac "Da dung".
+
+---
+
+### PHAN 4: KE HOACH CAI THIEN (Thu tu uu tien)
+
+| # | Cai thien | Muc do | Thay doi |
+|---|-----------|--------|----------|
+| 1 | Bo modal CheckTypeSelector khi phong cleaning/checkout | **Cao** | `StaffRoomCheckView.tsx`: Navigate truc tiep thay vi mo modal |
+| 2 | Auto-skip Phase1 Confirm khi khong co phu thu | **Cao** | `RoomCheckPage.tsx`: Kiem tra chargeableItems + lost + damaged, neu rong thi skip buoc 3 |
+| 3 | Gop Cleaning step vao Review step | **Trung binh** | `ReviewStep.tsx` + `RoomCheckPage.tsx`: Them CleaningRequestStep vao ReviewStep cho checkout |
+| 4 | Giam toast spam khi kiem tra do dung | **Trung binh** | `CategoryBasedItemsCheck.tsx`: Bo toast cho ok/giat/them/doi/thieu, chi giu mat/hong |
+| 5 | Thu gon header tren mobile | **Trung binh** | `RoomCheckPage.tsx`: Thay Card bang div, gop headers |
+| 6 | Fix label "Thieu" -> "Het" cho consumable action | **Thap** | `CategoryItemRow.tsx`: Doi label consumed thanh "Het" |
+| 7 | Tach nut Huy thanh icon X o goc tren | **Thap** | `RoomCheckPage.tsx`: Doi layout nut cancel |
+
+### CHI TIET KY THUAT
+
+**Fix 1 - Bo modal khi phong cleaning/checkout:**
+- File: `src/components/rooms/StaffRoomCheckView.tsx`
+- Thay doi: Trong `CompactRoomRow`, khi phong `cleaning` va nhan "Kiem tra", navigate thang `/rooms/{id}/check?type=daily` thay vi goi `onStartCheck` (mo modal).
+- Phong `check_out` da navigate thang - khong can sua.
+- Chi mo `CheckTypeSelector` modal khi phong `vacant`.
+
+**Fix 2 - Auto-skip Phase1 Confirm:**
+- File: `src/pages/rooms/RoomCheckPage.tsx`
+- Thay doi: Trong `handleNext()`, khi `currentStep === 2` va `isCheckoutType`:
+  - Kiem tra form values: `items_lost`, `items_damaged` rong VA `chargeableItems` rong
+  - Neu rong -> setPhase1Submitted(true), setCurrentPhase(2), setCurrentStep(4) (skip buoc 3)
+  - Neu co du lieu -> chuyen binh thuong sang buoc 3
+
+**Fix 3 - Gop Cleaning vao Review:**
+- File: `src/pages/rooms/RoomCheckPage.tsx`
+- Thay doi: Checkout flow tu 6 buoc giam con 5 buoc:
+  - Buoc 1: Chon loai (auto-skip)
+  - Buoc 2: GD1 - Mat/Hong/Tinh phi
+  - Buoc 3: Gui bao cao le tan (co the auto-skip)
+  - Buoc 4: GD2 - Bo sung/Giat/Thay
+  - Buoc 5: Danh gia + Don dep + Hoan tat (gop)
+- File: `src/components/rooms/check-steps/ReviewStep.tsx` - import va render `CleaningRequestStep` truoc phan danh gia sao khi la checkout type.
+
+**Fix 4 - Giam toast spam:**
+- File: `src/components/rooms/check-steps/CategoryBasedItemsCheck.tsx`
+- Thay doi: Trong `handleItemAction()`, bo cac dong `toast(...)` cho action `ok`, `laundry`, `add`, `change`, `missing`, `consumed`. Chi giu `toast` cho `lost` va `damaged`.
+
+**Fix 5 - Thu gon header:**
+- File: `src/pages/rooms/RoomCheckPage.tsx`
+- Thay doi:
+  - Thay `<Card>` + `<CardHeader>` + `<CardContent>` bang `<div className="border rounded-lg">`
+  - Gop Check Type Header va Step indicator thanh 1 dong compact
+  - An PageHeader tren mobile (hidden sm:block)
+
+**Fix 6 - Label consumed:**
+- File: `src/components/rooms/check-steps/item-type-tabs/CategoryItemRow.tsx` dong 68
+- Thay doi: `consumed: { icon: Package, label: 'Het', color: ... }` (tu 'Thieu' thanh 'Het')
+
+**Fix 7 - Nut Huy:**
+- File: `src/pages/rooms/RoomCheckPage.tsx` dong 1323-1343
+- Thay doi: Chuyen nut "Huy" len goc tren phai cua page, dung icon X nho thay vi nut text.
 
