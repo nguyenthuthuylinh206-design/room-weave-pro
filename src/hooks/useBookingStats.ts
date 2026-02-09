@@ -49,7 +49,7 @@ export function useBookingStats() {
     queryKey: ['booking-stats', hotelId, today],
     queryFn: async (): Promise<BookingStats> => {
       // Get total rooms
-      let roomsQuery = supabase.from('rooms').select('id', { count: 'exact' })
+      let roomsQuery = supabase.from('rooms').select('id', { count: 'exact' }).eq('tenant_id', tenantId)
       if (hotelId && hotelId !== 'all') {
         roomsQuery = roomsQuery.eq('hotel_id', hotelId)
       }
@@ -60,6 +60,7 @@ export function useBookingStats() {
         .from('room_bookings')
         .select('id, room_price, extra_charges, total_amount', { count: 'exact' })
         .eq('status', 'checked_in')
+        .eq('tenant_id', tenantId)
       if (hotelId && hotelId !== 'all') {
         occupiedQuery = occupiedQuery.eq('hotel_id', hotelId)
       }
@@ -71,6 +72,7 @@ export function useBookingStats() {
         .select('id', { count: 'exact' })
         .eq('status', 'confirmed')
         .eq('check_in_date', today)
+        .eq('tenant_id', tenantId)
       if (hotelId && hotelId !== 'all') {
         checkInQuery = checkInQuery.eq('hotel_id', hotelId)
       }
@@ -82,6 +84,7 @@ export function useBookingStats() {
         .select('id, total_amount, payment_status', { count: 'exact' })
         .eq('status', 'checked_in')
         .eq('check_out_date', today)
+        .eq('tenant_id', tenantId)
       if (hotelId && hotelId !== 'all') {
         checkOutQuery = checkOutQuery.eq('hotel_id', hotelId)
       }
@@ -93,6 +96,7 @@ export function useBookingStats() {
         .select('total_amount')
         .eq('status', 'checked_out')
         .eq('payment_status', 'paid')
+        .eq('tenant_id', tenantId)
         .gte('paid_at', startOfDay(new Date()).toISOString())
         .lte('paid_at', endOfDay(new Date()).toISOString())
       if (hotelId && hotelId !== 'all') {
@@ -152,6 +156,7 @@ export function useTodayCheckouts() {
         `)
         .eq('status', 'checked_in')
         .eq('check_out_date', today)
+        .eq('tenant_id', tenantId)
         .order('check_out_date', { ascending: true })
 
       if (hotelId && hotelId !== 'all') {
@@ -206,6 +211,7 @@ export function useTodayCheckins() {
         `)
         .eq('status', 'confirmed')
         .eq('check_in_date', today)
+        .eq('tenant_id', tenantId)
         .order('check_in_date', { ascending: true })
 
       if (hotelId && hotelId !== 'all') {

@@ -121,13 +121,20 @@ export function useMaintenanceRequests(filters: MaintenanceFilters = {}) {
         query = query.lte('reported_at', filters.to_date)
       }
 
-      query = query.order('priority', { ascending: false })
       query = query.order('reported_at', { ascending: false })
 
       const { data, error } = await query
 
       if (error) throw error
-      return data as any[]
+
+      // Sort priority on client with correct order (urgent > high > medium > low)
+      const priorityOrder: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 }
+      return (data as any[]).sort((a, b) => {
+        const pa = priorityOrder[a.priority] ?? 99
+        const pb = priorityOrder[b.priority] ?? 99
+        if (pa !== pb) return pa - pb
+        return new Date(b.reported_at).getTime() - new Date(a.reported_at).getTime()
+      })
     },
     enabled: !!tenantId,
   })

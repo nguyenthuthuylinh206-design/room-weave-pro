@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
+import { useTenant } from '@/hooks/useTenant'
 
 export interface RoomBooking {
   id: string
@@ -37,15 +38,19 @@ export function useRoomBooking(roomId: string | undefined) {
 }
 
 export function useRoomBookings(roomId: string | undefined) {
+  const { tenant } = useTenant()
+  const tenantId = tenant?.id
+
   return useQuery({
-    queryKey: ['room-bookings', roomId],
+    queryKey: ['room-bookings', roomId, tenantId],
     queryFn: async () => {
-      if (!roomId) return []
+      if (!roomId || !tenantId) return []
 
       const { data, error } = await supabase
         .from('room_bookings')
         .select('*')
         .eq('room_id', roomId)
+        .eq('tenant_id', tenantId)
         .order('check_in_date', { ascending: false })
         .limit(10)
 
