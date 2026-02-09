@@ -1,134 +1,143 @@
 
 
-## Phan tich van de he thong phan quyen
+## Tong ket cac van de va cai thien can thiet
 
-### VAN DE 1: MODULES thieu so voi thuc te
-
-Danh sach `MODULES` trong `useUserPermissions.ts` co **12 module**, nhung thuc te he thong su dung cac module khong co trong danh sach nay:
-
-| Module thuc te (dung trong App.tsx) | Co trong MODULES? | Hau qua |
-|---|---|---|
-| `dashboard` | Co | OK |
-| `items` | Co | OK |
-| `rooms` | Co | OK |
-| `laundry` | Co | OK |
-| `inventory` | Co | OK |
-| `maintenance` | Co | OK |
-| `vendors` | Co | OK |
-| `purchase_orders` | Co | OK |
-| `reports` | Co | OK |
-| `users` | Co | OK |
-| `settings` | Co | OK |
-| `hotels` | Co | OK |
-| `bookings` | **KHONG** (dung chung `rooms`) | Khong the phan quyen rieng Dat phong va Quan ly phong |
-| `housekeeping` | **KHONG** (khong co route check) | Khong the phan quyen rieng Housekeeping |
-
-**Van de**: Bookings (Dat phong) dang dung chung module `rooms`, nen khong the cho phep 1 user chi xem Dat phong ma khong xem Phong, hoac nguoc lai.
+Sau khi kiem tra toan bo du an, toi phat hien cac van de sau:
 
 ---
 
-### VAN DE 2: ACTIONS thieu `assign` va `manage`
+### VAN DE 1: Bookings van dung `module="rooms"` (Chua duoc sua)
 
-Danh sach `ACTIONS` co 6 quyen: `view, create, update, delete, export, approve`
+Trong plan truoc da de xuat tach `bookings` ra khoi `rooms`, nhung trong `App.tsx` (dong 477, 485), 2 route bookings van dung `module="rooms"`:
 
-Nhung `PermissionRoute` co dinh nghia type `PermissionAction` bao gom ca `assign` va `manage` (dung o `settings/workflows` voi `action="manage"`). Nhung 2 action nay **khong hien thi** trong UI phan quyen, nen admin khong the cap quyen `manage` hoac `assign` cho ai.
-
----
-
-### VAN DE 3: Badge trang thai khong ro rang
-
-Trong `ModuleToggle.tsx`:
-- Module tat: hien "Khong co quyen" (Badge secondary)
-- Module bat + tat ca actions bat: khong hien gi
-- Module bat + mot so actions bat: hien "Tuy chinh" (Badge outline)
-
-**Van de**: "Tuy chinh" khong cho biet user co nhung quyen gi. Admin phai bam mo expand tung module de xem chi tiet. Voi 12 module, viec nay rat mat thoi gian.
-
----
-
-### VAN DE 4: Khong co Preset/Template quyen
-
-Moi lan tao user moi, admin phai bat/tat tung module va tung action thu cong. Khong co cach:
-- Ap dung template quyen nhanh (vd: "Staff phong", "Staff kho", "Manager toan quyen")
-- Copy quyen tu user khac
-
----
-
-### VAN DE 5: Khong phan biet actions theo module
-
-Tat ca 12 module deu hien **6 actions giong nhau** (view, create, update, delete, export, approve). Nhung thuc te:
-- `dashboard`: chi can `view` (khong can create/delete/approve)
-- `reports`: chi can `view` va `export` (khong can create/delete)
-- `settings`: can `view` va `manage` (khong can export/approve)
-- `hotels`: can `view`, `create`, `update`, `delete` (khong can export/approve)
-
-Hien 6 actions cho dashboard la thua va gay nhau lan.
-
----
-
-### GIAI PHAP DE XUAT
-
-### 1. Them module `bookings` vao MODULES
-
-**File: `src/hooks/useUserPermissions.ts`**
-- Them `{ code: 'bookings', name: 'Dat phong', icon: 'CalendarDays' }` vao mang MODULES
-
-**File: `src/App.tsx`**
-- Doi cac route bookings tu `module="rooms"` sang `module="bookings"`
-
-### 2. Them actions `assign` va `manage` vao ACTIONS
-
-**File: `src/hooks/useUserPermissions.ts`**
-- Them `{ code: 'assign', name: 'Phan cong', color: 'cyan' }` va `{ code: 'manage', name: 'Quan ly', color: 'orange' }` vao mang ACTIONS
-
-### 3. Dinh nghia actions phu hop cho tung module
-
-**File: `src/hooks/useUserPermissions.ts`**
-- Them `MODULE_ACTIONS` map de chi dinh actions ap dung cho tung module:
-
-```text
-dashboard  -> [view]
-items      -> [view, create, update, delete, export]
-rooms      -> [view, create, update, delete]
-bookings   -> [view, create, update, delete, export]
-laundry    -> [view, create, update, delete, export, approve]
-inventory  -> [view, create, update, delete, export, approve]
-maintenance-> [view, create, update, delete, assign, approve]
-vendors    -> [view, create, update, delete]
-purchase_orders -> [view, create, update, delete, approve]
-reports    -> [view, export]
-users      -> [view, create, update, delete]
-settings   -> [view, update, manage]
-hotels     -> [view, create, update, delete]
+```
+/bookings     -> PermissionRoute module="rooms"
+/bookings/:id -> PermissionRoute module="rooms"
 ```
 
-**File: `src/components/permissions/ModuleToggle.tsx`**
-- Nhan prop `applicableActions` de chi hien cac action phu hop
+Can doi thanh `module="bookings"`.
 
-### 4. Hien thi tom tat quyen tren badge
-
-**File: `src/components/permissions/ModuleToggle.tsx`**
-- Thay badge "Tuy chinh" bang tom tat cu the, vd: "Xem, Sua" hoac "3/5 quyen"
-
-### 5. Them Preset quyen (Optional - giai doan sau)
-
-Tao san 3-4 template quyen de admin ap dung nhanh:
-- "Nhan vien phong": rooms (view, update), laundry (view), maintenance (view, create)
-- "Nhan vien kho": inventory (full), items (view, update)
-- "Quan ly toan quyen": tat ca modules (tru settings/manage)
+**File**: `src/App.tsx` - dong 477, 485
 
 ---
 
-### FILES CAN SUA
+### VAN DE 2: `bookings` thieu trong `usePermission.ts` PermissionModule type
+
+File `src/hooks/usePermission.ts` dinh nghia `PermissionModule` type nhung **khong co `bookings`** (dong 6-19). Trong khi `src/components/auth/PermissionRoute.tsx` DA co `bookings`. Hai file khong dong bo.
+
+**File**: `src/hooks/usePermission.ts` - them `'bookings'` vao type
+
+---
+
+### VAN DE 3: `ALL_MODULES` trong `usePermission.ts` khong dong bo voi `MODULES` trong `useUserPermissions.ts`
+
+- `usePermission.ts` (dong 24-37): 12 modules, **thieu `bookings`**
+- `useUserPermissions.ts` (dong 35-49): 13 modules, **co `bookings`**
+
+Hai file dinh nghia module list doc lap, de gay sai lech.
+
+**File**: `src/hooks/usePermission.ts` - them `bookings` vao `ALL_MODULES`
+
+---
+
+### VAN DE 4: `ALL_ACTIONS` trong `usePermission.ts` thieu `assign` va `manage`
+
+- `usePermission.ts` (dong 40-47): Chi 6 actions (view, create, update, delete, export, approve)
+- `useUserPermissions.ts` (dong 51-59): Da co 8 actions (them assign, manage)
+
+**File**: `src/hooks/usePermission.ts` - them `assign` va `manage`
+
+---
+
+### VAN DE 5: Trung lap hooks phan quyen (3 he thong song song)
+
+Hien tai co **3 hook files** xu ly permission voi logic trung lap:
+
+| File | Muc dich | Dung o dau |
+|------|---------|------------|
+| `usePermission.ts` | `useHasPermission(module, action)` - dung cho `PermissionGate` | Components UI |
+| `usePermissions.ts` | `useHasPermission(permissionCode)`, `useHasModulePermission` - dung legacy roles table | Khong ro |
+| `useUserPermissions.ts` | `useCheckUserPermission(module, action)` - dung cho `PermissionGuard` | Components UI |
+
+**Van de**: 
+- `usePermissions.ts` dung query phuc tap qua `user_roles -> roles -> role_permissions -> permissions` (legacy system)
+- `usePermission.ts` va `useUserPermissions.ts` deu goi `has_user_permission` RPC nhung co query key khac nhau
+- Kho bao tri va de gay confuse khi developer chon sai hook
+
+**Giai phap**: Hop nhat thanh 1 file duy nhat hoac danh dau ro legacy vs active
+
+---
+
+### VAN DE 6: `PermissionGuard` va `PermissionGate` - 2 component trung chuc nang
+
+| Component | File | Dung hook |
+|-----------|------|-----------|
+| `PermissionGuard` | `src/components/auth/PermissionGuard.tsx` | `useCheckUserPermission` tu `useUserPermissions.ts` |
+| `PermissionGate` | `src/components/auth/PermissionGate.tsx` | `useHasPermission` tu `usePermission.ts` |
+
+Ca 2 deu wrap children va an/hien dua tren permission. **Nen hop nhat thanh 1**.
+
+---
+
+### VAN DE 7: Database Security - 102 linter warnings
+
+- **99 warnings**: Function Search Path Mutable - cac database functions khong set `search_path`, co the bi khai thac de truy cap schema khong mong muon
+- **1 warning**: Materialized View in API - view co the bi truy cap qua API
+- **1 warning**: RLS Policy Always True - co policy dung `USING (true)` cho INSERT/UPDATE/DELETE
+- **1 warning**: Leaked Password Protection Disabled
+
+**Uu tien cao**: RLS Policy Always True va Leaked Password Protection
+
+---
+
+### VAN DE 8: `useUserModulePermissions.ts` - PermissionSummary thieu `can_assign` va `can_manage`
+
+Interface `PermissionSummary` (dong 6-13) chi co 6 fields: `can_view`, `can_create`, `can_update`, `can_delete`, `can_export`, `can_approve`. Thieu `can_assign` va `can_manage` tuong ung voi 2 actions moi.
+
+**File**: `src/hooks/useUserModulePermissions.ts`
+
+---
+
+### VAN DE 9: `saveConfiguration` trong `useUserPermissionConfiguration.ts` - allActions hardcode
+
+Dong 146: `const allActions = ['view', 'create', 'update', 'delete', 'export', 'approve', 'assign', 'manage']` - da duoc cap nhat nhung khi module khong co `moduleActions`, no insert TAT CA 8 actions thay vi chi applicable actions. Nen dung `MODULE_ACTIONS[module]` lam fallback.
+
+**File**: `src/hooks/useUserPermissionConfiguration.ts` - dong 176-183
+
+---
+
+### VAN DE 10: Duplicate hooks - `useCreateDistributionFromSupplement.ts` va `useCreateDistributionFromSupplements.ts`
+
+2 files co ten gan giong nhau, de nham lan. Can xac nhan ca 2 deu dang duoc su dung hay 1 la du thua.
+
+---
+
+### KE HOACH THUC HIEN (theo thu tu uu tien)
+
+#### Dot 1: Bug fixes (Quan trong)
 
 | # | File | Thay doi |
 |---|------|----------|
-| 1 | `src/hooks/useUserPermissions.ts` | Them module `bookings`, them actions `assign`/`manage`, them `MODULE_ACTIONS` map |
-| 2 | `src/App.tsx` | Doi bookings routes tu `module="rooms"` sang `module="bookings"` |
-| 3 | `src/components/permissions/ModuleToggle.tsx` | Filter actions theo module, hien tom tat quyen tren badge |
-| 4 | `src/components/permissions/UserPermissionPanel.tsx` | Truyen `applicableActions` vao ModuleToggle |
-| 5 | `src/hooks/useUserPermissionConfiguration.ts` | Cap nhat logic save de chi luu applicable actions |
-| 6 | `src/components/auth/PermissionRoute.tsx` | Them `bookings` vao PermissionModule type |
+| 1 | `src/App.tsx` | Doi bookings routes tu `module="rooms"` sang `module="bookings"` |
+| 2 | `src/hooks/usePermission.ts` | Them `bookings` vao `PermissionModule`, them `assign`/`manage` vao `ALL_ACTIONS`, them `bookings` vao `ALL_MODULES` |
+| 3 | `src/hooks/useUserModulePermissions.ts` | Them `can_assign` va `can_manage` vao `PermissionSummary` |
+| 4 | `src/hooks/useUserPermissionConfiguration.ts` | Dung `MODULE_ACTIONS[module]` lam fallback thay vi `allActions` |
+
+#### Dot 2: Code cleanup (Cai thien)
+
+| # | Thay doi |
+|---|----------|
+| 5 | Hop nhat `PermissionGuard` va `PermissionGate` thanh 1 component |
+| 6 | Danh dau `usePermissions.ts` (legacy) la deprecated, chuyen sang `usePermission.ts` |
+| 7 | Kiem tra va loai bo hook trung lap `useCreateDistributionFromSupplement(s)` |
+
+#### Dot 3: Security (Database)
+
+| # | Thay doi |
+|---|----------|
+| 8 | Bat Leaked Password Protection |
+| 9 | Review va fix RLS Policy Always True |
+| 10 | Set `search_path = public` cho cac database functions |
 
 ---
 
@@ -136,9 +145,9 @@ Tao san 3-4 template quyen de admin ap dung nhanh:
 
 | Truoc | Sau |
 |-------|-----|
-| 12 modules, thieu bookings | 13 modules, day du |
-| 6 actions giong nhau cho moi module | Actions phu hop tung module (dashboard chi co view) |
-| Badge chi hien "Tuy chinh" mo ho | Hien cu the "Xem, Sua" hoac "3/5 quyen" |
-| Thieu assign/manage action | Co du 8 actions |
-| Bookings va Rooms chung quyen | Tach rieng, phan quyen doc lap |
+| Bookings dung quyen `rooms` | Bookings co module rieng |
+| 3 hooks phan quyen trung lap | 1 hook chinh + 1 legacy deprecated |
+| 2 guard components trung chuc nang | 1 component duy nhat |
+| PermissionModule types khong dong bo | Dong bo giua tat ca files |
+| 102 database security warnings | Giam dang ke |
 
