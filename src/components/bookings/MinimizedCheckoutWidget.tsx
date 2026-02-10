@@ -33,6 +33,10 @@ export interface MinimizedCheckout {
   actualCheckoutTime: string
   actualCheckoutDate: Date
   scheduledCheckoutDate: Date
+  // Group checkout fields
+  isGroup?: boolean
+  bookingGroupId?: string
+  groupRoomCount?: number
 }
 
 interface MinimizedCheckoutWidgetProps {
@@ -108,7 +112,9 @@ export function MinimizedCheckoutWidget({
     })
   }, [inspection?.status, checkout.booking.room?.room_number])
   
-  const roomNumber = checkout.booking.room?.room_number || 'N/A'
+  const roomNumber = checkout.isGroup
+    ? `${checkout.groupRoomCount || 0} phòng`
+    : `P.${checkout.booking.room?.room_number || 'N/A'}`
   const guestName = checkout.booking.guest_name
   
   const getStatusDisplay = () => {
@@ -169,7 +175,7 @@ export function MinimizedCheckoutWidget({
         {/* Header - compact */}
         <div className="flex items-center justify-between gap-2 mb-1.5">
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <span className="font-medium text-sm">P.{roomNumber}</span>
+            <span className="font-medium text-sm">{roomNumber}</span>
             <span className="text-xs text-muted-foreground truncate">{guestName}</span>
           </div>
           <Button
