@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { format, addDays, startOfDay, isBefore, parseISO, differenceInCalendarDays } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { Calendar as CalendarIcon, AlertTriangle, Loader2, AlertOctagon } from 'lucide-react'
+import { Calendar as CalendarIcon, Loader2 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   Dialog,
@@ -165,28 +165,11 @@ export function ExtendBookingDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn("max-w-md", hasConflict && "max-w-lg")}>
         <DialogHeader>
-          <DialogTitle className={cn(
-            "flex items-center gap-2",
-            hasConflict ? "text-red-600" : "text-amber-600"
-          )}>
-            {hasConflict ? (
-              <>
-                <AlertOctagon className="h-5 w-5" />
-                Tình huống khẩn cấp - Có booking conflict!
-              </>
-            ) : (
-              <>
-                <AlertTriangle className="h-5 w-5" />
-                Đã quá ngày trả phòng
-              </>
-            )}
+          <DialogTitle>
+            Gia hạn phòng {booking.room?.room_number}
           </DialogTitle>
           <DialogDescription>
-            {hasConflict ? (
-              <>Khách đã ở thêm {nightsOverdue} đêm và <span className="text-red-600 font-medium">có khách mới đang chờ check-in</span>. Cần xử lý ngay!</>
-            ) : (
-              <>Khách đã ở thêm {nightsOverdue} đêm so với lịch checkout ({format(currentCheckOut, 'dd/MM/yyyy')}). Vui lòng gia hạn booking trước khi checkout.</>
-            )}
+            Quá hạn {nightsOverdue} đêm · Cần gia hạn trước khi checkout
           </DialogDescription>
         </DialogHeader>
 
@@ -202,30 +185,23 @@ export function ExtendBookingDialog({
             />
           )}
           
-          {/* Booking info */}
-          <div className="rounded-lg border p-3 space-y-2 text-sm">
+          {/* Booking info - compact */}
+          <div className="rounded-lg border p-3 space-y-1 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Khách:</span>
               <span className="font-medium">{booking.guest_name}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Phòng:</span>
-              <span className="font-medium">{booking.room?.room_number}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Ngày trả phòng cũ:</span>
+              <span className="text-muted-foreground">Checkout cũ:</span>
               <span className="font-medium text-red-600">
                 {format(currentCheckOut, 'dd/MM/yyyy', { locale: vi })}
               </span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Số đêm quá hạn:</span>
-              <div className="text-right">
-                <span className="font-medium text-red-600">{nightsOverdue} đêm</span>
-                <span className="text-xs text-muted-foreground block">
-                  (Từ {format(currentCheckOut, 'dd/MM')} đến {format(today, 'dd/MM')})
-                </span>
-              </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Quá hạn:</span>
+              <span className="font-medium text-red-600">
+                {nightsOverdue} đêm ({format(currentCheckOut, 'dd/MM')} → {format(today, 'dd/MM')})
+              </span>
             </div>
           </div>
 
@@ -267,25 +243,12 @@ export function ExtendBookingDialog({
 
           {/* Cost preview */}
           {newCheckOutDate && !validationError && (
-            <div className="rounded-lg bg-muted/50 p-3 space-y-2 text-sm">
-              <div className="flex justify-between items-center">
-                <span>Số đêm gia hạn:</span>
-                <div className="text-right">
-                  <span className="font-medium">{additionalNights} đêm</span>
-                  {nightsOverdue > 0 && additionalNights > nightsOverdue && (
-                    <span className="text-xs text-muted-foreground block">
-                      ({nightsOverdue} đêm đã ở + {additionalNights - nightsOverdue} đêm thêm)
-                    </span>
-                  )}
-                </div>
-              </div>
+            <div className="rounded-lg border p-3 text-sm">
               <div className="flex justify-between">
-                <span>Giá phòng/đêm:</span>
-                <span className="font-medium">{formatCurrency(roomPrice)}</span>
-              </div>
-              <div className="flex justify-between border-t pt-2">
-                <span className="font-medium">Phí gia hạn:</span>
-                <span className="font-bold text-primary">{formatCurrency(additionalCost)}</span>
+                <span className="text-muted-foreground">
+                  {additionalNights} đêm × {formatCurrency(roomPrice)}
+                </span>
+                <span className="font-semibold">{formatCurrency(additionalCost)}</span>
               </div>
             </div>
           )}

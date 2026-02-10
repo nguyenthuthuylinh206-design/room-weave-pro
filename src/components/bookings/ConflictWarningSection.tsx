@@ -45,15 +45,15 @@ export function ConflictWarningSection({
   }
   
   return (
-    <div className="rounded-lg border-2 border-red-500 bg-red-50 dark:bg-red-950/30 p-4 space-y-3">
-      <div className="flex items-start gap-3">
-        <AlertOctagon className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+    <div className="rounded-lg border p-3 space-y-2">
+      <div className="flex items-start gap-2">
+        <AlertOctagon className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
         <div className="flex-1 space-y-2">
-          <h4 className="font-semibold text-red-700 dark:text-red-400">
-            ⚠️ KHÁCH TIẾP THEO ĐÃ ĐẾN NGÀY CHECK-IN!
+          <h4 className="text-sm font-medium text-red-600">
+            Khách tiếp theo đã đến ngày check-in
           </h4>
           
-          <div className="text-sm space-y-1.5">
+          <div className="text-sm space-y-1">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Tên khách:</span>
               <span className="font-medium">{nextBooking.guest_name}</span>
@@ -71,7 +71,7 @@ export function ConflictWarningSection({
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Liên hệ:</span>
                 <div className="flex items-center gap-1">
-                  <span className="font-mono text-sm">{nextBooking.guest_phone}</span>
+                  <span className="font-mono text-xs">{nextBooking.guest_phone}</span>
                   <Button
                     type="button"
                     variant="ghost"
@@ -106,15 +106,15 @@ export function ConflictWarningSection({
       </div>
       
       {showActions && (
-        <div className="pt-2 border-t border-red-200 dark:border-red-800">
+        <div className="pt-2 border-t">
           <p className="text-xs text-muted-foreground mb-2">Chọn phương án xử lý:</p>
           <div className="flex flex-wrap gap-2">
             {onCheckoutNow && (
               <Button
                 type="button"
                 size="sm"
-                variant="destructive"
-                className="gap-1.5"
+                variant="outline"
+                className="gap-1.5 text-red-600"
                 onClick={onCheckoutNow}
               >
                 <LogOut className="h-3.5 w-3.5" />
