@@ -79,6 +79,43 @@ export function GroupPaymentDialog({
     }
   }, [open, groupData?.remainingAmount])
 
+  // Realtime subscription for bank transfer auto-confirmation
+  useEffect(() => {
+    if (step !== 'qr' || !createdPayment) return
+
+    const channel = supabase
+      .channel(`group-payment-${createdPayment.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'booking_payments',
+          filter: `id=eq.${createdPayment.id}`,
+        },
+        async (payload) => {
+          const newData = payload.new as any
+          if (newData.payment_status === 'completed') {
+            // Auto distribute payment
+            if (groupData) {
+              await distributePayment(parsedAmount, groupData.bookings)
+            }
+            setStep('success')
+            toast.success('Thanh toán đã được xác nhận tự động!')
+            setTimeout(() => {
+              onOpenChange(false)
+              onPaymentComplete?.()
+            }, 1500)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [step, createdPayment?.id])
+
   const remainingAmount = groupData?.remainingAmount || 0
   const parsedAmount = parseFloat(amount.replace(/[^0-9]/g, '')) || 0
   const isValidAmount = parsedAmount > 0 && parsedAmount <= remainingAmount

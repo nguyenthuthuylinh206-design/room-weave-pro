@@ -37,7 +37,7 @@ import {
   Phone,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { format, differenceInDays } from 'date-fns'
+import { format, differenceInDays, isAfter, startOfDay } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { formatVNCurrency } from '@/lib/pricing'
 import { useGroupBooking, GroupBookingRoom } from '@/hooks/useGroupBooking'
@@ -145,6 +145,52 @@ export function GroupCheckoutDialog({
     }
   }, [open, resetCosts])
 
+  // Auto-calculate costs when dialog opens and selectedRooms change
+  useEffect(() => {
+    if (!open || !groupData || selectedRooms.size === 0) return
+    
+    const bookingsToCalc: GroupBookingCostData[] = Array.from(selectedRooms)
+      .map(bookingId => {
+        const booking = groupData.bookings.find(b => b.id === bookingId)
+        if (!booking || booking.status === 'checked_out') return null
+        const checkIn = new Date(booking.check_in_date)
+        const checkOut = new Date(booking.check_out_date)
+        const nights = Math.max(1, differenceInDays(checkOut, checkIn))
+        return {
+          bookingId: booking.id,
+          roomId: booking.room_id,
+          roomNumber: booking.room?.room_number || '',
+          bookingType: (booking.booking_type as 'daily' | 'hourly' | 'monthly') || 'daily',
+          roomPrice: booking.room_price || 0,
+          nights,
+          hourlyRate: booking.hourly_rate ?? undefined,
+          hours: booking.booking_hours ?? undefined,
+          monthlyRate: booking.monthly_rate ?? undefined,
+          months: booking.booking_months ?? undefined,
+          totalAmount: booking.total_amount || 0,
+          depositAmount: booking.deposit_amount || 0,
+          amountPaid: booking.amount_paid || 0,
+          checkInDate: checkIn,
+          checkOutDate: checkOut,
+        }
+      })
+      .filter(Boolean) as GroupBookingCostData[]
+    
+    if (bookingsToCalc.length > 0) {
+      calculateAllCosts(bookingsToCalc)
+    }
+  }, [open, groupData, selectedRooms, calculateAllCosts])
+
+  // Detect overdue rooms (checked_in past check_out_date)
+  const overdueRooms = useMemo(() => {
+    if (!groupData) return []
+    const today = startOfDay(new Date())
+    return groupData.bookings.filter(b => {
+      if (b.status !== 'checked_in') return false
+      const checkOutDate = startOfDay(new Date(b.check_out_date))
+      return isAfter(today, checkOutDate)
+    })
+  }, [groupData])
 
   // Fetch inspection statuses for all bookings in the group
   const { data: inspectionStatuses, isLoading: isLoadingInspections, refetch: refetchInspections } = useQuery({
@@ -701,12 +747,12 @@ export function GroupCheckoutDialog({
         roomId: booking.room_id,
         roomNumber: booking.room?.room_number || '',
         bookingType: (booking.booking_type as 'daily' | 'hourly' | 'monthly') || 'daily',
-        roomPrice: (booking as any).room_price || 0,
+        roomPrice: booking.room_price || 0,
         nights,
-        hourlyRate: (booking as any).hourly_rate,
-        hours: (booking as any).booking_hours,
-        monthlyRate: (booking as any).monthly_rate,
-        months: (booking as any).booking_months,
+        hourlyRate: booking.hourly_rate ?? undefined,
+        hours: booking.booking_hours ?? undefined,
+        monthlyRate: booking.monthly_rate ?? undefined,
+        months: booking.booking_months ?? undefined,
         totalAmount: booking.total_amount || 0,
         depositAmount: booking.deposit_amount || 0,
         amountPaid: booking.amount_paid || 0,
@@ -734,14 +780,14 @@ export function GroupCheckoutDialog({
           bookingId: booking.id,
           roomNumber: booking.room?.room_number || '',
           guestName: booking.guest_name,
-          roomPrice: (booking as any).room_price || 0,
+          roomPrice: booking.room_price || 0,
           bookingType: (booking.booking_type as 'daily' | 'hourly' | 'monthly') || 'daily',
           checkOutDate: new Date(),
           scheduledCheckOutDate: booking.check_out_date ? new Date(booking.check_out_date) : new Date(),
-          hourlyRate: (booking as any).hourly_rate || 0,
-          hours: (booking as any).booking_hours || 0,
-          monthlyRate: (booking as any).monthly_rate || 0,
-          months: (booking as any).booking_months || 0,
+          hourlyRate: booking.hourly_rate || 0,
+          hours: booking.booking_hours || 0,
+          monthlyRate: booking.monthly_rate || 0,
+          months: booking.booking_months || 0,
         }
       })
       .filter(Boolean) as {
@@ -814,7 +860,8 @@ export function GroupCheckoutDialog({
         if (cost?.damageAdjustmentNote) allNotes.push(`[Đền bù: ${cost.damageAdjustmentNote}]`)
         const damageNotesStr = allNotes.join(' | ') || null
         
-        // Use RPC for atomic checkout with full params
+        // Use RPC for atomic checkout with full params including p_new_amount_paid
+        const newAmountPaid = cost ? cost.costBreakdown.totalAmount : (booking.total_amount || 0)
         const { error } = await supabase.rpc('perform_checkout', {
           p_booking_id: bookingId,
           p_room_id: booking.room_id,
@@ -827,6 +874,7 @@ export function GroupCheckoutDialog({
           p_damage_charges: damageCharges,
           p_damage_notes: damageNotesStr,
           p_damage_items: JSON.stringify(cost?.adjustedDamageItems || []),
+          p_new_amount_paid: booking.amount_paid || 0,
         })
         
         if (error) {
@@ -989,6 +1037,20 @@ export function GroupCheckoutDialog({
                 </div>
               )}
               
+              {/* Overdue Warning */}
+              {overdueRooms.length > 0 && (
+                <div className="flex items-start gap-2 p-2.5 bg-red-50 border border-red-200 rounded-lg">
+                  <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+                  <div className="text-xs text-red-700">
+                    <span className="font-medium">
+                      {overdueRooms.length} phòng quá hạn checkout:
+                    </span>{' '}
+                    {overdueRooms.map(b => `P.${b.room?.room_number}`).join(', ')}.
+                    Chi phí sẽ được tính đến ngày hôm nay.
+                  </div>
+                </div>
+              )}
+
               {/* Room List with Selection & Staff Assignment */}
               <div className="space-y-2">
                 {groupData.bookings.map((booking) => {
@@ -1199,7 +1261,7 @@ export function GroupCheckoutDialog({
               const avgPrice = selectedRooms.size > 0 && groupData
                 ? groupData.bookings
                     .filter(b => selectedRooms.has(b.id))
-                    .reduce((sum, b) => sum + ((b as any).room_price || 0), 0) / selectedRooms.size
+                    .reduce((sum, b) => sum + (b.room_price || 0), 0) / selectedRooms.size
                 : 0
               
               return (
@@ -1369,6 +1431,14 @@ export function GroupCheckoutDialog({
 
             {/* Actions - 2 buttons like single checkout */}
             <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => onOpenChange(false)}
+              >
+                Hủy
+              </Button>
               {onMinimize && (
                 <Button
                   type="button"
