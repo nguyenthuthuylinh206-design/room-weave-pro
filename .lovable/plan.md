@@ -1,105 +1,110 @@
 
 
-## Hien thi chi tiet do mat/hong/tieu hao trong Group Checkout giong checkout don le
+## Lam Group Checkout giong hinh thuc Checkout Don Le
 
-### SO SANH HIEN TAI
+### HIEN TAI vs MOI
 
-| Tinh nang | Checkout don le | Group Checkout (Buoc 1 - Chon phong) | Group Checkout (Buoc 2 - Xac nhan) |
-|-----------|----------------|--------------------------------------|-------------------------------------|
-| Do da dung (consumed/minibar) | Co - icon Coffee, ten, so luong | KHONG co | KHONG co |
-| Do mat (lost) | Co - icon, ten, so luong, notes, gia tri | Co (compact, khong notes) | Co - ten, badge, so luong, gia tri |
-| Do hong (damaged) | Co - icon, ten, so luong, notes, loai | Co (compact, khong notes) | Co - ten, badge, so luong, gia tri |
-| Tong thiet hai | Co - highlight box | Chi tong so | Co |
-| In bien ban | Co | KHONG co | Co |
-| Chinh sua gia | Co - per item | KHONG (chi xem) | Co - per item |
+**Checkout don le** (`CheckoutSummaryDialog`) co 1 dialog duy nhat voi:
+1. Thong tin khach + phong
+2. Thoi gian checkout + mo ta tre/som
+3. Section kiem tra phong (chon nhan vien, theo doi trang thai)
+4. Bang phu thu checkout tre (4 muc: 0%/30%/50%/100%)
+5. Chi tiet thanh toan chi tiet: Tien phong, phu thu check-in som, phu thu tre (editable), dich vu, `DamageChargesSection` (itemized, edit/waive/reset), in bien ban
+6. Subtotal, VAT, Phi dich vu, TONG CONG, Da thanh toan, Tien coc, CON LAI
+7. Warning khi chua thanh toan
+8. Footer: Huy / Checkout no / Thu tien & Checkout
 
-### THAY DOI CAN THUC HIEN
+**Group Checkout** hien tai co 2 buoc:
+- **Buoc 1** (`GroupCheckoutDialog`): Chon phong, chon nhan vien, gui yeu cau kiem tra, xem trang thai. **Phan thanh toan chi don gian**: chi co tong tien phong, phi den bu, dich vu, da TT, tien coc, CAN THU. **KHONG CO**: bang phu thu tre, chi tiet per-item, DamageChargesSection, VAT, Subtotal...
+- **Buoc 2** (`GroupCheckoutConfirmDialog`): Da chi tiet hon - co late checkout tiers, editable charges, damage items. Nhung dung inline rendering thay vi `DamageChargesSection` component.
 
-#### Buoc 1: Fetch `items_consumed` tu `room_checks` trong GroupCheckoutDialog
+### KE HOACH THAY DOI
 
-**File**: `src/components/bookings/GroupCheckoutDialog.tsx` dong 170-175
+#### 1. Nang cap phan Payment Summary trong GroupCheckoutDialog (Buoc 1)
 
-Hien tai query `room_checks` chi select `id, room_id, items_lost, items_damaged`. Can them `items_consumed`:
+**File**: `src/components/bookings/GroupCheckoutDialog.tsx` dong 1099-1165
+
+Thay the phan "Thanh toan" don gian hien tai bang layout chi tiet giong `CheckoutSummaryDialog`:
 
 ```text
-.select('id, room_id, items_lost, items_damaged, items_consumed')
+TRUOC (don gian):
+  Tien phong: xxx
+  Phi den bu: xxx
+  Phu thu dich vu: xxx
+  Da thanh toan: -xxx
+  Tien coc: -xxx
+  CAN THU: xxx
+
+SAU (chi tiet nhu checkout don le):
+  Chi tiet thanh toan
+  ─────────────────
+  Tien phong (tong)             xxx
+  Phu thu check-out tre         xxx (neu co)
+  Phu thu check-in som          xxx (neu co)
+  Dich vu su dung               xxx (neu co)
+  Phi den bu thiet hai          xxx (neu co, hien per-item)
+  ─────────────────
+  Subtotal                      xxx
+  VAT (8%)                      xxx
+  Phi dich vu (5%)              xxx
+  ─────────────────
+  TONG CONG                     xxx
+  Tien dat coc                  -xxx
+  Da thanh toan                 -xxx
+  ─────────────────
+  CON LAI                       xxx (do/xanh)
 ```
 
-Tuong tu cho fallback query dong 180-185.
+Can tinh them VAT va service fee trong `totals` (hien chua co). Thay doi `totals` useMemo de tinh Subtotal, VAT, Service Fee, Grand Total.
 
-#### Buoc 2: Mo rong `Phase1DamageData` interface them consumed items
-
-**File**: `src/components/bookings/InspectionStatusCard.tsx`
-
-Them vao interface `Phase1DamageData`:
-```text
-consumed_items?: Array<{ item_id: string; item_name: string; quantity: number }>
-```
-
-#### Buoc 3: Map `items_consumed` vao phase1DamageData trong GroupCheckoutDialog
-
-**File**: `src/components/bookings/GroupCheckoutDialog.tsx` dong 197-226
-
-Khi doc tu `roomCheck`, them logic map consumed items:
-```text
-const consumed = roomCheck.items_consumed as any[] || []
-
-phase1DamageData = {
-  ...existing fields...,
-  consumed_items: consumed.map((item: any) => ({
-    item_id: item.item_id || '',
-    item_name: item.item_name || 'Khong ro',
-    quantity: item.quantity || 1,
-  })),
-}
-```
-
-Dieu kien tao phase1DamageData mo rong: `lost.length > 0 || damaged.length > 0 || consumed.length > 0`
-
-#### Buoc 4: Nang cap `Phase1DamageSummary` hien thi consumed items
-
-**File**: `src/components/bookings/InspectionStatusCard.tsx`
-
-Them section "Do da dung" voi icon Coffee, tuong tu `CheckoutReportCard`:
-```text
-{consumedCount > 0 && (
-  <div>
-    <div className="text-xs font-medium text-blue-600">
-      Do da dung ({consumedCount})
-    </div>
-    <div className="pl-2 space-y-0.5 mt-0.5">
-      {data.consumed_items!.map((item, idx) => (
-        <div key={idx} className="text-xs text-blue-600/80">
-          - {item.item_name} x{item.quantity}
-        </div>
-      ))}
-    </div>
-  </div>
-)}
-```
-
-#### Buoc 5: Them `items_consumed` vao `InspectionStatus` interface trong GroupCheckoutDialog
-
-**File**: `src/components/bookings/GroupCheckoutDialog.tsx` dong 36-50
-
-Them `items_consumed` vao `InspectionStatus` interface de truyen xuong component.
-
-#### Buoc 6: Truyen consumed items vao GroupCheckoutConfirmDialog
+#### 2. Them bang phu thu checkout tre vao GroupCheckoutDialog
 
 **File**: `src/components/bookings/GroupCheckoutDialog.tsx`
 
-Khi tao `confirmRooms` va `roomCosts` cho `GroupCheckoutConfirmDialog`, them `items_consumed` vao `damageItems` voi `item_type: 'consumed'`. Dieu nay cho phep `GroupCheckoutConfirmDialog` hien thi do da dung trong phan "Phi den bu thiet hai" giong nhu `DamageChargesSection` cua checkout don le.
+Them bang `LATE_CHECKOUT_TIERS` (giong `CheckoutSummaryDialog` dong 39-44) va hien thi truoc phan thanh toan. Neu gio hien tai truoc 12h, hien "Checkout dung gio - Khong phu thu". Neu sau 12h, hien bang 4 muc voi muc dang ap dung duoc highlight.
 
-#### Buoc 7: Cap nhat GroupCheckoutConfirmDialog hien consumed items
+Chi can hien 1 bang chung (vi tat ca phong cung checkout cung gio), khong can per-room.
+
+#### 3. Hien chi tiet do mat/hong/tieu hao per-room trong GroupCheckoutDialog
+
+Hien tai moi room card chi hien tong damage charge ("+225.000d"). Can hien them danh sach items tuong tu `CheckoutReportCard`:
+- Do mat: ten x so luong - gia tri
+- Do hong: ten x so luong
+- Do da dung: ten x so luong
+
+Su dung du lieu `phase1DamageData` da co trong `InspectionStatusCard`. Phan nay da duoc implement o plan truoc - chi can dam bao no hien day du.
+
+#### 4. Them phan Warning khi chua thanh toan vao GroupCheckoutDialog
+
+**File**: `src/components/bookings/GroupCheckoutDialog.tsx`
+
+Them warning box giong `CheckoutSummaryDialog` dong 811-819:
+```text
+"Khach chua thanh toan day du. Vui long thu tien truoc khi cho tra phong hoac xac nhan checkout voi so no."
+```
+
+Hien khi `totals.remaining > 0`.
+
+#### 5. Sua footer GroupCheckoutDialog co 2 nut giong checkout don le
+
+**File**: `src/components/bookings/GroupCheckoutDialog.tsx` dong 1167-1199
+
+Hien tai chi co 1 nut "Thu tien & Checkout" hoac "Checkout". Can tach ra giong checkout don le:
+- Khi con no: 2 nut "Cho tra phong (no xxx)" + "Thu tien & Tra phong"
+- Khi het no: 1 nut "Xac nhan Checkout (N phong)"
+
+#### 6. Dung `DamageChargesSection` trong GroupCheckoutConfirmDialog
 
 **File**: `src/components/bookings/GroupCheckoutConfirmDialog.tsx` dong 414-498
 
-Hien tai chi hien "Mat" va "Hong" trong badge. Them loai "Da dung":
-```text
-<Badge ...>
-  {item.item_type === 'lost' ? 'Mat' : item.item_type === 'damaged' ? 'Hong' : 'Da dung'} x{item.quantity}
-</Badge>
-```
+Thay the inline damage rendering bang component `DamageChargesSection` (da duoc dung trong `CheckoutSummaryDialog`). Component nay cung cap:
+- Phan nhom theo loai (Mat/Hong/Da dung) voi icon va mau sac
+- Edit inline per item (click icon Edit2)
+- Waive per item (click Trash2)
+- Reset per item (click RotateCcw)
+- Hien gia goc khi da dieu chinh
+
+Can tao adapter de chuyen tu `onAdjustDamageItem(bookingId, itemId, charge)` sang `onAdjustCharge(itemId, charge)`.
 
 ---
 
@@ -107,12 +112,12 @@ Hien tai chi hien "Mat" va "Hong" trong badge. Them loai "Da dung":
 
 | # | Thay doi | File | Muc do |
 |---|---------|------|--------|
-| 1 | Fetch items_consumed tu room_checks | GroupCheckoutDialog.tsx | Cao |
-| 2 | Mo rong Phase1DamageData interface | InspectionStatusCard.tsx | Thap |
-| 3 | Map consumed items vao phase1DamageData | GroupCheckoutDialog.tsx | Trung binh |
-| 4 | Hien consumed items trong Phase1DamageSummary | InspectionStatusCard.tsx | Trung binh |
-| 5 | Them consumed vao InspectionStatus interface | GroupCheckoutDialog.tsx | Thap |
-| 6 | Truyen consumed vao GroupCheckoutConfirmDialog | GroupCheckoutDialog.tsx | Trung binh |
-| 7 | Hien consumed trong GroupCheckoutConfirmDialog | GroupCheckoutConfirmDialog.tsx | Thap |
+| 1 | Nang cap Payment Summary chi tiet (Subtotal/VAT/Fee/Total/Paid/Deposit/Remaining) | GroupCheckoutDialog.tsx | Cao |
+| 2 | Them bang phu thu checkout tre | GroupCheckoutDialog.tsx | Trung binh |
+| 3 | Dam bao chi tiet items hien day du per-room | GroupCheckoutDialog.tsx | Thap (da lam) |
+| 4 | Them warning khi chua thanh toan | GroupCheckoutDialog.tsx | Thap |
+| 5 | Sua footer 2 nut giong checkout don le | GroupCheckoutDialog.tsx | Trung binh |
+| 6 | Dung DamageChargesSection trong ConfirmDialog | GroupCheckoutConfirmDialog.tsx | Trung binh |
 
-Khong can them cot database hay migration. Chi thay doi code frontend.
+Khong can thay doi database. Chi thay doi frontend UI.
+
