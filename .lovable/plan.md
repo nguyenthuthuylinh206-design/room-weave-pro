@@ -1,90 +1,83 @@
 
-## Fix: Group Checkout khong hien thi damage charges va service charges realtime
 
-### NGUYEN NHAN GOC (ROOT CAUSE)
+## Hien thi chi tiet do mat/hong trong Group Checkout (nhu checkout don le)
 
-**Bug chinh**: Query `room_checks` trong `GroupCheckoutDialog.tsx` dong 169 su dung `.order('created_at', { ascending: false })` nhung bang `room_checks` **KHONG CO** cot `created_at`. Cot dung la `checked_at`. Loi nay lam query **THAT BAI AM THAM** (silent error) va tra ve `null/undefined`, khien toan bo du lieu `items_lost` va `items_damaged` khong bao gio duoc doc.
+### VAN DE
 
-Da xac nhan tu database:
-- Bang `room_checks` chi co cot `checked_at`, khong co `created_at`
-- Du lieu damage TON TAI trong database (VD: P104 co King Sheets Set mat 33.333d, P103 co Dieu hoa hong 6.000.000d...)
-- Nhung GroupCheckoutDialog khong doc duoc vi query loi
+Hien tai, Group Checkout chi hien **tong so tien** phi den bu (VD: "+225.000d") nhung **KHONG hien chi tiet** tung mon do mat/hong (ten, so luong, gia tri). Trong khi checkout don le (`CheckoutReportCard`) hien day du:
+- "King Sheets Set x1 — 33.333d"
+- "Dieu hoa — hong x1"
 
-**Bug phu**: `phase1_damage_data` luon NULL trong tat ca cac ban ghi `checkout_inspection_requests`. Day la co che du phong (fallback) khi `room_checks` chua co. Can kiem tra them tai sao `handlePhase1Submit` khong luu duoc du lieu nay.
+Nguyen nhan: Khi `room_checks` co du lieu (dong 197-206), code chi tinh tong `damageCharge` ma **khong truyen danh sach items** vao `phase1DamageData`. Component `InspectionStatusCard` chi hien chi tiet khi co `phase1DamageData`, nen khi room_checks da co thi items bi mat.
 
 ---
 
-### KE HOACH SUA
+### GIAI PHAP
 
-#### Fix 1: Sua column name trong room_checks query (CRITICAL)
+#### Buoc 1: Truyen item details tu room_checks vao phase1DamageData
 
-**File**: `src/components/bookings/GroupCheckoutDialog.tsx` dong 169
+**File**: `src/components/bookings/GroupCheckoutDialog.tsx` dong 197-206
 
-Thay doi:
-```text
-TRUOC: .order('created_at', { ascending: false })
-SAU:   .order('checked_at', { ascending: false })
-```
-
-Chi can sua 1 dong nay se lam toan bo damage charges hoat dong:
-- Damage amounts hien thi per room (dong 940-943)
-- `totals.damageCharges` tinh dung
-- "Phi den bu" hien trong phan thanh toan
-- CAN THU tinh dung bao gom damage
-
-#### Fix 2: Them filter theo booking de tranh lay room_checks cu (QUAN TRONG)
-
-Hien tai query room_checks chi filter theo `room_id` va `check_type`. Neu phong da tung duoc checkout truoc (tu booking cu), se lay nham du lieu cu. Can them filter chinh xac hon.
-
-**Giai phap**: Thay vi chi filter theo room_id, join voi `checkout_inspection_requests.room_check_id` de lay dung room_check cua booking hien tai.
+Khi `roomCheck` ton tai, **chuyen doi** `items_lost` va `items_damaged` sang dinh dang `Phase1DamageData` de `InspectionStatusCard` co the hien thi chi tiet:
 
 ```text
-// Thay vi query tat ca room_checks theo room_id:
-const roomCheckIds = inspections
-  ?.filter(i => i.room_check_id)
-  ?.map(i => i.room_check_id) || []
-
-if (roomCheckIds.length > 0) {
-  const { data: roomChecks } = await supabase
-    .from('room_checks')
-    .select('id, room_id, items_lost, items_damaged')
-    .in('id', roomCheckIds)
+if (roomCheck) {
+  const lost = roomCheck.items_lost as any[] || []
+  const damaged = roomCheck.items_damaged as any[] || []
+  const lostTotal = lost.reduce(...)
+  const damagedTotal = damaged.reduce(...)
+  damageCharge = lostTotal + damagedTotal
+  
+  // THEM: Convert sang Phase1DamageData de hien chi tiet
+  if (lost.length > 0 || damaged.length > 0) {
+    phase1DamageData = {
+      lost_items: lost.map(item => ({
+        item_id: item.item_id || '',
+        item_name: item.item_name || 'Khong ro',
+        quantity: item.quantity || 1,
+        estimated_value: item.estimated_value || 0,
+      })),
+      damaged_items: damaged.map(item => ({
+        item_id: item.item_id || '',
+        item_name: item.item_name || 'Khong ro',
+        quantity: item.quantity || 1,
+        damage_cost: item.damage_cost || 0,
+        damage_type: item.damage_type,
+      })),
+      lost_total: lostTotal,
+      damaged_total: damagedTotal,
+    }
+  }
 }
 ```
 
-Cach nay chinh xac hon vi dung `room_check_id` tu inspection request.
+#### Buoc 2: Nang cap Phase1DamageSummary hien chi tiet tung mon
 
-#### Fix 3: Debug va fix phase1_damage_data save (TRUNG BINH)
+**File**: `src/components/bookings/InspectionStatusCard.tsx` dong 230-249
 
-**File**: `src/pages/rooms/RoomCheckPage.tsx` dong 680-711
+Hien tai `Phase1DamageSummary` chi hien tom tat 1 dong ("Do mat: 2 mon — 150.000d"). Can hien chi tiet tung item:
 
-Them console.log de debug `finalInspectionId`:
 ```text
-console.log('[RoomCheckPage] Phase 1: finalInspectionId sources:', {
-  stableInspectionId,
-  autoCreatedInspectionId,
-  inspectionIdFromUrl,
-  pendingInspectionId: pendingInspection?.id,
-  final: finalInspectionId,
-})
+// TRUOC:
+"Do mat: 2 mon — 150.000d"
+
+// SAU:
+Do mat (2):
+  - King Sheets Set x1 — 33.333d
+  - Pillow Case x1 — 20.000d
+Do hong (1):
+  - Dieu hoa x1 — 6.000.000d (can thay the)
 ```
 
-Dong thoi, mo rong dieu kien luu - hien tai chi luu khi co `lostItems.length > 0 || damagedItems.length > 0`. Can luu ca khi co chargeableItems (minibar/tieu hao) de dam bao le tan biet co phu thu.
-
-#### Fix 4: Kiem tra useGroupCheckoutCalculations co cung bug khong
-
-**File**: `src/hooks/useGroupCheckoutCalculations.ts` dong 56-65
-
-Hook nay cung query `room_checks` voi `.order('created_at', ...)`. Can kiem tra va sua tuong tu. (Da search va KHONG thay bug nay trong file nay - chi co trong GroupCheckoutDialog)
+Dung Collapsible hoac hien truc tiep (compact) vi khong gian nho trong card. Giu style `text-xs` de phu hop voi InspectionStatusCard.
 
 ---
 
 ### TONG KET
 
-| # | Fix | File | Muc do |
-|---|-----|------|--------|
-| 1 | Sua `created_at` -> `checked_at` | GroupCheckoutDialog.tsx dong 169 | **CRITICAL** |
-| 2 | Filter room_checks theo room_check_id | GroupCheckoutDialog.tsx dong 164-169 | Quan trong |
-| 3 | Debug + fix phase1_damage_data save | RoomCheckPage.tsx dong 680-711 | Trung binh |
+| # | Thay doi | File | Muc do |
+|---|---------|------|--------|
+| 1 | Convert room_checks items sang Phase1DamageData | GroupCheckoutDialog.tsx | Cao |
+| 2 | Hien chi tiet tung item trong Phase1DamageSummary | InspectionStatusCard.tsx | Cao |
 
-Fix 1 la nguyen nhan chinh, chi can sua 1 dong se giai quyet van de damage charges khong hien.
+Chi can 2 thay doi nho, khong can them cot database hay query moi.
