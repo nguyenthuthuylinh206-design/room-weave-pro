@@ -1,177 +1,156 @@
 
 
-## Kiem tra tiep - Cac van de con lai
+## Cap nhat Realtime cho Group Checkout - Do thieu, mat, hong va phu thu
 
-Sau khi kiem tra toan bo code TaskCard, TaskDetailDialog, RoomCheckPage, StaffTasksTab, useHousekeepingTasks, va CleaningCompleteDialog, duoi day la cac van de con phat hien:
+### VAN DE CHINH
 
----
+Khi nhan vien kiem tra phong va bao cao do thieu/mat/hong (Phase 1 cua checkout), man hinh Group Checkout cua le tan **KHONG cap nhat realtime**. Cu the:
 
-### VAN DE 1: Event bubbling - Button click trong TaskCard trigger onClick cua card (TRUNG BINH)
+#### Van de 1: Damage charges chi hien sau khi nhan vien hoan tat TOAN BO kiem tra (CAO)
 
-**File**: `src/components/housekeeping/TaskCard.tsx` dong 145-146, 262-342
+**Nguyen nhan**: GroupCheckoutDialog lay du lieu `items_lost` va `items_damaged` tu bang `room_checks`. Nhung ban ghi `room_checks` chi duoc tao khi nhan vien **hoan tat tat ca cac buoc** (Phase 1 + Phase 2 + Review). Trong khi do, o Phase 1, nhan vien da bao cao do mat/hong va gui thong bao cho le tan qua `notify-chargeable`, nhung `room_checks` chua co du lieu.
 
-**Hien tai**: TaskCard nhan prop `onClick` de mo TaskDetailDialog (StaffTasksTab.tsx dong 245, 271, 298). Div wrapper co `onClick={onClick}`. Nhung cac Button ben trong (Bat dau, Hoan thanh, Kiem tra phong, P.xxx, Nhan viec) **KHONG co `e.stopPropagation()`**.
+**He qua**: Le tan phai doi den khi nhan vien hoan tat toan bo quy trinh (co the 5-10 phut) moi thay duoc phi den bu tren man hinh Group Checkout. Trong khi thuc te, thong tin mat/hong da duoc xac dinh tu Phase 1.
 
-**Van de**: Khi nhan vien bam nut "Bat dau", "Hoan thanh", hoac "P.101":
-1. Button handler thuc thi (VD: navigate den room check)
-2. Event bubble len div -> `onClick` cua div **CUNG** thuc thi -> mo TaskDetailDialog
+**Giai phap**: Sau khi Phase 1 gui thong bao notify-chargeable, **luu du lieu mat/hong tam thoi** vao bang `checkout_inspection_requests` (them cot `phase1_damage_data` kieu JSONB). GroupCheckoutDialog se doc du lieu nay de hien thi phi den bu ngay lap tuc, truoc khi `room_checks` duoc tao.
 
-Ket qua: Nhan vien bam "Bat dau" -> vua navigate di vua mo dialog. Hoac bam "P.101" -> vua navigate den phong vua mo dialog phia sau.
+#### Van de 2: Phu thu minibar/tieu hao KHONG hien trong tong tien Group Checkout (CAO)
 
-**Giai phap**: Them `e.stopPropagation()` vao tat ca cac Button onClick handler trong TaskCard de ngan event bubble len parent div.
+**Nguyen nhan**: Phan tinh `totals` trong GroupCheckoutDialog (dong 287-332) chi tinh:
+- `roomTotal` (tien phong)
+- `damageCharges` (phi den bu)
+- `totalPaid` (da thanh toan)
+- `depositApplied` (tien coc)
 
----
+**THIEU**: `serviceCharges` tu bang `chargeable_consumptions`. Khi nhan vien Phase 1 ghi nhan minibar/tieu hao, du lieu duoc luu vao `chargeable_consumptions` nhung GroupCheckout khong doc bang nay.
 
-### VAN DE 2: RoomCheckPage chi auto-complete task `checkout_inspection`, KHONG auto-complete `checkin_prep` va `amenity_request` (NGHIEM TRONG)
+**Giai phap**: 
+1. Them query doc tong `chargeable_consumptions` cho cac booking trong nhom
+2. Hien thi "Phu thu dich vu" trong phan thanh toan
+3. Cong vao `grandTotal`
 
-**File**: `src/pages/rooms/RoomCheckPage.tsx` dong 813-847
+#### Van de 3: Khong co realtime subscription cho `chargeable_consumptions` (TRUNG BINH)
 
-**Hien tai**: Sau khi submit room check, chi co doan code:
-```text
-if (data.check_type === 'checkout' && room?.id && user?.id) {
-  // Tim va complete task checkout_inspection
-}
-```
+**Nguyen nhan**: GroupCheckoutDialog subscribe realtime cho `checkout_inspection_requests` va `room_checks`, nhung **KHONG subscribe cho `chargeable_consumptions`** (du bang nay da duoc enable realtime).
 
-**Van de**: Khi nhan vien bat dau task `checkin_prep` -> navigate den `/rooms/xxx/check?type=checkin` -> hoan thanh kiem tra -> submit. Nhung task `checkin_prep` **KHONG DUOC AUTO-COMPLETE**. Nhan vien phai quay lai danh sach task va bam "Hoan thanh" thu cong.
-
-Tuong tu cho `amenity_request` -> navigate den `/rooms/xxx/check?type=replenish` -> submit -> task van dang `in_progress`.
-
-**Giai phap**: Them logic auto-complete tuong tu cho `checkin` va `replenish` check types:
-- `checkin` -> Tim va complete task `checkin_prep` cho room do
-- `replenish` -> Tim va complete task `amenity_request` cho room do
-
----
-
-### VAN DE 3: TaskCard - handleStart thieu `setIsUpdating(false)` truoc khi navigate (NHO)
-
-**File**: `src/components/housekeeping/TaskCard.tsx` dong 71-91
-
-**Hien tai**: `handleStart` goi `setIsUpdating(true)` o dong 72, sau do navigate (dong 81, 85, 87). Nhung `setIsUpdating(false)` chi duoc goi trong `finally` block (dong 90). Khi navigate xay ra, component co the unmount truoc khi `finally` chay -> **React warning: "Can't perform state update on unmounted component"**.
-
-**Van de**: Khong lam crash app nhung tao console warning khong can thiet.
-
-**Giai phap**: Dat `setIsUpdating(false)` truoc cac lenh `navigate()`.
-
----
-
-### VAN DE 4: CleaningCompleteDialog - Khi chon "Kiem tra nhanh truoc", task van o trang thai `in_progress` (TRUNG BINH)
-
-**File**: `src/components/rooms/CleaningCompleteDialog.tsx` dong 44-49
-
-**Hien tai**: Khi nhan vien chon "Kiem tra nhanh truoc":
-1. `onComplete?.()` duoc goi -> `handleCleaningCompleted` trong TaskCard -> update task status = `completed`
-2. Navigate den `/rooms/${roomId}/check?type=daily`
-
-**Van de**: `onComplete` goi `handleCleaningCompleted` -> set task = `completed` **TRUOC KHI** kiem tra. Neu nhan vien huy kiem tra giua chung -> task da `completed` nhung phong chua duoc kiem tra thuc su.
-
-**Giai phap**: Khi chon "Kiem tra nhanh truoc", **KHONG** goi `onComplete()`. Chi navigate den room check. Task se duoc auto-complete khi kiem tra hoan thanh (can ket hop voi Fix 2 - them auto-complete cho daily check type voi cleaning task).
-
----
-
-### VAN DE 5: `useCancelTask` thieu invalidate `unified-tasks` (NHO)
-
-**File**: `src/hooks/useHousekeepingTasks.ts` dong 472-477
-
-**Hien tai**: `useCancelTask` invalidate `hotel-housekeeping-tasks`, `my-housekeeping-tasks`, `pending-task-count`, `unassigned-housekeeping-tasks`. Nhung **thieu `unified-tasks`**.
-
-**Giai phap**: Them `queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })`.
-
----
-
-### VAN DE 6: `useCreateTask` thieu invalidate `unified-tasks` (NHO)
-
-**File**: `src/hooks/useHousekeepingTasks.ts` dong 228-231
-
-**Hien tai**: `useCreateTask` onSuccess invalidate `hotel-housekeeping-tasks`, `my-housekeeping-tasks`, `pending-task-count`, `unassigned-housekeeping-tasks`. Nhung **thieu `unified-tasks`**.
-
-**Giai phap**: Them `queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })`.
-
----
-
-### VAN DE 7: RoomCheckPage auto-complete checkout task thieu invalidate `unified-tasks` (NHO)
-
-**File**: `src/pages/rooms/RoomCheckPage.tsx` dong 843-846
-
-**Hien tai**: Sau khi auto-complete checkout task, chi invalidate `my-housekeeping-tasks`, `pending-task-count`, `hotel-housekeeping-tasks`. **Thieu `unified-tasks`**.
-
-**Giai phap**: Them `queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })`.
-
----
-
-### TONG KET VA THU TU UU TIEN
-
-| # | Van de | Muc do | Loai |
-|---|--------|--------|------|
-| 1 | Event bubbling - Button click trigger card onClick | **Trung binh** | Bug UX |
-| 2 | RoomCheck khong auto-complete checkin_prep/amenity_request task | **Cao** | Logic thieu |
-| 3 | handleStart setState warning khi navigate | **Thap** | Console warning |
-| 4 | CleaningCompleteDialog complete task truoc khi kiem tra | **Trung binh** | Logic sai |
-| 5 | useCancelTask thieu invalidate unified-tasks | **Thap** | Cache sync |
-| 6 | useCreateTask thieu invalidate unified-tasks | **Thap** | Cache sync |
-| 7 | RoomCheckPage auto-complete thieu invalidate unified-tasks | **Thap** | Cache sync |
+**Giai phap**: Them realtime channel cho `chargeable_consumptions` de cap nhat phu thu ngay khi nhan vien ghi nhan.
 
 ---
 
 ### KE HOACH THUC HIEN
 
-#### Fix 1: Event bubbling - stopPropagation
-- **File**: `src/components/housekeeping/TaskCard.tsx`
-- **Thay doi**: Wrap tat ca cac Button onClick handler trong 1 helper de stopPropagation:
-  - Dong 267: `onClick={handleStart}` -> `onClick={(e) => { e.stopPropagation(); handleStart() }}`
-  - Dong 280-281: `onClick={handleContinue}` -> tuong tu
-  - Dong 289-290: `onClick={handleContinue}` -> tuong tu  
-  - Dong 301: `onClick={handleDeliveryConfirm}` -> tuong tu
-  - Dong 313: `onClick={() => navigate(...)}` -> tuong tu
-  - Dong 321: `onClick={handleComplete}` -> tuong tu
-  - Dong 330-334: `onClick={handleComplete}` -> tuong tu
-  - Dong 249: `onClick={claimTask}` -> tuong tu
+#### Buoc 1: Database Migration - Them cot `phase1_damage_data` vao `checkout_inspection_requests`
 
-#### Fix 2: Auto-complete checkin_prep va amenity_request tasks khi submit room check
-- **File**: `src/pages/rooms/RoomCheckPage.tsx` dong 883 (sau block checkout auto-complete)
-- **Thay doi**: Them block tuong tu cho `checkin` va `replenish`:
+Tao migration them cot JSONB nullable vao `checkout_inspection_requests`:
+
 ```text
-// Auto-complete related checkin_prep task
-if (data.check_type === 'checkin' && room?.id) {
-  const { data: relatedTask } = await supabase
-    .from('housekeeping_tasks')
-    .select('id')
-    .eq('room_id', room.id)
-    .eq('task_type', 'checkin_prep')
-    .in('status', ['pending', 'in_progress'])
-    .maybeSingle()
-  
-  if (relatedTask) {
-    await supabase.from('housekeeping_tasks')
-      .update({ status: 'completed', completed_at: now, room_check_id: createdCheck?.id })
-      .eq('id', relatedTask.id)
-    // Invalidate queries
-  }
-}
+ALTER TABLE public.checkout_inspection_requests 
+ADD COLUMN IF NOT EXISTS phase1_damage_data JSONB DEFAULT NULL;
 
-// Auto-complete related amenity_request task  
-if (data.check_type === 'replenish' && room?.id) {
-  // Tuong tu cho amenity_request
-}
+COMMENT ON COLUMN public.checkout_inspection_requests.phase1_damage_data 
+IS 'Temporary storage for Phase 1 damage/lost data before room_checks record is created';
+```
 
-// Auto-complete related cleaning task when daily check
-if (data.check_type === 'daily' && room?.id) {
-  // Tim va complete cleaning task
+Cot nay luu du lieu dang:
+```text
+{
+  "lost_items": [{ "item_id": "...", "item_name": "...", "quantity": 1, "estimated_value": 50000 }],
+  "damaged_items": [{ "item_id": "...", "item_name": "...", "quantity": 1, "damage_cost": 100000, "damage_type": "repairable" }],
+  "lost_total": 50000,
+  "damaged_total": 100000
 }
 ```
-- Them `queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })` vao moi block
 
-#### Fix 3: setState warning - setIsUpdating truoc navigate
-- **File**: `src/components/housekeeping/TaskCard.tsx` dong 71-91
-- **Thay doi**: Them `setIsUpdating(false)` truoc moi `navigate()` va `setShowDeliveryModal(true)`.
+#### Buoc 2: Cap nhat RoomCheckPage - Luu phase1_damage_data khi gui Phase 1
 
-#### Fix 4: CleaningCompleteDialog - khong complete task khi chon "Kiem tra truoc"
-- **File**: `src/components/rooms/CleaningCompleteDialog.tsx` dong 44-49
-- **Thay doi**: Khi `option === 'check'`, **KHONG** goi `onComplete?.()`. Chi navigate. Task se duoc auto-complete boi Fix 2 (daily check -> complete cleaning task).
+**File**: `src/pages/rooms/RoomCheckPage.tsx` (ham `handlePhase1Submit`)
 
-#### Fix 5+6+7: Them unified-tasks invalidation
-- **File**: `src/hooks/useHousekeepingTasks.ts`
-  - Dong 228-231 (`useCreateTask` onSuccess): Them `queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })`
-  - Dong 472-477 (`useCancelTask` onSuccess): Them `queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })`
-- **File**: `src/pages/rooms/RoomCheckPage.tsx` dong 843-846: Them `queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })`
+Sau khi gui notify-chargeable, them logic:
+- Lay `items_lost` va `items_damaged` tu form
+- Tinh `lost_total` va `damaged_total`
+- Update `checkout_inspection_requests` bang `phase1_damage_data` cho inspection hien tai
+- Du lieu nay se trigger realtime event cho GroupCheckoutDialog
+
+#### Buoc 3: Cap nhat GroupCheckoutDialog - Doc phase1_damage_data va chargeable_consumptions
+
+**File**: `src/components/bookings/GroupCheckoutDialog.tsx`
+
+3a. **Cap nhat query `group-inspections`** (dong 138-212):
+- Khi tinh `damageCharge`: Uu tien doc tu `room_checks` (du lieu cuoi cung). Neu chua co `room_checks`, fallback doc tu `checkout_inspection_requests.phase1_damage_data`
+- Dieu nay dam bao damage hien ngay khi Phase 1 hoan tat
+
+3b. **Them query doc chargeable consumptions**:
+- Query `chargeable_consumptions` theo booking_ids cua nhom
+- Tinh tong `total_price` cho tung booking
+- Luu vao state `chargeableTotals: Map<bookingId, number>`
+
+3c. **Them realtime subscription cho `chargeable_consumptions`**:
+- Subscribe event INSERT/UPDATE tren bang `chargeable_consumptions`
+- Filter theo `booking_id` cua nhom
+- Khi co thay doi: refetch chargeable totals
+
+3d. **Cap nhat totals calculation** (dong 287-332):
+- Them `serviceCharges` vao totals:
+```text
+const serviceCharges = selectedBookings.reduce((sum, b) => {
+  return sum + (chargeableTotals.get(b.id) || 0)
+}, 0)
+const grandTotal = roomTotal + damageCharges + serviceCharges
+```
+
+3e. **Cap nhat UI hien thi** (dong 999-1045):
+- Them dong "Phu thu dich vu" giua "Phi den bu" va "Da thanh toan":
+```text
+{totals.serviceCharges > 0 && (
+  <div className="flex justify-between text-sm">
+    <span className="text-muted-foreground">Phu thu dich vu</span>
+    <span className="font-mono text-amber-600">+{formatVNCurrency(totals.serviceCharges)}</span>
+  </div>
+)}
+```
+
+3f. **Hien thi chi tiet damage/chargeable per room** (dong 877-881):
+- Ben canh so tien damage, them hien thi so tien chargeable:
+```text
+{chargeableTotal > 0 && (
+  <span className="text-xs text-amber-600 font-medium">
+    Phu thu: +{formatVNCurrency(chargeableTotal)}
+  </span>
+)}
+```
+
+#### Buoc 4: Cap nhat InspectionStatusCard - Hien thi tom tat Phase 1
+
+**File**: `src/components/bookings/InspectionStatusCard.tsx`
+
+Khi inspection status la `in_progress` hoac `completed`:
+- Neu co `phase1_damage_data`, hien them thong tin tom tat:
+  - "Do mat: 2 mon - 150.000d"
+  - "Do hong: 1 mon - 100.000d"
+- Giup le tan biet ngay ket qua kiem tra ma khong can doi hoan tat
+
+Them prop `phase1DamageData` vao `InspectionData` interface va `InspectionStatusCard`.
+
+#### Buoc 5: Truyen phase1DamageData tu GroupCheckoutDialog vao InspectionStatusCard
+
+**File**: `src/components/bookings/GroupCheckoutDialog.tsx` dong 936-942
+
+Cap nhat InspectionStatus interface them `phase1DamageData`. Query `group-inspections` se doc `phase1_damage_data` tu `checkout_inspection_requests` va truyen vao.
+
+---
+
+### TONG KET
+
+| # | Thay doi | File | Muc do |
+|---|---------|------|--------|
+| 1 | Them cot phase1_damage_data | Migration SQL | Cao |
+| 2 | Luu phase1_damage_data khi Phase 1 | RoomCheckPage.tsx | Cao |
+| 3a | Doc phase1_damage_data trong query | GroupCheckoutDialog.tsx | Cao |
+| 3b | Them query chargeable_consumptions | GroupCheckoutDialog.tsx | Cao |
+| 3c | Them realtime cho chargeable_consumptions | GroupCheckoutDialog.tsx | Trung binh |
+| 3d | Cap nhat totals tinh serviceCharges | GroupCheckoutDialog.tsx | Cao |
+| 3e | Hien thi "Phu thu dich vu" trong UI | GroupCheckoutDialog.tsx | Trung binh |
+| 3f | Hien chi tiet per room | GroupCheckoutDialog.tsx | Thap |
+| 4 | Hien Phase 1 summary trong InspectionStatusCard | InspectionStatusCard.tsx | Trung binh |
+| 5 | Truyen phase1DamageData vao component | GroupCheckoutDialog.tsx | Thap |
 
