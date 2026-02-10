@@ -76,7 +76,7 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
     if (!task) return
     await updateStatus({ taskId: task.id, status: 'in_progress' })
     
-    // If checkout inspection, redirect to room check form with inspection ID
+    // Navigate based on task type
     if (task.task_type === 'checkout_inspection') {
       onOpenChange(false)
       const inspectionParam = task.checkout_inspection_id 
@@ -84,8 +84,13 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
         : ''
       navigate(`/rooms/${task.room_id}/check?type=checkout${inspectionParam}`)
     } else if (task.task_type === 'delivery_confirmation') {
-      // Open confirmation modal immediately after starting
       setShowDeliveryModal(true)
+    } else if (task.task_type === 'checkin_prep') {
+      onOpenChange(false)
+      navigate(`/rooms/${task.room_id}/check?type=checkin`)
+    } else if (task.task_type === 'amenity_request') {
+      onOpenChange(false)
+      navigate(`/rooms/${task.room_id}/check?type=replenish`)
     }
   }
 
@@ -117,6 +122,12 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
         ? `&inspection=${task.checkout_inspection_id}` 
         : ''
       navigate(`/rooms/${task.room_id}/check?type=checkout${inspectionParam}`)
+    } else if (task.task_type === 'checkin_prep') {
+      navigate(`/rooms/${task.room_id}/check?type=checkin`)
+    } else if (task.task_type === 'amenity_request') {
+      navigate(`/rooms/${task.room_id}/check?type=replenish`)
+    } else if (task.task_type === 'cleaning') {
+      navigate(`/rooms/${task.room_id}`)
     }
   }
 
@@ -136,7 +147,7 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Chi tiết công việc</DialogTitle>
           </DialogHeader>
@@ -148,7 +159,7 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
               <Skeleton className="h-10 w-full" />
             </div>
           ) : task ? (
-            <div className="space-y-4">
+            <div className="flex-1 overflow-y-auto space-y-4">
               {/* Room Info */}
               <div className={cn(
                 'p-3 rounded-lg border',
@@ -294,8 +305,8 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
                 </div>
               )}
 
-              {/* Actions */}
-              <div className="flex gap-2 pt-2">
+              {/* Actions - sticky footer */}
+              <div className="sticky bottom-0 bg-background pt-2 border-t mt-auto flex gap-2">
                 {task.status === 'pending' && (
                   <Button 
                     className="flex-1"
@@ -309,7 +320,7 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
                 
                 {isInProgress && (
                   <>
-                    {task.task_type === 'checkout_inspection' ? (
+                    {task.task_type === 'checkout_inspection' || task.task_type === 'checkin_prep' || task.task_type === 'amenity_request' ? (
                       <Button 
                         className="flex-1"
                         onClick={handleContinue}
@@ -327,6 +338,24 @@ export function TaskDetailDialog({ taskId, open, onOpenChange }: TaskDetailDialo
                         <PackageCheck className="h-4 w-4 mr-2" />
                         Xác nhận nhận hàng
                       </Button>
+                    ) : task.task_type === 'cleaning' ? (
+                      <>
+                        <Button 
+                          variant="outline"
+                          onClick={() => { onOpenChange(false); navigate(`/rooms/${task.room_id}`) }}
+                        >
+                          <DoorOpen className="h-4 w-4 mr-2" />
+                          P.{task.room?.room_number}
+                        </Button>
+                        <Button 
+                          className="flex-1"
+                          onClick={handleComplete}
+                          disabled={isUpdating}
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                          Hoàn thành
+                        </Button>
+                      </>
                     ) : (
                       <Button 
                         className="flex-1"

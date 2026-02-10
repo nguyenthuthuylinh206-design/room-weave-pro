@@ -334,6 +334,7 @@ export function useUpdateTaskStatus() {
       queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
+      queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })
       
       if (data.status === 'in_progress') {
         toast.success('Đã bắt đầu công việc')
