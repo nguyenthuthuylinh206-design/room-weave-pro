@@ -707,11 +707,11 @@ export function GroupCheckoutDialog({
   const getInspectionStatusBadge = (status: InspectionStatus['status']) => {
     switch (status) {
       case 'completed':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs"><CheckCircle className="h-3 w-3 mr-1" />Đã kiểm tra</Badge>
+        return <span className="flex items-center gap-1 text-xs text-green-600"><CheckCircle className="h-3 w-3" />Đã kiểm tra</span>
       case 'in_progress':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs"><Clock className="h-3 w-3 mr-1 animate-pulse" />Đang kiểm tra</Badge>
+        return <span className="flex items-center gap-1 text-xs text-blue-600"><Clock className="h-3 w-3 animate-pulse" />Đang kiểm tra</span>
       case 'pending':
-        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs"><Clock className="h-3 w-3 mr-1" />Chờ kiểm tra</Badge>
+        return <span className="flex items-center gap-1 text-xs text-amber-600"><Clock className="h-3 w-3" />Chờ kiểm tra</span>
       default:
         return <span className="text-xs text-muted-foreground">Chưa gửi yêu cầu</span>
     }
@@ -774,9 +774,9 @@ export function GroupCheckoutDialog({
               
               {/* Overdue Warning */}
               {overdueRooms.length > 0 && (
-                <div className="flex items-start gap-2 p-2.5 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start gap-2 p-2.5 border rounded-lg">
                   <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
-                  <div className="text-xs text-red-700">
+                  <div className="text-xs text-red-600">
                     <span className="font-medium">{overdueRooms.length} phòng quá hạn checkout:</span>{' '}
                     {overdueRooms.map(b => `P.${b.room?.room_number}`).join(', ')}. Chi phí sẽ được tính đến ngày hôm nay.
                   </div>
@@ -806,7 +806,7 @@ export function GroupCheckoutDialog({
                       className={cn(
                         "border rounded-lg overflow-hidden transition-colors",
                         isCheckedOut && "bg-muted/50 opacity-60",
-                        isSelected && !isCheckedOut && "border-blue-200"
+                        isSelected && !isCheckedOut && "border-primary/30"
                       )}
                     >
                       {/* Room Header */}
@@ -825,7 +825,7 @@ export function GroupCheckoutDialog({
                                 <span className="font-medium text-sm">P.{booking.room?.room_number}</span>
                                 <span className="text-xs text-muted-foreground capitalize">{bookingType === 'daily' ? 'Ngày' : bookingType === 'hourly' ? 'Giờ' : 'Tháng'}</span>
                                 {isCheckedOut ? (
-                                  <Badge variant="secondary" className="text-xs">Đã trả</Badge>
+                                  <span className="text-xs text-muted-foreground">Đã trả</span>
                                 ) : (
                                   getInspectionStatusBadge(inspection?.status || 'not_requested')
                                 )}
@@ -884,22 +884,18 @@ export function GroupCheckoutDialog({
                                 {bookingType === 'daily' && (
                                   <>
                                     {isEarly ? (
-                                      <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
-                                        <div className="flex items-center gap-2 text-green-700 text-xs">
-                                          <Check className="h-3.5 w-3.5" />
-                                          <span className="font-medium">Checkout sớm - Không phụ thu</span>
-                                        </div>
+                                      <div className="flex items-center gap-2 text-green-600 text-xs py-1">
+                                        <Check className="h-3.5 w-3.5" />
+                                        <span className="font-medium">Checkout sớm - Không phụ thu</span>
                                       </div>
                                     ) : currentHour <= 12 ? (
-                                      <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
-                                        <div className="flex items-center gap-2 text-green-700 text-xs">
-                                          <Check className="h-3.5 w-3.5" />
-                                          <span className="font-medium">Checkout đúng giờ</span>
-                                        </div>
+                                      <div className="flex items-center gap-2 text-green-600 text-xs py-1">
+                                        <Check className="h-3.5 w-3.5" />
+                                        <span className="font-medium">Checkout đúng giờ</span>
                                       </div>
                                     ) : (
                                       <div className="border rounded-lg overflow-hidden">
-                                        <div className="bg-muted/50 px-3 py-1.5 text-xs font-medium">
+                                        <div className="px-3 py-1.5 text-xs font-medium uppercase text-muted-foreground">
                                           PHỤ THU CHECK-OUT TRỄ (tiêu chuẩn: 12:00)
                                         </div>
                                         <div className="divide-y">
@@ -907,10 +903,10 @@ export function GroupCheckoutDialog({
                                             const isActive = tier.id === activeTier?.id
                                             const tierAmount = Math.round((booking.room_price || 0) * tier.percent / 100)
                                             return (
-                                              <div key={tier.id} className={cn("flex items-center justify-between px-3 py-1.5 text-xs", isActive && "bg-amber-50 border-l-2 border-l-amber-500")}>
+                                              <div key={tier.id} className={cn("flex items-center justify-between px-3 py-1.5 text-xs", isActive && "font-medium")}>
                                                 <div className="flex items-center gap-2">
                                                   {isActive && <Check className="h-3 w-3 text-amber-600" />}
-                                                  <span className={cn(isActive && "font-medium")}>{tier.label}</span>
+                                                  <span className={cn(isActive && "font-medium text-foreground")}>{tier.label}</span>
                                                   {tier.description && <span className="text-muted-foreground">({tier.description})</span>}
                                                 </div>
                                                 <span className={cn("font-mono", isActive && "font-medium text-amber-600")}>
@@ -965,9 +961,9 @@ export function GroupCheckoutDialog({
 
                                   {/* Editable late checkout charge - daily */}
                                   {bookingType === 'daily' && !isEarly && currentHour > 12 && cost && cost.lateCheckoutCharge > 0 && (
-                                    <div className="p-2 bg-amber-50/50 rounded border border-amber-200 space-y-2">
+                                    <div className="p-2 border rounded-lg space-y-2">
                                       <div className="flex items-center justify-between">
-                                        <Label className="text-xs text-amber-700">Phụ thu checkout trễ ({activeTier?.percent || 0}%)</Label>
+                                        <Label className="text-xs text-amber-600">Phụ thu checkout trễ ({activeTier?.percent || 0}%)</Label>
                                         <div className="flex items-center gap-1">
                                           <Input
                                             type="text"
@@ -1011,9 +1007,9 @@ export function GroupCheckoutDialog({
 
                                   {/* Editable hourly overtime */}
                                   {bookingType === 'hourly' && cost && cost.adjustedLateCharge > 0 && (
-                                    <div className="p-2 bg-amber-50/50 rounded border border-amber-200 space-y-2">
+                                    <div className="p-2 border rounded-lg space-y-2">
                                       <div className="flex items-center justify-between">
-                                        <Label className="text-xs text-amber-700">Phí vượt giờ</Label>
+                                        <Label className="text-xs text-amber-600">Phí vượt giờ</Label>
                                         <div className="flex items-center gap-1">
                                           <Input
                                             type="text"
@@ -1140,9 +1136,9 @@ export function GroupCheckoutDialog({
 
               {/* Progress Warning */}
               {(roomStats.inProgress > 0 || roomStats.pending > 0) && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 flex items-center gap-2">
+                <div className="border rounded-lg p-2.5 flex items-center gap-2">
                   <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
-                  <span className="text-xs text-amber-700">
+                  <span className="text-xs text-amber-600">
                     {roomStats.inProgress > 0 && `${roomStats.inProgress} đang kiểm tra`}
                     {roomStats.inProgress > 0 && roomStats.pending > 0 && ', '}
                     {roomStats.pending > 0 && `${roomStats.pending} chờ kiểm tra`}
@@ -1169,35 +1165,35 @@ export function GroupCheckoutDialog({
                   {totals.earlyCheckinCharges > 0 && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Phụ thu check-in sớm</span>
-                      <span className="font-mono text-amber-600">+{formatVNCurrency(totals.earlyCheckinCharges)}</span>
+                      <span className="font-mono text-amber-600">{formatVNCurrency(totals.earlyCheckinCharges)}</span>
                     </div>
                   )}
                   
                   {totals.lateCharges > 0 && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Phụ thu checkout trễ</span>
-                      <span className="font-mono text-amber-600">+{formatVNCurrency(totals.lateCharges)}</span>
+                      <span className="font-mono text-amber-600">{formatVNCurrency(totals.lateCharges)}</span>
                     </div>
                   )}
                   
                   {totals.damageCharges > 0 && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Phí đền bù thiệt hại</span>
-                      <span className="font-mono text-red-600">+{formatVNCurrency(totals.damageCharges)}</span>
+                      <span className="font-mono text-red-600">{formatVNCurrency(totals.damageCharges)}</span>
                     </div>
                   )}
                   
                   {totals.serviceCharges > 0 && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Dịch vụ sử dụng</span>
-                      <span className="font-mono">+{formatVNCurrency(totals.serviceCharges)}</span>
+                      <span className="font-mono">{formatVNCurrency(totals.serviceCharges)}</span>
                     </div>
                   )}
                   
                   {totals.extraCharges > 0 && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Chi phí khác</span>
-                      <span className="font-mono">+{formatVNCurrency(totals.extraCharges)}</span>
+                      <span className="font-mono">{formatVNCurrency(totals.extraCharges)}</span>
                     </div>
                   )}
 
@@ -1255,7 +1251,7 @@ export function GroupCheckoutDialog({
 
                   <Separator className="my-1" />
                   
-                  <div className={cn("flex justify-between font-bold text-lg", totals.remaining > 0 ? "text-red-600" : "text-green-600")}>
+                  <div className={cn("flex justify-between font-semibold text-sm", totals.remaining > 0 ? "text-red-600" : "text-green-600")}>
                     <span>CÒN LẠI</span>
                     <span className="font-mono">{formatVNCurrency(Math.max(0, totals.remaining))}</span>
                   </div>
@@ -1264,9 +1260,9 @@ export function GroupCheckoutDialog({
 
               {/* Warning if unpaid */}
               {totals.remaining > 0 && (
-                <div className="flex items-start gap-2 p-2 bg-amber-50 border border-amber-200 rounded-md">
-                  <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-700">
+                <div className="flex items-start gap-2 p-2 border rounded-md">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-600">
                     Khách chưa thanh toán đầy đủ. Vui lòng thu tiền trước khi cho trả phòng hoặc xác nhận checkout với số nợ.
                   </p>
                 </div>
