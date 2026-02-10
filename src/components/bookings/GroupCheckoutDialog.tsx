@@ -160,13 +160,30 @@ export function GroupCheckoutDialog({
 
       if (error) throw error
 
-      // Get room checks for damage info (final data)
-      const { data: roomChecks } = await supabase
-        .from('room_checks')
-        .select('room_id, items_lost, items_damaged')
-        .in('room_id', groupData.bookings.map(b => b.room_id))
-        .in('check_type', ['checkout'])
-        .order('created_at', { ascending: false })
+      // Get room checks for damage info - use room_check_id from inspections for accuracy
+      const roomCheckIds = inspections
+        ?.filter(i => i.room_check_id)
+        ?.map(i => i.room_check_id) || []
+
+      let roomChecks: any[] | null = null
+      if (roomCheckIds.length > 0) {
+        const { data } = await supabase
+          .from('room_checks')
+          .select('id, room_id, items_lost, items_damaged')
+          .in('id', roomCheckIds)
+        roomChecks = data
+      }
+
+      // Fallback: if no room_check_ids linked yet, query by room_id with correct column
+      if (!roomChecks || roomChecks.length === 0) {
+        const { data } = await supabase
+          .from('room_checks')
+          .select('id, room_id, items_lost, items_damaged')
+          .in('room_id', groupData.bookings.map(b => b.room_id))
+          .in('check_type', ['checkout'])
+          .order('checked_at', { ascending: false })
+        roomChecks = data
+      }
 
       // Map bookings to their inspection status
       return groupData.bookings.map(booking => {

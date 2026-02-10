@@ -54,7 +54,7 @@ export function useGroupCheckoutCalculations() {
       .select('items_lost, items_damaged, items_consumed')
       .eq('room_id', roomId)
       .in('check_type', ['checkout'])
-      .order('created_at', { ascending: false })
+      .order('checked_at', { ascending: false })
       .limit(1)
 
     if (!roomChecks || roomChecks.length === 0) return []
