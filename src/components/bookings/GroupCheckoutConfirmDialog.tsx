@@ -39,6 +39,7 @@ import { cn } from '@/lib/utils'
 import { type GroupRoomCostBreakdown } from '@/hooks/useGroupCheckoutCalculations'
 import { DamageChargeItem, isEarlyCheckout } from '@/lib/bookingCalculations'
 import { DamageReportDocument } from './DamageReportDocument'
+import { DamageChargesSection } from './DamageChargesSection'
 
 // Late checkout tiers (same as CheckoutSummaryDialog)
 const LATE_CHECKOUT_TIERS = [
@@ -411,66 +412,21 @@ export function GroupCheckoutConfirmDialog({
                                   </div>
                                 )}
 
-                                {/* Damage Items */}
+                                {/* Damage Items - Using DamageChargesSection */}
                                 {cost.damageItems.length > 0 && (
-                                  <div className="p-2 bg-red-50/50 rounded border border-red-200 space-y-2">
-                                    <Label className="text-sm text-red-700">Phí đền bù thiệt hại</Label>
-                                    <div className="space-y-1">
-                                      {cost.adjustedDamageItems.map((item) => {
-                                        const original = cost.damageItems.find(i => i.item_id === item.item_id)
-                                        const isAdjusted = original && original.charge_amount !== item.charge_amount
-                                        
-                                        return (
-                                          <div key={item.item_id} className="flex items-center justify-between text-xs">
-                                            <div className="flex items-center gap-2">
-                                              <span>{item.item_name}</span>
-                                              <Badge variant="outline" className="text-[10px]">
-                                                {item.item_type === 'lost' ? 'Mất' : item.item_type === 'damaged' ? 'Hỏng' : 'Đã dùng'} x{item.quantity}
-                                              </Badge>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                              <Input
-                                                type="text"
-                                                inputMode="numeric"
-                                                className="w-20 h-6 text-right font-mono text-xs"
-                                                value={item.charge_amount > 0 ? item.charge_amount.toString() : ''}
-                                                onChange={(e) => {
-                                                  const value = e.target.value.replace(/[^0-9]/g, '')
-                                                  onAdjustDamageItem(room.bookingId, item.item_id, parseInt(value) || 0)
-                                                }}
-                                                placeholder="0"
-                                              />
-                                              <span className="text-muted-foreground">đ</span>
-                                              {/* Waive button */}
-                                              <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-5 w-5 text-green-600"
-                                                onClick={() => onAdjustDamageItem(room.bookingId, item.item_id, 0)}
-                                                disabled={item.charge_amount === 0}
-                                                title="Miễn phí"
-                                              >
-                                                <Check className="h-3 w-3" />
-                                              </Button>
-                                              {/* Reset button */}
-                                              {isAdjusted && original && (
-                                                <Button
-                                                  type="button"
-                                                  variant="ghost"
-                                                  size="icon"
-                                                  className="h-5 w-5"
-                                                  onClick={() => onAdjustDamageItem(room.bookingId, item.item_id, original.charge_amount)}
-                                                  title="Khôi phục giá gốc"
-                                                >
-                                                  <RotateCcw className="h-3 w-3" />
-                                                </Button>
-                                              )}
-                                            </div>
-                                          </div>
-                                        )
-                                      })}
-                                    </div>
+                                  <>
+                                    <DamageChargesSection
+                                      damageItems={cost.adjustedDamageItems}
+                                      originalItems={cost.damageItems}
+                                      onAdjustCharge={(itemId, newCharge) => onAdjustDamageItem(room.bookingId, itemId, newCharge)}
+                                      onWaiveItem={(itemId) => onAdjustDamageItem(room.bookingId, itemId, 0)}
+                                      onResetItem={(itemId) => {
+                                        const original = cost.damageItems.find(i => i.item_id === itemId)
+                                        if (original) {
+                                          onAdjustDamageItem(room.bookingId, itemId, original.charge_amount)
+                                        }
+                                      }}
+                                    />
                                     {damageTotal < cost.originalDamageTotal && (
                                       <div className="space-y-1">
                                         <Textarea
@@ -495,7 +451,7 @@ export function GroupCheckoutConfirmDialog({
                                       <Printer className="h-3 w-3" />
                                       In biên bản xác nhận
                                     </Button>
-                                  </div>
+                                  </>
                                 )}
 
                                 {/* Services */}

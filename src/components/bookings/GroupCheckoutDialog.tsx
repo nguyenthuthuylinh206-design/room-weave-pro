@@ -26,12 +26,14 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
+  AlertTriangle,
   Loader2,
   Minimize2,
   CreditCard,
   ClipboardCheck,
   Send,
   CheckCircle2,
+  Check,
   Phone,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -385,6 +387,19 @@ export function GroupCheckoutDialog({
     return new Map(inspectionStatuses?.map(i => [i.bookingId, i]) || [])
   }, [inspectionStatuses])
 
+  // Late checkout tiers (same as CheckoutSummaryDialog)
+  const LATE_CHECKOUT_TIERS = [
+    { id: 'before12', label: 'Trước 12:00', percent: 0, description: 'Miễn phí', minHour: 0, maxHour: 12 },
+    { id: '12to15', label: '12:00 - 15:00', percent: 30, description: '', minHour: 12, maxHour: 15 },
+    { id: '15to18', label: '15:00 - 18:00', percent: 50, description: '', minHour: 15, maxHour: 18 },
+    { id: 'after18', label: 'Sau 18:00', percent: 100, description: '= 1 đêm', minHour: 18, maxHour: 24 },
+  ]
+
+  const currentHour = new Date().getHours()
+  const activeTier = LATE_CHECKOUT_TIERS.find(
+    tier => currentHour >= tier.minHour && currentHour < tier.maxHour
+  )
+
   // Calculate totals for SELECTED rooms only
   const totals = useMemo(() => {
     if (!groupData || !inspectionStatuses) {
@@ -393,6 +408,9 @@ export function GroupCheckoutDialog({
         damageCharges: 0, 
         serviceCharges: 0,
         totalPaid: 0, 
+        subtotal: 0,
+        vatAmount: 0,
+        serviceFeeAmount: 0,
         grandTotal: 0, 
         remaining: 0,
         depositApplied: 0,
@@ -421,7 +439,13 @@ export function GroupCheckoutDialog({
     const depositApplied = isLastCheckout ? groupData.totalDeposit : 0
     const holdingDeposit = !isLastCheckout ? groupData.totalDeposit : 0
     
-    const grandTotal = roomTotal + damageCharges + serviceCharges
+    const subtotal = roomTotal + damageCharges + serviceCharges
+    // VAT & Service Fee (same rates as single checkout)
+    const vatRate = 0 // Default 0, can be configured
+    const serviceFeeRate = 0 // Default 0, can be configured
+    const vatAmount = Math.round(subtotal * vatRate / 100)
+    const serviceFeeAmount = Math.round(subtotal * serviceFeeRate / 100)
+    const grandTotal = subtotal + vatAmount + serviceFeeAmount
     const remaining = grandTotal - totalPaid - depositApplied
 
     return { 
@@ -429,6 +453,9 @@ export function GroupCheckoutDialog({
       damageCharges, 
       serviceCharges,
       totalPaid, 
+      subtotal,
+      vatAmount,
+      serviceFeeAmount,
       grandTotal, 
       remaining,
       depositApplied,
@@ -1096,47 +1123,124 @@ export function GroupCheckoutDialog({
 
             <Separator />
 
-            {/* Payment Summary */}
+            {/* Late Checkout Tiers Table - Only for daily bookings */}
+            {currentHour <= 12 ? (
+              <div className="p-2.5 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2 text-green-700 text-sm">
+                  <Check className="h-4 w-4" />
+                  <span className="font-medium">Checkout đúng giờ - Không phụ thu</span>
+                </div>
+                <p className="text-xs text-green-600 mt-1">
+                  Checkout trước/đúng 12:00 → không phụ thu.
+                </p>
+              </div>
+            ) : (
+              <div className="border rounded-lg overflow-hidden">
+                <div className="bg-muted/50 px-3 py-1.5 text-xs font-medium">
+                  PHỤ THU CHECK-OUT TRỄ (tiêu chuẩn: 12:00)
+                </div>
+                <div className="divide-y">
+                  {LATE_CHECKOUT_TIERS.map((tier) => {
+                    const isActive = tier.id === activeTier?.id
+                    // Use average room price for display
+                    const avgPrice = selectedRooms.size > 0 && groupData
+                      ? groupData.bookings
+                          .filter(b => selectedRooms.has(b.id))
+                          .reduce((sum, b) => sum + ((b as any).room_price || 0), 0) / selectedRooms.size
+                      : 0
+                    const tierAmount = Math.round(avgPrice * tier.percent / 100)
+                    return (
+                      <div
+                        key={tier.id}
+                        className={cn(
+                          "flex items-center justify-between px-3 py-1.5 text-xs",
+                          isActive && "bg-amber-50 border-l-2 border-l-amber-500"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          {isActive && <Check className="h-3 w-3 text-amber-600" />}
+                          <span className={cn(isActive && "font-medium")}>{tier.label}</span>
+                          {tier.description && (
+                            <span className="text-muted-foreground">({tier.description})</span>
+                          )}
+                        </div>
+                        <span className={cn("font-mono", isActive && "font-medium text-amber-600")}>
+                          {tier.percent}%{avgPrice > 0 ? ` ≈ ${formatVNCurrency(tierAmount)}/phòng` : ''}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            <Separator />
+
+            {/* Payment Summary - Detailed like single checkout */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <CreditCard className="h-4 w-4" />
-                Thanh toán
+                Chi tiết thanh toán
                 {selectedRooms.size > 0 && (
                   <span className="text-muted-foreground font-normal">
-                    ({selectedRooms.size} phòng đã chọn)
+                    ({selectedRooms.size} phòng)
                   </span>
                 )}
               </div>
 
-              <div className="bg-muted/50 rounded-lg p-3 space-y-1.5">
-                <div className="flex justify-between text-sm">
+              <div className="space-y-1.5 text-sm">
+                <div className="flex justify-between">
                   <span className="text-muted-foreground">Tiền phòng</span>
                   <span className="font-mono">{formatVNCurrency(totals.roomTotal)}</span>
                 </div>
                 
                 {totals.damageCharges > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Phí đền bù</span>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Phí đền bù thiệt hại</span>
                     <span className="font-mono text-red-600">+{formatVNCurrency(totals.damageCharges)}</span>
                   </div>
                 )}
                 
                 {totals.serviceCharges > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Phụ thu dịch vụ</span>
-                    <span className="font-mono text-amber-600">+{formatVNCurrency(totals.serviceCharges)}</span>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Dịch vụ sử dụng</span>
+                    <span className="font-mono">+{formatVNCurrency(totals.serviceCharges)}</span>
                   </div>
                 )}
 
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Đã thanh toán</span>
-                  <span className="font-mono text-green-600">-{formatVNCurrency(totals.totalPaid)}</span>
+                <Separator className="my-1" />
+                
+                {/* Subtotal */}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-mono">{formatVNCurrency(totals.subtotal)}</span>
+                </div>
+                
+                {totals.vatAmount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">VAT</span>
+                    <span className="font-mono">{formatVNCurrency(totals.vatAmount)}</span>
+                  </div>
+                )}
+                
+                {totals.serviceFeeAmount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Phí dịch vụ</span>
+                    <span className="font-mono">{formatVNCurrency(totals.serviceFeeAmount)}</span>
+                  </div>
+                )}
+
+                <Separator className="my-1" />
+                
+                <div className="flex justify-between font-bold">
+                  <span>TỔNG CỘNG</span>
+                  <span className="font-mono">{formatVNCurrency(totals.grandTotal)}</span>
                 </div>
                 
                 {totals.depositApplied > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Tiền cọc (áp dụng)</span>
-                    <span className="font-mono text-green-600">-{formatVNCurrency(totals.depositApplied)}</span>
+                  <div className="flex justify-between text-green-600">
+                    <span>Tiền đặt cọc</span>
+                    <span className="font-mono">-{formatVNCurrency(totals.depositApplied)}</span>
                   </div>
                 )}
                 
@@ -1150,22 +1254,37 @@ export function GroupCheckoutDialog({
                   </div>
                 )}
                 
-                <Separator className="my-1.5" />
+                {totals.totalPaid > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Đã thanh toán</span>
+                    <span className="font-mono">-{formatVNCurrency(totals.totalPaid)}</span>
+                  </div>
+                )}
+
+                <Separator className="my-1" />
                 
-                <div className="flex justify-between font-medium">
-                  <span>CẦN THU</span>
-                  <span className={cn(
-                    "font-mono text-lg",
-                    totals.remaining > 0 ? "text-primary" : "text-green-600"
-                  )}>
-                    {formatVNCurrency(Math.max(0, totals.remaining))}
-                  </span>
+                <div className={cn(
+                  "flex justify-between font-bold text-lg",
+                  totals.remaining > 0 ? "text-red-600" : "text-green-600"
+                )}>
+                  <span>CÒN LẠI</span>
+                  <span className="font-mono">{formatVNCurrency(Math.max(0, totals.remaining))}</span>
                 </div>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex gap-2">
+            {/* Warning if unpaid */}
+            {totals.remaining > 0 && (
+              <div className="flex items-start gap-2 p-2 bg-amber-50 border border-amber-200 rounded-md">
+                <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700">
+                  Khách chưa thanh toán đầy đủ. Vui lòng thu tiền trước khi cho trả phòng hoặc xác nhận checkout với số nợ.
+                </p>
+              </div>
+            )}
+
+            {/* Actions - 2 buttons like single checkout */}
+            <div className="flex flex-col sm:flex-row gap-2">
               {onMinimize && (
                 <Button
                   type="button"
@@ -1178,24 +1297,38 @@ export function GroupCheckoutDialog({
                 </Button>
               )}
               
-              <Button
-                className="flex-1"
-                disabled={isProcessing || selectedRooms.size === 0}
-                onClick={handleSelectiveCheckout}
-              >
-                {isProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {totals.remaining > 0 ? (
-                  <>
+              {totals.remaining > 0 ? (
+                <>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    disabled={isProcessing || selectedRooms.size === 0}
+                    onClick={handleSelectiveCheckout}
+                  >
+                    {isProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Cho trả phòng (nợ {formatVNCurrency(totals.remaining)})
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    disabled={isProcessing || selectedRooms.size === 0}
+                    onClick={handleSelectiveCheckout}
+                  >
+                    {isProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                     <CreditCard className="h-4 w-4 mr-1.5" />
-                    Thu tiền & Checkout ({selectedRooms.size})
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 mr-1.5" />
-                    Checkout ({selectedRooms.size} phòng)
-                  </>
-                )}
-              </Button>
+                    Thu tiền & Trả phòng
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  className="flex-1"
+                  disabled={isProcessing || selectedRooms.size === 0}
+                  onClick={handleSelectiveCheckout}
+                >
+                  {isProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                  Xác nhận Checkout ({selectedRooms.size} phòng)
+                </Button>
+              )}
             </div>
             </div>
           </ScrollArea>
