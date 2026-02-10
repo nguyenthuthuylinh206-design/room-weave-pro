@@ -105,7 +105,7 @@ export function InspectionStatusCard({
   // Render in_progress status
   if (inspection.status === 'in_progress') {
     return (
-      <div className="p-2.5 border border-blue-500/50 rounded-lg bg-blue-50 dark:bg-blue-950/30 mt-2">
+      <div className="p-2.5 border rounded-lg mt-2">
         {/* Header with timer */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400">
@@ -113,7 +113,7 @@ export function InspectionStatusCard({
             <span className="text-xs font-medium">Đang kiểm tra phòng</span>
           </div>
           {elapsedTime && (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 rounded">
+            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-muted rounded">
               <Clock className="h-3 w-3 text-blue-600 dark:text-blue-400" />
               <span className="font-mono text-xs font-medium text-blue-700 dark:text-blue-300">
                 {elapsedTime}
@@ -163,7 +163,7 @@ export function InspectionStatusCard({
   // Render pending status
   if (inspection.status === 'pending') {
     return (
-      <div className="p-2.5 border border-amber-500/50 rounded-lg bg-amber-50 dark:bg-amber-950/30 mt-2">
+      <div className="p-2.5 border rounded-lg mt-2">
         {/* Header */}
         <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 mb-2">
           <AlertCircle className="h-4 w-4" />
@@ -208,7 +208,7 @@ export function InspectionStatusCard({
   // Render completed status
   if (inspection.status === 'completed') {
     return (
-      <div className="p-2.5 border border-green-500/50 rounded-lg bg-green-50 dark:bg-green-950/30 mt-2">
+      <div className="p-2.5 border rounded-lg mt-2">
         <div className="flex items-center gap-1.5 text-green-700 dark:text-green-400">
           <CheckCircle2 className="h-4 w-4" />
           <span className="text-xs font-medium">Kiểm tra hoàn thành</span>
