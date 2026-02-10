@@ -89,6 +89,19 @@ export function useGroupCheckoutCalculations() {
       })
     }
 
+    // Process consumed items
+    const consumedItems = (roomCheck.items_consumed as any[]) || []
+    for (const item of consumedItems) {
+      damageItems.push({
+        item_id: item.item_id,
+        item_name: item.item_name || 'Unknown',
+        item_type: 'consumed',
+        quantity: item.quantity || 1,
+        charge_amount: item.unit_price || 0,
+        notes: item.notes,
+      })
+    }
+
     return damageItems
   }, [])
 

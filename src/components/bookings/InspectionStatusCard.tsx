@@ -19,6 +19,7 @@ import { getTelegramPhoneLink, openTelegramWithFallback, getTelegramDownloadLink
 interface Phase1DamageData {
   lost_items?: Array<{ item_id: string; item_name: string; quantity: number; estimated_value: number }>
   damaged_items?: Array<{ item_id: string; item_name: string; quantity: number; damage_cost: number; damage_type?: string }>
+  consumed_items?: Array<{ item_id: string; item_name: string; quantity: number }>
   lost_total?: number
   damaged_total?: number
 }
@@ -231,7 +232,8 @@ function Phase1DamageSummary({ data }: { data?: Phase1DamageData }) {
   if (!data) return null
   const lostCount = data.lost_items?.length || 0
   const damagedCount = data.damaged_items?.length || 0
-  if (lostCount === 0 && damagedCount === 0) return null
+  const consumedCount = data.consumed_items?.length || 0
+  if (lostCount === 0 && damagedCount === 0 && consumedCount === 0) return null
 
   const fmt = (v: number) => new Intl.NumberFormat('vi-VN').format(v)
 
@@ -262,6 +264,20 @@ function Phase1DamageSummary({ data }: { data?: Phase1DamageData }) {
               <div key={idx} className="text-xs text-amber-600/80 flex justify-between">
                 <span>- {item.item_name} x{item.quantity}{item.damage_type ? ` (${item.damage_type})` : ''}</span>
                 <span>{fmt(item.damage_cost * item.quantity)}đ</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {consumedCount > 0 && (
+        <div>
+          <div className="text-xs font-medium text-blue-600">
+            Đồ đã dùng ({consumedCount})
+          </div>
+          <div className="pl-2 space-y-0.5 mt-0.5">
+            {data.consumed_items!.map((item, idx) => (
+              <div key={idx} className="text-xs text-blue-600/80">
+                - {item.item_name} x{item.quantity}
               </div>
             ))}
           </div>
