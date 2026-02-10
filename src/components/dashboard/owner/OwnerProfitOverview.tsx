@@ -59,21 +59,21 @@ export function OwnerProfitOverview() {
   const stats = [
     {
       label: 'Doanh thu tháng này',
-      value: report.thisMonth.paidRevenue,
+      value: report.currentPeriod.paidRevenue,
       icon: DollarSign,
       color: 'text-green-600',
       bgColor: 'bg-green-50 dark:bg-green-950/30',
     },
     {
       label: 'Chờ thanh toán',
-      value: report.thisMonth.pendingRevenue,
+      value: report.currentPeriod.pendingRevenue,
       icon: Clock,
       color: 'text-amber-600',
       bgColor: 'bg-amber-50 dark:bg-amber-950/30',
     },
     {
       label: 'Số booking',
-      value: report.thisMonth.bookingsCount,
+      value: report.currentPeriod.bookingsCount,
       icon: CreditCard,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50 dark:bg-blue-950/30',
@@ -81,7 +81,7 @@ export function OwnerProfitOverview() {
     },
     {
       label: 'TB/booking',
-      value: report.thisMonth.averageBookingValue,
+      value: report.currentPeriod.averageBookingValue,
       icon: Wallet,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50 dark:bg-purple-950/30',
@@ -177,7 +177,7 @@ export function OwnerProfitOverview() {
 
         {/* Comparison */}
         <div className="flex items-center justify-between text-sm text-muted-foreground border-t pt-3">
-          <span>Tháng trước: {formatCurrency(report.lastMonth.paidRevenue)}</span>
+          <span>Tháng trước: {formatCurrency(report.previousPeriod.paidRevenue)}</span>
           <span>Hôm nay: {formatCurrency(report.today.paidRevenue)}</span>
         </div>
       </CardContent>
