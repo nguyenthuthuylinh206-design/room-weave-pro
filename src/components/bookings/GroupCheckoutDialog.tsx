@@ -204,6 +204,26 @@ export function GroupCheckoutDialog({
             sum + (item.damage_cost || 0) * (item.quantity || 1), 0
           )
           damageCharge = lostTotal + damagedTotal
+          
+          if (lost.length > 0 || damaged.length > 0) {
+            phase1DamageData = {
+              lost_items: lost.map((item: any) => ({
+                item_id: item.item_id || '',
+                item_name: item.item_name || 'Không rõ',
+                quantity: item.quantity || 1,
+                estimated_value: item.estimated_value || 0,
+              })),
+              damaged_items: damaged.map((item: any) => ({
+                item_id: item.item_id || '',
+                item_name: item.item_name || 'Không rõ',
+                quantity: item.quantity || 1,
+                damage_cost: item.damage_cost || 0,
+                damage_type: item.damage_type,
+              })),
+              lost_total: lostTotal,
+              damaged_total: damagedTotal,
+            }
+          }
         } else if (inspection?.phase1_damage_data) {
           // Fallback: use phase1_damage_data from inspection request
           const p1Data = inspection.phase1_damage_data as any as Phase1DamageData
