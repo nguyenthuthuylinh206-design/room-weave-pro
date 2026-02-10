@@ -78,13 +78,21 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
         const inspectionParam = task.checkout_inspection_id 
           ? `&inspection=${task.checkout_inspection_id}` 
           : ''
+        setIsUpdating(false)
         navigate(`/rooms/${task.room_id}/check?type=checkout${inspectionParam}`)
+        return
       } else if (task.task_type === 'delivery_confirmation') {
+        setIsUpdating(false)
         setShowDeliveryModal(true)
+        return
       } else if (task.task_type === 'checkin_prep') {
+        setIsUpdating(false)
         navigate(`/rooms/${task.room_id}/check?type=checkin`)
+        return
       } else if (task.task_type === 'amenity_request') {
+        setIsUpdating(false)
         navigate(`/rooms/${task.room_id}/check?type=replenish`)
+        return
       }
     } finally {
       setIsUpdating(false)
@@ -246,12 +254,9 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
             size="sm" 
             variant="outline"
             className="w-full h-8"
-            onClick={async () => {
-              try {
-                await claimTask(task.id)
-              } catch (e) {
-                // Error handled in hook
-              }
+            onClick={(e) => {
+              e.stopPropagation()
+              claimTask(task.id).catch(() => {})
             }}
             disabled={isClaiming}
           >
@@ -264,7 +269,7 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
               <Button 
                 size="sm" 
                 className="flex-1 h-8"
-                onClick={handleStart}
+                onClick={(e) => { e.stopPropagation(); handleStart() }}
                 disabled={isUpdating}
               >
                 <Play className="h-3.5 w-3.5 mr-1" />
@@ -278,7 +283,7 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
                   <Button 
                     size="sm" 
                     className="flex-1 h-8"
-                    onClick={handleContinue}
+                    onClick={(e) => { e.stopPropagation(); handleContinue() }}
                     disabled={isUpdating}
                   >
                     <ClipboardCheck className="h-3.5 w-3.5 mr-1" />
@@ -288,7 +293,7 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
                   <Button 
                     size="sm" 
                     className="flex-1 h-8"
-                    onClick={handleContinue}
+                    onClick={(e) => { e.stopPropagation(); handleContinue() }}
                     disabled={isUpdating}
                   >
                     <ClipboardCheck className="h-3.5 w-3.5 mr-1" />
@@ -298,7 +303,7 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
                   <Button 
                     size="sm" 
                     className="flex-1 h-8"
-                    onClick={handleDeliveryConfirm}
+                    onClick={(e) => { e.stopPropagation(); handleDeliveryConfirm() }}
                     disabled={isUpdating || !deliveryData}
                   >
                     <PackageCheck className="h-3.5 w-3.5 mr-1" />
@@ -310,7 +315,7 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
                       size="sm" 
                       variant="outline"
                       className="h-8"
-                      onClick={() => navigate(`/rooms/${task.room_id}`)}
+                      onClick={(e) => { e.stopPropagation(); navigate(`/rooms/${task.room_id}`) }}
                     >
                       <DoorOpen className="h-3.5 w-3.5 mr-1" />
                       P.{task.room?.room_number}
@@ -318,7 +323,7 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
                     <Button 
                       size="sm" 
                       className="flex-1 h-8"
-                      onClick={handleComplete}
+                      onClick={(e) => { e.stopPropagation(); handleComplete() }}
                       disabled={isUpdating}
                     >
                       <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
@@ -329,7 +334,7 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
                   <Button 
                     size="sm" 
                     className="flex-1 h-8"
-                    onClick={handleComplete}
+                    onClick={(e) => { e.stopPropagation(); handleComplete() }}
                     disabled={isUpdating}
                   >
                     <CheckCircle2 className="h-3.5 w-3.5 mr-1" />

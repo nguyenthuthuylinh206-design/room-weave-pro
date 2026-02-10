@@ -43,9 +43,8 @@ export function CleaningCompleteDialog({
 
   const handleConfirm = async () => {
     if (option === 'check') {
-      // Navigate to room check page with daily check type
+      // Navigate to room check page - task will be auto-completed when check is submitted
       onOpenChange(false)
-      onComplete?.() // Call callback before navigating
       navigate(`/rooms/${roomId}/check?type=daily`)
     } else {
       // Mark room as ready directly
