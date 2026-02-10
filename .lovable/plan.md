@@ -1,123 +1,125 @@
 
 
-## Lam Group Checkout giong hinh thuc Checkout Don Le
+## So sanh chi tiet Checkout Don Le vs Group Checkout - Cac tinh nang con thieu
 
-### HIEN TAI vs MOI
+### PHAN TICH HIEN TAI
 
-**Checkout don le** (`CheckoutSummaryDialog`) co 1 dialog duy nhat voi:
-1. Thong tin khach + phong
-2. Thoi gian checkout + mo ta tre/som
-3. Section kiem tra phong (chon nhan vien, theo doi trang thai)
-4. Bang phu thu checkout tre (4 muc: 0%/30%/50%/100%)
-5. Chi tiet thanh toan chi tiet: Tien phong, phu thu check-in som, phu thu tre (editable), dich vu, `DamageChargesSection` (itemized, edit/waive/reset), in bien ban
-6. Subtotal, VAT, Phi dich vu, TONG CONG, Da thanh toan, Tien coc, CON LAI
-7. Warning khi chua thanh toan
-8. Footer: Huy / Checkout no / Thu tien & Checkout
-
-**Group Checkout** hien tai co 2 buoc:
-- **Buoc 1** (`GroupCheckoutDialog`): Chon phong, chon nhan vien, gui yeu cau kiem tra, xem trang thai. **Phan thanh toan chi don gian**: chi co tong tien phong, phi den bu, dich vu, da TT, tien coc, CAN THU. **KHONG CO**: bang phu thu tre, chi tiet per-item, DamageChargesSection, VAT, Subtotal...
-- **Buoc 2** (`GroupCheckoutConfirmDialog`): Da chi tiet hon - co late checkout tiers, editable charges, damage items. Nhung dung inline rendering thay vi `DamageChargesSection` component.
-
-### KE HOACH THAY DOI
-
-#### 1. Nang cap phan Payment Summary trong GroupCheckoutDialog (Buoc 1)
-
-**File**: `src/components/bookings/GroupCheckoutDialog.tsx` dong 1099-1165
-
-Thay the phan "Thanh toan" don gian hien tai bang layout chi tiet giong `CheckoutSummaryDialog`:
-
-```text
-TRUOC (don gian):
-  Tien phong: xxx
-  Phi den bu: xxx
-  Phu thu dich vu: xxx
-  Da thanh toan: -xxx
-  Tien coc: -xxx
-  CAN THU: xxx
-
-SAU (chi tiet nhu checkout don le):
-  Chi tiet thanh toan
-  ─────────────────
-  Tien phong (tong)             xxx
-  Phu thu check-out tre         xxx (neu co)
-  Phu thu check-in som          xxx (neu co)
-  Dich vu su dung               xxx (neu co)
-  Phi den bu thiet hai          xxx (neu co, hien per-item)
-  ─────────────────
-  Subtotal                      xxx
-  VAT (8%)                      xxx
-  Phi dich vu (5%)              xxx
-  ─────────────────
-  TONG CONG                     xxx
-  Tien dat coc                  -xxx
-  Da thanh toan                 -xxx
-  ─────────────────
-  CON LAI                       xxx (do/xanh)
-```
-
-Can tinh them VAT va service fee trong `totals` (hien chua co). Thay doi `totals` useMemo de tinh Subtotal, VAT, Service Fee, Grand Total.
-
-#### 2. Them bang phu thu checkout tre vao GroupCheckoutDialog
-
-**File**: `src/components/bookings/GroupCheckoutDialog.tsx`
-
-Them bang `LATE_CHECKOUT_TIERS` (giong `CheckoutSummaryDialog` dong 39-44) va hien thi truoc phan thanh toan. Neu gio hien tai truoc 12h, hien "Checkout dung gio - Khong phu thu". Neu sau 12h, hien bang 4 muc voi muc dang ap dung duoc highlight.
-
-Chi can hien 1 bang chung (vi tat ca phong cung checkout cung gio), khong can per-room.
-
-#### 3. Hien chi tiet do mat/hong/tieu hao per-room trong GroupCheckoutDialog
-
-Hien tai moi room card chi hien tong damage charge ("+225.000d"). Can hien them danh sach items tuong tu `CheckoutReportCard`:
-- Do mat: ten x so luong - gia tri
-- Do hong: ten x so luong
-- Do da dung: ten x so luong
-
-Su dung du lieu `phase1DamageData` da co trong `InspectionStatusCard`. Phan nay da duoc implement o plan truoc - chi can dam bao no hien day du.
-
-#### 4. Them phan Warning khi chua thanh toan vao GroupCheckoutDialog
-
-**File**: `src/components/bookings/GroupCheckoutDialog.tsx`
-
-Them warning box giong `CheckoutSummaryDialog` dong 811-819:
-```text
-"Khach chua thanh toan day du. Vui long thu tien truoc khi cho tra phong hoac xac nhan checkout voi so no."
-```
-
-Hien khi `totals.remaining > 0`.
-
-#### 5. Sua footer GroupCheckoutDialog co 2 nut giong checkout don le
-
-**File**: `src/components/bookings/GroupCheckoutDialog.tsx` dong 1167-1199
-
-Hien tai chi co 1 nut "Thu tien & Checkout" hoac "Checkout". Can tach ra giong checkout don le:
-- Khi con no: 2 nut "Cho tra phong (no xxx)" + "Thu tien & Tra phong"
-- Khi het no: 1 nut "Xac nhan Checkout (N phong)"
-
-#### 6. Dung `DamageChargesSection` trong GroupCheckoutConfirmDialog
-
-**File**: `src/components/bookings/GroupCheckoutConfirmDialog.tsx` dong 414-498
-
-Thay the inline damage rendering bang component `DamageChargesSection` (da duoc dung trong `CheckoutSummaryDialog`). Component nay cung cap:
-- Phan nhom theo loai (Mat/Hong/Da dung) voi icon va mau sac
-- Edit inline per item (click icon Edit2)
-- Waive per item (click Trash2)
-- Reset per item (click RotateCcw)
-- Hien gia goc khi da dieu chinh
-
-Can tao adapter de chuyen tu `onAdjustDamageItem(bookingId, itemId, charge)` sang `onAdjustCharge(itemId, charge)`.
+Sau nhieu lan nang cap, Group Checkout da co gan day du cac tinh nang cua Checkout don le. Duoi day la danh sach **nhung gi con thieu hoac khac biet**:
 
 ---
 
-### TONG KET
+### 1. THIEU: Phu thu Check-in som (Early Checkin Charge)
+
+**Checkout don le** (dong 581-586): Hien dong "Phu thu check-in som" trong phan chi tiet thanh toan khi `earlyCheckinCharge > 0`.
+
+**Group Checkout Buoc 1** (`GroupCheckoutDialog`): **KHONG** hien phu thu check-in som trong phan Payment Summary (dong 1191-1273). Chi hien: Tien phong, Phi den bu, Dich vu. Thieu dong early checkin.
+
+**Group Checkout Buoc 2** (`GroupCheckoutConfirmDialog` dong 399-405): DA CO hien early checkin per-room.
+
+**Can lam**: Them dong "Phu thu check-in som" vao phan Payment Summary cua `GroupCheckoutDialog.tsx` (Buoc 1). Du lieu da co trong `useGroupCheckoutCalculations` qua `costBreakdown.earlyCheckinCharge`.
+
+---
+
+### 2. THIEU: Phu thu checkout tre (late charge) tach rieng trong Payment Summary (Buoc 1)
+
+**Checkout don le** (dong 626-688): Hien phu thu checkout tre nhu dong rieng voi so tien **editable** (Input + nut Mien phi / Theo chuan + Textarea ly do).
+
+**Group Checkout Buoc 1**: **KHONG** hien late charge nhu dong rieng trong Payment Summary. Chi hien bang tiers nhung khong co dong "Phu thu checkout tre: xxx" trong bang ke. Nguoi dung phai doi den Buoc 2 moi thay va chinh sua duoc.
+
+**Can lam**: Them dong "Phu thu checkout tre" (tong tat ca phong) vao Payment Summary Buoc 1. Khong can editable o Buoc 1 (vi chinh sua chi tiet per-room o Buoc 2).
+
+---
+
+### 3. THIEU: Hien thi "Chi phi khac" (Extra Charges) trong Payment Summary
+
+**Checkout don le** (dong 706-710): Hien dong "Chi phi khac" khi `extraCharges > 0`.
+
+**Group Checkout**: **KHONG** hien chi phi khac. Du lieu co the co trong `costBreakdown.extraCharges` nhung khong duoc hien.
+
+**Can lam**: Them dong "Chi phi khac" vao ca 2 buoc Group Checkout.
+
+---
+
+### 4. KHAC BIET: Checkout don le co BookingPaymentDialog tich hop, Group dung GroupPaymentDialog rieng
+
+**Checkout don le** (dong 870-886): Khi nhan "Thu tien & Tra phong", mo `BookingPaymentDialog` - cho phep chon thanh toan tien mat hoac chuyen khoan QR. Sau khi thanh toan xong, tu dong goi callback checkout.
+
+**Group Checkout** (dong 1338-1349): Dung `GroupPaymentDialog` rieng - chi thanh toan chung cho ca nhom, **KHONG** tu dong trigger checkout sau khi thanh toan. Nguoi dung phai dong payment dialog roi nhan checkout lai.
+
+**Can lam**: Sau khi thanh toan thanh cong trong `GroupPaymentDialog`, tu dong quay lai `GroupCheckoutConfirmDialog` va cho phep proceed checkout ngay (hoac tu dong checkout).
+
+---
+
+### 5. THIEU: Chinh sua phu thu tre ngay tai Buoc 1 (nhu checkout don le)
+
+**Checkout don le**: Phu thu checkout tre duoc **editable truc tiep** trong dialog chinh (Input, nut Mien phi/Theo chuan, Textarea ly do). Khong can buoc phu.
+
+**Group Checkout**: Phu thu checkout tre chi chinh sua duoc o **Buoc 2** (ConfirmDialog) per-room. Buoc 1 chi hien bang tiers ma khong cho edit.
+
+**Nhan xet**: Day la su khac biet co y (vi group co nhieu phong, edit tung phong can trang rieng). KHONG CAN thay doi - Buoc 2 da xu ly tot.
+
+---
+
+### 6. THIEU: Checkout som (Early Checkout) detection trong Group
+
+**Checkout don le** (dong 264, 479-490): Phat hien checkout som (truoc ngay du kien) va hien thong bao xanh "Checkout som - Khong phu thu". An bang tiers khi checkout som.
+
+**Group Checkout Buoc 1**: **KHONG** phat hien checkout som. Luon hien bang tiers hoac "Checkout dung gio" dua tren gio. Khong kiem tra ngay.
+
+**Group Checkout Buoc 2**: DA CO `isRoomEarlyCheckout()` per-room.
+
+**Can lam**: Them kiem tra early checkout o Buoc 1. Neu **TAT CA** phong deu checkout som, hien "Checkout som - Khong phu thu" thay vi bang tiers.
+
+---
+
+### 7. THIEU: Hien dong "Phu thu checkout tre" (tong) trong Payment Summary Buoc 1
+
+Nhu muc 2, hien tai Payment Summary o Buoc 1 chi hien:
+- Tien phong
+- Phi den bu thiet hai
+- Dich vu su dung
+
+**Thieu**: Phu thu checkout tre, Phu thu check-in som, Chi phi khac - deu la cac dong co trong checkout don le.
+
+**Can lam**: Them cac dong nay bang cach tinh tong tu `inspectionStatuses` va `roomCosts` (neu da calculate) hoac uoc tinh tu late tiers.
+
+---
+
+### TONG KET CAC THAY DOI CAN THUC HIEN
 
 | # | Thay doi | File | Muc do |
 |---|---------|------|--------|
-| 1 | Nang cap Payment Summary chi tiet (Subtotal/VAT/Fee/Total/Paid/Deposit/Remaining) | GroupCheckoutDialog.tsx | Cao |
-| 2 | Them bang phu thu checkout tre | GroupCheckoutDialog.tsx | Trung binh |
-| 3 | Dam bao chi tiet items hien day du per-room | GroupCheckoutDialog.tsx | Thap (da lam) |
-| 4 | Them warning khi chua thanh toan | GroupCheckoutDialog.tsx | Thap |
-| 5 | Sua footer 2 nut giong checkout don le | GroupCheckoutDialog.tsx | Trung binh |
-| 6 | Dung DamageChargesSection trong ConfirmDialog | GroupCheckoutConfirmDialog.tsx | Trung binh |
+| 1 | Them dong "Phu thu check-in som" vao Payment Summary Buoc 1 | GroupCheckoutDialog.tsx | Trung binh |
+| 2 | Them dong "Phu thu checkout tre" (tong) vao Payment Summary Buoc 1 | GroupCheckoutDialog.tsx | Trung binh |
+| 3 | Them dong "Chi phi khac" vao Payment Summary ca 2 buoc | GroupCheckoutDialog.tsx, GroupCheckoutConfirmDialog.tsx | Thap |
+| 4 | Phat hien early checkout o Buoc 1 - hien thong bao phu hop | GroupCheckoutDialog.tsx | Trung binh |
+| 5 | Auto-proceed checkout sau khi thanh toan trong GroupPaymentDialog | GroupCheckoutDialog.tsx | Trung binh |
 
-Khong can thay doi database. Chi thay doi frontend UI.
+Tong cong: 5 thay doi, chu yeu o `GroupCheckoutDialog.tsx`. Khong can thay doi database.
+
+### CHI TIET KY THUAT
+
+#### Thay doi 1-2-3: Bo sung cac dong thieu trong Payment Summary (Buoc 1)
+
+Hien tai `totals` useMemo (dong 404-465) chi tinh: `roomTotal`, `damageCharges`, `serviceCharges`. Can them:
+- `lateCharges`: Tinh tu `roomCosts` Map (neu da calculate) hoac uoc tinh tu `activeTier.percent * avgRoomPrice`
+- `earlyCheckinCharges`: Lay tu booking data hoac `roomCosts`
+- `extraCharges`: Lay tu `roomCosts`
+
+Sau do hien cac dong nay trong Payment Summary (dong 1191-1273).
+
+#### Thay doi 4: Early checkout detection
+
+Them logic kiem tra: Neu ngay hien tai < ngay checkout du kien cua **TAT CA** phong selected, hien "Checkout som" va an bang late tiers.
+
+```text
+const allEarlyCheckout = selectedBookings.every(b => {
+  const scheduledDate = new Date(b.check_out_date)
+  return new Date() < scheduledDate // Dang gian hoa
+})
+```
+
+#### Thay doi 5: Auto-proceed sau payment
+
+Trong `GroupPaymentDialog` callback `onPaymentComplete`, sau khi refetch data, tu dong show lai `GroupCheckoutConfirmDialog` va trigger checkout. Hoac don gian hon: sau khi payment thanh cong, goi `performCheckout` truc tiep.
 
