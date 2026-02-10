@@ -69,6 +69,7 @@ export interface GroupCheckoutDialogProps {
 interface Phase1DamageData {
   lost_items?: Array<{ item_id: string; item_name: string; quantity: number; estimated_value: number }>
   damaged_items?: Array<{ item_id: string; item_name: string; quantity: number; damage_cost: number; damage_type?: string }>
+  consumed_items?: Array<{ item_id: string; item_name: string; quantity: number }>
   lost_total?: number
   damaged_total?: number
 }
@@ -169,7 +170,7 @@ export function GroupCheckoutDialog({
       if (roomCheckIds.length > 0) {
         const { data } = await supabase
           .from('room_checks')
-          .select('id, room_id, items_lost, items_damaged')
+          .select('id, room_id, items_lost, items_damaged, items_consumed')
           .in('id', roomCheckIds)
         roomChecks = data
       }
@@ -178,7 +179,7 @@ export function GroupCheckoutDialog({
       if (!roomChecks || roomChecks.length === 0) {
         const { data } = await supabase
           .from('room_checks')
-          .select('id, room_id, items_lost, items_damaged')
+          .select('id, room_id, items_lost, items_damaged, items_consumed')
           .in('room_id', groupData.bookings.map(b => b.room_id))
           .in('check_type', ['checkout'])
           .order('checked_at', { ascending: false })
@@ -197,6 +198,7 @@ export function GroupCheckoutDialog({
         if (roomCheck) {
           const lost = roomCheck.items_lost as any[] || []
           const damaged = roomCheck.items_damaged as any[] || []
+          const consumed = roomCheck.items_consumed as any[] || []
           const lostTotal = lost.reduce((sum: number, item: any) => 
             sum + (item.estimated_value || 0) * (item.quantity || 1), 0
           )
@@ -205,7 +207,7 @@ export function GroupCheckoutDialog({
           )
           damageCharge = lostTotal + damagedTotal
           
-          if (lost.length > 0 || damaged.length > 0) {
+          if (lost.length > 0 || damaged.length > 0 || consumed.length > 0) {
             phase1DamageData = {
               lost_items: lost.map((item: any) => ({
                 item_id: item.item_id || '',
@@ -219,6 +221,11 @@ export function GroupCheckoutDialog({
                 quantity: item.quantity || 1,
                 damage_cost: item.damage_cost || 0,
                 damage_type: item.damage_type,
+              })),
+              consumed_items: consumed.map((item: any) => ({
+                item_id: item.item_id || '',
+                item_name: item.item_name || 'Không rõ',
+                quantity: item.quantity || 1,
               })),
               lost_total: lostTotal,
               damaged_total: damagedTotal,

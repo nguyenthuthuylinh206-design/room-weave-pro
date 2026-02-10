@@ -425,7 +425,7 @@ export function GroupCheckoutConfirmDialog({
                                             <div className="flex items-center gap-2">
                                               <span>{item.item_name}</span>
                                               <Badge variant="outline" className="text-[10px]">
-                                                {item.item_type === 'lost' ? 'Mất' : 'Hỏng'} x{item.quantity}
+                                                {item.item_type === 'lost' ? 'Mất' : item.item_type === 'damaged' ? 'Hỏng' : 'Đã dùng'} x{item.quantity}
                                               </Badge>
                                             </div>
                                             <div className="flex items-center gap-1">
