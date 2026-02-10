@@ -16,6 +16,13 @@ import { StaffStatusBadge } from '@/components/staff/StaffStatusBadge'
 import { OnShiftStaffMember } from '@/hooks/useOnShiftStaffList'
 import { getTelegramPhoneLink, openTelegramWithFallback, getTelegramDownloadLink } from '@/lib/phone-utils'
 
+interface Phase1DamageData {
+  lost_items?: Array<{ item_id: string; item_name: string; quantity: number; estimated_value: number }>
+  damaged_items?: Array<{ item_id: string; item_name: string; quantity: number; damage_cost: number; damage_type?: string }>
+  lost_total?: number
+  damaged_total?: number
+}
+
 interface InspectionData {
   bookingId: string
   roomId: string
@@ -25,6 +32,7 @@ interface InspectionData {
   createdAt?: string
   assignedTo?: string
   damageCharge?: number
+  phase1DamageData?: Phase1DamageData
 }
 
 interface InspectionStatusCardProps {
@@ -126,6 +134,9 @@ export function InspectionStatusCard({
           </div>
         )}
 
+        {/* Phase 1 damage summary */}
+        <Phase1DamageSummary data={inspection.phase1DamageData} />
+
         {/* Actions */}
         <div className="mt-2 flex gap-2">
           <Button
@@ -206,11 +217,36 @@ export function InspectionStatusCard({
             <span>Nhân viên: {staff.full_name}</span>
           </div>
         )}
+        {/* Phase 1 damage summary */}
+        <Phase1DamageSummary data={inspection.phase1DamageData} />
       </div>
     )
   }
 
   return null
+}
+
+// Phase 1 damage summary component
+function Phase1DamageSummary({ data }: { data?: Phase1DamageData }) {
+  if (!data) return null
+  const lostCount = data.lost_items?.length || 0
+  const damagedCount = data.damaged_items?.length || 0
+  if (lostCount === 0 && damagedCount === 0) return null
+
+  return (
+    <div className="mt-1.5 space-y-0.5">
+      {lostCount > 0 && (
+        <div className="text-xs text-red-600">
+          Đồ mất: {lostCount} món — {new Intl.NumberFormat('vi-VN').format(data.lost_total || 0)}đ
+        </div>
+      )}
+      {damagedCount > 0 && (
+        <div className="text-xs text-amber-600">
+          Đồ hỏng: {damagedCount} món — {new Intl.NumberFormat('vi-VN').format(data.damaged_total || 0)}đ
+        </div>
+      )}
+    </div>
+  )
 }
 
 // Internal component for staff info line

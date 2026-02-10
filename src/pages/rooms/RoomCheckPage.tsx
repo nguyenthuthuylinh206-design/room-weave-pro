@@ -677,7 +677,40 @@ export function RoomCheckPage() {
         }
       }
       
-      // 4. Mark Phase 1 as submitted
+      // 4. Save phase1_damage_data to checkout_inspection_requests for realtime updates
+      const finalInspectionId = stableInspectionId || autoCreatedInspectionId || inspectionIdFromUrl || pendingInspection?.id
+      if (finalInspectionId && (lostItems.length > 0 || damagedItems.length > 0)) {
+        try {
+          const phase1DamageData = {
+            lost_items: lostItems.map(item => ({
+              item_id: item.item_id,
+              item_name: item.item_name,
+              quantity: item.quantity || 1,
+              estimated_value: item.estimated_value || 0,
+            })),
+            damaged_items: damagedItems.map(item => ({
+              item_id: item.item_id,
+              item_name: item.item_name,
+              quantity: item.quantity || 1,
+              damage_cost: item.damage_cost || 0,
+              damage_type: item.damage_type,
+            })),
+            lost_total: lostItems.reduce((sum, item) => sum + (item.estimated_value || 0), 0),
+            damaged_total: damagedItems.reduce((sum, item) => sum + (item.damage_cost || 0), 0),
+          }
+          
+          await supabase
+            .from('checkout_inspection_requests')
+            .update({ phase1_damage_data: phase1DamageData as any })
+            .eq('id', finalInspectionId)
+          
+          console.log('[RoomCheckPage] Phase 1: Saved phase1_damage_data to inspection request')
+        } catch (dmgError) {
+          console.error('[RoomCheckPage] Failed to save phase1_damage_data:', dmgError)
+        }
+      }
+
+      // 5. Mark Phase 1 as submitted
       setPhase1Submitted(true)
       setCurrentPhase(2)
       setCurrentStep(4) // Move to Phase 2 Items

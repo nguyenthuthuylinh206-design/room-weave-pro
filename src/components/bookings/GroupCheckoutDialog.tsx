@@ -66,6 +66,13 @@ export interface GroupCheckoutDialogProps {
   onMinimize?: () => void
 }
 
+interface Phase1DamageData {
+  lost_items?: Array<{ item_id: string; item_name: string; quantity: number; estimated_value: number }>
+  damaged_items?: Array<{ item_id: string; item_name: string; quantity: number; damage_cost: number; damage_type?: string }>
+  lost_total?: number
+  damaged_total?: number
+}
+
 interface InspectionStatus {
   bookingId: string
   roomId: string
@@ -75,6 +82,7 @@ interface InspectionStatus {
   startedAt?: string
   createdAt?: string
   assignedTo?: string
+  phase1DamageData?: Phase1DamageData
 }
 
 export function GroupCheckoutDialog({
@@ -143,7 +151,7 @@ export function GroupCheckoutDialog({
 
       const bookingIds = groupData.bookings.map(b => b.id)
       
-      // Get inspection requests
+      // Get inspection requests (including phase1_damage_data)
       const { data: inspections, error } = await supabase
         .from('checkout_inspection_requests')
         .select('*')
@@ -152,7 +160,7 @@ export function GroupCheckoutDialog({
 
       if (error) throw error
 
-      // Get room checks for damage info
+      // Get room checks for damage info (final data)
       const { data: roomChecks } = await supabase
         .from('room_checks')
         .select('room_id, items_lost, items_damaged')
@@ -165,20 +173,25 @@ export function GroupCheckoutDialog({
         const inspection = inspections?.find(i => i.booking_id === booking.id)
         const roomCheck = roomChecks?.find(c => c.room_id === booking.room_id)
         
-        // Calculate damage charge from room check
+        // Calculate damage charge - prioritize room_checks (final), fallback to phase1_damage_data
         let damageCharge = 0
+        let phase1DamageData: Phase1DamageData | undefined
+        
         if (roomCheck) {
           const lost = roomCheck.items_lost as any[] || []
           const damaged = roomCheck.items_damaged as any[] || []
-          // Calculate lost items with estimated_value
-          const lostTotal = lost.reduce((sum, item) => 
+          const lostTotal = lost.reduce((sum: number, item: any) => 
             sum + (item.estimated_value || 0) * (item.quantity || 1), 0
           )
-          // Calculate damaged items with damage_cost
-          const damagedTotal = damaged.reduce((sum, item) => 
+          const damagedTotal = damaged.reduce((sum: number, item: any) => 
             sum + (item.damage_cost || 0) * (item.quantity || 1), 0
           )
           damageCharge = lostTotal + damagedTotal
+        } else if (inspection?.phase1_damage_data) {
+          // Fallback: use phase1_damage_data from inspection request
+          const p1Data = inspection.phase1_damage_data as any as Phase1DamageData
+          phase1DamageData = p1Data
+          damageCharge = (p1Data.lost_total || 0) + (p1Data.damaged_total || 0)
         }
 
         if (!inspection) {
@@ -204,11 +217,36 @@ export function GroupCheckoutDialog({
           createdAt: inspection.created_at,
           assignedTo: inspection.assigned_to,
           damageCharge,
+          phase1DamageData,
         }
       })
     },
     enabled: !!groupData?.bookings && open,
-    refetchInterval: 10000, // Refresh every 10 seconds
+    refetchInterval: 10000,
+  })
+
+  // Fetch chargeable consumptions for all bookings in the group
+  const { data: chargeableTotals, refetch: refetchChargeables } = useQuery({
+    queryKey: ['group-chargeable-totals', bookingGroupId],
+    queryFn: async (): Promise<Map<string, number>> => {
+      if (!groupData?.bookings) return new Map()
+      
+      const bookingIds = groupData.bookings.map(b => b.id)
+      const { data, error } = await supabase
+        .from('chargeable_consumptions')
+        .select('booking_id, total_amount')
+        .in('booking_id', bookingIds)
+      
+      if (error) throw error
+      
+      const totalsMap = new Map<string, number>()
+      for (const row of data || []) {
+        const current = totalsMap.get(row.booking_id) || 0
+        totalsMap.set(row.booking_id, current + (row.total_amount || 0))
+      }
+      return totalsMap
+    },
+    enabled: !!groupData?.bookings && open,
   })
 
   // Realtime subscription for inspection status changes
@@ -273,11 +311,30 @@ export function GroupCheckoutDialog({
         console.log('[GroupCheckout Realtime] Room checks channel status:', status)
       })
     
+    // Subscribe to chargeable_consumptions for service charge updates
+    const chargeableChannel = supabase
+      .channel(`group-chargeables-realtime-${bookingGroupId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chargeable_consumptions',
+          filter: `booking_id=in.(${bookingIds.join(',')})`,
+        },
+        (payload) => {
+          console.log('[GroupCheckout Realtime] Chargeable consumption changed:', payload)
+          refetchChargeables()
+        }
+      )
+      .subscribe()
+    
     return () => {
       supabase.removeChannel(channel)
       supabase.removeChannel(roomChecksChannel)
+      supabase.removeChannel(chargeableChannel)
     }
-  }, [groupData?.bookings, bookingGroupId, open, refetchInspections, queryClient])
+  }, [groupData?.bookings, bookingGroupId, open, refetchInspections, refetchChargeables, queryClient])
 
   // Create inspection map for quick lookup
   const inspectionMap = useMemo(() => {
@@ -290,6 +347,7 @@ export function GroupCheckoutDialog({
       return { 
         roomTotal: 0, 
         damageCharges: 0, 
+        serviceCharges: 0,
         totalPaid: 0, 
         grandTotal: 0, 
         remaining: 0,
@@ -309,6 +367,9 @@ export function GroupCheckoutDialog({
       const inspection = inspectionMap.get(b.id)
       return sum + (inspection?.damageCharge || 0)
     }, 0)
+    const serviceCharges = selectedBookings.reduce((sum, b) => {
+      return sum + (chargeableTotals?.get(b.id) || 0)
+    }, 0)
     const totalPaid = selectedBookings.reduce((sum, b) => sum + (b.amount_paid || 0), 0)
     
     // Deposit logic: only apply if this is the last checkout
@@ -316,12 +377,13 @@ export function GroupCheckoutDialog({
     const depositApplied = isLastCheckout ? groupData.totalDeposit : 0
     const holdingDeposit = !isLastCheckout ? groupData.totalDeposit : 0
     
-    const grandTotal = roomTotal + damageCharges
+    const grandTotal = roomTotal + damageCharges + serviceCharges
     const remaining = grandTotal - totalPaid - depositApplied
 
     return { 
       roomTotal, 
       damageCharges, 
+      serviceCharges,
       totalPaid, 
       grandTotal, 
       remaining,
@@ -329,7 +391,7 @@ export function GroupCheckoutDialog({
       holdingDeposit,
       isLastCheckout,
     }
-  }, [groupData, inspectionStatuses, selectedRooms, inspectionMap])
+  }, [groupData, inspectionStatuses, selectedRooms, inspectionMap, chargeableTotals])
 
   // Count rooms that are ready vs in progress
   const roomStats = useMemo(() => {
@@ -845,6 +907,7 @@ export function GroupCheckoutDialog({
                   const isSelected = selectedRooms.has(booking.id)
                   const assignedStaff = staffAssignments.get(booking.id)
                   const needsStaffAssignment = isSelected && !isCheckedOut && (!inspection || inspection.status === 'not_requested')
+                  const roomChargeableTotal = chargeableTotals?.get(booking.id) || 0
                   
                   return (
                     <div
@@ -877,6 +940,11 @@ export function GroupCheckoutDialog({
                               {inspection?.damageCharge != null && inspection.damageCharge > 0 && (
                                 <span className="text-xs text-red-600 font-medium">
                                   +{formatVNCurrency(inspection.damageCharge)}
+                                </span>
+                              )}
+                              {roomChargeableTotal > 0 && (
+                                <span className="text-xs text-amber-600 font-medium">
+                                  +{formatVNCurrency(roomChargeableTotal)}
                                 </span>
                               )}
                             </div>
@@ -1009,6 +1077,13 @@ export function GroupCheckoutDialog({
                   </div>
                 )}
                 
+                {totals.serviceCharges > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Phụ thu dịch vụ</span>
+                    <span className="font-mono text-amber-600">+{formatVNCurrency(totals.serviceCharges)}</span>
+                  </div>
+                )}
+
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Đã thanh toán</span>
                   <span className="font-mono text-green-600">-{formatVNCurrency(totals.totalPaid)}</span>
