@@ -20,6 +20,12 @@ export interface GroupBookingRoom {
   early_checkin_charge: number
   late_checkout_charge: number
   service_charges: number
+  room_price: number
+  hourly_rate: number | null
+  monthly_rate: number | null
+  booking_hours: number | null
+  booking_months: number | null
+  notes: string | null
   room: {
     room_number: string
     room_type: string
@@ -75,6 +81,12 @@ export function useGroupBooking(bookingGroupId: string | null) {
           early_checkin_charge,
           late_checkout_charge,
           service_charges,
+          room_price,
+          hourly_rate,
+          monthly_rate,
+          booking_hours,
+          booking_months,
+          notes,
           room:rooms(room_number, room_type)
         `)
         .eq('booking_group_id', bookingGroupId)
