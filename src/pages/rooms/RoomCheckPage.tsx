@@ -744,6 +744,8 @@ export function RoomCheckPage() {
       checkin: 'Kiểm tra check-in',
       checkout: 'Kiểm tra check-out',
       maintenance: 'Kiểm tra bảo trì',
+      delivery: 'Kiểm tra sau giao hàng',
+      replenish: 'Bổ sung đồ & Dọn dẹp',
     }
     return labels[type as keyof typeof labels] || type
   }

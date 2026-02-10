@@ -73,15 +73,18 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
     try {
       await updateStatus({ taskId: task.id, status: 'in_progress' })
       
-      // If checkout inspection, redirect to room check form with inspection ID
+      // Navigate based on task type
       if (task.task_type === 'checkout_inspection') {
         const inspectionParam = task.checkout_inspection_id 
           ? `&inspection=${task.checkout_inspection_id}` 
           : ''
         navigate(`/rooms/${task.room_id}/check?type=checkout${inspectionParam}`)
       } else if (task.task_type === 'delivery_confirmation') {
-        // Open confirmation modal immediately after starting
         setShowDeliveryModal(true)
+      } else if (task.task_type === 'checkin_prep') {
+        navigate(`/rooms/${task.room_id}/check?type=checkin`)
+      } else if (task.task_type === 'amenity_request') {
+        navigate(`/rooms/${task.room_id}/check?type=replenish`)
       }
     } finally {
       setIsUpdating(false)
@@ -119,6 +122,12 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
         ? `&inspection=${task.checkout_inspection_id}` 
         : ''
       navigate(`/rooms/${task.room_id}/check?type=checkout${inspectionParam}`)
+    } else if (task.task_type === 'checkin_prep') {
+      navigate(`/rooms/${task.room_id}/check?type=checkin`)
+    } else if (task.task_type === 'amenity_request') {
+      navigate(`/rooms/${task.room_id}/check?type=replenish`)
+    } else if (task.task_type === 'cleaning') {
+      navigate(`/rooms/${task.room_id}`)
     }
   }
 
@@ -275,6 +284,16 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
                     <ClipboardCheck className="h-3.5 w-3.5 mr-1" />
                     Kiểm tra phòng
                   </Button>
+                ) : task.task_type === 'checkin_prep' || task.task_type === 'amenity_request' ? (
+                  <Button 
+                    size="sm" 
+                    className="flex-1 h-8"
+                    onClick={handleContinue}
+                    disabled={isUpdating}
+                  >
+                    <ClipboardCheck className="h-3.5 w-3.5 mr-1" />
+                    Kiểm tra phòng
+                  </Button>
                 ) : task.task_type === 'delivery_confirmation' ? (
                   <Button 
                     size="sm" 
@@ -285,6 +304,27 @@ export function TaskCard({ task, showActions = true, showClaimButton = false, on
                     <PackageCheck className="h-3.5 w-3.5 mr-1" />
                     Xác nhận nhận hàng
                   </Button>
+                ) : task.task_type === 'cleaning' ? (
+                  <>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="h-8"
+                      onClick={() => navigate(`/rooms/${task.room_id}`)}
+                    >
+                      <DoorOpen className="h-3.5 w-3.5 mr-1" />
+                      P.{task.room?.room_number}
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      className="flex-1 h-8"
+                      onClick={handleComplete}
+                      disabled={isUpdating}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                      Hoàn thành
+                    </Button>
+                  </>
                 ) : (
                   <Button 
                     size="sm" 
