@@ -229,6 +229,7 @@ export function useCreateTask() {
       queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
       queryClient.invalidateQueries({ queryKey: ['unassigned-housekeeping-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })
       toast.success('Đã tạo yêu cầu công việc')
 
       // Send notification to assigned staff if task has an assignee
@@ -474,6 +475,7 @@ export function useCancelTask() {
       queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
       queryClient.invalidateQueries({ queryKey: ['unassigned-housekeeping-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })
       toast.success('Đã hủy công việc')
     },
     onError: (error) => {

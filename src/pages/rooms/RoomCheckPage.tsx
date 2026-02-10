@@ -876,9 +876,91 @@ export function RoomCheckPage() {
               }),
             ])
           }
+            queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })
         } catch (taskError) {
           console.error('[RoomCheckPage] Error auto-completing housekeeping task:', taskError)
           // Non-critical error - don't block the flow
+        }
+      }
+
+      // Auto-complete related checkin_prep task
+      if (data.check_type === 'checkin' && room?.id) {
+        try {
+          const { data: relatedTask } = await supabase
+            .from('housekeeping_tasks')
+            .select('id')
+            .eq('room_id', room.id)
+            .eq('task_type', 'checkin_prep')
+            .in('status', ['pending', 'in_progress'])
+            .maybeSingle()
+          
+          if (relatedTask) {
+            console.log('[RoomCheckPage] Auto-completing checkin_prep task:', relatedTask.id)
+            await supabase
+              .from('housekeeping_tasks')
+              .update({ status: 'completed', completed_at: new Date().toISOString(), room_check_id: createdCheck?.id })
+              .eq('id', relatedTask.id)
+            queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
+            queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
+            queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
+            queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })
+          }
+        } catch (e) {
+          console.error('[RoomCheckPage] Error auto-completing checkin_prep task:', e)
+        }
+      }
+
+      // Auto-complete related amenity_request task
+      if (data.check_type === 'replenish' && room?.id) {
+        try {
+          const { data: relatedTask } = await supabase
+            .from('housekeeping_tasks')
+            .select('id')
+            .eq('room_id', room.id)
+            .eq('task_type', 'amenity_request')
+            .in('status', ['pending', 'in_progress'])
+            .maybeSingle()
+          
+          if (relatedTask) {
+            console.log('[RoomCheckPage] Auto-completing amenity_request task:', relatedTask.id)
+            await supabase
+              .from('housekeeping_tasks')
+              .update({ status: 'completed', completed_at: new Date().toISOString(), room_check_id: createdCheck?.id })
+              .eq('id', relatedTask.id)
+            queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
+            queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
+            queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
+            queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })
+          }
+        } catch (e) {
+          console.error('[RoomCheckPage] Error auto-completing amenity_request task:', e)
+        }
+      }
+
+      // Auto-complete related cleaning task when daily check
+      if (data.check_type === 'daily' && room?.id) {
+        try {
+          const { data: relatedTask } = await supabase
+            .from('housekeeping_tasks')
+            .select('id')
+            .eq('room_id', room.id)
+            .eq('task_type', 'cleaning')
+            .in('status', ['pending', 'in_progress'])
+            .maybeSingle()
+          
+          if (relatedTask) {
+            console.log('[RoomCheckPage] Auto-completing cleaning task:', relatedTask.id)
+            await supabase
+              .from('housekeeping_tasks')
+              .update({ status: 'completed', completed_at: new Date().toISOString(), room_check_id: createdCheck?.id })
+              .eq('id', relatedTask.id)
+            queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
+            queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
+            queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
+            queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })
+          }
+        } catch (e) {
+          console.error('[RoomCheckPage] Error auto-completing cleaning task:', e)
         }
       }
       
