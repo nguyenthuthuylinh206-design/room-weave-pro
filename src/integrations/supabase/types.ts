@@ -555,6 +555,7 @@ export type Database = {
           hotel_id: string
           id: string
           notes: string | null
+          phase1_damage_data: Json | null
           requested_by: string | null
           room_check_id: string | null
           room_id: string
@@ -570,6 +571,7 @@ export type Database = {
           hotel_id: string
           id?: string
           notes?: string | null
+          phase1_damage_data?: Json | null
           requested_by?: string | null
           room_check_id?: string | null
           room_id: string
@@ -585,6 +587,7 @@ export type Database = {
           hotel_id?: string
           id?: string
           notes?: string | null
+          phase1_damage_data?: Json | null
           requested_by?: string | null
           room_check_id?: string | null
           room_id?: string
