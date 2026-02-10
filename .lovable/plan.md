@@ -1,75 +1,105 @@
 
 
-## Hien thi chi tiet do mat/hong trong Group Checkout (nhu checkout don le)
+## Hien thi chi tiet do mat/hong/tieu hao trong Group Checkout giong checkout don le
 
-### VAN DE
+### SO SANH HIEN TAI
 
-Hien tai, Group Checkout chi hien **tong so tien** phi den bu (VD: "+225.000d") nhung **KHONG hien chi tiet** tung mon do mat/hong (ten, so luong, gia tri). Trong khi checkout don le (`CheckoutReportCard`) hien day du:
-- "King Sheets Set x1 — 33.333d"
-- "Dieu hoa — hong x1"
+| Tinh nang | Checkout don le | Group Checkout (Buoc 1 - Chon phong) | Group Checkout (Buoc 2 - Xac nhan) |
+|-----------|----------------|--------------------------------------|-------------------------------------|
+| Do da dung (consumed/minibar) | Co - icon Coffee, ten, so luong | KHONG co | KHONG co |
+| Do mat (lost) | Co - icon, ten, so luong, notes, gia tri | Co (compact, khong notes) | Co - ten, badge, so luong, gia tri |
+| Do hong (damaged) | Co - icon, ten, so luong, notes, loai | Co (compact, khong notes) | Co - ten, badge, so luong, gia tri |
+| Tong thiet hai | Co - highlight box | Chi tong so | Co |
+| In bien ban | Co | KHONG co | Co |
+| Chinh sua gia | Co - per item | KHONG (chi xem) | Co - per item |
 
-Nguyen nhan: Khi `room_checks` co du lieu (dong 197-206), code chi tinh tong `damageCharge` ma **khong truyen danh sach items** vao `phase1DamageData`. Component `InspectionStatusCard` chi hien chi tiet khi co `phase1DamageData`, nen khi room_checks da co thi items bi mat.
+### THAY DOI CAN THUC HIEN
 
----
+#### Buoc 1: Fetch `items_consumed` tu `room_checks` trong GroupCheckoutDialog
 
-### GIAI PHAP
+**File**: `src/components/bookings/GroupCheckoutDialog.tsx` dong 170-175
 
-#### Buoc 1: Truyen item details tu room_checks vao phase1DamageData
-
-**File**: `src/components/bookings/GroupCheckoutDialog.tsx` dong 197-206
-
-Khi `roomCheck` ton tai, **chuyen doi** `items_lost` va `items_damaged` sang dinh dang `Phase1DamageData` de `InspectionStatusCard` co the hien thi chi tiet:
+Hien tai query `room_checks` chi select `id, room_id, items_lost, items_damaged`. Can them `items_consumed`:
 
 ```text
-if (roomCheck) {
-  const lost = roomCheck.items_lost as any[] || []
-  const damaged = roomCheck.items_damaged as any[] || []
-  const lostTotal = lost.reduce(...)
-  const damagedTotal = damaged.reduce(...)
-  damageCharge = lostTotal + damagedTotal
-  
-  // THEM: Convert sang Phase1DamageData de hien chi tiet
-  if (lost.length > 0 || damaged.length > 0) {
-    phase1DamageData = {
-      lost_items: lost.map(item => ({
-        item_id: item.item_id || '',
-        item_name: item.item_name || 'Khong ro',
-        quantity: item.quantity || 1,
-        estimated_value: item.estimated_value || 0,
-      })),
-      damaged_items: damaged.map(item => ({
-        item_id: item.item_id || '',
-        item_name: item.item_name || 'Khong ro',
-        quantity: item.quantity || 1,
-        damage_cost: item.damage_cost || 0,
-        damage_type: item.damage_type,
-      })),
-      lost_total: lostTotal,
-      damaged_total: damagedTotal,
-    }
-  }
+.select('id, room_id, items_lost, items_damaged, items_consumed')
+```
+
+Tuong tu cho fallback query dong 180-185.
+
+#### Buoc 2: Mo rong `Phase1DamageData` interface them consumed items
+
+**File**: `src/components/bookings/InspectionStatusCard.tsx`
+
+Them vao interface `Phase1DamageData`:
+```text
+consumed_items?: Array<{ item_id: string; item_name: string; quantity: number }>
+```
+
+#### Buoc 3: Map `items_consumed` vao phase1DamageData trong GroupCheckoutDialog
+
+**File**: `src/components/bookings/GroupCheckoutDialog.tsx` dong 197-226
+
+Khi doc tu `roomCheck`, them logic map consumed items:
+```text
+const consumed = roomCheck.items_consumed as any[] || []
+
+phase1DamageData = {
+  ...existing fields...,
+  consumed_items: consumed.map((item: any) => ({
+    item_id: item.item_id || '',
+    item_name: item.item_name || 'Khong ro',
+    quantity: item.quantity || 1,
+  })),
 }
 ```
 
-#### Buoc 2: Nang cap Phase1DamageSummary hien chi tiet tung mon
+Dieu kien tao phase1DamageData mo rong: `lost.length > 0 || damaged.length > 0 || consumed.length > 0`
 
-**File**: `src/components/bookings/InspectionStatusCard.tsx` dong 230-249
+#### Buoc 4: Nang cap `Phase1DamageSummary` hien thi consumed items
 
-Hien tai `Phase1DamageSummary` chi hien tom tat 1 dong ("Do mat: 2 mon — 150.000d"). Can hien chi tiet tung item:
+**File**: `src/components/bookings/InspectionStatusCard.tsx`
 
+Them section "Do da dung" voi icon Coffee, tuong tu `CheckoutReportCard`:
 ```text
-// TRUOC:
-"Do mat: 2 mon — 150.000d"
-
-// SAU:
-Do mat (2):
-  - King Sheets Set x1 — 33.333d
-  - Pillow Case x1 — 20.000d
-Do hong (1):
-  - Dieu hoa x1 — 6.000.000d (can thay the)
+{consumedCount > 0 && (
+  <div>
+    <div className="text-xs font-medium text-blue-600">
+      Do da dung ({consumedCount})
+    </div>
+    <div className="pl-2 space-y-0.5 mt-0.5">
+      {data.consumed_items!.map((item, idx) => (
+        <div key={idx} className="text-xs text-blue-600/80">
+          - {item.item_name} x{item.quantity}
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 ```
 
-Dung Collapsible hoac hien truc tiep (compact) vi khong gian nho trong card. Giu style `text-xs` de phu hop voi InspectionStatusCard.
+#### Buoc 5: Them `items_consumed` vao `InspectionStatus` interface trong GroupCheckoutDialog
+
+**File**: `src/components/bookings/GroupCheckoutDialog.tsx` dong 36-50
+
+Them `items_consumed` vao `InspectionStatus` interface de truyen xuong component.
+
+#### Buoc 6: Truyen consumed items vao GroupCheckoutConfirmDialog
+
+**File**: `src/components/bookings/GroupCheckoutDialog.tsx`
+
+Khi tao `confirmRooms` va `roomCosts` cho `GroupCheckoutConfirmDialog`, them `items_consumed` vao `damageItems` voi `item_type: 'consumed'`. Dieu nay cho phep `GroupCheckoutConfirmDialog` hien thi do da dung trong phan "Phi den bu thiet hai" giong nhu `DamageChargesSection` cua checkout don le.
+
+#### Buoc 7: Cap nhat GroupCheckoutConfirmDialog hien consumed items
+
+**File**: `src/components/bookings/GroupCheckoutConfirmDialog.tsx` dong 414-498
+
+Hien tai chi hien "Mat" va "Hong" trong badge. Them loai "Da dung":
+```text
+<Badge ...>
+  {item.item_type === 'lost' ? 'Mat' : item.item_type === 'damaged' ? 'Hong' : 'Da dung'} x{item.quantity}
+</Badge>
+```
 
 ---
 
@@ -77,7 +107,12 @@ Dung Collapsible hoac hien truc tiep (compact) vi khong gian nho trong card. Giu
 
 | # | Thay doi | File | Muc do |
 |---|---------|------|--------|
-| 1 | Convert room_checks items sang Phase1DamageData | GroupCheckoutDialog.tsx | Cao |
-| 2 | Hien chi tiet tung item trong Phase1DamageSummary | InspectionStatusCard.tsx | Cao |
+| 1 | Fetch items_consumed tu room_checks | GroupCheckoutDialog.tsx | Cao |
+| 2 | Mo rong Phase1DamageData interface | InspectionStatusCard.tsx | Thap |
+| 3 | Map consumed items vao phase1DamageData | GroupCheckoutDialog.tsx | Trung binh |
+| 4 | Hien consumed items trong Phase1DamageSummary | InspectionStatusCard.tsx | Trung binh |
+| 5 | Them consumed vao InspectionStatus interface | GroupCheckoutDialog.tsx | Thap |
+| 6 | Truyen consumed vao GroupCheckoutConfirmDialog | GroupCheckoutDialog.tsx | Trung binh |
+| 7 | Hien consumed trong GroupCheckoutConfirmDialog | GroupCheckoutConfirmDialog.tsx | Thap |
 
-Chi can 2 thay doi nho, khong can them cot database hay query moi.
+Khong can them cot database hay migration. Chi thay doi code frontend.
