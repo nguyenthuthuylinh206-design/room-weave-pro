@@ -679,7 +679,11 @@ export function RoomCheckPage() {
       
       // 4. Save phase1_damage_data to checkout_inspection_requests for realtime updates
       const finalInspectionId = stableInspectionId || autoCreatedInspectionId || inspectionIdFromUrl || pendingInspection?.id
-      if (finalInspectionId && (lostItems.length > 0 || damagedItems.length > 0)) {
+      console.log('[RoomCheckPage] Phase 1: finalInspectionId sources:', {
+        stableInspectionId, autoCreatedInspectionId, inspectionIdFromUrl,
+        pendingInspectionId: pendingInspection?.id, final: finalInspectionId,
+      })
+      if (finalInspectionId && (lostItems.length > 0 || damagedItems.length > 0 || chargeableItems.length > 0)) {
         try {
           const phase1DamageData = {
             lost_items: lostItems.map(item => ({
