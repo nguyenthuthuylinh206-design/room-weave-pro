@@ -1016,8 +1016,57 @@ export function BookingsPage() {
     setCheckoutDamageItems([])
   }
   
+  // Handle minimize group checkout dialog
+  const handleMinimizeGroupCheckout = () => {
+    if (!selectedGroupId) return
+    
+    // Find group bookings to get guest name and room count
+    const groupBookings = bookings?.filter(b => b.booking_group_id === selectedGroupId) || []
+    if (groupBookings.length === 0) return
+    
+    // Prevent duplicate
+    const groupKey = `group_${selectedGroupId}`
+    if (minimizedCheckouts.some(c => c.booking.id === groupKey)) {
+      setShowGroupCheckoutDialog(false)
+      setSelectedGroupId(null)
+      return
+    }
+    
+    const firstBooking = groupBookings[0]
+    const minimizedData: MinimizedCheckout = {
+      booking: {
+        id: groupKey,
+        guest_name: firstBooking.guest_name,
+        room_id: firstBooking.room_id,
+        hotel_id: firstBooking.hotel_id,
+        check_out_date: firstBooking.check_out_date,
+        room: firstBooking.room,
+      },
+      costBreakdown: { bookingType: 'daily', roomPricePerNight: 0, nights: 0, roomTotal: 0, earlyCheckinCharge: 0, lateCheckoutCharge: 0, totalSurcharges: 0, serviceCharges: 0, extraCharges: 0, damageCharges: 0, subtotal: 0, vatRate: 0, vatAmount: 0, serviceFeeRate: 0, serviceFeeAmount: 0, totalAmount: 0, depositAmount: 0, amountPaid: 0, remainingAmount: 0, paymentStatus: 'pending' },
+      damageItems: [],
+      actualCheckoutTime: format(new Date(), 'HH:mm'),
+      actualCheckoutDate: new Date(),
+      scheduledCheckoutDate: new Date(firstBooking.check_out_date),
+      isGroup: true,
+      bookingGroupId: selectedGroupId,
+      groupRoomCount: groupBookings.length,
+    }
+    
+    setMinimizedCheckouts(prev => [...prev, minimizedData])
+    setShowGroupCheckoutDialog(false)
+    setSelectedGroupId(null)
+  }
+  
   // Handle restore checkout from minimized widget
   const handleRestoreCheckout = (checkout: MinimizedCheckout) => {
+    // Handle group checkout restore
+    if (checkout.isGroup && checkout.bookingGroupId) {
+      setMinimizedCheckouts(prev => prev.filter(c => c.booking.id !== checkout.booking.id))
+      setSelectedGroupId(checkout.bookingGroupId)
+      setShowGroupCheckoutDialog(true)
+      return
+    }
+    
     // Find the full booking data
     const fullBooking = bookings?.find(b => b.id === checkout.booking.id)
     if (!fullBooking) {
@@ -1676,6 +1725,7 @@ export function BookingsPage() {
             queryClient.invalidateQueries({ queryKey: ['group-booking'] })
             queryClient.invalidateQueries({ queryKey: ['rooms'] })
           }}
+          onMinimize={handleMinimizeGroupCheckout}
         />
       )}
     </div>
