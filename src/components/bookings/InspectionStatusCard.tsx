@@ -233,16 +233,38 @@ function Phase1DamageSummary({ data }: { data?: Phase1DamageData }) {
   const damagedCount = data.damaged_items?.length || 0
   if (lostCount === 0 && damagedCount === 0) return null
 
+  const fmt = (v: number) => new Intl.NumberFormat('vi-VN').format(v)
+
   return (
-    <div className="mt-1.5 space-y-0.5">
+    <div className="mt-1.5 space-y-1">
       {lostCount > 0 && (
-        <div className="text-xs text-red-600">
-          Đồ mất: {lostCount} món — {new Intl.NumberFormat('vi-VN').format(data.lost_total || 0)}đ
+        <div>
+          <div className="text-xs font-medium text-red-600">
+            Đồ mất ({lostCount}) — {fmt(data.lost_total || 0)}đ
+          </div>
+          <div className="pl-2 space-y-0.5 mt-0.5">
+            {data.lost_items!.map((item, idx) => (
+              <div key={idx} className="text-xs text-red-600/80 flex justify-between">
+                <span>- {item.item_name} x{item.quantity}</span>
+                <span>{fmt(item.estimated_value * item.quantity)}đ</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
       {damagedCount > 0 && (
-        <div className="text-xs text-amber-600">
-          Đồ hỏng: {damagedCount} món — {new Intl.NumberFormat('vi-VN').format(data.damaged_total || 0)}đ
+        <div>
+          <div className="text-xs font-medium text-amber-600">
+            Đồ hỏng ({damagedCount}) — {fmt(data.damaged_total || 0)}đ
+          </div>
+          <div className="pl-2 space-y-0.5 mt-0.5">
+            {data.damaged_items!.map((item, idx) => (
+              <div key={idx} className="text-xs text-amber-600/80 flex justify-between">
+                <span>- {item.item_name} x{item.quantity}{item.damage_type ? ` (${item.damage_type})` : ''}</span>
+                <span>{fmt(item.damage_cost * item.quantity)}đ</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
