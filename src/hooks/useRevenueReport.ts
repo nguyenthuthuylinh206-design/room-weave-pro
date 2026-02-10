@@ -2,7 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
-import { startOfMonth, endOfMonth, subMonths, format, startOfDay, endOfDay } from 'date-fns'
+import { startOfMonth, endOfMonth, subMonths, format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subWeeks, subQuarters, subYears } from 'date-fns'
+
+export type ReportPeriod = 'week' | 'month' | 'quarter' | 'year'
 
 export interface RevenueData {
   totalRevenue: number
@@ -12,6 +14,14 @@ export interface RevenueData {
   bookingsCount: number
   paidBookingsCount: number
   averageBookingValue: number
+  netRevenue: number
+  otaCommission: number
+  surcharges: {
+    earlyCheckin: number
+    lateCheckout: number
+    damageCharges: number
+    total: number
+  }
 }
 
 export interface RevenueTrend {
@@ -20,138 +30,221 @@ export interface RevenueTrend {
   bookings: number
 }
 
-export interface RevenueReport {
-  today: RevenueData
-  thisMonth: RevenueData
-  lastMonth: RevenueData
-  monthlyTrends: RevenueTrend[]
-  revenueGrowth: number
+export interface RevenueByType {
+  type: string
+  label: string
+  bookings: number
+  revenue: number
+  percentage: number
 }
 
-export function useRevenueReport() {
+export interface RevenueBySource {
+  source: string
+  bookings: number
+  grossRevenue: number
+  otaCommission: number
+  netRevenue: number
+  percentage: number
+}
+
+export interface RoomRevenue {
+  roomId: string
+  roomNumber: string
+  roomType: string
+  bookings: number
+  revenue: number
+  surcharges: number
+  total: number
+}
+
+export interface RevenueReport {
+  today: RevenueData
+  currentPeriod: RevenueData
+  previousPeriod: RevenueData
+  monthlyTrends: RevenueTrend[]
+  revenueGrowth: number
+  byType: RevenueByType[]
+  bySource: RevenueBySource[]
+  topRooms: RoomRevenue[]
+}
+
+function getPeriodRange(period: ReportPeriod, today: Date) {
+  switch (period) {
+    case 'week':
+      return {
+        currentStart: startOfWeek(today, { weekStartsOn: 1 }),
+        currentEnd: endOfWeek(today, { weekStartsOn: 1 }),
+        previousStart: startOfWeek(subWeeks(today, 1), { weekStartsOn: 1 }),
+        previousEnd: endOfWeek(subWeeks(today, 1), { weekStartsOn: 1 }),
+      }
+    case 'quarter':
+      return {
+        currentStart: startOfQuarter(today),
+        currentEnd: endOfQuarter(today),
+        previousStart: startOfQuarter(subQuarters(today, 1)),
+        previousEnd: endOfQuarter(subQuarters(today, 1)),
+      }
+    case 'year':
+      return {
+        currentStart: startOfYear(today),
+        currentEnd: endOfYear(today),
+        previousStart: startOfYear(subYears(today, 1)),
+        previousEnd: endOfYear(subYears(today, 1)),
+      }
+    default:
+      return {
+        currentStart: startOfMonth(today),
+        currentEnd: endOfMonth(today),
+        previousStart: startOfMonth(subMonths(today, 1)),
+        previousEnd: endOfMonth(subMonths(today, 1)),
+      }
+  }
+}
+
+const BOOKING_TYPE_LABELS: Record<string, string> = {
+  daily: 'Theo ngày',
+  hourly: 'Theo giờ',
+  monthly: 'Theo tháng',
+}
+
+export function useRevenueReport(period: ReportPeriod = 'month') {
   const { tenantId } = useUser()
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
 
   return useQuery({
-    queryKey: ['revenue-report', tenantId, isAllHotelsMode ? 'all' : selectedHotel?.id],
+    queryKey: ['revenue-report', tenantId, isAllHotelsMode ? 'all' : selectedHotel?.id, period],
     queryFn: async (): Promise<RevenueReport> => {
       const today = new Date()
-      const startOfToday = startOfDay(today).toISOString()
-      const endOfToday = endOfDay(today).toISOString()
-      const thisMonthStart = startOfMonth(today).toISOString()
-      const thisMonthEnd = endOfMonth(today).toISOString()
-      const lastMonthStart = startOfMonth(subMonths(today, 1)).toISOString()
-      const lastMonthEnd = endOfMonth(subMonths(today, 1)).toISOString()
+      const startOfTodayISO = startOfDay(today).toISOString()
+      const endOfTodayISO = endOfDay(today).toISOString()
+      const { currentStart, currentEnd, previousStart, previousEnd } = getPeriodRange(period, today)
 
-      // Build query base - filter by tenant first
-      let query = supabase.from('room_bookings').select('*')
-      
-      if (tenantId) {
-        query = query.eq('tenant_id', tenantId)
-      }
+      // Query bookings with room info for top rooms
+      let query = supabase.from('room_bookings').select('*, room:rooms!room_bookings_room_id_fkey(room_number, room_type)')
 
-      // Filter by hotel if not in All Hotels mode
-      if (!isAllHotelsMode && selectedHotel?.id) {
-        query = query.eq('hotel_id', selectedHotel.id)
-      }
+      if (tenantId) query = query.eq('tenant_id', tenantId)
+      if (!isAllHotelsMode && selectedHotel?.id) query = query.eq('hotel_id', selectedHotel.id)
 
       const { data: allBookings, error } = await query
-
-      if (error) {
-        console.error('Error fetching revenue data:', error)
-        throw error
-      }
+      if (error) throw error
 
       const bookings = allBookings || []
 
-      // Helper function to calculate revenue data
-      const calculateRevenueData = (filteredBookings: typeof bookings): RevenueData => {
-        const paidBookings = filteredBookings.filter(b => b.payment_status === 'paid')
-        // Include both pending and partial status
-        const pendingBookings = filteredBookings.filter(b => 
-          b.payment_status === 'pending' || 
-          b.payment_status === 'partial' || 
-          !b.payment_status
-        )
-        const refundedBookings = filteredBookings.filter(b => b.payment_status === 'refunded')
+      const calculateRevenueData = (filtered: typeof bookings): RevenueData => {
+        const paid = filtered.filter(b => b.payment_status === 'paid')
+        const pending = filtered.filter(b => b.payment_status === 'pending' || b.payment_status === 'partial' || !b.payment_status)
+        const refunded = filtered.filter(b => b.payment_status === 'refunded')
 
-        // Paid revenue = sum of amount_paid for fully paid bookings
-        const paidRevenue = paidBookings.reduce((sum, b) => sum + (b.amount_paid || 0), 0)
-        
-        // Pending revenue = remaining amount for unpaid/partial bookings
-        const pendingRevenue = pendingBookings.reduce((sum, b) => {
-          const remaining = (b.total_amount || 0) - (b.amount_paid || 0)
-          return sum + Math.max(0, remaining)
-        }, 0)
-        
-        const refundedRevenue = refundedBookings.reduce((sum, b) => sum + (b.total_amount || 0), 0)
-
-        // Total revenue = what's been paid + what's pending
+        const paidRevenue = paid.reduce((s, b) => s + (b.amount_paid || 0), 0)
+        const pendingRevenue = pending.reduce((s, b) => s + Math.max(0, (b.total_amount || 0) - (b.amount_paid || 0)), 0)
+        const refundedRevenue = refunded.reduce((s, b) => s + (b.total_amount || 0), 0)
         const totalRevenue = paidRevenue + pendingRevenue
+        const otaCommission = filtered.reduce((s, b) => s + (b.ota_commission_amount || 0), 0)
+        const netRevenue = filtered.reduce((s, b) => s + (b.net_revenue || b.total_amount || 0), 0) - otaCommission
+        const earlyCheckin = filtered.reduce((s, b) => s + (b.early_checkin_charge || 0), 0)
+        const lateCheckout = filtered.reduce((s, b) => s + (b.late_checkout_charge || 0), 0)
+        const damageCharges = filtered.reduce((s, b) => s + (b.damage_charges || 0), 0)
 
         return {
-          totalRevenue,
-          paidRevenue,
-          pendingRevenue,
-          refundedRevenue,
-          bookingsCount: filteredBookings.length,
-          paidBookingsCount: paidBookings.length,
-          averageBookingValue: filteredBookings.length > 0 
-            ? totalRevenue / filteredBookings.length 
-            : 0,
+          totalRevenue, paidRevenue, pendingRevenue, refundedRevenue,
+          bookingsCount: filtered.length,
+          paidBookingsCount: paid.length,
+          averageBookingValue: filtered.length > 0 ? totalRevenue / filtered.length : 0,
+          netRevenue, otaCommission,
+          surcharges: { earlyCheckin, lateCheckout, damageCharges, total: earlyCheckin + lateCheckout + damageCharges },
         }
       }
 
-      // Today's bookings (checked out today with payment)
-      const todayBookings = bookings.filter(b => {
-        const checkOutDate = new Date(b.check_out_date)
-        return checkOutDate >= new Date(startOfToday) && checkOutDate <= new Date(endOfToday)
-      })
+      const filterByDateRange = (start: Date, end: Date) =>
+        bookings.filter(b => {
+          const d = new Date(b.check_out_date)
+          return d >= start && d <= end
+        })
 
-      // This month's bookings
-      const thisMonthBookings = bookings.filter(b => {
-        const checkOutDate = new Date(b.check_out_date)
-        return checkOutDate >= new Date(thisMonthStart) && checkOutDate <= new Date(thisMonthEnd)
-      })
-
-      // Last month's bookings
-      const lastMonthBookings = bookings.filter(b => {
-        const checkOutDate = new Date(b.check_out_date)
-        return checkOutDate >= new Date(lastMonthStart) && checkOutDate <= new Date(lastMonthEnd)
-      })
+      const todayBookings = filterByDateRange(new Date(startOfTodayISO), new Date(endOfTodayISO))
+      const currentPeriodBookings = filterByDateRange(currentStart, currentEnd)
+      const previousPeriodBookings = filterByDateRange(previousStart, previousEnd)
 
       // Monthly trends (last 6 months)
       const monthlyTrends: RevenueTrend[] = []
       for (let i = 5; i >= 0; i--) {
-        const monthDate = subMonths(today, i)
-        const monthStart = startOfMonth(monthDate)
-        const monthEnd = endOfMonth(monthDate)
-        
-        const monthBookings = bookings.filter(b => {
-          const checkOutDate = new Date(b.check_out_date)
-          return checkOutDate >= monthStart && checkOutDate <= monthEnd && b.payment_status === 'paid'
+        const m = subMonths(today, i)
+        const mBookings = bookings.filter(b => {
+          const d = new Date(b.check_out_date)
+          return d >= startOfMonth(m) && d <= endOfMonth(m) && b.payment_status === 'paid'
         })
-
         monthlyTrends.push({
-          month: format(monthDate, 'MM/yyyy'),
-          revenue: monthBookings.reduce((sum, b) => sum + (b.total_amount || 0), 0),
-          bookings: monthBookings.length,
+          month: format(m, 'MM/yyyy'),
+          revenue: mBookings.reduce((s, b) => s + (b.total_amount || 0), 0),
+          bookings: mBookings.length,
         })
       }
 
-      // Calculate growth
-      const thisMonthData = calculateRevenueData(thisMonthBookings)
-      const lastMonthData = calculateRevenueData(lastMonthBookings)
-      const revenueGrowth = lastMonthData.paidRevenue > 0 
-        ? ((thisMonthData.paidRevenue - lastMonthData.paidRevenue) / lastMonthData.paidRevenue) * 100
+      // By booking type
+      const typeGroups: Record<string, typeof bookings> = {}
+      currentPeriodBookings.forEach(b => {
+        const t = b.booking_type || 'daily'
+        if (!typeGroups[t]) typeGroups[t] = []
+        typeGroups[t].push(b)
+      })
+      const totalCurrentRevenue = currentPeriodBookings.reduce((s, b) => s + (b.total_amount || 0), 0)
+      const byType: RevenueByType[] = Object.entries(typeGroups).map(([type, items]) => {
+        const rev = items.reduce((s, b) => s + (b.total_amount || 0), 0)
+        return {
+          type, label: BOOKING_TYPE_LABELS[type] || type,
+          bookings: items.length, revenue: rev,
+          percentage: totalCurrentRevenue > 0 ? (rev / totalCurrentRevenue) * 100 : 0,
+        }
+      })
+
+      // By booking source
+      const sourceGroups: Record<string, typeof bookings> = {}
+      currentPeriodBookings.forEach(b => {
+        const s = b.booking_source || 'direct'
+        if (!sourceGroups[s]) sourceGroups[s] = []
+        sourceGroups[s].push(b)
+      })
+      const bySource: RevenueBySource[] = Object.entries(sourceGroups).map(([source, items]) => {
+        const gross = items.reduce((s, b) => s + (b.total_amount || 0), 0)
+        const commission = items.reduce((s, b) => s + (b.ota_commission_amount || 0), 0)
+        return {
+          source, bookings: items.length, grossRevenue: gross,
+          otaCommission: commission, netRevenue: gross - commission,
+          percentage: totalCurrentRevenue > 0 ? (gross / totalCurrentRevenue) * 100 : 0,
+        }
+      })
+
+      // Top rooms
+      const roomGroups: Record<string, { bookings: typeof bookings; roomNumber: string; roomType: string }> = {}
+      currentPeriodBookings.forEach(b => {
+        const rid = b.room_id
+        const room = b.room as any
+        if (!roomGroups[rid]) {
+          roomGroups[rid] = { bookings: [], roomNumber: room?.room_number || '?', roomType: room?.room_type || '' }
+        }
+        roomGroups[rid].bookings.push(b)
+      })
+      const topRooms: RoomRevenue[] = Object.entries(roomGroups)
+        .map(([roomId, { bookings: items, roomNumber, roomType }]) => {
+          const revenue = items.reduce((s, b) => s + (b.total_amount || 0), 0)
+          const surcharges = items.reduce((s, b) => s + (b.early_checkin_charge || 0) + (b.late_checkout_charge || 0) + (b.damage_charges || 0), 0)
+          return { roomId, roomNumber, roomType, bookings: items.length, revenue, surcharges, total: revenue + surcharges }
+        })
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 10)
+
+      const currentData = calculateRevenueData(currentPeriodBookings)
+      const previousData = calculateRevenueData(previousPeriodBookings)
+      const revenueGrowth = previousData.paidRevenue > 0
+        ? ((currentData.paidRevenue - previousData.paidRevenue) / previousData.paidRevenue) * 100
         : 0
 
       return {
         today: calculateRevenueData(todayBookings),
-        thisMonth: thisMonthData,
-        lastMonth: lastMonthData,
-        monthlyTrends,
-        revenueGrowth,
+        currentPeriod: currentData,
+        previousPeriod: previousData,
+        monthlyTrends, revenueGrowth,
+        byType, bySource, topRooms,
       }
     },
     enabled: !!tenantId && (isAllHotelsMode || !!selectedHotel?.id),
@@ -168,51 +261,33 @@ export function useOwnerAlerts() {
     queryFn: async () => {
       const today = new Date()
       const todayStr = format(today, 'yyyy-MM-dd')
-      
-      // Query overdue checkouts
+
       let overdueQuery = supabase
         .from('room_bookings')
         .select('id, guest_name, check_out_date, room:rooms(room_number)')
         .eq('status', 'checked_in')
         .lt('check_out_date', todayStr)
         .limit(10)
-
-      if (tenantId) {
-        overdueQuery = overdueQuery.eq('tenant_id', tenantId)
-      }
-
-      if (!isAllHotelsMode && selectedHotel?.id) {
-        overdueQuery = overdueQuery.eq('hotel_id', selectedHotel.id)
-      }
-
+      if (tenantId) overdueQuery = overdueQuery.eq('tenant_id', tenantId)
+      if (!isAllHotelsMode && selectedHotel?.id) overdueQuery = overdueQuery.eq('hotel_id', selectedHotel.id)
       const { data: overdueCheckouts } = await overdueQuery
 
-      // Query unpaid bookings (checked out but not paid)
       let unpaidQuery = supabase
         .from('room_bookings')
         .select('id, guest_name, total_amount, amount_paid, check_out_date, room:rooms(room_number)')
         .eq('status', 'checked_out')
         .neq('payment_status', 'paid')
         .limit(10)
-
-      if (tenantId) {
-        unpaidQuery = unpaidQuery.eq('tenant_id', tenantId)
-      }
-
-      if (!isAllHotelsMode && selectedHotel?.id) {
-        unpaidQuery = unpaidQuery.eq('hotel_id', selectedHotel.id)
-      }
-
+      if (tenantId) unpaidQuery = unpaidQuery.eq('tenant_id', tenantId)
+      if (!isAllHotelsMode && selectedHotel?.id) unpaidQuery = unpaidQuery.eq('hotel_id', selectedHotel.id)
       const { data: unpaidBookings } = await unpaidQuery
 
-      // Query room checks with unresolved damages
       let damagesQuery = supabase
         .from('room_checks')
         .select('id, room:rooms(room_number), items_damaged, items_lost, created_at')
         .or('items_damaged.neq.{},items_lost.neq.{}')
         .order('created_at', { ascending: false })
         .limit(10)
-
       const { data: unresolvedDamages } = await damagesQuery
 
       return {
