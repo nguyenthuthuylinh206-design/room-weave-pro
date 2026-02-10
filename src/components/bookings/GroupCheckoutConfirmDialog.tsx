@@ -462,6 +462,14 @@ export function GroupCheckoutConfirmDialog({
                                   </div>
                                 )}
 
+                                {/* Extra Charges */}
+                                {cost.costBreakdown.extraCharges > 0 && (
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground">Chi phí khác</span>
+                                    <span className="font-mono">+{formatVNCurrency(cost.costBreakdown.extraCharges)}</span>
+                                  </div>
+                                )}
+
                                 {/* Room subtotal */}
                                 <div className="flex justify-between text-sm font-medium pt-2 border-t">
                                   <span>Tổng phòng này</span>

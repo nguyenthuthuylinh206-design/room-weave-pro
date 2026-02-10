@@ -407,6 +407,9 @@ export function GroupCheckoutDialog({
         roomTotal: 0, 
         damageCharges: 0, 
         serviceCharges: 0,
+        lateCharges: 0,
+        earlyCheckinCharges: 0,
+        extraCharges: 0,
         totalPaid: 0, 
         subtotal: 0,
         vatAmount: 0,
@@ -434,12 +437,25 @@ export function GroupCheckoutDialog({
     }, 0)
     const totalPaid = selectedBookings.reduce((sum, b) => sum + (b.amount_paid || 0), 0)
     
+    // Late charges, early checkin charges, extra charges from roomCosts (if calculated)
+    let lateCharges = 0
+    let earlyCheckinCharges = 0
+    let extraCharges = 0
+    for (const b of selectedBookings) {
+      const cost = roomCosts.get(b.id)
+      if (cost) {
+        lateCharges += cost.adjustedLateCharge
+        earlyCheckinCharges += cost.costBreakdown.earlyCheckinCharge || 0
+        extraCharges += cost.costBreakdown.extraCharges || 0
+      }
+    }
+    
     // Deposit logic: only apply if this is the last checkout
     const isLastCheckout = remainingBookings.length === 0
     const depositApplied = isLastCheckout ? groupData.totalDeposit : 0
     const holdingDeposit = !isLastCheckout ? groupData.totalDeposit : 0
     
-    const subtotal = roomTotal + damageCharges + serviceCharges
+    const subtotal = roomTotal + damageCharges + serviceCharges + lateCharges + earlyCheckinCharges + extraCharges
     // VAT & Service Fee (same rates as single checkout)
     const vatRate = 0 // Default 0, can be configured
     const serviceFeeRate = 0 // Default 0, can be configured
@@ -452,6 +468,9 @@ export function GroupCheckoutDialog({
       roomTotal, 
       damageCharges, 
       serviceCharges,
+      lateCharges,
+      earlyCheckinCharges,
+      extraCharges,
       totalPaid, 
       subtotal,
       vatAmount,
@@ -462,7 +481,7 @@ export function GroupCheckoutDialog({
       holdingDeposit,
       isLastCheckout,
     }
-  }, [groupData, inspectionStatuses, selectedRooms, inspectionMap, chargeableTotals])
+  }, [groupData, inspectionStatuses, selectedRooms, inspectionMap, chargeableTotals, roomCosts])
 
   // Count rooms that are ready vs in progress
   const roomStats = useMemo(() => {
@@ -1123,56 +1142,100 @@ export function GroupCheckoutDialog({
 
             <Separator />
 
-            {/* Late Checkout Tiers Table - Only for daily bookings */}
-            {currentHour <= 12 ? (
-              <div className="p-2.5 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center gap-2 text-green-700 text-sm">
-                  <Check className="h-4 w-4" />
-                  <span className="font-medium">Checkout đúng giờ - Không phụ thu</span>
-                </div>
-                <p className="text-xs text-green-600 mt-1">
-                  Checkout trước/đúng 12:00 → không phụ thu.
-                </p>
-              </div>
-            ) : (
-              <div className="border rounded-lg overflow-hidden">
-                <div className="bg-muted/50 px-3 py-1.5 text-xs font-medium">
-                  PHỤ THU CHECK-OUT TRỄ (tiêu chuẩn: 12:00)
-                </div>
-                <div className="divide-y">
-                  {LATE_CHECKOUT_TIERS.map((tier) => {
-                    const isActive = tier.id === activeTier?.id
-                    // Use average room price for display
-                    const avgPrice = selectedRooms.size > 0 && groupData
-                      ? groupData.bookings
-                          .filter(b => selectedRooms.has(b.id))
-                          .reduce((sum, b) => sum + ((b as any).room_price || 0), 0) / selectedRooms.size
-                      : 0
-                    const tierAmount = Math.round(avgPrice * tier.percent / 100)
-                    return (
-                      <div
-                        key={tier.id}
-                        className={cn(
-                          "flex items-center justify-between px-3 py-1.5 text-xs",
-                          isActive && "bg-amber-50 border-l-2 border-l-amber-500"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          {isActive && <Check className="h-3 w-3 text-amber-600" />}
-                          <span className={cn(isActive && "font-medium")}>{tier.label}</span>
-                          {tier.description && (
-                            <span className="text-muted-foreground">({tier.description})</span>
+            {/* Early Checkout Detection & Late Checkout Tiers Table */}
+            {(() => {
+              // Check if ALL selected rooms are early checkout (before scheduled date)
+              const selectedBookings = groupData?.bookings.filter(b => selectedRooms.has(b.id)) || []
+              const allDailyBookings = selectedBookings.filter(b => (b.booking_type || 'daily') === 'daily')
+              const allEarlyCheckout = allDailyBookings.length > 0 && allDailyBookings.every(b => {
+                const scheduledDate = new Date(b.check_out_date)
+                const today = new Date()
+                // Compare dates only (not time)
+                return today.setHours(0,0,0,0) < new Date(scheduledDate).setHours(0,0,0,0)
+              })
+              
+              if (allEarlyCheckout) {
+                return (
+                  <div className="p-2.5 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-700 text-sm">
+                      <Check className="h-4 w-4" />
+                      <span className="font-medium">Checkout sớm - Không phụ thu</span>
+                    </div>
+                    <p className="text-xs text-green-600 mt-1">
+                      Tất cả phòng checkout trước ngày dự kiến → không phụ thu.
+                    </p>
+                  </div>
+                )
+              }
+              
+              if (currentHour <= 12) {
+                return (
+                  <div className="p-2.5 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-700 text-sm">
+                      <Check className="h-4 w-4" />
+                      <span className="font-medium">Checkout đúng giờ - Không phụ thu</span>
+                    </div>
+                    <p className="text-xs text-green-600 mt-1">
+                      Checkout trước/đúng 12:00 → không phụ thu.
+                    </p>
+                  </div>
+                )
+              }
+              
+              return null
+            })()}
+            {/* Late checkout tiers - only show when not early checkout and after 12:00 */}
+            {(() => {
+              const selectedBookings = groupData?.bookings.filter(b => selectedRooms.has(b.id)) || []
+              const allDailyBookings = selectedBookings.filter(b => (b.booking_type || 'daily') === 'daily')
+              const allEarlyCheckout = allDailyBookings.length > 0 && allDailyBookings.every(b => {
+                const scheduledDate = new Date(b.check_out_date)
+                const today = new Date()
+                return today.setHours(0,0,0,0) < new Date(scheduledDate).setHours(0,0,0,0)
+              })
+              
+              if (allEarlyCheckout || currentHour <= 12) return null
+              
+              const avgPrice = selectedRooms.size > 0 && groupData
+                ? groupData.bookings
+                    .filter(b => selectedRooms.has(b.id))
+                    .reduce((sum, b) => sum + ((b as any).room_price || 0), 0) / selectedRooms.size
+                : 0
+              
+              return (
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="bg-muted/50 px-3 py-1.5 text-xs font-medium">
+                    PHỤ THU CHECK-OUT TRỄ (tiêu chuẩn: 12:00)
+                  </div>
+                  <div className="divide-y">
+                    {LATE_CHECKOUT_TIERS.map((tier) => {
+                      const isActive = tier.id === activeTier?.id
+                      const tierAmount = Math.round(avgPrice * tier.percent / 100)
+                      return (
+                        <div
+                          key={tier.id}
+                          className={cn(
+                            "flex items-center justify-between px-3 py-1.5 text-xs",
+                            isActive && "bg-amber-50 border-l-2 border-l-amber-500"
                           )}
+                        >
+                          <div className="flex items-center gap-2">
+                            {isActive && <Check className="h-3 w-3 text-amber-600" />}
+                            <span className={cn(isActive && "font-medium")}>{tier.label}</span>
+                            {tier.description && (
+                              <span className="text-muted-foreground">({tier.description})</span>
+                            )}
+                          </div>
+                          <span className={cn("font-mono", isActive && "font-medium text-amber-600")}>
+                            {tier.percent}%{avgPrice > 0 ? ` ≈ ${formatVNCurrency(tierAmount)}/phòng` : ''}
+                          </span>
                         </div>
-                        <span className={cn("font-mono", isActive && "font-medium text-amber-600")}>
-                          {tier.percent}%{avgPrice > 0 ? ` ≈ ${formatVNCurrency(tierAmount)}/phòng` : ''}
-                        </span>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )
+            })()}
 
             <Separator />
 
@@ -1194,6 +1257,20 @@ export function GroupCheckoutDialog({
                   <span className="font-mono">{formatVNCurrency(totals.roomTotal)}</span>
                 </div>
                 
+                {totals.earlyCheckinCharges > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Phụ thu check-in sớm</span>
+                    <span className="font-mono text-amber-600">+{formatVNCurrency(totals.earlyCheckinCharges)}</span>
+                  </div>
+                )}
+                
+                {totals.lateCharges > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Phụ thu checkout trễ</span>
+                    <span className="font-mono text-amber-600">+{formatVNCurrency(totals.lateCharges)}</span>
+                  </div>
+                )}
+                
                 {totals.damageCharges > 0 && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Phí đền bù thiệt hại</span>
@@ -1205,6 +1282,13 @@ export function GroupCheckoutDialog({
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Dịch vụ sử dụng</span>
                     <span className="font-mono">+{formatVNCurrency(totals.serviceCharges)}</span>
+                  </div>
+                )}
+                
+                {totals.extraCharges > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Chi phí khác</span>
+                    <span className="font-mono">+{formatVNCurrency(totals.extraCharges)}</span>
                   </div>
                 )}
 
@@ -1345,6 +1429,11 @@ export function GroupCheckoutDialog({
         onPaymentComplete={() => {
           setShowPaymentDialog(false)
           queryClient.invalidateQueries({ queryKey: ['group-booking', bookingGroupId] })
+          // Auto-proceed: after payment, trigger checkout directly
+          const bookingIds = confirmRooms.map(r => r.bookingId)
+          if (bookingIds.length > 0) {
+            performCheckout(bookingIds)
+          }
         }}
       />
       
