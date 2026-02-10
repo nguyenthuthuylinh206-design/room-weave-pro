@@ -1,157 +1,110 @@
 
 
-## Lam lai toan bo Group Checkout - Giong Checkout Don Le
+## Sua doi giao dien Group Checkout - Chuyen nghiep va de nhin
 
 ### VAN DE HIEN TAI
 
-Group Checkout hien tai dung **2 dialog phuc tap**:
-- **Buoc 1** (`GroupCheckoutDialog`): 1533 dong code - vua chon phong, vua gan nhan vien, vua hien payment summary tong. Qua nhieu trach nhiem trong 1 component.
-- **Buoc 2** (`GroupCheckoutConfirmDialog`): 643 dong - hien chi tiet per-room voi collapsible, cho chinh sua phu thu/den bu.
+Dialog Group Checkout dang dung qua nhieu mau nen (background colors) cho cac trang thai va khu vuc, tao cam giac "mau me" va khong chuyen nghiep:
 
-**Van de chinh**:
-- Thong tin tung phong o Buoc 1 qua so sai (chi hien room number + damage charge)
-- Phai qua 2 buoc moi thay chi tiet thanh toan tung phong
-- Logic tinh toan bi phan tan giua 2 component
-- Luong thanh toan phai qua 3 dialog (Step1 -> Payment -> Step2)
+1. **Badge trang thai kiem tra**: Dung `bg-green-50`, `bg-blue-50`, `bg-amber-50` voi border mau - qua nhieu mau sac
+2. **Canh bao qua han**: `bg-red-50 border-red-200` - nen do
+3. **Thong bao checkout som/dung gio**: `bg-green-50 border-green-200` - nen xanh
+4. **Bang phu thu tre**: Active tier dung `bg-amber-50 border-l-2 border-l-amber-500` - nen vang noi bat
+5. **Khu vuc chinh sua phu thu**: `bg-amber-50/50 border-amber-200` - nen vang
+6. **InspectionStatusCard**: 3 trang thai dung 3 mau nen khac nhau (xanh duong, vang, xanh la)
+7. **Canh bao chua thanh toan**: `bg-amber-50 border-amber-200`
+8. **Tong hop**: Dong "CON LAI" dung `text-lg font-bold` - qua lon
+9. **Cac dong +/- trong tong hop**: Dung `text-amber-600`, `text-red-600` - hop ly nhung can nhat quan
 
-### Y TUONG MOI
+### NGUYEN TAC THIET KE MOI (theo Enterprise SaaS Minimalist)
 
-Thay vi 2 dialog, lam lai thanh **1 dialog duy nhat** voi cau truc:
+- **Khong dung mau nen cho status**: Chi dung mau chu semantic (`text-green-600`, `text-red-600`, `text-amber-600`)
+- **Border don gian**: Chi dung `border rounded-lg` hoac `border-b`, khong dung border mau
+- **Compact**: `text-xs`, `text-sm`, padding `p-2`/`p-3`
+- **Monochrome badges**: Dung `variant="outline"` khong mau nen
+- **Canh bao/thong bao**: Chi dung icon + text mau, khong co nen mau
 
+### CHI TIET THAY DOI
+
+#### 1. Badge trang thai kiem tra (`getInspectionStatusBadge`)
+
+**Truoc**:
 ```text
-+------------------------------------------+
-| Checkout Nhom - Ten Khach (N phong)      |
-+------------------------------------------+
-| [x] Chon tat ca (N phong dang o)         |
-+------------------------------------------+
-| Canh bao qua han (neu co)               |
-+------------------------------------------+
-| PHONG 101 - Daily                         |
-|   [x] Chon | Badge trang thai kiem tra   |
-|   > Chon NV kiem tra / Trang thai KT     |
-|   > Bang phu thu tre (nhu checkout le)   |
-|   > Chi tiet thanh toan:                 |
-|     - 3 dem x 500.000/dem = 1.500.000    |
-|     - Phu thu check-in som: 150.000      |
-|     - Phu thu checkout tre (editable)    |
-|     - Dich vu su dung: 200.000           |
-|     - DamageChargesSection (edit/waive)   |
-|     - Subtotal / VAT / Phi DV            |
-|     - Tong phong nay: 1.850.000          |
-|-------------------------------------------
-| PHONG 102 - Hourly                        |
-|   (tuong tu - hien theo loai hinh)       |
-+------------------------------------------+
-| === TONG HOP ===                          |
-|   Tien phong:          3.000.000          |
-|   Phu thu:               300.000          |
-|   Dich vu:               200.000          |
-|   Den bu:                100.000          |
-|   Subtotal:            3.600.000          |
-|   VAT / Phi DV (neu co)                  |
-|   TONG CONG:           3.600.000          |
-|   Tien coc:             -500.000          |
-|   Da thanh toan:        -500.000          |
-|   CON LAI:             2.600.000          |
-+------------------------------------------+
-| Warning chua thanh toan (neu co)         |
-+------------------------------------------+
-| [Huy] [Checkout no xxx] [Thu tien & COut]|
-+------------------------------------------+
+bg-green-50 text-green-700 border-green-200  (completed)
+bg-blue-50 text-blue-700 border-blue-200     (in_progress)
+bg-amber-50 text-amber-700 border-amber-200  (pending)
 ```
 
-### CHI TIET KY THUAT
+**Sau**:
+```text
+text-green-600 (completed) - chi text, khong badge
+text-blue-600  (in_progress) - chi text + icon
+text-amber-600 (pending) - chi text + icon
+text-muted-foreground (not_requested)
+```
+-> Bo Badge, chuyen thanh `<span>` voi icon + text mau semantic.
 
-#### 1. Xoa `GroupCheckoutConfirmDialog.tsx`
+#### 2. Canh bao qua han
 
-Khong con can Buoc 2 rieng. Tat ca chi tiet per-room duoc hien truc tiep trong `GroupCheckoutDialog`.
+**Truoc**: `bg-red-50 border border-red-200 rounded-lg`
+**Sau**: `border rounded-lg` (border mac dinh) + icon va text `text-red-600`, khong nen mau
 
-#### 2. Viet lai `GroupCheckoutDialog.tsx` voi cau truc moi
+#### 3. Checkout som / dung gio
 
-**Phan Room List**: Moi phong la 1 `Collapsible` section (giong ConfirmDialog hien tai nhung day du hon):
+**Truoc**: `bg-green-50 border border-green-200 rounded-lg`
+**Sau**: Chi hien 1 dong text `text-green-600` voi icon Check, khong can border hay nen. Gon giang.
 
-- **Header**: Checkbox + Room number + Guest name + Badge trang thai kiem tra + Tong phong
-- **Expanded content** (giong hoan toan `CheckoutSummaryDialog`):
-  - `CheckoutInspectionSection` hoac `InspectionStatusCard` tuong ung voi trang thai
-  - Staff assignment (neu chua gui yeu cau)
-  - Bang `LATE_CHECKOUT_TIERS` (conditional, chi cho daily)
-  - Early checkout detection per-room
-  - Chi tiet thanh toan:
-    - Tien phong (N dem x gia/dem, N gio x gia/gio, N thang x gia/thang)
-    - Phu thu check-in som (read-only)
-    - Phu thu checkout tre (**editable** voi Input + Mien phi / Theo chuan + Textarea ly do)
-    - Phi vuot gio (cho hourly, editable)
-    - Dich vu su dung
-    - Chi phi khac
-    - `DamageChargesSection` component (edit/waive/reset per item + note + in bien ban)
-    - Subtotal phong
-  - Tat ca deu dung cung component va logic nhu `CheckoutSummaryDialog`
+#### 4. Bang phu thu tre
 
-**Phan Tong Hop**: Giong hien tai nhung lay du lieu tu `roomCosts` Map da tinh toan day du.
+**Truoc**: Active tier co `bg-amber-50 border-l-2 border-l-amber-500`
+**Sau**: Active tier chi dung `font-medium` va text `text-amber-600` cho so tien. Khong nen mau. Header bang dung `text-xs uppercase text-muted-foreground` thay vi `bg-muted/50`.
 
-**Footer**: 3 nut giong checkout le: Huy | Checkout no | Thu tien & Checkout
+#### 5. Khu vuc chinh sua phu thu (editable late charge / overtime)
 
-#### 3. Giu nguyen cac hook va logic hien tai
+**Truoc**: `p-2 bg-amber-50/50 rounded border border-amber-200`
+**Sau**: `p-2 border rounded-lg` (border mac dinh), Label dung `text-amber-600` de giu nhan dien muc phu thu. Bo nen vang.
 
-- `useGroupBooking` - da fix select day du cot
-- `useGroupCheckoutCalculations` - tinh toan per-room
-- `GroupPaymentDialog` - xu ly thanh toan nhom
-- Realtime subscriptions cho inspections, room_checks, chargeables
-- Overdue detection, auto-calculate khi dialog mo
+#### 6. InspectionStatusCard
 
-#### 4. Loai bo logic trung lap
+**Truoc**: 3 mau nen khac nhau cho 3 trang thai
+**Sau**: Tat ca dung `border rounded-lg` (border mac dinh), phan biet bang:
+- Icon + text mau semantic (xanh la, xanh duong, vang)
+- Khong nen mau
 
-- Xoa `confirmRooms`, `confirmTotals` useMemo (khong con Buoc 2)
-- Xoa `showConfirmDialog` state
-- `handleSelectiveCheckout` goi truc tiep `performCheckout` hoac mo PaymentDialog
-- Nut "Checkout no" -> goi `performCheckout` truc tiep (khong can qua ConfirmDialog)
-- Nut "Thu tien & Checkout" -> mo `GroupPaymentDialog` -> auto checkout sau khi thanh toan
+#### 7. Canh bao chua thanh toan
 
-#### 5. Cach hien chi tiet tung phong
+**Truoc**: `bg-amber-50 border border-amber-200 rounded-lg`
+**Sau**: `border rounded-lg` + icon va text `text-amber-600`
 
-Moi phong se duoc render tuong tu nhu phan body cua `CheckoutSummaryDialog` (dong 549-750), bao gom:
+#### 8. Tong hop thanh toan
 
-1. **Room charges theo booking type**:
-   - Daily: `N dem x gia/dem`
-   - Hourly: `N gio x gia/gio`
-   - Monthly: `N thang x gia/thang + chiet khau`
+- Dong "CON LAI": Giam tu `text-lg` xuong `text-sm font-semibold`
+- Bo dau `+` truoc cac dong phu thu (khong can thiet, da co nhan mo ta)
+- Cac dong giam gia (coc, da TT): Giu `text-green-600`
+- Cac dong tang gia (phu thu, den bu): Chi dung mau chu, khong dung `+`
 
-2. **Phu thu check-in som** (read-only, chi khi > 0)
+#### 9. Room header trong Collapsible
 
-3. **Phu thu checkout tre** (editable):
-   - Input so tien
-   - Nut "Mien phi" / "Theo chuan"
-   - Textarea ly do khi giam
-   - Hien thi dieu kien (chi khi daily, khong early checkout, sau 12h)
+- Bo `border-blue-200` khi selected, chi dung `border` mac dinh
+- Badge "Da tra" chuyen tu `variant="secondary"` thanh text `text-muted-foreground` don gian
 
-4. **Phi vuot gio** (editable, chi cho hourly)
+#### 10. Progress Warning
 
-5. **Dich vu su dung** (read-only)
+**Truoc**: `bg-amber-50 border border-amber-200 rounded-lg`
+**Sau**: `border rounded-lg` + text `text-amber-600`
 
-6. **Chi phi khac** (read-only)
-
-7. **DamageChargesSection** component:
-   - Phan nhom: Mat / Hong / Da dung
-   - Edit/Waive/Reset per item
-   - Note khi dieu chinh
-   - Nut in bien ban
-
-8. **Subtotal phong**
-
-### TONG KET THAY DOI
+### CU THE FILE THAY DOI
 
 | File | Thay doi |
 |------|---------|
-| `GroupCheckoutDialog.tsx` | Viet lai - gop Buoc 1 + Buoc 2 thanh 1 dialog duy nhat voi chi tiet per-room day du |
-| `GroupCheckoutConfirmDialog.tsx` | **XOA** - khong con can thiet |
-| Cac file khac | Khong thay doi |
+| `GroupCheckoutDialog.tsx` | Loai bo tat ca `bg-*-50`, `border-*-200`, chuyen sang semantic text colors. Giam kich thuoc "CON LAI". Don gian hoa badges. |
+| `InspectionStatusCard.tsx` | Loai bo `bg-blue-50`, `bg-amber-50`, `bg-green-50`, chuyen sang `border` mac dinh voi text semantic. |
 
-### UU DIEM CUA CACH MOI
+### KET QUA MONG DOI
 
-1. **Mot dialog duy nhat** - khong can qua lai giua 2 buoc
-2. **Chi tiet tung phong ro rang** - giong hoan toan checkout le
-3. **Chinh sua truc tiep** - phu thu, den bu chinh sua ngay tai phong, khong can doi Buoc 2
-4. **Luong thanh toan don gian** - 1 click "Thu tien" -> Payment -> Auto checkout
-5. **Code gon hon** - loai bo ~650 dong cua ConfirmDialog va logic trung lap
-6. **Nhat quan UX** - nguoi dung da quen voi checkout le, group checkout giong y het
+Giao dien se tro nen:
+- **Sach se, chuyen nghiep** - it mau sac, nhieu khoang trang
+- **De doc** - thong tin phan cap ro rang bang font-weight va text-color
+- **Nhat quan** - toan bo dung cung design system Enterprise SaaS
+- **Khong "mau me"** - chi dung mau khi can thiet (semantic: loi/canh bao/thanh cong)
 
