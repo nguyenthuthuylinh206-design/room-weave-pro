@@ -1,62 +1,78 @@
 
-## Them nut "Thu nho" cho Group Checkout
 
-### Van de
+## Redesign ExtendBookingDialog va ConflictWarningSection - Enterprise SaaS Minimalist
 
-Trong `BookingsPage.tsx` (dong 1665-1679), `GroupCheckoutDialog` **khong duoc truyen prop `onMinimize`**, mac du component da ho tro san prop nay va co nut "Thu nho" trong code.
+### Van de hien tai
 
-Checkout don le (daily/hourly/monthly) deu co `onMinimize={handleMinimizeCheckout}` hoat dong tot. Chi rieng Group Checkout bi thieu.
+Hai component nay van con "mau me", chua theo chuan Enterprise SaaS Minimalist:
 
-### Nguyen nhan
+1. **ConflictWarningSection**: `border-2 border-red-500 bg-red-50` - vien do day + nen do
+2. **Title mau sac**: `text-red-600` / `text-amber-600` tren title - qua noi bat
+3. **Emoji trong heading**: `⚠️` trong h4 - khong chuyen nghiep
+4. **Border-t mau**: `border-red-200` trong action section
+5. **Button destructive**: Nut "Checkout ngay" dung `variant="destructive"` - nen do
+6. **Cost preview**: `bg-muted/50` - nen xam khong can thiet
 
-Ham `handleMinimizeCheckout` (dong 984) chi luu 1 booking (`actionBooking`) vao `MinimizedCheckout`. Khong tuong thich voi group (nhieu phong).
+### Thay doi cu the
 
-### Giai phap
+#### File 1: `ConflictWarningSection.tsx`
 
-#### 1. Tao ham `handleMinimizeGroupCheckout` trong BookingsPage
+| Truoc | Sau |
+|-------|-----|
+| `border-2 border-red-500 bg-red-50 dark:bg-red-950/30` | `border rounded-lg` |
+| `⚠️ KHACH TIEP THEO...` (emoji + all caps) | `Khach tiep theo da den ngay check-in` (icon only, sentence case) |
+| `font-semibold text-red-700` | `text-sm font-medium text-red-600` |
+| `border-t border-red-200` | `border-t` (border mac dinh) |
+| `variant="destructive"` cho Checkout ngay | `variant="outline"` + `text-red-600` |
+| `p-4 space-y-3` | `p-3 space-y-2` (compact hon) |
 
-Khi thu nho group checkout:
-- Luu `selectedGroupId` va thong tin nhom vao state rieng (hoac dung chung `minimizedCheckouts` voi 1 truong `isGroup`)
-- Dong `GroupCheckoutDialog`
-- Hien widget thu nho hien ten khach + so phong
+#### File 2: `ExtendBookingDialog.tsx`
 
-#### 2. Truyen `onMinimize` cho GroupCheckoutDialog
+| Truoc | Sau |
+|-------|-----|
+| Title dung `AlertOctagon` / `AlertTriangle` icon trong DialogTitle | Bo icon ra khoi title, giu text don gian: "Gia han phong [P102]" |
+| Title className `text-red-600` / `text-amber-600` | Mac dinh (khong mau) |
+| DialogDescription dai dong | Rut gon thanh 1 dong ngan: "Qua han N dem - Can gia han truoc khi checkout" |
+| `bg-muted/50 p-3` cho cost preview | `border rounded-lg p-3` (khong nen) |
+| `text-primary` cho tong phi | `font-semibold` (khong mau dac biet) |
+
+#### Cau truc dialog moi (gon hon)
 
 ```text
-<GroupCheckoutDialog
-  ...
-  onMinimize={handleMinimizeGroupCheckout}
-/>
++---------------------------------------+
+| Gia han phong P102              [X]   |
+| Qua han 10 dem                        |
++---------------------------------------+
+| Khach: Nguyen Duc Phuoc    P102       |  <- 1 dong gop
+| Checkout cu: 31/01  |  Qua han: 10d  |  <- 1 dong gop
++---------------------------------------+
+| [Conflict section - neu co]           |
+| Khach tiep theo da den ngay check-in  |
+| Ten: ...  |  Check-in: ...            |
+| SĐT: ...  [copy] [call]              |
+| [Checkout ngay] [Chuyen phong]        |
++---------------------------------------+
+| Ngay tra phong moi: [____chon____]    |
++---------------------------------------+
+| N dem x gia/dem = tong                |  <- 1 dong don gian
++---------------------------------------+
+|                    [Huy] [Gia han]    |
++---------------------------------------+
 ```
 
-#### 3. Mo rong MinimizedCheckout interface
+### Nguyen tac ap dung
 
-Them truong `isGroup` va `bookingGroupId` de phan biet group voi single:
-
-```text
-export interface MinimizedCheckout {
-  booking: { ... }
-  // Group checkout fields
-  isGroup?: boolean
-  bookingGroupId?: string
-  groupRoomCount?: number
-  ...
-}
-```
-
-#### 4. Cap nhat MinimizedCheckoutWidget
-
-- Khi `isGroup = true`, hien "N phong" thay vi room number
-- Khi restore group, mo lai `GroupCheckoutDialog` voi `bookingGroupId`
-
-#### 5. Cap nhat handleRestoreCheckout
-
-- Kiem tra `isGroup` -> neu la group, set `selectedGroupId` va `showGroupCheckoutDialog = true`
-- Neu la single, giu logic hien tai
+- Bo tat ca `bg-*-50`, `border-*-color` -> chi `border rounded-lg`
+- Bo emoji, chi dung icon khi can
+- Title trung tinh, khong mau
+- Compact: `p-3`, `text-sm`, `text-xs`
+- Semantic text colors chi cho data (ngay qua han = `text-red-600`)
+- Nut hanh dong: tat ca `variant="outline"`, phan biet bang text color
 
 ### File thay doi
 
-| File | Thay doi |
-|------|---------|
-| `BookingsPage.tsx` | Them `handleMinimizeGroupCheckout`, truyen `onMinimize` cho GroupCheckoutDialog, cap nhat `handleRestoreCheckout` xu ly group |
-| `MinimizedCheckoutWidget.tsx` | Mo rong interface, hien thi khac cho group (N phong) |
+| File | Mo ta |
+|------|-------|
+| `src/components/bookings/ConflictWarningSection.tsx` | Bo bg/border mau, emoji, compact layout, outline buttons |
+| `src/components/bookings/ExtendBookingDialog.tsx` | Don gian title/description, bo icon title, compact booking info, bo bg cost preview |
+
