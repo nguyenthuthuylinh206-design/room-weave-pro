@@ -1,68 +1,55 @@
 
 
-## Them chuc nang tai len Logo khach san
+## Cap nhat hien thi Tenant Info trong Sidebar
 
-### Hien trang
+### Thay doi
 
-- Bang `hotels` da co cot `logo_url` (string | null) - san sang su dung
-- `HotelFormDialog` chua co truong upload logo
-- `HotelCard` dung icon `Building2` co dinh, chua hien thi logo
-- Da co `useImageUpload` hook upload len bucket `item-images`
-- Da co component `ImageUpload` (multi-image) - nhung can tao component don gian hon cho single logo
+#### File: `src/components/layout/Sidebar.tsx` (dong 340-357)
 
-### Ke hoach
+**1. Map ten goi dich vu sang tieng Viet**
 
-#### 1. Tao storage bucket `hotel-logos`
+Them mapping:
+- `basic` -> `Co ban`
+- `standard` -> `Tieu chuan`  
+- `premium` -> `Cao cap`
+- `trial` -> `Dung thu`
 
-Tao bucket rieng cho logo khach san (public) voi RLS policy cho phep tenant upload/delete.
+**2. Them trang thai subscription bang mau semantic**
 
-#### 2. Them `logo_url` vao `HotelFormData` interface
+- `active` -> `text-green-600` (khong hien text, chi dot mau canh badge)
+- `expired` -> `text-red-600` dot do
+- `trial` -> `text-amber-600` dot vang
 
-Them truong `logo_url?: string` vao interface trong `useHotels.ts`, va cap nhat `useCreateHotel` / `useUpdateHotel` de luu `logo_url`.
+**3. Them so phong dang ky**
 
-#### 3. Them logo upload vao `HotelFormDialog`
+Hien thi compact: `54 phong` duoi dong ten, ben canh badge goi.
 
-- Them vao Step 1 (phia tren truong Code): Hien thi avatar tron voi nut upload
-- Click de chon file anh -> Upload len bucket `hotel-logos` -> Luu URL
-- Hien thi preview logo sau khi upload, co nut X de xoa
-- Su dung `useImageUpload` hook (sua bucket thanh `hotel-logos`)
-- Giao dien: Avatar tron 80x80, click de upload, compact theo chuan Enterprise SaaS
+**4. Them tooltip cho ten dai**
 
-#### 4. Hien thi logo trong `HotelCard`
+Dung `title` attribute de hien thi ten day du khi hover.
 
-Thay icon `Building2` bang logo thuc te neu co `hotel.logo_url`:
-- Dung `Avatar` component voi `AvatarImage` + `AvatarFallback` (Building2 icon)
-- Kich thuoc giu nguyen `p-2 rounded-lg`
+**5. Hien thi ngay het han (neu sap het)**
 
-#### 5. Hien thi logo trong `MobileHotelManagementPage`
+Neu con duoi 30 ngay -> hien thi `Het han: 17/12/2026` bang `text-amber-600`.
 
-Tuong tu, thay icon `Building2` bang logo neu co.
+### Layout moi
 
-### Chi tiet ky thuat
+```text
+[Logo 40x40] | Ten cong ty (truncate, title tooltip)
+             | [Co ban] [*] 54 phong
+```
+
+- `[*]` = dot mau trang thai (green/red/amber)
+- `54 phong` = text-xs text-muted-foreground
+- Neu sap het han: them dong `Het han: dd/mm/yyyy` text-xs text-amber-600
+
+### File thay doi
 
 | File | Thay doi |
 |------|---------|
-| Migration SQL | Tao bucket `hotel-logos` + RLS policies |
-| `src/hooks/useHotels.ts` | Them `logo_url` vao `HotelFormData`, cap nhat create/update mutations |
-| `src/components/settings/hotels/HotelFormDialog.tsx` | Them logo upload UI (avatar + file input), su dung `useImageUpload` |
-| `src/components/settings/hotels/HotelCard.tsx` | Hien thi logo thay Building2 icon |
-| `src/components/settings/MobileHotelManagementPage.tsx` | Hien thi logo thay Building2 icon |
+| `src/components/layout/Sidebar.tsx` | Cap nhat vung dong 340-357: map plan label, them status dot, so phong, tooltip, canh bao het han |
 
-### Upload UI trong form
+### Khong thay doi database
 
-```text
-+---------------------------+
-|   [  Logo 80x80  ]        |  <- Avatar tron, click de upload
-|   Tai len logo (tuy chon) |  <- Label nho phia duoi
-+---------------------------+
-| Ma khach san *             |
-| [___________]              |
-| Ten khach san *            |
-| ...                        |
-```
-
-- Khi chua co logo: Hien thi icon Upload + text "Chon logo"
-- Khi da co logo: Hien thi anh + nut X goc tren phai de xoa
-- Dang upload: Hien thi spinner
-- Chi chap nhan file anh, toi da 2MB
+Tat ca du lieu da co san trong `useTenant()` hook: `subscription_plan`, `subscription_status`, `subscription_end_date`, `registered_rooms`.
 
