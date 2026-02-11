@@ -103,17 +103,29 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
 
         if (stoppedRef.current) return
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: {
-            facingMode: 'environment',
-            width: { ideal: 4096 },
-            height: { ideal: 2160 },
-            // @ts-ignore
-            focusMode: { ideal: 'continuous' },
-            advanced: [{ focusMode: 'continuous' } as any],
-          },
-        })
+        let stream: MediaStream
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: {
+              facingMode: { exact: 'environment' },
+              width: { ideal: 4096 },
+              height: { ideal: 2160 },
+              // @ts-ignore
+              focusMode: { ideal: 'continuous' },
+              advanced: [{ focusMode: 'continuous' } as any],
+            },
+          })
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: {
+              facingMode: 'user',
+              width: { ideal: 4096 },
+              height: { ideal: 2160 },
+            },
+          })
+        }
 
         if (stoppedRef.current) {
           stream.getTracks().forEach(t => t.stop())
