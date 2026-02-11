@@ -162,7 +162,7 @@ Extract nationality.`,
         .eq("id", sessionId);
 
       return new Response(
-        JSON.stringify({ error: scannedData.rejection_reason || "Ảnh không phải giấy tờ tùy thân. Vui lòng chụp lại ảnh CCCD/Hộ chiếu/Visa." }),
+        JSON.stringify({ error: "Ảnh không phải giấy tờ tùy thân. Vui lòng chụp rõ mặt trước hoặc mặt sau của CCCD, Hộ chiếu hoặc Visa." }),
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
