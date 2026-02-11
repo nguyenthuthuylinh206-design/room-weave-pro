@@ -237,21 +237,31 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
       {/* Scan overlay */}
       {!isLoading && (
         <div className="absolute inset-0 pointer-events-none">
-          {/* Semi-transparent edges */}
-          <div className="absolute inset-0 bg-black/40" style={{
-            maskImage: 'radial-gradient(circle at center, transparent 28%, black 30%)',
-            WebkitMaskImage: 'radial-gradient(circle at center, transparent 28%, black 30%)',
-          }} />
+          {/* Rectangular mask - 4 dark panels around scan area */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            {/* Scan box reference */}
+            <div className="relative" style={{ width: '56vmin', height: '56vmin' }}>
+              {/* Top overlay */}
+              <div className="absolute bottom-full left-[-50vw] right-[-50vw] top-[-50vh] bg-black/50" />
+              {/* Bottom overlay */}
+              <div className="absolute top-full left-[-50vw] right-[-50vw] bottom-[-50vh] bg-black/50" />
+              {/* Left overlay */}
+              <div className="absolute top-0 bottom-0 right-full left-[-50vw] bg-black/50" />
+              {/* Right overlay */}
+              <div className="absolute top-0 bottom-0 left-full right-[-50vw] bg-black/50" />
 
-          {/* Corner markers - WeChat style white with pulse */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" style={{ width: '65vmin', height: '65vmin', animationDuration: '3s' }}>
-            <div className="absolute top-0 left-0 w-7 h-7 border-t-[3px] border-l-[3px] border-white rounded-tl-md" />
-            <div className="absolute top-0 right-0 w-7 h-7 border-t-[3px] border-r-[3px] border-white rounded-tr-md" />
-            <div className="absolute bottom-0 left-0 w-7 h-7 border-b-[3px] border-l-[3px] border-white rounded-bl-md" />
-            <div className="absolute bottom-0 right-0 w-7 h-7 border-b-[3px] border-r-[3px] border-white rounded-br-md" />
+              {/* Border around scan area */}
+              <div className="absolute inset-0 border border-white/20 rounded-sm" />
 
-            {/* Scan line */}
-            <div className="absolute left-1 right-1 h-[2px] bg-gradient-to-r from-transparent via-white/80 to-transparent animate-qr-scan" />
+              {/* Corner markers */}
+              <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-white rounded-tl-sm" />
+              <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-white rounded-tr-sm" />
+              <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-white rounded-bl-sm" />
+              <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-white rounded-br-sm" />
+
+              {/* Scan line */}
+              <div className="absolute left-1 right-1 h-[1px] bg-gradient-to-r from-transparent via-white/60 to-transparent animate-qr-scan" />
+            </div>
           </div>
 
           {/* Zoom indicator */}
@@ -264,7 +274,7 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
 
           {/* Guide text */}
           <div className="absolute bottom-28 left-0 right-0 text-center">
-            <p className="text-white/90 text-xs">Hướng camera vào mã QR</p>
+            <p className="text-white/80 text-[11px]">Hướng camera vào mã QR</p>
           </div>
         </div>
       )}
