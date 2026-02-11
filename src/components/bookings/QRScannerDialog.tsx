@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { X, ZoomIn, Loader2 } from 'lucide-react'
+import { X, ZoomIn, Loader2, Flashlight, FlashlightOff } from 'lucide-react'
 import { parseCCCDQR } from '@/lib/parseCCCDQR'
 import { ScannedDocumentData } from './DocumentScanner'
 import { toast } from 'sonner'
@@ -11,8 +11,8 @@ interface QRScannerDialogProps {
 }
 
 const SCAN_INTERVAL_MS = 200
-const FRAMES_BEFORE_ZOOM = 15 // ~3 seconds
-const ZOOM_DURATION_FRAMES = 15 // ~3 seconds at zoom
+const FRAMES_BEFORE_ZOOM = 15
+const ZOOM_DURATION_FRAMES = 15
 const SCAN_CANVAS_WIDTH = 1280
 const SCAN_CANVAS_HEIGHT = 720
 
@@ -28,6 +28,8 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
 
   const [isLoading, setIsLoading] = useState(true)
   const [isZoomed, setIsZoomed] = useState(false)
+  const [isFlashOn, setIsFlashOn] = useState(false)
+  const [hasTorch, setHasTorch] = useState(false)
 
   const stopScanner = useCallback(() => {
     stoppedRef.current = true
@@ -63,6 +65,16 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
     return false
   }, [])
 
+  const toggleFlash = useCallback(async () => {
+    const track = streamRef.current?.getVideoTracks()[0]
+    if (!track) return
+    try {
+      const newState = !isFlashOn
+      await track.applyConstraints({ advanced: [{ torch: newState } as any] })
+      setIsFlashOn(newState)
+    } catch { /* ignore */ }
+  }, [isFlashOn])
+
   useEffect(() => {
     if (!open) return
 
@@ -72,6 +84,8 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
     isZoomedRef.current = false
     setIsLoading(true)
     setIsZoomed(false)
+    setIsFlashOn(false)
+    setHasTorch(false)
 
     let scanModule: { scan: (source: HTMLCanvasElement) => Promise<{ text: string } | null>, ready: () => Promise<void> } | null = null
 
@@ -83,22 +97,18 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
 
     const startScanning = async () => {
       try {
-        // Load WeChat scanner module
         const mod = await import('qr-scanner-wechat')
         scanModule = mod
-
-        // Preload WASM
         await mod.ready()
 
         if (stoppedRef.current) return
 
-        // Open camera
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
           video: {
             facingMode: 'environment',
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
+            width: { ideal: 4096 },
+            height: { ideal: 2160 },
             // @ts-ignore
             focusMode: { ideal: 'continuous' },
             advanced: [{ focusMode: 'continuous' } as any],
@@ -117,47 +127,41 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
           await videoRef.current.play()
         }
 
-        // Apply continuous autofocus
         const track = stream.getVideoTracks()[0]
         if (track) {
           try {
             const caps = (track as any).getCapabilities?.()
             if (caps?.focusMode?.includes('continuous')) {
-              await track.applyConstraints({
-                advanced: [{ focusMode: 'continuous' } as any],
-              })
+              await track.applyConstraints({ advanced: [{ focusMode: 'continuous' } as any] })
+            }
+            if (caps?.torch) {
+              setHasTorch(true)
             }
           } catch { /* ignore */ }
         }
 
         setIsLoading(false)
 
-        // Start scan loop
         let lastScanTime = 0
 
         const scanFrame = async (timestamp: number) => {
           if (stoppedRef.current) return
-
           scanLoopRef.current = requestAnimationFrame(scanFrame)
-
           if (timestamp - lastScanTime < SCAN_INTERVAL_MS) return
           lastScanTime = timestamp
 
           const video = videoRef.current
           if (!video || !scanModule || video.readyState < 2) return
 
-          // Draw video frame to scan canvas (downscaled to 720p)
           ctx.drawImage(video, 0, 0, SCAN_CANVAS_WIDTH, SCAN_CANVAS_HEIGHT)
 
           try {
             const result = await scanModule.scan(canvas)
-
             if (stoppedRef.current) return
 
             if (result?.text) {
               const parsed = parseCCCDQR(result.text)
               if (parsed) {
-                // Reset zoom before closing
                 await applyZoom(1)
                 toast.success('Đã đọc QR CCCD thành công')
                 onScanSuccess(parsed)
@@ -166,7 +170,6 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
               } else {
                 toast.error('QR không phải định dạng CCCD')
               }
-              // Reset counters on any detection
               failCountRef.current = 0
               if (isZoomedRef.current) {
                 await applyZoom(1)
@@ -174,13 +177,10 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
                 setIsZoomed(false)
               }
             } else {
-              // No QR detected
               failCountRef.current++
-
               if (isZoomedRef.current) {
                 zoomFrameCountRef.current++
                 if (zoomFrameCountRef.current >= ZOOM_DURATION_FRAMES) {
-                  // Zoom timeout, reset
                   await applyZoom(1)
                   isZoomedRef.current = false
                   setIsZoomed(false)
@@ -188,7 +188,6 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
                   zoomFrameCountRef.current = 0
                 }
               } else if (failCountRef.current >= FRAMES_BEFORE_ZOOM) {
-                // Try zooming in
                 const zoomed = await applyZoom(2)
                 if (zoomed) {
                   isZoomedRef.current = true
@@ -212,17 +211,13 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
     }
 
     startScanning()
-
-    return () => {
-      stopScanner()
-    }
+    return () => { stopScanner() }
   }, [open, onScanSuccess, handleClose, stopScanner, applyZoom])
 
   if (!open) return null
 
   return (
     <div className="fixed inset-0 z-[100] bg-black">
-      {/* Camera feed */}
       <video
         ref={videoRef}
         className="w-full h-full object-cover"
@@ -239,42 +234,37 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
         </div>
       )}
 
-      {/* Overlay with transparent center */}
+      {/* Scan overlay */}
       {!isLoading && (
         <div className="absolute inset-0 pointer-events-none">
           {/* Semi-transparent edges */}
-          <div className="absolute inset-0 bg-black/50" style={{
-            maskImage: 'radial-gradient(circle at center, transparent 30%, black 31%)',
-            WebkitMaskImage: 'radial-gradient(circle at center, transparent 30%, black 31%)',
+          <div className="absolute inset-0 bg-black/40" style={{
+            maskImage: 'radial-gradient(circle at center, transparent 28%, black 30%)',
+            WebkitMaskImage: 'radial-gradient(circle at center, transparent 28%, black 30%)',
           }} />
 
-          {/* Corner markers */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ width: '70vmin', height: '70vmin' }}>
-            <div className="absolute top-0 left-0 w-8 h-8 border-t-3 border-l-3 border-green-400 rounded-tl-lg" />
-            <div className="absolute top-0 right-0 w-8 h-8 border-t-3 border-r-3 border-green-400 rounded-tr-lg" />
-            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-3 border-l-3 border-green-400 rounded-bl-lg" />
-            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-3 border-r-3 border-green-400 rounded-br-lg" />
+          {/* Corner markers - WeChat style white with pulse */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" style={{ width: '65vmin', height: '65vmin', animationDuration: '3s' }}>
+            <div className="absolute top-0 left-0 w-7 h-7 border-t-[3px] border-l-[3px] border-white rounded-tl-md" />
+            <div className="absolute top-0 right-0 w-7 h-7 border-t-[3px] border-r-[3px] border-white rounded-tr-md" />
+            <div className="absolute bottom-0 left-0 w-7 h-7 border-b-[3px] border-l-[3px] border-white rounded-bl-md" />
+            <div className="absolute bottom-0 right-0 w-7 h-7 border-b-[3px] border-r-[3px] border-white rounded-br-md" />
 
-            {/* Scan line animation */}
-            <div className="absolute left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-green-400 to-transparent animate-qr-scan" />
+            {/* Scan line */}
+            <div className="absolute left-1 right-1 h-[2px] bg-gradient-to-r from-transparent via-white/80 to-transparent animate-qr-scan" />
           </div>
 
           {/* Zoom indicator */}
           {isZoomed && (
-            <div className="absolute top-16 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/60 px-3 py-1.5 rounded-full">
-              <ZoomIn className="h-3.5 w-3.5 text-yellow-400" />
-              <span className="text-yellow-400 text-xs font-medium">2x Zoom</span>
+            <div className="absolute top-16 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/50 px-3 py-1 rounded-full">
+              <ZoomIn className="h-3.5 w-3.5 text-white/80" />
+              <span className="text-white/80 text-xs">2x</span>
             </div>
           )}
 
           {/* Guide text */}
-          <div className="absolute bottom-24 left-0 right-0 text-center">
-            <p className="text-white text-sm font-medium drop-shadow-lg">
-              Hướng camera vào mã QR
-            </p>
-            <p className="text-white/60 text-xs mt-1">
-              Tự động nhận diện mã QR trong khung hình
-            </p>
+          <div className="absolute bottom-28 left-0 right-0 text-center">
+            <p className="text-white/90 text-xs">Hướng camera vào mã QR</p>
           </div>
         </div>
       )}
@@ -282,10 +272,21 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
       {/* Close button */}
       <button
         onClick={handleClose}
-        className="absolute top-4 right-4 z-[101] w-10 h-10 rounded-full bg-black/50 flex items-center justify-center text-white pointer-events-auto"
+        className="absolute top-4 right-4 z-[101] w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white"
       >
         <X className="h-5 w-5" />
       </button>
+
+      {/* Flash toggle */}
+      {hasTorch && !isLoading && (
+        <button
+          type="button"
+          onClick={toggleFlash}
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[101] w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white"
+        >
+          {isFlashOn ? <FlashlightOff className="h-5 w-5" /> : <Flashlight className="h-5 w-5" />}
+        </button>
+      )}
     </div>
   )
 }
