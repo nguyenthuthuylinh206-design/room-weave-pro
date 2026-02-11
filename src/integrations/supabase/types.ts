@@ -1366,6 +1366,64 @@ export type Database = {
           },
         ]
       }
+      document_scan_sessions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          document_type: string
+          id: string
+          image_url: string | null
+          scanned_data: Json | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          document_type?: string
+          id?: string
+          image_url?: string | null
+          scanned_data?: Json | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          document_type?: string
+          id?: string
+          image_url?: string | null
+          scanned_data?: Json | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_scan_sessions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_scan_sessions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_scan_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_logs: {
         Row: {
           clicked_at: string | null

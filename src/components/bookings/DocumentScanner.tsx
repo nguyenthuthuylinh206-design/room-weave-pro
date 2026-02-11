@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { Camera, Upload, Loader2, CheckCircle2, AlertCircle, ScanLine, X } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Camera, Upload, Loader2, CheckCircle2, AlertCircle, ScanLine, X, Smartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { compressImage } from '@/lib/imageCompression'
 import { toast } from 'sonner'
 import { useUser } from '@/hooks/useUser'
+import { WebcamCaptureDialog } from './WebcamCaptureDialog'
 
 export interface ScannedDocumentData {
   full_name: string
@@ -32,45 +33,35 @@ const DOCUMENT_TYPES = [
   { value: 'visa', label: 'Visa' },
 ]
 
-type ScanStatus = 'idle' | 'uploading' | 'scanning' | 'success' | 'error'
+type ScanStatus = 'idle' | 'uploading' | 'scanning' | 'success' | 'error' | 'waiting_mobile'
 
 export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
-  const { tenantId } = useUser()
+  const { tenantId, user } = useUser()
   const [documentType, setDocumentType] = useState('cccd')
   const [status, setStatus] = useState<ScanStatus>('idle')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [scannedData, setScannedData] = useState<ScannedDocumentData | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
+  const [showWebcam, setShowWebcam] = useState(false)
+  const [mobileSessionId, setMobileSessionId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const cameraInputRef = useRef<HTMLInputElement>(null)
 
-  const handleFile = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      toast.error('Vui lòng chọn file ảnh')
-      return
-    }
-
+  // Process image (shared between file upload and webcam capture)
+  const processImage = async (base64: string) => {
     setStatus('uploading')
     setErrorMessage('')
     setScannedData(null)
+    setPreviewUrl(base64)
 
     try {
-      // Compress and convert to base64
-      const base64 = await compressImage(file, 0.8, 1024, 1024)
-      setPreviewUrl(base64)
-
       setStatus('scanning')
 
-      // Call edge function
       const { data, error } = await supabase.functions.invoke('scan-guest-document', {
         body: { imageBase64: base64, documentType },
       })
 
       if (error) throw error
-
-      if (data?.error) {
-        throw new Error(data.error)
-      }
+      if (data?.error) throw new Error(data.error)
 
       const extractedData = data.data as ScannedDocumentData
       setScannedData(extractedData)
@@ -105,15 +96,106 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) handleFile(file)
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast.error('Vui lòng chọn file ảnh')
+        return
+      }
+      compressImage(file, 0.8, 1024, 1024).then(processImage)
+    }
     e.target.value = ''
   }
+
+  // Start mobile scan session
+  const startMobileScan = async () => {
+    if (!tenantId || !user?.id) {
+      toast.error('Vui lòng đăng nhập')
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('document_scan_sessions')
+        .insert({
+          tenant_id: tenantId,
+          created_by: user.id,
+          document_type: documentType,
+          status: 'pending',
+        })
+        .select('id')
+        .single()
+
+      if (error) throw error
+
+      setMobileSessionId(data.id)
+      setStatus('waiting_mobile')
+
+      // Build the scan URL
+      const scanUrl = `${window.location.origin}/scan-document/${data.id}`
+
+      // Try to send push notification
+      try {
+        await supabase.functions.invoke('send-push-notification', {
+          body: {
+            userId: user.id,
+            tenantId,
+            title: 'Chụp giấy tờ',
+            body: 'Nhấn để chụp ảnh giấy tờ tùy thân',
+            url: `/scan-document/${data.id}`,
+            excludeEndpoints: [], // send to ALL devices including current
+          },
+        })
+        toast.success('Đã gửi thông báo đến điện thoại')
+      } catch {
+        // If push fails, show QR/link fallback
+        toast.info('Mở link trên điện thoại để chụp ảnh', { description: scanUrl, duration: 10000 })
+      }
+    } catch (err: any) {
+      console.error('Failed to create scan session:', err)
+      toast.error('Không thể tạo phiên quét')
+    }
+  }
+
+  // Listen for mobile scan completion via realtime
+  useEffect(() => {
+    if (!mobileSessionId || status !== 'waiting_mobile') return
+
+    const channel = supabase
+      .channel(`scan-session-${mobileSessionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'document_scan_sessions',
+          filter: `id=eq.${mobileSessionId}`,
+        },
+        (payload) => {
+          const updated = payload.new as any
+          if (updated.status === 'completed' && updated.scanned_data) {
+            const extractedData = updated.scanned_data as ScannedDocumentData
+            setScannedData(extractedData)
+            setPreviewUrl(updated.image_url || null)
+            setStatus('success')
+            setMobileSessionId(null)
+            onScanComplete(extractedData, documentType, updated.image_url)
+            toast.success('Đã nhận ảnh từ điện thoại!')
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [mobileSessionId, status, documentType, onScanComplete])
 
   const reset = () => {
     setStatus('idle')
     setPreviewUrl(null)
     setScannedData(null)
     setErrorMessage('')
+    setMobileSessionId(null)
   }
 
   const isProcessing = status === 'uploading' || status === 'scanning'
@@ -126,8 +208,8 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
       </div>
 
       {/* Document type + actions row */}
-      <div className="flex items-center gap-2">
-        <Select value={documentType} onValueChange={setDocumentType} disabled={isProcessing}>
+      <div className="flex items-center gap-2 flex-wrap">
+        <Select value={documentType} onValueChange={setDocumentType} disabled={isProcessing || status === 'waiting_mobile'}>
           <SelectTrigger className="h-8 w-[140px] text-xs">
             <SelectValue />
           </SelectTrigger>
@@ -143,8 +225,8 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
           variant="outline"
           size="sm"
           className="h-8 text-xs"
-          disabled={isProcessing}
-          onClick={() => cameraInputRef.current?.click()}
+          disabled={isProcessing || status === 'waiting_mobile'}
+          onClick={() => setShowWebcam(true)}
         >
           <Camera className="h-3.5 w-3.5 mr-1" />
           Chụp ảnh
@@ -155,29 +237,32 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
           variant="outline"
           size="sm"
           className="h-8 text-xs"
-          disabled={isProcessing}
+          disabled={isProcessing || status === 'waiting_mobile'}
           onClick={() => fileInputRef.current?.click()}
         >
           <Upload className="h-3.5 w-3.5 mr-1" />
           Tải ảnh
         </Button>
 
-        {(status === 'success' || status === 'error') && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs"
+          disabled={isProcessing || status === 'waiting_mobile'}
+          onClick={startMobileScan}
+        >
+          <Smartphone className="h-3.5 w-3.5 mr-1" />
+          Chụp bằng ĐT
+        </Button>
+
+        {(status === 'success' || status === 'error' || status === 'waiting_mobile') && (
           <Button type="button" variant="ghost" size="sm" className="h-8 text-xs ml-auto" onClick={reset}>
             <X className="h-3.5 w-3.5 mr-1" />
             Xóa
           </Button>
         )}
 
-        {/* Hidden file inputs */}
-        <input
-          ref={cameraInputRef}
-          type="file"
-          accept="image/*"
-          
-          className="hidden"
-          onChange={handleFileInput}
-        />
         <input
           ref={fileInputRef}
           type="file"
@@ -195,8 +280,16 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
         </div>
       )}
 
+      {/* Waiting for mobile */}
+      {status === 'waiting_mobile' && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <span>Đang chờ chụp từ điện thoại...</span>
+        </div>
+      )}
+
       {/* Preview + Result */}
-      {previewUrl && !isProcessing && (
+      {previewUrl && !isProcessing && status !== 'waiting_mobile' && (
         <div className="flex gap-3">
           <img
             src={previewUrl}
@@ -227,6 +320,28 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
           )}
         </div>
       )}
+
+      {/* Success from mobile (no preview image locally) */}
+      {!previewUrl && status === 'success' && scannedData && (
+        <div className="text-xs space-y-0.5">
+          <div className="flex items-center gap-1 text-green-600 font-medium mb-1">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Đã nhận từ điện thoại
+          </div>
+          <div><span className="text-muted-foreground">Họ tên:</span> {scannedData.full_name}</div>
+          <div><span className="text-muted-foreground">Số GT:</span> {scannedData.id_number}</div>
+          {scannedData.date_of_birth && (
+            <div><span className="text-muted-foreground">Ngày sinh:</span> {scannedData.date_of_birth}</div>
+          )}
+        </div>
+      )}
+
+      {/* Webcam dialog */}
+      <WebcamCaptureDialog
+        open={showWebcam}
+        onOpenChange={setShowWebcam}
+        onCapture={processImage}
+      />
     </div>
   )
 }

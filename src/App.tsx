@@ -117,6 +117,7 @@ import NotificationHistoryPage from "./pages/NotificationHistoryPage";
 import StaffManagementPage from "./pages/staff/StaffManagementPage";
 import MyTasksPage from "./pages/MyTasksPage";
 import PaymentQRPage from "./pages/payment/PaymentQRPage";
+import ScanDocumentPage from "./pages/scan/ScanDocumentPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -149,6 +150,12 @@ const router = createBrowserRouter([
   {
     path: "/payment-qr/:paymentId",
     element: <PaymentQRPage />,
+  },
+  
+  // Document Scan Page - Public route (mobile capture)
+  {
+    path: "/scan-document/:sessionId",
+    element: <ScanDocumentPage />,
   },
   
   // Onboarding - requires authentication but not tenant setup
