@@ -1,11 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { X } from 'lucide-react'
 import { parseCCCDQR } from '@/lib/parseCCCDQR'
 import { ScannedDocumentData } from './DocumentScanner'
 import { toast } from 'sonner'
@@ -18,7 +13,7 @@ interface QRScannerDialogProps {
 
 export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScannerDialogProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null)
-  const readerElId = 'qr-reader'
+  const readerElId = 'qr-reader-fullscreen'
 
   const stopScanner = useCallback(async () => {
     try {
@@ -32,24 +27,41 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
     scannerRef.current = null
   }, [])
 
+  const handleClose = useCallback(() => {
+    stopScanner()
+    onOpenChange(false)
+  }, [stopScanner, onOpenChange])
+
   useEffect(() => {
     if (!open) return
 
-    // Small delay to let the dialog DOM render
     const timeout = setTimeout(async () => {
       try {
         const scanner = new Html5Qrcode(readerElId)
         scannerRef.current = scanner
 
         await scanner.start(
-          { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
+          {
+            facingMode: 'environment',
+          },
+          {
+            fps: 30,
+            qrbox: (viewfinderWidth, viewfinderHeight) => {
+              const size = Math.min(viewfinderWidth, viewfinderHeight) * 0.75
+              return { width: Math.floor(size), height: Math.floor(size) }
+            },
+            aspectRatio: 1.0,
+            disableFlip: false,
+            experimentalFeatures: {
+              useBarCodeDetectorIfSupported: true,
+            },
+          } as any,
           (decodedText) => {
             const parsed = parseCCCDQR(decodedText)
             if (parsed) {
               toast.success('Đã đọc QR CCCD thành công')
               onScanSuccess(parsed)
-              onOpenChange(false)
+              handleClose()
             } else {
               toast.error('QR không phải định dạng CCCD')
             }
@@ -59,7 +71,7 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
       } catch (err: any) {
         console.error('QR scanner error:', err)
         toast.error('Không thể mở camera')
-        onOpenChange(false)
+        handleClose()
       }
     }, 300)
 
@@ -67,19 +79,56 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
       clearTimeout(timeout)
       stopScanner()
     }
-  }, [open, onOpenChange, onScanSuccess, stopScanner])
+  }, [open, onScanSuccess, handleClose, stopScanner])
+
+  if (!open) return null
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) stopScanner(); onOpenChange(v) }}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Quét QR trên CCCD</DialogTitle>
-        </DialogHeader>
-        <div id={readerElId} className="w-full" />
-        <p className="text-xs text-muted-foreground text-center">
-          Đưa mã QR trên CCCD gắn chip vào vùng quét
-        </p>
-      </DialogContent>
-    </Dialog>
+    <div className="fixed inset-0 z-[100] bg-black">
+      {/* Camera feed */}
+      <div id={readerElId} className="w-full h-full [&_video]:object-cover [&_video]:w-full [&_video]:h-full" />
+
+      {/* Overlay with transparent center */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Semi-transparent edges */}
+        <div className="absolute inset-0 bg-black/50" style={{
+          maskImage: 'radial-gradient(circle at center, transparent 30%, black 31%)',
+          WebkitMaskImage: 'radial-gradient(circle at center, transparent 30%, black 31%)',
+        }} />
+
+        {/* Corner markers */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ width: '70vmin', height: '70vmin' }}>
+          {/* Top-left */}
+          <div className="absolute top-0 left-0 w-8 h-8 border-t-3 border-l-3 border-green-400 rounded-tl-lg" />
+          {/* Top-right */}
+          <div className="absolute top-0 right-0 w-8 h-8 border-t-3 border-r-3 border-green-400 rounded-tr-lg" />
+          {/* Bottom-left */}
+          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-3 border-l-3 border-green-400 rounded-bl-lg" />
+          {/* Bottom-right */}
+          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-3 border-r-3 border-green-400 rounded-br-lg" />
+
+          {/* Scan line animation */}
+          <div className="absolute left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-green-400 to-transparent animate-qr-scan" />
+        </div>
+
+        {/* Guide text */}
+        <div className="absolute bottom-24 left-0 right-0 text-center">
+          <p className="text-white text-sm font-medium drop-shadow-lg">
+            Di chuyển camera đến mã QR
+          </p>
+          <p className="text-white/60 text-xs mt-1">
+            Đặt mã QR trên CCCD vào khung hình
+          </p>
+        </div>
+      </div>
+
+      {/* Close button */}
+      <button
+        onClick={handleClose}
+        className="absolute top-4 right-4 z-[101] w-10 h-10 rounded-full bg-black/50 flex items-center justify-center text-white pointer-events-auto"
+      >
+        <X className="h-5 w-5" />
+      </button>
+    </div>
   )
 }
