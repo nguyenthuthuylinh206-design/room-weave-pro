@@ -1,39 +1,78 @@
 
 
-## Fix 4 van de Multi-Hotel
+## Cai thien UX cho All Hotels mode - 4 form tao moi
 
-### 1. `usePendingCounts.ts` - Xoa duplicate filter hotel_id
+### Tong quan
 
-**Dong 64 va 69**: `distributionsQuery` goi `.eq('hotel_id', hotelId)` 2 lan. Xoa dong 69.
-
----
-
-### 2. `useBookingStats.ts` - Thay `hotelId !== 'all'` bang `isAllHotelsMode`
-
-**Van de**: 3 hook (`useBookingStats`, `useTodayCheckouts`, `useTodayCheckins`) deu dung pattern `hotelId && hotelId !== 'all'` thay vi `isAllHotelsMode` chuan.
-
-**Thay doi** (ap dung cho ca 3 hook):
-- Import `isAllHotelsMode` tu `useHotelContext()`
-- Thay tat ca `if (hotelId && hotelId !== 'all')` thanh `if (!isAllHotelsMode && hotelId)`
-- Them `isAllHotelsMode` vao `queryKey` de cache dung khi chuyen mode
+Them guard UI cho 4 form tao moi: khi nguoi dung dang o che do "Tat ca khach san", hien thi canh bao va disable nut submit. Pattern tham khao tu `ItemFormPage.tsx` va `RoomFormPage.tsx` da lam dung.
 
 ---
 
-### 3. `useAvailableRooms.ts` - Tuong tu, thay `hotelId !== 'all'`
+### 1. `src/pages/inventory/CreateDistributionPage.tsx`
 
-**Dong 85**: Dung `hotelId && hotelId !== 'all'`. Thay bang `!isAllHotelsMode && hotelId` (hook da import `isAllHotelsMode` roi).
+- Import `useHotelContext` va `Alert, AlertDescription` va `AlertCircle`
+- Lay `isAllHotelsMode` tu `useHotelContext()`
+- Them Alert canh bao ngay tren DistributionForm khi `isAllHotelsMode`
+- Disable nut "Tao phieu giao hang": them `isAllHotelsMode` vao dieu kien `disabled`
+- Them guard trong `handleSubmit`: return som voi toast.error neu `isAllHotelsMode`
 
 ---
 
-### 4. `useStaffStatistics.ts` - Ho tro All Hotels mode
+### 2. `src/pages/maintenance/MaintenanceRequestForm.tsx` (Desktop)
 
-**Van de**: Ca 3 hook (`useStaffStatistics`, `useCalculateStaffStatistics`, `useTopPerformingStaff`) throw error khi `selectedHotel.id` null (All Hotels mode). Query chi filter theo 1 hotel.
+- Import `useHotelContext`
+- Lay `isAllHotelsMode` tu `useHotelContext()`
+- Them Alert canh bao truoc form content khi `isAllHotelsMode`
+- Disable nut submit: them `isAllHotelsMode` vao disabled
 
-**Thay doi**:
-- Import `isAllHotelsMode` tu `useHotelContext()`
-- `useStaffStatistics`: Bo dieu kien `!selectedHotel?.id` throw error. Khi `isAllHotelsMode`, bo `.eq('hotel_id', ...)` de lay tat ca hotels. Them `isAllHotelsMode` vao queryKey. Doi `enabled` thanh `!!tenant?.id` (bo yeu cau hotel).
-- `useTopPerformingStaff`: Tuong tu, khi `isAllHotelsMode` bo filter hotel_id. Doi `enabled` bo yeu cau hotel.
-- `useCalculateStaffStatistics`: Giu nguyen vi mutation can hotel cu the de tinh toan.
+---
+
+### 3. `src/components/maintenance/MobileMaintenanceRequestForm.tsx` (Mobile)
+
+- Import `useHotelContext`
+- Lay `isAllHotelsMode` tu `useHotelContext()`
+- Them Alert canh bao o dau form khi `isAllHotelsMode`
+- Disable nut "Tiep theo" (Step 1) va nut submit (Step 3)
+
+---
+
+### 4. `src/pages/laundry/CreateBatchPage.tsx`
+
+- Import `useHotelContext` va `Alert, AlertDescription, AlertCircle`
+- Lay `isAllHotelsMode` tu `useHotelContext()`
+- Them Alert canh bao truoc Stepper khi `isAllHotelsMode`
+- Disable Step 1 "Tiep theo" button - can kiem tra `CreateBatchStep1` co prop disabled khong
+
+---
+
+### Noi dung Alert chung
+
+```
+Vui long chon mot khach san cu the de tao moi. Che do "Tat ca khach san" chi ho tro xem du lieu.
+```
+
+### Pattern chung (tham khao ItemFormPage)
+
+```tsx
+import { AlertCircle } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useHotelContext } from '@/contexts/HotelContext'
+
+const { isAllHotelsMode } = useHotelContext()
+
+// Alert
+{isAllHotelsMode && (
+  <Alert variant="destructive" className="py-2">
+    <AlertCircle className="h-4 w-4" />
+    <AlertDescription className="text-sm">
+      Vui long chon mot khach san cu the de tao moi. Che do "Tat ca khach san" chi ho tro xem du lieu.
+    </AlertDescription>
+  </Alert>
+)}
+
+// Disable button
+<Button disabled={isPending || isAllHotelsMode}>...</Button>
+```
 
 ---
 
@@ -41,8 +80,8 @@
 
 | # | File | Thay doi |
 |---|------|---------|
-| 1 | `src/hooks/usePendingCounts.ts` | Xoa dong 69 (duplicate `.eq('hotel_id')`) |
-| 2 | `src/hooks/useBookingStats.ts` | 3 hooks: thay `hotelId !== 'all'` bang `isAllHotelsMode`, them vao queryKey |
-| 3 | `src/hooks/useAvailableRooms.ts` | Thay `hotelId !== 'all'` bang `!isAllHotelsMode` |
-| 4 | `src/hooks/useStaffStatistics.ts` | 2 hooks ho tro All Hotels mode |
+| 1 | `src/pages/inventory/CreateDistributionPage.tsx` | Alert + disable button + guard submit |
+| 2 | `src/pages/maintenance/MaintenanceRequestForm.tsx` | Alert + disable button |
+| 3 | `src/components/maintenance/MobileMaintenanceRequestForm.tsx` | Alert + disable buttons |
+| 4 | `src/pages/laundry/CreateBatchPage.tsx` | Alert + disable step navigation |
 
