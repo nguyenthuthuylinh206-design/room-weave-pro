@@ -1,90 +1,85 @@
 
 
-## Them chuc nang quet ma QR de lay thong tin khach hang
+## Cai thien QR Scanner - Giong WeChat, nhanh va nhay hon
 
-### Tong quan
+### Van de hien tai
 
-Them nut "Quet QR" vao `DocumentScanner` de quet ma QR tren CCCD/CMND gán chip. Ma QR tren CCCD Viet Nam chua thong tin ca nhan duoi dang chuoi phan cach boi ky tu `|`, bao gom: so CCCD, so CMND cu, ho ten, ngay sinh, gioi tinh, dia chi, ngay cap.
+1. **Vung quet nho co dinh (250x250px)** - Phai can chinh chinh xac QR vao o vuong nho, rat kho khi cam tay
+2. **FPS thap (10fps)** - Khong du nhanh de bat QR khi tay rung hoac goc nghieng
+3. **Khong xu ly duoc loa** - Camera khong duoc cau hinh de xu ly anh sang phan chieu
+4. **Giao dien nho trong dialog** - Vung camera bi gioi han boi dialog nho
 
-### Cach hoat dong
+### Giai phap: Thiet ke lai hoan toan theo phong cach WeChat
 
-1. Nhan vien an nut "Quet QR" -> mo camera
-2. Dua QR code tren CCCD vao vung quet
-3. Thu vien doc va giai ma QR -> parse chuoi pipe-separated
-4. Tu dong dien thong tin khach hang vao form (khong can goi AI/edge function)
+| # | File | Thay doi |
+|---|------|---------|
+| 1 | `src/components/bookings/QRScannerDialog.tsx` | Viet lai hoan toan - fullscreen, scan toan bo khung hinh, UI giong WeChat |
 
-### Dinh dang QR code CCCD Viet Nam
+### Chi tiet thay doi
 
-QR code tren CCCD gán chip chua chuoi dang:
+#### 1. Fullscreen overlay thay vi dialog nho
+
+- Dung `position: fixed inset-0` thay vi `Dialog` component
+- Camera chiem toan bo man hinh - giong WeChat
+- Nut dong (X) o goc tren
+
+#### 2. Scan toan bo khung hinh, bo o vuong gioi han
+
+- Doi `qrbox` tu `{ width: 250, height: 250 }` sang `undefined` hoac ratio lon (70-80% khung hinh)
+- Thu vien se quet toan bo vung camera thay vi chi trong o vuong nho
+- Nguoi dung chi can dua QR vao bat ky dau trong khung hinh
+
+#### 3. Tang FPS va do nhay
+
+- Tang `fps` tu 10 len 30 (quet 30 lan/giay)
+- Bat `disableFlip: false` de quet ca mat truoc/sau
+- Dung `aspectRatio: 1.0` de camera vuong, de can chinh hon
+- Bat `experimentalFeatures: { useBarCodeDetectorIfSupported: true }` de dung native BarcodeDetector API (nhanh hon nhieu tren Chrome/Android)
+
+#### 4. UI overlay giong WeChat
+
+- Ve animation scan line chay tu tren xuong (CSS animation)
+- 4 goc bo tron mau xanh o giua (chi de tham khao, khong bat buoc can chinh vao)
+- Text huong dan "Di chuyen camera den ma QR"
+- Nen ban trong (semi-transparent overlay) xung quanh vung trung tam
+
+#### 5. Cau hinh camera tot hon cho chong loa
+
+- Dung `advanced: [{ torch: false }]` - tat flash de giam loa
+- Request camera resolution cao: `width: { ideal: 1280 }, height: { ideal: 720 }`
+- Camera resolution cao giup doc QR tot hon khi bi loa 1 phan
+
+### Cau truc code moi (QRScannerDialog.tsx)
 
 ```text
-012345678901|123456789|Nguyen Van A|01011990|Nam|TP Ho Chi Minh, Quan 1, ....|01012021
+// Thay doi chinh:
+// 1. Fullscreen fixed overlay thay vi Dialog
+// 2. Config camera:
+await scanner.start(
+  { facingMode: 'environment' },
+  {
+    fps: 30,                    // 3x nhanh hon
+    qrbox: { width: 280, height: 280 },  // Lon hon, hoac dung function de responsive
+    aspectRatio: 1.0,
+    disableFlip: false,
+    experimentalFeatures: {
+      useBarCodeDetectorIfSupported: true  // Native API, nhanh hon
+    }
+  },
+  onSuccess,
+  onFailure
+)
+
+// 3. CSS overlay animation
+// - Scan line animation (keyframes translateY 0->100%)
+// - 4 corner markers
+// - Semi-transparent background
 ```
 
-Cac truong phan cach boi `|`:
-- Field 0: So CCCD (12 so)
-- Field 1: So CMND cu (9 so, co the rong)
-- Field 2: Ho ten
-- Field 3: Ngay sinh (ddMMyyyy)
-- Field 4: Gioi tinh (Nam/Nu)
-- Field 5: Dia chi thuong tru
-- Field 6: Ngay cap (ddMMyyyy)
+### Ket qua mong doi
 
-### Danh sach thay doi
-
-| # | File | Loai | Mo ta |
-|---|------|------|-------|
-| 1 | `package.json` | Them dependency | Cai dat `html5-qrcode` |
-| 2 | `src/components/bookings/QRScannerDialog.tsx` | Tao moi | Component dialog chua camera QR scanner su dung `html5-qrcode`, parse ket qua CCCD QR |
-| 3 | `src/components/bookings/DocumentScanner.tsx` | Sua | Them nut "Quet QR" va tich hop `QRScannerDialog` |
-| 4 | `src/lib/parseCCCDQR.ts` | Tao moi | Ham parse chuoi QR CCCD thanh `ScannedDocumentData` |
-
-### Chi tiet ky thuat
-
-#### 1. `src/lib/parseCCCDQR.ts`
-
-Ham tien ich parse chuoi QR code CCCD:
-
-```text
-export function parseCCCDQR(raw: string): ScannedDocumentData | null {
-  const parts = raw.split('|')
-  if (parts.length < 6) return null  // Khong phai QR CCCD
-
-  const idNumber = parts[0]?.trim()
-  if (!/^\d{12}$/.test(idNumber)) return null  // CCCD phai 12 so
-
-  const fullName = parts[2]?.trim()
-  const dobRaw = parts[3]?.trim()  // ddMMyyyy
-  const genderRaw = parts[4]?.trim()
-  const address = parts[5]?.trim()
-
-  // Parse ngay sinh tu ddMMyyyy -> dd/MM/yyyy
-  const dob = dobRaw?.length === 8
-    ? `${dobRaw.slice(0,2)}/${dobRaw.slice(2,4)}/${dobRaw.slice(4)}`
-    : dobRaw
-
-  const gender = genderRaw === 'Nam' ? 'male' : genderRaw === 'Nữ' ? 'female' : undefined
-
-  return { full_name: fullName, id_number: idNumber, date_of_birth: dob, gender, nationality: 'Việt Nam', address }
-}
-```
-
-#### 2. `src/components/bookings/QRScannerDialog.tsx`
-
-- Su dung `Html5Qrcode` (khong phai Scanner) de kiem soat camera manually
-- Hien thi video stream voi vung quet QR
-- Khi doc thanh cong -> goi `parseCCCDQR()` -> tra ve data
-- Neu chuoi QR khong phai CCCD -> hien thi toast loi
-- Co nut dong va tu dong tat camera khi dong
-
-#### 3. Sua `DocumentScanner.tsx`
-
-Them 1 nut "Quet QR" (icon `QrCode` tu lucide-react) ben canh cac nut hien co. Khi quet thanh cong, goi `onScanComplete()` voi document type = 'cccd' va du lieu da parse.
-
-### Uu diem so voi quet anh (OCR)
-
-- Nhanh hon nhieu (quet tuc thi, khong doi AI xu ly)
-- Chinh xac 100% (du lieu tu QR code, khong phai nhan dang anh)
-- Khong ton chi phi AI/edge function
-- Hoat dong offline
+- Quet nhanh nhu WeChat (native BarcodeDetector + 30fps)
+- Khong can can chinh chinh xac - chi can dua QR vao khung hinh
+- Giao dien fullscreen de thao tac, khong bi nguoc tay
+- Hoat dong tot hon khi bi loa (camera resolution cao + quet toan khung hinh)
 
