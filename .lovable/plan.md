@@ -1,52 +1,42 @@
 
 
-## Fix camera luon dung camera sau (khong bi nguoc)
+## Fix hinh bi nguoc (mirror) khi dung camera truoc tren may tinh
 
-### Nguyen nhan
+### Van de
 
-Hien tai code dung `facingMode: 'environment'` - day chi la **goi y** (preference), trinh duyet co the van chon camera truoc neu khong tim thay camera sau. Camera truoc thi hinh bi lat nguoc (mirror), thao tac di chuyen tay trai nhung tren man hinh lai thay di chuyen phai.
+Khi dung camera truoc (webcam may tinh), hinh bi lat ngang (mirror) - dua tay sang trai nhung tren man hinh thay sang phai. Day la hanh vi mac dinh cua camera truoc, nhung gay kho chiu khi chup anh giay to hoac thao tac.
 
 ### Giai phap
 
-Dung `facingMode: { exact: 'environment' }` de **bat buoc** dung camera sau. Neu thiet bi khong co camera sau (VD laptop chi co webcam truoc), fallback ve `facingMode: 'user'`.
+Khi phat hien dang dung camera truoc (fallback), ap dung CSS `transform: scaleX(-1)` len the `video` de lat nguoc hinh lai cho dung chieu. Dong thoi khi chup anh (capture), cung lat nguoc canvas de anh luu dung chieu thuc te.
 
 ### Thay doi
 
 | # | File | Mo ta |
 |---|------|-------|
-| 1 | `src/components/bookings/WebcamCaptureDialog.tsx` | Dung `exact: 'environment'` voi fallback |
-| 2 | `src/components/bookings/QRScannerDialog.tsx` | Dung `exact: 'environment'` voi fallback |
+| 1 | `src/components/bookings/WebcamCaptureDialog.tsx` | Them state `isFrontCamera`, ap dung mirror CSS va flip canvas khi capture |
+| 2 | `src/components/bookings/QRScannerDialog.tsx` | Them state `isFrontCamera`, ap dung mirror CSS cho video |
 
 ### Chi tiet ky thuat
 
-**1. WebcamCaptureDialog.tsx - startCamera()**
+**1. WebcamCaptureDialog.tsx**
 
-Thay dong 29-31:
-```typescript
-// Thu camera sau truoc
-try {
-  stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: { exact: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
-  })
-} catch {
-  // Fallback camera truoc (laptop/desktop)
-  stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
-  })
-}
-```
+- Them state `isFrontCamera` (default `false`)
+- Trong `startCamera()`: khi vao catch (fallback camera truoc), set `isFrontCamera = true`
+- Ap dung class `style={{ transform: 'scaleX(-1)' }}` len `<video>` khi `isFrontCamera = true`
+- Trong ham `capture()`: neu `isFrontCamera`, dung `ctx.scale(-1, 1)` va `ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height)` de anh chup ra dung chieu thuc te (khong bi mirror)
+- Reset `isFrontCamera = false` khi dialog dong
 
-**2. QRScannerDialog.tsx - startScanning()**
+**2. QRScannerDialog.tsx**
 
-Thay dong 108-109 tuong tu:
-```typescript
-facingMode: { exact: 'environment' },
-```
-Voi try/catch fallback ve `facingMode: 'user'`.
+- Them state `isFrontCamera` (default `false`)
+- Trong `startScanning()`: khi vao catch (fallback camera truoc), set `isFrontCamera = true`
+- Ap dung `style={{ transform: 'scaleX(-1)' }}` len `<video>` khi `isFrontCamera = true`
+- Canvas dung de scan QR khong can flip vi thu vien QR tu xu ly duoc ca 2 chieu
 
 ### Ket qua
 
-- Tren dien thoai: Luon dung camera sau, khong bi nguoc/lat hinh
-- Tren may tinh: Fallback ve webcam truoc (vi khong co camera sau)
-- QR scanner va chup anh deu ap dung
+- Tren dien thoai (camera sau): Khong thay doi gi - hinh hien thi binh thuong
+- Tren may tinh (camera truoc): Hinh duoc lat lai dung chieu - dua tay trai thi tren man hinh cung thay trai
+- Anh chup ra luu dung chieu thuc te
 
