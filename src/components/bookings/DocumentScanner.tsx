@@ -137,12 +137,12 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
       try {
         await supabase.functions.invoke('send-push-notification', {
           body: {
-            userId: user.id,
-            tenantId,
+            user_id: user.id,
+            tenant_id: tenantId,
             title: 'Chụp giấy tờ',
             body: 'Nhấn để chụp ảnh giấy tờ tùy thân',
             url: `/scan-document/${data.id}`,
-            excludeEndpoints: [], // send to ALL devices including current
+            excludeEndpoints: [],
           },
         })
         toast.success('Đã gửi thông báo đến điện thoại')
