@@ -39,18 +39,18 @@ export interface TodayCheckin {
 }
 
 export function useBookingStats() {
-  const { selectedHotel } = useHotelContext()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const { tenant } = useTenant()
   const hotelId = selectedHotel?.id
   const tenantId = tenant?.id
   const today = format(new Date(), 'yyyy-MM-dd')
 
   return useQuery({
-    queryKey: ['booking-stats', hotelId, today],
+    queryKey: ['booking-stats', hotelId, isAllHotelsMode, today],
     queryFn: async (): Promise<BookingStats> => {
       // Run all 5 queries in parallel
       let roomsQuery = supabase.from('rooms').select('id', { count: 'exact' }).eq('tenant_id', tenantId)
-      if (hotelId && hotelId !== 'all') {
+      if (!isAllHotelsMode && hotelId) {
         roomsQuery = roomsQuery.eq('hotel_id', hotelId)
       }
 
@@ -59,7 +59,7 @@ export function useBookingStats() {
         .select('id, room_price, extra_charges, total_amount', { count: 'exact' })
         .eq('status', 'checked_in')
         .eq('tenant_id', tenantId)
-      if (hotelId && hotelId !== 'all') {
+      if (!isAllHotelsMode && hotelId) {
         occupiedQuery = occupiedQuery.eq('hotel_id', hotelId)
       }
 
@@ -69,7 +69,7 @@ export function useBookingStats() {
         .eq('status', 'confirmed')
         .eq('check_in_date', today)
         .eq('tenant_id', tenantId)
-      if (hotelId && hotelId !== 'all') {
+      if (!isAllHotelsMode && hotelId) {
         checkInQuery = checkInQuery.eq('hotel_id', hotelId)
       }
 
@@ -79,7 +79,7 @@ export function useBookingStats() {
         .eq('status', 'checked_in')
         .eq('check_out_date', today)
         .eq('tenant_id', tenantId)
-      if (hotelId && hotelId !== 'all') {
+      if (!isAllHotelsMode && hotelId) {
         checkOutQuery = checkOutQuery.eq('hotel_id', hotelId)
       }
 
@@ -91,7 +91,7 @@ export function useBookingStats() {
         .eq('tenant_id', tenantId)
         .gte('paid_at', startOfDay(new Date()).toISOString())
         .lte('paid_at', endOfDay(new Date()).toISOString())
-      if (hotelId && hotelId !== 'all') {
+      if (!isAllHotelsMode && hotelId) {
         revenueQuery = revenueQuery.eq('hotel_id', hotelId)
       }
 
@@ -137,14 +137,14 @@ export function useBookingStats() {
 }
 
 export function useTodayCheckouts() {
-  const { selectedHotel } = useHotelContext()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const { tenant } = useTenant()
   const hotelId = selectedHotel?.id
   const tenantId = tenant?.id
   const today = format(new Date(), 'yyyy-MM-dd')
 
   return useQuery({
-    queryKey: ['today-checkouts', hotelId, today],
+    queryKey: ['today-checkouts', hotelId, isAllHotelsMode, today],
     queryFn: async (): Promise<TodayCheckout[]> => {
       let query = supabase
         .from('room_bookings')
@@ -165,7 +165,7 @@ export function useTodayCheckouts() {
         .eq('tenant_id', tenantId)
         .order('check_out_date', { ascending: true })
 
-      if (hotelId && hotelId !== 'all') {
+      if (!isAllHotelsMode && hotelId) {
         query = query.eq('hotel_id', hotelId)
       }
 
@@ -195,14 +195,14 @@ export function useTodayCheckouts() {
 }
 
 export function useTodayCheckins() {
-  const { selectedHotel } = useHotelContext()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const { tenant } = useTenant()
   const hotelId = selectedHotel?.id
   const tenantId = tenant?.id
   const today = format(new Date(), 'yyyy-MM-dd')
 
   return useQuery({
-    queryKey: ['today-checkins', hotelId, today],
+    queryKey: ['today-checkins', hotelId, isAllHotelsMode, today],
     queryFn: async (): Promise<TodayCheckin[]> => {
       let query = supabase
         .from('room_bookings')
@@ -220,7 +220,7 @@ export function useTodayCheckins() {
         .eq('tenant_id', tenantId)
         .order('check_in_date', { ascending: true })
 
-      if (hotelId && hotelId !== 'all') {
+      if (!isAllHotelsMode && hotelId) {
         query = query.eq('hotel_id', hotelId)
       }
 

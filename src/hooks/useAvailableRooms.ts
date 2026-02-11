@@ -82,7 +82,7 @@ export function useAvailableRooms(checkInDate?: Date, checkOutDate?: Date) {
         .order('floor', { ascending: true })
         .order('room_number', { ascending: true })
 
-      if (hotelId && hotelId !== 'all') {
+      if (!isAllHotelsMode && hotelId) {
         query = query.eq('hotel_id', hotelId)
       }
 

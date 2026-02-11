@@ -66,7 +66,6 @@ export function usePendingCounts() {
       if (isStaffUser && user?.id) {
         distributionsQuery = distributionsQuery.eq('assigned_to', user.id)
       }
-      if (hotelId) distributionsQuery = distributionsQuery.eq('hotel_id', hotelId)
 
       let maintenanceQuery = supabase
         .from('maintenance_requests')
