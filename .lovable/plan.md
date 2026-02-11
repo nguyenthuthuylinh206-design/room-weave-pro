@@ -1,42 +1,63 @@
 
 
-## Fix hinh bi nguoc (mirror) khi dung camera truoc tren may tinh
+## Fix: Validate anh co phai giay to truoc khi trich xuat
 
 ### Van de
 
-Khi dung camera truoc (webcam may tinh), hinh bi lat ngang (mirror) - dua tay sang trai nhung tren man hinh thay sang phai. Day la hanh vi mac dinh cua camera truoc, nhung gay kho chiu khi chup anh giay to hoac thao tac.
+Hien tai khi chup anh (ke ca anh mat/selfie), AI **luon bi ep** phai tra ve thong tin giay to vi dung `tool_choice: { type: "function", function: { name: "extract_document_info" } }`. Ket qua la AI "bịa" ra thong tin du anh khong phai giay to.
 
 ### Giai phap
 
-Khi phat hien dang dung camera truoc (fallback), ap dung CSS `transform: scaleX(-1)` len the `video` de lat nguoc hinh lai cho dung chieu. Dong thoi khi chup anh (capture), cung lat nguoc canvas de anh luu dung chieu thuc te.
+Them buoc xac thuc truoc: yeu cau AI kiem tra anh co phai giay to hop le hay khong. Neu khong phai, tra ve loi thay vi bịa thong tin.
 
 ### Thay doi
 
 | # | File | Mo ta |
 |---|------|-------|
-| 1 | `src/components/bookings/WebcamCaptureDialog.tsx` | Them state `isFrontCamera`, ap dung mirror CSS va flip canvas khi capture |
-| 2 | `src/components/bookings/QRScannerDialog.tsx` | Them state `isFrontCamera`, ap dung mirror CSS cho video |
+| 1 | `supabase/functions/scan-guest-document/index.ts` | Them field `is_valid_document` vao tool schema, kiem tra truoc khi tra ket qua |
+| 2 | `supabase/functions/mobile-scan-upload/index.ts` | Tuong tu - them validation cho luong chup tu dien thoai |
 
 ### Chi tiet ky thuat
 
-**1. WebcamCaptureDialog.tsx**
+**Thay doi tool schema** - them 2 field moi:
 
-- Them state `isFrontCamera` (default `false`)
-- Trong `startCamera()`: khi vao catch (fallback camera truoc), set `isFrontCamera = true`
-- Ap dung class `style={{ transform: 'scaleX(-1)' }}` len `<video>` khi `isFrontCamera = true`
-- Trong ham `capture()`: neu `isFrontCamera`, dung `ctx.scale(-1, 1)` va `ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height)` de anh chup ra dung chieu thuc te (khong bi mirror)
-- Reset `isFrontCamera = false` khi dialog dong
+```typescript
+is_valid_document: {
+  type: "boolean",
+  description: "true if the image clearly shows an identity document (ID card, passport, visa). false if it's a selfie, random photo, or unclear image.",
+},
+rejection_reason: {
+  type: "string",
+  description: "If is_valid_document is false, explain why (e.g. 'Image shows a person's face, not a document')",
+},
+```
 
-**2. QRScannerDialog.tsx**
+Them `is_valid_document` vao `required` array.
 
-- Them state `isFrontCamera` (default `false`)
-- Trong `startScanning()`: khi vao catch (fallback camera truoc), set `isFrontCamera = true`
-- Ap dung `style={{ transform: 'scaleX(-1)' }}` len `<video>` khi `isFrontCamera = true`
-- Canvas dung de scan QR khong can flip vi thu vien QR tu xu ly duoc ca 2 chieu
+**Them validation logic** sau khi parse ket qua:
+
+```typescript
+if (!extractedData.is_valid_document) {
+  return new Response(
+    JSON.stringify({ 
+      error: "Anh khong phai giay to tuy than. Vui long chup lai anh CCCD/Ho chieu/Visa." 
+    }),
+    { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+```
+
+**Cap nhat prompt** - them dong:
+
+```
+IMPORTANT: First determine if the image actually shows an identity document. 
+If the image is a selfie, random photo, or does not clearly show an ID card/passport/visa, 
+set is_valid_document to false.
+```
 
 ### Ket qua
 
-- Tren dien thoai (camera sau): Khong thay doi gi - hinh hien thi binh thuong
-- Tren may tinh (camera truoc): Hinh duoc lat lai dung chieu - dua tay trai thi tren man hinh cung thay trai
-- Anh chup ra luu dung chieu thuc te
+- Chup anh mat/selfie: Tra ve loi "Anh khong phai giay to tuy than"
+- Chup anh giay to that: Hoat dong binh thuong nhu cu
+- Ap dung cho ca 2 luong: chup truc tiep va chup tu dien thoai
 
