@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.scan-guest-document]
 verify_jwt = false
+
+[functions.mobile-scan-upload]
+verify_jwt = false

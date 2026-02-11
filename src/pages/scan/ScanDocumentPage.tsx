@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { Camera, Upload, Loader2, CheckCircle2, AlertCircle, ScanLine } from 'lucide-react'
+import { Camera, Loader2, CheckCircle2, AlertCircle, ScanLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/integrations/supabase/client'
 import { compressImage } from '@/lib/imageCompression'
@@ -31,21 +31,10 @@ export default function ScanDocumentPage() {
         return
       }
       setSessionData(data)
-      // Small delay to ensure DOM is ready
       setTimeout(() => fileInputRef.current?.click(), 300)
     }
     autoOpen()
   }, [sessionId])
-
-  const loadSession = async () => {
-    if (!sessionId) return null
-    const { data } = await supabase
-      .from('document_scan_sessions')
-      .select('*')
-      .eq('id', sessionId)
-      .single()
-    return data
-  }
 
   const handleFile = async (file: File) => {
     if (!file.type.startsWith('image/')) return
@@ -55,11 +44,7 @@ export default function ScanDocumentPage() {
     setErrorMsg('')
 
     try {
-      // Use already loaded session or fetch if needed
-      let session = sessionData
-      if (!session) {
-        session = await loadSession()
-      }
+      const session = sessionData
       if (!session || session.status !== 'pending') {
         throw new Error('Phiên quét không hợp lệ hoặc đã hoàn thành')
       }
@@ -70,53 +55,21 @@ export default function ScanDocumentPage() {
       setPreviewUrl(base64)
       setStatus('scanning')
 
-      // Call OCR edge function
-      console.log('[ScanDoc] Calling OCR...')
-      const { data: ocrResult, error: ocrError } = await supabase.functions.invoke('scan-guest-document', {
-        body: { imageBase64: base64, documentType: session.document_type },
+      // Single API call - server handles OCR + storage upload + session update
+      console.log('[ScanDoc] Calling mobile-scan-upload...')
+      const { data: result, error: fnError } = await supabase.functions.invoke('mobile-scan-upload', {
+        body: {
+          sessionId,
+          imageBase64: base64,
+          documentType: session.document_type,
+        },
       })
 
-      if (ocrError) throw ocrError
-      if (ocrResult?.error) throw new Error(ocrResult.error)
-      console.log('[ScanDoc] OCR success:', ocrResult.data)
+      if (fnError) throw fnError
+      if (result?.error) throw new Error(result.error)
 
-      // Try upload image to storage (non-blocking - skip if fails for anonymous users)
-      let imageUrl: string | undefined
-      try {
-        const fileName = `${session.tenant_id}/${Date.now()}-${session.document_type}.jpg`
-        const blob = await fetch(base64).then(r => r.blob())
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('guest-documents')
-          .upload(fileName, blob, { contentType: 'image/jpeg' })
-
-        if (!uploadError && uploadData) {
-          const { data: urlData } = supabase.storage
-            .from('guest-documents')
-            .getPublicUrl(uploadData.path)
-          imageUrl = urlData.publicUrl
-        } else if (uploadError) {
-          console.warn('[ScanDoc] Storage upload skipped (likely anonymous):', uploadError.message)
-        }
-      } catch (storageErr) {
-        console.warn('[ScanDoc] Storage upload failed, continuing without image:', storageErr)
-      }
-
-      // Update session with results
-      console.log('[ScanDoc] Updating session...')
-      const { error: updateError } = await supabase
-        .from('document_scan_sessions')
-        .update({
-          status: 'completed',
-          scanned_data: ocrResult.data,
-          image_url: imageUrl || null,
-          completed_at: new Date().toISOString(),
-        })
-        .eq('id', sessionId)
-
-      if (updateError) throw updateError
-
+      console.log('[ScanDoc] Success:', result)
       setStatus('success')
-      console.log('[ScanDoc] Complete!')
     } catch (err: any) {
       console.error('[ScanDoc] Error:', err)
       setStatus('error')
