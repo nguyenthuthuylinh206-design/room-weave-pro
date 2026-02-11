@@ -1,36 +1,62 @@
 
 
-## Lat nguoc camera (mirror) de dieu chinh goc de hon
+## Fix: Camera mo khi quet QR - Truyen videoConstraints truc tiep
 
-### Van de
+### Nguyen nhan
 
-Khi dung camera sau (`environment`) de quet QR, hinh anh hien thi khong bi lat (giong nhu nhin qua kinh). Dieu nay khien khi ban nghieng dien thoai sang trai, hinh tren man hinh cung di chuyen sang trai - gay cam giac "nguoc tay", kho dieu chinh goc do.
+Code hien tai:
+1. Mo stream 4K de lay `deviceId` (dong 48-61)
+2. **Dong stream nay lai** (dong 81)
+3. Goi `scanner.start()` voi chi `deviceId` - html5-qrcode tu mo stream moi voi **resolution mac dinh (thap)**
+4. Co gang apply autofocus sau (dong 114-130) nhung resolution da bi thap roi
+
+Ket qua: camera luon o resolution thap, hinh mo.
 
 ### Giai phap
 
-Them CSS `transform: scaleX(-1)` vao the `video` de lat ngang (mirror) hinh anh camera. Dieu nay giup:
-- Nghieng trai -> hinh di sang phai (tu nhien nhu soi guong)
-- Dieu chinh goc de dang hon, giong cam giac cua camera truoc
-
-Quan trong: `html5-qrcode` van decode dung vi no xu ly frame goc, CSS chi anh huong den hien thi.
+Dung option `videoConstraints` cua `html5-qrcode` de truyen thang constraints resolution cao + autofocus. Khong can tao stream rieng nua - de html5-qrcode tu mo camera voi dung constraints minh muon.
 
 ### Thay doi
 
 | # | File | Mo ta |
 |---|------|-------|
-| 1 | `src/components/bookings/QRScannerDialog.tsx` | Them CSS mirror cho video element |
+| 1 | `src/components/bookings/QRScannerDialog.tsx` | Don gian hoa: bo buoc tao stream rieng, truyen `videoConstraints` truc tiep vao `scanner.start()` |
 
-### Chi tiet
+### Chi tiet ky thuat
 
-Dong 149 hien tai:
+Thay the toan bo logic trong `useEffect` (dong 45-136):
+
+**Truoc** (phuc tap, khong hieu qua):
 ```text
-<div id={readerElId} className="w-full h-full [&_video]:object-cover [&_video]:w-full [&_video]:h-full" />
+1. getUserMedia({ 4096x2160 }) -> lay deviceId
+2. Stop stream
+3. scanner.start({ deviceId }) -> html5-qrcode mo stream MOI voi resolution MAC DINH
+4. Co gang apply autofocus sau
 ```
 
-Them class mirror:
+**Sau** (don gian, hieu qua):
 ```text
-<div id={readerElId} className="w-full h-full [&_video]:object-cover [&_video]:w-full [&_video]:h-full [&_video]:-scale-x-100" />
+1. scanner.start({ facingMode: 'environment' }, {
+     videoConstraints: {
+       facingMode: 'environment',
+       width: { ideal: 4096 },
+       height: { ideal: 2160 },
+       focusMode: 'continuous',
+       advanced: [{ focusMode: 'continuous' }]
+     },
+     fps: 15,
+     qrbox: ...,
+   })
+2. Sau khi start, apply autofocus len video track cua scanner
 ```
 
-`-scale-x-100` la Tailwind class tuong duong `transform: scaleX(-1)`, lat ngang video giong nhu soi guong. Thu vien `html5-qrcode` van decode binh thuong vi no doc pixel goc tu video stream, khong bi anh huong boi CSS transform.
+Thay doi chinh:
+- Bo toan bo buoc `getUserMedia` + stop stream rieng (dong 47-82)
+- Truyen `videoConstraints` trong config cua `scanner.start()` de html5-qrcode tu mo camera voi resolution cao
+- Giam `fps` tu 30 xuong 15 (giam tai cho CPU, giup camera tap trung xu ly anh net hon)
+- Giu nguyen logic apply autofocus sau khi scanner da start (dong 114-130)
+- Bo `streamRef` vi khong can quan ly stream rieng nua
+- Giu nguyen `aspectRatio: 1.0` va `disableFlip: false`
+
+Ket qua: html5-qrcode se mo camera voi resolution cao nhat co the (4K ideal) va autofocus bat, thay vi resolution mac dinh nhu hien tai.
 
