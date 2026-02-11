@@ -1,42 +1,43 @@
 
 
-## Fix: Thong bao chi mo trang chu thay vi trang camera
+## Fix: 404 khi mo thong bao tren PWA mobile
 
 ### Nguyen nhan goc
 
-Trong `DocumentScanner.tsx`, khi gui push notification, truong URL duoc gui la `url`:
+Service Worker (SW) su dung `precacheAndRoute` de cache cac file tinh (JS, CSS, HTML). Tuy nhien, khi PWA mo URL `/scan-document/xxx` tu thong bao:
 
-```text
-body: {
-  url: '/scan-document/xxx',   // <-- Sai ten truong
-}
-```
+1. SW chan request navigation (vi da kiem soat trang)
+2. SW tim trong cache file co path `/scan-document/xxx` -> khong co
+3. SW gui request len server -> server cung khong co file nay (vi day la SPA, chi co `index.html`)
+4. Ket qua: 404
 
-Nhung edge function `send-push-notification` chi doc truong `action_url` (dong 408):
-
-```text
-url: payload.action_url || '/'   // <-- action_url = undefined -> fallback ve '/'
-```
-
-Ket qua: notification luon chua URL = `/`, nen khi an vao se mo trang chu.
+Voi SPA (Single Page App), **tat ca** cac URL deu can duoc phan phoi file `index.html`, sau do React Router xu ly routing phia client. Can them **NavigateFallback** de SW tra ve `index.html` cho moi navigation request.
 
 ### Giai phap
 
-Chi can sua **1 dong** trong `DocumentScanner.tsx`: doi `url` thanh `action_url`.
+Sua **1 file**: `src/sw.ts` - them catch-all navigation route tra ve `index.html` tu precache.
 
 | # | File | Thay doi |
 |---|------|---------|
-| 1 | `src/components/bookings/DocumentScanner.tsx` | Doi `url:` thanh `action_url:` trong body gui push notification |
+| 1 | `src/sw.ts` | Them `NavigationRoute` voi `createHandlerBoundToURL('index.html')` de moi navigation request deu duoc phan phoi `index.html`. Them `navigateFallbackDenylist` de bo qua `/~oauth` |
 
-### Chi tiet
+### Chi tiet ky thuat
+
+Them vao `src/sw.ts` sau dong `cleanupOutdatedCaches()`:
 
 ```text
-// Truoc (SAI)
-url: `/scan-document/${data.id}`,
+import { NavigationRoute, createHandlerBoundToURL } from 'workbox-routing';
 
-// Sau (DUNG)
-action_url: `/scan-document/${data.id}`,
+// SPA fallback - serve index.html for all navigation requests
+const navigationHandler = createHandlerBoundToURL('index.html');
+const navigationRoute = new NavigationRoute(navigationHandler, {
+  denylist: [/^\/~oauth/],
+});
+registerRoute(navigationRoute);
 ```
 
-Khong can thay doi gi khac - edge function va service worker da xu ly dung san.
-
+Dieu nay dam bao:
+- Tat ca URL nhu `/scan-document/xxx`, `/bookings`, `/rooms` deu duoc tra ve `index.html`
+- React Router se xu ly routing dung trang
+- `/~oauth` duoc loai tru de khong anh huong OAuth flow
+- Khong can thay doi gi o router hay component - chi can SW phan phoi dung file
