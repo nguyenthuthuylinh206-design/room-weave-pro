@@ -1,4 +1,4 @@
-import { User, Phone, Mail, Users, Globe } from 'lucide-react'
+import { User, Phone, Mail, Users, Globe, CreditCard, MapPin } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/select'
 import { BOOKING_SOURCES } from '@/lib/constants'
 import { BookingFormState, BookingFormComputed } from '../types'
+import { DocumentScanner, ScannedDocumentData } from '../../DocumentScanner'
 
 interface GuestInfoStepProps {
   state: BookingFormState
@@ -18,8 +19,24 @@ interface GuestInfoStepProps {
 }
 
 export function GuestInfoStep({ state, computed, onUpdate }: GuestInfoStepProps) {
+  const handleScanComplete = (data: ScannedDocumentData, documentType: string, imageUrl?: string) => {
+    onUpdate({
+      guestName: data.full_name || state.guestName,
+      guestIdType: documentType,
+      guestIdNumber: data.id_number || '',
+      guestNationality: data.nationality || '',
+      guestDateOfBirth: data.date_of_birth || '',
+      guestGender: data.gender || '',
+      guestAddress: data.address || '',
+      guestIdImageUrl: imageUrl || '',
+    })
+  }
+
   return (
     <div className="space-y-4">
+      {/* Document Scanner */}
+      <DocumentScanner onScanComplete={handleScanComplete} />
+      
       {/* Guest Name */}
       <div className="space-y-2">
         <Label htmlFor="guestName" className="flex items-center gap-2">
@@ -63,6 +80,64 @@ export function GuestInfoStep({ state, computed, onUpdate }: GuestInfoStepProps)
           />
         </div>
       </div>
+      
+      {/* ID Info Row (shown after scan or manual input) */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4" />
+            Loại giấy tờ
+          </Label>
+          <Select value={state.guestIdType || ''} onValueChange={(v) => onUpdate({ guestIdType: v })}>
+            <SelectTrigger className="h-8">
+              <SelectValue placeholder="Chọn loại" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="cccd">CCCD / CMND</SelectItem>
+              <SelectItem value="passport">Hộ chiếu</SelectItem>
+              <SelectItem value="visa">Visa</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="guestIdNumber" className="flex items-center gap-2">
+            Số giấy tờ
+          </Label>
+          <Input
+            id="guestIdNumber"
+            value={state.guestIdNumber}
+            onChange={(e) => onUpdate({ guestIdNumber: e.target.value })}
+            placeholder="Số CCCD/Passport..."
+          />
+        </div>
+      </div>
+
+      {/* Nationality & Address (if available) */}
+      {(state.guestIdType || state.guestNationality || state.guestAddress) && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="guestNationality">Quốc tịch</Label>
+            <Input
+              id="guestNationality"
+              value={state.guestNationality}
+              onChange={(e) => onUpdate({ guestNationality: e.target.value })}
+              placeholder="Việt Nam"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="guestAddress" className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Địa chỉ
+            </Label>
+            <Input
+              id="guestAddress"
+              value={state.guestAddress}
+              onChange={(e) => onUpdate({ guestAddress: e.target.value })}
+              placeholder="Địa chỉ..."
+            />
+          </div>
+        </div>
+      )}
       
       {/* Guest Count & Booking Source */}
       <div className="grid grid-cols-2 gap-3">
