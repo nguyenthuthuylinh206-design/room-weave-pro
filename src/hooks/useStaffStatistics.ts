@@ -21,18 +21,21 @@ export interface StaffStatistics {
 // Fetch staff statistics for a specific period
 export function useStaffStatistics(userId?: string, periodStart?: Date, periodEnd?: Date) {
   const { tenant } = useTenant()
-  const { selectedHotel } = useHotelContext()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   
   return useQuery({
-    queryKey: ['staff-statistics', tenant?.id, selectedHotel?.id, userId, periodStart, periodEnd],
+    queryKey: ['staff-statistics', tenant?.id, selectedHotel?.id, isAllHotelsMode, userId, periodStart, periodEnd],
     queryFn: async () => {
-      if (!tenant?.id || !selectedHotel?.id) throw new Error('No tenant or hotel')
+      if (!tenant?.id) throw new Error('No tenant')
       
       let query = supabase
         .from('staff_statistics')
         .select('*')
-        .eq('hotel_id', selectedHotel.id)
         .order('period_start', { ascending: false })
+      
+      if (!isAllHotelsMode && selectedHotel?.id) {
+        query = query.eq('hotel_id', selectedHotel.id)
+      }
       
       if (userId) {
         query = query.eq('user_id', userId)
@@ -51,7 +54,7 @@ export function useStaffStatistics(userId?: string, periodStart?: Date, periodEn
       if (error) throw error
       return data as StaffStatistics[]
     },
-    enabled: !!tenant?.id && !!selectedHotel?.id,
+    enabled: !!tenant?.id,
   })
 }
 
@@ -102,19 +105,19 @@ export function useCalculateStaffStatistics() {
 // Get top performing staff
 export function useTopPerformingStaff(limit = 10) {
   const { tenant } = useTenant()
-  const { selectedHotel } = useHotelContext()
+  const { selectedHotel, isAllHotelsMode } = useHotelContext()
   
   return useQuery({
-    queryKey: ['top-performing-staff', tenant?.id, selectedHotel?.id, limit],
+    queryKey: ['top-performing-staff', tenant?.id, selectedHotel?.id, isAllHotelsMode, limit],
     queryFn: async () => {
-      if (!tenant?.id || !selectedHotel?.id) throw new Error('No tenant or hotel')
+      if (!tenant?.id) throw new Error('No tenant')
       
       // Get current month statistics
       const now = new Date()
       const periodStart = new Date(now.getFullYear(), now.getMonth(), 1)
       const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('staff_statistics')
         .select(`
           *,
@@ -125,15 +128,22 @@ export function useTopPerformingStaff(limit = 10) {
             email
           )
         `)
-        .eq('hotel_id', selectedHotel.id)
+      
+      if (!isAllHotelsMode && selectedHotel?.id) {
+        query = query.eq('hotel_id', selectedHotel.id)
+      }
+      
+      query = query
         .gte('period_start', periodStart.toISOString().split('T')[0])
         .lte('period_end', periodEnd.toISOString().split('T')[0])
         .order('maintenance_tasks_completed', { ascending: false })
         .limit(limit)
       
+      const { data, error } = await query
+      
       if (error) throw error
       return data
     },
-    enabled: !!tenant?.id && !!selectedHotel?.id,
+    enabled: !!tenant?.id,
   })
 }
