@@ -183,6 +183,12 @@ export function ReviewStep({ state, computed, onGoToStep }: ReviewStepProps) {
               {state.guestEmail && <span>{state.guestEmail}</span>}
             </div>
           )}
+          {state.guestIdNumber && (
+            <div className="text-muted-foreground">
+              {state.guestIdType === 'cccd' ? 'CCCD' : state.guestIdType === 'passport' ? 'Hộ chiếu' : state.guestIdType === 'visa' ? 'Visa' : 'GT'}: {state.guestIdNumber}
+              {state.guestNationality && <span className="ml-2">• {state.guestNationality}</span>}
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <Globe className="h-3 w-3" />
             <span className="text-muted-foreground">Nguồn: {sourceLabel}</span>

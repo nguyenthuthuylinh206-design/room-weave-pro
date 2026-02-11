@@ -37,6 +37,15 @@ export interface BookingFormState {
   bookingReference: string
   notes: string
   
+  // Guest ID (from document scanner)
+  guestIdType: string
+  guestIdNumber: string
+  guestNationality: string
+  guestDateOfBirth: string
+  guestGender: string
+  guestAddress: string
+  guestIdImageUrl: string
+  
   // Step 4: Payment
   includeVat: boolean
   vatRate: number

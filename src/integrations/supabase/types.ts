@@ -4727,9 +4727,16 @@ export type Database = {
           expected_check_in_time: string | null
           expected_check_out_time: string | null
           extra_charges: number | null
+          guest_address: string | null
           guest_count: number | null
+          guest_date_of_birth: string | null
           guest_email: string | null
+          guest_gender: string | null
+          guest_id_image_url: string | null
+          guest_id_number: string | null
+          guest_id_type: string | null
           guest_name: string
+          guest_nationality: string | null
           guest_phone: string | null
           hotel_id: string
           hourly_end_time: string | null
@@ -4781,9 +4788,16 @@ export type Database = {
           expected_check_in_time?: string | null
           expected_check_out_time?: string | null
           extra_charges?: number | null
+          guest_address?: string | null
           guest_count?: number | null
+          guest_date_of_birth?: string | null
           guest_email?: string | null
+          guest_gender?: string | null
+          guest_id_image_url?: string | null
+          guest_id_number?: string | null
+          guest_id_type?: string | null
           guest_name: string
+          guest_nationality?: string | null
           guest_phone?: string | null
           hotel_id: string
           hourly_end_time?: string | null
@@ -4835,9 +4849,16 @@ export type Database = {
           expected_check_in_time?: string | null
           expected_check_out_time?: string | null
           extra_charges?: number | null
+          guest_address?: string | null
           guest_count?: number | null
+          guest_date_of_birth?: string | null
           guest_email?: string | null
+          guest_gender?: string | null
+          guest_id_image_url?: string | null
+          guest_id_number?: string | null
+          guest_id_type?: string | null
           guest_name?: string
+          guest_nationality?: string | null
           guest_phone?: string | null
           hotel_id?: string
           hourly_end_time?: string | null

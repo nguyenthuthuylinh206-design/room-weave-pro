@@ -48,6 +48,15 @@ const initialState: BookingFormState = {
   bookingReference: '',
   notes: '',
   
+  // Guest ID
+  guestIdType: '',
+  guestIdNumber: '',
+  guestNationality: '',
+  guestDateOfBirth: '',
+  guestGender: '',
+  guestAddress: '',
+  guestIdImageUrl: '',
+  
   // Payment
   includeVat: true,
   vatRate: 8,
@@ -491,6 +500,14 @@ export function useBookingForm() {
           booking_months: state.bookingType === 'monthly' ? state.bookingMonths : null,
           hourly_start_time: hourlyStartTime,
           hourly_end_time: hourlyEndTime,
+          // Guest ID fields
+          guest_id_type: state.guestIdType || null,
+          guest_id_number: state.guestIdNumber || null,
+          guest_nationality: state.guestNationality || null,
+          guest_date_of_birth: state.guestDateOfBirth || null,
+          guest_gender: state.guestGender || null,
+          guest_address: state.guestAddress || null,
+          guest_id_image_url: state.guestIdImageUrl || null,
         }
       })
       
