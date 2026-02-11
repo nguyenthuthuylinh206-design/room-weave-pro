@@ -68,10 +68,18 @@ export function HotelCard({ hotel, onEdit, onDelete, onView, onDeactivate }: Hot
       <div className="flex items-start justify-between gap-4">
         {/* Left: Icon + Content */}
         <div className="flex items-start gap-3 flex-1 min-w-0">
-          {/* Icon */}
-          <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
-            <Building2 className="h-5 w-5 text-primary" />
-          </div>
+          {/* Logo/Icon */}
+          {hotel.logo_url ? (
+            <img
+              src={hotel.logo_url}
+              alt={hotel.name}
+              className="h-9 w-9 rounded-lg object-cover flex-shrink-0"
+            />
+          ) : (
+            <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
+              <Building2 className="h-5 w-5 text-primary" />
+            </div>
+          )}
           
           <div className="flex-1 min-w-0 space-y-2">
             {/* Header Row */}

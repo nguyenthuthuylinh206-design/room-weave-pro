@@ -80,6 +80,7 @@ export interface HotelFormData {
   settings?: any
   
   // Metadata
+  logo_url?: string
   description?: string
   status: 'active' | 'inactive' | 'maintenance'
 }
@@ -197,6 +198,7 @@ export const useCreateHotel = () => {
           total_floors: data.total_floors,
           manager_id: data.manager_id || null,
           settings: data.settings || {},
+          logo_url: data.logo_url || null,
           description: data.description || null,
           status: data.status,
         } as any)
