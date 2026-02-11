@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { Camera, Upload, Loader2, CheckCircle2, AlertCircle, ScanLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,7 +13,29 @@ export default function ScanDocumentPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
   const [sessionData, setSessionData] = useState<any>(null)
+  const [sessionInvalid, setSessionInvalid] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!sessionId) return
+    const autoOpen = async () => {
+      const { data } = await supabase
+        .from('document_scan_sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .single()
+      if (!data || data.status !== 'pending') {
+        setSessionInvalid(true)
+        setStatus('error')
+        setErrorMsg('Phiên quét không hợp lệ hoặc đã hoàn thành')
+        return
+      }
+      setSessionData(data)
+      // Small delay to ensure DOM is ready
+      setTimeout(() => fileInputRef.current?.click(), 300)
+    }
+    autoOpen()
+  }, [sessionId])
 
   const loadSession = async () => {
     if (!sessionId) return null
@@ -33,12 +55,14 @@ export default function ScanDocumentPage() {
     setErrorMsg('')
 
     try {
-      // Load session info
-      const session = await loadSession()
+      // Use already loaded session or fetch if needed
+      let session = sessionData
+      if (!session) {
+        session = await loadSession()
+      }
       if (!session || session.status !== 'pending') {
         throw new Error('Phiên quét không hợp lệ hoặc đã hoàn thành')
       }
-      setSessionData(session)
 
       // Compress image
       const base64 = await compressImage(file, 0.8, 1024, 1024)
