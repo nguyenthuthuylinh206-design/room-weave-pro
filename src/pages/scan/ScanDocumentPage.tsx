@@ -65,35 +65,45 @@ export default function ScanDocumentPage() {
       }
 
       // Compress image
+      console.log('[ScanDoc] Compressing image...')
       const base64 = await compressImage(file, 0.8, 1024, 1024)
       setPreviewUrl(base64)
       setStatus('scanning')
 
       // Call OCR edge function
+      console.log('[ScanDoc] Calling OCR...')
       const { data: ocrResult, error: ocrError } = await supabase.functions.invoke('scan-guest-document', {
         body: { imageBase64: base64, documentType: session.document_type },
       })
 
       if (ocrError) throw ocrError
       if (ocrResult?.error) throw new Error(ocrResult.error)
+      console.log('[ScanDoc] OCR success:', ocrResult.data)
 
-      // Upload image to storage
+      // Try upload image to storage (non-blocking - skip if fails for anonymous users)
       let imageUrl: string | undefined
-      const fileName = `${session.tenant_id}/${Date.now()}-${session.document_type}.jpg`
-      const blob = await fetch(base64).then(r => r.blob())
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('guest-documents')
-        .upload(fileName, blob, { contentType: 'image/jpeg' })
-
-      if (!uploadError && uploadData) {
-        const { data: urlData } = supabase.storage
+      try {
+        const fileName = `${session.tenant_id}/${Date.now()}-${session.document_type}.jpg`
+        const blob = await fetch(base64).then(r => r.blob())
+        const { data: uploadData, error: uploadError } = await supabase.storage
           .from('guest-documents')
-          .getPublicUrl(uploadData.path)
-        imageUrl = urlData.publicUrl
+          .upload(fileName, blob, { contentType: 'image/jpeg' })
+
+        if (!uploadError && uploadData) {
+          const { data: urlData } = supabase.storage
+            .from('guest-documents')
+            .getPublicUrl(uploadData.path)
+          imageUrl = urlData.publicUrl
+        } else if (uploadError) {
+          console.warn('[ScanDoc] Storage upload skipped (likely anonymous):', uploadError.message)
+        }
+      } catch (storageErr) {
+        console.warn('[ScanDoc] Storage upload failed, continuing without image:', storageErr)
       }
 
       // Update session with results
-      await supabase
+      console.log('[ScanDoc] Updating session...')
+      const { error: updateError } = await supabase
         .from('document_scan_sessions')
         .update({
           status: 'completed',
@@ -103,9 +113,12 @@ export default function ScanDocumentPage() {
         })
         .eq('id', sessionId)
 
+      if (updateError) throw updateError
+
       setStatus('success')
+      console.log('[ScanDoc] Complete!')
     } catch (err: any) {
-      console.error('Scan error:', err)
+      console.error('[ScanDoc] Error:', err)
       setStatus('error')
       setErrorMsg(err.message || 'Lỗi khi quét giấy tờ')
     }
