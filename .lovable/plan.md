@@ -1,85 +1,63 @@
 
 
-## Cai thien QR Scanner - Giong WeChat, nhanh va nhay hon
+## Fix: Loi cap nhat anh khi chup tu dien thoai
 
-### Van de hien tai
+### Nguyen nhan goc
 
-1. **Vung quet nho co dinh (250x250px)** - Phai can chinh chinh xac QR vao o vuong nho, rat kho khi cam tay
-2. **FPS thap (10fps)** - Khong du nhanh de bat QR khi tay rung hoac goc nghieng
-3. **Khong xu ly duoc loa** - Camera khong duoc cau hinh de xu ly anh sang phan chieu
-4. **Giao dien nho trong dialog** - Vung camera bi gioi han boi dialog nho
+Khi mo trang `/scan-document/:sessionId` tren dien thoai, nguoi dung **khong dang nhap** (trang nay la public route). Quy trinh hien tai:
 
-### Giai phap: Thiet ke lai hoan toan theo phong cach WeChat
+1. Dien thoai chup anh -> nen anh -> goi OCR (ok)
+2. Dien thoai upload anh len storage `guest-documents` -> **THAT BAI** vi storage yeu cau `auth.role() = 'authenticated'`
+3. Cap nhat session voi `image_url: null` (vi upload that bai)
+4. May tinh nhan realtime -> `image_url` la null -> khong hien thi anh
 
-| # | File | Thay doi |
-|---|------|---------|
-| 1 | `src/components/bookings/QRScannerDialog.tsx` | Viet lai hoan toan - fullscreen, scan toan bo khung hinh, UI giong WeChat |
+Storage bucket `guest-documents` co RLS policy:
+- Upload: chi cho phep `authenticated` users
+- Nguoi dung tren dien thoai la anonymous -> bi tu choi
 
-### Chi tiet thay doi
+### Giai phap
 
-#### 1. Fullscreen overlay thay vi dialog nho
+Tao edge function moi `mobile-scan-upload` xu ly toan bo quy trinh phia server voi **service role key** (co quyen upload storage), thay vi de client mobile tu upload.
 
-- Dung `position: fixed inset-0` thay vi `Dialog` component
-- Camera chiem toan bo man hinh - giong WeChat
-- Nut dong (X) o goc tren
+| # | File | Loai | Mo ta |
+|---|------|------|-------|
+| 1 | `supabase/functions/mobile-scan-upload/index.ts` | Tao moi | Edge function nhan anh tu mobile, upload len storage bang service role, goi OCR, cap nhat session |
+| 2 | `src/pages/scan/ScanDocumentPage.tsx` | Sua | Goi edge function `mobile-scan-upload` thay vi tu lam 3 buoc rieng le (upload + OCR + update session) |
 
-#### 2. Scan toan bo khung hinh, bo o vuong gioi han
+### Chi tiet ky thuat
 
-- Doi `qrbox` tu `{ width: 250, height: 250 }` sang `undefined` hoac ratio lon (70-80% khung hinh)
-- Thu vien se quet toan bo vung camera thay vi chi trong o vuong nho
-- Nguoi dung chi can dua QR vao bat ky dau trong khung hinh
+#### 1. Edge function `mobile-scan-upload`
 
-#### 3. Tang FPS va do nhay
-
-- Tang `fps` tu 10 len 30 (quet 30 lan/giay)
-- Bat `disableFlip: false` de quet ca mat truoc/sau
-- Dung `aspectRatio: 1.0` de camera vuong, de can chinh hon
-- Bat `experimentalFeatures: { useBarCodeDetectorIfSupported: true }` de dung native BarcodeDetector API (nhanh hon nhieu tren Chrome/Android)
-
-#### 4. UI overlay giong WeChat
-
-- Ve animation scan line chay tu tren xuong (CSS animation)
-- 4 goc bo tron mau xanh o giua (chi de tham khao, khong bat buoc can chinh vao)
-- Text huong dan "Di chuyen camera den ma QR"
-- Nen ban trong (semi-transparent overlay) xung quanh vung trung tam
-
-#### 5. Cau hinh camera tot hon cho chong loa
-
-- Dung `advanced: [{ torch: false }]` - tat flash de giam loa
-- Request camera resolution cao: `width: { ideal: 1280 }, height: { ideal: 720 }`
-- Camera resolution cao giup doc QR tot hon khi bi loa 1 phan
-
-### Cau truc code moi (QRScannerDialog.tsx)
+Nhan request tu mobile voi `{ sessionId, imageBase64, documentType }`:
 
 ```text
-// Thay doi chinh:
-// 1. Fullscreen fixed overlay thay vi Dialog
-// 2. Config camera:
-await scanner.start(
-  { facingMode: 'environment' },
-  {
-    fps: 30,                    // 3x nhanh hon
-    qrbox: { width: 280, height: 280 },  // Lon hon, hoac dung function de responsive
-    aspectRatio: 1.0,
-    disableFlip: false,
-    experimentalFeatures: {
-      useBarCodeDetectorIfSupported: true  // Native API, nhanh hon
-    }
-  },
-  onSuccess,
-  onFailure
-)
-
-// 3. CSS overlay animation
-// - Scan line animation (keyframes translateY 0->100%)
-// - 4 corner markers
-// - Semi-transparent background
+1. Verify session ton tai va status = 'pending' (dung service role)
+2. Goi OCR (scan-guest-document logic hoac goi truc tiep AI gateway)
+3. Upload anh len storage 'guest-documents' bang service role client
+4. Cap nhat document_scan_sessions voi scanned_data, image_url, status = 'completed'
+5. Tra ve ket qua
 ```
+
+Su dung `SUPABASE_SERVICE_ROLE_KEY` de:
+- Upload file len storage (bypass RLS)
+- Cap nhat session (dam bao thanh cong)
+
+#### 2. Sua ScanDocumentPage.tsx
+
+Thay vi 3 buoc rieng le (OCR -> upload storage -> update session), chi can 1 call duy nhat:
+
+```text
+const { data, error } = await supabase.functions.invoke('mobile-scan-upload', {
+  body: { sessionId, imageBase64, documentType }
+})
+```
+
+Giam do phuc tap o client mobile, moi logic xu ly o server.
 
 ### Ket qua mong doi
 
-- Quet nhanh nhu WeChat (native BarcodeDetector + 30fps)
-- Khong can can chinh chinh xac - chi can dua QR vao khung hinh
-- Giao dien fullscreen de thao tac, khong bi nguoc tay
-- Hoat dong tot hon khi bi loa (camera resolution cao + quet toan khung hinh)
+- Anh luon duoc upload thanh cong (service role bypass RLS)
+- Desktop nhan duoc image_url qua realtime -> hien thi preview dung
+- Mobile chi can 1 API call thay vi 3
+- Bao mat: session duoc verify truoc khi xu ly
 
