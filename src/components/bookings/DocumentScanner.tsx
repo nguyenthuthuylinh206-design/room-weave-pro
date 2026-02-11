@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Camera, Upload, Loader2, CheckCircle2, AlertCircle, ScanLine, X, Smartphone } from 'lucide-react'
+import { Camera, Upload, Loader2, CheckCircle2, AlertCircle, ScanLine, X, Smartphone, QrCode } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -13,6 +13,7 @@ import { compressImage } from '@/lib/imageCompression'
 import { toast } from 'sonner'
 import { useUser } from '@/hooks/useUser'
 import { WebcamCaptureDialog } from './WebcamCaptureDialog'
+import { QRScannerDialog } from './QRScannerDialog'
 
 export interface ScannedDocumentData {
   full_name: string
@@ -43,6 +44,7 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
   const [scannedData, setScannedData] = useState<ScannedDocumentData | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
   const [showWebcam, setShowWebcam] = useState(false)
+  const [showQRScanner, setShowQRScanner] = useState(false)
   const [mobileSessionId, setMobileSessionId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -250,6 +252,18 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
           size="sm"
           className="h-8 text-xs"
           disabled={isProcessing || status === 'waiting_mobile'}
+          onClick={() => setShowQRScanner(true)}
+        >
+          <QrCode className="h-3.5 w-3.5 mr-1" />
+          Quét QR
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs"
+          disabled={isProcessing || status === 'waiting_mobile'}
           onClick={startMobileScan}
         >
           <Smartphone className="h-3.5 w-3.5 mr-1" />
@@ -341,6 +355,17 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
         open={showWebcam}
         onOpenChange={setShowWebcam}
         onCapture={processImage}
+      />
+
+      {/* QR Scanner dialog */}
+      <QRScannerDialog
+        open={showQRScanner}
+        onOpenChange={setShowQRScanner}
+        onScanSuccess={(data) => {
+          setScannedData(data)
+          setStatus('success')
+          onScanComplete(data, 'cccd')
+        }}
       />
     </div>
   )
