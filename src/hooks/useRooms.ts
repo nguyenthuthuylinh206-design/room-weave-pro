@@ -49,13 +49,14 @@ export function useRooms(filters: RoomFilters = {}) {
     if (!tenantId) return
 
     const channel = supabase
-      .channel('room_items_changes')
+      .channel(`room_items_${tenantId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'room_items'
+          table: 'room_items',
+          filter: `tenant_id=eq.${tenantId}`,
         },
         () => {
           // Invalidate rooms query to refetch with updated stats

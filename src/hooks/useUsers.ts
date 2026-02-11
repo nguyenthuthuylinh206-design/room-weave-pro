@@ -21,75 +21,16 @@ export function useUsers() {
         throw new Error('Tenant ID is required to fetch users')
       }
 
-      let query = supabase
-        .from('users')
-        .select(`
-          *,
-          position:positions(id, code, name, user_level_code, department)
-        `)
-        .eq('tenant_id', tenant.id)
-        .order('created_at', { ascending: false })
-
-      // If current user is a manager, only show their subordinates
-      if (currentUser?.user_level_code === 'manager') {
-        // Manager can see:
-        // 1. Staff they created (created_by = manager id)
-        // 2. Staff that reports to them (reports_to = manager id)
-        // 3. Themselves
-        query = query.or(`reports_to.eq.${currentUser.id},created_by.eq.${currentUser.id},id.eq.${currentUser.id}`)
-      }
-
-      // Hotel scoping based on current hotel selector
-      // IMPORTANT: a user can be assigned to multiple hotels via user_hotels.
-      // So we must filter by user_hotels (not users.hotel_id) to avoid missing multi-hotel managers.
-      if (selectedHotelId && !isAllHotelsMode) {
-        const { data: hotelUsers, error: hotelUsersError } = await supabase
-          .from('user_hotels')
-          .select('user_id')
-          .eq('hotel_id', selectedHotelId)
-
-        if (hotelUsersError) throw hotelUsersError
-
-        // Backward-compatible: some records may still rely on users.hotel_id as the primary hotel.
-        const { data: primaryHotelUsers, error: primaryHotelUsersError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('tenant_id', tenant.id)
-          .eq('hotel_id', selectedHotelId)
-
-        if (primaryHotelUsersError) throw primaryHotelUsersError
-
-        const userIds = Array.from(
-          new Set([
-            ...(hotelUsers || []).map((r) => r.user_id),
-            ...(primaryHotelUsers || []).map((r) => r.id),
-          ])
-        ).filter(Boolean)
-
-        const isOwnerLike =
-          currentUser?.user_level_code === 'tenant_owner' || currentUser?.user_level_code === 'super_admin'
-
-        // Owner-like: always show tenant owners + users assigned to selected hotel
-        if (isOwnerLike) {
-          if (userIds.length === 0) {
-            query = query.eq('user_level_code', 'tenant_owner')
-          } else {
-            const userIdsIn = `(${userIds.join(',')})`
-            query = query.or(`user_level_code.eq.tenant_owner,id.in.${userIdsIn}`)
-          }
-        } else {
-          // Non-owner: only users assigned to selected hotel
-          if (userIds.length === 0) {
-            return [] as UserWithRelations[]
-          }
-          query = query.in('id', userIds)
-        }
-      }
-
-      const { data, error } = await query
+      // Use RPC to consolidate 3 cascading queries into 1
+      const { data, error } = await supabase.rpc('get_users_by_hotel', {
+        p_tenant_id: tenant.id,
+        p_hotel_id: selectedHotelId && !isAllHotelsMode ? selectedHotelId : null,
+        p_user_id: currentUser?.id || null,
+        p_user_level: currentUser?.user_level_code || null,
+      })
 
       if (error) throw error
-      return data as UserWithRelations[]
+      return (data || []) as UserWithRelations[]
     },
     enabled: !!tenant?.id && !!currentUser,
   })

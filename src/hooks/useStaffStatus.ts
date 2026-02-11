@@ -124,7 +124,8 @@ export function useStaffStatus() {
       return staffWithStatus
     },
     enabled: !!tenantId,
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 60000, // Refetch every 60 seconds
+    refetchOnWindowFocus: false,
   })
 
   // Subscribe to realtime changes for staff_status, telegram_connections, and users
@@ -132,7 +133,7 @@ export function useStaffStatus() {
     if (!tenantId) return
 
     const channel = supabase
-      .channel('staff-status-changes')
+      .channel(`staff-status-${tenantId}`)
       .on(
         'postgres_changes',
         {
