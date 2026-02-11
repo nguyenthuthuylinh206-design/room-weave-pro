@@ -15,7 +15,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Plus, Calculator, Calendar, Percent, Info, CreditCard } from 'lucide-react';
 import { useRoomSubscriptionLimit } from '@/hooks/useRoomSubscriptionLimit';
-import { useUpdateTenantSubscription } from '@/hooks/useSubscription';
+import { useUpdateTenantSubscription, useTenantSubscription } from '@/hooks/useSubscription';
 import { useBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
 import { PRICE_PER_ROOM_DAILY, formatVNCurrency } from '@/lib/pricing';
 import { BankTransferPaymentDialog } from '@/components/payment/BankTransferPaymentDialog';
@@ -36,7 +36,12 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
     discountPercent,
   } = useRoomSubscriptionLimit();
   const updateSubscription = useUpdateTenantSubscription();
+  const { data: subscription } = useTenantSubscription();
   const { data: bankSettings } = useBankPaymentSettings();
+
+  // Max rooms from plan
+  const maxRooms = (subscription?.subscription_plan as any)?.max_rooms || 500;
+  const maxAdditional = Math.max(0, maxRooms - registeredRooms);
 
   // Calculate price for additional rooms
   const pricing = useMemo(() => {
@@ -160,13 +165,24 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
               <Input
                 type="number"
                 min={1}
-                max={1000}
+                max={maxAdditional}
                 value={additionalRooms}
-                onChange={(e) => setAdditionalRooms(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) => setAdditionalRooms(Math.max(1, Math.min(maxAdditional, parseInt(e.target.value) || 1)))}
               />
               <p className="text-sm text-muted-foreground">
                 Sau khi mua: {registeredRooms} + {additionalRooms} = {registeredRooms + additionalRooms} phòng
               </p>
+              <p className="text-xs text-muted-foreground">
+                Giới hạn tối đa: {maxRooms} phòng theo gói dịch vụ (có thể thêm tối đa {maxAdditional} phòng)
+              </p>
+              {maxAdditional <= 0 && (
+                <Alert variant="destructive" className="py-2">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    Bạn đã đạt giới hạn phòng tối đa ({maxRooms}) của gói dịch vụ. Không thể thêm phòng.
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
 
             <Separator />
@@ -225,7 +241,7 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
             </Button>
             <Button 
               onClick={handleConfirm} 
-              disabled={updateSubscription.isPending || additionalRooms < 1}
+              disabled={updateSubscription.isPending || additionalRooms < 1 || maxAdditional <= 0}
             >
               {updateSubscription.isPending ? 'Đang xử lý...' : 
                 bankSettings ? 'Tiếp tục thanh toán' : 

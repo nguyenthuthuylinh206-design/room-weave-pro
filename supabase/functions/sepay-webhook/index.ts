@@ -396,11 +396,35 @@ Deno.serve(async (req) => {
     const tenantId = matchedPayment.tenant_id;
     const metadata = matchedPayment.metadata || {};
 
+    // Fetch plan limit for validation
+    let planMaxRooms: number | null = null;
+    const { data: tenantWithPlan } = await supabase
+      .from('tenants')
+      .select('subscription_plan_id')
+      .eq('id', tenantId)
+      .single();
+
+    if (tenantWithPlan?.subscription_plan_id) {
+      const { data: plan } = await supabase
+        .from('subscription_plans')
+        .select('max_rooms')
+        .eq('id', tenantWithPlan.subscription_plan_id)
+        .single();
+      planMaxRooms = plan?.max_rooms || null;
+    }
+    console.log(`Plan max_rooms for tenant ${tenantId}: ${planMaxRooms}`);
+
     // Update tenant subscription based on payment type
     if (metadata.type === 'extend' || metadata.duration_days) {
       // Extend subscription
       const durationDays = metadata.duration_days || 30;
-      const rooms = metadata.rooms;
+      let rooms = metadata.rooms;
+
+      // Validate rooms against plan limit
+      if (rooms && planMaxRooms && rooms > planMaxRooms) {
+        console.log(`Capping rooms from ${rooms} to plan max ${planMaxRooms}`);
+        rooms = planMaxRooms;
+      }
 
       const { data: tenant, error: tenantError } = await supabase
         .from('tenants')
@@ -422,8 +446,8 @@ Deno.serve(async (req) => {
 
         const updateData: Record<string, unknown> = {
           subscription_end_date: newEndDate.toISOString(),
-          subscription_status: 'active', // Reset to active on successful payment
-          grace_period_ends_at: null, // Clear grace period - will be recalculated by trigger
+          subscription_status: 'active',
+          grace_period_ends_at: null,
           updated_at: new Date().toISOString()
         };
 
@@ -447,13 +471,19 @@ Deno.serve(async (req) => {
         .single();
 
       if (!tenantError && tenant) {
-        const newTotalRooms = (tenant.registered_rooms || 0) + metadata.additional_rooms;
+        let newTotalRooms = (tenant.registered_rooms || 0) + metadata.additional_rooms;
+        
+        // Validate against plan limit
+        if (planMaxRooms && newTotalRooms > planMaxRooms) {
+          console.log(`Capping add_rooms total from ${newTotalRooms} to plan max ${planMaxRooms}`);
+          newTotalRooms = planMaxRooms;
+        }
         
         await supabase
           .from('tenants')
           .update({
             registered_rooms: newTotalRooms,
-            subscription_status: 'active', // Reset to active on successful payment
+            subscription_status: 'active',
             updated_at: new Date().toISOString()
           })
           .eq('id', tenantId);

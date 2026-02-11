@@ -57,6 +57,19 @@ export function BankTransferPaymentDialog({
     setIsCreatingInvoice(true);
 
     try {
+      // Check for existing pending invoices
+      const { data: pendingInvoices } = await supabase
+        .from('invoices')
+        .select('id, invoice_number')
+        .eq('tenant_id', tenantId)
+        .eq('status', 'sent')
+        .limit(1);
+
+      if (pendingInvoices && pendingInvoices.length > 0) {
+        toast.error('Bạn còn hóa đơn chưa thanh toán. Vui lòng thanh toán hoặc hủy trước khi tạo mới.');
+        setIsCreatingInvoice(false);
+        return;
+      }
       // Generate invoice number
       const invoiceNumber = `INV-${Date.now().toString(36).toUpperCase()}`;
       const today = new Date().toISOString().split('T')[0];
