@@ -231,7 +231,7 @@ export function BookingsPage() {
   )
   
   const { data: bookings, isLoading } = useQuery({
-    queryKey: ['all-bookings', selectedHotelId, statusFilter],
+    queryKey: ['all-bookings', isAllHotelsMode ? 'all' : selectedHotelId, statusFilter],
     queryFn: async () => {
       let query = supabase
         .from('room_bookings')
@@ -250,7 +250,7 @@ export function BookingsPage() {
         .order('check_in_date', { ascending: false })
         .limit(100)
       
-      if (selectedHotelId && selectedHotelId !== 'all') {
+      if (!isAllHotelsMode && selectedHotelId) {
         query = query.eq('hotel_id', selectedHotelId)
       }
       
