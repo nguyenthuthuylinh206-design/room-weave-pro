@@ -1,100 +1,68 @@
 
 
-## Nang cap Bao cao Doanh thu (Revenue Report)
+## Them chuc nang tai len Logo khach san
 
 ### Hien trang
 
-Hien tai da co:
-- `useRevenueReport` hook: Query `room_bookings`, tinh today/thisMonth/lastMonth/6-month trends
-- `RevenueReportPage`: Hien thi 4 stat cards + area chart + so sanh thang truoc
-- `MobileRevenueReportPage`: Phien ban mobile
-- `OwnerProfitOverview` + `OwnerRevenueOverview`: Dashboard widget
+- Bang `hotels` da co cot `logo_url` (string | null) - san sang su dung
+- `HotelFormDialog` chua co truong upload logo
+- `HotelCard` dung icon `Building2` co dinh, chua hien thi logo
+- Da co `useImageUpload` hook upload len bucket `item-images`
+- Da co component `ImageUpload` (multi-image) - nhung can tao component don gian hon cho single logo
 
-### Van de
+### Ke hoach
 
-1. **Period filter khong hoat dong**: State `period` trong `RevenueReportPage` khong duoc truyen xuong hook - luon hien thi thang hien tai
-2. **Thieu phan tich chi tiet**:
-   - Khong co breakdown theo `booking_type` (daily/hourly/monthly)
-   - Khong co breakdown theo `booking_source` (direct/Booking.com/Agoda...)
-   - Khong co phan tich phu thu (early check-in, late checkout, damage charges)
-   - Khong co phan tich OTA commission vs net revenue
-3. **Thieu bao cao theo phong/loai phong**: Revenue per room, top rooms
-4. **Export khong hoat dong**: Nut "Xuat bao cao" chua co logic
-5. **UI chua theo chuan Enterprise SaaS**: Dung `Card` + `bg-*-50` thay vi `border rounded-lg`
+#### 1. Tao storage bucket `hotel-logos`
 
-### Giai phap
+Tao bucket rieng cho logo khach san (public) voi RLS policy cho phep tenant upload/delete.
 
-#### 1. Nang cap `useRevenueReport` hook
+#### 2. Them `logo_url` vao `HotelFormData` interface
 
-Mo rong hook de tinh them:
+Them truong `logo_url?: string` vao interface trong `useHotels.ts`, va cap nhat `useCreateHotel` / `useUpdateHotel` de luu `logo_url`.
 
-| Metric moi | Nguon du lieu |
-|------------|---------------|
-| Revenue theo booking_type (daily/hourly/monthly) | `room_bookings.booking_type` |
-| Revenue theo booking_source (Direct/OTA) | `room_bookings.booking_source` |
-| OTA commission tong | `room_bookings.ota_commission_amount` |
-| Net revenue (sau OTA) | `room_bookings.net_revenue` |
-| Phu thu: early check-in, late checkout | `early_checkin_charge`, `late_checkout_charge` |
-| Damage charges | `room_bookings.damage_charges` |
-| Top 5 phong doanh thu cao nhat | Join `rooms(room_number, room_type)` |
+#### 3. Them logo upload vao `HotelFormDialog`
 
-Them tham so `period` de filter theo tuan/thang/quy/nam thay vi luon la thang hien tai.
+- Them vao Step 1 (phia tren truong Code): Hien thi avatar tron voi nut upload
+- Click de chon file anh -> Upload len bucket `hotel-logos` -> Luu URL
+- Hien thi preview logo sau khi upload, co nut X de xoa
+- Su dung `useImageUpload` hook (sua bucket thanh `hotel-logos`)
+- Giao dien: Avatar tron 80x80, click de upload, compact theo chuan Enterprise SaaS
 
-#### 2. Redesign `RevenueReportPage` (Desktop)
+#### 4. Hien thi logo trong `HotelCard`
 
-Cau truc moi:
+Thay icon `Building2` bang logo thuc te neu co `hotel.logo_url`:
+- Dung `Avatar` component voi `AvatarImage` + `AvatarFallback` (Building2 icon)
+- Kich thuoc giu nguyen `p-2 rounded-lg`
 
-```text
-+--------------------------------------------------+
-| Bao cao Doanh thu          [Tuan v] [Xuat bao cao] |
-+--------------------------------------------------+
-| Da thu    | Cho TT   | Net Revenue | Bookings     |
-| 12.5M     | 3.2M     | 10.8M       | 45           |
-+--------------------------------------------------+
-| [Tab: Tong quan | Theo loai | Theo nguon | Phong] |
-+--------------------------------------------------+
+#### 5. Hien thi logo trong `MobileHotelManagementPage`
 
-Tab Tong quan:
-- Area chart xu huong 6 thang (giu nguyen)
-- So sanh voi ky truoc (compact, khong bg mau)
+Tuong tu, thay icon `Building2` bang logo neu co.
 
-Tab Theo loai (booking_type):
-- Bang: Daily | Hourly | Monthly - so booking, doanh thu, % tong
-- Bar chart so sanh
-
-Tab Theo nguon (booking_source):
-- Bang: Direct | Booking.com | Agoda | ... 
-- Cot: Bookings, Gross Revenue, OTA Commission, Net Revenue
-- Pie chart phan bo
-
-Tab Phong:
-- Bang top phong theo doanh thu
-- Cot: Phong, Loai, So booking, Doanh thu, Phu thu, Tong
-```
-
-#### 3. Nang cap `MobileRevenueReportPage`
-
-- Them section breakdown theo `booking_type` (3 dong compact)
-- Them section OTA summary (gross vs net)
-- Bo `bg-*-50` theo chuan Enterprise SaaS
-
-#### 4. Them export PDF/Excel
-
-Su dung `jspdf` + `jspdf-autotable` (da cai) cho PDF va `xlsx` (da cai) cho Excel.
-
-### File thay doi
+### Chi tiet ky thuat
 
 | File | Thay doi |
 |------|---------|
-| `src/hooks/useRevenueReport.ts` | Them `period` param, tinh breakdown theo booking_type/source/room, OTA metrics, phu thu |
-| `src/pages/reports/RevenueReportPage.tsx` | Redesign voi tabs, truyen period vao hook, them export logic, ap dung Enterprise SaaS style |
-| `src/components/reports/MobileRevenueReportPage.tsx` | Them breakdown sections, bo bg mau |
-| `src/components/reports/RevenueByTypeChart.tsx` | **Moi** - Bar chart theo booking_type |
-| `src/components/reports/RevenueBySourceTable.tsx` | **Moi** - Bang + pie chart theo booking_source |
-| `src/components/reports/TopRoomsRevenueTable.tsx` | **Moi** - Bang top phong doanh thu |
-| `src/components/reports/useRevenueExport.ts` | **Moi** - Hook xuat PDF/Excel |
+| Migration SQL | Tao bucket `hotel-logos` + RLS policies |
+| `src/hooks/useHotels.ts` | Them `logo_url` vao `HotelFormData`, cap nhat create/update mutations |
+| `src/components/settings/hotels/HotelFormDialog.tsx` | Them logo upload UI (avatar + file input), su dung `useImageUpload` |
+| `src/components/settings/hotels/HotelCard.tsx` | Hien thi logo thay Building2 icon |
+| `src/components/settings/MobileHotelManagementPage.tsx` | Hien thi logo thay Building2 icon |
 
-### Khong thay doi database
+### Upload UI trong form
 
-Tat ca du lieu can thiet da co san trong bang `room_bookings`. Chi can query va aggregate phia client.
+```text
++---------------------------+
+|   [  Logo 80x80  ]        |  <- Avatar tron, click de upload
+|   Tai len logo (tuy chon) |  <- Label nho phia duoi
++---------------------------+
+| Ma khach san *             |
+| [___________]              |
+| Ten khach san *            |
+| ...                        |
+```
+
+- Khi chua co logo: Hien thi icon Upload + text "Chon logo"
+- Khi da co logo: Hien thi anh + nut X goc tren phai de xoa
+- Dang upload: Hien thi spinner
+- Chi chap nhan file anh, toi da 2MB
 
