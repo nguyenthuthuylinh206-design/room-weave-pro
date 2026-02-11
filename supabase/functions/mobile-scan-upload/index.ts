@@ -57,19 +57,25 @@ serve(async (req) => {
 
     // 2. Call OCR via AI gateway
     const prompts: Record<string, string> = {
-      cccd: `Analyze this Vietnamese Citizen ID Card (CCCD/CMND) image. Extract all visible information accurately. 
+      cccd: `IMPORTANT: First determine if the image actually shows an identity document. If the image is a selfie, random photo, or does not clearly show an ID card/passport/visa, set is_valid_document to false.
+
+Analyze this Vietnamese Citizen ID Card (CCCD/CMND) image. Extract all visible information accurately. 
 For Vietnamese names, keep the original Vietnamese characters with diacritics.
 The ID number is a 12-digit number on the card.
 Date format on card is typically DD/MM/YYYY - convert to YYYY-MM-DD format.
 Gender: "Nam" = male, "Nữ" = female.
 Nationality is usually "Việt Nam" for CCCD.`,
-      passport: `Analyze this passport image. Extract all visible information accurately.
+      passport: `IMPORTANT: First determine if the image actually shows an identity document. If the image is a selfie, random photo, or does not clearly show an ID card/passport/visa, set is_valid_document to false.
+
+Analyze this passport image. Extract all visible information accurately.
 Keep the full name as shown on the passport.
 The passport number is usually alphanumeric (e.g., B1234567).
 Date of birth format: convert to YYYY-MM-DD.
 Gender: M = male, F = female.
 Extract nationality/country of origin.`,
-      visa: `Analyze this visa document image. Extract all visible information accurately.
+      visa: `IMPORTANT: First determine if the image actually shows an identity document. If the image is a selfie, random photo, or does not clearly show an ID card/passport/visa, set is_valid_document to false.
+
+Analyze this visa document image. Extract all visible information accurately.
 Keep the full name as shown.
 Extract the visa number.
 Extract nationality.`,
@@ -105,6 +111,8 @@ Extract nationality.`,
               parameters: {
                 type: "object",
                 properties: {
+                  is_valid_document: { type: "boolean", description: "true if the image clearly shows an identity document (ID card, passport, visa). false if it's a selfie, random photo, or unclear image." },
+                  rejection_reason: { type: "string", description: "If is_valid_document is false, explain why" },
                   full_name: { type: "string", description: "Full name of the person" },
                   id_number: { type: "string", description: "Document number" },
                   date_of_birth: { type: "string", description: "Date of birth in YYYY-MM-DD format" },
@@ -112,7 +120,7 @@ Extract nationality.`,
                   nationality: { type: "string", description: "Nationality" },
                   address: { type: "string", description: "Address if available" },
                 },
-                required: ["full_name", "id_number"],
+                required: ["is_valid_document", "full_name", "id_number"],
                 additionalProperties: false,
               },
             },
@@ -144,7 +152,20 @@ Extract nationality.`,
     }
 
     const scannedData = JSON.parse(toolCall.function.arguments);
-    console.log("[mobile-scan-upload] OCR success:", scannedData);
+    console.log("[mobile-scan-upload] OCR result:", scannedData);
+
+    if (!scannedData.is_valid_document) {
+      // Update session as failed
+      await supabase
+        .from("document_scan_sessions")
+        .update({ status: "failed", scanned_data: { rejection_reason: scannedData.rejection_reason } })
+        .eq("id", sessionId);
+
+      return new Response(
+        JSON.stringify({ error: scannedData.rejection_reason || "Ảnh không phải giấy tờ tùy thân. Vui lòng chụp lại ảnh CCCD/Hộ chiếu/Visa." }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // 3. Upload image to storage using service role (bypasses RLS)
     let imageUrl: string | null = null;
