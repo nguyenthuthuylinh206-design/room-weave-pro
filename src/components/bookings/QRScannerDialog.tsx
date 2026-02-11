@@ -146,7 +146,7 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
   return (
     <div className="fixed inset-0 z-[100] bg-black">
       {/* Camera feed */}
-      <div id={readerElId} className="w-full h-full [&_video]:object-cover [&_video]:w-full [&_video]:h-full" />
+      <div id={readerElId} className="w-full h-full [&_video]:object-cover [&_video]:w-full [&_video]:h-full [&_video]:-scale-x-100" />
 
       {/* Overlay with transparent center */}
       <div className="absolute inset-0 pointer-events-none">
