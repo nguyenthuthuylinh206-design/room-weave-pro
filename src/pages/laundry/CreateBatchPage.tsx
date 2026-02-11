@@ -12,12 +12,16 @@ import { MobileBatchForm } from '@/components/laundry/MobileBatchForm'
 import { useCreateLaundryBatch } from '@/hooks/useLaundryBatches'
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useTranslation } from 'react-i18next'
+import { useHotelContext } from '@/contexts/HotelContext'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
 import type { CreateBatchStep1Data, CreateBatchStep2Data, CreateBatchStep3Data } from '@/types/laundry.types'
 
 export function CreateBatchPage() {
   const navigate = useNavigate()
   const { isMobile } = useBreakpoint()
   const { t } = useTranslation('laundry')
+  const { isAllHotelsMode } = useHotelContext()
   
   // Gọi TẤT CẢ hooks trước điều kiện isMobile
   const [step, setStep] = useState(1)
@@ -74,6 +78,16 @@ export function CreateBatchPage() {
         </Button>
       </PageHeader>
       
+      {/* All Hotels Warning */}
+      {isAllHotelsMode && (
+        <Alert variant="destructive" className="py-2">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="text-sm">
+            Vui lòng chọn một khách sạn cụ thể để tạo mới. Chế độ "Tất cả khách sạn" chỉ hỗ trợ xem dữ liệu.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Stepper */}
       <Card>
         <CardContent className="pt-6">
@@ -117,6 +131,7 @@ export function CreateBatchPage() {
           initialData={step1Data}
           onComplete={handleStep1Complete}
           onBack={() => navigate(-1)}
+          disabled={isAllHotelsMode}
         />
       )}
       

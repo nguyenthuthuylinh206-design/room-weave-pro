@@ -21,8 +21,10 @@ import { MobileDetailHeader } from '@/components/layout/MobileDetailHeader'
 import { useCreateMaintenanceRequest, useUpdateMaintenanceRequest } from '@/hooks/useMaintenanceRequests'
 import { useRooms } from '@/hooks/useRooms'
 import { useItems } from '@/hooks/useItems'
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useHotelContext } from '@/contexts/HotelContext'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 const requestSchema = z.object({
   title: z.string().min(1, 'validation.titleRequired'),
@@ -50,6 +52,7 @@ export const MobileMaintenanceRequestForm = () => {
   const { id } = useParams()
   const { t } = useTranslation('maintenance')
   const [currentStep, setCurrentStep] = useState(1)
+  const { isAllHotelsMode } = useHotelContext()
 
   const STEPS = [
     { id: 1, title: t('form.steps.basicInfo') },
@@ -113,6 +116,14 @@ export const MobileMaintenanceRequestForm = () => {
       />
 
       <div className="p-4 space-y-4">
+        {isAllHotelsMode && !id && (
+          <Alert variant="destructive" className="py-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              Vui lòng chọn một khách sạn cụ thể để tạo mới. Chế độ "Tất cả khách sạn" chỉ hỗ trợ xem dữ liệu.
+            </AlertDescription>
+          </Alert>
+        )}
         {/* Step Indicator */}
         <div className="flex items-center justify-between">
           {STEPS.map((step, index) => (
@@ -334,7 +345,7 @@ export const MobileMaintenanceRequestForm = () => {
               type="button"
               className="flex-1"
               onClick={handleNext}
-              disabled={createRequest.isPending || updateRequest.isPending}
+              disabled={createRequest.isPending || updateRequest.isPending || (isAllHotelsMode && !id)}
             >
               {currentStep === STEPS.length ? (
                 createRequest.isPending || updateRequest.isPending ? (

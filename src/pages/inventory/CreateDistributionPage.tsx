@@ -1,24 +1,32 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Zap } from 'lucide-react'
+import { ArrowLeft, Zap, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { DistributionForm } from '@/components/distribution/forms/DistributionForm'
 import { useDistributionForm } from '@/components/distribution/hooks/useDistributionForm'
 import { useCreateDistributionOrder } from '@/hooks/useDistributionOrders'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useHotelContext } from '@/contexts/HotelContext'
 import { toast } from 'sonner'
 
 export default function CreateDistributionPage() {
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const { mutate: createOrder, isPending } = useCreateDistributionOrder()
+  const { isAllHotelsMode } = useHotelContext()
   const [autoRelease, setAutoRelease] = useState(false)
   
   const form = useDistributionForm()
 
   const handleSubmit = () => {
+    if (isAllHotelsMode) {
+      toast.error('Vui lòng chọn một khách sạn cụ thể để tạo mới')
+      return
+    }
+
     if (form.selectedRoomIds.length === 0) {
       toast.error('Vui lòng chọn ít nhất một phòng')
       return
@@ -76,6 +84,14 @@ export default function CreateDistributionPage() {
 
       {/* Form */}
       <div className={isMobile ? 'flex-1 overflow-auto p-4 space-y-4' : 'space-y-4'}>
+        {isAllHotelsMode && (
+          <Alert variant="destructive" className="py-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              Vui lòng chọn một khách sạn cụ thể để tạo mới. Chế độ "Tất cả khách sạn" chỉ hỗ trợ xem dữ liệu.
+            </AlertDescription>
+          </Alert>
+        )}
         <DistributionForm form={form} />
         
         {/* Auto-release option */}
@@ -113,7 +129,7 @@ export default function CreateDistributionPage() {
         </Button>
         <Button 
           onClick={handleSubmit} 
-          disabled={isPending || !form.isValid}
+          disabled={isPending || !form.isValid || isAllHotelsMode}
           className={isMobile ? 'flex-1' : ''}
         >
           {isPending ? 'Đang tạo...' : 'Tạo phiếu giao hàng'}

@@ -35,9 +35,10 @@ interface CreateBatchStep1Props {
   initialData: CreateBatchStep1Data | null
   onComplete: (data: CreateBatchStep1Data) => void
   onBack: () => void
+  disabled?: boolean
 }
 
-export function CreateBatchStep1({ initialData, onComplete, onBack }: CreateBatchStep1Props) {
+export function CreateBatchStep1({ initialData, onComplete, onBack, disabled }: CreateBatchStep1Props) {
   const { t, i18n } = useTranslation('laundry')
   const dateLocale = i18n.language === 'vi' ? vi : enUS
   const { users } = useUsers()
@@ -244,7 +245,7 @@ export function CreateBatchStep1({ initialData, onComplete, onBack }: CreateBatc
           <Button type="button" variant="outline" onClick={onBack}>
             {t('createBatch.step1.cancel')}
           </Button>
-          <Button type="submit">
+          <Button type="submit" disabled={disabled}>
             {t('createBatch.step1.next')}
           </Button>
         </div>

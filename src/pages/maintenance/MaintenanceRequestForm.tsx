@@ -24,6 +24,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useEffect, useState } from 'react'
 import { ImageUpload } from '@/components/shared/ImageUpload'
 import { useBreakpoint } from '@/lib/breakpoints'
+import { useHotelContext } from '@/contexts/HotelContext'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
 
 const requestSchema = z.object({
   issue_type: z.enum(['repair', 'replace', 'inspection', 'cleaning', 'other']),
@@ -46,6 +49,7 @@ export default function MaintenanceRequestForm() {
   const { isMobile } = useBreakpoint()
   const { t } = useTranslation('maintenance')
   const { t: tCommon } = useTranslation('common')
+  const { isAllHotelsMode } = useHotelContext()
   const isEditMode = !!id
   
   const createRequest = useCreateMaintenanceRequest()
@@ -120,6 +124,14 @@ export default function MaintenanceRequestForm() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {isAllHotelsMode && !isEditMode && (
+            <Alert variant="destructive" className="py-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                Vui lòng chọn một khách sạn cụ thể để tạo mới. Chế độ "Tất cả khách sạn" chỉ hỗ trợ xem dữ liệu.
+              </AlertDescription>
+            </Alert>
+          )}
           {/* Issue Type & Priority */}
           <Card>
             <CardHeader>
@@ -356,7 +368,7 @@ export default function MaintenanceRequestForm() {
             <Button type="button" variant="outline" onClick={() => navigate('/maintenance/requests')}>
               {tCommon('buttons.cancel')}
             </Button>
-            <Button type="submit" disabled={createRequest.isPending || updateRequest.isPending}>
+            <Button type="submit" disabled={createRequest.isPending || updateRequest.isPending || (isAllHotelsMode && !isEditMode)}>
               {createRequest.isPending || updateRequest.isPending 
                 ? t('actions.processing') 
                 : isEditMode ? tCommon('buttons.update') : t('actions.submit')}
