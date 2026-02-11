@@ -30,6 +30,7 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
   const [isZoomed, setIsZoomed] = useState(false)
   const [isFlashOn, setIsFlashOn] = useState(false)
   const [hasTorch, setHasTorch] = useState(false)
+  const [isFrontCamera, setIsFrontCamera] = useState(false)
 
   const stopScanner = useCallback(() => {
     stoppedRef.current = true
@@ -86,6 +87,7 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
     setIsZoomed(false)
     setIsFlashOn(false)
     setHasTorch(false)
+    setIsFrontCamera(false)
 
     let scanModule: { scan: (source: HTMLCanvasElement) => Promise<{ text: string } | null>, ready: () => Promise<void> } | null = null
 
@@ -125,6 +127,7 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
               height: { ideal: 2160 },
             },
           })
+          setIsFrontCamera(true)
         }
 
         if (stoppedRef.current) {
@@ -236,6 +239,7 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
         playsInline
         muted
         autoPlay
+        style={isFrontCamera ? { transform: 'scaleX(-1)' } : undefined}
       />
 
       {/* Loading overlay */}
