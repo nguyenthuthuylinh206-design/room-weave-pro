@@ -48,14 +48,12 @@ export function useBookingStats() {
   return useQuery({
     queryKey: ['booking-stats', hotelId, today],
     queryFn: async (): Promise<BookingStats> => {
-      // Get total rooms
+      // Run all 5 queries in parallel
       let roomsQuery = supabase.from('rooms').select('id', { count: 'exact' }).eq('tenant_id', tenantId)
       if (hotelId && hotelId !== 'all') {
         roomsQuery = roomsQuery.eq('hotel_id', hotelId)
       }
-      const { count: totalRooms } = await roomsQuery
 
-      // Get currently checked-in bookings
       let occupiedQuery = supabase
         .from('room_bookings')
         .select('id, room_price, extra_charges, total_amount', { count: 'exact' })
@@ -64,9 +62,7 @@ export function useBookingStats() {
       if (hotelId && hotelId !== 'all') {
         occupiedQuery = occupiedQuery.eq('hotel_id', hotelId)
       }
-      const { count: occupiedRooms, data: occupiedBookings } = await occupiedQuery
 
-      // Get check-ins today
       let checkInQuery = supabase
         .from('room_bookings')
         .select('id', { count: 'exact' })
@@ -76,9 +72,7 @@ export function useBookingStats() {
       if (hotelId && hotelId !== 'all') {
         checkInQuery = checkInQuery.eq('hotel_id', hotelId)
       }
-      const { count: checkInsToday } = await checkInQuery
 
-      // Get check-outs today
       let checkOutQuery = supabase
         .from('room_bookings')
         .select('id, total_amount, payment_status', { count: 'exact' })
@@ -88,9 +82,7 @@ export function useBookingStats() {
       if (hotelId && hotelId !== 'all') {
         checkOutQuery = checkOutQuery.eq('hotel_id', hotelId)
       }
-      const { count: checkOutsToday, data: checkoutBookings } = await checkOutQuery
 
-      // Get today's revenue (paid checkouts)
       let revenueQuery = supabase
         .from('room_bookings')
         .select('total_amount')
@@ -102,7 +94,21 @@ export function useBookingStats() {
       if (hotelId && hotelId !== 'all') {
         revenueQuery = revenueQuery.eq('hotel_id', hotelId)
       }
-      const { data: paidBookings } = await revenueQuery
+
+      const [roomsResult, occupiedResult, checkInResult, checkOutResult, revenueResult] = await Promise.all([
+        roomsQuery,
+        occupiedQuery,
+        checkInQuery,
+        checkOutQuery,
+        revenueQuery,
+      ])
+
+      const totalRooms = roomsResult.count
+      const occupiedRooms = occupiedResult.count
+      const occupiedBookings = occupiedResult.data
+      const checkInsToday = checkInResult.count
+      const checkOutsToday = checkOutResult.count
+      const paidBookings = revenueResult.data
 
       const todayRevenue = paidBookings?.reduce((sum, b) => sum + (b.total_amount || 0), 0) || 0
 

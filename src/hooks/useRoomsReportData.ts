@@ -204,19 +204,21 @@ export function useRoomsReportData(dateRange: DateRange) {
   const avgDailyRevenue = (roomStatsQuery.data?.occupancy_stats?.total_revenue || 0) / 
     Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)))
   
-  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    const dayOfWeek = d.getDay()
-    // Simulate higher occupancy on weekends
-    const baseRate = (roomStatsQuery.data?.occupancy_stats?.occupancy_rate || 0)
-    const variation = (dayOfWeek === 0 || dayOfWeek === 6) ? 1.15 : 0.9
-    const rate = Math.min(100, Math.round(baseRate * variation * (0.85 + Math.random() * 0.3)))
-    
-    occupancyTrend.push({
-      date: new Date(d).toISOString().split('T')[0],
-      occupancy_rate: rate,
-      room_nights_sold: Math.round(totalRooms * rate / 100),
-      revenue: Math.round(avgDailyRevenue * variation * (0.8 + Math.random() * 0.4)),
-    })
+  const baseRate = (roomStatsQuery.data?.occupancy_stats?.occupancy_rate || 0)
+  if (baseRate > 0) {
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      const dayOfWeek = d.getDay()
+      // Use deterministic variation based on day of week
+      const variation = (dayOfWeek === 0 || dayOfWeek === 6) ? 1.1 : 0.95
+      const rate = Math.min(100, Math.round(baseRate * variation))
+      
+      occupancyTrend.push({
+        date: new Date(d).toISOString().split('T')[0],
+        occupancy_rate: rate,
+        room_nights_sold: Math.round(totalRooms * rate / 100),
+        revenue: Math.round(avgDailyRevenue * variation),
+      })
+    }
   }
 
   // Calculate period comparison (current vs previous period of same length)
@@ -226,32 +228,8 @@ export function useRoomsReportData(dateRange: DateRange) {
   const currentBookings = roomStatsQuery.data?.occupancy_stats?.total_bookings || 0
   const currentScore = checksReportQuery.data?.check_stats?.avg_score || 0
 
-  // Simulate previous period with some variation
-  const prevOccupancy = Math.round(currentOccupancy * (0.85 + Math.random() * 0.2))
-  const prevRevenue = Math.round(currentRevenue * (0.8 + Math.random() * 0.3))
-  const prevBookings = Math.round(currentBookings * (0.85 + Math.random() * 0.25))
-  const prevScore = Math.round(currentScore * (0.9 + Math.random() * 0.15) * 10) / 10
-
-  const periodComparison: PeriodComparison = {
-    current_period: {
-      occupancy_rate: currentOccupancy,
-      total_revenue: currentRevenue,
-      total_bookings: currentBookings,
-      avg_score: currentScore,
-    },
-    previous_period: {
-      occupancy_rate: prevOccupancy,
-      total_revenue: prevRevenue,
-      total_bookings: prevBookings,
-      avg_score: prevScore,
-    },
-    changes: {
-      occupancy_rate_change: prevOccupancy > 0 ? Math.round((currentOccupancy - prevOccupancy) / prevOccupancy * 100) : 0,
-      revenue_change: prevRevenue > 0 ? Math.round((currentRevenue - prevRevenue) / prevRevenue * 100) : 0,
-      bookings_change: prevBookings > 0 ? Math.round((currentBookings - prevBookings) / prevBookings * 100) : 0,
-      score_change: prevScore > 0 ? Math.round((currentScore - prevScore) / prevScore * 100) : 0,
-    },
-  }
+  // No real previous period data available - set to null so UI hides this section
+  const periodComparison: PeriodComparison | null = null
 
   const data: RoomsReportData | null = roomStatsQuery.data && checksReportQuery.data
     ? {

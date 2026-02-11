@@ -65,6 +65,7 @@ export function useLaundryRequests(filters: LaundryRequestFilters = {}) {
         `)
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false })
+        .limit(200)
 
       if (hotelIdToFilter) {
         query = query.eq('hotel_id', hotelIdToFilter)

@@ -8403,6 +8403,10 @@ export type Database = {
           unit_price: number
         }[]
       }
+      get_maintenance_dashboard: {
+        Args: { p_hotel_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
       get_missing_items_for_rooms: {
         Args: { p_room_ids: string[] }
         Returns: {
