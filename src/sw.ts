@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
-import { registerRoute } from 'workbox-routing';
+import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching';
+import { registerRoute, NavigationRoute } from 'workbox-routing';
 import { NetworkFirst, CacheFirst } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
@@ -10,6 +10,12 @@ declare let self: ServiceWorkerGlobalScope;
 // Workbox precaching - inject manifest from vite-plugin-pwa
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
+
+// SPA fallback - serve index.html for all navigation requests
+const navigationRoute = new NavigationRoute(createHandlerBoundToURL('index.html'), {
+  denylist: [/^\/~oauth/],
+});
+registerRoute(navigationRoute);
 
 // Runtime caching for Supabase API
 registerRoute(
