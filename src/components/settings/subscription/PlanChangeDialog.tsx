@@ -100,9 +100,12 @@ export function PlanChangeDialog({
     }
   };
 
+  // Max rooms from plan
+  const maxRooms = (subscription?.subscription_plan as any)?.max_rooms || 500;
+
   const handleRoomsChange = (value: number) => {
-    // Allow setting any value >= 1, but show warning if below minRooms
-    setRooms(Math.max(1, Math.min(9999, value)));
+    // Allow setting any value >= minRooms, capped at plan maxRooms
+    setRooms(Math.max(1, Math.min(maxRooms, value)));
   };
 
   const handlePaymentCreated = (invoiceId: string) => {
@@ -161,7 +164,7 @@ export function PlanChangeDialog({
                 <Input
                   type="number"
                   min={1}
-                  max={9999}
+                  max={maxRooms}
                   value={rooms}
                   onChange={(e) => handleRoomsChange(parseInt(e.target.value) || 1)}
                   className="w-24 text-center h-9"
@@ -172,10 +175,14 @@ export function PlanChangeDialog({
                   size="icon"
                   className="h-9 w-9"
                   onClick={() => handleRoomsChange(rooms + 10)}
+                  disabled={rooms >= maxRooms}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Giới hạn tối đa: {maxRooms} phòng theo gói dịch vụ
+              </p>
               {rooms !== registeredRooms && !isRoomsBelowMinimum && (
                 <p className="text-xs text-muted-foreground">
                   Thay đổi: {registeredRooms} → {rooms} phòng ({rooms > registeredRooms ? '+' : ''}{rooms - registeredRooms})
