@@ -13,6 +13,7 @@ interface QRScannerDialogProps {
 
 export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScannerDialogProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
   const readerElId = 'qr-reader-fullscreen'
 
   const stopScanner = useCallback(async () => {
@@ -25,6 +26,12 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
       // ignore
     }
     scannerRef.current = null
+
+    // Stop custom stream
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+      streamRef.current = null
+    }
   }, [])
 
   const handleClose = useCallback(() => {
@@ -37,13 +44,48 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
 
     const timeout = setTimeout(async () => {
       try {
+        // Step 1: Get high-res stream with autofocus
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 4096 },
+            height: { ideal: 2160 },
+            // @ts-ignore - focusMode is valid but not in TS types
+            focusMode: { ideal: 'continuous' },
+            advanced: [
+              // @ts-ignore
+              { focusMode: 'continuous' },
+              { torch: false } as any,
+            ],
+          } as any,
+        })
+        streamRef.current = stream
+
+        // Step 2: Apply continuous autofocus explicitly
+        const track = stream.getVideoTracks()[0]
+        try {
+          const capabilities = (track as any).getCapabilities?.()
+          if (capabilities?.focusMode?.includes('continuous')) {
+            await track.applyConstraints({
+              advanced: [{ focusMode: 'continuous' } as any],
+            })
+          }
+        } catch {
+          // Some browsers don't support getCapabilities
+        }
+
+        // Step 3: Get deviceId from the stream
+        const deviceId = track.getSettings().deviceId
+
+        // Stop the stream - html5-qrcode will open its own
+        stream.getTracks().forEach(t => t.stop())
+        streamRef.current = null
+
         const scanner = new Html5Qrcode(readerElId)
         scannerRef.current = scanner
 
         await scanner.start(
-          {
-            facingMode: 'environment',
-          },
+          { deviceId: { exact: deviceId! } },
           {
             fps: 30,
             qrbox: (viewfinderWidth, viewfinderHeight) => {
@@ -68,6 +110,24 @@ export function QRScannerDialog({ open, onOpenChange, onScanSuccess }: QRScanner
           },
           () => { /* ignore scan failures */ }
         )
+
+        // Step 4: Apply autofocus to the scanner's own video track
+        const videoEl = document.querySelector(`#${readerElId} video`) as HTMLVideoElement | null
+        if (videoEl?.srcObject) {
+          const scanTrack = (videoEl.srcObject as MediaStream).getVideoTracks()[0]
+          if (scanTrack) {
+            try {
+              const caps = (scanTrack as any).getCapabilities?.()
+              if (caps?.focusMode?.includes('continuous')) {
+                await scanTrack.applyConstraints({
+                  advanced: [{ focusMode: 'continuous' } as any],
+                })
+              }
+            } catch {
+              // ignore
+            }
+          }
+        }
       } catch (err: any) {
         console.error('QR scanner error:', err)
         toast.error('Không thể mở camera')
