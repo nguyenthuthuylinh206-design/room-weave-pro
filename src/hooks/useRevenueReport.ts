@@ -119,8 +119,14 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
       const endOfTodayISO = endOfDay(today).toISOString()
       const { currentStart, currentEnd, previousStart, previousEnd } = getPeriodRange(period, today)
 
-      // Query bookings with room info for top rooms
-      let query = supabase.from('room_bookings').select('*, room:rooms!room_bookings_room_id_fkey(room_number, room_type)')
+      // Only fetch last 6 months of data (enough for monthly trends)
+      const sixMonthsAgo = subMonths(today, 6)
+      const sixMonthsAgoISO = startOfDay(sixMonthsAgo).toISOString()
+
+      // Query bookings with only needed columns for revenue calculation
+      let query = supabase.from('room_bookings').select('check_out_date, total_amount, amount_paid, payment_status, booking_type, booking_source, ota_commission_amount, net_revenue, early_checkin_charge, late_checkout_charge, damage_charges, room_id, room:rooms!room_bookings_room_id_fkey(room_number, room_type)')
+        .gte('check_out_date', sixMonthsAgoISO)
+        .limit(10000)
 
       if (tenantId) query = query.eq('tenant_id', tenantId)
       if (!isAllHotelsMode && selectedHotel?.id) query = query.eq('hotel_id', selectedHotel.id)

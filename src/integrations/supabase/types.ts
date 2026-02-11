@@ -8760,6 +8760,52 @@ export type Database = {
           user_level_code: string
         }[]
       }
+      get_users_by_hotel: {
+        Args: {
+          p_hotel_id?: string
+          p_tenant_id: string
+          p_user_id?: string
+          p_user_level?: string
+        }
+        Returns: {
+          account_locked: boolean | null
+          avatar_url: string | null
+          created_at: string | null
+          created_by: string | null
+          deactivated_at: string | null
+          deactivated_by: string | null
+          deleted_at: string | null
+          department: string | null
+          email: string
+          full_name: string
+          hotel_id: string | null
+          id: string
+          is_primary_owner: boolean | null
+          is_super_admin: boolean | null
+          last_login_at: string | null
+          last_login_ip: unknown
+          locked_reason: string | null
+          login_count: number | null
+          metadata: Json | null
+          must_change_password: boolean | null
+          notes: string | null
+          phone: string | null
+          position_id: string | null
+          reports_to: string | null
+          role: string
+          status: string | null
+          telegram_username: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          user_level_code: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "users"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_vendor_performance: {
         Args: { p_days?: number; p_vendor_id: string }
         Returns: Json

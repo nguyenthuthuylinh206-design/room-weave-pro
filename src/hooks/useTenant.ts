@@ -20,6 +20,9 @@ export const useTenant = () => {
       return data
     },
     enabled: !!tenantId,
+    staleTime: 5 * 60 * 1000,      // 5 minutes - tenant info rarely changes
+    gcTime: 10 * 60 * 1000,         // 10 minutes
+    refetchOnWindowFocus: false,
   })
 
   return {
