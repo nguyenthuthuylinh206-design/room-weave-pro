@@ -62,7 +62,17 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
         body: { imageBase64: base64, documentType },
       })
 
-      if (error) throw error
+      if (error) {
+        // Extract error message from edge function response
+        let errorMsg = 'Lỗi khi quét giấy tờ'
+        try {
+          const errorBody = await error.context?.json?.()
+          if (errorBody?.error) errorMsg = errorBody.error
+        } catch {
+          // fallback
+        }
+        throw new Error(errorMsg)
+      }
       if (data?.error) throw new Error(data.error)
 
       const extractedData = data.data as ScannedDocumentData
