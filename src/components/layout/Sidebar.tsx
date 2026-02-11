@@ -337,23 +337,49 @@ export const Sidebar = () => {
   return (
     <div className="flex w-64 flex-col border-r bg-card">
       {/* Logo & Tenant Info */}
-      <div className="flex h-16 items-center gap-3 border-b px-6">
+      <div className="flex items-center gap-3 border-b px-6 py-3">
         {tenant?.logo_url ? (
           <img
             src={tenant.logo_url}
             alt={tenant.name || 'Tenant'}
-            className="h-10 w-10 rounded-lg object-cover"
+            className="h-10 w-10 rounded-lg object-cover flex-shrink-0"
           />
         ) : (
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground flex-shrink-0">
             <Building2 className="h-6 w-6" />
           </div>
         )}
         <div className="flex-1 overflow-hidden">
-          <p className="truncate font-semibold text-sm">{tenant?.name || 'Hotel Management'}</p>
-          <Badge variant="outline" className="text-xs">
-            {tenant?.subscription_plan || 'trial'}
-          </Badge>
+          <p className="truncate font-semibold text-sm" title={tenant?.name || 'Hotel Management'}>
+            {tenant?.name || 'Hotel Management'}
+          </p>
+          <div className="flex items-center gap-1.5">
+            <Badge variant="outline" className="text-xs px-1.5 py-0">
+              {(() => {
+                const planMap: Record<string, string> = { basic: 'Cơ bản', standard: 'Tiêu chuẩn', premium: 'Cao cấp', trial: 'Dùng thử' }
+                return planMap[tenant?.subscription_plan || 'trial'] || tenant?.subscription_plan || 'Dùng thử'
+              })()}
+            </Badge>
+            <span className={`inline-block h-2 w-2 rounded-full flex-shrink-0 ${
+              tenant?.subscription_status === 'active' ? 'bg-green-600' :
+              tenant?.subscription_status === 'expired' ? 'bg-red-600' : 'bg-amber-600'
+            }`} />
+            {tenant?.registered_rooms != null && (
+              <span className="text-xs text-muted-foreground whitespace-nowrap">{tenant.registered_rooms} phòng</span>
+            )}
+          </div>
+          {(() => {
+            if (!tenant?.subscription_end_date) return null
+            const endDate = new Date(tenant.subscription_end_date)
+            const now = new Date()
+            const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+            if (daysLeft > 30) return null
+            return (
+              <p className="text-xs text-amber-600 mt-0.5">
+                Hết hạn: {endDate.toLocaleDateString('vi-VN')}
+              </p>
+            )
+          })()}
         </div>
       </div>
 
