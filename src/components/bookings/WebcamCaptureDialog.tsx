@@ -21,10 +21,12 @@ export function WebcamCaptureDialog({ open, onOpenChange, onCapture }: WebcamCap
   const [isStreaming, setIsStreaming] = useState(false)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isFrontCamera, setIsFrontCamera] = useState(false)
 
   const startCamera = useCallback(async () => {
     setError(null)
     setCapturedImage(null)
+    setIsFrontCamera(false)
     try {
       let stream: MediaStream
       try {
@@ -35,6 +37,7 @@ export function WebcamCaptureDialog({ open, onOpenChange, onCapture }: WebcamCap
         stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
         })
+        setIsFrontCamera(true)
       }
       streamRef.current = stream
       if (videoRef.current) {
@@ -78,6 +81,10 @@ export function WebcamCaptureDialog({ open, onOpenChange, onCapture }: WebcamCap
     canvas.height = video.videoHeight
     const ctx = canvas.getContext('2d')
     if (!ctx) return
+    if (isFrontCamera) {
+      ctx.translate(canvas.width, 0)
+      ctx.scale(-1, 1)
+    }
     ctx.drawImage(video, 0, 0)
     const base64 = canvas.toDataURL('image/jpeg', 0.85)
     setCapturedImage(base64)
@@ -110,7 +117,7 @@ export function WebcamCaptureDialog({ open, onOpenChange, onCapture }: WebcamCap
 
           {!capturedImage ? (
             <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-              <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
+              <video ref={videoRef} className="w-full h-full object-cover" playsInline muted style={isFrontCamera ? { transform: 'scaleX(-1)' } : undefined} />
               {!isStreaming && !error && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Loader2 className="h-6 w-6 animate-spin text-white" />
