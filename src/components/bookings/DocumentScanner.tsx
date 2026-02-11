@@ -141,7 +141,7 @@ export function DocumentScanner({ onScanComplete }: DocumentScannerProps) {
             tenant_id: tenantId,
             title: 'Chụp giấy tờ',
             body: 'Nhấn để chụp ảnh giấy tờ tùy thân',
-            url: `/scan-document/${data.id}`,
+            action_url: `/scan-document/${data.id}`,
             excludeEndpoints: [],
           },
         })
