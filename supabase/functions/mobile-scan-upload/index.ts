@@ -46,7 +46,7 @@ serve(async (req) => {
       );
     }
 
-    if (session.status !== "pending") {
+    if (session.status !== "pending" && session.status !== "failed") {
       return new Response(
         JSON.stringify({ error: "Phiên quét đã hoàn thành hoặc hết hạn" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
