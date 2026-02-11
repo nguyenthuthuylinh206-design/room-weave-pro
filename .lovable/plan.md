@@ -1,87 +1,56 @@
 
 
-## Cai thien UX cho All Hotels mode - 4 form tao moi
+## Ra soat con lai - 1 van de can fix
 
-### Tong quan
+### Ket qua kiem tra
 
-Them guard UI cho 4 form tao moi: khi nguoi dung dang o che do "Tat ca khach san", hien thi canh bao va disable nut submit. Pattern tham khao tu `ItemFormPage.tsx` va `RoomFormPage.tsx` da lam dung.
+Sau khi ra soat toan bo codebase, chi con **1 file** dung pattern cu `!== 'all'` lien quan den multi-hotel:
 
----
+### `src/pages/bookings/BookingsPage.tsx`
 
-### 1. `src/pages/inventory/CreateDistributionPage.tsx`
-
-- Import `useHotelContext` va `Alert, AlertDescription` va `AlertCircle`
-- Lay `isAllHotelsMode` tu `useHotelContext()`
-- Them Alert canh bao ngay tren DistributionForm khi `isAllHotelsMode`
-- Disable nut "Tao phieu giao hang": them `isAllHotelsMode` vao dieu kien `disabled`
-- Them guard trong `handleSubmit`: return som voi toast.error neu `isAllHotelsMode`
-
----
-
-### 2. `src/pages/maintenance/MaintenanceRequestForm.tsx` (Desktop)
-
-- Import `useHotelContext`
-- Lay `isAllHotelsMode` tu `useHotelContext()`
-- Them Alert canh bao truoc form content khi `isAllHotelsMode`
-- Disable nut submit: them `isAllHotelsMode` vao disabled
-
----
-
-### 3. `src/components/maintenance/MobileMaintenanceRequestForm.tsx` (Mobile)
-
-- Import `useHotelContext`
-- Lay `isAllHotelsMode` tu `useHotelContext()`
-- Them Alert canh bao o dau form khi `isAllHotelsMode`
-- Disable nut "Tiep theo" (Step 1) va nut submit (Step 3)
-
----
-
-### 4. `src/pages/laundry/CreateBatchPage.tsx`
-
-- Import `useHotelContext` va `Alert, AlertDescription, AlertCircle`
-- Lay `isAllHotelsMode` tu `useHotelContext()`
-- Them Alert canh bao truoc Stepper khi `isAllHotelsMode`
-- Disable Step 1 "Tiep theo" button - can kiem tra `CreateBatchStep1` co prop disabled khong
-
----
-
-### Noi dung Alert chung
-
+**Van de 1 - Dong 253**: Dung `selectedHotelId !== 'all'` (pattern cu) thay vi `isAllHotelsMode`
 ```
-Vui long chon mot khach san cu the de tao moi. Che do "Tat ca khach san" chi ho tro xem du lieu.
+// Hien tai (sai)
+if (selectedHotelId && selectedHotelId !== 'all') {
+  query = query.eq('hotel_id', selectedHotelId)
+}
+
+// Can doi thanh
+if (!isAllHotelsMode && selectedHotelId) {
+  query = query.eq('hotel_id', selectedHotelId)
+}
 ```
 
-### Pattern chung (tham khao ItemFormPage)
-
-```tsx
-import { AlertCircle } from 'lucide-react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { useHotelContext } from '@/contexts/HotelContext'
-
-const { isAllHotelsMode } = useHotelContext()
-
-// Alert
-{isAllHotelsMode && (
-  <Alert variant="destructive" className="py-2">
-    <AlertCircle className="h-4 w-4" />
-    <AlertDescription className="text-sm">
-      Vui long chon mot khach san cu the de tao moi. Che do "Tat ca khach san" chi ho tro xem du lieu.
-    </AlertDescription>
-  </Alert>
-)}
-
-// Disable button
-<Button disabled={isPending || isAllHotelsMode}>...</Button>
+**Van de 2 - Dong 234**: queryKey thieu `isAllHotelsMode`, gay cache collision khi chuyen mode
 ```
+// Hien tai
+queryKey: ['all-bookings', selectedHotelId, statusFilter]
+
+// Can doi thanh
+queryKey: ['all-bookings', isAllHotelsMode ? 'all' : selectedHotelId, statusFilter]
+```
+
+**Booking wizard**: Khong can guard nut "Them dat phong" vi BookingWizard lay `hotel_id` tu phong duoc chon (room.hotel_id), hoat dong dung trong ca 2 mode.
 
 ---
 
-### Danh sach file thay doi
+### Cac file khac da kiem tra - KHONG co van de
 
-| # | File | Thay doi |
-|---|------|---------|
-| 1 | `src/pages/inventory/CreateDistributionPage.tsx` | Alert + disable button + guard submit |
-| 2 | `src/pages/maintenance/MaintenanceRequestForm.tsx` | Alert + disable button |
-| 3 | `src/components/maintenance/MobileMaintenanceRequestForm.tsx` | Alert + disable buttons |
-| 4 | `src/pages/laundry/CreateBatchPage.tsx` | Alert + disable step navigation |
+| File/Pattern | Ket qua |
+|---|---|
+| `UserFilters.tsx` - `hotelId !== 'all'` | OK - Day la filter dropdown local, khong lien quan isAllHotelsMode |
+| `useHotels.ts`, `useVendors.ts`, `usePurchaseOrders.ts` - `!== 'all'` | OK - Filter dropdown cho status/category, khong phai hotel filter |
+| Tat ca hooks da fix truoc do | OK - Da dung isAllHotelsMode chuan |
+| Cac form tao moi (distribution, maintenance, laundry, item) | OK - Da co alert va disable button |
+
+---
+
+### Thay doi can thuc hien
+
+| # | File | Dong | Thay doi |
+|---|------|------|---------|
+| 1 | `src/pages/bookings/BookingsPage.tsx` | 234 | Them `isAllHotelsMode` vao queryKey |
+| 2 | `src/pages/bookings/BookingsPage.tsx` | 253 | Thay `selectedHotelId !== 'all'` bang `!isAllHotelsMode` |
+
+Day la thay doi nho, chi 2 dong trong 1 file.
 
