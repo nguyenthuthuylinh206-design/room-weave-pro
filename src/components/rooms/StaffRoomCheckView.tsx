@@ -14,6 +14,7 @@ import { useRooms } from '@/hooks/useRooms'
 import { useRoomLastCheck } from '@/hooks/useRoomLastCheck'
 import { useAllRoomCheckSessions, getSessionDurationMinutes, formatSessionDuration } from '@/hooks/useRoomCheckSession'
 import { usePendingTaskCount } from '@/hooks/useHousekeepingTasks'
+import { useUser } from '@/hooks/useUser'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
@@ -44,6 +45,7 @@ type FilterValue = typeof FILTER_CHIPS[number]['value']
 
 export function StaffRoomCheckView() {
   const navigate = useNavigate()
+  const { tenantId } = useUser()
   const [activeTab, setActiveTab] = useState<'rooms' | 'tasks'>('rooms')
   const [search, setSearch] = useState('')
   const [activeFilter, setActiveFilter] = useState<FilterValue>('all')
@@ -53,7 +55,7 @@ export function StaffRoomCheckView() {
   const [showCleaningComplete, setShowCleaningComplete] = useState(false)
   
   const { data: rooms, isLoading } = useRooms({})
-  const checkSessions = useAllRoomCheckSessions()
+  const checkSessions = useAllRoomCheckSessions(tenantId)
   const { data: pendingTaskCount = 0 } = usePendingTaskCount()
 
   // Apply filters

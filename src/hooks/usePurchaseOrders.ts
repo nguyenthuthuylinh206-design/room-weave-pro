@@ -69,41 +69,53 @@ export function usePOStats() {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      let query = supabase
+      let totalQuery = supabase
         .from('purchase_orders')
-        .select('*', { count: 'exact' })
+        .select('*', { count: 'exact', head: true })
         .eq('tenant_id', tenantId);
 
       if (hotelId) {
-        query = query.eq('hotel_id', hotelId);
+        totalQuery = totalQuery.eq('hotel_id', hotelId);
       }
 
-      const { count: totalPOs } = await query;
-
-      const { count: pendingApproval } = await supabase
+      let pendingQuery = supabase
         .from('purchase_orders')
         .select('*', { count: 'exact', head: true })
         .eq('tenant_id', tenantId)
-        .eq('status', 'submitted')
-        .then(res => ({ count: res.count || 0 }));
+        .eq('status', 'submitted');
 
-      const { data: last30Days } = await supabase
+      if (hotelId) {
+        pendingQuery = pendingQuery.eq('hotel_id', hotelId);
+      }
+
+      let last30Query = supabase
         .from('purchase_orders')
         .select('total_amount, status')
         .eq('tenant_id', tenantId)
         .gte('order_date', thirtyDaysAgo.toISOString());
 
-      const totalValue30d = last30Days?.reduce((sum, po) => sum + (po.total_amount || 0), 0) || 0;
-      const completed30d = last30Days?.filter(po => po.status === 'received').length || 0;
+      if (hotelId) {
+        last30Query = last30Query.eq('hotel_id', hotelId);
+      }
+
+      const [totalResult, pendingResult, last30Result] = await Promise.all([
+        totalQuery,
+        pendingQuery,
+        last30Query,
+      ]);
+
+      const totalValue30d = last30Result.data?.reduce((sum, po) => sum + (po.total_amount || 0), 0) || 0;
+      const completed30d = last30Result.data?.filter(po => po.status === 'received').length || 0;
 
       return {
-        total_pos: totalPOs || 0,
-        pending_approval: pendingApproval || 0,
+        total_pos: totalResult.count || 0,
+        pending_approval: pendingResult.count || 0,
         total_value_30d: totalValue30d,
         completed_30d: completed30d
       };
     },
     enabled: !!tenantId,
+    staleTime: 60000,
   });
 }
 

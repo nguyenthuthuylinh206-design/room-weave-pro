@@ -13,6 +13,7 @@ import { useAllRoomCheckSessions } from '@/hooks/useRoomCheckSession'
 import { usePendingRoomDistributions } from '@/hooks/usePendingRoomDistributions'
 import { usePendingTaskCount } from '@/hooks/useHousekeepingTasks'
 import { useAuth } from '@/contexts/AuthContext'
+import { useUser } from '@/hooks/useUser'
 import { PullToRefresh } from '@/components/mobile/PullToRefresh'
 import { RoomStatusBadge } from './RoomStatusBadge'
 import { RoomStatusSelector } from './RoomStatusSelector'
@@ -45,6 +46,7 @@ export const MobileRoomsPage = () => {
   const { t } = useTranslation(['rooms', 'common', 'distribution'])
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { tenantId } = useUser()
   const [activeTab, setActiveTab] = useState<'rooms' | 'tasks'>('rooms')
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all')
   const [search, setSearch] = useState('')
@@ -61,7 +63,7 @@ export const MobileRoomsPage = () => {
   const [filters, setFilters] = useState<IRoomFilters>({})
   
   const { data: rooms = [], isLoading, refetch } = useRooms(filters)
-  const checkSessions = useAllRoomCheckSessions()
+  const checkSessions = useAllRoomCheckSessions(tenantId)
   const { data: pendingDistributions } = usePendingRoomDistributions()
   const { data: pendingTaskCount = 0 } = usePendingTaskCount()
 

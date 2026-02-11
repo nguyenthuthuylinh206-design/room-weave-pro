@@ -198,15 +198,18 @@ export function useRoomCheckSession(roomId: string | undefined) {
   }
 }
 
-export function useAllRoomCheckSessions() {
+export function useAllRoomCheckSessions(tenantId?: string) {
   const [sessions, setSessions] = useState<Record<string, RoomCheckSession>>({})
 
   useEffect(() => {
+    if (!tenantId) return
+
     const fetchSessions = async () => {
       try {
         const { data, error } = await supabase
           .from('room_check_sessions')
           .select('*')
+          .eq('tenant_id', tenantId)
 
         if (error) throw error
         
@@ -217,7 +220,7 @@ export function useAllRoomCheckSessions() {
             room_id: session.room_id,
             user_id: session.user_id,
             user_name: session.user_name,
-            check_type: session.check_type as 'daily' | 'checkin' | 'checkout' | 'maintenance',
+            check_type: session.check_type as RoomCheckType,
             started_at: session.started_at
           }
         })
@@ -231,13 +234,14 @@ export function useAllRoomCheckSessions() {
 
     // Subscribe to all sessions
     const channel = supabase
-      .channel('all-room-check-sessions')
+      .channel(`room-check-sessions-${tenantId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'room_check_sessions',
+          filter: `tenant_id=eq.${tenantId}`,
         },
         (payload) => {
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
@@ -249,7 +253,7 @@ export function useAllRoomCheckSessions() {
                 room_id: newSession.room_id,
                 user_id: newSession.user_id,
                 user_name: newSession.user_name,
-                check_type: newSession.check_type as 'daily' | 'checkin' | 'checkout' | 'maintenance',
+                check_type: newSession.check_type as RoomCheckType,
                 started_at: newSession.started_at
               }
             }))
@@ -268,7 +272,7 @@ export function useAllRoomCheckSessions() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [])
+  }, [tenantId])
 
   return sessions
 }

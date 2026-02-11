@@ -9,6 +9,7 @@ export function useRecurringIssues(days: number = 90) {
 
   return useQuery({
     queryKey: ['recurring-issues', tenantId, isAllHotelsMode ? 'all' : selectedHotel?.id, days],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       if (!tenantId) return []
       if (!isAllHotelsMode && !selectedHotel?.id) return []
@@ -26,6 +27,7 @@ export function useRecurringIssues(days: number = 90) {
         `)
         .eq('tenant_id', tenantId)
         .gte('reported_at', cutoffDate.toISOString())
+        .limit(500)
       
       if (!isAllHotelsMode && selectedHotel?.id) {
         query = query.eq('hotel_id', selectedHotel.id)

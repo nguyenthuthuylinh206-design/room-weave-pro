@@ -32,17 +32,17 @@ export function useAvailableRooms(checkInDate?: Date, checkOutDate?: Date) {
     if (!tenantId) return
 
     const channel = supabase
-      .channel('available-rooms-realtime')
+      .channel(`available-rooms-${tenantId}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'rooms' },
+        { event: '*', schema: 'public', table: 'rooms', filter: `tenant_id=eq.${tenantId}` },
         () => {
           queryClient.invalidateQueries({ queryKey: ['available-rooms'] })
         }
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'room_bookings' },
+        { event: '*', schema: 'public', table: 'room_bookings', filter: `tenant_id=eq.${tenantId}` },
         () => {
           queryClient.invalidateQueries({ queryKey: ['available-rooms'] })
         }
