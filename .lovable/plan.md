@@ -1,63 +1,71 @@
 
 
-## Fix: Validate anh co phai giay to truoc khi trich xuat
+## Fix: Cho phep thu lai khi chup giay to that bai tren dien thoai
 
-### Van de
+### Van de goc
 
-Hien tai khi chup anh (ke ca anh mat/selfie), AI **luon bi ep** phai tra ve thong tin giay to vi dung `tool_choice: { type: "function", function: { name: "extract_document_info" } }`. Ket qua la AI "bịa" ra thong tin du anh khong phai giay to.
+Khi chup anh lan 1 that bai (vi du chup selfie), edge function `mobile-scan-upload` cap nhat session status thanh **"failed"**. Khi nguoi dung nhan "Thu lai" va chup lan 2, edge function kiem tra `session.status !== "pending"` → tu choi vi status la "failed" → may tinh khong bao gio nhan duoc ket qua.
+
+### Nguyen nhan
+
+1. **Edge function** (`mobile-scan-upload`): Chi chap nhan session co status = "pending", khong cho phep retry khi status = "failed"
+2. **Trang dien thoai** (`ScanDocumentPage.tsx`): Dung `sessionData` cu (stale) tu lan load dau, khong re-fetch khi retry
 
 ### Giai phap
 
-Them buoc xac thuc truoc: yeu cau AI kiem tra anh co phai giay to hop le hay khong. Neu khong phai, tra ve loi thay vi bịa thong tin.
-
-### Thay doi
-
 | # | File | Mo ta |
 |---|------|-------|
-| 1 | `supabase/functions/scan-guest-document/index.ts` | Them field `is_valid_document` vao tool schema, kiem tra truoc khi tra ket qua |
-| 2 | `supabase/functions/mobile-scan-upload/index.ts` | Tuong tu - them validation cho luong chup tu dien thoai |
+| 1 | `supabase/functions/mobile-scan-upload/index.ts` | Cho phep retry: chap nhan status "pending" HOAC "failed" |
+| 2 | `src/pages/scan/ScanDocumentPage.tsx` | Re-fetch session data truoc moi lan gui anh, reset session status ve "pending" truoc khi retry |
 
 ### Chi tiet ky thuat
 
-**Thay doi tool schema** - them 2 field moi:
+**1. mobile-scan-upload/index.ts**
+
+Thay doi dieu kien kiem tra status:
 
 ```typescript
-is_valid_document: {
-  type: "boolean",
-  description: "true if the image clearly shows an identity document (ID card, passport, visa). false if it's a selfie, random photo, or unclear image.",
-},
-rejection_reason: {
-  type: "string",
-  description: "If is_valid_document is false, explain why (e.g. 'Image shows a person's face, not a document')",
-},
-```
+// Truoc (chi cho pending)
+if (session.status !== "pending") {
+  return ... "Phien quet da hoan thanh hoac het han"
+}
 
-Them `is_valid_document` vao `required` array.
-
-**Them validation logic** sau khi parse ket qua:
-
-```typescript
-if (!extractedData.is_valid_document) {
-  return new Response(
-    JSON.stringify({ 
-      error: "Anh khong phai giay to tuy than. Vui long chup lai anh CCCD/Ho chieu/Visa." 
-    }),
-    { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-  );
+// Sau (cho phep retry tu failed)
+if (session.status !== "pending" && session.status !== "failed") {
+  return ... "Phien quet da hoan thanh hoac het han"
 }
 ```
 
-**Cap nhat prompt** - them dong:
+**2. ScanDocumentPage.tsx**
 
-```
-IMPORTANT: First determine if the image actually shows an identity document. 
-If the image is a selfie, random photo, or does not clearly show an ID card/passport/visa, 
-set is_valid_document to false.
+Trong ham `handleFile`, truoc khi gui anh:
+- Re-fetch session tu DB de kiem tra status moi nhat
+- Neu status la "failed", update lai thanh "pending" truoc khi gui
+
+```typescript
+// Re-fetch session moi nhat
+const { data: freshSession } = await supabase
+  .from('document_scan_sessions')
+  .select('*')
+  .eq('id', sessionId)
+  .single()
+
+if (!freshSession || (freshSession.status !== 'pending' && freshSession.status !== 'failed')) {
+  throw new Error('Phien quet khong hop le hoac da hoan thanh')
+}
+
+// Neu dang failed, reset ve pending
+if (freshSession.status === 'failed') {
+  await supabase
+    .from('document_scan_sessions')
+    .update({ status: 'pending' })
+    .eq('id', sessionId)
+}
 ```
 
 ### Ket qua
 
-- Chup anh mat/selfie: Tra ve loi "Anh khong phai giay to tuy than"
-- Chup anh giay to that: Hoat dong binh thuong nhu cu
-- Ap dung cho ca 2 luong: chup truc tiep va chup tu dien thoai
+- Chup lan 1 that bai (selfie) → Hien loi, hien nut "Thu lai"
+- Nhan "Thu lai", chup lai giay to that → Gui thanh cong, may tinh nhan duoc ket qua
+- Session khong can tao moi, chi can reset status
 
