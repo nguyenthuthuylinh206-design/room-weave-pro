@@ -1,71 +1,105 @@
 
 
-## Fix: Cho phep thu lai khi chup giay to that bai tren dien thoai
+## Fix: Gioi han so phong trong chuc nang thanh toan va gia han
 
-### Van de goc
+### Van de hien tai
 
-Khi chup anh lan 1 that bai (vi du chup selfie), edge function `mobile-scan-upload` cap nhat session status thanh **"failed"**. Khi nguoi dung nhan "Thu lai" va chup lan 2, edge function kiem tra `session.status !== "pending"` → tu choi vi status la "failed" → may tinh khong bao gio nhan duoc ket qua.
+- Goi "Tieu Chuan" (standard) co `max_rooms = NULL` trong database, nghia la **khong gioi han**
+- `PlanChangeDialog.tsx` cho nhap tu do len den 9999 phong (dong 105)
+- `AddRoomsDialog.tsx` cho nhap len den 1000 phong khong kiem tra gioi han plan
+- `sepay-webhook` cap nhat `registered_rooms` truc tiep tu metadata khong validate
+- Khong kiem tra invoice pending truoc khi tao moi
 
-### Nguyen nhan
+### Giai phap (5 buoc)
 
-1. **Edge function** (`mobile-scan-upload`): Chi chap nhan session co status = "pending", khong cho phep retry khi status = "failed"
-2. **Trang dien thoai** (`ScanDocumentPage.tsx`): Dung `sessionData` cu (stale) tu lan load dau, khong re-fetch khi retry
-
-### Giai phap
-
-| # | File | Mo ta |
-|---|------|-------|
-| 1 | `supabase/functions/mobile-scan-upload/index.ts` | Cho phep retry: chap nhan status "pending" HOAC "failed" |
-| 2 | `src/pages/scan/ScanDocumentPage.tsx` | Re-fetch session data truoc moi lan gui anh, reset session status ve "pending" truoc khi retry |
+| # | Thay doi | File |
+|---|---------|------|
+| 1 | Dat `max_rooms = 500` cho goi Standard | Database migration |
+| 2 | Gioi han input phong theo `max_rooms` cua plan | `PlanChangeDialog.tsx` |
+| 3 | Gioi han input phong theo `max_rooms` cua plan | `AddRoomsDialog.tsx` |
+| 4 | Validate `max_rooms` phia server truoc khi cap nhat | `sepay-webhook/index.ts` |
+| 5 | Kiem tra pending invoice truoc khi tao moi | `BankTransferPaymentDialog.tsx` |
 
 ### Chi tiet ky thuat
 
-**1. mobile-scan-upload/index.ts**
+**1. Database: Dat max_rooms cho goi Standard**
 
-Thay doi dieu kien kiem tra status:
+```sql
+UPDATE subscription_plans SET max_rooms = 500 WHERE code = 'standard';
+```
+
+**2. PlanChangeDialog.tsx**
+
+- Lay `max_rooms` tu subscription plan
+- Thay `Math.min(9999, value)` thanh `Math.min(maxRooms, value)`
+- Hien thong bao khi dat gioi han
 
 ```typescript
-// Truoc (chi cho pending)
-if (session.status !== "pending") {
-  return ... "Phien quet da hoan thanh hoac het han"
-}
+const maxRooms = (subscription?.subscription_plan as any)?.max_rooms || 500;
 
-// Sau (cho phep retry tu failed)
-if (session.status !== "pending" && session.status !== "failed") {
-  return ... "Phien quet da hoan thanh hoac het han"
+const handleRoomsChange = (value: number) => {
+  setRooms(Math.max(1, Math.min(maxRooms, value)));
+};
+```
+
+- Vo hieu hoa nut "+" khi dat `maxRooms`
+- Hien text: "Gioi han toi da: X phong theo goi dich vu"
+
+**3. AddRoomsDialog.tsx**
+
+- Fetch `max_rooms` tu plan
+- Gioi han: `registeredRooms + additionalRooms <= maxRooms`
+- Max additional = `maxRooms - registeredRooms`
+- Hien canh bao khi vuot gioi han
+
+**4. sepay-webhook/index.ts**
+
+Truoc khi cap nhat `registered_rooms`, fetch plan limit va cap:
+
+```typescript
+// Fetch plan limit
+const { data: tenantPlan } = await supabase
+  .from('tenants')
+  .select('subscription_plan_id')
+  .eq('id', tenantId)
+  .single();
+
+if (tenantPlan?.subscription_plan_id) {
+  const { data: plan } = await supabase
+    .from('subscription_plans')
+    .select('max_rooms')
+    .eq('id', tenantPlan.subscription_plan_id)
+    .single();
+
+  if (plan?.max_rooms && newTotalRooms > plan.max_rooms) {
+    newTotalRooms = plan.max_rooms; // Cap at limit
+  }
 }
 ```
 
-**2. ScanDocumentPage.tsx**
+Ap dung cho ca 2 flow: `extend` (thay doi so phong) va `add_rooms`.
 
-Trong ham `handleFile`, truoc khi gui anh:
-- Re-fetch session tu DB de kiem tra status moi nhat
-- Neu status la "failed", update lai thanh "pending" truoc khi gui
+**5. BankTransferPaymentDialog.tsx**
+
+Kiem tra con invoice pending khong truoc khi tao moi:
 
 ```typescript
-// Re-fetch session moi nhat
-const { data: freshSession } = await supabase
-  .from('document_scan_sessions')
-  .select('*')
-  .eq('id', sessionId)
-  .single()
+const { data: pendingInvoices } = await supabase
+  .from('invoices')
+  .select('id, invoice_number')
+  .eq('tenant_id', tenantId)
+  .eq('status', 'sent')
+  .limit(1);
 
-if (!freshSession || (freshSession.status !== 'pending' && freshSession.status !== 'failed')) {
-  throw new Error('Phien quet khong hop le hoac da hoan thanh')
-}
-
-// Neu dang failed, reset ve pending
-if (freshSession.status === 'failed') {
-  await supabase
-    .from('document_scan_sessions')
-    .update({ status: 'pending' })
-    .eq('id', sessionId)
+if (pendingInvoices?.length) {
+  toast.error('Ban con hoa don chua thanh toan. Vui long thanh toan hoac huy truoc.');
+  return;
 }
 ```
 
-### Ket qua
+### Ket qua mong doi
 
-- Chup lan 1 that bai (selfie) → Hien loi, hien nut "Thu lai"
-- Nhan "Thu lai", chup lai giay to that → Gui thanh cong, may tinh nhan duoc ket qua
-- Session khong can tao moi, chi can reset status
+- Khach hang chi co the dang ky toi da so phong theo gioi han cua goi (500 phong cho goi Standard)
+- Server-side validation dam bao khong vuot gioi han du co bypass UI
+- Khong the tao nhieu invoice chong cheo
 
