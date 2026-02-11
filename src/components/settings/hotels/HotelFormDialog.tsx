@@ -32,8 +32,13 @@ import {
 } from '@/components/ui/select'
 import { Progress } from '@/components/ui/progress'
 import { Hotel, HotelFormData, useCreateHotel, useUpdateHotel } from '@/hooks/useHotels'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Upload, X, Loader2 } from 'lucide-react'
 import { useUsers } from '@/hooks/useUsers'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Building2 } from 'lucide-react'
+import { supabase } from '@/integrations/supabase/client'
+import { useUser } from '@/hooks/useUser'
+import { toast } from 'sonner'
 
 interface HotelFormDialogProps {
   open: boolean
@@ -44,8 +49,11 @@ interface HotelFormDialogProps {
 export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogProps) {
   const { t } = useTranslation(['hotels', 'common'])
   const [step, setStep] = useState(1)
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false)
   const createHotel = useCreateHotel()
   const updateHotel = useUpdateHotel()
+  const { tenantId } = useUser()
   const { users } = useUsers()
   const quotaCheck = useQuotaCheck('hotel')
 
@@ -102,6 +110,7 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
 
   useEffect(() => {
     if (open && hotel) {
+      setLogoUrl(hotel.logo_url || null)
       form.reset({
         code: hotel.code,
         name: hotel.name,
@@ -121,6 +130,7 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
         manager_id: hotel.manager_id || undefined,
       })
     } else if (open && !hotel) {
+      setLogoUrl(null)
       form.reset({
         code: '',
         name: '',
@@ -142,16 +152,59 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
     }
   }, [open, hotel, form])
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !tenantId) return
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Logo tối đa 2MB')
+      return
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Chỉ chấp nhận file ảnh')
+      return
+    }
+
+    setIsUploadingLogo(true)
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${tenantId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+
+      const { data, error } = await supabase.storage
+        .from('hotel-logos')
+        .upload(fileName, file, { cacheControl: '3600', upsert: false })
+
+      if (error) throw error
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('hotel-logos')
+        .getPublicUrl(data.path)
+
+      setLogoUrl(publicUrl)
+    } catch (error) {
+      console.error('Upload error:', error)
+      toast.error('Lỗi khi tải logo lên')
+    } finally {
+      setIsUploadingLogo(false)
+    }
+  }
+
+  const handleRemoveLogo = () => {
+    setLogoUrl(null)
+  }
+
   const onSubmit = async (data: HotelFormData) => {
     // Check quota for new hotels
     if (!hotel && !quotaCheck.checkQuota()) {
       return
     }
 
+    const submitData = { ...data, logo_url: logoUrl || undefined }
     if (hotel) {
-      await updateHotel.mutateAsync({ id: hotel.id, data })
+      await updateHotel.mutateAsync({ id: hotel.id, data: submitData })
     } else {
-      await createHotel.mutateAsync(data)
+      await createHotel.mutateAsync(submitData)
     }
     onOpenChange(false)
     setStep(1)
@@ -209,6 +262,45 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
             {/* Step 1: Thông tin cơ bản */}
             {step === 1 && (
               <div className="space-y-4">
+                {/* Logo Upload */}
+                <div className="flex flex-col items-center gap-2">
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                      id="hotel-logo-upload"
+                      disabled={isUploadingLogo}
+                    />
+                    <label htmlFor="hotel-logo-upload" className="cursor-pointer block">
+                      <Avatar className="h-20 w-20 border-2 border-dashed border-muted-foreground/30 hover:border-primary transition-colors">
+                        {isUploadingLogo ? (
+                          <AvatarFallback>
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                          </AvatarFallback>
+                        ) : logoUrl ? (
+                          <AvatarImage src={logoUrl} alt="Hotel logo" />
+                        ) : (
+                          <AvatarFallback>
+                            <Upload className="h-5 w-5 text-muted-foreground" />
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                    </label>
+                    {logoUrl && !isUploadingLogo && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveLogo}
+                        className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                  <span className="text-xs text-muted-foreground">Logo (tùy chọn)</span>
+                </div>
+
                 <FormField
                   control={form.control}
                   name="code"

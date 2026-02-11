@@ -114,9 +114,17 @@ export const MobileHotelManagementPage = () => {
                   >
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
-                        <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <Building2 className="h-6 w-6 text-primary" />
-                        </div>
+                        {hotel.logo_url ? (
+                          <img
+                            src={hotel.logo_url}
+                            alt={hotel.name}
+                            className="h-12 w-12 rounded-lg object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <Building2 className="h-6 w-6 text-primary" />
+                          </div>
+                        )}
                         
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2">
