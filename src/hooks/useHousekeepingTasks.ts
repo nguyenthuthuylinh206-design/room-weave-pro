@@ -431,7 +431,7 @@ export function usePendingTaskCount() {
     if (!userId) return
 
     const channel = supabase
-      .channel('task-count-changes')
+      .channel(`task-count-${userId}`)
       .on(
         'postgres_changes',
         {

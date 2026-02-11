@@ -149,6 +149,9 @@ export const useHotels = (filters?: {
       return hotels as Hotel[]
     },
     enabled: !!tenantId,
+    staleTime: 2 * 60 * 1000,      // 2 minutes
+    gcTime: 5 * 60 * 1000,          // 5 minutes
+    refetchOnWindowFocus: false,
   })
 }
 

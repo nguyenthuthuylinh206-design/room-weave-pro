@@ -3,6 +3,26 @@ import { supabase } from '@/integrations/supabase/client'
 import { useUser } from './useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 
+interface MaintenanceDashboardStats {
+  total: number
+  totalLast30Days: number
+  inProgress: number
+  completed: number
+  completedLast30Days: number
+  completionRate: number
+  avgTime: number
+  costLast30Days: number
+  mttr: number
+  mtbf: number
+  firstTimeFixRate: number
+}
+
+interface MaintenanceDashboardResult {
+  stats: MaintenanceDashboardStats
+  activeRequests: any[]
+  recentCompletions: any[]
+}
+
 export function useMaintenanceDashboard() {
   const { tenantId } = useUser()
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
@@ -13,124 +33,35 @@ export function useMaintenanceDashboard() {
       if (!tenantId) return null
       if (!isAllHotelsMode && !selectedHotel?.id) return null
 
-      // Get all requests for stats
-      let query = supabase
-        .from('maintenance_requests')
-        .select('*')
-        .eq('tenant_id', tenantId)
-      
-      if (!isAllHotelsMode && selectedHotel?.id) {
-        query = query.eq('hotel_id', selectedHotel.id)
-      }
-      
-      const { data: requests, error } = await query
+      const { data, error } = await supabase.rpc('get_maintenance_dashboard', {
+        p_tenant_id: tenantId,
+        p_hotel_id: isAllHotelsMode ? null : selectedHotel?.id || null,
+      })
 
       if (error) throw error
 
-      const now = new Date()
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+      const result = data as unknown as {
+        stats: MaintenanceDashboardStats
+        activeRequests: any[]
+        recentCompletions: any[]
+      }
 
-      // Calculate stats
-      const total = requests?.length || 0
-      const inProgress = requests?.filter((r) => 
-        r.status === 'waiting' || 
-        r.status === 'pending' || 
-        r.status === 'in_progress'
-      ).length || 0
-      const completed = requests?.filter((r) => r.status === 'completed').length || 0
-      const completedLast30Days = requests?.filter(
-        (r) => r.status === 'completed' && new Date(r.completed_at || '') >= thirtyDaysAgo
-      ).length || 0
-
-      // Calculate average time
-      const completedRequests = requests?.filter((r) => r.status === 'completed' && r.completed_at && r.reported_at) || []
-      const avgTime = completedRequests.length > 0
-        ? completedRequests.reduce((sum, r) => {
-            const start = new Date(r.reported_at).getTime()
-            const end = new Date(r.completed_at!).getTime()
-            return sum + (end - start)
-          }, 0) / completedRequests.length / (1000 * 60 * 60) // Convert to hours
-        : 0
-
-      // Calculate cost last 30 days
-      const costLast30Days = requests
-        ?.filter((r) => r.status === 'completed' && new Date(r.completed_at || '') >= thirtyDaysAgo)
-        .reduce((sum, r) => sum + (r.actual_cost || 0), 0) || 0
-
-      // Calculate KPIs
-      // MTTR - Mean Time To Repair (hours)
-      const mttr = completedRequests.length > 0 ? Math.round(avgTime * 10) / 10 : 0
-
-      // MTBF - Mean Time Between Failures (days) - for recurring issues
-      const itemFailures = requests?.reduce((acc, r) => {
-        if (r.item_id) {
-          if (!acc[r.item_id]) acc[r.item_id] = []
-          acc[r.item_id].push(new Date(r.reported_at).getTime())
-        }
-        return acc
-      }, {} as Record<string, number[]>) || {}
-
-      const mtbfValues = Object.values(itemFailures)
-        .filter(dates => dates.length >= 2)
-        .map(dates => {
-          const sorted = dates.sort((a, b) => a - b)
-          const intervals = []
-          for (let i = 1; i < sorted.length; i++) {
-            intervals.push((sorted[i] - sorted[i-1]) / (1000 * 60 * 60 * 24)) // to days
-          }
-          return intervals.reduce((a, b) => a + b, 0) / intervals.length
-        })
-
-      const mtbf = mtbfValues.length > 0 
-        ? Math.round(mtbfValues.reduce((a, b) => a + b, 0) / mtbfValues.length)
-        : 0
-
-      // First Time Fix Rate - no follow-up within 7 days
-      const firstTimeFixCount = completedRequests.filter(r => {
-        const followUps = requests?.filter(fu => 
-          (fu.item_id === r.item_id || fu.room_id === r.room_id) &&
-          new Date(fu.reported_at) > new Date(r.completed_at!) &&
-          (new Date(fu.reported_at).getTime() - new Date(r.completed_at!).getTime()) / (1000 * 60 * 60 * 24) <= 7
-        ) || []
-        return followUps.length === 0
-      }).length || 0
-
-      const firstTimeFixRate = completed > 0 ? Math.round((firstTimeFixCount / completed) * 100) : 0
-
-      // Get active requests by priority
-      const activeRequests = requests?.filter((r) => r.status !== 'completed' && r.status !== 'cancelled') || []
-      const urgent = activeRequests.filter((r) => r.priority === 'urgent')
-      const high = activeRequests.filter((r) => r.priority === 'high')
-      const medium = activeRequests.filter((r) => r.priority === 'medium')
-      const low = activeRequests.filter((r) => r.priority === 'low')
+      // Group active requests by priority for backward compatibility
+      const activeRequests = result.activeRequests || []
+      const grouped = {
+        urgent: activeRequests.filter((r: any) => r.priority === 'urgent'),
+        high: activeRequests.filter((r: any) => r.priority === 'high'),
+        medium: activeRequests.filter((r: any) => r.priority === 'medium'),
+        low: activeRequests.filter((r: any) => r.priority === 'low'),
+      }
 
       return {
-        stats: {
-          total,
-          totalLast30Days: requests?.filter((r) => new Date(r.created_at) >= thirtyDaysAgo).length || 0,
-          inProgress,
-          completed,
-          completedLast30Days,
-          completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
-          avgTime: mttr,
-          costLast30Days,
-          // KPIs
-          mttr,
-          mtbf,
-          firstTimeFixRate,
-        },
-        activeRequests: {
-          urgent,
-          high,
-          medium,
-          low,
-        },
-        recentCompletions: requests
-          ?.filter((r) => r.status === 'completed')
-          .sort((a, b) => new Date(b.completed_at!).getTime() - new Date(a.completed_at!).getTime())
-          .slice(0, 10) || [],
+        stats: result.stats,
+        activeRequests: grouped,
+        recentCompletions: result.recentCompletions || [],
       }
     },
     enabled: !!tenantId && (isAllHotelsMode || !!selectedHotel?.id),
+    staleTime: 60 * 1000, // 1 minute
   })
 }
