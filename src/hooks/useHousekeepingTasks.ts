@@ -88,7 +88,7 @@ export function useMyTasks() {
     if (!userId || !tenantId) return
 
     const channel = supabase
-      .channel('my-tasks-changes')
+      .channel(`my-tasks-${userId}`)
       .on(
         'postgres_changes',
         {
@@ -528,7 +528,7 @@ export function useUnassignedTasks() {
     if (!tenantId) return
 
     const channel = supabase
-      .channel('unassigned-tasks-changes')
+      .channel(`unassigned-tasks-${tenantId}`)
       .on(
         'postgres_changes',
         {
@@ -791,7 +791,7 @@ export function useTaskStats(hotelId?: string) {
     if (!tenantId) return
 
     const channel = supabase
-      .channel('task-stats-changes')
+      .channel(`task-stats-${tenantId}`)
       .on(
         'postgres_changes',
         {

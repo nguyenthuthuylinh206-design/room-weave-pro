@@ -35,7 +35,7 @@ export function useRecentActivities(limit: number = 10) {
     if (!tenantId) return
     
     const channel = supabase
-      .channel('activity-logs-changes')
+      .channel(`activity-logs-${tenantId}`)
       .on(
         'postgres_changes',
         {

@@ -183,15 +183,16 @@
      channels.push(housekeepingChannel)
  
      // Subscribe to stock adjustments changes
-     const stockChannel = supabase
-       .channel('unified-tasks-stock')
-       .on(
-         'postgres_changes',
-         {
-           event: '*',
-           schema: 'public',
-           table: 'stock_adjustments',
-         },
+      const stockChannel = supabase
+        .channel(`unified-tasks-stock-${tenantId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'stock_adjustments',
+            filter: `tenant_id=eq.${tenantId}`,
+          },
          () => {
            // Re-check if user is still assigned
            queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })

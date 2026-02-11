@@ -49,9 +49,9 @@ interface RoomGridProps {
 export function RoomGrid({ rooms, isLoading, selectedIds, onSelectionChange }: RoomGridProps) {
   const { t } = useTranslation(['rooms', 'distribution'])
   const navigate = useNavigate()
-  const checkSessions = useAllRoomCheckSessions()
-  const { data: pendingDistributions } = usePendingRoomDistributions()
   const { user, role } = useUser()
+  const checkSessions = useAllRoomCheckSessions(user?.tenant_id)
+  const { data: pendingDistributions } = usePendingRoomDistributions()
   
   // Task dialog state
   const [taskRoom, setTaskRoom] = useState<{ id: string; number: string; hotelId: string } | null>(null)

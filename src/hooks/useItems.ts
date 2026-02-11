@@ -20,7 +20,7 @@ export function useItems(
     if (!tenantId) return
     
     const channel = supabase
-      .channel('items-changes')
+      .channel(`items-${tenantId}`)
       .on(
         'postgres_changes',
         {
