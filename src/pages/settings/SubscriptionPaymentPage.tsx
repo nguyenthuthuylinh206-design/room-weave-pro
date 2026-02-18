@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
+import { useSuperAdminBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
 import { BankQRCode } from '@/components/payment/BankQRCode';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +21,7 @@ export default function SubscriptionPaymentPage() {
   const {
     data: bankSettings,
     isLoading: isLoadingBank
-  } = useBankPaymentSettings();
+  } = useSuperAdminBankPaymentSettings();
   const queryClient = useQueryClient();
   const [showConfetti, setShowConfetti] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
