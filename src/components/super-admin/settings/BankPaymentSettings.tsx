@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Save, Trash2, Building2 } from 'lucide-react';
 import { VIETNAM_BANKS, getBankName } from '@/lib/vietnam-banks';
 import {
-  useBankPaymentSettings,
+  useSuperAdminBankPaymentSettings,
   useCreateBankPaymentSettings,
   useUpdateBankPaymentSettings,
   useDeleteBankPaymentSettings,
@@ -30,7 +30,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export function BankPaymentSettings() {
-  const { data: settings, isLoading } = useBankPaymentSettings();
+  const { data: settings, isLoading } = useSuperAdminBankPaymentSettings();
   const createMutation = useCreateBankPaymentSettings();
   const updateMutation = useUpdateBankPaymentSettings();
   const deleteMutation = useDeleteBankPaymentSettings();
@@ -71,8 +71,6 @@ export function BankPaymentSettings() {
         bank_name: bank?.name || values.bank_code,
       });
     } else {
-      // For super-admin global settings, we don't require hotel_id/tenant_id
-      // This is a legacy path - hotels should use HotelBankPaymentSettings instead
       await createMutation.mutateAsync({
         bank_code: values.bank_code,
         bank_name: bank?.name || values.bank_code,
@@ -81,9 +79,9 @@ export function BankPaymentSettings() {
         payment_prefix: values.payment_prefix,
         qr_template: values.qr_template,
         is_active: values.is_active,
-        hotel_id: '', // Legacy - no hotel association
-        tenant_id: '', // Legacy - no tenant association
-      } as Parameters<typeof createMutation.mutateAsync>[0]);
+        hotel_id: null as unknown as string,
+        tenant_id: null as unknown as string,
+      });
     }
   };
 

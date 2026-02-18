@@ -105,6 +105,23 @@ export function useHotelBankPaymentSettings(hotelId?: string) {
   });
 }
 
+export function useSuperAdminBankPaymentSettings() {
+  return useQuery({
+    queryKey: ['bank-payment-settings', 'super-admin'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('bank_payment_settings')
+        .select('*')
+        .is('hotel_id', null)
+        .is('tenant_id', null)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (error) throw error;
+      return data as BankPaymentSettings | null;
+    },
+  });
+}
+
 export function useCreateBankPaymentSettings() {
   const queryClient = useQueryClient();
 
@@ -116,6 +133,14 @@ export function useCreateBankPaymentSettings() {
           .from('bank_payment_settings')
           .update({ is_active: false })
           .eq('hotel_id', settings.hotel_id)
+          .eq('is_active', true);
+      } else {
+        // Super admin: deactivate records without hotel_id/tenant_id
+        await supabase
+          .from('bank_payment_settings')
+          .update({ is_active: false })
+          .is('hotel_id', null)
+          .is('tenant_id', null)
           .eq('is_active', true);
       }
 
