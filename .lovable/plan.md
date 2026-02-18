@@ -1,105 +1,90 @@
 
+## Fix: Lỗi lưu cài đặt thanh toán trong Super Admin
 
-## Fix: Gioi han so phong trong chuc nang thanh toan va gia han
+### Nguyên nhân gốc
 
-### Van de hien tai
-
-- Goi "Tieu Chuan" (standard) co `max_rooms = NULL` trong database, nghia la **khong gioi han**
-- `PlanChangeDialog.tsx` cho nhap tu do len den 9999 phong (dong 105)
-- `AddRoomsDialog.tsx` cho nhap len den 1000 phong khong kiem tra gioi han plan
-- `sepay-webhook` cap nhat `registered_rooms` truc tiep tu metadata khong validate
-- Khong kiem tra invoice pending truoc khi tao moi
-
-### Giai phap (5 buoc)
-
-| # | Thay doi | File |
-|---|---------|------|
-| 1 | Dat `max_rooms = 500` cho goi Standard | Database migration |
-| 2 | Gioi han input phong theo `max_rooms` cua plan | `PlanChangeDialog.tsx` |
-| 3 | Gioi han input phong theo `max_rooms` cua plan | `AddRoomsDialog.tsx` |
-| 4 | Validate `max_rooms` phia server truoc khi cap nhat | `sepay-webhook/index.ts` |
-| 5 | Kiem tra pending invoice truoc khi tao moi | `BankTransferPaymentDialog.tsx` |
-
-### Chi tiet ky thuat
-
-**1. Database: Dat max_rooms cho goi Standard**
-
-```sql
-UPDATE subscription_plans SET max_rooms = 500 WHERE code = 'standard';
-```
-
-**2. PlanChangeDialog.tsx**
-
-- Lay `max_rooms` tu subscription plan
-- Thay `Math.min(9999, value)` thanh `Math.min(maxRooms, value)`
-- Hien thong bao khi dat gioi han
+Trong `BankPaymentSettings.tsx` (Super Admin), khi tạo mới (chưa có settings), code gọi `createMutation` với:
 
 ```typescript
-const maxRooms = (subscription?.subscription_plan as any)?.max_rooms || 500;
-
-const handleRoomsChange = (value: number) => {
-  setRooms(Math.max(1, Math.min(maxRooms, value)));
-};
+hotel_id: '', // <= Gửi chuỗi rỗng "" vào cột UUID
+tenant_id: '', // <= Gửi chuỗi rỗng "" vào cột UUID
 ```
 
-- Vo hieu hoa nut "+" khi dat `maxRooms`
-- Hien text: "Gioi han toi da: X phong theo goi dich vu"
+Database column `hotel_id` và `tenant_id` có kiểu `uuid` (nullable). PostgreSQL **từ chối** chuỗi rỗng `""` vì nó không phải UUID hợp lệ — phải là `null` hoặc một UUID hợp lệ. Lỗi này đã được xác nhận trong Postgres logs:
 
-**3. AddRoomsDialog.tsx**
+```
+ERROR: invalid input syntax for type uuid: ""
+```
 
-- Fetch `max_rooms` tu plan
-- Gioi han: `registeredRooms + additionalRooms <= maxRooms`
-- Max additional = `maxRooms - registeredRooms`
-- Hien canh bao khi vuot gioi han
+Ngoài ra, `useBankPaymentSettings()` được gọi **không có `hotelId`** trong component này (Super Admin context), nên query bị disabled (`enabled: !!hotelId = false`) — đồng nghĩa `settings` luôn là `undefined`, luôn đi vào nhánh **create** thay vì **update**.
 
-**4. sepay-webhook/index.ts**
+### Các vấn đề cần fix
 
-Truoc khi cap nhat `registered_rooms`, fetch plan limit va cap:
+| # | Vấn đề | File |
+|---|--------|------|
+| 1 | `hotel_id: ''` và `tenant_id: ''` không phải UUID hợp lệ | `BankPaymentSettings.tsx` |
+| 2 | `useBankPaymentSettings()` không có hotelId → không load được settings hiện tại | `BankPaymentSettings.tsx` |
+| 3 | Super Admin cần hook riêng để query settings toàn cục (không filter theo hotel) | `useBankPaymentSettings.ts` |
+
+### Giải pháp
+
+**1. Tạo hook `useSuperAdminBankPaymentSettings`** trong `useBankPaymentSettings.ts`:
+
+Query không filter theo hotel_id/tenant_id — lấy record đầu tiên (global settings của Super Admin):
 
 ```typescript
-// Fetch plan limit
-const { data: tenantPlan } = await supabase
-  .from('tenants')
-  .select('subscription_plan_id')
-  .eq('id', tenantId)
-  .single();
-
-if (tenantPlan?.subscription_plan_id) {
-  const { data: plan } = await supabase
-    .from('subscription_plans')
-    .select('max_rooms')
-    .eq('id', tenantPlan.subscription_plan_id)
-    .single();
-
-  if (plan?.max_rooms && newTotalRooms > plan.max_rooms) {
-    newTotalRooms = plan.max_rooms; // Cap at limit
-  }
+export function useSuperAdminBankPaymentSettings() {
+  return useQuery({
+    queryKey: ['bank-payment-settings', 'super-admin'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('bank_payment_settings')
+        .select('*')
+        .is('hotel_id', null) // Super admin settings không có hotel_id
+        .is('tenant_id', null)
+        .maybeSingle();
+      if (error) throw error;
+      return data as BankPaymentSettings | null;
+    },
+  });
 }
 ```
 
-Ap dung cho ca 2 flow: `extend` (thay doi so phong) va `add_rooms`.
-
-**5. BankTransferPaymentDialog.tsx**
-
-Kiem tra con invoice pending khong truoc khi tao moi:
+**2. Fix `BankPaymentSettings.tsx`**: 
+- Dùng `useSuperAdminBankPaymentSettings()` thay vì `useBankPaymentSettings()`
+- Khi create: gửi `hotel_id: null, tenant_id: null` thay vì `''`
 
 ```typescript
-const { data: pendingInvoices } = await supabase
-  .from('invoices')
-  .select('id, invoice_number')
-  .eq('tenant_id', tenantId)
-  .eq('status', 'sent')
-  .limit(1);
+// Trước (lỗi):
+hotel_id: '',   // UUID không hợp lệ
+tenant_id: '',  // UUID không hợp lệ
 
-if (pendingInvoices?.length) {
-  toast.error('Ban con hoa don chua thanh toan. Vui long thanh toan hoac huy truoc.');
-  return;
+// Sau (đúng):
+hotel_id: null,   // null hợp lệ cho nullable UUID
+tenant_id: null,
+```
+
+**3. Fix `useCreateBankPaymentSettings`** trong hook:
+
+Khi `hotel_id` là null (Super Admin), không cần deactivate record cũ theo hotel:
+
+```typescript
+// Trước:
+if (settings.hotel_id) {
+  await supabase...update...eq('hotel_id', settings.hotel_id)
+}
+
+// Sau (thêm xử lý null):
+if (settings.hotel_id) {
+  await supabase...eq('hotel_id', settings.hotel_id)
+} else {
+  // Super admin: deactivate records không có hotel_id
+  await supabase...is('hotel_id', null).is('tenant_id', null)
 }
 ```
 
-### Ket qua mong doi
+### Kết quả
 
-- Khach hang chi co the dang ky toi da so phong theo gioi han cua goi (500 phong cho goi Standard)
-- Server-side validation dam bao khong vuot gioi han du co bypass UI
-- Khong the tao nhieu invoice chong cheo
-
+- Super Admin có thể lưu cài đặt thanh toán ngân hàng mà không bị lỗi UUID
+- Sau khi lưu, form hiển thị đúng dữ liệu đã lưu (load từ DB)
+- Update cũng hoạt động bình thường (không tạo record trùng)
