@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTenantSubscription, useUpdateTenantSubscription } from '@/hooks/useSubscription';
-import { useBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
+import { useSuperAdminBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
 import { useRoomSubscriptionLimit } from '@/hooks/useRoomSubscriptionLimit';
 import { Input } from '@/components/ui/input';
 import { Info, Loader2, Package, CreditCard, Minus, Plus, AlertTriangle } from 'lucide-react';
@@ -43,7 +43,7 @@ export function PlanChangeDialog({
 }: PlanChangeDialogProps) {
   const navigate = useNavigate();
   const { data: subscription } = useTenantSubscription();
-  const { data: bankSettings } = useBankPaymentSettings();
+  const { data: bankSettings } = useSuperAdminBankPaymentSettings();
   const { actualRooms: dbActualRooms } = useRoomSubscriptionLimit();
   const updateSubscription = useUpdateTenantSubscription();
 

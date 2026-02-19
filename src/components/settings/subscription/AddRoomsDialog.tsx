@@ -16,7 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { Plus, Calculator, Calendar, Percent, Info, CreditCard } from 'lucide-react';
 import { useRoomSubscriptionLimit } from '@/hooks/useRoomSubscriptionLimit';
 import { useUpdateTenantSubscription, useTenantSubscription } from '@/hooks/useSubscription';
-import { useBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
+import { useSuperAdminBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
 import { PRICE_PER_ROOM_DAILY, formatVNCurrency } from '@/lib/pricing';
 import { BankTransferPaymentDialog } from '@/components/payment/BankTransferPaymentDialog';
 
@@ -37,7 +37,7 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
   } = useRoomSubscriptionLimit();
   const updateSubscription = useUpdateTenantSubscription();
   const { data: subscription } = useTenantSubscription();
-  const { data: bankSettings } = useBankPaymentSettings();
+  const { data: bankSettings } = useSuperAdminBankPaymentSettings();
 
   // Max rooms from plan
   const maxRooms = (subscription?.subscription_plan as any)?.max_rooms || 500;
