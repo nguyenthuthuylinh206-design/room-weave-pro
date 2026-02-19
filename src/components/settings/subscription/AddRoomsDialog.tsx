@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from '@/components/ui/use-toast';
 import {
   Dialog,
   DialogContent,
@@ -37,7 +38,7 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
   } = useRoomSubscriptionLimit();
   const updateSubscription = useUpdateTenantSubscription();
   const { data: subscription } = useTenantSubscription();
-  const { data: bankSettings } = useSuperAdminBankPaymentSettings();
+  const { data: bankSettings, isLoading: isBankSettingsLoading } = useSuperAdminBankPaymentSettings();
 
   // Max rooms from plan
   const maxRooms = (subscription?.subscription_plan as any)?.max_rooms || 500;
@@ -62,22 +63,13 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
 
   const handleConfirm = async () => {
     if (!pricing) return;
+    if (isBankSettingsLoading) return;
     
-    // If bank payment is available, close this dialog and open bank payment
     if (bankSettings) {
-      onOpenChange(false); // Close this dialog first
-      setTimeout(() => setShowBankPayment(true), 100); // Then open bank payment
-    } else {
-      // Direct confirm without bank payment
-      const newTotalRooms = registeredRooms + additionalRooms;
-      
-      await updateSubscription.mutateAsync({
-        rooms: newTotalRooms,
-        durationDays: remainingDays,
-        isAddingRooms: true,
-      });
-      
       onOpenChange(false);
+      setTimeout(() => setShowBankPayment(true), 100);
+    } else {
+      toast({ title: 'Lỗi', description: 'Chưa cấu hình thông tin thanh toán. Vui lòng liên hệ quản trị viên.', variant: 'destructive' });
     }
   };
 
@@ -241,11 +233,11 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
             </Button>
             <Button 
               onClick={handleConfirm} 
-              disabled={updateSubscription.isPending || additionalRooms < 1 || maxAdditional <= 0}
+              disabled={updateSubscription.isPending || isBankSettingsLoading || additionalRooms < 1 || maxAdditional <= 0}
             >
-              {updateSubscription.isPending ? 'Đang xử lý...' : 
-                bankSettings ? 'Tiếp tục thanh toán' : 
-                `Thanh toán ${pricing ? formatVNCurrency(pricing.finalPrice) : ''}`}
+              {isBankSettingsLoading ? 'Đang tải...' :
+                updateSubscription.isPending ? 'Đang xử lý...' : 
+                'Tiếp tục thanh toán'}
             </Button>
           </DialogFooter>
         </DialogContent>

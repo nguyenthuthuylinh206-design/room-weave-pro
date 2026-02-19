@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from '@/components/ui/use-toast';
 import {
   Dialog,
   DialogContent,
@@ -43,7 +44,7 @@ export function PlanChangeDialog({
 }: PlanChangeDialogProps) {
   const navigate = useNavigate();
   const { data: subscription } = useTenantSubscription();
-  const { data: bankSettings } = useSuperAdminBankPaymentSettings();
+  const { data: bankSettings, isLoading: isBankSettingsLoading } = useSuperAdminBankPaymentSettings();
   const { actualRooms: dbActualRooms } = useRoomSubscriptionLimit();
   const updateSubscription = useUpdateTenantSubscription();
 
@@ -83,20 +84,14 @@ export function PlanChangeDialog({
   const isRoomsBelowMinimum = rooms < minRooms;
 
   const handleConfirm = async () => {
-    // Prevent confirm if rooms below minimum
     if (isRoomsBelowMinimum) return;
+    if (isBankSettingsLoading) return;
 
-    // If bank payment is available, close this dialog and open bank payment
     if (bankSettings) {
-      onOpenChange(false); // Close this dialog first
-      setTimeout(() => setShowBankPayment(true), 100); // Then open bank payment
-    } else {
-      // Direct confirm without bank payment
-      await updateSubscription.mutateAsync({
-        rooms: rooms,
-        durationDays: selectedDuration,
-      });
       onOpenChange(false);
+      setTimeout(() => setShowBankPayment(true), 100);
+    } else {
+      toast({ title: 'Lỗi', description: 'Chưa cấu hình thông tin thanh toán. Vui lòng liên hệ quản trị viên.', variant: 'destructive' });
     }
   };
 
@@ -274,10 +269,10 @@ export function PlanChangeDialog({
             </Button>
             <Button 
               onClick={handleConfirm} 
-              disabled={updateSubscription.isPending || isRoomsBelowMinimum}
+              disabled={updateSubscription.isPending || isBankSettingsLoading || isRoomsBelowMinimum}
             >
-              {updateSubscription.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {bankSettings ? 'Tiếp tục thanh toán' : 'Xác nhận gia hạn'}
+              {(updateSubscription.isPending || isBankSettingsLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isBankSettingsLoading ? 'Đang tải...' : 'Tiếp tục thanh toán'}
             </Button>
           </DialogFooter>
         </DialogContent>
