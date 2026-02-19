@@ -1,66 +1,83 @@
 
-## Fix: Ấn "Mua thêm phòng" → Hiện thành công luôn không qua thanh toán
+## Fix: Ấn thanh toán hiện thành công ngay — Race condition với async query
 
-### Root cause
+### Nguyên nhân thực sự
 
-`AddRoomsDialog.tsx` dòng 40:
-```typescript
-const { data: bankSettings } = useBankPaymentSettings(); // Không có hotelId → luôn trả null
+Đây là vấn đề **race condition**, không phải vấn đề sai hook như trước. Sau khi fix hook sang `useSuperAdminBankPaymentSettings()`, logic đã đúng về mặt dữ liệu, nhưng còn một lỗi timing:
+
+Network request xác nhận: `PATCH /tenants` được gọi ngay — tức `updateSubscription.mutateAsync()` đang chạy dù có bankSettings trong DB.
+
+**Timeline lỗi:**
+
+```text
+Component mount → bankSettings = undefined (đang fetch)
+                                    ↓
+                          User nhấn nút "Thanh toán"
+                                    ↓
+              handleConfirm() → if (bankSettings) → FALSE (undefined, chưa load xong)
+                                    ↓
+                    else → updateSubscription.mutateAsync() ← Cộng phòng ngay!
+                                    ↓
+                    Query hoàn thành → bankSettings có giá trị (nhưng quá muộn)
 ```
 
-Vì `useBankPaymentSettings()` yêu cầu `hotelId`, khi gọi không có tham số, hook luôn return `null` (dòng 44: `if (!hotelId) return null`).
-
-Trong `handleConfirm` (dòng 67):
-```typescript
-if (bankSettings) {       // bankSettings = null → false
-  ...mở dialog thanh toán
-} else {
-  // Đi vào đây → cộng phòng NGAY, không qua thanh toán
-  await updateSubscription.mutateAsync(...)
-}
-```
-
-Kết quả: hệ thống cộng phòng ngay mà không tạo invoice, không hiển thị QR.
-
-Tương tự, `BankTransferPaymentDialog.tsx` dòng 30 cũng gọi `useBankPaymentSettings()` không có `hotelId` → dialog payment cũng không hiển thị được QR dù có mở.
+Điều này xảy ra khi user nhấn nút trong khoảng thời gian ngắn sau khi dialog mở, trước khi query `useSuperAdminBankPaymentSettings()` trả về dữ liệu từ server.
 
 ### Giải pháp
 
-Subscription payment dùng cấu hình ngân hàng **global** (Super Admin thiết lập, `hotel_id IS NULL`), không phải của từng hotel. Cần dùng `useSuperAdminBankPaymentSettings()` thay thế.
+Hai thay đổi cần thực hiện ở cả `AddRoomsDialog.tsx` và `PlanChangeDialog.tsx`:
+
+**1. Lấy `isLoading` từ hook để disable nút khi đang fetch:**
+
+```typescript
+const { data: bankSettings, isLoading: isBankSettingsLoading } = useSuperAdminBankPaymentSettings();
+```
+
+**2. Disable nút "Thanh toán" khi đang loading bank settings:**
+
+```tsx
+<Button 
+  onClick={handleConfirm} 
+  disabled={updateSubscription.isPending || isBankSettingsLoading || ...}
+>
+  {isBankSettingsLoading ? 'Đang tải...' : bankSettings ? 'Tiếp tục thanh toán' : '...'}
+</Button>
+```
+
+**3. Thêm guard trong `handleConfirm` để chặn khi đang loading:**
+
+```typescript
+const handleConfirm = async () => {
+  // Guard: Chưa load xong bank settings
+  if (isBankSettingsLoading) return;
+  
+  if (bankSettings) {
+    // Mở dialog thanh toán
+  } else {
+    // Nếu bankSettings = null (không cấu hình), không cho phép thanh toán
+    // Thay vì tự cộng phòng trực tiếp, thông báo lỗi
+    toast.error('Chưa cấu hình thông tin thanh toán. Vui lòng liên hệ quản trị viên.');
+    return;
+  }
+};
+```
+
+> Lý do xóa nhánh `else → updateSubscription.mutateAsync()`: Đây là fallback nguy hiểm — nếu bank settings không load được, hệ thống sẽ tự động cộng phòng miễn phí. Nên chặn hành động này lại và yêu cầu admin cấu hình.
 
 ### Thay đổi cần thực hiện
 
-**1. `AddRoomsDialog.tsx`**
+**File 1: `src/components/settings/subscription/AddRoomsDialog.tsx`**
+- Thêm `isLoading: isBankSettingsLoading` từ `useSuperAdminBankPaymentSettings()`
+- Disable nút khi `isBankSettingsLoading`
+- Trong `handleConfirm`: guard `if (isBankSettingsLoading) return;`
+- Trong nhánh `else`: thay vì gọi `updateSubscription.mutateAsync()`, hiển thị toast lỗi
 
-```typescript
-// Trước:
-import { useBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
-const { data: bankSettings } = useBankPaymentSettings();
-
-// Sau:
-import { useSuperAdminBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
-const { data: bankSettings } = useSuperAdminBankPaymentSettings();
-```
-
-**2. `BankTransferPaymentDialog.tsx`**
-
-```typescript
-// Trước:
-import { useBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
-const { data: bankSettings, isLoading: isLoadingSettings } = useBankPaymentSettings();
-
-// Sau:
-import { useSuperAdminBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
-const { data: bankSettings, isLoading: isLoadingSettings } = useSuperAdminBankPaymentSettings();
-```
-
-**3. `PlanChangeDialog.tsx`** (kiểm tra phòng ngừa — dùng `useBankPaymentSettings` không hotelId)
-
-Cần kiểm tra và fix nếu tương tự.
+**File 2: `src/components/settings/subscription/PlanChangeDialog.tsx`**
+- Tương tự: thêm `isLoading`, guard trong `handleConfirm`, xóa fallback nguy hiểm
 
 ### Kết quả
 
-- Khi ấn "Tiếp tục thanh toán" → mở `BankTransferPaymentDialog` với bank settings đúng
-- Dialog tạo invoice, hiển thị QR code để quét
-- Phòng chỉ được cộng sau khi SePay webhook xác nhận thanh toán thành công
-- Không còn hiện "thành công" ngay khi ấn nút
+- Nút "Thanh toán" bị disabled trong khi đang load thông tin ngân hàng
+- Sau khi load xong, nếu có bank settings → mở dialog QR
+- Nếu không có bank settings → thông báo lỗi rõ ràng, không tự động cộng phòng
+- Không còn hiện "thành công" ngay lập tức
