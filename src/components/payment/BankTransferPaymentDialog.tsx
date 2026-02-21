@@ -33,6 +33,8 @@ export function BankTransferPaymentDialog({
   const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
   const [invoiceCreated, setInvoiceCreated] = useState(false);
   const [invoiceId, setInvoiceId] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Generate payment content and auto-create invoice when dialog opens
   useEffect(() => {
@@ -43,6 +45,8 @@ export function BankTransferPaymentDialog({
       setPaymentContent(newPaymentContent);
       setInvoiceCreated(false);
       setInvoiceId(null);
+      setHasError(false);
+      setErrorMessage('');
 
       // Auto create invoice if flag is set
       if (autoCreateInvoice) {
@@ -66,7 +70,9 @@ export function BankTransferPaymentDialog({
         .limit(1);
 
       if (pendingInvoices && pendingInvoices.length > 0) {
-        toast.error('Bạn còn hóa đơn chưa thanh toán. Vui lòng thanh toán hoặc hủy trước khi tạo mới.');
+        setHasError(true);
+        setErrorMessage('Bạn còn hóa đơn chưa thanh toán. Vui lòng thanh toán hoặc hủy trước khi tạo mới.');
+        toast.error('Bạn còn hóa đơn chưa thanh toán.');
         setIsCreatingInvoice(false);
         return;
       }
@@ -131,6 +137,8 @@ export function BankTransferPaymentDialog({
       }
     } catch (error) {
       console.error('Error creating invoice:', error);
+      setHasError(true);
+      setErrorMessage('Không thể tạo đơn hàng. Vui lòng thử lại.');
       toast.error('Không thể tạo đơn hàng. Vui lòng thử lại.');
     } finally {
       setIsCreatingInvoice(false);
@@ -190,10 +198,16 @@ export function BankTransferPaymentDialog({
         </DialogHeader>
 
         {/* Loading state - khi đang tạo invoice hoặc autoCreateInvoice chưa xong */}
-        {(isCreatingInvoice || (autoCreateInvoice && !invoiceCreated)) ? (
+        {(isCreatingInvoice || (autoCreateInvoice && !invoiceCreated && !hasError)) ? (
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
             <p className="text-muted-foreground">Đang tạo đơn hàng...</p>
+          </div>
+        ) : hasError ? (
+          <div className="flex flex-col items-center py-8 text-center space-y-4">
+            <AlertTriangle className="h-12 w-12 text-amber-500" />
+            <p className="text-muted-foreground">{errorMessage}</p>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Đóng</Button>
           </div>
         ) : !invoiceCreated ? (
           /* Manual confirmation - chỉ hiện khi autoCreateInvoice = false */
