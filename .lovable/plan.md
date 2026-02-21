@@ -1,57 +1,87 @@
 
-## Nguyên nhân gốc
 
-Database có record bank settings của Super Admin (`hotel_id = NULL`, `tenant_id = NULL`, `is_active = true`). Tuy nhiên, RLS policy hiện tại **chặn** tenant user đọc record này.
+## Fix: Dialog "Đang tạo đơn hàng..." quay mãi không dừng
 
-**RLS policy hiện tại:**
-```sql
--- "Users can view their tenant bank settings"
-(is_active = true) AND (
-  is_super_admin() 
-  OR tenant_id IN (SELECT tenant_id FROM users WHERE id = auth.uid())
-)
+### Nguyên nhân
+
+Trong `BankTransferPaymentDialog.tsx`, khi `createInvoiceWithContent()` phát hiện đã có hóa đơn pending (status = 'sent'), nó hiển thị toast lỗi và return early (dòng 68-72). Tuy nhiên, loading condition ở dòng 193:
+
+```typescript
+(isCreatingInvoice || (autoCreateInvoice && !invoiceCreated))
 ```
 
-Record Super Admin có `tenant_id = NULL`, nên `NULL IN (SELECT tenant_id FROM users WHERE id = auth.uid())` = **FALSE** → user không đọc được → `bankSettings = null` → hiển thị lỗi "Chưa cấu hình thông tin thanh toán".
+Sau khi return early:
+- `isCreatingInvoice = false` (set trong finally)
+- `invoiceCreated = false` (không bao giờ set true)
+- `autoCreateInvoice = true` (prop truyền vào)
 
-## Giải pháp
+=> `(true && !false)` = TRUE => **Spinner quay vĩnh viễn**
 
-Cập nhật RLS policy SELECT để cho phép authenticated user đọc thêm record có `hotel_id IS NULL AND tenant_id IS NULL` (tức là cấu hình global của Super Admin dùng cho subscription payment).
+### Giải pháp
 
-**Policy mới:**
-```sql
-ALTER POLICY "Users can view their tenant bank settings" 
-ON bank_payment_settings 
-USING (
-  is_active = true AND (
-    is_super_admin()
-    OR tenant_id IN (SELECT tenant_id FROM users WHERE id = auth.uid())
-    OR (hotel_id IS NULL AND tenant_id IS NULL)  -- Cho phép đọc config global của Super Admin
-  )
-);
+1. Thêm state `hasError` để track khi tạo invoice thất bại
+2. Cập nhật loading condition để tính cả `hasError`
+3. Khi có lỗi (hóa đơn pending hoặc exception), hiển thị thông báo lỗi với nút "Đóng" thay vì spinner
+
+### Thay đổi chi tiết
+
+**File: `src/components/payment/BankTransferPaymentDialog.tsx`**
+
+1. Thêm state `hasError` và `errorMessage`:
+```typescript
+const [hasError, setHasError] = useState(false);
+const [errorMessage, setErrorMessage] = useState('');
 ```
 
-Điều này an toàn vì:
-- Chỉ cho phép đọc (SELECT), không phải ghi
-- Chỉ record `is_active = true` mới được đọc
-- Policy quản lý (ALL cmd) vẫn chỉ Super Admin mới sửa được
-- Không ảnh hưởng đến dữ liệu của các tenant khác
-
-## Thay đổi cần thực hiện
-
-**1 migration SQL:**
-```sql
-ALTER POLICY "Users can view their tenant bank settings" 
-ON public.bank_payment_settings 
-USING (
-  (is_active = true) AND (
-    is_super_admin() 
-    OR (tenant_id IN (
-      SELECT users.tenant_id FROM users WHERE users.id = auth.uid()
-    ))
-    OR (hotel_id IS NULL AND tenant_id IS NULL)
-  )
-);
+2. Reset state khi dialog mở (trong useEffect):
+```typescript
+setHasError(false);
+setErrorMessage('');
 ```
 
-Không cần thay đổi code frontend — sau khi update policy, `useSuperAdminBankPaymentSettings()` sẽ tự động trả về đúng dữ liệu và dialog QR sẽ hiển thị bình thường.
+3. Trong `createInvoiceWithContent`, khi phát hiện pending invoice:
+```typescript
+if (pendingInvoices && pendingInvoices.length > 0) {
+  setHasError(true);
+  setErrorMessage('Bạn còn hóa đơn chưa thanh toán. Vui lòng thanh toán hoặc hủy trước khi tạo mới.');
+  toast.error('...');
+  setIsCreatingInvoice(false);
+  return;
+}
+```
+
+4. Trong catch block:
+```typescript
+catch (error) {
+  setHasError(true);
+  setErrorMessage('Không thể tạo đơn hàng. Vui lòng thử lại.');
+  toast.error('...');
+}
+```
+
+5. Cập nhật loading condition:
+```typescript
+// Trước:
+(isCreatingInvoice || (autoCreateInvoice && !invoiceCreated))
+
+// Sau:
+(isCreatingInvoice || (autoCreateInvoice && !invoiceCreated && !hasError))
+```
+
+6. Thêm UI hiển thị lỗi (sau loading block, trước manual confirmation):
+```tsx
+hasError ? (
+  <div className="flex flex-col items-center py-8 text-center space-y-4">
+    <AlertTriangle className="h-12 w-12 text-amber-500" />
+    <p className="text-muted-foreground">{errorMessage}</p>
+    <Button variant="outline" onClick={() => onOpenChange(false)}>Đóng</Button>
+  </div>
+) : ...
+```
+
+### Kết quả
+
+- Khi có hóa đơn pending: hiển thị thông báo lỗi rõ ràng thay vì spinner quay mãi
+- Khi tạo invoice thất bại: hiển thị lỗi với nút Đóng
+- Flow bình thường (không có pending invoice): hoạt động bình thường, tạo invoice + hiển thị QR
+
