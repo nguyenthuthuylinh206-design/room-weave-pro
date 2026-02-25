@@ -1,87 +1,58 @@
 
 
-## Fix: Dialog "Đang tạo đơn hàng..." quay mãi không dừng
+## Fix: React Error #185 (Maximum update depth exceeded) tại `/inventory/inbound/new`
 
 ### Nguyên nhân
 
-Trong `BankTransferPaymentDialog.tsx`, khi `createInvoiceWithContent()` phát hiện đã có hóa đơn pending (status = 'sent'), nó hiển thị toast lỗi và return early (dòng 68-72). Tuy nhiên, loading condition ở dòng 193:
+Trong `src/pages/inventory/InboundPage.tsx`, dòng 88-91:
 
 ```typescript
-(isCreatingInvoice || (autoCreateInvoice && !invoiceCreated))
+const toWarehouseId = form.watch('to_warehouse_id')
+if (defaultWarehouse && !toWarehouseId) {
+  form.setValue('to_warehouse_id', defaultWarehouse.id)
+}
 ```
 
-Sau khi return early:
-- `isCreatingInvoice = false` (set trong finally)
-- `invoiceCreated = false` (không bao giờ set true)
-- `autoCreateInvoice = true` (prop truyền vào)
+`form.setValue()` được gọi **trực tiếp trong render body** (không nằm trong useEffect). Khi `defaultWarehouse` load xong:
+1. `form.setValue` thay đổi form state
+2. Component re-render
+3. `form.watch` trả về giá trị mới nhưng nếu có race condition hoặc form reset, `toWarehouseId` lại trống
+4. `setValue` gọi lại -> vòng lặp vô hạn -> crash
 
-=> `(true && !false)` = TRUE => **Spinner quay vĩnh viễn**
+Lỗi này xảy ra với **một số khách hàng** vì phụ thuộc vào timing load `defaultWarehouse` data. Nếu data load chậm (network yếu), component mount xong rồi mới có data -> trigger setValue loop.
 
 ### Giải pháp
 
-1. Thêm state `hasError` để track khi tạo invoice thất bại
-2. Cập nhật loading condition để tính cả `hasError`
-3. Khi có lỗi (hóa đơn pending hoặc exception), hiển thị thông báo lỗi với nút "Đóng" thay vì spinner
+Di chuyển logic set default warehouse vào `useEffect` để chỉ chạy khi `defaultWarehouse` thay đổi, không chạy mỗi lần render.
 
-### Thay đổi chi tiết
+### Thay đổi
 
-**File: `src/components/payment/BankTransferPaymentDialog.tsx`**
+**File: `src/pages/inventory/InboundPage.tsx`**
 
-1. Thêm state `hasError` và `errorMessage`:
+Thay thế dòng 87-91:
 ```typescript
-const [hasError, setHasError] = useState(false);
-const [errorMessage, setErrorMessage] = useState('');
-```
-
-2. Reset state khi dialog mở (trong useEffect):
-```typescript
-setHasError(false);
-setErrorMessage('');
-```
-
-3. Trong `createInvoiceWithContent`, khi phát hiện pending invoice:
-```typescript
-if (pendingInvoices && pendingInvoices.length > 0) {
-  setHasError(true);
-  setErrorMessage('Bạn còn hóa đơn chưa thanh toán. Vui lòng thanh toán hoặc hủy trước khi tạo mới.');
-  toast.error('...');
-  setIsCreatingInvoice(false);
-  return;
+// TRƯỚC (lỗi - gọi setValue trong render)
+const toWarehouseId = form.watch('to_warehouse_id')
+if (defaultWarehouse && !toWarehouseId) {
+  form.setValue('to_warehouse_id', defaultWarehouse.id)
 }
 ```
 
-4. Trong catch block:
+Bằng:
 ```typescript
-catch (error) {
-  setHasError(true);
-  setErrorMessage('Không thể tạo đơn hàng. Vui lòng thử lại.');
-  toast.error('...');
-}
+// SAU (đúng - dùng useEffect)
+useEffect(() => {
+  if (defaultWarehouse && !form.getValues('to_warehouse_id')) {
+    form.setValue('to_warehouse_id', defaultWarehouse.id)
+  }
+}, [defaultWarehouse, form])
 ```
 
-5. Cập nhật loading condition:
-```typescript
-// Trước:
-(isCreatingInvoice || (autoCreateInvoice && !invoiceCreated))
-
-// Sau:
-(isCreatingInvoice || (autoCreateInvoice && !invoiceCreated && !hasError))
-```
-
-6. Thêm UI hiển thị lỗi (sau loading block, trước manual confirmation):
-```tsx
-hasError ? (
-  <div className="flex flex-col items-center py-8 text-center space-y-4">
-    <AlertTriangle className="h-12 w-12 text-amber-500" />
-    <p className="text-muted-foreground">{errorMessage}</p>
-    <Button variant="outline" onClick={() => onOpenChange(false)}>Đóng</Button>
-  </div>
-) : ...
-```
+Cần thêm import `useEffect` từ React (hiện chưa import trong file này).
 
 ### Kết quả
 
-- Khi có hóa đơn pending: hiển thị thông báo lỗi rõ ràng thay vì spinner quay mãi
-- Khi tạo invoice thất bại: hiển thị lỗi với nút Đóng
-- Flow bình thường (không có pending invoice): hoạt động bình thường, tạo invoice + hiển thị QR
+- Không còn vòng lặp re-render vô hạn
+- Default warehouse vẫn được set tự động khi data load xong
+- Fix cho tất cả khách hàng, không phụ thuộc tốc độ mạng
 
