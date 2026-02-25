@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { ArrowLeft, Plus, X } from 'lucide-react'
 import { useForm, useFieldArray } from 'react-hook-form'
@@ -85,10 +86,11 @@ export function InboundPage() {
   })
 
   // Set default warehouse when loaded
-  const toWarehouseId = form.watch('to_warehouse_id')
-  if (defaultWarehouse && !toWarehouseId) {
-    form.setValue('to_warehouse_id', defaultWarehouse.id)
-  }
+  useEffect(() => {
+    if (defaultWarehouse && !form.getValues('to_warehouse_id')) {
+      form.setValue('to_warehouse_id', defaultWarehouse.id)
+    }
+  }, [defaultWarehouse, form])
   
   const { fields, append, remove } = useFieldArray({
     control: form.control,
