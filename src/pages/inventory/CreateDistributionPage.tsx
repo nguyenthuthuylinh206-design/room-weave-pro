@@ -115,25 +115,52 @@ export default function CreateDistributionPage() {
         )}
       </div>
 
-      {/* Footer */}
+      {/* Footer with summary */}
       <div className={isMobile 
-        ? 'sticky bottom-0 bg-background border-t p-4 flex gap-3'
-        : 'flex justify-end gap-3'
+        ? 'sticky bottom-0 bg-background border-t p-4 space-y-3'
+        : 'border-t pt-4 space-y-3'
       }>
-        <Button 
-          variant="outline" 
-          onClick={() => navigate(-1)}
-          className={isMobile ? 'flex-1' : ''}
-        >
-          Hủy
-        </Button>
-        <Button 
-          onClick={handleSubmit} 
-          disabled={isPending || !form.isValid || isAllHotelsMode}
-          className={isMobile ? 'flex-1' : ''}
-        >
-          {isPending ? 'Đang tạo...' : 'Tạo phiếu giao hàng'}
-        </Button>
+        {/* Summary bar */}
+        {form.summary.roomCount > 0 && (
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span>{form.summary.roomCount} phòng</span>
+            <span className="text-muted-foreground/50">•</span>
+            <span>{form.summary.itemTypesCount} loại SP</span>
+            <span className="text-muted-foreground/50">•</span>
+            <span>{form.summary.totalItems} đơn vị</span>
+            {form.summary.roomsWithItems < form.summary.roomCount && (
+              <>
+                <span className="text-muted-foreground/50">•</span>
+                <span className="text-amber-600">{form.summary.roomCount - form.summary.roomsWithItems} phòng chưa có SP</span>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Stock validation in footer */}
+        {!form.stockValidation.isValid && (
+          <div className="flex items-center gap-2 text-sm text-red-600">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>Vượt quá tồn kho: {form.stockValidation.overStockItems.map(i => i.itemName).join(', ')}</span>
+          </div>
+        )}
+
+        <div className={isMobile ? 'flex gap-3' : 'flex justify-end gap-3'}>
+          <Button 
+            variant="outline" 
+            onClick={() => navigate(-1)}
+            className={isMobile ? 'flex-1' : ''}
+          >
+            Hủy
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={isPending || !form.isValid || isAllHotelsMode}
+            className={isMobile ? 'flex-1' : ''}
+          >
+            {isPending ? 'Đang tạo...' : 'Tạo phiếu giao hàng'}
+          </Button>
+        </div>
       </div>
     </div>
   )

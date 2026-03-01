@@ -137,7 +137,7 @@ export function UnifiedRoomList({
         onSuccess: () => {
           onRefresh?.()
           toast.info('Đang chuyển đến bước kiểm tra phòng...')
-          navigate(`/rooms/${stop.room_id}/check?type=delivery&distribution_order_id=${stop.distribution_order_id}&room_order_id=${stop.id}`)
+          navigate(`/rooms/${stop.room_id}/check?type=delivery&distribution_order_id=${stop.distribution_order_id}&room_order_id=${stop.id}&returnTo=/inventory/distributions/${stop.distribution_order_id}`)
         } 
       }
     )
