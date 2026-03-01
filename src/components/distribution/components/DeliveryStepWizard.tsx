@@ -13,6 +13,7 @@ interface DeliveryStepWizardProps {
   isWarehouseManager: boolean
   isAssignee: boolean
   hasAssignee?: boolean
+  isCreatorSameAsAssignee?: boolean
   onHandoverBatch?: () => void
   onConfirmReceive?: () => void
   onCloseRoute?: () => void
@@ -38,6 +39,7 @@ export function DeliveryStepWizard({
   isWarehouseManager,
   isAssignee,
   hasAssignee = true,
+  isCreatorSameAsAssignee = false,
   onHandoverBatch,
   onConfirmReceive,
   onCloseRoute,
@@ -61,32 +63,56 @@ export function DeliveryStepWizard({
   
   const currentStep = getCurrentStep()
   
-  const steps: Step[] = [
-    {
-      id: 'prepare',
-      label: 'Chuẩn bị hàng',
-      icon: Package,
-      status: currentStep > 1 ? 'completed' : currentStep === 1 ? 'current' : 'upcoming',
-    },
-    {
-      id: 'release',
-      label: 'Nhận hàng',
-      icon: Truck,
-      status: currentStep > 2 ? 'completed' : currentStep === 2 ? 'current' : 'upcoming',
-    },
-    {
-      id: 'deliver',
-      label: 'Giao hàng',
-      icon: CheckCircle,
-      status: currentStep > 3 ? 'completed' : currentStep === 3 ? 'current' : 'upcoming',
-    },
-    {
-      id: 'close',
-      label: 'Hoàn thành',
-      icon: Lock,
-      status: currentStep >= 4 ? 'completed' : 'upcoming',
-    },
-  ]
+  // Simplified steps when creator = assignee
+  const useSimplifiedFlow = isCreatorSameAsAssignee && hasAssignee
+
+  const steps: Step[] = useSimplifiedFlow
+    ? [
+        {
+          id: 'prepare_and_receive',
+          label: 'Chuẩn bị & Nhận',
+          icon: Package,
+          status: currentStep > 2 ? 'completed' : currentStep <= 2 ? 'current' : 'upcoming',
+        },
+        {
+          id: 'deliver',
+          label: 'Giao hàng',
+          icon: CheckCircle,
+          status: currentStep > 3 ? 'completed' : currentStep === 3 ? 'current' : 'upcoming',
+        },
+        {
+          id: 'close',
+          label: 'Hoàn thành',
+          icon: Lock,
+          status: currentStep >= 4 ? 'completed' : 'upcoming',
+        },
+      ]
+    : [
+        {
+          id: 'prepare',
+          label: 'Chuẩn bị hàng',
+          icon: Package,
+          status: currentStep > 1 ? 'completed' : currentStep === 1 ? 'current' : 'upcoming',
+        },
+        {
+          id: 'release',
+          label: 'Nhận hàng',
+          icon: Truck,
+          status: currentStep > 2 ? 'completed' : currentStep === 2 ? 'current' : 'upcoming',
+        },
+        {
+          id: 'deliver',
+          label: 'Giao hàng',
+          icon: CheckCircle,
+          status: currentStep > 3 ? 'completed' : currentStep === 3 ? 'current' : 'upcoming',
+        },
+        {
+          id: 'close',
+          label: 'Hoàn thành',
+          icon: Lock,
+          status: currentStep >= 4 ? 'completed' : 'upcoming',
+        },
+      ]
 
   // Render the guidance and action based on current status and user role
   const renderGuidance = () => {
@@ -107,6 +133,28 @@ export function DeliveryStepWizard({
         )
       }
       
+      // Simplified flow: creator = assignee, combine prepare + receive
+      if (useSimplifiedFlow && isWarehouseManager && isAssignee) {
+        return (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Kiểm tra hàng trong kho theo danh sách bên dưới. Xác nhận để bắt đầu giao hàng ngay.
+            </p>
+            {onHandoverBatch && (
+              <Button 
+                onClick={onHandoverBatch} 
+                disabled={isHandingOver}
+                className="w-full h-12 text-base gap-2"
+                size="lg"
+              >
+                <Package className="h-5 w-5" />
+                {isHandingOver ? 'Đang kiểm tra kho...' : 'Kiểm tra kho & Bắt đầu giao hàng'}
+              </Button>
+            )}
+          </div>
+        )
+      }
+
       // Warehouse manager can handover (with stock check)
       if (isWarehouseManager && hasAssignee) {
         return (

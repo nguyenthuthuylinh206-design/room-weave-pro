@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, X, AlertTriangle, WashingMachine, Calendar, Scale, DollarSign } from 'lucide-react';
+import { ArrowLeft, Plus, X, AlertTriangle, WashingMachine, Calendar, Scale, DollarSign, Package } from 'lucide-react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -275,8 +275,22 @@ export function OutboundPage() {
             </div>
           </div>
           
-          {/* Distribution Form */}
-          {category === 'room_assign' && <DistributionForm form={distributionForm} />}
+          {/* Distribution Form - redirect to dedicated page */}
+          {category === 'room_assign' && (
+            <div className="border rounded-lg p-6 text-center space-y-3">
+              <Package className="h-8 w-8 mx-auto text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Giao đồ đến phòng</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Sử dụng trang phiếu giao hàng chuyên dụng để chọn phòng, phân bổ sản phẩm và theo dõi giao hàng.
+                </p>
+              </div>
+              <Button type="button" onClick={() => navigate('/inventory/distributions/new')} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Tạo phiếu giao hàng
+              </Button>
+            </div>
+          )}
           
           {/* Laundry Batch Form */}
           {category === 'laundry' && (
