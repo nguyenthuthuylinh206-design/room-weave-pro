@@ -2115,9 +2115,11 @@ export type Database = {
           quantity: number
           quantity_after: number
           quantity_before: number
+          reference_id: string | null
           reference_type: string | null
           related_id: string | null
           related_type: string | null
+          status: string | null
           tenant_id: string
           to_location: string | null
           to_warehouse_id: string | null
@@ -2143,9 +2145,11 @@ export type Database = {
           quantity: number
           quantity_after: number
           quantity_before: number
+          reference_id?: string | null
           reference_type?: string | null
           related_id?: string | null
           related_type?: string | null
+          status?: string | null
           tenant_id: string
           to_location?: string | null
           to_warehouse_id?: string | null
@@ -2171,9 +2175,11 @@ export type Database = {
           quantity?: number
           quantity_after?: number
           quantity_before?: number
+          reference_id?: string | null
           reference_type?: string | null
           related_id?: string | null
           related_type?: string | null
+          status?: string | null
           tenant_id?: string
           to_location?: string | null
           to_warehouse_id?: string | null
