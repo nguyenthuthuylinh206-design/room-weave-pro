@@ -49,7 +49,7 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
 
   // Handover batch handler - now with stock check
   const handleHandoverFirstBatch = useCallback(async () => {
-    if (!firstPendingBatch) return
+    if (!firstPendingBatch || !route) return
     
     const result = await handoverBatch.mutateAsync({ batchId: firstPendingBatch.id })
     
@@ -57,12 +57,19 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
     if (!result.success && result.error === 'INSUFFICIENT_STOCK' && result.insufficient_items) {
       setInsufficientItems(result.insufficient_items)
       setAdjustDialogOpen(true)
+      return
     }
-  }, [firstPendingBatch, handoverBatch])
+    
+    // Auto-confirm if creator = assignee (skip released step)
+    if (result.success && user?.id === route.created_by && user?.id === route.assigned_to) {
+      await confirmReceive.mutateAsync({ orderId: route.id })
+      toast.success('Đã kiểm tra kho & bắt đầu giao hàng')
+    }
+  }, [firstPendingBatch, handoverBatch, route, user, confirmReceive])
 
   // Handle handover with adjustments
   const handleHandoverWithAdjustments = useCallback(async (adjustments: ItemAdjustment[], reason: string) => {
-    if (!firstPendingBatch) return
+    if (!firstPendingBatch || !route) return
     
     try {
       const result = await handoverBatch.mutateAsync({ 
@@ -73,12 +80,19 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
       if (result.success) {
         setAdjustDialogOpen(false)
         setInsufficientItems([])
-        toast.success('Đã giao hàng cho nhân viên với số lượng điều chỉnh')
+        
+        // Auto-confirm if creator = assignee
+        if (user?.id === route.created_by && user?.id === route.assigned_to) {
+          await confirmReceive.mutateAsync({ orderId: route.id })
+          toast.success('Đã kiểm tra kho & bắt đầu giao hàng (đã điều chỉnh)')
+        } else {
+          toast.success('Đã giao hàng cho nhân viên với số lượng điều chỉnh')
+        }
       }
     } catch (error) {
       toast.error('Không thể giao hàng')
     }
-  }, [firstPendingBatch, handoverBatch])
+  }, [firstPendingBatch, handoverBatch, route, user, confirmReceive])
 
   // Check user roles based on user_level_code
   const isAssignee = user?.id === route?.assigned_to
@@ -88,6 +102,7 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
   const isStorekeeper = 
     ['tenant_owner', 'manager', 'warehouse_manager', 'storekeeper'].includes(userLevel) ||
     user?.id === route?.created_by
+  const isCreatorSameAsAssignee = !!(user?.id && user.id === route?.created_by && user.id === route?.assigned_to)
 
   // Calculate progress
   const totalStops = route?.stops?.length || 0

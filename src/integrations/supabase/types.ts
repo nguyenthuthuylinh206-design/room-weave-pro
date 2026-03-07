@@ -5653,7 +5653,7 @@ export type Database = {
       }
       staff_statistics: {
         Row: {
-          average_task_completion_time: unknown
+          average_task_completion_time: string | null
           hotel_id: string
           id: string
           items_checked: number | null
@@ -5666,7 +5666,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          average_task_completion_time?: unknown
+          average_task_completion_time?: string | null
           hotel_id: string
           id?: string
           items_checked?: number | null
@@ -5679,7 +5679,7 @@ export type Database = {
           user_id: string
         }
         Update: {
-          average_task_completion_time?: unknown
+          average_task_completion_time?: string | null
           hotel_id?: string
           id?: string
           items_checked?: number | null
