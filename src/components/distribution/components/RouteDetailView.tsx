@@ -205,6 +205,7 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
         isWarehouseManager={isStorekeeper}
         isAssignee={isAssignee}
         hasAssignee={!!route.assigned_to}
+        isCreatorSameAsAssignee={isCreatorSameAsAssignee}
         onHandoverBatch={
           route.status === 'pending' && isStorekeeper && firstPendingBatch && route.assigned_to
             ? handleHandoverFirstBatch
