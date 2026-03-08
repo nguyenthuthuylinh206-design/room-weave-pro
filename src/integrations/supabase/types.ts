@@ -4627,6 +4627,81 @@ export type Database = {
           },
         ]
       }
+      reminder_automation_rules: {
+        Row: {
+          action_template: string | null
+          action_type: string
+          conditions: Json | null
+          created_at: string | null
+          enabled: boolean
+          id: string
+          name: string
+          trigger_type: string
+          trigger_value: string
+          updated_at: string | null
+        }
+        Insert: {
+          action_template?: string | null
+          action_type?: string
+          conditions?: Json | null
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          name: string
+          trigger_type: string
+          trigger_value: string
+          updated_at?: string | null
+        }
+        Update: {
+          action_template?: string | null
+          action_type?: string
+          conditions?: Json | null
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          name?: string
+          trigger_type?: string
+          trigger_value?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      reminder_email_templates: {
+        Row: {
+          category: string
+          content: string
+          created_at: string | null
+          id: string
+          name: string
+          status: string
+          subject: string
+          updated_at: string | null
+          variables: Json | null
+        }
+        Insert: {
+          category?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          name: string
+          status?: string
+          subject: string
+          updated_at?: string | null
+          variables?: Json | null
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          status?: string
+          subject?: string
+          updated_at?: string | null
+          variables?: Json | null
+        }
+        Relationships: []
+      }
       renewal_reminders: {
         Row: {
           created_at: string | null

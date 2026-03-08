@@ -78,7 +78,7 @@ export interface RenewalReminder {
   // Joined data
   tenants?: {
     name: string;
-    primary_contact_email?: string;
+    email?: string;
     subscription_end_date?: string;
   };
 }

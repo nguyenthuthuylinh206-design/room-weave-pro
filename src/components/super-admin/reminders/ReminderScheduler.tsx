@@ -1,146 +1,117 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Clock, Send } from 'lucide-react';
+import { vi } from 'date-fns/locale';
+import { Clock, Send, Loader2 } from 'lucide-react';
+import {
+  useRemindersByDate,
+  useScheduleSummary,
+  useBulkSendReminders,
+} from '@/hooks/super-admin/useRenewalReminders';
+
+const statusColor: Record<string, string> = {
+  pending: 'text-amber-600',
+  sent: 'text-green-600',
+  failed: 'text-red-600',
+};
 
 export function ReminderScheduler() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const { data: reminders = [], isLoading } = useRemindersByDate(selectedDate);
+  const { data: summary } = useScheduleSummary();
+  const bulkSend = useBulkSendReminders();
 
-  // Sample data - would come from API
-  const scheduledReminders = [
-    {
-      id: '1',
-      tenant: 'Hotel Paradise',
-      type: '7 days before',
-      scheduledFor: '2024-01-20 09:00',
-      status: 'pending',
-    },
-    {
-      id: '2',
-      tenant: 'Sunset Resort',
-      type: '3 days before',
-      scheduledFor: '2024-01-20 14:00',
-      status: 'pending',
-    },
-  ];
-
-  const upcomingReminders = [
-    { date: '2024-01-21', count: 5 },
-    { date: '2024-01-22', count: 3 },
-    { date: '2024-01-23', count: 8 },
-    { date: '2024-01-24', count: 2 },
-  ];
+  const pendingIds = reminders.filter((r: any) => r.status === 'pending').map((r: any) => r.id);
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Calendar */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Reminder Schedule</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-6">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
-                className="rounded-md border"
-              />
+    <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Calendar + List */}
+        <div className="lg:col-span-2 border rounded-lg p-3">
+          <h3 className="text-sm font-medium mb-3">Lịch nhắc nhở</h3>
+          <div className="flex gap-4">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={(date) => date && setSelectedDate(date)}
+              className="rounded-md border"
+            />
 
-              <div className="flex-1">
-                <h3 className="font-semibold mb-4">
-                  {format(selectedDate, 'MMMM d, yyyy')}
-                </h3>
-                
-                <ScrollArea className="h-[300px]">
-                  <div className="space-y-3">
-                    {scheduledReminders.map((reminder) => (
-                      <div
-                        key={reminder.id}
-                        className="p-3 rounded-lg border bg-card hover:bg-accent transition-colors"
-                      >
-                        <div className="flex items-start justify-between mb-2">
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-medium mb-3">
+                {format(selectedDate, 'd MMMM, yyyy', { locale: vi })}
+              </h4>
+
+              <ScrollArea className="h-[280px]">
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : reminders.length > 0 ? (
+                  <div className="space-y-2">
+                    {reminders.map((reminder: any) => (
+                      <div key={reminder.id} className="p-2 rounded-lg border hover:bg-accent/50 transition-colors">
+                        <div className="flex items-start justify-between mb-1">
                           <div>
-                            <p className="font-medium">{reminder.tenant}</p>
-                            <p className="text-sm text-muted-foreground">{reminder.type}</p>
+                            <p className="text-sm font-medium">{reminder.tenant?.name || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">{reminder.reminder_type}</p>
                           </div>
-                          <Badge variant="secondary">{reminder.status}</Badge>
+                          <span className={`text-xs font-medium ${statusColor[reminder.status] || ''}`}>
+                            {reminder.status === 'pending' ? 'Chờ gửi' : reminder.status === 'sent' ? 'Đã gửi' : 'Thất bại'}
+                          </span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Clock className="h-3 w-3" />
-                          {reminder.scheduledFor}
+                          {format(new Date(reminder.scheduled_for), 'HH:mm')}
                         </div>
                       </div>
                     ))}
                   </div>
-                </ScrollArea>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Không có nhắc nhở nào trong ngày này
+                  </p>
+                )}
+              </ScrollArea>
 
-        {/* Upcoming Overview */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Upcoming Reminders</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {upcomingReminders.map((item) => (
-                <div
-                  key={item.date}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted"
+              {pendingIds.length > 0 && (
+                <Button
+                  size="sm"
+                  className="w-full mt-3 h-8"
+                  onClick={() => bulkSend.mutate(pendingIds)}
+                  disabled={bulkSend.isPending}
                 >
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">
-                      {format(new Date(item.date), 'MMM d')}
-                    </span>
-                  </div>
-                  <Badge variant="outline">{item.count} reminders</Badge>
-                </div>
-              ))}
-            </div>
-
-            <Button className="w-full mt-4">
-              <Send className="h-4 w-4 mr-2" />
-              Send All Pending
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Schedule Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Schedule Summary</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <p className="text-3xl font-bold text-blue-600">12</p>
-              <p className="text-sm text-blue-700">Today</p>
-            </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <p className="text-3xl font-bold text-green-600">45</p>
-              <p className="text-sm text-green-700">This Week</p>
-            </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <p className="text-3xl font-bold text-purple-600">128</p>
-              <p className="text-sm text-purple-700">This Month</p>
-            </div>
-            <div className="text-center p-4 bg-orange-50 rounded-lg">
-              <p className="text-3xl font-bold text-orange-600">5</p>
-              <p className="text-sm text-orange-700">Overdue</p>
+                  <Send className="h-3.5 w-3.5 mr-1.5" />
+                  Gửi {pendingIds.length} nhắc nhở chờ
+                </Button>
+              )}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Summary */}
+        <div className="border rounded-lg p-3">
+          <h3 className="text-sm font-medium mb-3">Tổng quan lịch</h3>
+          <div className="space-y-2">
+            <SummaryItem label="Hôm nay" value={summary?.today ?? 0} color="text-blue-600" />
+            <SummaryItem label="Tuần này" value={summary?.thisWeek ?? 0} color="text-green-600" />
+            <SummaryItem label="Tháng này" value={summary?.thisMonth ?? 0} color="text-purple-600" />
+            <SummaryItem label="Quá hạn" value={summary?.overdue ?? 0} color="text-red-600" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SummaryItem({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div className="flex items-center justify-between p-2 rounded-lg border">
+      <span className="text-sm">{label}</span>
+      <span className={`text-lg font-semibold ${color}`}>{value}</span>
     </div>
   );
 }
