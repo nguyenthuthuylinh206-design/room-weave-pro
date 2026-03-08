@@ -173,10 +173,12 @@ export function useHandoverBatch() {
     mutationFn: async ({ 
       batchId,
       adjustments,
+      silent,
     }: { 
       batchId: string
       adjustments?: ItemAdjustment[]
-    }): Promise<HandoverBatchResult> => {
+      silent?: boolean
+    }): Promise<HandoverBatchResult & { _silent?: boolean }> => {
       if (!user?.id) throw new Error('User not authenticated')
 
       const { data, error } = await supabase.rpc('handover_batch', {
@@ -202,7 +204,7 @@ export function useHandoverBatch() {
         throw new Error(response.error || 'Unknown error')
       }
       
-      return response
+      return { ...response, _silent: silent }
     },
     onSuccess: (result) => {
       if (result.success) {
@@ -211,7 +213,9 @@ export function useHandoverBatch() {
         queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
         queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
         queryClient.invalidateQueries({ queryKey: ['items'] })
-        toast.success('Đã giao hàng cho nhân viên thành công')
+        if (!result._silent) {
+          toast.success('Đã giao hàng cho nhân viên thành công')
+        }
       }
       // If not success (INSUFFICIENT_STOCK), don't show toast - caller will handle
     },
@@ -579,9 +583,11 @@ export function useConfirmReceiveOrder() {
   return useMutation({
     mutationFn: async ({ 
       orderId,
+      silent,
     }: { 
       orderId: string
-    }): Promise<ConfirmReceiveResult> => {
+      silent?: boolean
+    }): Promise<ConfirmReceiveResult & { _silent?: boolean }> => {
       if (!user?.id) throw new Error('Chưa đăng nhập')
 
       const { data, error } = await supabase.rpc('confirm_receive_order', {
@@ -607,14 +613,16 @@ export function useConfirmReceiveOrder() {
         throw new Error(message)
       }
       
-      return { success: true }
+      return { success: true, _silent: silent }
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['route-batches'] })
       queryClient.invalidateQueries({ queryKey: ['route-detail'] })
       queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
       queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
-      toast.success('Đã xác nhận nhận hàng thành công')
+      if (!result._silent) {
+        toast.success('Đã xác nhận nhận hàng thành công')
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Không thể xác nhận nhận hàng')
