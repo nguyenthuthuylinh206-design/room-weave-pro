@@ -1252,7 +1252,7 @@ export function RoomBookingDialog({
         roomNumber={roomNumber}
         actualCheckoutTime={format(new Date(), 'HH:mm')}
         actualCheckoutDate={new Date()}
-        scheduledCheckoutDate={booking?.check_out_date ? new Date(booking.check_out_date) : new Date()}
+        scheduledCheckoutDate={overdueCheckoutDate ? new Date(overdueCheckoutDate) : (booking?.check_out_date ? new Date(booking.check_out_date) : new Date())}
         costBreakdown={costBreakdown}
         damageItems={checkoutDamageItems}
         onConfirmCheckout={performCheckOut}
