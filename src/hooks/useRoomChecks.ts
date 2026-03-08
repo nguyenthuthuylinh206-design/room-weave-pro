@@ -946,6 +946,8 @@ export function useCreateRoomCheck() {
       queryClient.invalidateQueries({ queryKey: ['supplement-requests'] })
       queryClient.invalidateQueries({ queryKey: ['supplement-requests-pending-count'] })
       queryClient.invalidateQueries({ queryKey: ['draft-laundry-batch'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouses-with-stats'] })
 
       const isDuplicate = !!check?.__duplicate
 
