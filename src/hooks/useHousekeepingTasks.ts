@@ -701,84 +701,24 @@ export function useTaskStats(hotelId?: string) {
         ? `hotel_id.eq.${hotelId},tenant_id.eq.${tenantId}`
         : `tenant_id.eq.${tenantId}`
 
-      // Fetch all counts in parallel
+      // Helper to build query with optional hotel filter
+      const buildQuery = () => {
+        let q = supabase.from('housekeeping_tasks').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId)
+        if (hotelId) q = q.eq('hotel_id', hotelId)
+        return q
+      }
+
+      // Fetch all counts in parallel (single query each)
       const [
         pendingResult,
         inProgressResult,
         completedTodayResult,
         unassignedResult
       ] = await Promise.all([
-        // Pending tasks
-        supabase
-          .from('housekeeping_tasks')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'pending')
-          .eq('tenant_id', tenantId)
-          .not('assigned_to', 'is', null)
-          .then(r => hotelId 
-            ? supabase
-                .from('housekeeping_tasks')
-                .select('id', { count: 'exact', head: true })
-                .eq('status', 'pending')
-                .eq('tenant_id', tenantId)
-                .eq('hotel_id', hotelId)
-                .not('assigned_to', 'is', null)
-            : r
-          ),
-        
-        // In progress tasks
-        supabase
-          .from('housekeeping_tasks')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'in_progress')
-          .eq('tenant_id', tenantId)
-          .then(r => hotelId 
-            ? supabase
-                .from('housekeeping_tasks')
-                .select('id', { count: 'exact', head: true })
-                .eq('status', 'in_progress')
-                .eq('tenant_id', tenantId)
-                .eq('hotel_id', hotelId)
-            : r
-          ),
-        
-        // Completed today
-        supabase
-          .from('housekeeping_tasks')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'completed')
-          .eq('tenant_id', tenantId)
-          .gte('completed_at', today.toISOString())
-          .lt('completed_at', tomorrow.toISOString())
-          .then(r => hotelId 
-            ? supabase
-                .from('housekeeping_tasks')
-                .select('id', { count: 'exact', head: true })
-                .eq('status', 'completed')
-                .eq('tenant_id', tenantId)
-                .eq('hotel_id', hotelId)
-                .gte('completed_at', today.toISOString())
-                .lt('completed_at', tomorrow.toISOString())
-            : r
-          ),
-        
-        // Unassigned tasks
-        supabase
-          .from('housekeeping_tasks')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'pending')
-          .eq('tenant_id', tenantId)
-          .is('assigned_to', null)
-          .then(r => hotelId 
-            ? supabase
-                .from('housekeeping_tasks')
-                .select('id', { count: 'exact', head: true })
-                .eq('status', 'pending')
-                .eq('tenant_id', tenantId)
-                .eq('hotel_id', hotelId)
-                .is('assigned_to', null)
-            : r
-          )
+        buildQuery().eq('status', 'pending').not('assigned_to', 'is', null),
+        buildQuery().eq('status', 'in_progress'),
+        buildQuery().eq('status', 'completed').gte('completed_at', today.toISOString()).lt('completed_at', tomorrow.toISOString()),
+        buildQuery().eq('status', 'pending').is('assigned_to', null),
       ])
 
       return {

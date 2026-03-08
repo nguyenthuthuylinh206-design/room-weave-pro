@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useReassignTask } from '@/hooks/useHousekeepingTasks'
-import { useStaffStatus } from '@/hooks/useStaffStatus'
+import { useOnShiftStaffList } from '@/hooks/useOnShiftStaffList'
 import { 
   TASK_TYPE_LABELS,
   type TaskType,
@@ -26,14 +26,15 @@ interface AssignTaskDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   task: HousekeepingTaskWithDetails | null
+  hotelId?: string
 }
 
-export function AssignTaskDialog({ open, onOpenChange, task }: AssignTaskDialogProps) {
+export function AssignTaskDialog({ open, onOpenChange, task, hotelId }: AssignTaskDialogProps) {
   const [search, setSearch] = useState('')
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [reason, setReason] = useState('')
 
-  const { data: staffList, isLoading: loadingStaff } = useStaffStatus()
+  const { data: staffList, isLoading: loadingStaff } = useOnShiftStaffList(hotelId)
   const reassignTask = useReassignTask()
 
   // Filter and sort staff

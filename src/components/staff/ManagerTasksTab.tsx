@@ -317,6 +317,7 @@ export function ManagerTasksTab() {
         open={assignDialogOpen}
         onOpenChange={setAssignDialogOpen}
         task={selectedTask}
+        hotelId={hotelId}
       />
     </div>
   )
