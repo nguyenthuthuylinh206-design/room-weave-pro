@@ -8,6 +8,7 @@
   "navigation": {
     "overview": "Tổng quan",
     "tenants": "Khách hàng",
+    "approval": "Phê duyệt",
     "promoCodes": "Mã khuyến mãi",
     "campaigns": "Chiến dịch",
     "reminders": "Nhắc nhở",
@@ -18,6 +19,7 @@
   "titles": {
     "overview": "Tổng quan",
     "tenantManagement": "Quản lý khách hàng",
+    "approval": "Phê duyệt doanh nghiệp",
     "promoCodes": "Mã khuyến mãi",
     "campaigns": "Chiến dịch marketing",
     "reminders": "Nhắc nhở gia hạn",
