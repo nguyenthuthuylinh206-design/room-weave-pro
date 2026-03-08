@@ -9205,6 +9205,14 @@ export type Database = {
             }
             Returns: Json
           }
+      update_booking_amount_paid: {
+        Args: {
+          p_amount_to_add: number
+          p_booking_id: string
+          p_total_amount: number
+        }
+        Returns: Json
+      }
       update_distribution_order: {
         Args: {
           p_assigned_to?: string
