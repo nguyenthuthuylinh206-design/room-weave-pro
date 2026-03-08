@@ -64,7 +64,7 @@ import WorkflowsPage from "./pages/settings/WorkflowsPage";
 
 import WarehouseListPage from "./pages/settings/WarehouseListPage";
 import ChangePasswordPage from "./pages/settings/ChangePasswordPage";
-import { ReportsPage } from "./pages/reports/ReportsPage";
+
 import { ReportsDashboardPage } from "./pages/reports/ReportsDashboardPage";
 import { InventoryReportPage } from "./pages/reports/InventoryReportPage";
 import { FinancialReportPage } from "./pages/reports/FinancialReportPage";

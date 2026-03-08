@@ -13,6 +13,7 @@ import {
   Download,
   Calendar,
   RefreshCw,
+  LogOut,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -139,6 +140,17 @@ export function ReportsDashboardPage() {
       textColor: 'text-indigo-600',
       description: t('types.stockAudit.description', 'Báo cáo kiểm kê kho chi tiết'),
       path: '/reports/stock-audit',
+      stats: [],
+    },
+    {
+      id: 'outbound',
+      title: t('types.outbound.title', 'Báo cáo Xuất kho'),
+      icon: LogOut,
+      color: 'bg-teal-500',
+      bgColor: 'bg-teal-500/10',
+      textColor: 'text-teal-600',
+      description: t('types.outbound.description', 'Phân tích chi tiết xuất kho theo loại'),
+      path: '/reports/outbound',
       stats: [],
     },
   ]

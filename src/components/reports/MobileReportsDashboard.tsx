@@ -1,11 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import {
-  Package,
-  DollarSign,
-  ArrowRightLeft,
-  Shirt,
-  Home,
-  Wrench,
+  Package, DollarSign, ArrowRightLeft, Shirt, Home, Wrench, LogOut,
 } from 'lucide-react'
 import { PullToRefresh } from '@/components/mobile/TouchOptimized'
 import { Card, CardContent } from '@/components/ui/card'
@@ -71,6 +66,15 @@ export function MobileReportsDashboard() {
       bgColor: 'bg-red-50 dark:bg-red-950/50',
       description: t('types.performance.description'),
       path: '/reports/maintenance',
+    },
+    {
+      id: 'outbound',
+      title: t('types.outbound.title', 'Báo cáo Xuất kho'),
+      icon: LogOut,
+      color: 'text-teal-600 dark:text-teal-400',
+      bgColor: 'bg-teal-50 dark:bg-teal-950/50',
+      description: t('types.outbound.description', 'Phân tích chi tiết xuất kho theo loại'),
+      path: '/reports/outbound',
     },
   ]
 
