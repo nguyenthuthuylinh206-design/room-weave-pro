@@ -8,49 +8,47 @@ import {
   useReactTable,
   type ColumnDef,
   type SortingState,
-  type ColumnFiltersState,
 } from '@tanstack/react-table';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { MoreHorizontal, ArrowUpDown, RefreshCw, Send } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Send } from 'lucide-react';
 import {
-  useRenewalReminders,
-  useScheduleReminders,
-  useSendReminder,
+  useRenewalReminders, useSendReminder,
 } from '@/hooks/super-admin/useRenewalReminders';
 import type { RenewalReminder } from '@/types/super-admin.types';
 
+const statusLabels: Record<string, string> = {
+  pending: 'Chờ gửi',
+  sent: 'Đã gửi',
+  failed: 'Thất bại',
+  cancelled: 'Đã hủy',
+};
+
+const typeLabels: Record<string, string> = {
+  '7_days': '7 ngày trước',
+  '3_days': '3 ngày trước',
+  '1_day': '1 ngày trước',
+  expired: 'Đã hết hạn',
+  grace_period_ending: 'Hết gia hạn',
+};
+
 export function RemindersTable() {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const { data: reminders = [], isLoading } = useRenewalReminders(
     statusFilter !== 'all' ? { status: statusFilter as any } : undefined
   );
-  const scheduleReminders = useScheduleReminders();
   const sendReminder = useSendReminder();
 
   const columns: ColumnDef<RenewalReminder>[] = [
@@ -59,83 +57,53 @@ export function RemindersTable() {
       header: 'Tenant',
       cell: ({ row }) => (
         <div>
-          <div className="font-medium">{row.original.tenants?.name || 'N/A'}</div>
-          <div className="text-sm text-muted-foreground">
-            {row.original.tenants?.primary_contact_email || 'N/A'}
-          </div>
+          <p className="text-sm font-medium">{row.original.tenants?.name || 'N/A'}</p>
+          <p className="text-xs text-muted-foreground">
+            {row.original.tenants?.primary_contact_email || '-'}
+          </p>
         </div>
       ),
     },
     {
       accessorKey: 'reminder_type',
-      header: 'Type',
-      cell: ({ row }) => {
-        const typeLabels: Record<string, string> = {
-          '7_days': '7 Days Before',
-          '3_days': '3 Days Before',
-          '1_day': '1 Day Before',
-          expired: 'Expired',
-          grace_period_ending: 'Grace Period',
-        };
-        return (
-          <Badge variant="outline">
-            {typeLabels[row.original.reminder_type] || row.original.reminder_type}
-          </Badge>
-        );
-      },
+      header: 'Loại',
+      cell: ({ row }) => (
+        <span className="text-sm">
+          {typeLabels[row.original.reminder_type] || row.original.reminder_type}
+        </span>
+      ),
     },
     {
       accessorKey: 'status',
-      header: 'Status',
+      header: 'Trạng thái',
       cell: ({ row }) => {
-        const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-          pending: 'secondary',
-          sent: 'default',
-          failed: 'destructive',
-          cancelled: 'outline',
-        };
-        return (
-          <Badge variant={variants[row.original.status] || 'outline'}>
-            {row.original.status.toUpperCase()}
-          </Badge>
-        );
+        const s = row.original.status;
+        const colorClass = s === 'sent' ? 'text-green-600' : s === 'failed' ? 'text-red-600' : s === 'pending' ? 'text-amber-600' : 'text-muted-foreground';
+        return <span className={`text-sm font-medium ${colorClass}`}>{statusLabels[s] || s}</span>;
       },
     },
     {
       accessorKey: 'scheduled_for',
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            Scheduled For
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        );
-      },
+      header: ({ column }) => (
+        <Button variant="ghost" size="sm" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          Lịch gửi <ArrowUpDown className="ml-1 h-3 w-3" />
+        </Button>
+      ),
       cell: ({ row }) => (
         <div>
-          <div>{new Date(row.original.scheduled_for).toLocaleDateString()}</div>
-          <div className="text-xs text-muted-foreground">
-            {new Date(row.original.scheduled_for).toLocaleTimeString()}
-          </div>
+          <p className="text-sm">{new Date(row.original.scheduled_for).toLocaleDateString('vi-VN')}</p>
+          <p className="text-xs text-muted-foreground">{new Date(row.original.scheduled_for).toLocaleTimeString('vi-VN')}</p>
         </div>
       ),
     },
     {
       accessorKey: 'sent_at',
-      header: 'Sent At',
+      header: 'Đã gửi lúc',
       cell: ({ row }) =>
         row.original.sent_at ? (
-          <div>
-            <div>{new Date(row.original.sent_at).toLocaleDateString()}</div>
-            <div className="text-xs text-muted-foreground">
-              {new Date(row.original.sent_at).toLocaleTimeString()}
-            </div>
-          </div>
+          <p className="text-sm">{new Date(row.original.sent_at).toLocaleDateString('vi-VN')}</p>
         ) : (
-          <span className="text-muted-foreground">-</span>
+          <span className="text-xs text-muted-foreground">-</span>
         ),
     },
     {
@@ -145,23 +113,22 @@ export function RemindersTable() {
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="h-8 w-8">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
               {reminder.status === 'pending' && (
-                <DropdownMenuItem
-                  onClick={() => sendReminder.mutate(reminder.id)}
-                >
+                <DropdownMenuItem onClick={() => sendReminder.mutate(reminder.id)}>
                   <Send className="h-4 w-4 mr-2" />
-                  Send Now
+                  Gửi ngay
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem>View Details</DropdownMenuItem>
               {reminder.status === 'failed' && (
-                <DropdownMenuItem>Retry</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => sendReminder.mutate(reminder.id)}>
+                  Thử lại
+                </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -178,62 +145,35 @@ export function RemindersTable() {
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    state: {
-      sorting,
-      columnFilters,
-    },
+    state: { sorting },
   });
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Renewal Reminders</h2>
-          <p className="text-muted-foreground">
-            Automated email notifications for subscription renewals
-          </p>
-        </div>
-        <Button
-          onClick={() => scheduleReminders.mutate()}
-          disabled={scheduleReminders.isPending}
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Schedule Reminders
-        </Button>
-      </div>
-
-      {/* Filters */}
+    <div className="space-y-3">
+      {/* Filter */}
       <div className="flex items-center gap-2">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by status" />
+          <SelectTrigger className="w-[180px] h-8">
+            <SelectValue placeholder="Lọc trạng thái" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="sent">Sent</SelectItem>
-            <SelectItem value="failed">Failed</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
+            <SelectItem value="all">Tất cả</SelectItem>
+            <SelectItem value="pending">Chờ gửi</SelectItem>
+            <SelectItem value="sent">Đã gửi</SelectItem>
+            <SelectItem value="failed">Thất bại</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="rounded-lg border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
               </TableRow>
@@ -242,8 +182,8 @@ export function RemindersTable() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Loading...
+                <TableCell colSpan={columns.length} className="h-24 text-center text-sm text-muted-foreground">
+                  Đang tải...
                 </TableCell>
               </TableRow>
             ) : table.getRowModel().rows?.length ? (
@@ -258,8 +198,8 @@ export function RemindersTable() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No reminders found.
+                <TableCell colSpan={columns.length} className="h-24 text-center text-sm text-muted-foreground">
+                  Không có nhắc nhở nào
                 </TableCell>
               </TableRow>
             )}
@@ -269,25 +209,15 @@ export function RemindersTable() {
 
       {/* Pagination */}
       <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} reminder(s) total
-        </div>
+        <p className="text-xs text-muted-foreground">
+          {table.getFilteredRowModel().rows.length} nhắc nhở
+        </p>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
+          <Button variant="outline" size="sm" className="h-8" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+            Trước
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
+          <Button variant="outline" size="sm" className="h-8" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+            Sau
           </Button>
         </div>
       </div>

@@ -1,12 +1,7 @@
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Copy } from 'lucide-react';
 
 interface TemplatePreviewProps {
   template: any;
@@ -21,38 +16,25 @@ export function TemplatePreview({ template, open, onOpenChange }: TemplatePrevie
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>{template.name} - Preview</DialogTitle>
-            <Button variant="outline" size="sm">
-              <Copy className="h-4 w-4 mr-2" />
-              Use Template
-            </Button>
-          </div>
+          <DialogTitle>{template.name} - Xem trước</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Subject Line */}
-          <div className="bg-muted p-4 rounded-lg">
-            <p className="text-xs text-muted-foreground mb-1">Subject Line:</p>
-            <p className="font-medium">{template.subject}</p>
+        <div className="space-y-3">
+          <div className="bg-muted p-3 rounded-lg">
+            <p className="text-xs text-muted-foreground mb-1">Tiêu đề:</p>
+            <p className="text-sm font-medium">{template.subject}</p>
           </div>
 
-          {/* Email Preview */}
-          <div className="border rounded-lg p-6 bg-background">
-            <div className="prose prose-sm max-w-none">
-              <p>{template.content}</p>
-            </div>
+          <div className="border rounded-lg p-4">
+            <p className="text-sm whitespace-pre-wrap">{template.content}</p>
           </div>
 
-          {/* Template Variables */}
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <p className="text-sm font-medium text-blue-900 mb-2">
-              Available Variables:
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {template.variables.map((variable: string) => (
-                <Badge key={variable} variant="outline" className="bg-background">
-                  {`{{${variable}}}`}
+          <div className="border rounded-lg p-3">
+            <p className="text-xs font-medium mb-2">Biến có sẵn:</p>
+            <div className="flex flex-wrap gap-1">
+              {(template.variables || []).map((v: string) => (
+                <Badge key={v} variant="outline" className="text-xs px-1.5 py-0">
+                  {`{{${v}}}`}
                 </Badge>
               ))}
             </div>
