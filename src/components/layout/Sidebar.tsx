@@ -486,6 +486,22 @@ export const Sidebar = () => {
         })}
       </nav>
 
+      {/* Help Link */}
+      <div className="px-4 pb-1">
+        <Link
+          to="/help"
+          className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+            currentPath === '/help'
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+          )}
+        >
+          <HelpCircle className="h-5 w-5 flex-shrink-0" />
+          <span className="flex-1">Hướng dẫn sử dụng</span>
+        </Link>
+      </div>
+
       {/* User Info */}
       <div className="border-t p-4">
         <Link
