@@ -127,6 +127,7 @@ export function RoomBookingDialog({
 
   // State for extend booking dialog
   const [showExtendDialog, setShowExtendDialog] = useState(false)
+  const [overdueCheckoutDate, setOverdueCheckoutDate] = useState<string | null>(null)
   
   // Tax rates
   const [vatRate, setVatRate] = useState<number>((booking as any)?.vat_rate ?? DEFAULT_PRICING_RULES.vatRate)
