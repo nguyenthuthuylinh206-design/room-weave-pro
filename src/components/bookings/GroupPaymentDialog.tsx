@@ -96,10 +96,7 @@ export function GroupPaymentDialog({
         async (payload) => {
           const newData = payload.new as any
           if (newData.payment_status === 'completed') {
-            // Auto distribute payment
-            if (groupData) {
-              await distributePayment(parsedAmount, groupData.bookings)
-            }
+            // Webhook already distributed payment via atomic RPC - just update UI
             setStep('success')
             toast.success('Thanh toán đã được xác nhận tự động!')
             setTimeout(() => {
