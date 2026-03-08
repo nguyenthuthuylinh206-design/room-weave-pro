@@ -181,6 +181,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <SuperAdminDashboard /> },
       { path: "tenants", element: <TenantsPage /> },
+      { path: "approval", element: <TenantApprovalPage /> },
       { path: "promo-codes", element: <PromoCodesPage /> },
       { path: "campaigns", element: <MarketingCampaignsPage /> },
       { path: "reminders", element: <RenewalRemindersPage /> },
