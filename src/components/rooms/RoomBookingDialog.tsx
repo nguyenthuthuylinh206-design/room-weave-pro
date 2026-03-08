@@ -747,6 +747,7 @@ export function RoomBookingDialog({
     } finally {
       setIsSubmitting(false)
       setCheckoutDamageItems([])
+      setOverdueCheckoutDate(null)
     }
   }
 
