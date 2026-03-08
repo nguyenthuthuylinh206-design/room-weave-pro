@@ -96,7 +96,7 @@ export function useOperationsReport(dateRange: DateRange) {
       // 2. Fetch stock adjustments in date range
       let adjQuery = supabase
         .from('stock_adjustments')
-        .select('id, adjustment_code, status, created_at, total_items, total_matched, total_over, total_short, total_value_difference')
+        .select('id, adjustment_code, status, created_at, total_items_checked, total_discrepancies, total_value_difference')
         .eq('tenant_id', tenantId)
         .gte('created_at', dateRange.start.toISOString())
         .lte('created_at', dateRange.end.toISOString())
