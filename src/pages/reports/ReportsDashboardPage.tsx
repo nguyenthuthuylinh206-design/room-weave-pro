@@ -13,6 +13,7 @@ import {
   Download,
   Calendar,
   RefreshCw,
+  LogOut,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/shared/PageHeader'
