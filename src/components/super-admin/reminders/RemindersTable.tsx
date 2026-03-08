@@ -59,7 +59,7 @@ export function RemindersTable() {
         <div>
           <p className="text-sm font-medium">{row.original.tenants?.name || 'N/A'}</p>
           <p className="text-xs text-muted-foreground">
-            {row.original.tenants?.primary_contact_email || '-'}
+            {row.original.tenants?.email || '-'}
           </p>
         </div>
       ),
