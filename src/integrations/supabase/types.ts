@@ -395,6 +395,84 @@ export type Database = {
           },
         ]
       }
+      booking_service_charges: {
+        Row: {
+          booking_id: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          notes: string | null
+          quantity: number
+          service_id: string | null
+          service_name: string
+          tenant_id: string
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          quantity?: number
+          service_id?: string | null
+          service_name: string
+          tenant_id: string
+          total_price?: number
+          unit_price?: number
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          quantity?: number
+          service_id?: string | null
+          service_name?: string
+          tenant_id?: string
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_service_charges_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "room_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_service_charges_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_service_charges_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_service_charges_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "hotel_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_service_charges_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_engagement: {
         Row: {
           campaign_id: string
@@ -1665,6 +1743,79 @@ export type Database = {
           },
           {
             foreignKeyName: "email_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hotel_services: {
+        Row: {
+          category: Database["public"]["Enums"]["service_category"]
+          created_at: string | null
+          description: string | null
+          hotel_id: string
+          icon: string | null
+          id: string
+          is_active: boolean
+          name: string
+          name_en: string | null
+          price: number
+          sort_order: number | null
+          tenant_id: string
+          unit: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["service_category"]
+          created_at?: string | null
+          description?: string | null
+          hotel_id: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          name_en?: string | null
+          price?: number
+          sort_order?: number | null
+          tenant_id: string
+          unit?: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["service_category"]
+          created_at?: string | null
+          description?: string | null
+          hotel_id?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          name_en?: string | null
+          price?: number
+          sort_order?: number | null
+          tenant_id?: string
+          unit?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_services_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "hotel_services_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hotel_services_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -9325,6 +9476,12 @@ export type Database = {
         | "department_manager"
         | "staff"
       item_type: "linen" | "consumable" | "equipment" | "furniture"
+      service_category:
+        | "wellness"
+        | "transport"
+        | "food_beverage"
+        | "laundry_extra"
+        | "other"
       warehouse_location_type: "warehouse" | "room" | "floor" | "external"
     }
     CompositeTypes: {
@@ -9461,6 +9618,13 @@ export const Constants = {
         "staff",
       ],
       item_type: ["linen", "consumable", "equipment", "furniture"],
+      service_category: [
+        "wellness",
+        "transport",
+        "food_beverage",
+        "laundry_extra",
+        "other",
+      ],
       warehouse_location_type: ["warehouse", "room", "floor", "external"],
     },
   },
