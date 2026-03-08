@@ -172,23 +172,23 @@ export function useOperationsReport(dateRange: DateRange) {
 
       // Stocktake summary
       const completedAdj = adjustments.filter(a => a.status === 'completed')
-      const totalItems = completedAdj.reduce((s, a) => s + (a.total_items || 0), 0)
-      const totalMatched = completedAdj.reduce((s, a) => s + (a.total_matched || 0), 0)
+      const totalChecked = completedAdj.reduce((s, a) => s + (a.total_items_checked || 0), 0)
+      const totalDiscrepancies = completedAdj.reduce((s, a) => s + (a.total_discrepancies || 0), 0)
 
       const stocktake: StocktakeSummary = {
         total_checks: completedAdj.length,
-        items_checked: totalItems,
-        accuracy_rate: totalItems > 0 ? Math.round((totalMatched / totalItems) * 100 * 10) / 10 : 0,
+        items_checked: totalChecked,
+        accuracy_rate: totalChecked > 0 ? Math.round(((totalChecked - totalDiscrepancies) / totalChecked) * 100 * 10) / 10 : 0,
         total_adjusted_value: completedAdj.reduce((s, a) => s + Math.abs(a.total_value_difference || 0), 0),
         recent: adjustments.slice(0, 5).map(a => ({
           id: a.id,
           adjustment_code: a.adjustment_code,
-          status: a.status,
-          created_at: a.created_at,
-          total_items: a.total_items || 0,
-          matched: a.total_matched || 0,
-          over: a.total_over || 0,
-          short: a.total_short || 0,
+          status: a.status || 'draft',
+          created_at: a.created_at || '',
+          total_items: a.total_items_checked || 0,
+          matched: (a.total_items_checked || 0) - (a.total_discrepancies || 0),
+          over: 0,
+          short: a.total_discrepancies || 0,
           adjusted_value: a.total_value_difference || 0,
         })),
       }
