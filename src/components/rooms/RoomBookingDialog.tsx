@@ -950,6 +950,14 @@ export function RoomBookingDialog({
               )}
             </div>
 
+            {/* Service Charges - only for existing bookings */}
+            {isEdit && booking && (
+              <BookingServiceCharges
+                bookingId={booking.id}
+                readOnly={booking.status === 'checked_out' || booking.status === 'cancelled'}
+              />
+            )}
+
             {/* Financial Section */}
             <div className="border rounded-lg p-3 space-y-3">
               <h4 className="text-sm font-medium flex items-center gap-2">
