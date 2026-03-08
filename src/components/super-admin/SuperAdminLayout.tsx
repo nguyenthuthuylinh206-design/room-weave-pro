@@ -20,6 +20,8 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useSuperAdminAuth } from '@/hooks/useSuperAdminAuth';
+import { NotificationBell } from './shared/NotificationBell';
+import { ThemeToggle } from './shared/ThemeToggle';
 
 export function SuperAdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
