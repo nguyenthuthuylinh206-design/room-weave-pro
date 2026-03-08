@@ -31,6 +31,10 @@ export function AdvancedDashboard() {
   const { data: churn } = useChurnRate(30);
 
   const totalRevenue = Number(stats?.revenue_this_month || 0);
+  const lastMonthRevenue = Number(stats?.revenue_last_month || 0);
+  const revenueChange = lastMonthRevenue > 0
+    ? (((totalRevenue - lastMonthRevenue) / lastMonthRevenue) * 100).toFixed(1)
+    : '0';
   const arpu = stats?.active_tenants 
     ? (Number(stats.mrr) / Number(stats.active_tenants)).toFixed(2) 
     : '0';
