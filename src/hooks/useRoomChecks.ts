@@ -474,39 +474,15 @@ async function processMaintenanceCheck(params: {
 async function updateLaundryQuantities(laundryItems: LaundryItem[]) {
   if (laundryItems.length === 0) return
   
-  // Batch fetch all items at once (1 query instead of N)
-  const itemIds = laundryItems.map(i => i.item_id)
-  const { data: currentItems } = await supabase
-    .from('items')
-    .select('id, quantity_in_laundry, quantity_in_stock, name')
-    .in('id', itemIds)
-  
-  if (!currentItems || currentItems.length === 0) return
-  
-  const itemMap = Object.fromEntries(currentItems.map(i => [i.id, i]))
-  
-  // Update all items in parallel
+  // Use atomic RPC to prevent race conditions
   await Promise.all(laundryItems.map(async (item) => {
-    const currentItem = itemMap[item.item_id]
-    if (!currentItem) return
+    const { error } = await supabase.rpc('atomic_item_to_laundry', {
+      p_item_id: item.item_id,
+      p_quantity: item.quantity,
+    })
     
-    const currentStock = currentItem.quantity_in_stock || 0
-    const actualDeduct = Math.min(item.quantity, currentStock)
-    
-    if (actualDeduct < item.quantity) {
-      console.warn(`Stock mismatch for ${currentItem.name}: requested ${item.quantity} for laundry, only ${actualDeduct} in stock`)
-    }
-    
-    const { error: updateError } = await supabase
-      .from('items')
-      .update({
-        quantity_in_laundry: (currentItem.quantity_in_laundry || 0) + item.quantity,
-        quantity_in_stock: Math.max(0, currentStock - actualDeduct),
-      })
-      .eq('id', item.item_id)
-    
-    if (updateError) {
-      console.error('Error updating quantity_in_laundry:', updateError)
+    if (error) {
+      console.error('Error updating quantity_in_laundry:', error)
     }
   }))
 }
@@ -521,16 +497,19 @@ async function createLostItemTransaction(params: {
 }) {
   const { item, tenantId, hotelId, roomNumber, checkId, userId } = params
   
-  const { data: currentItem } = await supabase
-    .from('items')
-    .select('quantity_in_stock, quantity_lost, unit_price')
-    .eq('id', item.item_id)
-    .single()
+  // Use atomic RPC to prevent race conditions
+  const { data: result, error: rpcError } = await supabase.rpc('atomic_item_lost', {
+    p_item_id: item.item_id,
+    p_quantity: item.quantity,
+  })
   
-  if (currentItem) {
-    const quantityBefore = currentItem.quantity_in_stock || 0
-    const quantityAfter = Math.max(0, quantityBefore - item.quantity)
-    
+  if (rpcError) {
+    console.error('Error in atomic_item_lost:', rpcError)
+    return
+  }
+  
+  const row = Array.isArray(result) ? result[0] : result
+  if (row) {
     await supabase.from('inventory_transactions').insert({
       tenant_id: tenantId,
       hotel_id: hotelId,
@@ -539,10 +518,10 @@ async function createLostItemTransaction(params: {
       transaction_category: 'lost',
       item_id: item.item_id,
       quantity: item.quantity,
-      quantity_before: quantityBefore,
-      quantity_after: quantityAfter,
-      unit_price: currentItem.unit_price || 0,
-      total_value: (currentItem.unit_price || 0) * item.quantity,
+      quantity_before: row.quantity_before,
+      quantity_after: row.quantity_after,
+      unit_price: row.unit_price || 0,
+      total_value: (row.unit_price || 0) * item.quantity,
       from_location: `Phòng ${roomNumber}`,
       to_location: 'Mất/Thất lạc',
       related_type: 'room_check',
@@ -550,11 +529,6 @@ async function createLostItemTransaction(params: {
       notes: `Mất trong khi kiểm tra checkout phòng ${roomNumber}`,
       created_by: userId,
     })
-    
-    await supabase.from('items').update({
-      quantity_lost: (currentItem.quantity_lost || 0) + item.quantity,
-      quantity_in_stock: quantityAfter,
-    }).eq('id', item.item_id)
   }
 }
 
@@ -568,16 +542,19 @@ async function createConsumedItemTransaction(params: {
 }) {
   const { item, tenantId, hotelId, roomNumber, checkId, userId } = params
   
-  const { data: currentItem } = await supabase
-    .from('items')
-    .select('quantity_in_stock, unit_price')
-    .eq('id', item.item_id)
-    .single()
+  // Use atomic RPC to prevent race conditions
+  const { data: result, error: rpcError } = await supabase.rpc('atomic_item_consumed', {
+    p_item_id: item.item_id,
+    p_quantity: item.quantity,
+  })
   
-  if (currentItem) {
-    const quantityBefore = currentItem.quantity_in_stock || 0
-    const quantityAfter = Math.max(0, quantityBefore - item.quantity)
-    
+  if (rpcError) {
+    console.error('Error in atomic_item_consumed:', rpcError)
+    return
+  }
+  
+  const row = Array.isArray(result) ? result[0] : result
+  if (row) {
     await supabase.from('inventory_transactions').insert({
       tenant_id: tenantId,
       hotel_id: hotelId,
@@ -586,10 +563,10 @@ async function createConsumedItemTransaction(params: {
       transaction_category: 'consumed',
       item_id: item.item_id,
       quantity: item.quantity,
-      quantity_before: quantityBefore,
-      quantity_after: quantityAfter,
-      unit_price: currentItem.unit_price || 0,
-      total_value: (currentItem.unit_price || 0) * item.quantity,
+      quantity_before: row.quantity_before,
+      quantity_after: row.quantity_after,
+      unit_price: row.unit_price || 0,
+      total_value: (row.unit_price || 0) * item.quantity,
       from_location: `Phòng ${roomNumber}`,
       to_location: 'Khách sử dụng',
       related_type: 'room_check',
@@ -597,10 +574,6 @@ async function createConsumedItemTransaction(params: {
       notes: `Khách sử dụng trong phòng ${roomNumber}`,
       created_by: userId,
     })
-    
-    await supabase.from('items').update({
-      quantity_in_stock: quantityAfter,
-    }).eq('id', item.item_id)
   }
 }
 

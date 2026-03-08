@@ -121,7 +121,7 @@ export function useMaintenanceRequests(filters: MaintenanceFilters = {}) {
         query = query.lte('reported_at', filters.to_date)
       }
 
-      query = query.order('reported_at', { ascending: false })
+      query = query.order('reported_at', { ascending: false }).limit(200)
 
       const { data, error } = await query
 

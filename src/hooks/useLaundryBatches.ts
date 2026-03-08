@@ -566,6 +566,8 @@ export function useStockInFromLaundry() {
       queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouses-with-stats'] })
       
       // Trigger laundry completed notification
       if (result.batchInfo && tenant?.id) {
