@@ -151,11 +151,13 @@ export function useLowStockByWarehouse(warehouseId: string | undefined) {
           )
         `)
         .eq('warehouse_id', warehouseId)
-        .or('quantity.lte.minimum_stock,quantity.eq.0')
-        .order('quantity', { ascending: true })
 
       if (error) throw error
-      return data
+
+      // Filter client-side: PostgREST doesn't support cross-column comparison
+      return (data || [])
+        .filter(s => s.quantity <= (s.minimum_stock || 0))
+        .sort((a, b) => a.quantity - b.quantity)
     },
     enabled: !!warehouseId,
   })
