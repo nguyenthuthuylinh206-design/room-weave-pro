@@ -705,6 +705,9 @@ const router = createBrowserRouter([
       
       // Notifications History
       { path: "notifications", element: <NotificationHistoryPage /> },
+      
+      // Help - Always accessible
+      { path: "help", element: <HelpPage /> },
 
       // Reports - Permission Based
       {
