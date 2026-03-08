@@ -46,10 +46,15 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
 
   const firstPendingBatch = route?.batches?.find(b => b.status === 'open')
 
+  const isSelfAssignFlow = !!(user?.id && user.id === route?.created_by && user.id === route?.assigned_to)
+
   const handleHandoverFirstBatch = useCallback(async () => {
     if (!firstPendingBatch || !route) return
     
-    const result = await handoverBatch.mutateAsync({ batchId: firstPendingBatch.id })
+    const result = await handoverBatch.mutateAsync({ 
+      batchId: firstPendingBatch.id,
+      silent: isSelfAssignFlow,
+    })
     
     if (!result.success && result.error === 'INSUFFICIENT_STOCK' && result.insufficient_items) {
       setInsufficientItems(result.insufficient_items)
@@ -57,11 +62,11 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
       return
     }
     
-    if (result.success && user?.id === route.created_by && user?.id === route.assigned_to) {
-      await confirmReceive.mutateAsync({ orderId: route.id })
+    if (result.success && isSelfAssignFlow) {
+      await confirmReceive.mutateAsync({ orderId: route.id, silent: true })
       toast.success('Đã kiểm tra kho & bắt đầu giao hàng')
     }
-  }, [firstPendingBatch, handoverBatch, route, user, confirmReceive])
+  }, [firstPendingBatch, handoverBatch, route, isSelfAssignFlow, confirmReceive])
 
   const handleHandoverWithAdjustments = useCallback(async (adjustments: ItemAdjustment[], reason: string) => {
     if (!firstPendingBatch || !route) return
@@ -69,18 +74,17 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
     try {
       const result = await handoverBatch.mutateAsync({ 
         batchId: firstPendingBatch.id, 
-        adjustments 
+        adjustments,
+        silent: isSelfAssignFlow,
       })
       
       if (result.success) {
         setAdjustDialogOpen(false)
         setInsufficientItems([])
         
-        if (user?.id === route.created_by && user?.id === route.assigned_to) {
-          await confirmReceive.mutateAsync({ orderId: route.id })
+        if (isSelfAssignFlow) {
+          await confirmReceive.mutateAsync({ orderId: route.id, silent: true })
           toast.success('Đã kiểm tra kho & bắt đầu giao hàng (đã điều chỉnh)')
-        } else {
-          toast.success('Đã giao hàng cho nhân viên với số lượng điều chỉnh')
         }
       }
     } catch (error) {
@@ -104,9 +108,10 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
   const pendingStops = totalStops - completedStops - cannotAccessStops
   const progressPercent = totalStops > 0 ? Math.round((completedStops / totalStops) * 100) : 0
 
-  const canClose = isLeader && 
+  const canClose = isLeader && (
     route?.status === 'completed' || 
     (route?.status === 'in_progress' && pendingStops === 0 && cannotAccessStops === 0)
+  )
 
   const handleConfirmReceive = useCallback(async () => {
     if (!route) return
@@ -216,13 +221,15 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
             </span>
           )}
         </div>
-        {/* Inline progress */}
-        <div className="flex items-center gap-2 min-w-[120px]">
-          <Progress value={progressPercent} className="h-1.5 flex-1" />
-          <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
-            {completedStops}/{totalStops}
-          </span>
-        </div>
+      {/* Inline progress - only show when wizard doesn't show it */}
+        {route.status !== 'in_progress' && (
+          <div className="flex items-center gap-2 min-w-[120px]">
+            <Progress value={progressPercent} className="h-1.5 flex-1" />
+            <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
+              {completedStops}/{totalStops}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Room List */}
