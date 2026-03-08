@@ -170,6 +170,10 @@ export function SuperAdminLayout() {
             <h2 className="text-lg font-semibold text-foreground">
               {navigationTitles[location.pathname] || t('titles.overview')}
             </h2>
+            <div className="flex items-center gap-1">
+              <NotificationBell />
+              <ThemeToggle />
+            </div>
           </div>
         </header>
 
