@@ -7636,6 +7636,26 @@ export type Database = {
         }
         Returns: undefined
       }
+      atomic_item_consumed: {
+        Args: { p_item_id: string; p_quantity: number }
+        Returns: {
+          quantity_after: number
+          quantity_before: number
+          unit_price: number
+        }[]
+      }
+      atomic_item_lost: {
+        Args: { p_item_id: string; p_quantity: number }
+        Returns: {
+          quantity_after: number
+          quantity_before: number
+          unit_price: number
+        }[]
+      }
+      atomic_item_to_laundry: {
+        Args: { p_item_id: string; p_quantity: number }
+        Returns: undefined
+      }
       batch_confirm_room_deliveries: {
         Args: { p_confirmed_by: string; p_room_order_ids: string[] }
         Returns: Json

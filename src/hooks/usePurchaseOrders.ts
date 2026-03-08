@@ -195,6 +195,17 @@ export function useApprovePO() {
 
   return useMutation({
     mutationFn: async (poId: string) => {
+      // Validate PO is in submitted status before approving
+      const { data: currentPO } = await supabase
+        .from('purchase_orders')
+        .select('status')
+        .eq('id', poId)
+        .single();
+
+      if (currentPO?.status !== 'submitted') {
+        throw new Error('Chỉ có thể duyệt đơn hàng ở trạng thái đã gửi');
+      }
+
       const { data, error } = await supabase
         .from('purchase_orders')
         .update({
@@ -202,6 +213,7 @@ export function useApprovePO() {
           approved_at: new Date().toISOString()
         })
         .eq('id', poId)
+        .eq('status', 'submitted')
         .select()
         .single();
 
@@ -368,6 +380,8 @@ export function useReceivePO() {
       queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['items'] });
       queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouses-with-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-dashboard'] });
       toast({
         title: 'Thành công',
         description: 'Đã nhận hàng và cập nhật tồn kho',
