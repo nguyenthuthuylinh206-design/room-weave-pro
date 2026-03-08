@@ -179,7 +179,7 @@ export function AdvancedAnalytics() {
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="border rounded-lg p-4">
               <h3 className="text-sm font-medium mb-3">{t('analytics.tenants.growth')}</h3>
-              <TenantGrowthChart />
+              <TenantGrowthChart days={days} />
             </div>
             <div className="border rounded-lg p-4">
               <h3 className="text-sm font-medium mb-3">{t('analytics.tenants.statusBreakdown')}</h3>

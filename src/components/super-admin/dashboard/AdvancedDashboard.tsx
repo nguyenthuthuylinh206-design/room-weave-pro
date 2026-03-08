@@ -322,7 +322,7 @@ function RevenueByPlanTable({ data, noDataText, customersText }: { data: any; no
               {plan.totalRevenue.toLocaleString('vi-VN')}đ
             </div>
             <div className="text-xs text-muted-foreground">
-              {(plan.totalRevenue / plan.tenantCount).toLocaleString('vi-VN')}đ ARPU
+              {plan.tenantCount > 0 ? (plan.totalRevenue / plan.tenantCount).toLocaleString('vi-VN') : 0}đ ARPU
             </div>
           </div>
         </div>

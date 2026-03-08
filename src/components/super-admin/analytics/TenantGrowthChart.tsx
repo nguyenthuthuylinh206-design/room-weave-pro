@@ -1,10 +1,16 @@
 import { useTenantGrowth } from '@/hooks/useSuperAdminStats';
+import { useTranslation } from 'react-i18next';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-export function TenantGrowthChart() {
-  const { data, isLoading, error } = useTenantGrowth(30);
+interface TenantGrowthChartProps {
+  days?: number;
+}
+
+export function TenantGrowthChart({ days = 30 }: TenantGrowthChartProps) {
+  const { t } = useTranslation('superAdmin');
+  const { data, isLoading, error } = useTenantGrowth(days);
 
   if (isLoading) {
     return (
@@ -17,7 +23,7 @@ export function TenantGrowthChart() {
   if (error) {
     return (
       <Alert variant="destructive">
-        <AlertDescription>Failed to load tenant growth data</AlertDescription>
+        <AlertDescription>{t('analytics.errors.loadGrowth', 'Không thể tải dữ liệu tăng trưởng')}</AlertDescription>
       </Alert>
     );
   }
@@ -25,7 +31,7 @@ export function TenantGrowthChart() {
   if (!data || data.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-muted-foreground">
-        No tenant growth data available
+        {t('analytics.empty.growth', 'Chưa có dữ liệu tăng trưởng')}
       </div>
     );
   }
