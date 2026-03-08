@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useQuery } from '@tanstack/react-query';
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 
 export function RecentActivityFeed() {
+  const { t } = useTranslation('superAdmin');
   const { data: activities, isLoading } = useQuery({
     queryKey: ['super-admin-activity'],
     queryFn: async () => {
@@ -45,46 +46,46 @@ export function RecentActivityFeed() {
   const getActivityColor = (action: string) => {
     switch (action) {
       case 'tenant_created':
-        return 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-400';
+        return 'text-green-600';
       case 'subscription_changed':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-400';
+        return 'text-blue-600';
       case 'tenant_suspended':
-        return 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400';
+        return 'text-red-600';
       case 'promo_code_created':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-400';
+        return 'text-purple-600';
       default:
-        return 'bg-muted text-muted-foreground';
+        return 'text-muted-foreground';
     }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Recent Activity</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[600px] pr-4">
+    <div className="border rounded-lg">
+      <div className="px-3 py-2.5 border-b">
+        <h3 className="text-sm font-medium">{t('activity.title')}</h3>
+      </div>
+      <ScrollArea className="h-[600px]">
+        <div className="p-3">
           {isLoading ? (
-            <p className="text-center text-muted-foreground">Loading...</p>
+            <p className="text-center text-muted-foreground text-sm">{t('activity.loading')}</p>
           ) : activities && activities.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-1">
               {activities.map((activity: any) => (
                 <div
                   key={activity.id}
-                  className="flex items-start gap-3 p-3 rounded-lg hover:bg-accent transition-colors"
+                  className="flex items-start gap-3 p-2.5 rounded-md hover:bg-accent/50 transition-colors"
                 >
-                  <div className={`p-2 rounded-lg ${getActivityColor(activity.action)}`}>
+                  <div className={getActivityColor(activity.action)}>
                     {getActivityIcon(activity.action)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">
+                    <p className="text-sm">
                       {activity.description}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       {new Date(activity.created_at).toLocaleString()}
                     </p>
                     {activity.metadata && (
-                      <div className="mt-2 flex flex-wrap gap-2">
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
                         {Object.entries(activity.metadata).map(([key, value]: any) => (
                           <Badge key={key} variant="outline" className="text-xs">
                             {key}: {value}
@@ -97,10 +98,10 @@ export function RecentActivityFeed() {
               ))}
             </div>
           ) : (
-            <p className="text-center text-muted-foreground">No recent activity</p>
+            <p className="text-center text-muted-foreground text-sm">{t('activity.noActivity')}</p>
           )}
-        </ScrollArea>
-      </CardContent>
-    </Card>
+        </div>
+      </ScrollArea>
+    </div>
   );
 }

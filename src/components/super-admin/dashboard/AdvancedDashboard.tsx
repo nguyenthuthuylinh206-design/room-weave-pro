@@ -67,8 +67,8 @@ export function AdvancedDashboard() {
         <MetricCard
           title={t('dashboard.totalRevenue')}
           value={`${totalRevenue.toLocaleString('vi-VN')}đ`}
-          change="+12.5%"
-          trend="up"
+          change={`${Number(revenueChange) >= 0 ? '+' : ''}${revenueChange}%`}
+          trend={Number(revenueChange) >= 0 ? 'up' : 'down'}
           icon={DollarSign}
           vsLastMonth={t('dashboard.vsLastMonth')}
         />

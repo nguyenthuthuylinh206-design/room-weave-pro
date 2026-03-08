@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   flexRender,
   getCoreRowModel,
@@ -18,8 +19,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,8 +42,10 @@ import {
 } from '@/hooks/super-admin/useMarketingCampaigns';
 import { CampaignStats } from './CampaignStats';
 import type { MarketingCampaign } from '@/types/super-admin.types';
+import { cn } from '@/lib/utils';
 
 export function CampaignsTable() {
+  const { t } = useTranslation('superAdmin');
   const [sorting, setSorting] = useState<SortingState>([]);
   const [selectedCampaign, setSelectedCampaign] = useState<MarketingCampaign | null>(null);
   const [statsOpen, setStatsOpen] = useState(false);
@@ -53,25 +54,36 @@ export function CampaignsTable() {
   const launchCampaign = useLaunchCampaign();
   const pauseCampaign = usePauseCampaign();
 
-  const getStatusVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
-    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-      draft: 'outline',
-      scheduled: 'secondary',
-      active: 'default',
-      paused: 'destructive',
-      completed: 'secondary',
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'text-green-600';
+      case 'paused': return 'text-red-600';
+      case 'draft': return 'text-muted-foreground';
+      case 'scheduled': return 'text-blue-600';
+      case 'completed': return 'text-muted-foreground';
+      default: return 'text-muted-foreground';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      draft: t('campaigns.status.draft', 'Nháp'),
+      scheduled: t('campaigns.status.scheduled', 'Đã lên lịch'),
+      active: t('campaigns.status.active', 'Đang chạy'),
+      paused: t('campaigns.status.paused', 'Tạm dừng'),
+      completed: t('campaigns.status.completed', 'Hoàn thành'),
     };
-    return variants[status] || 'outline';
+    return labels[status] || status;
   };
 
   const columns: ColumnDef<MarketingCampaign>[] = [
     {
       accessorKey: 'name',
-      header: 'Campaign Name',
+      header: t('campaigns.table.name', 'Tên chiến dịch'),
       cell: ({ row }) => (
         <div>
-          <div className="font-medium">{row.original.name}</div>
-          <div className="text-sm text-muted-foreground capitalize">
+          <div className="text-sm font-medium">{row.original.name}</div>
+          <div className="text-xs text-muted-foreground capitalize">
             {row.original.campaign_type.replace(/_/g, ' ')}
           </div>
         </div>
@@ -79,25 +91,25 @@ export function CampaignsTable() {
     },
     {
       accessorKey: 'status',
-      header: 'Status',
+      header: t('campaigns.table.status', 'Trạng thái'),
       cell: ({ row }) => (
-        <Badge variant={getStatusVariant(row.original.status)}>
-          {row.original.status.toUpperCase()}
-        </Badge>
+        <span className={cn('text-sm font-medium', getStatusColor(row.original.status))}>
+          {getStatusLabel(row.original.status)}
+        </span>
       ),
     },
     {
       accessorKey: 'target_audience',
-      header: 'Target Audience',
+      header: t('campaigns.table.audience', 'Đối tượng'),
       cell: ({ row }) => (
-        <span className="capitalize">
+        <span className="text-sm capitalize">
           {row.original.target_audience.replace(/_/g, ' ')}
         </span>
       ),
     },
     {
       accessorKey: 'performance',
-      header: 'Performance',
+      header: t('campaigns.table.performance', 'Hiệu suất'),
       cell: ({ row }) => {
         const sent = row.original.sent_count || 0;
         const opened = row.original.opened_count || 0;
@@ -106,9 +118,9 @@ export function CampaignsTable() {
         
         return (
           <div className="text-sm">
-            <div className="font-medium">{sent} sent</div>
-            <div className="text-muted-foreground">
-              {openRate}% open • {clicked} clicks
+            <div>{sent} {t('campaigns.table.sent', 'đã gửi')}</div>
+            <div className="text-xs text-muted-foreground">
+              {openRate}% {t('campaigns.table.openRate', 'mở')} • {clicked} {t('campaigns.table.clicks', 'clicks')}
             </div>
           </div>
         );
@@ -116,10 +128,10 @@ export function CampaignsTable() {
     },
     {
       accessorKey: 'starts_at',
-      header: 'Start Date',
+      header: t('campaigns.table.startDate', 'Ngày bắt đầu'),
       cell: ({ row }) => {
         const date = row.original.starts_at;
-        return new Date(date).toLocaleDateString();
+        return <span className="text-sm">{new Date(date).toLocaleDateString('vi-VN')}</span>;
       },
     },
     {
@@ -129,12 +141,12 @@ export function CampaignsTable() {
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="h-8 w-8">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('campaigns.table.actions', 'Thao tác')}</DropdownMenuLabel>
               <DropdownMenuItem
                 onClick={() => {
                   setSelectedCampaign(campaign);
@@ -142,7 +154,7 @@ export function CampaignsTable() {
                 }}
               >
                 <BarChart3 className="h-4 w-4 mr-2" />
-                View Stats
+                {t('campaigns.table.viewStats', 'Xem thống kê')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {campaign.status === 'draft' && (
@@ -150,7 +162,7 @@ export function CampaignsTable() {
                   onClick={() => launchCampaign.mutate(campaign.id)}
                 >
                   <Play className="h-4 w-4 mr-2" />
-                  Launch Campaign
+                  {t('campaigns.table.launch', 'Khởi chạy')}
                 </DropdownMenuItem>
               )}
               {campaign.status === 'active' && (
@@ -158,7 +170,7 @@ export function CampaignsTable() {
                   onClick={() => pauseCampaign.mutate(campaign.id)}
                 >
                   <Pause className="h-4 w-4 mr-2" />
-                  Pause Campaign
+                  {t('campaigns.table.pause', 'Tạm dừng')}
                 </DropdownMenuItem>
               )}
               {campaign.status === 'paused' && (
@@ -166,12 +178,12 @@ export function CampaignsTable() {
                   onClick={() => launchCampaign.mutate(campaign.id)}
                 >
                   <Play className="h-4 w-4 mr-2" />
-                  Resume Campaign
+                  {t('campaigns.table.resume', 'Tiếp tục')}
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem className="text-red-600">
                 <Trash2 className="h-4 w-4 mr-2" />
-                Delete
+                {t('campaigns.table.delete', 'Xóa')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -195,89 +207,87 @@ export function CampaignsTable() {
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Marketing Campaigns</CardTitle>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Campaign
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
+      <div className="border rounded-lg">
+        <div className="flex items-center justify-between px-3 py-2.5 border-b">
+          <h3 className="text-sm font-medium">{t('campaigns.title', 'Chiến dịch Marketing')}</h3>
+          <Button size="sm" className="h-8">
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            {t('campaigns.create', 'Tạo chiến dịch')}
+          </Button>
+        </div>
+        <div className="p-3">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id} className="text-xs">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center text-sm">
+                    {t('campaigns.table.loading', 'Đang tải...')}
+                  </TableCell>
+                </TableRow>
+              ) : table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
                     ))}
                   </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="h-24 text-center">
-                      Loading...
-                    </TableCell>
-                  </TableRow>
-                ) : table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id}>
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="h-24 text-center">
-                      No campaigns found.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center text-sm text-muted-foreground">
+                    {t('campaigns.table.noCampaigns', 'Không có chiến dịch nào.')}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between mt-4">
-            <div className="text-sm text-muted-foreground">
-              {table.getFilteredRowModel().rows.length} campaign(s) total
+          <div className="flex items-center justify-between mt-3 pt-3 border-t">
+            <div className="text-xs text-muted-foreground">
+              {table.getFilteredRowModel().rows.length} {t('campaigns.table.total', 'chiến dịch')}
             </div>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
+                className="h-8"
                 onClick={() => table.previousPage()}
                 disabled={!table.getCanPreviousPage()}
               >
-                Previous
+                {t('tenants.table.previous')}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
+                className="h-8"
                 onClick={() => table.nextPage()}
                 disabled={!table.getCanNextPage()}
               >
-                Next
+                {t('tenants.table.next')}
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Stats Dialog */}
       <CampaignStats

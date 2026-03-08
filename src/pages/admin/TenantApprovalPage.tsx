@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { Check, X, Clock, Building2 } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
@@ -27,6 +26,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { usePendingTenants, useApproveTenant, useRejectTenant } from '@/hooks/super-admin/useTenantApproval'
 import { useAuth } from '@/contexts/AuthContext'
+import { PageHeader } from '@/components/super-admin/shared/PageHeader'
 
 export default function TenantApprovalPage() {
   const { user } = useAuth()
@@ -66,25 +66,18 @@ export default function TenantApprovalPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Phê Duyệt Doanh Nghiệp</h1>
-        <p className="text-muted-foreground mt-2">
-          Xét duyệt các đăng ký tài khoản Chủ sở hữu mới
-        </p>
-      </div>
+    <div className="space-y-4">
+      <PageHeader
+        title="Phê duyệt doanh nghiệp"
+        description="Xét duyệt các đăng ký tài khoản Chủ sở hữu mới"
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Danh Sách Chờ Phê Duyệt
-          </CardTitle>
-          <CardDescription>
-            Các doanh nghiệp đã đăng ký và đang chờ Super Admin phê duyệt
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="border rounded-lg">
+        <div className="flex items-center gap-2 px-3 py-2.5 border-b">
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-sm font-medium">Danh sách chờ phê duyệt</h3>
+        </div>
+        <div className="p-3">
           {isLoading ? (
             <LoadingSpinner />
           ) : !pendingTenants || pendingTenants.length === 0 ? (
@@ -94,75 +87,74 @@ export default function TenantApprovalPage() {
               description="Hiện tại không có doanh nghiệp nào đang chờ phê duyệt"
             />
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Tên Doanh Nghiệp</TableHead>
-                    <TableHead>Chủ Sở Hữu</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Gói</TableHead>
-                    <TableHead>Ngày Đăng Ký</TableHead>
-                    <TableHead className="text-right">Hành Động</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">Tên doanh nghiệp</TableHead>
+                  <TableHead className="text-xs">Chủ sở hữu</TableHead>
+                  <TableHead className="text-xs">Email</TableHead>
+                  <TableHead className="text-xs">Gói</TableHead>
+                  <TableHead className="text-xs">Ngày đăng ký</TableHead>
+                  <TableHead className="text-xs text-right">Hành động</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendingTenants.map((tenant) => (
+                  <TableRow key={tenant.tenant_id}>
+                    <TableCell className="text-sm font-medium">
+                      {tenant.tenant_name}
+                    </TableCell>
+                    <TableCell className="text-sm">{tenant.owner_name}</TableCell>
+                    <TableCell className="text-sm">{tenant.owner_email}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
+                        {tenant.subscription_tier}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {format(new Date(tenant.created_at), 'dd/MM/yyyy HH:mm', {
+                        locale: vi,
+                      })}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          className="h-8"
+                          onClick={() => handleApprove(tenant.tenant_id)}
+                          disabled={approveMutation.isPending}
+                        >
+                          <Check className="h-3.5 w-3.5 mr-1" />
+                          Phê duyệt
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="h-8"
+                          onClick={() =>
+                            handleRejectClick(tenant.tenant_id, tenant.tenant_name)
+                          }
+                          disabled={rejectMutation.isPending}
+                        >
+                          <X className="h-3.5 w-3.5 mr-1" />
+                          Từ chối
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pendingTenants.map((tenant) => (
-                    <TableRow key={tenant.tenant_id}>
-                      <TableCell className="font-medium">
-                        {tenant.tenant_name}
-                      </TableCell>
-                      <TableCell>{tenant.owner_name}</TableCell>
-                      <TableCell>{tenant.owner_email}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {tenant.subscription_tier}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(tenant.created_at), 'dd/MM/yyyy HH:mm', {
-                          locale: vi,
-                        })}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="default"
-                            onClick={() => handleApprove(tenant.tenant_id)}
-                            disabled={approveMutation.isPending}
-                          >
-                            <Check className="h-4 w-4 mr-1" />
-                            Phê Duyệt
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() =>
-                              handleRejectClick(tenant.tenant_id, tenant.tenant_name)
-                            }
-                            disabled={rejectMutation.isPending}
-                          >
-                            <X className="h-4 w-4 mr-1" />
-                            Từ Chối
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                ))}
+              </TableBody>
+            </Table>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <Dialog open={rejectDialog.open} onOpenChange={(open) => 
         setRejectDialog({ ...rejectDialog, open })
       }>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Xác Nhận Từ Chối</DialogTitle>
+            <DialogTitle>Xác nhận từ chối</DialogTitle>
             <DialogDescription>
               Bạn có chắc muốn từ chối doanh nghiệp "{rejectDialog.tenantName}"?
             </DialogDescription>
@@ -191,7 +183,7 @@ export default function TenantApprovalPage() {
               onClick={handleRejectConfirm}
               disabled={!rejectionReason.trim() || rejectMutation.isPending}
             >
-              Xác Nhận Từ Chối
+              Xác nhận từ chối
             </Button>
           </DialogFooter>
         </DialogContent>
