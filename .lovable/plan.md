@@ -1,100 +1,44 @@
 
 
-## Logic tính phí quá thời gian đặt phòng — Phân tích chi tiết
+## Bug: Checkout quá hạn thất bại khi có booking xung đột
 
-### Tổng quan kiến trúc
+### Nguyên nhân gốc
 
-Logic tính phí nằm chủ yếu trong 3 file:
-- `src/lib/bookingCalculations.ts` — Core calculation functions
-- `src/hooks/useBookingActions.ts` — Single checkout flow
-- `src/hooks/useGroupCheckoutCalculations.ts` — Group checkout flow
+Khi lễ tân nhấn **"Checkout ngay"** từ ExtendBookingDialog, luồng xử lý hiện tại:
 
----
+1. **Line 1594**: PATCH `check_out_date` → `2026-03-08` → **THẤT BẠI** (400 - trigger `prevent_booking_overlap` chặn vì phòng P102 đã có booking khác từ 04/02/2026)
+2. **Không có error handling** — code tiếp tục chạy như thường
+3. **Line 1600-1671**: Tính cost với `todayStr` — kết quả đúng trên UI
+4. **Nhưng khi xác nhận checkout**: `perform_checkout` RPC **không cập nhật `check_out_date`** → DB vẫn giữ `check_out_date = 2026-01-31` (cũ)
+5. **Kết quả**: Booking được checkout nhưng `check_out_date` sai, và nếu reload trang thì tính phí theo ngày cũ
 
-### 1. THEO NGÀY (Daily) — Phụ thu check-out trễ
+### Vấn đề cụ thể
 
-**Hàm**: `calculateLateCheckoutCharge()`
+- **Trigger `prevent_booking_overlap`**: Chặn mọi UPDATE trên booking active khi có overlap — kể cả khi đang checkout
+- **`perform_checkout` RPC**: Không nhận `check_out_date` parameter → không thể cập nhật ngày checkout thực tế
+- **`onCheckoutNow` handler** (line 1594): Không check error từ PATCH
 
-Logic dựa trên **giờ thực tế checkout** so với giờ tiêu chuẩn (mặc định 12:00):
+### Kế hoạch fix
 
-```text
-Giờ checkout     │ Phụ thu (% giá phòng/đêm)
-─────────────────┼──────────────────────────
-≤ 12:00          │ 0% (đúng giờ)
-12:01 - 15:00    │ 30%
-15:01 - 18:00    │ 50%
-Sau 18:00        │ 100% (= 1 đêm)
-```
+#### 1. Cập nhật `perform_checkout` RPC — nhận thêm `p_check_out_date`
 
-**Trường hợp quá hạn ngày** (overdue — checkout sau ngày dự kiến):
-- `ExtendBookingDialog` phát hiện overdue bằng `differenceInCalendarDays(today, checkOutDate)`
-- Cho phép lễ tân "Checkout ngay" → hệ thống gia hạn ảo `check_out_date` đến hôm nay
-- Sau đó tính lại cost breakdown bình thường (bao gồm late charge nếu quá 12h)
-- Chi phí thêm = `additionalNights × roomPrice` (tính từ ngày checkout cũ → ngày mới)
+Thêm parameter `p_check_out_date DATE DEFAULT NULL`. Khi có giá trị, UPDATE `check_out_date` cùng lúc với `status = 'checked_out'`. Trigger overlap sẽ **skip** vì `NEW.status = 'checked_out'` → không nằm trong `('confirmed', 'checked_in')`.
 
-**Nhận xét**: Logic **KHÔNG tự động tính thêm đêm** cho ngày quá hạn. Nó phụ thuộc vào việc lễ tân gia hạn `check_out_date` trước. Nếu không gia hạn mà checkout thẳng, chỉ tính late surcharge trong ngày (tối đa 100% = 1 đêm), **bỏ qua các đêm quá hạn trước đó**.
+#### 2. Fix `onCheckoutNow` handler — bỏ PATCH riêng, truyền date qua perform_checkout
 
----
+Xóa đoạn PATCH `check_out_date` riêng (line 1593-1596). Thay vào đó, lưu `todayStr` vào state để truyền vào `perform_checkout` khi xác nhận checkout.
 
-### 2. THEO GIỜ (Hourly) — Phí vượt giờ
+#### 3. Cập nhật `handleFinalCheckout` — truyền `p_check_out_date`
 
-**Hàm**: `calculateHourlyOvertimeCharge()`
+Khi gọi `perform_checkout`, thêm `p_check_out_date` nếu booking đang overdue (check_out_date < today).
 
-```text
-Phí = ceil(overtimeMinutes / 60) × hourlyRate
-```
+#### 4. Áp dụng tương tự cho `RoomBookingDialog` và `GroupCheckoutDialog`
 
-- So sánh `actualCheckoutTime` vs `scheduledEndTime` (stored as `hourly_end_time`)
-- Làm tròn **lên** số giờ vượt (30 phút → 1 giờ)
-- Phí vượt giờ được coi như `totalSurcharges` trong `calculateBookingCost`
-- **Không áp dụng** early/late surcharge kiểu daily
+Các luồng checkout khác cũng cần truyền `p_check_out_date` khi overdue.
 
-**Nhận xét**: Logic chính xác. Không có lỗ hổng.
-
----
-
-### 3. THEO THÁNG (Monthly) — Không tính phụ thu thời gian
-
-```text
-case 'monthly':
-  // No time-based surcharges for monthly bookings
-  months = booking.booking_months || 1
-  break
-```
-
-- Hoàn toàn **không tính phụ thu** check-in sớm, check-out trễ, hay overtime
-- `totalSurcharges = 0` luôn
-- Chỉ tính: `monthlyRate × months - monthlyDiscount`
-
-**Nhận xét**: Đây là **thiếu sót tiềm năng**. Nếu khách thuê tháng ở quá ngày hết hợp đồng (ví dụ thuê 1 tháng nhưng ở thêm 5 ngày), hệ thống **không có cơ chế tính phí** cho những ngày dư. Lễ tân phải xử lý thủ công (gia hạn thêm tháng hoặc tạo booking daily mới).
-
----
-
-### 4. Luồng checkout tổng hợp
-
-```text
-useBookingActions.handleCheckout()
-├── Xác định bookingType
-├── switch(bookingType)
-│   ├── hourly → calculateHourlyOvertimeCharge()
-│   ├── monthly → no surcharge
-│   └── daily → calculateLateCheckoutCharge()
-├── calculateServiceChargesFromConsumables()
-├── get_booking_chargeable_total (minibar)
-├── calculateBookingCost() → costBreakdown
-└── perform_checkout RPC (atomic update)
-    └── surchargeToStore = hourly ? overtimeCharge : lateCheckoutCharge
-```
-
----
-
-### Tổng kết: Không có bug code, nhưng có gap nghiệp vụ
-
-| Loại | Tính phí quá giờ | Tính phí quá ngày | Trạng thái |
-|------|-------------------|---------------------|------------|
-| Daily | ✅ Late surcharge 30-100% | ⚠️ Phụ thuộc gia hạn thủ công | Hoạt động đúng |
-| Hourly | ✅ Overtime = ceil(phút/60) × rate | N/A | Hoạt động đúng |
-| Monthly | ❌ Không có cơ chế | ❌ Không có cơ chế | Gap nghiệp vụ |
-
-**Không cần fix code nào** — logic hiện tại hoạt động đúng theo thiết kế. Gap duy nhất là monthly không có penalty quá hạn, nhưng đây có thể là by design (thuê tháng thường xử lý bằng hợp đồng/thương lượng).
+### Files thay đổi
+- **Migration SQL**: Cập nhật `perform_checkout` RPC thêm `p_check_out_date` parameter
+- `src/pages/bookings/BookingsPage.tsx`: Fix `onCheckoutNow` handler + `handleFinalCheckout`
+- `src/components/rooms/RoomBookingDialog.tsx`: Truyền `p_check_out_date` khi overdue
+- `src/components/bookings/GroupCheckoutDialog.tsx`: Truyền `p_check_out_date` khi overdue
 
