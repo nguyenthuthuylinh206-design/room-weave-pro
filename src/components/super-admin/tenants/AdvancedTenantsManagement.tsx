@@ -26,7 +26,7 @@ export function AdvancedTenantsManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTenants, setSelectedTenants] = useState<string[]>([]);
 
-  const { data: tenants } = useTenants(statusFilter, planFilter, searchQuery, approvalFilter);
+  const { data: tenants } = useTenants();
 
   const handleExport = () => {
     if (tenants && tenants.length > 0) {
