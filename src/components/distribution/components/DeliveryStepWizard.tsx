@@ -27,7 +27,6 @@ type Step = {
   label: string
   icon: React.ElementType
   status: 'completed' | 'current' | 'upcoming'
-  description?: string
 }
 
 export function DeliveryStepWizard({
@@ -49,7 +48,6 @@ export function DeliveryStepWizard({
 }: DeliveryStepWizardProps) {
   const progressPercent = totalStops > 0 ? Math.round((completedStops / totalStops) * 100) : 0
   
-  // Determine current step based on status
   const getCurrentStep = (): number => {
     switch (status) {
       case 'pending': return 1
@@ -62,8 +60,6 @@ export function DeliveryStepWizard({
   }
   
   const currentStep = getCurrentStep()
-  
-  // Simplified steps when creator = assignee
   const useSimplifiedFlow = isCreatorSameAsAssignee && hasAssignee
 
   const steps: Step[] = useSimplifiedFlow
@@ -77,7 +73,7 @@ export function DeliveryStepWizard({
         {
           id: 'deliver',
           label: 'Giao hàng',
-          icon: CheckCircle,
+          icon: Truck,
           status: currentStep > 3 ? 'completed' : currentStep === 3 ? 'current' : 'upcoming',
         },
         {
@@ -90,7 +86,7 @@ export function DeliveryStepWizard({
     : [
         {
           id: 'prepare',
-          label: 'Chuẩn bị hàng',
+          label: 'Chuẩn bị',
           icon: Package,
           status: currentStep > 1 ? 'completed' : currentStep === 1 ? 'current' : 'upcoming',
         },
@@ -114,213 +110,254 @@ export function DeliveryStepWizard({
         },
       ]
 
-  // Render the guidance and action based on current status and user role
-  const renderGuidance = () => {
-    // Step 1: Pending - Check if assignee exists first
-    if (status === 'pending') {
-      // Show warning if no assignee
-      if (!hasAssignee && isWarehouseManager) {
-        return (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
-              <UserX className="h-5 w-5" />
-              <p className="text-sm font-medium">Chưa có nhân viên được phân công</p>
+  return (
+    <div className="border rounded-lg bg-card p-3 space-y-3">
+      {/* Step indicators with icons */}
+      <div className="flex items-center">
+        {steps.map((step, index) => {
+          const Icon = step.icon
+          return (
+            <div key={step.id} className="flex items-center flex-1">
+              <div className="flex flex-col items-center min-w-0">
+                <div
+                  className={cn(
+                    'w-8 h-8 rounded-full flex items-center justify-center transition-colors',
+                    step.status === 'completed' && 'bg-green-500',
+                    step.status === 'current' && 'bg-primary',
+                    step.status === 'upcoming' && 'bg-muted'
+                  )}
+                >
+                  <Icon
+                    className={cn(
+                      'h-4 w-4',
+                      step.status === 'completed' && 'text-white',
+                      step.status === 'current' && 'text-primary-foreground',
+                      step.status === 'upcoming' && 'text-muted-foreground/50'
+                    )}
+                  />
+                </div>
+                <span
+                  className={cn(
+                    'text-[11px] mt-1 text-center leading-tight',
+                    step.status === 'current' && 'font-semibold text-foreground',
+                    step.status === 'completed' && 'text-green-600',
+                    step.status === 'upcoming' && 'text-muted-foreground'
+                  )}
+                >
+                  {step.label}
+                </span>
+              </div>
+              {index < steps.length - 1 && (
+                <div
+                  className={cn(
+                    'flex-1 h-0.5 mx-1.5',
+                    step.status === 'completed' ? 'bg-green-500' : 'bg-muted'
+                  )}
+                />
+              )}
             </div>
-            <p className="text-sm text-muted-foreground">
-              Vui lòng phân công nhân viên giao hàng trước khi tiếp tục.
-            </p>
-          </div>
-        )
-      }
-      
-      // Simplified flow: creator = assignee, combine prepare + receive
-      if (useSimplifiedFlow && isWarehouseManager && isAssignee) {
-        return (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Kiểm tra hàng trong kho theo danh sách bên dưới. Xác nhận để bắt đầu giao hàng ngay.
-            </p>
-            {onHandoverBatch && (
-              <Button 
-                onClick={onHandoverBatch} 
-                disabled={isHandingOver}
-                className="w-full h-12 text-base gap-2"
-                size="lg"
-              >
-                <Package className="h-5 w-5" />
-                {isHandingOver ? 'Đang kiểm tra kho...' : 'Kiểm tra kho & Bắt đầu giao hàng'}
-              </Button>
-            )}
-          </div>
-        )
-      }
+          )
+        })}
+      </div>
 
-      // Warehouse manager can handover (with stock check)
-      if (isWarehouseManager && hasAssignee) {
-        return (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Kiểm tra hàng trong kho theo danh sách bên dưới. Nếu thiếu hàng, bạn có thể điều chỉnh số lượng.
-              {assignedToName && <span> Sau đó giao cho nhân viên <strong>{assignedToName}</strong></span>}
-            </p>
-            {onHandoverBatch && (
-              <Button 
-                onClick={onHandoverBatch} 
-                disabled={isHandingOver}
-                className="w-full h-12 text-base gap-2"
-                size="lg"
-              >
-                <Package className="h-5 w-5" />
-                {isHandingOver ? 'Đang kiểm tra kho...' : 'Kiểm tra & Giao hàng cho nhân viên'}
-              </Button>
-            )}
+      {/* Inline progress for in_progress */}
+      {status === 'in_progress' && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Tiến độ</span>
+            <span className="font-medium">{completedStops}/{totalStops} phòng ({progressPercent}%)</span>
           </div>
-        )
-      } else if (isAssignee) {
-        return (
-          <div className="flex items-center gap-3 text-amber-600 dark:text-amber-500">
-            <Clock className="h-5 w-5" />
-            <p className="text-sm">Vui lòng chờ quản lý kho kiểm tra và giao hàng cho bạn</p>
-          </div>
-        )
-      }
-    }
+          <Progress value={progressPercent} className="h-1.5" />
+        </div>
+      )}
 
-    // Step 2: Released - Assignee needs to confirm receipt
-    if (status === 'released') {
-      if (isAssignee) {
-        return (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Hàng đã được chuẩn bị. Xác nhận để bắt đầu giao đến các phòng.
-            </p>
-            {onConfirmReceive && (
-              <Button 
-                onClick={onConfirmReceive} 
-                disabled={isConfirmingReceive}
-                className="w-full h-14 text-lg gap-2"
-                size="lg"
-              >
-                <CheckCircle className="h-6 w-6" />
-                {isConfirmingReceive ? 'Đang xử lý...' : 'Xác nhận đã nhận đủ hàng'}
-              </Button>
-            )}
-          </div>
-        )
-      } else {
-        return (
-          <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400">
-            <Truck className="h-5 w-5" />
-            <p className="text-sm">
-              Đang chờ {assignedToName || 'nhân viên'} xác nhận nhận hàng
-            </p>
-          </div>
-        )
-      }
-    }
+      {/* Guidance and action */}
+      <GuidanceSection
+        status={status}
+        assignedToName={assignedToName}
+        totalStops={totalStops}
+        completedStops={completedStops}
+        pendingStops={pendingStops}
+        isWarehouseManager={isWarehouseManager}
+        isAssignee={isAssignee}
+        hasAssignee={hasAssignee}
+        useSimplifiedFlow={useSimplifiedFlow}
+        onHandoverBatch={onHandoverBatch}
+        onConfirmReceive={onConfirmReceive}
+        onCloseRoute={onCloseRoute}
+        isHandingOver={isHandingOver}
+        isConfirmingReceive={isConfirmingReceive}
+        isClosing={isClosing}
+      />
+    </div>
+  )
+}
 
-    // Step 3: In Progress - Show delivery progress
-    if (status === 'in_progress') {
+// Extracted guidance section
+function GuidanceSection({
+  status,
+  assignedToName,
+  totalStops,
+  pendingStops,
+  isWarehouseManager,
+  isAssignee,
+  hasAssignee,
+  useSimplifiedFlow,
+  onHandoverBatch,
+  onConfirmReceive,
+  onCloseRoute,
+  isHandingOver,
+  isConfirmingReceive,
+  isClosing,
+}: {
+  status: RouteStatus
+  assignedToName?: string | null
+  totalStops: number
+  completedStops: number
+  pendingStops: number
+  isWarehouseManager: boolean
+  isAssignee: boolean
+  hasAssignee: boolean
+  useSimplifiedFlow: boolean
+  onHandoverBatch?: () => void
+  onConfirmReceive?: () => void
+  onCloseRoute?: () => void
+  isHandingOver?: boolean
+  isConfirmingReceive?: boolean
+  isClosing?: boolean
+}) {
+  if (status === 'pending') {
+    if (!hasAssignee && isWarehouseManager) {
       return (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Tiến độ giao hàng</span>
-            <span className="font-medium">{completedStops}/{totalStops} phòng</span>
-          </div>
-          <Progress value={progressPercent} className="h-2" />
-          {pendingStops > 0 && (
-            <p className="text-sm text-muted-foreground">
-              Còn {pendingStops} phòng cần giao. Đến từng phòng và ấn "Giao" để xác nhận.
-            </p>
-          )}
+        <div className="flex items-center gap-2 text-amber-600">
+          <UserX className="h-4 w-4 shrink-0" />
+          <p className="text-sm">Chưa có nhân viên được phân công</p>
         </div>
       )
     }
-
-    // Step 4: Completed - Can close route
-    if (status === 'completed') {
+    
+    if (useSimplifiedFlow && isWarehouseManager && isAssignee) {
       return (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-green-600 dark:text-green-500">
-            <CheckCircle className="h-5 w-5" />
-            <span className="font-medium">Đã giao xong tất cả {totalStops} phòng!</span>
-          </div>
-          {isWarehouseManager && onCloseRoute && (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            Kiểm tra hàng trong kho. Xác nhận để bắt đầu giao hàng ngay.
+          </p>
+          {onHandoverBatch && (
             <Button 
-              onClick={onCloseRoute} 
-              disabled={isClosing}
-              variant="secondary"
-              className="gap-2"
+              onClick={onHandoverBatch} 
+              disabled={isHandingOver}
+              className="w-full h-11 text-sm gap-2"
             >
-              <Lock className="h-4 w-4" />
-              {isClosing ? 'Đang đóng...' : 'Đóng phiếu'}
+              <Package className="h-4 w-4" />
+              {isHandingOver ? 'Đang kiểm tra kho...' : 'Kiểm tra kho & Bắt đầu giao'}
             </Button>
           )}
         </div>
       )
     }
 
-    // Closed
-    if (status === 'closed') {
+    if (isWarehouseManager && hasAssignee) {
       return (
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Lock className="h-5 w-5" />
-          <span>Phiếu đã được đóng</span>
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            Kiểm tra hàng theo danh sách bên dưới.
+            {assignedToName && <> Sau đó giao cho <strong>{assignedToName}</strong></>}
+          </p>
+          {onHandoverBatch && (
+            <Button 
+              onClick={onHandoverBatch} 
+              disabled={isHandingOver}
+              className="w-full h-11 text-sm gap-2"
+            >
+              <Package className="h-4 w-4" />
+              {isHandingOver ? 'Đang kiểm tra kho...' : 'Kiểm tra & Giao hàng cho nhân viên'}
+            </Button>
+          )}
         </div>
       )
     }
+    
+    if (isAssignee) {
+      return (
+        <div className="flex items-center gap-2 text-amber-600">
+          <Clock className="h-4 w-4 shrink-0" />
+          <p className="text-sm">Chờ quản lý kho kiểm tra và giao hàng</p>
+        </div>
+      )
+    }
+  }
 
+  if (status === 'released') {
+    if (isAssignee) {
+      return (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            Hàng đã được chuẩn bị. Xác nhận để bắt đầu giao đến các phòng.
+          </p>
+          {onConfirmReceive && (
+            <Button 
+              onClick={onConfirmReceive} 
+              disabled={isConfirmingReceive}
+              className="w-full h-12 text-base gap-2"
+              size="lg"
+            >
+              <CheckCircle className="h-5 w-5" />
+              {isConfirmingReceive ? 'Đang xử lý...' : 'Xác nhận đã nhận đủ hàng'}
+            </Button>
+          )}
+        </div>
+      )
+    }
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Truck className="h-4 w-4 shrink-0" />
+        <p className="text-sm">Đang chờ {assignedToName || 'nhân viên'} xác nhận nhận hàng</p>
+      </div>
+    )
+  }
+
+  if (status === 'in_progress') {
+    if (pendingStops > 0) {
+      return (
+        <p className="text-xs text-muted-foreground">
+          Còn {pendingStops} phòng cần giao. Đến từng phòng và ấn "Giao" để xác nhận.
+        </p>
+      )
+    }
     return null
   }
 
-  return (
-    <div className="border rounded-lg bg-card p-3 space-y-3">
-      {/* Step indicators - compact */}
-      <div className="flex items-center">
-        {steps.map((step, index) => (
-          <div key={step.id} className="flex items-center flex-1">
-            <div className="flex flex-col items-center min-w-0">
-              <div
-                className={cn(
-                  'w-6 h-6 rounded-full flex items-center justify-center transition-colors',
-                  step.status === 'completed' && 'bg-green-500',
-                  step.status === 'current' && 'bg-primary',
-                  step.status === 'upcoming' && 'bg-muted'
-                )}
-              >
-                <div
-                  className={cn(
-                    'w-2 h-2 rounded-full',
-                    step.status === 'completed' && 'bg-white',
-                    step.status === 'current' && 'bg-white',
-                    step.status === 'upcoming' && 'bg-muted-foreground/50'
-                  )}
-                />
-              </div>
-              <span
-                className={cn(
-                  'text-[10px] mt-1 text-center leading-tight truncate max-w-[60px]',
-                  step.status === 'current' && 'font-medium text-foreground',
-                  step.status !== 'current' && 'text-muted-foreground'
-                )}
-              >
-                {step.label}
-              </span>
-            </div>
-            {index < steps.length - 1 && (
-              <div
-                className={cn(
-                  'flex-1 h-0.5 mx-1',
-                  step.status === 'completed' ? 'bg-green-500' : 'bg-muted'
-                )}
-              />
-            )}
-          </div>
-        ))}
+  if (status === 'completed') {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-green-600">
+          <CheckCircle className="h-4 w-4" />
+          <span className="text-sm font-medium">Đã giao xong {totalStops} phòng!</span>
+        </div>
+        {isWarehouseManager && onCloseRoute && (
+          <Button 
+            onClick={onCloseRoute} 
+            disabled={isClosing}
+            variant="secondary"
+            size="sm"
+            className="gap-1.5"
+          >
+            <Lock className="h-3.5 w-3.5" />
+            {isClosing ? 'Đang đóng...' : 'Đóng phiếu'}
+          </Button>
+        )}
       </div>
+    )
+  }
 
-      {/* Guidance and action */}
-      <div>{renderGuidance()}</div>
-    </div>
-  )
+  if (status === 'closed') {
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Lock className="h-4 w-4" />
+        <span className="text-sm">Phiếu đã được đóng</span>
+      </div>
+    )
+  }
+
+  return null
 }

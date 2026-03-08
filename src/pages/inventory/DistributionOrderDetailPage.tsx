@@ -2,9 +2,8 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { ArrowLeft, Ban, Printer, Pencil, CheckCircle, UserX, UserPlus } from 'lucide-react'
+import { ArrowLeft, Ban, Printer, Pencil, UserX, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { OrderStatusBadge } from '@/components/distribution/components/DistributionStatusBadge'
 import { RouteDetailView } from '@/components/distribution/components/RouteDetailView'
 import { CancelOrderDialog } from '@/components/distribution/dialogs/CancelOrderDialog'
@@ -12,7 +11,6 @@ import { UndoDeliveryDialog } from '@/components/distribution/dialogs/UndoDelive
 import { EditDistributionDialog } from '@/components/distribution/dialogs/EditDistributionDialog'
 import { useDistributionOrderDetail, useCancelDistributionOrder } from '@/hooks/useDistributionOrders'
 import { useUndoRoomDelivery } from '@/hooks/useRoomDistributionHistory'
-import { useConfirmReceiveOrder } from '@/hooks/useRouteBatch'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useUser } from '@/hooks/useUser'
 import { printDistributionOrder } from '@/utils/printDistributionOrder'
@@ -34,16 +32,8 @@ export default function DistributionOrderDetailPage() {
   const { data: order, isLoading } = useDistributionOrderDetail(id)
   const { mutate: cancelOrder, isPending: isCancelling } = useCancelDistributionOrder()
   const { mutate: undoDelivery, isPending: isUndoing } = useUndoRoomDelivery()
-  const { mutate: confirmReceiveOrder, isPending: isConfirmingReceive } = useConfirmReceiveOrder()
 
   const isWarehouseManager = WAREHOUSE_MANAGER_ROLES.includes(user?.user_level_code || '')
-  const isAssignee = user?.id && order?.assigned_to === user.id
-  const canConfirmReceive = order?.status === 'released' && isAssignee
-
-  const handleConfirmReceive = () => {
-    if (!id) return
-    confirmReceiveOrder({ orderId: id })
-  }
 
   if (isLoading) {
     return (
@@ -63,10 +53,6 @@ export default function DistributionOrderDetailPage() {
       </div>
     )
   }
-
-  const completedRooms = order.rooms?.filter(r => r.status === 'confirmed' || r.status === 'rejected').length || 0
-  const totalRooms = order.rooms?.length || 0
-  const progress = totalRooms > 0 ? Math.round((completedRooms / totalRooms) * 100) : 0
 
   const allRoomsPending = order.rooms?.every(r => r.status === 'pending') ?? false
   const canEdit = order.status === 'pending' && allRoomsPending
@@ -99,12 +85,7 @@ export default function DistributionOrderDetailPage() {
     })
   }
 
-  const handleOpenUndo = (room: DistributionOrderRoom) => {
-    setSelectedRoom(room)
-    setShowUndoDialog(true)
-  }
-
-  // Mobile view - Use RouteDetailView for unified experience
+  // Mobile view
   if (isMobile) {
     return (
       <>
@@ -140,14 +121,14 @@ export default function DistributionOrderDetailPage() {
             </div>
           </div>
 
-          {/* Warning when no assignee - Mobile */}
+          {/* Warning when no assignee - keep as action prompt */}
           {order.status === 'pending' && !order.assigned_to && isWarehouseManager && (
-            <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800">
+            <div className="p-3 border-b">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 flex-1">
                   <UserX className="h-4 w-4 text-amber-600 shrink-0" />
-                  <p className="text-sm text-amber-800 dark:text-amber-200">
-                    <strong>Chưa phân công:</strong> Vui lòng chọn nhân viên giao hàng
+                  <p className="text-sm text-amber-600">
+                    <strong>Chưa phân công</strong> nhân viên giao hàng
                   </p>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
@@ -158,43 +139,7 @@ export default function DistributionOrderDetailPage() {
             </div>
           )}
 
-          {/* Guidance for Manager when order is pending and has assignee */}
-          {order.status === 'pending' && order.assigned_to && isWarehouseManager && (
-            <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border-b border-blue-200 dark:border-blue-800">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                <strong>Bước tiếp theo:</strong> Ấn "Giao batch này" bên dưới để chuyển hàng cho nhân viên
-              </p>
-            </div>
-          )}
-
-          {/* Guidance for Staff waiting for handover */}
-          {order.status === 'pending' && isAssignee && !isWarehouseManager && (
-            <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800">
-              <p className="text-sm text-amber-800 dark:text-amber-200">
-                Vui lòng chờ quản lý kho giao hàng cho bạn trước khi đi giao
-              </p>
-            </div>
-          )}
-
-          {/* Confirm Receive Button for Assignee */}
-          {canConfirmReceive && (
-            <div className="p-4 bg-primary/5 border-b">
-              <Button
-                onClick={handleConfirmReceive}
-                disabled={isConfirmingReceive}
-                className="w-full h-14 text-lg gap-2"
-                size="lg"
-              >
-                <CheckCircle className="h-6 w-6" />
-                {isConfirmingReceive ? 'Đang xử lý...' : 'Xác nhận đã nhận đủ hàng'}
-              </Button>
-              <p className="text-xs text-muted-foreground text-center mt-2">
-                Ấn để xác nhận bạn đã nhận đủ hàng từ kho
-              </p>
-            </div>
-          )}
-
-          {/* Use RouteDetailView for consistent batch/stop display */}
+          {/* RouteDetailView handles all guidance via DeliveryStepWizard */}
           <div className="flex-1 overflow-auto">
             {id && <RouteDetailView orderId={id} embedded />}
           </div>
@@ -226,7 +171,7 @@ export default function DistributionOrderDetailPage() {
     )
   }
 
-  // Desktop view with Tabs for Route vs Legacy view
+  // Desktop view
   return (
     <div className="container mx-auto py-6 space-y-6">
       {/* Header */}
@@ -269,47 +214,23 @@ export default function DistributionOrderDetailPage() {
         </div>
       </div>
 
-      {/* Warning when no assignee - Desktop */}
+      {/* Warning when no assignee - keep as action prompt */}
       {order.status === 'pending' && !order.assigned_to && isWarehouseManager && (
-        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <UserX className="h-5 w-5 text-amber-600" />
-              <p className="text-sm text-amber-800 dark:text-amber-200">
-                Phiếu chưa có nhân viên được phân công. Vui lòng phân công trước khi giao hàng.
-              </p>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Phân công ngay
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Guidance for Manager when order is pending and has assignee */}
-      {order.status === 'pending' && order.assigned_to && isWarehouseManager && (
-        <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30">
-          <CardContent className="p-4">
-            <p className="text-sm text-blue-800 dark:text-blue-200">
-              <strong>Bước tiếp theo:</strong> Ấn "Giao batch này" bên dưới để chuyển hàng cho nhân viên được gán
+        <div className="border rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <UserX className="h-5 w-5 text-amber-600" />
+            <p className="text-sm text-amber-600">
+              Phiếu chưa có nhân viên được phân công. Vui lòng phân công trước khi giao hàng.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Phân công ngay
+          </Button>
+        </div>
       )}
 
-      {/* Guidance for Staff waiting for handover */}
-      {order.status === 'pending' && isAssignee && !isWarehouseManager && (
-        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
-          <CardContent className="p-4">
-            <p className="text-sm text-amber-800 dark:text-amber-200">
-              Vui lòng chờ quản lý kho giao hàng cho bạn trước khi đi giao
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Route View - Unified for all roles */}
+      {/* Route View - DeliveryStepWizard handles all guidance */}
       {id && <RouteDetailView orderId={id} embedded />}
 
       {/* Dialogs */}

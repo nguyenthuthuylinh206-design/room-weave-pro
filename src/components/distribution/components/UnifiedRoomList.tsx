@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle, ChevronDown, AlertTriangle, RotateCcw, Undo2, ArrowRightLeft, Package, ChevronRight } from 'lucide-react'
+import { CheckCircle, ChevronDown, AlertTriangle, RotateCcw, Undo2, ArrowRightLeft, Package, ChevronRight, Ban } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -85,10 +85,8 @@ export function UnifiedRoomList({
   const returnToStock = useReturnToStock()
   const handoverStop = useHandoverStop()
 
-  // Check if can perform delivery actions
   const canDeliverStops = isAssignee && orderStatus === 'in_progress'
 
-  // Group by batch and sort
   const { groupedStops, hasMultipleBatches } = useMemo(() => {
     const batches = new Map<number, RouteStop[]>()
     
@@ -100,7 +98,6 @@ export function UnifiedRoomList({
       batches.get(batchNum)!.push(stop)
     })
     
-    // Sort stops within each batch: pending → cannot_access → delivered/resolved
     const sortOrder = { pending: 0, cannot_access: 1, delivered: 2, resolved: 3 }
     batches.forEach((batchStops) => {
       batchStops.sort((a, b) => 
@@ -219,11 +216,9 @@ export function UnifiedRoomList({
 
   return (
     <div className="space-y-4">
-      {/* Room list grouped by batch */}
       <div className="border rounded-lg overflow-hidden">
-        {groupedStops.map(([batchNumber, batchStops], index) => (
+        {groupedStops.map(([batchNumber, batchStops]) => (
           <div key={batchNumber}>
-            {/* Batch divider - only show if multiple batches */}
             {hasMultipleBatches && (
               <div className="px-3 py-1.5 bg-muted/50 border-b text-xs font-medium text-muted-foreground flex items-center gap-2">
                 <Package className="h-3.5 w-3.5" />
@@ -231,7 +226,6 @@ export function UnifiedRoomList({
               </div>
             )}
             
-            {/* Stops in batch */}
             {batchStops.map((stop) => (
               <RoomCard
                 key={stop.id}
@@ -373,7 +367,6 @@ export function UnifiedRoomList({
   )
 }
 
-// Compact Room Card component
 interface RoomCardProps {
   stop: RouteStop
   orderStatus: string
@@ -419,36 +412,32 @@ function RoomCard({
 }: RoomCardProps) {
   const isCompleted = stop.stop_status === 'delivered' || stop.stop_status === 'resolved'
   const isCannotAccess = stop.stop_status === 'cannot_access'
-  
-  // Only allow room click when order is in_progress or completed
   const canClickRoom = orderStatus === 'in_progress' || orderStatus === 'completed'
   
-  // Build summary text
-  const itemsCount = stop.items.length
-  const totalQty = stop.items.reduce((sum, i) => sum + i.quantity, 0)
-  const summaryText = `${itemsCount} sản phẩm • ${totalQty} đơn vị`
-
-  const handleRoomClick = () => {
-    if (!canClickRoom) return
-    onRoomClick()
-  }
+  // Item summary: show first 2 items inline
+  const firstItems = stop.items.slice(0, 2)
+  const remainingCount = stop.items.length - 2
+  const summaryParts = firstItems.map(i => `${i.item_name} x${i.quantity}`)
+  const summaryText = remainingCount > 0 
+    ? `${summaryParts.join(', ')} +${remainingCount}`
+    : summaryParts.join(', ')
 
   return (
     <div
       className={cn(
-        'px-3 py-2.5 border-b last:border-b-0 border-l-4 transition-colors',
-        isCompleted && 'border-l-green-500 bg-muted/30',
-        isCannotAccess && 'border-l-red-500 bg-muted/30',
+        'px-3 py-2.5 border-b last:border-b-0 border-l-4 transition-all',
+        isCompleted && 'border-l-green-500 opacity-60',
+        isCannotAccess && 'border-l-red-500 opacity-60',
         !isCompleted && !isCannotAccess && 'border-l-transparent hover:bg-muted/20'
       )}
     >
-      {/* Main row: room + items + action */}
+      {/* Main row */}
       <div className="flex items-center gap-3">
         {/* Expand toggle */}
         <button 
           type="button"
           onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
-          className="p-0.5 -ml-1 hover:bg-muted rounded shrink-0"
+          className="p-1 -ml-1 hover:bg-muted rounded shrink-0"
         >
           <ChevronDown className={cn(
             "h-4 w-4 text-muted-foreground transition-transform",
@@ -456,28 +445,32 @@ function RoomCard({
           )} />
         </button>
 
-        {/* Room info - clickable only when in_progress or completed */}
+        {/* Room info */}
         <div 
           className={cn(
-            "flex items-center gap-2 min-w-0 flex-1",
+            "flex flex-col min-w-0 flex-1 gap-0.5",
             canClickRoom ? "cursor-pointer group" : "cursor-default"
           )}
-          onClick={canClickRoom ? handleRoomClick : undefined}
+          onClick={canClickRoom ? onRoomClick : undefined}
         >
-          <span className="text-sm font-bold shrink-0">{stop.room_number}</span>
-          {isCompleted && (
-            <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
-          )}
-          {isCannotAccess && (
-            <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
-          )}
+          <div className="flex items-center gap-2">
+            <span className={cn(
+              "text-sm font-bold shrink-0",
+              isCompleted && "line-through"
+            )}>
+              {stop.room_number}
+            </span>
+            {isCompleted && <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />}
+            {isCannotAccess && <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />}
+            {canClickRoom && (
+              <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+            )}
+          </div>
+          {/* Inline item summary */}
           <span className="text-xs text-muted-foreground truncate">{summaryText}</span>
-          {canClickRoom && (
-            <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-          )}
         </div>
         
-        {/* Primary action */}
+        {/* Deliver button - larger on mobile */}
         {canDeliver && (
           <Button
             onClick={(e) => { e.stopPropagation(); onDeliver(); }}
@@ -485,7 +478,7 @@ function RoomCard({
             size={isMobile ? 'default' : 'sm'}
             className={cn(
               'shrink-0 gap-1.5',
-              isMobile && 'h-10 px-4 text-sm font-semibold'
+              isMobile && 'h-11 px-5 text-sm font-semibold'
             )}
           >
             <CheckCircle className="h-4 w-4" />
@@ -493,7 +486,36 @@ function RoomCard({
           </Button>
         )}
         
-        {/* Status text for completed */}
+        {/* Cannot access icon button */}
+        {canMarkCannotAccess && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+              >
+                <Ban className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => onCannotAccess('guest_inside')}>
+                Khách trong phòng
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onCannotAccess('dnd')}>
+                Do Not Disturb
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onCannotAccess('locked')}>
+                Phòng khóa
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onCannotAccess('other')}>
+                Lý do khác...
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+        
+        {/* Status for completed */}
         {isCompleted && (
           <span className="text-xs text-green-600 font-medium shrink-0">Đã giao</span>
         )}
@@ -526,34 +548,6 @@ function RoomCard({
         <div className="mt-1 text-xs text-destructive">
           {EXCEPTION_TYPE_LABELS[stop.exception_type]}
           {stop.exception_reason && `: ${stop.exception_reason}`}
-        </div>
-      )}
-
-      {/* Cannot Access dropdown - subtle */}
-      {canMarkCannotAccess && (
-        <div className="mt-1.5">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-muted-foreground gap-1">
-                Không vào được
-                <ChevronDown className="h-3 w-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
-              <DropdownMenuItem onClick={() => onCannotAccess('guest_inside')}>
-                Khách trong phòng
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onCannotAccess('dnd')}>
-                Do Not Disturb
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onCannotAccess('locked')}>
-                Phòng khóa
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onCannotAccess('other')}>
-                Lý do khác...
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       )}
 
