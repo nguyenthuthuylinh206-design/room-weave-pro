@@ -13,21 +13,19 @@ import { PWAUpdatePrompt } from '@/components/pwa'
 import { ShiftStatusBanner } from '@/components/staff/ShiftStatusBanner'
 import { GracePeriodBanner } from './GracePeriodBanner'
 import { useUser } from '@/hooks/useUser'
-import { isStaff, isTenantOwner } from '@/lib/userAccess'
+import { isStaff, isTenantOwner, isManager } from '@/lib/userAccess'
 
 const MainLayoutContent = () => {
   const { isMobile } = useBreakpoint()
   const { user } = useUser()
   const isStaffUser = isStaff(user)
-  const isOwnerUser = isTenantOwner(user)
+  const showSubscriptionBanner = isTenantOwner(user) || isManager(user)
 
   if (isMobile) {
     return (
       <div className="min-h-screen flex flex-col bg-background overflow-x-hidden">
-        {/* Grace Period Banner - Only for owners */}
-        {isOwnerUser && <GracePeriodBanner />}
+        {showSubscriptionBanner && <GracePeriodBanner />}
         <MobileHeader />
-        {/* Shift Status Banner - Only for staff who haven't checked in */}
         {isStaffUser && <ShiftStatusBanner />}
         <main className="flex-1 overflow-y-auto overflow-x-hidden pb-16">
           <div className="p-4">
@@ -44,10 +42,8 @@ const MainLayoutContent = () => {
     <div className="min-h-screen flex bg-background">
       <Sidebar />
       <div className="flex-1 flex flex-col">
-        {/* Grace Period Banner - Only for owners */}
-        {isOwnerUser && <GracePeriodBanner />}
+        {showSubscriptionBanner && <GracePeriodBanner />}
         <Header onMenuClick={() => {}} />
-        {/* Shift Status Banner - Only for staff who haven't checked in */}
         {isStaffUser && <ShiftStatusBanner />}
         <main className="flex-1 overflow-auto">
           <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
@@ -74,7 +70,7 @@ export const MainLayout = () => {
   }
 
   if (!user) {
-    return null // AuthGuard will redirect
+    return null
   }
 
   return (

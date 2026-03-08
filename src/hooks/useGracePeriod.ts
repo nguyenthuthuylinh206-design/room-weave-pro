@@ -4,6 +4,8 @@ export interface GracePeriodStatus {
   isExpired: boolean;
   isInGracePeriod: boolean;
   isGracePeriodExpired: boolean;
+  isExpiringSoon: boolean;
+  daysUntilExpiry: number;
   graceDaysRemaining: number;
   graceEndDate: Date | null;
   subscriptionEndDate: Date | null;
@@ -11,15 +13,8 @@ export interface GracePeriodStatus {
   isLoading: boolean;
 }
 
-/**
- * Hook to manage grace period status for subscriptions
- * 
- * Grace period is 7 days after subscription_end_date
- * During grace period:
- * - User can still use the system
- * - Warning banners are shown
- * - After grace period expires, account is suspended
- */
+const EXPIRING_SOON_DAYS = 7;
+
 export function useGracePeriod(): GracePeriodStatus {
   const { data: subscription, isLoading } = useTenantSubscription();
 
@@ -35,14 +30,16 @@ export function useGracePeriod(): GracePeriodStatus {
 
   const subscriptionStatus = subscription?.subscription_status || null;
 
-  // Calculate status based on dates
   const isExpired = endDate ? endDate < now : false;
-  
   const isInGracePeriod = isExpired && graceEndDate ? now < graceEndDate : false;
-  
   const isGracePeriodExpired = graceEndDate ? now >= graceEndDate : false;
 
-  // Calculate remaining grace days
+  // Expiring soon: not yet expired, but ≤7 days remaining
+  const daysUntilExpiry = endDate && !isExpired
+    ? Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
+  const isExpiringSoon = !isExpired && daysUntilExpiry > 0 && daysUntilExpiry <= EXPIRING_SOON_DAYS;
+
   const graceDaysRemaining = isInGracePeriod && graceEndDate
     ? Math.ceil((graceEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
     : 0;
@@ -51,6 +48,8 @@ export function useGracePeriod(): GracePeriodStatus {
     isExpired,
     isInGracePeriod,
     isGracePeriodExpired,
+    isExpiringSoon,
+    daysUntilExpiry,
     graceDaysRemaining,
     graceEndDate,
     subscriptionEndDate: endDate,
@@ -59,10 +58,6 @@ export function useGracePeriod(): GracePeriodStatus {
   };
 }
 
-/**
- * Calculate grace period status from subscription data
- * Used for server-side calculations or when subscription data is already available
- */
 export function calculateGracePeriodStatus(
   subscriptionEndDate: string | null,
   gracePeriodEndsAt: string | null
@@ -76,6 +71,11 @@ export function calculateGracePeriodStatus(
   const isInGracePeriod = isExpired && graceEndDate ? now < graceEndDate : false;
   const isGracePeriodExpired = graceEndDate ? now >= graceEndDate : false;
 
+  const daysUntilExpiry = endDate && !isExpired
+    ? Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
+  const isExpiringSoon = !isExpired && daysUntilExpiry > 0 && daysUntilExpiry <= EXPIRING_SOON_DAYS;
+
   const graceDaysRemaining = isInGracePeriod && graceEndDate
     ? Math.ceil((graceEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
     : 0;
@@ -84,6 +84,8 @@ export function calculateGracePeriodStatus(
     isExpired,
     isInGracePeriod,
     isGracePeriodExpired,
+    isExpiringSoon,
+    daysUntilExpiry,
     graceDaysRemaining,
     graceEndDate,
     subscriptionEndDate: endDate,
