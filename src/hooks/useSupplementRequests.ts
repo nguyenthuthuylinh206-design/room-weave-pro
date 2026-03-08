@@ -320,6 +320,8 @@ export function useApproveSupplementRequest() {
       queryClient.invalidateQueries({ queryKey: ['supplement-requests-pending-count'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
       queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouses-with-stats'] })
 
       toast.success('Đã duyệt yêu cầu bổ sung', {
         description: result.transactionCreated ? 'Phiếu xuất kho đã được tạo' : undefined,

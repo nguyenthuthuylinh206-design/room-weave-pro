@@ -268,29 +268,13 @@ export function useUpdateBookingAmountPaid() {
       amountToAdd: number;
       totalAmount: number;
     }) => {
-      // Get current amount_paid
-      const { data: booking, error: fetchError } = await supabase
-        .from('room_bookings')
-        .select('amount_paid')
-        .eq('id', bookingId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      const currentPaid = booking?.amount_paid || 0;
-      const newAmountPaid = currentPaid + amountToAdd;
-      const paymentStatus = newAmountPaid >= totalAmount ? 'paid' : 'partial';
-
+      // Use atomic RPC to prevent race conditions with concurrent payments
       const { data, error } = await supabase
-        .from('room_bookings')
-        .update({
-          amount_paid: newAmountPaid,
-          payment_status: paymentStatus,
-          paid_at: paymentStatus === 'paid' ? new Date().toISOString() : null,
-        })
-        .eq('id', bookingId)
-        .select()
-        .single();
+        .rpc('update_booking_amount_paid', {
+          p_booking_id: bookingId,
+          p_amount_to_add: amountToAdd,
+          p_total_amount: totalAmount,
+        });
 
       if (error) throw error;
       return data;
