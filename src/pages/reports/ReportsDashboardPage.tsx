@@ -141,6 +141,17 @@ export function ReportsDashboardPage() {
       path: '/reports/stock-audit',
       stats: [],
     },
+    {
+      id: 'outbound',
+      title: t('types.outbound.title', 'Báo cáo Xuất kho'),
+      icon: LogOut,
+      color: 'bg-teal-500',
+      bgColor: 'bg-teal-500/10',
+      textColor: 'text-teal-600',
+      description: t('types.outbound.description', 'Phân tích chi tiết xuất kho theo loại'),
+      path: '/reports/outbound',
+      stats: [],
+    },
   ]
 
   const handleRefresh = async () => {

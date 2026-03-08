@@ -1,11 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import {
-  Package,
-  DollarSign,
-  ArrowRightLeft,
-  Shirt,
-  Home,
-  Wrench,
+  Package, DollarSign, ArrowRightLeft, Shirt, Home, Wrench, LogOut,
 } from 'lucide-react'
 import { PullToRefresh } from '@/components/mobile/TouchOptimized'
 import { Card, CardContent } from '@/components/ui/card'
