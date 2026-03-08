@@ -773,6 +773,7 @@ export function BookingsPage() {
       setActionBooking(null)
       setCheckoutCostBreakdown(null)
       setCheckoutDamageItems([])
+      setOverdueCheckoutDate(null)
     }
   }
 
@@ -880,6 +881,7 @@ export function BookingsPage() {
       setActionBooking(null)
       setCheckoutCostBreakdown(null)
       setCheckoutDamageItems([])
+      setOverdueCheckoutDate(null)
     }
   }
 
