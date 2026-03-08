@@ -9,7 +9,8 @@ import type { HotelService, HotelServiceFormData } from '@/types/services.types'
 export function useHotelServices(activeOnly = false) {
   const { tenant } = useTenant()
   const tenantId = tenant?.id
-  const { selectedHotelId } = useHotelContext()
+  const { selectedHotel } = useHotelContext()
+  const selectedHotelId = selectedHotel?.id
 
   return useQuery({
     queryKey: ['hotel-services', tenantId, selectedHotelId, activeOnly],
