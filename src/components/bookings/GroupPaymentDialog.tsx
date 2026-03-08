@@ -96,10 +96,7 @@ export function GroupPaymentDialog({
         async (payload) => {
           const newData = payload.new as any
           if (newData.payment_status === 'completed') {
-            // Auto distribute payment
-            if (groupData) {
-              await distributePayment(parsedAmount, groupData.bookings)
-            }
+            // Webhook already distributed payment via atomic RPC - just update UI
             setStep('success')
             toast.success('Thanh toán đã được xác nhận tự động!')
             setTimeout(() => {
@@ -153,17 +150,14 @@ export function GroupPaymentDialog({
       if (bookingOwed <= 0) continue
 
       const payForThis = Math.min(remaining, bookingOwed)
-      const newAmountPaid = (booking.amount_paid || 0) + payForThis
-      const paymentStatus = newAmountPaid >= (booking.total_amount || 0) ? 'paid' : 'partial'
+      const totalAmount = booking.total_amount || 0
 
-      await supabase
-        .from('room_bookings')
-        .update({
-          amount_paid: newAmountPaid,
-          payment_status: paymentStatus,
-          paid_at: paymentStatus === 'paid' ? new Date().toISOString() : null,
-        })
-        .eq('id', booking.id)
+      // Use atomic RPC instead of direct UPDATE to prevent race conditions
+      await supabase.rpc('update_booking_amount_paid', {
+        p_booking_id: booking.id,
+        p_amount_to_add: payForThis,
+        p_total_amount: totalAmount,
+      })
 
       remaining -= payForThis
     }
