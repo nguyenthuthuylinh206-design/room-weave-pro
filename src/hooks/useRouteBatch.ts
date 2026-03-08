@@ -213,6 +213,8 @@ export function useHandoverBatch() {
         queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
         queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
         queryClient.invalidateQueries({ queryKey: ['items'] })
+        queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] })
+        queryClient.invalidateQueries({ queryKey: ['warehouses-with-stats'] })
         if (!result._silent) {
           toast.success('Đã giao hàng cho nhân viên thành công')
         }
@@ -454,6 +456,8 @@ export function useReturnToStock() {
       queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
       queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouses-with-stats'] })
       toast.success('Đã trả hàng về kho')
     },
     onError: (error: Error) => {
@@ -496,6 +500,9 @@ export function useHandoverStop() {
       queryClient.invalidateQueries({ queryKey: ['route-detail'] })
       queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
       queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouses-with-stats'] })
       toast.success(`Đã bàn giao và tạo route ${result.next_order_code}`)
     },
     onError: (error: Error) => {
@@ -620,6 +627,9 @@ export function useConfirmReceiveOrder() {
       queryClient.invalidateQueries({ queryKey: ['route-detail'] })
       queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
       queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouses-with-stats'] })
       if (!result._silent) {
         toast.success('Đã xác nhận nhận hàng thành công')
       }
