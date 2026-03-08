@@ -40,7 +40,8 @@ export function useHotelServices(activeOnly = false) {
 export function useCreateService() {
   const queryClient = useQueryClient()
   const { tenant } = useTenant()
-  const { selectedHotelId } = useHotelContext()
+  const { selectedHotel } = useHotelContext()
+  const selectedHotelId = selectedHotel?.id
   const { toast } = useToast()
 
   return useMutation({
