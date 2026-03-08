@@ -58,6 +58,13 @@ export default function MorePage() {
       items: [
         {
           icon: Package,
+          label: 'Bookings',
+          description: 'Quản lý đặt phòng',
+          path: '/bookings',
+          module: 'bookings'
+        },
+        {
+          icon: Package,
           label: 'Bổ sung đồ',
           description: 'Yêu cầu bổ sung từ kiểm tra phòng',
           path: '/supplements',
