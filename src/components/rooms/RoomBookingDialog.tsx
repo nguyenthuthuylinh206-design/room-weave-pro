@@ -37,6 +37,7 @@ import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
 import { cn, formatCurrency } from '@/lib/utils'
 import { CheckoutSummaryDialog } from '@/components/bookings/CheckoutSummaryDialog'
+import { BookingServiceCharges } from '@/components/services/BookingServiceCharges'
 import { CheckInConfirmDialog } from '@/components/bookings/CheckInConfirmDialog'
 import { ExtendBookingDialog } from '@/components/bookings/ExtendBookingDialog'
 import { 
@@ -948,6 +949,14 @@ export function RoomBookingDialog({
                 </div>
               )}
             </div>
+
+            {/* Service Charges - only for existing bookings */}
+            {isEdit && booking && (
+              <BookingServiceCharges
+                bookingId={booking.id}
+                readOnly={booking.status === 'checked_out' || booking.status === 'cancelled'}
+              />
+            )}
 
             {/* Financial Section */}
             <div className="border rounded-lg p-3 space-y-3">
