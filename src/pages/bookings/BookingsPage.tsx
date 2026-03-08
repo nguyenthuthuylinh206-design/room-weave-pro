@@ -146,6 +146,7 @@ export function BookingsPage() {
   const [suggestedEarlyCharge, setSuggestedEarlyCharge] = useState(0)
   const [checkoutCostBreakdown, setCheckoutCostBreakdown] = useState<BookingCostBreakdown | null>(null)
   const [checkoutDamageItems, setCheckoutDamageItems] = useState<DamageChargeItem[]>([])
+  const [overdueCheckoutDate, setOverdueCheckoutDate] = useState<string | null>(null)
   const [isActionLoading, setIsActionLoading] = useState(false)
   
   // Minimized checkouts state - allows processing other guests while waiting for inspection
@@ -713,6 +714,7 @@ export function BookingsPage() {
       })
 
       // Use RPC for atomic checkout with damage params
+      // Pass p_check_out_date for overdue bookings to update atomically
       const { error } = await supabase.rpc('perform_checkout', {
         p_booking_id: actionBooking.id,
         p_room_id: actionBooking.room_id,
@@ -725,6 +727,7 @@ export function BookingsPage() {
         p_damage_charges: damageCharges || 0,
         p_damage_notes: damageAdjustmentNote || null,
         p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
+        p_check_out_date: overdueCheckoutDate,
       })
 
       if (error) throw error
@@ -770,6 +773,7 @@ export function BookingsPage() {
       setActionBooking(null)
       setCheckoutCostBreakdown(null)
       setCheckoutDamageItems([])
+      setOverdueCheckoutDate(null)
     }
   }
 
@@ -831,6 +835,7 @@ export function BookingsPage() {
         p_damage_notes: damageAdjustmentNote || null,
         p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
         p_new_amount_paid: newAmountPaid,
+        p_check_out_date: overdueCheckoutDate,
       })
 
       if (error) throw error
@@ -876,6 +881,7 @@ export function BookingsPage() {
       setActionBooking(null)
       setCheckoutCostBreakdown(null)
       setCheckoutDamageItems([])
+      setOverdueCheckoutDate(null)
     }
   }
 
@@ -1590,13 +1596,11 @@ export function BookingsPage() {
               const now = new Date()
               const todayStr = format(now, 'yyyy-MM-dd')
               
-              // Auto-extend check_out_date to today
-              await supabase
-                .from('room_bookings')
-                .update({ check_out_date: todayStr })
-                .eq('id', actionBooking.id)
+              // Save overdue checkout date - will be passed to perform_checkout RPC atomically
+              // (No separate PATCH needed - the RPC handles check_out_date update)
+              setOverdueCheckoutDate(todayStr)
               
-              // Update local state
+              // Update local state for cost calculation
               const updatedBooking = { ...actionBooking, check_out_date: todayStr }
               setActionBooking(updatedBooking)
               
