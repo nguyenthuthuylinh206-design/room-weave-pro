@@ -200,9 +200,9 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
       return
     }
     
-    setAllocations(() => 
+    setAllocations(prev => 
       selectedRoomIds.map(roomId => {
-        const existing = allocations.find(a => a.room_id === roomId)
+        const existing = prev.find(a => a.room_id === roomId)
         const existingItems = existing?.items || []
         const itemIndex = existingItems.findIndex(i => i.item_id === itemId)
         
@@ -443,7 +443,7 @@ export function useDistributionForm(options: UseDistributionFormOptions = {}) {
     } catch (err: any) {
       return { success: false, message: err.message || 'Lỗi', count: 0, unfilled: 0 }
     }
-  }, [getRemainingStock])
+  }, [getRemainingStock, allocations])
 
   // Auto-fill missing items for all selected rooms
   const autoFillMissingItems = useCallback(async () => {

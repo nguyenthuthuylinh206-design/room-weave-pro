@@ -1,83 +1,87 @@
 
 
-## Ket qua kiem tra phan phieu giao hang (Distribution)
+## Phan tich luong phieu giao hang (Distribution Order)
 
-Sau khi review day du cac file: `useDistributionOrders.ts`, `useRouteBatch.ts`, `useRoomDistributionHistory.ts`, `useDistributionForm.ts`, cac component trong `src/components/distribution/`, phat hien cac van de sau:
+### Hien trang: Cau truc luong hien tai
 
----
+Luong hien tai co **3 cach tao** va **5 buoc xu ly**, kha phuc tap:
 
-### Bug 1: `useRouteBatch` - Thieu invalidation `warehouse-stock` va `warehouses-with-stats` (TRUNG BINH)
+#### 3 Dau vao (Entry Points)
+1. **Tao thu cong** (`/inventory/distributions/new`) - CreateDistributionPage.tsx
+2. **Tao tu yeu cau bo sung** (`/inventory/distributions/from-supplements`) - CreateFromSupplementsPage.tsx
+3. **Tao tu Xuat kho** (`/inventory/outbound` voi category `room_assign`) - OutboundPage.tsx dung cung DistributionForm
 
-**Files**: `src/hooks/useRouteBatch.ts`
-
-Nhieu mutation trong `useRouteBatch` thay doi ton kho (thong qua RPC) nhung KHONG invalidate `warehouse-stock` va `warehouses-with-stats`:
-
-- **`useHandoverBatch`** (line 209-219): RPC `handover_batch` tru ton kho de xuat hang, nhung chi invalidate `items`. Thieu `warehouse-stock`, `warehouses-with-stats`.
-- **`useReturnToStock`** (line 451-457): RPC `return_to_stock_for_stop` tra hang ve kho, chi invalidate `items`. Thieu `warehouse-stock`, `warehouses-with-stats`.
-- **`useHandoverStop`** (line 494-499): RPC `handover_stop_create_next_route` tra hang ve kho roi tao route moi, KHONG invalidate `items`, `warehouse-stock`, `warehouses-with-stats`.
-- **`useConfirmReceiveOrder`** (line 618-622): RPC `confirm_receive_order` tru ton kho, KHONG invalidate `items`, `warehouse-stock`, `warehouses-with-stats`.
-
-**Fix**: Them invalidation `warehouse-stock`, `warehouses-with-stats`, va `items` (neu thieu) vao `onSuccess` cua 4 mutations nay.
-
----
-
-### Bug 2: `useDistributionForm.setQuantityForAllRooms` - Stale closure (NHO)
-
-**File**: `src/components/distribution/hooks/useDistributionForm.ts` line 197-219
-
-`setQuantityForAllRooms` su dung `allocations` truc tiep trong callback cua `setAllocations(() => ...)`. Mac du dung functional update, callback khong nhan `prev` ma doc `allocations` tu closure → co the bi stale khi goi lien tiep.
-
-```typescript
-setAllocations(() => 
-  selectedRoomIds.map(roomId => {
-    const existing = allocations.find(a => a.room_id === roomId) // ← stale!
-    ...
-  })
-)
+#### 5 Buoc xu ly (Lifecycle)
+```text
+pending --> released --> in_progress --> completed --> closed
+  (1)        (2)           (3)            (4)          (5)
 ```
 
-**Fix**: Doi sang `setAllocations(prev => ...)` va dung `prev` thay vi `allocations`.
+1. **pending** - Kho chuan bi hang, kiem tra ton kho, giao cho nhan vien (Warehouse Manager click "Kiem tra & Giao hang")
+2. **released** - Nhan vien xac nhan da nhan du hang (Assignee click "Xac nhan da nhan du hang")
+3. **in_progress** - Nhan vien di giao tung phong, click "GIAO" -> chuyen sang room check
+4. **completed** - Tat ca phong da giao xong
+5. **closed** - Manager dong phieu
 
----
+### Van de phat hien
 
-### Bug 3: `autoFillMissingItemsForRoom` - Thieu dependency `allocations` (NHO)
+#### 1. Trung lap dau vao: OutboundPage dung trung DistributionForm
+- `OutboundPage.tsx` (Xuat kho) khi chon category `room_assign` se render cung `DistributionForm` va goi `useCreateDistributionOrder` - hoan toan giong `CreateDistributionPage.tsx`
+- Nguoi dung co 2 noi tao cung 1 thu -> nhầm lẫn
+- **De xuat**: Khi chon "Giao den phong" trong OutboundPage, chuyen huong (redirect) sang `/inventory/distributions/new` thay vi nhan doi form
 
-**File**: `src/components/distribution/hooks/useDistributionForm.ts` line 346-446
+#### 2. Buoc "released" co the thua (khong can thiet voi nhieu truong hop)
+- Sau khi kho giao hang (pending -> released), nhan vien phai bam "Xac nhan da nhan du hang" de chuyen sang in_progress
+- Voi hotel nho (kho va nhan vien la 1 nguoi), buoc nay thua
+- Da co option `auto_release` nhung chi skip buoc kho, khong skip buoc nhan hang
+- **De xuat**: Them option "Tu dong bat dau giao" de skip ca buoc released, chuyen thang tu pending -> in_progress khi assignee la chinh nguoi tao
 
-`autoFillMissingItemsForRoom` doc `allocations` ben trong callback de check `alreadyAllocated`, nhung dependency array chi co `[getRemainingStock]`. Ket qua: khi da them item vao phong, goi auto-fill lai co the tinh sai vi doc `allocations` cu.
+#### 3. Qua trinh giao phong phuc tap - click "GIAO" -> navigate ra room check
+- Khi nhan vien click "GIAO" tren 1 phong, he thong navigate sang `/rooms/{id}/check?type=delivery&...`
+- Phai lam room check roi moi quay lai -> mat flow, phai quay lai trang phieu de giao phong tiep
+- **De xuat**: Sau khi hoan thanh room check, tu dong quay lai trang phieu giao hang thay vi o lai trang room check
 
-**Fix**: Them `allocations` vao dependency array.
+#### 4. Thieu thong tin tong hop khi tao phieu
+- CreateDistributionPage khong hien thi summary (tong so phong, tong so item, tong so luong) truoc khi submit
+- DistributionForm hien thi 2 panel (chon phong + phan bo san pham) nhung khong co summary bar
+- **De xuat**: Them summary bar hien thi: X phong, Y loai SP, Z don vi truoc nut "Tao phieu"
 
----
+#### 5. Auto-fill logic tot nhung UX chua ro rang
+- `useDistributionForm` co `autoFillMissingItems` va `autoFillMissingItemsForRoom` de tu dong tinh so luong theo tieu chuan phong
+- Nhung trong CreateDistributionPage, nut auto-fill khong duoc hien thi ro rang
+- **De xuat**: Them nut "Tu dong phan bo theo tieu chuan" noi bat hon trong form
 
-### Bug 4: `useRejectRoomDelivery` va `useUndoRoomDelivery` - Thieu `warehouse-stock` invalidation (NHO)
+### Ke hoach khac phuc
 
-**File**: `src/hooks/useRoomDistributionHistory.ts`
+#### Thay doi 1: Redirect OutboundPage khi chon "room_assign"
+**File**: `src/pages/inventory/OutboundPage.tsx`
+- Khi user chon category `room_assign`, hien thi thong bao va nut chuyen sang trang tao phieu giao hang chuyen dung thay vi render form trung lap
 
-- `useRejectRoomDelivery` (line 203-208): RPC `reject_room_delivery` tra hang ve kho nhung chi invalidate `items`, thieu `warehouse-stock`, `warehouses-with-stats`.
-- `useUndoRoomDelivery` (line 238-244): RPC `undo_room_delivery_confirmation` rollback ton kho nhung thieu `warehouse-stock`, `warehouses-with-stats`.
+#### Thay doi 2: Them summary bar trong CreateDistributionPage
+**File**: `src/pages/inventory/CreateDistributionPage.tsx`
+- Hien thi summary compact (so phong, so SP, tong SL) ngay tren nut "Tao phieu"
+- Hien thi canh bao stock validation o footer thay vi chi trong form
 
-**Fix**: Them invalidation.
+#### Thay doi 3: Auto-navigate ve phieu sau room check
+**File**: `src/components/distribution/components/UnifiedRoomList.tsx`
+- Them query param `returnTo` khi navigate sang room check
+- Sau khi room check xong, tu dong quay ve trang phieu giao hang
 
----
+#### Thay doi 4: Don gian hoa flow cho hotel nho
+**File**: `src/components/distribution/components/DeliveryStepWizard.tsx`
+- Khi nguoi tao phieu cung la nguoi duoc phan cong (assignee), gop buoc "Kiem tra kho" va "Nhan hang" thanh 1 buoc duy nhat
+- Giam so buoc tu 5 xuong 3-4 tuy truong hop
 
-### Bug 5: `useRoomDistributionHistory` - Query khong co limit (NHO)
+#### Thay doi 5: Lam ro auto-fill trong form
+**File**: `src/components/distribution/forms/ItemAllocator.tsx`
+- Them nut "Tu dong phan bo" noi bat, co tooltip giai thich
+- Hien thi ket qua auto-fill (bao nhieu SP da them, bao nhieu thieu) ro rang hon
 
-**File**: `src/hooks/useRoomDistributionHistory.ts` line 36-69
+### Uu tien thuc hien
 
-Query fetch tat ca distribution order rooms cho 1 phong ma khong co `.limit()`. Voi phong co nhieu don giao hang (>100), co the cham.
-
-**Fix**: Them `.limit(50)` vi du lam giao dien chi hien thi lich su gan nhat.
-
----
-
-### Ke hoach fix (5 items)
-
-1. **Fix `useRouteBatch` invalidation** - Them `warehouse-stock`, `warehouses-with-stats`, `items` vao `useHandoverBatch`, `useReturnToStock`, `useHandoverStop`, `useConfirmReceiveOrder`
-2. **Fix `useRoomDistributionHistory` invalidation** - Them `warehouse-stock`, `warehouses-with-stats` vao `useRejectRoomDelivery`, `useUndoRoomDelivery`
-3. **Fix `setQuantityForAllRooms` stale closure** - Doi sang dung `prev` parameter
-4. **Fix `autoFillMissingItemsForRoom` dependency** - Them `allocations` vao dependency array
-5. **Fix `useRoomDistributionHistory` limit** - Them `.limit(50)`
-
-**Files thay doi**: `src/hooks/useRouteBatch.ts`, `src/hooks/useRoomDistributionHistory.ts`, `src/components/distribution/hooks/useDistributionForm.ts`
+1. **Thay doi 2** (Summary bar) - De lam, giam nhầm lẫn ngay
+2. **Thay doi 1** (Redirect OutboundPage) - Loai bo trung lap
+3. **Thay doi 3** (Auto-navigate ve phieu) - Cai thien flow giao hang
+4. **Thay doi 4** (Don gian hoa step) - Giam buoc cho hotel nho
+5. **Thay doi 5** (Auto-fill ro rang) - Cai thien UX
 

@@ -67,6 +67,7 @@ export function useRoomDistributionHistory(roomId: string | undefined) {
         `)
         .eq('room_id', roomId)
         .order('created_at', { ascending: false })
+        .limit(50)
       
       if (error) throw error
       
@@ -205,6 +206,8 @@ export function useRejectRoomDelivery() {
       queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
       queryClient.invalidateQueries({ queryKey: ['room-distribution-history'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouses-with-stats'] })
       toast.success('Đã từ chối giao hàng')
     },
     onError: (error) => {
@@ -242,6 +245,8 @@ export function useUndoRoomDelivery() {
       queryClient.invalidateQueries({ queryKey: ['items'] })
       queryClient.invalidateQueries({ queryKey: ['room-items'] })
       queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouses-with-stats'] })
       toast.success('Đã hoàn tác xác nhận giao hàng')
     },
     onError: (error) => {
