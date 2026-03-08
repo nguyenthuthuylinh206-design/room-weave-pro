@@ -78,7 +78,7 @@ import {
   type BookingCostBreakdown,
   type DamageChargeItem,
 } from '@/lib/bookingCalculations'
-import { calculateServiceChargesFromConsumables } from '@/hooks/usePricingRules'
+import { MobileBookingsPage } from './MobileBookingsPage'
 import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
 
 type BookingStatus = 'all' | 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show' | 'conflict' | 'overdue'
