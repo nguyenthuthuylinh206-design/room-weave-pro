@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useTenant } from '@/hooks/useTenant'
 import { useHotelContext } from '@/contexts/HotelContext'
+
 import { useToast } from '@/hooks/use-toast'
 import type { HotelService, HotelServiceFormData } from '@/types/services.types'
 
