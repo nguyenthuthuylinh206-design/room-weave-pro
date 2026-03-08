@@ -207,6 +207,8 @@ export function useCompleteRoomDelivery() {
       queryClient.invalidateQueries({ queryKey: ['room-items'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
       queryClient.invalidateQueries({ queryKey: ['room-distribution-history'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouses-with-stats'] })
       
       // Also invalidate supplement requests if order was completed
       if (result.all_completed) {
@@ -270,6 +272,8 @@ export function useCancelDistributionOrder() {
       queryClient.invalidateQueries({ queryKey: ['distribution-orders'] })
       queryClient.invalidateQueries({ queryKey: ['distribution-order-detail'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouses-with-stats'] })
       toast.success('Đã hủy phiếu giao hàng')
 
       // Send notification to assigned staff
