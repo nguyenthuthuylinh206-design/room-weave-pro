@@ -125,6 +125,7 @@ export interface BookingWithRoom {
 
 export function BookingsPage() {
   const { t } = useTranslation(['rooms', 'common'])
+  const { isMobile } = useBreakpoint()
   const navigate = useNavigate()
   const { selectedHotel, isAllHotelsMode } = useHotelContext()
   const { tenant } = useTenant()
