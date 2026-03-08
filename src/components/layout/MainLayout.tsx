@@ -2,7 +2,7 @@ import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { MobileHeader } from './MobileHeader'
-import { BottomNav } from './BottomNav'
+
 import { useBreakpoint } from '@/lib/breakpoints'
 import { useAuth } from '@/contexts/AuthContext'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
