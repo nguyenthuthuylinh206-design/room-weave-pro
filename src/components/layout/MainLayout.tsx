@@ -35,7 +35,7 @@ const MainLayoutContent = () => {
           </div>
           <Outlet />
         </main>
-        <BottomNav />
+        <MobileBottomNav />
       </div>
     )
   }

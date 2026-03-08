@@ -40,6 +40,7 @@ export function MorePage() {
   const { data: modulePermissions } = useUserModulePermissions()
 
   const modules: ModuleItem[] = [
+    { icon: CalendarDays, label: 'Đặt phòng', path: '/bookings', module: 'bookings', color: 'text-primary' },
     { icon: Package, label: 'Kho & Tài sản', path: '/inventory', module: 'inventory,items', color: 'text-blue-600' },
     { icon: ClipboardList, label: 'Bổ sung đồ', path: '/supplements', module: 'inventory', color: 'text-amber-600' },
     { icon: DoorOpen, label: 'Phòng', path: '/rooms', module: 'rooms', color: 'text-green-600' },

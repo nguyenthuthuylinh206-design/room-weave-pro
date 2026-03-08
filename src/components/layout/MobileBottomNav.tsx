@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Home, DoorOpen, Shirt, Wrench, ClipboardList } from 'lucide-react'
+import { Home, DoorOpen, Shirt, Wrench, ClipboardList, CalendarDays, MoreHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { useUser } from '@/hooks/useUser'
@@ -31,13 +31,13 @@ export const MobileBottomNav = () => {
     return null
   }
 
-  // Navigation items for all roles (operations)
+  // Navigation items - 5 tabs max for mobile usability
   const NAV_ITEMS: NavItem[] = [
     { id: 'home', label: 'Home', icon: Home, path: '/' },
     { id: 'my-tasks', label: 'Tasks', icon: ClipboardList, path: '/my-tasks', badgeKey: 'tasks' },
+    { id: 'bookings', label: 'Đặt phòng', icon: CalendarDays, path: '/bookings', module: 'bookings' },
     { id: 'rooms', label: 'Phòng', icon: DoorOpen, path: '/rooms', module: 'rooms' },
-    { id: 'laundry', label: 'Giặt là', icon: Shirt, path: '/laundry', module: 'laundry', badgeKey: 'laundryTotal' },
-    { id: 'maintenance', label: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badgeKey: 'maintenanceTotal' },
+    { id: 'more', label: 'Thêm', icon: MoreHorizontal, path: '/more' },
   ]
 
   const effectiveNavItems = NAV_ITEMS
@@ -58,6 +58,9 @@ export const MobileBottomNav = () => {
   const isActive = (path: string) => {
     if (path === '/') {
       return location.pathname === '/'
+    }
+    if (path === '/more') {
+      return location.pathname === '/more'
     }
     return location.pathname.startsWith(path)
   }
