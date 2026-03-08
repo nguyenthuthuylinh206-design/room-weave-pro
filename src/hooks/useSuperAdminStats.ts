@@ -177,11 +177,12 @@ export function useChurnRate(days: number = 30) {
 
       if (startError) throw startError
 
+      // Use updated_at instead of cancelled_at (which doesn't exist)
       const { count: churnedCount, error: churnError } = await supabase
         .from('tenants')
         .select('*', { count: 'exact', head: true })
         .in('subscription_status', ['cancelled', 'suspended'])
-        .gte('cancelled_at', startDate.toISOString())
+        .gte('updated_at', startDate.toISOString())
 
       if (churnError) throw churnError
 
