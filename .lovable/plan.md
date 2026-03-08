@@ -1,87 +1,63 @@
 
 
-## Phan tich luong phieu giao hang (Distribution Order)
+## Kiểm tra trang Báo cáo — Kết quả
 
-### Hien trang: Cau truc luong hien tai
+### Tổng quan: 9 trang báo cáo + 1 Dashboard
 
-Luong hien tai co **3 cach tao** va **5 buoc xu ly**, kha phuc tap:
+Tất cả các trang đều có routing đúng, có mobile responsive (dùng `useBreakpoint`), và kết nối đúng data hooks. Không có lỗi runtime trong console (chỉ có PWA ServiceWorker warning — không ảnh hưởng).
 
-#### 3 Dau vao (Entry Points)
-1. **Tao thu cong** (`/inventory/distributions/new`) - CreateDistributionPage.tsx
-2. **Tao tu yeu cau bo sung** (`/inventory/distributions/from-supplements`) - CreateFromSupplementsPage.tsx
-3. **Tao tu Xuat kho** (`/inventory/outbound` voi category `room_assign`) - OutboundPage.tsx dung cung DistributionForm
+### Vấn đề phát hiện
 
-#### 5 Buoc xu ly (Lifecycle)
-```text
-pending --> released --> in_progress --> completed --> closed
-  (1)        (2)           (3)            (4)          (5)
-```
+#### 1. **Operations Report hiển thị toàn số 0** (Trung bình)
+- Trang `/reports/operations` dùng `useInventoryReport` hook nhưng chỉ lấy `transaction_summary` — data từ API trả về tất cả = 0 (inbound_count: 0, outbound_count: 0, total_transactions: 0)
+- Tab **Stocktake** và **Efficiency**: Toàn placeholder data cứng = 0, không có query thực tế
+- `topMovingItems` gán `inbound: 0, outbound: 0` cứng — comment ghi "Would need separate query"
+- **Kết luận**: Trang này gần như "dummy" — cần kết nối data thực hoặc ẩn đi
 
-1. **pending** - Kho chuan bi hang, kiem tra ton kho, giao cho nhan vien (Warehouse Manager click "Kiem tra & Giao hang")
-2. **released** - Nhan vien xac nhan da nhan du hang (Assignee click "Xac nhan da nhan du hang")
-3. **in_progress** - Nhan vien di giao tung phong, click "GIAO" -> chuyen sang room check
-4. **completed** - Tat ca phong da giao xong
-5. **closed** - Manager dong phieu
+#### 2. **ReportsPage cũ vẫn tồn tại** (Nhỏ)
+- `ReportsPage.tsx` là trang cũ, không được dùng trong routing (đã thay bằng `ReportsDashboardPage`)
+- Có thể gây nhầm lẫn khi maintain, nên xóa
 
-### Van de phat hien
+#### 3. **ReportsDashboardPage thiếu Outbound Report** (Nhỏ)
+- Dashboard liệt kê 9 loại báo cáo nhưng **thiếu "Báo cáo Xuất kho"** (outbound)
+- Route `/reports/outbound` tồn tại và hoạt động, nhưng không có entry trong dashboard
 
-#### 1. Trung lap dau vao: OutboundPage dung trung DistributionForm
-- `OutboundPage.tsx` (Xuat kho) khi chon category `room_assign` se render cung `DistributionForm` va goi `useCreateDistributionOrder` - hoan toan giong `CreateDistributionPage.tsx`
-- Nguoi dung co 2 noi tao cung 1 thu -> nhầm lẫn
-- **De xuat**: Khi chon "Giao den phong" trong OutboundPage, chuyen huong (redirect) sang `/inventory/distributions/new` thay vi nhan doi form
+#### 4. **Export buttons không hoạt động ở Operations Report** (Nhỏ)
+- Nút PDF và Excel không có `onClick` handler — chỉ disable khi `isExporting`
 
-#### 2. Buoc "released" co the thua (khong can thiet voi nhieu truong hop)
-- Sau khi kho giao hang (pending -> released), nhan vien phai bam "Xac nhan da nhan du hang" de chuyen sang in_progress
-- Voi hotel nho (kho va nhan vien la 1 nguoi), buoc nay thua
-- Da co option `auto_release` nhung chi skip buoc kho, khong skip buoc nhan hang
-- **De xuat**: Them option "Tu dong bat dau giao" de skip ca buoc released, chuyen thang tu pending -> in_progress khi assignee la chinh nguoi tao
+#### 5. **DamagesReportPage dùng `useIsMobile` thay vì `useBreakpoint`** (Rất nhỏ)
+- Không nhất quán với các trang khác dùng `useBreakpoint`, nhưng không gây bug
 
-#### 3. Qua trinh giao phong phuc tap - click "GIAO" -> navigate ra room check
-- Khi nhan vien click "GIAO" tren 1 phong, he thong navigate sang `/rooms/{id}/check?type=delivery&...`
-- Phai lam room check roi moi quay lai -> mat flow, phai quay lai trang phieu de giao phong tiep
-- **De xuat**: Sau khi hoan thanh room check, tu dong quay lai trang phieu giao hang thay vi o lai trang room check
+### Đánh giá tổng thể
 
-#### 4. Thieu thong tin tong hop khi tao phieu
-- CreateDistributionPage khong hien thi summary (tong so phong, tong so item, tong so luong) truoc khi submit
-- DistributionForm hien thi 2 panel (chon phong + phan bo san pham) nhung khong co summary bar
-- **De xuat**: Them summary bar hien thi: X phong, Y loai SP, Z don vi truoc nut "Tao phieu"
+| Trang | Data thực | Mobile | Export | Đánh giá |
+|-------|-----------|--------|--------|----------|
+| Dashboard | ✅ | ✅ | N/A | OK |
+| Inventory | ✅ | ✅ | ✅ | OK |
+| Financial | ✅ | ✅ | ✅ | OK |
+| Operations | ❌ Placeholder | ✅ | ❌ | Cần fix |
+| Laundry | ✅ | ✅ | ✅ | OK |
+| Rooms | ✅ | ✅ | ✅ | OK |
+| Maintenance | ✅ | ✅ | ✅ | OK |
+| Revenue | ✅ | ✅ | ✅ | OK |
+| Damages | ✅ | ✅ | ✅ | OK |
+| Stock Audit | ✅ | ✅ | ✅ | OK |
+| Outbound | ✅ | ❌ Thiếu mobile | ✅ | Cần fix |
 
-#### 5. Auto-fill logic tot nhung UX chua ro rang
-- `useDistributionForm` co `autoFillMissingItems` va `autoFillMissingItemsForRoom` de tu dong tinh so luong theo tieu chuan phong
-- Nhung trong CreateDistributionPage, nut auto-fill khong duoc hien thi ro rang
-- **De xuat**: Them nut "Tu dong phan bo theo tieu chuan" noi bat hon trong form
+### Kế hoạch fix
 
-### Ke hoach khac phuc
+#### Bước 1: Fix Operations Report — kết nối data thực
+- Tab Transactions: Tạo query lấy transaction data thực từ `inventory_transactions` (đã có table), hiển thị trend theo tháng thay vì 1 data point
+- Tab Stocktake: Kết nối với `stock_adjustments` table
+- Tab Efficiency: Tính từ data thực (avg processing time từ transactions, error rate từ adjustments)
+- Fix export buttons
 
-#### Thay doi 1: Redirect OutboundPage khi chon "room_assign"
-**File**: `src/pages/inventory/OutboundPage.tsx`
-- Khi user chon category `room_assign`, hien thi thong bao va nut chuyen sang trang tao phieu giao hang chuyen dung thay vi render form trung lap
+#### Bước 2: Thêm Outbound Report vào Dashboard
+- Thêm entry "Báo cáo Xuất kho" vào `reportCategories` trong `ReportsDashboardPage` và `MobileReportsDashboard`
 
-#### Thay doi 2: Them summary bar trong CreateDistributionPage
-**File**: `src/pages/inventory/CreateDistributionPage.tsx`
-- Hien thi summary compact (so phong, so SP, tong SL) ngay tren nut "Tao phieu"
-- Hien thi canh bao stock validation o footer thay vi chi trong form
+#### Bước 3: Xóa ReportsPage.tsx cũ
+- File không được dùng, chỉ gây nhầm lẫn
 
-#### Thay doi 3: Auto-navigate ve phieu sau room check
-**File**: `src/components/distribution/components/UnifiedRoomList.tsx`
-- Them query param `returnTo` khi navigate sang room check
-- Sau khi room check xong, tu dong quay ve trang phieu giao hang
-
-#### Thay doi 4: Don gian hoa flow cho hotel nho
-**File**: `src/components/distribution/components/DeliveryStepWizard.tsx`
-- Khi nguoi tao phieu cung la nguoi duoc phan cong (assignee), gop buoc "Kiem tra kho" va "Nhan hang" thanh 1 buoc duy nhat
-- Giam so buoc tu 5 xuong 3-4 tuy truong hop
-
-#### Thay doi 5: Lam ro auto-fill trong form
-**File**: `src/components/distribution/forms/ItemAllocator.tsx`
-- Them nut "Tu dong phan bo" noi bat, co tooltip giai thich
-- Hien thi ket qua auto-fill (bao nhieu SP da them, bao nhieu thieu) ro rang hon
-
-### Uu tien thuc hien
-
-1. **Thay doi 2** (Summary bar) - De lam, giam nhầm lẫn ngay
-2. **Thay doi 1** (Redirect OutboundPage) - Loai bo trung lap
-3. **Thay doi 3** (Auto-navigate ve phieu) - Cai thien flow giao hang
-4. **Thay doi 4** (Don gian hoa step) - Giam buoc cho hotel nho
-5. **Thay doi 5** (Auto-fill ro rang) - Cai thien UX
+#### Bước 4: Tạo mobile view cho Outbound Report
+- Hiện tại OutboundReportPage không check `isMobile` → cần thêm mobile component
 
