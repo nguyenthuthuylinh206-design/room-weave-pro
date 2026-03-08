@@ -22,6 +22,7 @@ export function ItemsPage() {
   const { isMobile } = useBreakpoint()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedItems, setSelectedItems] = useState<string[]>([])
+  const [mainTab, setMainTab] = useState<string>('items')
   
   // Khai báo TẤT CẢ hooks trước điều kiện isMobile
   const [filters, setFilters] = useState<IItemFilters>(() => ({
