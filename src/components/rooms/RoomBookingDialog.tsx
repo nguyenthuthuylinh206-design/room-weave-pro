@@ -127,6 +127,7 @@ export function RoomBookingDialog({
 
   // State for extend booking dialog
   const [showExtendDialog, setShowExtendDialog] = useState(false)
+  const [overdueCheckoutDate, setOverdueCheckoutDate] = useState<string | null>(null)
   
   // Tax rates
   const [vatRate, setVatRate] = useState<number>((booking as any)?.vat_rate ?? DEFAULT_PRICING_RULES.vatRate)
@@ -555,6 +556,7 @@ export function RoomBookingDialog({
         p_damage_charges: damageCharges || 0,
         p_damage_notes: damageAdjustmentNote || null,
         p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
+        p_check_out_date: overdueCheckoutDate,
       })
       
       if (error) throw error
@@ -599,6 +601,7 @@ export function RoomBookingDialog({
     } finally {
       setIsSubmitting(false)
       setCheckoutDamageItems([])
+      setOverdueCheckoutDate(null)
     }
   }
 
@@ -698,6 +701,8 @@ export function RoomBookingDialog({
         p_damage_charges: damageCharges || 0,
         p_damage_notes: damageAdjustmentNote || null,
         p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
+        p_new_amount_paid: newAmountPaid,
+        p_check_out_date: overdueCheckoutDate,
       })
       
       if (error) throw error
@@ -742,6 +747,7 @@ export function RoomBookingDialog({
     } finally {
       setIsSubmitting(false)
       setCheckoutDamageItems([])
+      setOverdueCheckoutDate(null)
     }
   }
 
@@ -1248,7 +1254,7 @@ export function RoomBookingDialog({
         roomNumber={roomNumber}
         actualCheckoutTime={format(new Date(), 'HH:mm')}
         actualCheckoutDate={new Date()}
-        scheduledCheckoutDate={booking?.check_out_date ? new Date(booking.check_out_date) : new Date()}
+        scheduledCheckoutDate={overdueCheckoutDate ? new Date(overdueCheckoutDate) : (booking?.check_out_date ? new Date(booking.check_out_date) : new Date())}
         costBreakdown={costBreakdown}
         damageItems={checkoutDamageItems}
         onConfirmCheckout={performCheckOut}
@@ -1276,6 +1282,67 @@ export function RoomBookingDialog({
           }}
           onSuccess={() => {
             invalidateQueries()
+          }}
+          onCheckoutNow={async () => {
+            setShowExtendDialog(false)
+            if (!booking) return
+            
+            try {
+              const now = new Date()
+              const todayStr = format(now, 'yyyy-MM-dd')
+              
+              // Save overdue checkout date for RPC
+              setOverdueCheckoutDate(todayStr)
+              
+              // Recalculate with updated checkout date
+              const checkIn = new Date(booking.check_in_date)
+              const checkOut = new Date(todayStr)
+              const updatedNights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
+              
+              // Calculate late checkout charge
+              const actualTime = format(now, 'HH:mm')
+              const calculatedLateCharge = calculateLateCheckoutCharge(actualTime, roomPrice)
+              setLateCheckoutCharge(calculatedLateCharge)
+              
+              // Update local checkout date for cost calculation
+              setCheckOutDate(checkOut)
+              
+              // Fetch damage items
+              const { data: latestCheck } = await supabase
+                .from('room_checks')
+                .select('items_lost, items_damaged, items_consumed')
+                .eq('room_id', roomId)
+                .in('check_type', ['checkout', 'daily'])
+                .order('checked_at', { ascending: false })
+                .limit(1)
+                .maybeSingle()
+              
+              const damageItems: DamageChargeItem[] = [
+                ...((latestCheck?.items_lost as any[]) || []).map(item => ({
+                  item_id: item.item_id, item_name: item.item_name, item_type: 'lost' as const,
+                  quantity: item.quantity, charge_amount: item.estimated_value || 0,
+                })),
+                ...((latestCheck?.items_damaged as any[]) || []).map(item => ({
+                  item_id: item.item_id, item_name: item.item_name, item_type: 'damaged' as const,
+                  quantity: item.quantity, charge_amount: item.damage_cost || 0, damage_type: item.damage_type,
+                })),
+                ...((latestCheck?.items_consumed as any[]) || []).map(item => ({
+                  item_id: item.item_id, item_name: item.item_name, item_type: 'consumed' as const,
+                  quantity: item.quantity, charge_amount: item.unit_price || 0,
+                })),
+              ]
+              
+              setCheckoutDamageItems(damageItems)
+              setShowCheckoutSummary(true)
+            } catch (error: any) {
+              toast({ variant: 'destructive', title: 'Lỗi tính toán', description: error.message })
+            }
+          }}
+          onTransferRoom={() => {
+            toast({
+              title: 'Chuyển phòng',
+              description: 'Tính năng chuyển phòng đang phát triển. Vui lòng xử lý thủ công.',
+            })
           }}
         />
       )}
