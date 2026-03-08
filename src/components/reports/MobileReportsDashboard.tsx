@@ -67,6 +67,15 @@ export function MobileReportsDashboard() {
       description: t('types.performance.description'),
       path: '/reports/maintenance',
     },
+    {
+      id: 'outbound',
+      title: t('types.outbound.title', 'Báo cáo Xuất kho'),
+      icon: LogOut,
+      color: 'text-teal-600 dark:text-teal-400',
+      bgColor: 'bg-teal-50 dark:bg-teal-950/50',
+      description: t('types.outbound.description', 'Phân tích chi tiết xuất kho theo loại'),
+      path: '/reports/outbound',
+    },
   ]
 
   const handleRefresh = async () => {
