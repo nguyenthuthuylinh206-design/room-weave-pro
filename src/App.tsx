@@ -114,6 +114,7 @@ import { PricingPlansPage } from "./pages/admin/PricingPlansPage";
 import { PaymentSettingsPage } from "./pages/admin/PaymentSettingsPage";
 import { SuperAdminSettingsPage } from "./pages/admin/SuperAdminSettingsPage";
 import NotificationHistoryPage from "./pages/NotificationHistoryPage";
+import HelpPage from "./pages/HelpPage";
 import StaffManagementPage from "./pages/staff/StaffManagementPage";
 import MyTasksPage from "./pages/MyTasksPage";
 import PaymentQRPage from "./pages/payment/PaymentQRPage";
