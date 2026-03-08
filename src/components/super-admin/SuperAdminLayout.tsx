@@ -42,6 +42,7 @@ export function SuperAdminLayout() {
   const navigationTitles: Record<string, string> = {
     '/super-admin': t('titles.overview'),
     '/super-admin/tenants': t('titles.tenantManagement'),
+    '/super-admin/approval': t('titles.approval'),
     '/super-admin/promo-codes': t('titles.promoCodes'),
     '/super-admin/campaigns': t('titles.campaigns'),
     '/super-admin/reminders': t('titles.reminders'),
