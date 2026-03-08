@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { LucideIcon } from 'lucide-react'
 import { ReactNode } from 'react'
+import { ContextualHelpButton } from './ContextualHelpButton'
 
 interface PageHeaderProps {
   title: string
@@ -11,16 +12,20 @@ interface PageHeaderProps {
     onClick: () => void
   }
   children?: ReactNode
+  showHelp?: boolean
 }
 
-export const PageHeader = ({ title, description, action, children }: PageHeaderProps) => {
+export const PageHeader = ({ title, description, action, children, showHelp = true }: PageHeaderProps) => {
   return (
     <div className="flex items-center justify-between">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
-        {description && (
-          <p className="mt-2 text-muted-foreground">{description}</p>
-        )}
+      <div className="flex items-center gap-2">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
+          {description && (
+            <p className="mt-2 text-muted-foreground">{description}</p>
+          )}
+        </div>
+        {showHelp && <ContextualHelpButton />}
       </div>
       <div className="flex gap-2">
         {children}
