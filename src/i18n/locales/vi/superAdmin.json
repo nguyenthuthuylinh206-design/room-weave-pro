@@ -89,6 +89,41 @@
     "scheduleReminders": "Lên lịch nhắc nhở",
     "generateReport": "Tạo báo cáo"
   },
+  "activity": {
+    "title": "Hoạt động gần đây",
+    "loading": "Đang tải...",
+    "noActivity": "Không có hoạt động nào"
+  },
+  "campaigns": {
+    "title": "Chiến dịch Marketing",
+    "create": "Tạo chiến dịch",
+    "status": {
+      "draft": "Nháp",
+      "scheduled": "Đã lên lịch",
+      "active": "Đang chạy",
+      "paused": "Tạm dừng",
+      "completed": "Hoàn thành"
+    },
+    "table": {
+      "name": "Tên chiến dịch",
+      "status": "Trạng thái",
+      "audience": "Đối tượng",
+      "performance": "Hiệu suất",
+      "startDate": "Ngày bắt đầu",
+      "actions": "Thao tác",
+      "sent": "đã gửi",
+      "openRate": "mở",
+      "clicks": "clicks",
+      "loading": "Đang tải...",
+      "noCampaigns": "Không có chiến dịch nào.",
+      "total": "chiến dịch",
+      "viewStats": "Xem thống kê",
+      "launch": "Khởi chạy",
+      "pause": "Tạm dừng",
+      "resume": "Tiếp tục",
+      "delete": "Xóa"
+    }
+  },
   "tenants": {
     "title": "Quản lý khách hàng",
     "subtitle": "Quản lý tất cả khách hàng và gói đăng ký của họ",
