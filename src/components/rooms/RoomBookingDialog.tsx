@@ -556,6 +556,7 @@ export function RoomBookingDialog({
         p_damage_charges: damageCharges || 0,
         p_damage_notes: damageAdjustmentNote || null,
         p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
+        p_check_out_date: overdueCheckoutDate,
       })
       
       if (error) throw error
