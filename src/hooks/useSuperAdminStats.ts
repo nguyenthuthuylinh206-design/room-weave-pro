@@ -66,37 +66,66 @@ export function useRevenueByPlan() {
   return useQuery({
     queryKey: ['revenue-by-plan'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Get active tenants with their plans
+      const { data: tenants, error: tenantError } = await supabase
         .from('tenants')
         .select(`
+          id,
           subscription_plan_id,
-          subscription_plan:subscription_plans(name, price_monthly, price_yearly),
-          billing_cycle
+          subscription_plan:subscription_plans(name)
         `)
-        .eq('subscription_status', 'active') as any
+        .eq('subscription_status', 'active')
+        .neq('id', '00000000-0000-0000-0000-000000000000') as any
 
-      if (error) throw error
+      if (tenantError) throw tenantError
 
-      const revenueByPlan = (data || []).reduce((acc: any, tenant: any) => {
-        const planId = tenant.subscription_plan_id
-        const planName = tenant.subscription_plan?.name
-        const revenue = tenant.billing_cycle === 'yearly'
-          ? tenant.subscription_plan?.price_yearly
-          : tenant.subscription_plan?.price_monthly
+      // Get actual revenue from payment_transactions
+      const { data: payments, error: paymentError } = await supabase
+        .from('payment_transactions')
+        .select('tenant_id, amount')
+        .eq('payment_status', 'completed')
 
-        if (!acc[planId]) {
-          acc[planId] = {
-            planName,
+      if (paymentError) throw paymentError
+
+      // Build revenue by plan from actual payments
+      const tenantPlanMap: Record<string, { planName: string; planId: string }> = {}
+      ;(tenants || []).forEach((t: any) => {
+        tenantPlanMap[t.id] = {
+          planName: t.subscription_plan?.name || 'Unknown',
+          planId: t.subscription_plan_id,
+        }
+      })
+
+      const revenueByPlan: Record<string, { planName: string; totalRevenue: number; tenantCount: number }> = {}
+      const countedTenants: Record<string, Set<string>> = {}
+
+      ;(payments || []).forEach((p: any) => {
+        const tenant = tenantPlanMap[p.tenant_id]
+        if (!tenant) return
+        const planId = tenant.planId
+        if (!revenueByPlan[planId]) {
+          revenueByPlan[planId] = { planName: tenant.planName, totalRevenue: 0, tenantCount: 0 }
+          countedTenants[planId] = new Set()
+        }
+        revenueByPlan[planId].totalRevenue += p.amount || 0
+        countedTenants[planId].add(p.tenant_id)
+      })
+
+      // Update tenant counts
+      Object.keys(revenueByPlan).forEach(planId => {
+        revenueByPlan[planId].tenantCount = countedTenants[planId].size
+      })
+
+      // Add plans with tenants but no payments yet
+      ;(tenants || []).forEach((t: any) => {
+        if (!revenueByPlan[t.subscription_plan_id]) {
+          revenueByPlan[t.subscription_plan_id] = {
+            planName: t.subscription_plan?.name || 'Unknown',
             totalRevenue: 0,
-            tenantCount: 0,
+            tenantCount: 1,
           }
         }
-
-        acc[planId].totalRevenue += revenue || 0
-        acc[planId].tenantCount += 1
-
-        return acc
-      }, {})
+      })
 
       return Object.values(revenueByPlan)
     },
