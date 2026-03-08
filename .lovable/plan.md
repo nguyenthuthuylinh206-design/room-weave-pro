@@ -1,87 +1,100 @@
 
 
-## Phan tich luong phieu giao hang (Distribution Order)
+## Logic tính phí quá thời gian đặt phòng — Phân tích chi tiết
 
-### Hien trang: Cau truc luong hien tai
+### Tổng quan kiến trúc
 
-Luong hien tai co **3 cach tao** va **5 buoc xu ly**, kha phuc tap:
+Logic tính phí nằm chủ yếu trong 3 file:
+- `src/lib/bookingCalculations.ts` — Core calculation functions
+- `src/hooks/useBookingActions.ts` — Single checkout flow
+- `src/hooks/useGroupCheckoutCalculations.ts` — Group checkout flow
 
-#### 3 Dau vao (Entry Points)
-1. **Tao thu cong** (`/inventory/distributions/new`) - CreateDistributionPage.tsx
-2. **Tao tu yeu cau bo sung** (`/inventory/distributions/from-supplements`) - CreateFromSupplementsPage.tsx
-3. **Tao tu Xuat kho** (`/inventory/outbound` voi category `room_assign`) - OutboundPage.tsx dung cung DistributionForm
+---
 
-#### 5 Buoc xu ly (Lifecycle)
+### 1. THEO NGÀY (Daily) — Phụ thu check-out trễ
+
+**Hàm**: `calculateLateCheckoutCharge()`
+
+Logic dựa trên **giờ thực tế checkout** so với giờ tiêu chuẩn (mặc định 12:00):
+
 ```text
-pending --> released --> in_progress --> completed --> closed
-  (1)        (2)           (3)            (4)          (5)
+Giờ checkout     │ Phụ thu (% giá phòng/đêm)
+─────────────────┼──────────────────────────
+≤ 12:00          │ 0% (đúng giờ)
+12:01 - 15:00    │ 30%
+15:01 - 18:00    │ 50%
+Sau 18:00        │ 100% (= 1 đêm)
 ```
 
-1. **pending** - Kho chuan bi hang, kiem tra ton kho, giao cho nhan vien (Warehouse Manager click "Kiem tra & Giao hang")
-2. **released** - Nhan vien xac nhan da nhan du hang (Assignee click "Xac nhan da nhan du hang")
-3. **in_progress** - Nhan vien di giao tung phong, click "GIAO" -> chuyen sang room check
-4. **completed** - Tat ca phong da giao xong
-5. **closed** - Manager dong phieu
+**Trường hợp quá hạn ngày** (overdue — checkout sau ngày dự kiến):
+- `ExtendBookingDialog` phát hiện overdue bằng `differenceInCalendarDays(today, checkOutDate)`
+- Cho phép lễ tân "Checkout ngay" → hệ thống gia hạn ảo `check_out_date` đến hôm nay
+- Sau đó tính lại cost breakdown bình thường (bao gồm late charge nếu quá 12h)
+- Chi phí thêm = `additionalNights × roomPrice` (tính từ ngày checkout cũ → ngày mới)
 
-### Van de phat hien
+**Nhận xét**: Logic **KHÔNG tự động tính thêm đêm** cho ngày quá hạn. Nó phụ thuộc vào việc lễ tân gia hạn `check_out_date` trước. Nếu không gia hạn mà checkout thẳng, chỉ tính late surcharge trong ngày (tối đa 100% = 1 đêm), **bỏ qua các đêm quá hạn trước đó**.
 
-#### 1. Trung lap dau vao: OutboundPage dung trung DistributionForm
-- `OutboundPage.tsx` (Xuat kho) khi chon category `room_assign` se render cung `DistributionForm` va goi `useCreateDistributionOrder` - hoan toan giong `CreateDistributionPage.tsx`
-- Nguoi dung co 2 noi tao cung 1 thu -> nhầm lẫn
-- **De xuat**: Khi chon "Giao den phong" trong OutboundPage, chuyen huong (redirect) sang `/inventory/distributions/new` thay vi nhan doi form
+---
 
-#### 2. Buoc "released" co the thua (khong can thiet voi nhieu truong hop)
-- Sau khi kho giao hang (pending -> released), nhan vien phai bam "Xac nhan da nhan du hang" de chuyen sang in_progress
-- Voi hotel nho (kho va nhan vien la 1 nguoi), buoc nay thua
-- Da co option `auto_release` nhung chi skip buoc kho, khong skip buoc nhan hang
-- **De xuat**: Them option "Tu dong bat dau giao" de skip ca buoc released, chuyen thang tu pending -> in_progress khi assignee la chinh nguoi tao
+### 2. THEO GIỜ (Hourly) — Phí vượt giờ
 
-#### 3. Qua trinh giao phong phuc tap - click "GIAO" -> navigate ra room check
-- Khi nhan vien click "GIAO" tren 1 phong, he thong navigate sang `/rooms/{id}/check?type=delivery&...`
-- Phai lam room check roi moi quay lai -> mat flow, phai quay lai trang phieu de giao phong tiep
-- **De xuat**: Sau khi hoan thanh room check, tu dong quay lai trang phieu giao hang thay vi o lai trang room check
+**Hàm**: `calculateHourlyOvertimeCharge()`
 
-#### 4. Thieu thong tin tong hop khi tao phieu
-- CreateDistributionPage khong hien thi summary (tong so phong, tong so item, tong so luong) truoc khi submit
-- DistributionForm hien thi 2 panel (chon phong + phan bo san pham) nhung khong co summary bar
-- **De xuat**: Them summary bar hien thi: X phong, Y loai SP, Z don vi truoc nut "Tao phieu"
+```text
+Phí = ceil(overtimeMinutes / 60) × hourlyRate
+```
 
-#### 5. Auto-fill logic tot nhung UX chua ro rang
-- `useDistributionForm` co `autoFillMissingItems` va `autoFillMissingItemsForRoom` de tu dong tinh so luong theo tieu chuan phong
-- Nhung trong CreateDistributionPage, nut auto-fill khong duoc hien thi ro rang
-- **De xuat**: Them nut "Tu dong phan bo theo tieu chuan" noi bat hon trong form
+- So sánh `actualCheckoutTime` vs `scheduledEndTime` (stored as `hourly_end_time`)
+- Làm tròn **lên** số giờ vượt (30 phút → 1 giờ)
+- Phí vượt giờ được coi như `totalSurcharges` trong `calculateBookingCost`
+- **Không áp dụng** early/late surcharge kiểu daily
 
-### Ke hoach khac phuc
+**Nhận xét**: Logic chính xác. Không có lỗ hổng.
 
-#### Thay doi 1: Redirect OutboundPage khi chon "room_assign"
-**File**: `src/pages/inventory/OutboundPage.tsx`
-- Khi user chon category `room_assign`, hien thi thong bao va nut chuyen sang trang tao phieu giao hang chuyen dung thay vi render form trung lap
+---
 
-#### Thay doi 2: Them summary bar trong CreateDistributionPage
-**File**: `src/pages/inventory/CreateDistributionPage.tsx`
-- Hien thi summary compact (so phong, so SP, tong SL) ngay tren nut "Tao phieu"
-- Hien thi canh bao stock validation o footer thay vi chi trong form
+### 3. THEO THÁNG (Monthly) — Không tính phụ thu thời gian
 
-#### Thay doi 3: Auto-navigate ve phieu sau room check
-**File**: `src/components/distribution/components/UnifiedRoomList.tsx`
-- Them query param `returnTo` khi navigate sang room check
-- Sau khi room check xong, tu dong quay ve trang phieu giao hang
+```text
+case 'monthly':
+  // No time-based surcharges for monthly bookings
+  months = booking.booking_months || 1
+  break
+```
 
-#### Thay doi 4: Don gian hoa flow cho hotel nho
-**File**: `src/components/distribution/components/DeliveryStepWizard.tsx`
-- Khi nguoi tao phieu cung la nguoi duoc phan cong (assignee), gop buoc "Kiem tra kho" va "Nhan hang" thanh 1 buoc duy nhat
-- Giam so buoc tu 5 xuong 3-4 tuy truong hop
+- Hoàn toàn **không tính phụ thu** check-in sớm, check-out trễ, hay overtime
+- `totalSurcharges = 0` luôn
+- Chỉ tính: `monthlyRate × months - monthlyDiscount`
 
-#### Thay doi 5: Lam ro auto-fill trong form
-**File**: `src/components/distribution/forms/ItemAllocator.tsx`
-- Them nut "Tu dong phan bo" noi bat, co tooltip giai thich
-- Hien thi ket qua auto-fill (bao nhieu SP da them, bao nhieu thieu) ro rang hon
+**Nhận xét**: Đây là **thiếu sót tiềm năng**. Nếu khách thuê tháng ở quá ngày hết hợp đồng (ví dụ thuê 1 tháng nhưng ở thêm 5 ngày), hệ thống **không có cơ chế tính phí** cho những ngày dư. Lễ tân phải xử lý thủ công (gia hạn thêm tháng hoặc tạo booking daily mới).
 
-### Uu tien thuc hien
+---
 
-1. **Thay doi 2** (Summary bar) - De lam, giam nhầm lẫn ngay
-2. **Thay doi 1** (Redirect OutboundPage) - Loai bo trung lap
-3. **Thay doi 3** (Auto-navigate ve phieu) - Cai thien flow giao hang
-4. **Thay doi 4** (Don gian hoa step) - Giam buoc cho hotel nho
-5. **Thay doi 5** (Auto-fill ro rang) - Cai thien UX
+### 4. Luồng checkout tổng hợp
+
+```text
+useBookingActions.handleCheckout()
+├── Xác định bookingType
+├── switch(bookingType)
+│   ├── hourly → calculateHourlyOvertimeCharge()
+│   ├── monthly → no surcharge
+│   └── daily → calculateLateCheckoutCharge()
+├── calculateServiceChargesFromConsumables()
+├── get_booking_chargeable_total (minibar)
+├── calculateBookingCost() → costBreakdown
+└── perform_checkout RPC (atomic update)
+    └── surchargeToStore = hourly ? overtimeCharge : lateCheckoutCharge
+```
+
+---
+
+### Tổng kết: Không có bug code, nhưng có gap nghiệp vụ
+
+| Loại | Tính phí quá giờ | Tính phí quá ngày | Trạng thái |
+|------|-------------------|---------------------|------------|
+| Daily | ✅ Late surcharge 30-100% | ⚠️ Phụ thuộc gia hạn thủ công | Hoạt động đúng |
+| Hourly | ✅ Overtime = ceil(phút/60) × rate | N/A | Hoạt động đúng |
+| Monthly | ❌ Không có cơ chế | ❌ Không có cơ chế | Gap nghiệp vụ |
+
+**Không cần fix code nào** — logic hiện tại hoạt động đúng theo thiết kế. Gap duy nhất là monthly không có penalty quá hạn, nhưng đây có thể là by design (thuê tháng thường xử lý bằng hợp đồng/thương lượng).
 
