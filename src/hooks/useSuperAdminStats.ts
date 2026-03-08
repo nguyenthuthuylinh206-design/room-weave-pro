@@ -209,7 +209,7 @@ export function useTenantList() {
           id,
           name,
           subscription_status,
-          current_period_end,
+          subscription_end_date,
           trial_ends_at,
           created_at,
           subscription_plan_id,
