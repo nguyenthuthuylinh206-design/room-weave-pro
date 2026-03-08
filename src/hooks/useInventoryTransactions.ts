@@ -269,6 +269,8 @@ export function useDeleteTransaction() {
       queryClient.invalidateQueries({ queryKey: ['inventory-dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
       queryClient.invalidateQueries({ queryKey: ['low-stock-items'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouses-with-stats'] })
       
       toast({
         title: 'Thành công',

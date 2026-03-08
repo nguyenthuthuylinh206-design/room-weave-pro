@@ -1,93 +1,87 @@
 
 
-## Phan tich logic Kho va Tai san - Cac van de phat hien
+## Phan tich luong phieu giao hang (Distribution Order)
 
-### Bug 1: `useDeleteTransaction` thieu invalidate `warehouse-stock` (NGHIEM TRONG)
+### Hien trang: Cau truc luong hien tai
 
-**File**: `src/hooks/useInventoryTransactions.ts` line 267-271
+Luong hien tai co **3 cach tao** va **5 buoc xu ly**, kha phuc tap:
 
-Khi xoa giao dich, RPC `delete_inventory_transaction` hoan nguyen so luong trong ca bang `items` va `warehouse_stock`. Nhung `onSuccess` chi invalidate `inventory-transactions`, `inventory-dashboard`, `items`, `low-stock-items` -- **thieu `warehouse-stock` va `warehouses-with-stats`**.
+#### 3 Dau vao (Entry Points)
+1. **Tao thu cong** (`/inventory/distributions/new`) - CreateDistributionPage.tsx
+2. **Tao tu yeu cau bo sung** (`/inventory/distributions/from-supplements`) - CreateFromSupplementsPage.tsx
+3. **Tao tu Xuat kho** (`/inventory/outbound` voi category `room_assign`) - OutboundPage.tsx dung cung DistributionForm
 
-Hau qua: Sau khi xoa giao dich, UI hien thi ton kho theo kho cu (stale) cho den khi user reload trang.
-
-**Fix**: Them 2 dong invalidate:
-```typescript
-queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] })
-queryClient.invalidateQueries({ queryKey: ['warehouses-with-stats'] })
+#### 5 Buoc xu ly (Lifecycle)
+```text
+pending --> released --> in_progress --> completed --> closed
+  (1)        (2)           (3)            (4)          (5)
 ```
 
-### Bug 2: `low_stock_count` trong `useWarehousesWithStats` tinh sai
+1. **pending** - Kho chuan bi hang, kiem tra ton kho, giao cho nhan vien (Warehouse Manager click "Kiem tra & Giao hang")
+2. **released** - Nhan vien xac nhan da nhan du hang (Assignee click "Xac nhan da nhan du hang")
+3. **in_progress** - Nhan vien di giao tung phong, click "GIAO" -> chuyen sang room check
+4. **completed** - Tat ca phong da giao xong
+5. **closed** - Manager dong phieu
 
-**File**: `src/hooks/useWarehouses.ts` line 107
+### Van de phat hien
 
-```typescript
-low_stock_count: stocks.filter((s: any) => s.quantity <= (s.minimum_stock || 0)).length
-```
+#### 1. Trung lap dau vao: OutboundPage dung trung DistributionForm
+- `OutboundPage.tsx` (Xuat kho) khi chon category `room_assign` se render cung `DistributionForm` va goi `useCreateDistributionOrder` - hoan toan giong `CreateDistributionPage.tsx`
+- Nguoi dung co 2 noi tao cung 1 thu -> nhầm lẫn
+- **De xuat**: Khi chon "Giao den phong" trong OutboundPage, chuyen huong (redirect) sang `/inventory/distributions/new` thay vi nhan doi form
 
-Van de: `warehouse_stock` join khong select `minimum_stock` (line 82-85 chi select `quantity` va `item.unit_price`). Nen `s.minimum_stock` luon la `undefined`, fallback ve `0`. Tat ca item co `quantity = 0` se duoc dem la low_stock, nhung item co quantity > 0 va duoi minimum_stock se KHONG duoc dem.
+#### 2. Buoc "released" co the thua (khong can thiet voi nhieu truong hop)
+- Sau khi kho giao hang (pending -> released), nhan vien phai bam "Xac nhan da nhan du hang" de chuyen sang in_progress
+- Voi hotel nho (kho va nhan vien la 1 nguoi), buoc nay thua
+- Da co option `auto_release` nhung chi skip buoc kho, khong skip buoc nhan hang
+- **De xuat**: Them option "Tu dong bat dau giao" de skip ca buoc released, chuyen thang tu pending -> in_progress khi assignee la chinh nguoi tao
 
-**Fix**: Them `minimum_stock` vao select:
-```typescript
-warehouse_stock (
-  quantity,
-  minimum_stock,
-  item:item_id (unit_price)
-)
-```
+#### 3. Qua trinh giao phong phuc tap - click "GIAO" -> navigate ra room check
+- Khi nhan vien click "GIAO" tren 1 phong, he thong navigate sang `/rooms/{id}/check?type=delivery&...`
+- Phai lam room check roi moi quay lai -> mat flow, phai quay lai trang phieu de giao phong tiep
+- **De xuat**: Sau khi hoan thanh room check, tu dong quay lai trang phieu giao hang thay vi o lai trang room check
 
-### Bug 3: `useLowStockByWarehouse` dung PostgREST filter khong hop le
+#### 4. Thieu thong tin tong hop khi tao phieu
+- CreateDistributionPage khong hien thi summary (tong so phong, tong so item, tong so luong) truoc khi submit
+- DistributionForm hien thi 2 panel (chon phong + phan bo san pham) nhung khong co summary bar
+- **De xuat**: Them summary bar hien thi: X phong, Y loai SP, Z don vi truoc nut "Tao phieu"
 
-**File**: `src/hooks/useWarehouseStock.ts` line 154
+#### 5. Auto-fill logic tot nhung UX chua ro rang
+- `useDistributionForm` co `autoFillMissingItems` va `autoFillMissingItemsForRoom` de tu dong tinh so luong theo tieu chuan phong
+- Nhung trong CreateDistributionPage, nut auto-fill khong duoc hien thi ro rang
+- **De xuat**: Them nut "Tu dong phan bo theo tieu chuan" noi bat hon trong form
 
-```typescript
-.or('quantity.lte.minimum_stock,quantity.eq.0')
-```
+### Ke hoach khac phuc
 
-PostgREST `.lte()` so sanh voi gia tri cu the (literal), KHONG ho tro so sanh giua 2 column. `quantity.lte.minimum_stock` se co parse `minimum_stock` nhu mot string, khong phai column reference. Query nay co the tra ve ket qua sai hoac loi.
+#### Thay doi 1: Redirect OutboundPage khi chon "room_assign"
+**File**: `src/pages/inventory/OutboundPage.tsx`
+- Khi user chon category `room_assign`, hien thi thong bao va nut chuyen sang trang tao phieu giao hang chuyen dung thay vi render form trung lap
 
-**Fix**: Dung RPC hoac fetch tat ca roi filter client-side:
-```typescript
-// Option 1: Filter client-side
-const { data, error } = await supabase
-  .from('warehouse_stock')
-  .select(`*, item:item_id (...)`)
-  .eq('warehouse_id', warehouseId)
+#### Thay doi 2: Them summary bar trong CreateDistributionPage
+**File**: `src/pages/inventory/CreateDistributionPage.tsx`
+- Hien thi summary compact (so phong, so SP, tong SL) ngay tren nut "Tao phieu"
+- Hien thi canh bao stock validation o footer thay vi chi trong form
 
-// Then filter:
-return (data || []).filter(s => s.quantity <= (s.minimum_stock || 0) || s.quantity === 0)
-```
+#### Thay doi 3: Auto-navigate ve phieu sau room check
+**File**: `src/components/distribution/components/UnifiedRoomList.tsx`
+- Them query param `returnTo` khi navigate sang room check
+- Sau khi room check xong, tu dong quay ve trang phieu giao hang
 
-### Bug 4: `useItemWarehouseStock` filter hotel tren relation khong hoat dong
+#### Thay doi 4: Don gian hoa flow cho hotel nho
+**File**: `src/components/distribution/components/DeliveryStepWizard.tsx`
+- Khi nguoi tao phieu cung la nguoi duoc phan cong (assignee), gop buoc "Kiem tra kho" va "Nhan hang" thanh 1 buoc duy nhat
+- Giam so buoc tu 5 xuong 3-4 tuy truong hop
 
-**File**: `src/hooks/useWarehouseStock.ts` line 73-75
+#### Thay doi 5: Lam ro auto-fill trong form
+**File**: `src/components/distribution/forms/ItemAllocator.tsx`
+- Them nut "Tu dong phan bo" noi bat, co tooltip giai thich
+- Hien thi ket qua auto-fill (bao nhieu SP da them, bao nhieu thieu) ro rang hon
 
-```typescript
-if (selectedHotel?.id) {
-  query = query.eq('warehouse.hotel_id', selectedHotel.id)
-}
-```
+### Uu tien thuc hien
 
-PostgREST filtering tren embedded resource (`warehouse.hotel_id`) chi filter cac warehouse records, nhung van tra ve warehouse_stock rows voi `warehouse: null`. Code da xu ly bang `.filter(s => s.warehouse !== null)` (line 81), nhung dieu nay co nghia la query van fetch du lieu khong can thiet tu DB.
-
-**Muc do**: Nho - da co workaround. Khong can fix ngay.
-
-### Bug 5: Transfer form cho phep submit khi overstock
-
-**File**: `src/pages/inventory/TransferPage.tsx` line 320
-
-```typescript
-<Button type="submit" size="sm" disabled={isLoading || hasOverstock || !fromWarehouseId}>
-```
-
-Van de: `hasOverstock` chi check client-side. Khong co server-side validation trong RPC `create_warehouse_transfer`. Neu stock thay doi giua luc check va luc submit, co the tao transfer vuot qua ton kho.
-
-**Muc do**: Trung binh - can kiem tra RPC co validate khong. Neu RPC da validate thi OK.
-
-### Ke hoach fix (3 bug chinh)
-
-1. **Fix `useDeleteTransaction` invalidation** - Them `warehouse-stock` va `warehouses-with-stats` vao invalidate list
-2. **Fix `useWarehousesWithStats` select** - Them `minimum_stock` vao warehouse_stock select
-3. **Fix `useLowStockByWarehouse` filter** - Chuyen sang client-side filter thay vi PostgREST cross-column comparison
-
-**Files thay doi**: `src/hooks/useInventoryTransactions.ts`, `src/hooks/useWarehouses.ts`, `src/hooks/useWarehouseStock.ts`
+1. **Thay doi 2** (Summary bar) - De lam, giam nhầm lẫn ngay
+2. **Thay doi 1** (Redirect OutboundPage) - Loai bo trung lap
+3. **Thay doi 3** (Auto-navigate ve phieu) - Cai thien flow giao hang
+4. **Thay doi 4** (Don gian hoa step) - Giam buoc cho hotel nho
+5. **Thay doi 5** (Auto-fill ro rang) - Cai thien UX
 

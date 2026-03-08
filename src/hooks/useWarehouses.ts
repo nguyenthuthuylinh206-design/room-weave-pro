@@ -81,6 +81,7 @@ export function useWarehousesWithStats() {
           *,
           warehouse_stock (
             quantity,
+            minimum_stock,
             item:item_id (unit_price)
           )
         `)
