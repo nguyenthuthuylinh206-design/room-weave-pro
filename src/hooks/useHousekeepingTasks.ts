@@ -460,15 +460,20 @@ export function useCancelTask() {
 
   return useMutation({
     mutationFn: async (taskId: string) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('housekeeping_tasks')
         .update({
           status: 'cancelled',
           cancelled_at: new Date().toISOString()
         })
         .eq('id', taskId)
+        .in('status', ['pending', 'in_progress', 'assigned'])
+        .select()
 
       if (error) throw error
+      if (!data || data.length === 0) {
+        throw new Error('Không thể hủy công việc đã hoàn thành hoặc đã hủy')
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })

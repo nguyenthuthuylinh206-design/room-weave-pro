@@ -425,6 +425,8 @@ export function useApproveAdjustment() {
       queryClient.invalidateQueries({ queryKey: ['stock-adjustment', variables.adjustmentId] })
       queryClient.invalidateQueries({ queryKey: ['inventory-dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouses-with-stats'] })
       
       // Trigger workflow for approved adjustment
       try {
