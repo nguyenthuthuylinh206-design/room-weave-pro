@@ -195,17 +195,17 @@ export function useSendReminder() {
       // Get reminder details
       const { data: reminder, error: fetchError } = await supabase
         .from('renewal_reminders')
-        .select('*, tenant:tenants(id, name, primary_contact_email)')
+        .select('*, tenant:tenants(id, name, email)')
         .eq('id', reminderId)
         .single();
 
       if (fetchError) throw fetchError;
 
       // Try sending email via edge function
-      if (reminder.tenant?.primary_contact_email) {
+      if (reminder.tenant?.email) {
         const { error: emailError } = await supabase.functions.invoke('send-notification-email', {
           body: {
-            to: reminder.tenant.primary_contact_email,
+            to: reminder.tenant.email,
             subject: reminder.email_subject || `Nhắc nhở gia hạn - ${reminder.tenant.name}`,
             html: reminder.email_body || `<p>Đăng ký của ${reminder.tenant.name} sắp hết hạn. Vui lòng gia hạn.</p>`,
           },
