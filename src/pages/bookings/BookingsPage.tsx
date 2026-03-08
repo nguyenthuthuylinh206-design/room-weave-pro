@@ -1105,6 +1105,206 @@ export function BookingsPage() {
     setMinimizedCheckouts(prev => prev.filter(c => c.booking.id !== bookingId))
   }
   
+  if (isMobile) {
+    return (
+      <>
+        <MobileBookingsPage
+          bookings={bookings || []}
+          filteredBookings={filteredBookings}
+          isLoading={isLoading}
+          stats={stats}
+          statusFilter={statusFilter}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onStatusFilterChange={(s) => setStatusFilter(s as BookingStatus)}
+          onCheckInClick={handleCheckInClick}
+          onCheckOutClick={handleCheckOutClick}
+          onBookingClick={(booking) => {
+            setSelectedBooking(booking)
+            setShowEditDialog(true)
+          }}
+          onAddBooking={() => setShowAddDialog(true)}
+          isActionLoading={isActionLoading}
+          actionBookingId={actionBooking?.id}
+          groupCounts={groupCounts}
+        />
+        
+        {/* Dialogs - shared between mobile and desktop */}
+        <AddBookingDialog open={showAddDialog} onOpenChange={setShowAddDialog} />
+        
+        {showEditDialog && selectedBooking && (
+          <RoomBookingDialog
+            open={showEditDialog}
+            onOpenChange={(open) => { setShowEditDialog(open); if (!open) setSelectedBooking(null) }}
+            roomId={selectedBooking.room_id}
+            roomNumber={selectedBooking.room?.room_number || ''}
+            hotelId={selectedBooking.hotel_id}
+            tenantId={selectedBooking.tenant_id}
+            booking={selectedBooking}
+          />
+        )}
+
+        {actionBooking && (
+          <CheckInConfirmDialog
+            open={showCheckinConfirm}
+            onOpenChange={(open) => { setShowCheckinConfirm(open); if (!open) setActionBooking(null) }}
+            guestName={actionBooking.guest_name}
+            guestPhone={actionBooking.guest_phone}
+            roomNumber={actionBooking.room?.room_number || ''}
+            actualCheckInTime={format(new Date(), 'HH:mm')}
+            roomPrice={(actionBooking as any).room_price || 0}
+            suggestedCharge={suggestedEarlyCharge}
+            bookingType={actionBooking.booking_type || 'daily'}
+            bookingHours={actionBooking.booking_hours || undefined}
+            bookingMonths={actionBooking.booking_months || undefined}
+            checkInDate={new Date(actionBooking.check_in_date)}
+            checkOutDate={new Date(actionBooking.check_out_date)}
+            totalNights={differenceInDays(new Date(actionBooking.check_out_date), new Date(actionBooking.check_in_date))}
+            totalAmount={actionBooking.total_amount || 0}
+            depositAmount={actionBooking.deposit_amount || 0}
+            bookingSource={actionBooking.booking_source}
+            onConfirm={(finalCharge, adjustmentNote) => performCheckIn(actionBooking, finalCharge, adjustmentNote)}
+            isLoading={isActionLoading}
+          />
+        )}
+
+        {actionBooking && checkoutCostBreakdown && (
+          <CheckoutSummaryDialog
+            open={showCheckoutSummary}
+            onOpenChange={(open) => { setShowCheckoutSummary(open); if (!open) { setActionBooking(null); setCheckoutCostBreakdown(null); setRestoredFromWidget(false) } }}
+            guestName={actionBooking.guest_name}
+            roomNumber={actionBooking.room?.room_number || ''}
+            actualCheckoutTime={format(new Date(), 'HH:mm')}
+            actualCheckoutDate={new Date()}
+            scheduledCheckoutDate={actionBooking.check_out_date ? new Date(actionBooking.check_out_date) : new Date()}
+            costBreakdown={checkoutCostBreakdown}
+            bookingType={actionBooking.booking_type || 'daily'}
+            hourlyRate={actionBooking.hourly_rate || undefined}
+            bookingHours={actionBooking.booking_hours || undefined}
+            scheduledEndTime={actionBooking.hourly_end_time ? new Date(`${actionBooking.check_out_date}T${actionBooking.hourly_end_time}`) : undefined}
+            monthlyRate={actionBooking.monthly_rate || undefined}
+            bookingMonths={actionBooking.booking_months || undefined}
+            damageItems={checkoutDamageItems}
+            onConfirmCheckout={performCheckOut}
+            onPayAndCheckout={handlePayAndCheckout}
+            isLoading={isActionLoading}
+            bookingId={actionBooking.id}
+            roomId={actionBooking.room_id}
+            hotelId={actionBooking.hotel_id}
+            tenantId={actionBooking.tenant_id}
+            onInspectionCompleted={handleInspectionCompleted}
+            onMinimize={handleMinimizeCheckout}
+            skipCompletionToast={restoredFromWidget}
+          />
+        )}
+
+        {minimizedCheckouts.length > 0 && (
+          <div className="fixed bottom-20 right-4 z-50 flex flex-col-reverse gap-2">
+            {minimizedCheckouts.map((checkout) => (
+              <MinimizedCheckoutWidget
+                key={checkout.booking.id}
+                checkout={checkout}
+                onRestore={handleRestoreCheckout}
+                onClose={handleCloseMinimizedCheckout}
+                tenantId={tenantId}
+              />
+            ))}
+          </div>
+        )}
+
+        {actionBooking && (
+          <ExtendBookingDialog
+            open={showExtendDialog}
+            onOpenChange={(open) => { setShowExtendDialog(open); if (!open) setActionBooking(null) }}
+            booking={actionBooking}
+            onSuccess={() => setActionBooking(null)}
+            onCheckoutNow={async () => {
+              setShowExtendDialog(false)
+              if (!actionBooking) return
+              setIsActionLoading(true)
+              try {
+                const now = new Date()
+                const todayStr = format(now, 'yyyy-MM-dd')
+                setOverdueCheckoutDate(todayStr)
+                const updatedBooking = { ...actionBooking, check_out_date: todayStr }
+                setActionBooking(updatedBooking)
+                const actualTime = format(now, 'HH:mm')
+                const roomPrice = (updatedBooking as any).room_price || 0
+                const bType = updatedBooking.booking_type || 'daily'
+                const calculatedLateCharge = bType === 'daily' ? calculateLateCheckoutCharge(actualTime, roomPrice) : 0
+                const checkIn = new Date(updatedBooking.check_in_date)
+                const checkOut = new Date(todayStr)
+                const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
+                const consumablesTotal = await calculateServiceChargesFromConsumables(updatedBooking.id)
+                const serviceCharges = consumablesTotal > 0 ? consumablesTotal : ((updatedBooking as any).service_charges || 0)
+                const { data: chargeableTotal } = await supabase.rpc('get_booking_chargeable_total', { p_booking_id: updatedBooking.id })
+                const extraChargeableAmount = chargeableTotal || 0
+                const { data: latestCheck } = await supabase.from('room_checks').select('items_lost, items_damaged, items_consumed').eq('room_id', updatedBooking.room_id).in('check_type', ['checkout', 'daily']).order('checked_at', { ascending: false }).limit(1).maybeSingle()
+                const damageItems: DamageChargeItem[] = [
+                  ...((latestCheck?.items_lost as any[]) || []).map(item => ({ item_id: item.item_id, item_name: item.item_name, item_type: 'lost' as const, quantity: item.quantity, charge_amount: item.estimated_value || 0 })),
+                  ...((latestCheck?.items_damaged as any[]) || []).map(item => ({ item_id: item.item_id, item_name: item.item_name, item_type: 'damaged' as const, quantity: item.quantity, charge_amount: item.damage_cost || 0, damage_type: item.damage_type })),
+                  ...((latestCheck?.items_consumed as any[]) || []).map(item => ({ item_id: item.item_id, item_name: item.item_name, item_type: 'consumed' as const, quantity: item.quantity, charge_amount: item.unit_price || 0 })),
+                ]
+                const totalDamageCharge = damageItems.reduce((sum, item) => sum + item.charge_amount * item.quantity, 0)
+                let hourlyOvertimeCharge = 0
+                if (bType === 'hourly' && updatedBooking.hourly_end_time) {
+                  const scheduledEnd = new Date(`${todayStr}T${updatedBooking.hourly_end_time}`)
+                  const overtimeMinutes = (now.getTime() - scheduledEnd.getTime()) / (1000 * 60)
+                  if (overtimeMinutes > 0) hourlyOvertimeCharge = Math.ceil(overtimeMinutes / 60) * (updatedBooking.hourly_rate || 0)
+                }
+                const costBreakdown = calculateBookingCost({
+                  bookingType: bType, roomPrice, nights,
+                  earlyCheckinCharge: bType === 'daily' ? ((updatedBooking as any).early_checkin_charge || 0) : 0,
+                  lateCheckoutCharge: bType === 'daily' ? calculatedLateCharge : 0,
+                  hourlyRate: updatedBooking.hourly_rate || 0, hours: updatedBooking.booking_hours || 0, hourlyOvertimeCharge,
+                  monthlyRate: updatedBooking.monthly_rate || 0, months: updatedBooking.booking_months || 0,
+                  serviceCharges, extraCharges: ((updatedBooking as any).extra_charges || 0) + extraChargeableAmount,
+                  damageCharges: totalDamageCharge, damageItems,
+                  vatRate: (updatedBooking as any).vat_rate ?? DEFAULT_PRICING_RULES.vatRate,
+                  serviceFeeRate: (updatedBooking as any).service_fee_rate ?? DEFAULT_PRICING_RULES.serviceFeeRate,
+                  depositAmount: (updatedBooking as any).deposit_amount || 0, amountPaid: (updatedBooking as any).amount_paid || 0,
+                })
+                setCheckoutDamageItems(damageItems)
+                setCheckoutCostBreakdown(costBreakdown)
+                setShowCheckoutSummary(true)
+              } catch (error: any) {
+                toast({ variant: 'destructive', title: 'Lỗi tính toán', description: error.message })
+                setActionBooking(null)
+              } finally {
+                setIsActionLoading(false)
+              }
+            }}
+            onTransferRoom={() => {
+              toast({ title: 'Chuyển phòng', description: 'Tính năng chuyển phòng đang phát triển.', variant: 'default' })
+            }}
+          />
+        )}
+
+        {selectedGroupId && tenantId && selectedHotelId && (
+          <>
+            <GroupPaymentDialog
+              open={showGroupPaymentDialog}
+              onOpenChange={(open) => { setShowGroupPaymentDialog(open); if (!open) setSelectedGroupId(null) }}
+              bookingGroupId={selectedGroupId}
+              tenantId={tenantId}
+              hotelId={selectedHotelId}
+              onPaymentComplete={() => { queryClient.invalidateQueries({ queryKey: ['all-bookings'] }); queryClient.invalidateQueries({ queryKey: ['group-booking'] }) }}
+            />
+            <GroupCheckoutDialog
+              open={showGroupCheckoutDialog}
+              onOpenChange={(open) => { setShowGroupCheckoutDialog(open); if (!open) setSelectedGroupId(null) }}
+              bookingGroupId={selectedGroupId}
+              tenantId={tenantId}
+              hotelId={selectedHotelId}
+              onCheckoutComplete={() => { queryClient.invalidateQueries({ queryKey: ['all-bookings'] }); queryClient.invalidateQueries({ queryKey: ['group-booking'] }); queryClient.invalidateQueries({ queryKey: ['rooms'] }) }}
+              onMinimize={handleMinimizeGroupCheckout}
+            />
+          </>
+        )}
+      </>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
