@@ -34,9 +34,7 @@ export function QuickActions() {
     {
       label: t('quickActions.generateReport'),
       icon: FileText,
-      onClick: () => {
-        console.log('Generate report');
-      },
+      onClick: () => navigate('/super-admin/analytics'),
       iconColor: 'text-orange-600',
     },
   ];
