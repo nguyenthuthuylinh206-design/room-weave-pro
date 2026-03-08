@@ -51,7 +51,10 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
   const handleHandoverFirstBatch = useCallback(async () => {
     if (!firstPendingBatch || !route) return
     
-    const result = await handoverBatch.mutateAsync({ batchId: firstPendingBatch.id })
+    const result = await handoverBatch.mutateAsync({ 
+      batchId: firstPendingBatch.id,
+      silent: isSelfAssignFlow,
+    })
     
     if (!result.success && result.error === 'INSUFFICIENT_STOCK' && result.insufficient_items) {
       setInsufficientItems(result.insufficient_items)
@@ -60,8 +63,8 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
     }
     
     if (result.success && isSelfAssignFlow) {
-      await confirmReceive.mutateAsync({ orderId: route.id })
-      // Single toast for the entire self-assign flow (suppress individual mutation toasts via setSelfAssignActive)
+      await confirmReceive.mutateAsync({ orderId: route.id, silent: true })
+      toast.success('Đã kiểm tra kho & bắt đầu giao hàng')
     }
   }, [firstPendingBatch, handoverBatch, route, isSelfAssignFlow, confirmReceive])
 
@@ -71,18 +74,17 @@ export function RouteDetailView({ orderId, embedded = false }: RouteDetailViewPr
     try {
       const result = await handoverBatch.mutateAsync({ 
         batchId: firstPendingBatch.id, 
-        adjustments 
+        adjustments,
+        silent: isSelfAssignFlow,
       })
       
       if (result.success) {
         setAdjustDialogOpen(false)
         setInsufficientItems([])
         
-        if (user?.id === route.created_by && user?.id === route.assigned_to) {
-          await confirmReceive.mutateAsync({ orderId: route.id })
+        if (isSelfAssignFlow) {
+          await confirmReceive.mutateAsync({ orderId: route.id, silent: true })
           toast.success('Đã kiểm tra kho & bắt đầu giao hàng (đã điều chỉnh)')
-        } else {
-          toast.success('Đã giao hàng cho nhân viên với số lượng điều chỉnh')
         }
       }
     } catch (error) {
