@@ -82,7 +82,7 @@ import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers
 
 type BookingStatus = 'all' | 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show' | 'conflict' | 'overdue'
 
-interface BookingWithRoom {
+export interface BookingWithRoom {
   id: string
   guest_name: string
   guest_phone: string | null
