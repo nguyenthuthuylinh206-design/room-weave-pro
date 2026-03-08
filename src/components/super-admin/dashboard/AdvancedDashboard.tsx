@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { exportToExcel } from '@/utils/exportUtils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { 
@@ -31,6 +32,10 @@ export function AdvancedDashboard() {
   const { data: churn } = useChurnRate(30);
 
   const totalRevenue = Number(stats?.revenue_this_month || 0);
+  const lastMonthRevenue = Number(stats?.revenue_last_month || 0);
+  const revenueChange = lastMonthRevenue > 0
+    ? (((totalRevenue - lastMonthRevenue) / lastMonthRevenue) * 100).toFixed(1)
+    : '0';
   const arpu = stats?.active_tenants 
     ? (Number(stats.mrr) / Number(stats.active_tenants)).toFixed(2) 
     : '0';
@@ -50,7 +55,19 @@ export function AdvancedDashboard() {
               <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
               {t('dashboard.refresh')}
             </Button>
-            <Button size="sm">
+            <Button size="sm" onClick={() => {
+              if (stats) {
+                exportToExcel([{
+                  'Doanh thu tháng này': stats.revenue_this_month,
+                  'Doanh thu tháng trước': stats.revenue_last_month,
+                  'MRR': stats.mrr,
+                  'Khách hàng hoạt động': stats.active_tenants,
+                  'Khách hàng dùng thử': stats.trial_tenants,
+                  'Sắp hết hạn (7 ngày)': stats.expiring_7_days,
+                  'Đăng ký mới tháng này': stats.new_signups_this_month,
+                }], `super-admin-report-${new Date().toISOString().slice(0, 10)}`, 'Báo cáo');
+              }
+            }}>
               <Download className="h-3.5 w-3.5 mr-1.5" />
               {t('dashboard.exportReport')}
             </Button>
@@ -63,8 +80,8 @@ export function AdvancedDashboard() {
         <MetricCard
           title={t('dashboard.totalRevenue')}
           value={`${totalRevenue.toLocaleString('vi-VN')}đ`}
-          change="+12.5%"
-          trend="up"
+          change={`${Number(revenueChange) >= 0 ? '+' : ''}${revenueChange}%`}
+          trend={Number(revenueChange) >= 0 ? 'up' : 'down'}
           icon={DollarSign}
           vsLastMonth={t('dashboard.vsLastMonth')}
         />

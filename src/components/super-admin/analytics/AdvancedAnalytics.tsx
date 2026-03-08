@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { exportToCSV } from '@/utils/exportUtils';
 import { DollarSign, TrendingUp, TrendingDown, Users, Download, FileText } from 'lucide-react';
 import { PageHeader } from '@/components/super-admin/shared/PageHeader';
 import { StatCard } from '@/components/super-admin/shared/StatCard';
@@ -84,7 +85,17 @@ export function AdvancedAnalytics() {
         actions={
           <div className="flex items-center gap-2">
             <DateRangePicker value={dateRange} onChange={setDateRange} />
-            <Button variant="outline" size="sm" className="h-8">
+            <Button variant="outline" size="sm" className="h-8" onClick={() => {
+              const exportData = [
+                { 'MRR': mrr, 'ARR': arr, 'Growth': growthRate, 'Churn Rate': churnData?.churnRate || 0 },
+              ];
+              if (revenueByPlan) {
+                (revenueByPlan as any[]).forEach((p: any) => {
+                  exportData.push({ 'MRR': p.planName, 'ARR': p.totalRevenue, 'Growth': p.tenantCount, 'Churn Rate': 0 });
+                });
+              }
+              exportToCSV(exportData, `analytics-${new Date().toISOString().slice(0, 10)}`);
+            }}>
               <Download className="h-3.5 w-3.5 mr-1.5" />
               <span className="hidden sm:inline">{t('analytics.export.csv')}</span>
             </Button>

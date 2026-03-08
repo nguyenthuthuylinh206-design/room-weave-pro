@@ -113,6 +113,7 @@ import { RenewalRemindersPage } from "./pages/admin/RenewalRemindersPage";
 import { PricingPlansPage } from "./pages/admin/PricingPlansPage";
 import { PaymentSettingsPage } from "./pages/admin/PaymentSettingsPage";
 import { SuperAdminSettingsPage } from "./pages/admin/SuperAdminSettingsPage";
+import TenantApprovalPage from "./pages/admin/TenantApprovalPage";
 import NotificationHistoryPage from "./pages/NotificationHistoryPage";
 import HelpPage from "./pages/HelpPage";
 import StaffManagementPage from "./pages/staff/StaffManagementPage";
@@ -180,6 +181,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <SuperAdminDashboard /> },
       { path: "tenants", element: <TenantsPage /> },
+      { path: "approval", element: <TenantApprovalPage /> },
       { path: "promo-codes", element: <PromoCodesPage /> },
       { path: "campaigns", element: <MarketingCampaignsPage /> },
       { path: "reminders", element: <RenewalRemindersPage /> },

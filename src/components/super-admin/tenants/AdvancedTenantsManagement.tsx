@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { exportToExcel } from '@/utils/exportUtils';
+import { useTenants } from '@/hooks/super-admin/useTenants';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,8 +26,21 @@ export function AdvancedTenantsManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTenants, setSelectedTenants] = useState<string[]>([]);
 
+  const { data: tenants } = useTenants();
+
   const handleExport = () => {
-    console.log('Export tenants data');
+    if (tenants && tenants.length > 0) {
+      const exportData = tenants.map((t: any) => ({
+        'Tên': t.name,
+        'Email': t.primary_contact_email || '',
+        'Gói': t.subscription_tier || '',
+        'Trạng thái': t.subscription_status || '',
+        'Số phòng': t.registered_rooms || 0,
+        'Ngày tạo': t.created_at,
+        'Hết hạn': t.subscription_end_date || '',
+      }));
+      exportToExcel(exportData, `tenants-${new Date().toISOString().slice(0, 10)}`, 'Khách hàng');
+    }
   };
 
   return (

@@ -14,11 +14,14 @@ import {
   Menu,
   X,
   Shield,
+  ClipboardCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useSuperAdminAuth } from '@/hooks/useSuperAdminAuth';
+import { NotificationBell } from './shared/NotificationBell';
+import { ThemeToggle } from './shared/ThemeToggle';
 
 export function SuperAdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -29,6 +32,7 @@ export function SuperAdminLayout() {
   const navigation = [
     { name: t('navigation.overview'), href: '/super-admin', icon: LayoutDashboard },
     { name: t('navigation.tenants'), href: '/super-admin/tenants', icon: Users },
+    { name: t('navigation.approval'), href: '/super-admin/approval', icon: ClipboardCheck },
     { name: t('navigation.promoCodes'), href: '/super-admin/promo-codes', icon: Tag },
     { name: t('navigation.campaigns'), href: '/super-admin/campaigns', icon: Mail },
     { name: t('navigation.reminders'), href: '/super-admin/reminders', icon: Bell },
@@ -40,6 +44,7 @@ export function SuperAdminLayout() {
   const navigationTitles: Record<string, string> = {
     '/super-admin': t('titles.overview'),
     '/super-admin/tenants': t('titles.tenantManagement'),
+    '/super-admin/approval': t('titles.approval'),
     '/super-admin/promo-codes': t('titles.promoCodes'),
     '/super-admin/campaigns': t('titles.campaigns'),
     '/super-admin/reminders': t('titles.reminders'),
@@ -165,6 +170,10 @@ export function SuperAdminLayout() {
             <h2 className="text-lg font-semibold text-foreground">
               {navigationTitles[location.pathname] || t('titles.overview')}
             </h2>
+            <div className="flex items-center gap-1">
+              <NotificationBell />
+              <ThemeToggle />
+            </div>
           </div>
         </header>
 

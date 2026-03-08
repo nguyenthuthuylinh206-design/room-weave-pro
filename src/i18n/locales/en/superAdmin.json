@@ -8,6 +8,7 @@
   "navigation": {
     "overview": "Overview",
     "tenants": "Customers",
+    "approval": "Approval",
     "promoCodes": "Promo Codes",
     "campaigns": "Campaigns",
     "reminders": "Reminders",
@@ -18,6 +19,7 @@
   "titles": {
     "overview": "Overview",
     "tenantManagement": "Customer Management",
+    "approval": "Tenant Approval",
     "promoCodes": "Promo Codes",
     "campaigns": "Marketing Campaigns",
     "reminders": "Renewal Reminders",
@@ -86,6 +88,41 @@
     "newCampaign": "New Campaign",
     "scheduleReminders": "Schedule Reminders",
     "generateReport": "Generate Report"
+  },
+  "activity": {
+    "title": "Recent Activity",
+    "loading": "Loading...",
+    "noActivity": "No recent activity"
+  },
+  "campaigns": {
+    "title": "Marketing Campaigns",
+    "create": "Create Campaign",
+    "status": {
+      "draft": "Draft",
+      "scheduled": "Scheduled",
+      "active": "Active",
+      "paused": "Paused",
+      "completed": "Completed"
+    },
+    "table": {
+      "name": "Campaign Name",
+      "status": "Status",
+      "audience": "Target Audience",
+      "performance": "Performance",
+      "startDate": "Start Date",
+      "actions": "Actions",
+      "sent": "sent",
+      "openRate": "open",
+      "clicks": "clicks",
+      "loading": "Loading...",
+      "noCampaigns": "No campaigns found.",
+      "total": "campaign(s)",
+      "viewStats": "View Stats",
+      "launch": "Launch",
+      "pause": "Pause",
+      "resume": "Resume",
+      "delete": "Delete"
+    }
   },
   "tenants": {
     "title": "Customer Management",
