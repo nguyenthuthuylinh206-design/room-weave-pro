@@ -264,7 +264,7 @@ Deno.serve(async (req) => {
                     return aOrder - bOrder;
                   });
 
-                  // Distribute payment across bookings
+                  // Distribute payment across bookings using atomic RPC
                   let remainingAmount = bp.amount;
                   for (const booking of sortedBookings) {
                     if (remainingAmount <= 0) break;
@@ -276,19 +276,14 @@ Deno.serve(async (req) => {
                     if (owed <= 0) continue;
 
                     const payForThis = Math.min(remainingAmount, owed);
-                    const newAmountPaid = currentPaid + payForThis;
-                    const paymentStatus = newAmountPaid >= totalAmount ? 'paid' : 'partial';
 
-                    console.log(`  Distributing ${payForThis} to booking ${booking.id} (owed: ${owed}, new paid: ${newAmountPaid})`);
+                    console.log(`  Distributing ${payForThis} to booking ${booking.id} (owed: ${owed})`);
 
-                    const { error: updateError } = await supabase
-                      .from('room_bookings')
-                      .update({
-                        amount_paid: newAmountPaid,
-                        payment_status: paymentStatus,
-                        paid_at: paymentStatus === 'paid' ? new Date().toISOString() : null,
-                      })
-                      .eq('id', booking.id);
+                    const { error: updateError } = await supabase.rpc('update_booking_amount_paid', {
+                      p_booking_id: booking.id,
+                      p_amount_to_add: payForThis,
+                      p_total_amount: totalAmount,
+                    });
 
                     if (updateError) {
                       console.error(`Error updating booking ${booking.id}:`, updateError);
@@ -300,20 +295,14 @@ Deno.serve(async (req) => {
                   console.log(`Group payment distribution complete. Remaining: ${remainingAmount}`);
                 }
               } else if (bp.booking) {
-                // Single booking payment (existing logic)
-                const currentPaid = bp.booking.amount_paid || 0;
-                const newAmountPaid = currentPaid + bp.amount;
+                // Single booking payment - use atomic RPC
                 const totalAmount = bp.booking.total_amount || 0;
-                const paymentStatus = newAmountPaid >= totalAmount ? 'paid' : 'partial';
 
-                const { error: updateBookingError } = await supabase
-                  .from('room_bookings')
-                  .update({
-                    amount_paid: newAmountPaid,
-                    payment_status: paymentStatus,
-                    paid_at: paymentStatus === 'paid' ? new Date().toISOString() : null,
-                  })
-                  .eq('id', bp.booking_id);
+                const { error: updateBookingError } = await supabase.rpc('update_booking_amount_paid', {
+                  p_booking_id: bp.booking_id,
+                  p_amount_to_add: bp.amount,
+                  p_total_amount: totalAmount,
+                });
 
                 if (updateBookingError) {
                   console.error('Error updating room booking:', updateBookingError);
