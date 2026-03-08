@@ -630,6 +630,12 @@ export function GroupCheckoutDialog({
         if (cost?.damageAdjustmentNote) allNotes.push(`[Đền bù: ${cost.damageAdjustmentNote}]`)
         const damageNotesStr = allNotes.join(' | ') || null
         
+        // Determine if booking is overdue - pass actual checkout date to RPC
+        const today = startOfDay(new Date())
+        const bookingCheckOut = startOfDay(new Date(booking.check_out_date))
+        const isOverdue = isAfter(today, bookingCheckOut)
+        const overdueDate = isOverdue ? format(new Date(), 'yyyy-MM-dd') : null
+        
         const { error } = await supabase.rpc('perform_checkout', {
           p_booking_id: bookingId,
           p_room_id: booking.room_id,
@@ -643,6 +649,7 @@ export function GroupCheckoutDialog({
           p_damage_notes: damageNotesStr,
           p_damage_items: JSON.stringify(cost?.adjustedDamageItems || []),
           p_new_amount_paid: booking.amount_paid || 0,
+          p_check_out_date: overdueDate,
         })
         
         if (error) throw error
