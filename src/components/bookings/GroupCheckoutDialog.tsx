@@ -131,7 +131,6 @@ export function GroupCheckoutDialog({
     adjustDamageItemCharge,
     setDamageNote,
     resetCosts,
-    getAggregatedTotals,
   } = useGroupCheckoutCalculations()
   
   const [isProcessing, setIsProcessing] = useState(false)

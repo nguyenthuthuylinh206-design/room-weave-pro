@@ -43,6 +43,7 @@ export interface GroupPaymentDialogProps {
   tenantId: string
   hotelId: string
   onPaymentComplete?: () => void
+  calculatedRemaining?: number
 }
 
 type PaymentMethod = 'cash' | 'bank_transfer'
