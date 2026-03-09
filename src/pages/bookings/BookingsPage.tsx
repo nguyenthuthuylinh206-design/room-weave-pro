@@ -79,6 +79,7 @@ import {
   type DamageChargeItem,
 } from '@/lib/bookingCalculations'
 import { calculateServiceChargesFromConsumables } from '@/hooks/usePricingRules'
+import { fetchServiceChargeSummary, type ServiceChargeDetail } from '@/hooks/useBookingServiceCharges'
 import { MobileBookingsPage } from './MobileBookingsPage'
 import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
 
