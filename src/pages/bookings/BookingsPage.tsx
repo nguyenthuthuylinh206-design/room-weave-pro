@@ -586,10 +586,7 @@ export function BookingsPage() {
         serviceCharges = consumablesTotal > 0 ? consumablesTotal : ((booking as any).service_charges || 0)
       }
 
-      // Get chargeable consumptions total (minibar, paid items)
-      const { data: chargeableTotal } = await supabase
-        .rpc('get_booking_chargeable_total', { p_booking_id: booking.id })
-      const extraChargeableAmount = chargeableTotal || 0
+      // Note: chargeable consumptions already included in fetchServiceChargeSummary above
 
       // Fetch latest room check for damage info
       const { data: latestCheck } = await supabase
@@ -661,7 +658,7 @@ export function BookingsPage() {
         monthlyRate: bMonthlyRate,
         months: bMonths,
         serviceCharges,
-        extraCharges: ((booking as any).extra_charges || 0) + extraChargeableAmount,
+        extraCharges: (booking as any).extra_charges || 0,
         damageCharges: totalDamageCharge,
         damageItems,
         vatRate: (booking as any).vat_rate ?? DEFAULT_PRICING_RULES.vatRate,
