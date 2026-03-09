@@ -94,6 +94,7 @@ export function RoomBookingDialog({
   const [suggestedEarlyCharge, setSuggestedEarlyCharge] = useState(0)
   const [showPaymentDetails, setShowPaymentDetails] = useState(false)
   const [checkoutDamageItems, setCheckoutDamageItems] = useState<DamageChargeItem[]>([])
+  const [checkoutServiceDetails, setCheckoutServiceDetails] = useState<ServiceChargeDetail[]>([])
   
   // Guest info
   const [guestName, setGuestName] = useState(booking?.guest_name || '')
