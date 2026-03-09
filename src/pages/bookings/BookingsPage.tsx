@@ -671,6 +671,7 @@ export function BookingsPage() {
       })
 
       setCheckoutDamageItems(damageItems)
+      setCheckoutServiceDetails(serviceDetails)
       setCheckoutCostBreakdown(costBreakdown)
       setShowCheckoutSummary(true)
     } catch (error: any) {
