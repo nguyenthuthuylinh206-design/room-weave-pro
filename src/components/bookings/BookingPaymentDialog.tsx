@@ -268,17 +268,35 @@ export function BookingPaymentDialog({
                   <span className="text-muted-foreground">Tổng tiền</span>
                   <span className="font-medium">{formatVNCurrency(booking.total_amount)}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Đã thanh toán</span>
-                  <span className="font-medium text-green-600">{formatVNCurrency(booking.amount_paid)}</span>
-                </div>
+                {depositAmount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Đã đặt cọc</span>
+                    <span className="font-medium text-green-600">-{formatVNCurrency(depositAmount)}</span>
+                  </div>
+                )}
+                {booking.amount_paid > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Đã thanh toán</span>
+                    <span className="font-medium text-green-600">-{formatVNCurrency(booking.amount_paid)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm border-t pt-1 mt-1">
                   <span className="text-muted-foreground font-medium">Còn lại</span>
-                  <span className="font-semibold text-primary">{formatVNCurrency(remainingAmount)}</span>
+                  <span className={cn("font-semibold", isFullyPaid ? "text-green-600" : "text-primary")}>
+                    {formatVNCurrency(remainingAmount)}
+                  </span>
                 </div>
               </div>
 
+              {/* Fully paid notice */}
+              {isFullyPaid && (
+                <div className="text-center p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-700 font-medium">Đã thanh toán đủ</p>
+                </div>
+              )}
+
               {/* Amount Input */}
+              {!isFullyPaid && (
               <div className="space-y-2">
                 <Label>Số tiền thu</Label>
                 <Input
@@ -293,6 +311,7 @@ export function BookingPaymentDialog({
                   <p className="text-xs text-red-500">Số tiền vượt quá số còn lại</p>
                 )}
               </div>
+              )}
 
               {/* Payment Method */}
               <div className="space-y-2">
