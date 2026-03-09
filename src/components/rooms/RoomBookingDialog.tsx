@@ -38,6 +38,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { cn, formatCurrency } from '@/lib/utils'
 import { CheckoutSummaryDialog } from '@/components/bookings/CheckoutSummaryDialog'
 import { BookingServiceCharges } from '@/components/services/BookingServiceCharges'
+import { fetchServiceChargeSummary, type ServiceChargeDetail } from '@/hooks/useBookingServiceCharges'
 import { CheckInConfirmDialog } from '@/components/bookings/CheckInConfirmDialog'
 import { ExtendBookingDialog } from '@/components/bookings/ExtendBookingDialog'
 import { 
