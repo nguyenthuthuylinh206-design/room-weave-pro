@@ -1305,6 +1305,7 @@ export function GroupCheckoutDialog({
         bookingGroupId={bookingGroupId}
         tenantId={tenantId}
         hotelId={hotelId}
+        calculatedRemaining={totals.remaining}
         onPaymentComplete={() => {
           setShowPaymentDialog(false)
           queryClient.invalidateQueries({ queryKey: ['group-booking', bookingGroupId] })

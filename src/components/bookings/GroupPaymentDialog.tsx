@@ -76,10 +76,11 @@ export function GroupPaymentDialog({
     if (open && groupData) {
       setStep('select')
       setPaymentMethod('cash')
-      setAmount(groupData.remainingAmount.toString())
+      const initAmount = calculatedRemaining ?? groupData.remainingAmount
+      setAmount(Math.max(0, initAmount).toString())
       setCreatedPayment(null)
     }
-  }, [open, groupData?.remainingAmount])
+  }, [open, calculatedRemaining, groupData?.remainingAmount])
 
   // Realtime subscription for bank transfer auto-confirmation
   useEffect(() => {
