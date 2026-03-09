@@ -150,6 +150,7 @@ export function BookingsPage() {
   const [suggestedEarlyCharge, setSuggestedEarlyCharge] = useState(0)
   const [checkoutCostBreakdown, setCheckoutCostBreakdown] = useState<BookingCostBreakdown | null>(null)
   const [checkoutDamageItems, setCheckoutDamageItems] = useState<DamageChargeItem[]>([])
+  const [checkoutServiceDetails, setCheckoutServiceDetails] = useState<ServiceChargeDetail[]>([])
   const [overdueCheckoutDate, setOverdueCheckoutDate] = useState<string | null>(null)
   const [isActionLoading, setIsActionLoading] = useState(false)
   
