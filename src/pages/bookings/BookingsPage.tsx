@@ -1761,6 +1761,7 @@ export function BookingsPage() {
           monthlyRate={actionBooking.monthly_rate || undefined}
           bookingMonths={actionBooking.booking_months || undefined}
           damageItems={checkoutDamageItems}
+          serviceChargeDetails={checkoutServiceDetails}
           onConfirmCheckout={performCheckOut}
           onPayAndCheckout={handlePayAndCheckout}
           isLoading={isActionLoading}
