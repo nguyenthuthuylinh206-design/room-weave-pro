@@ -79,6 +79,7 @@ import {
   type DamageChargeItem,
 } from '@/lib/bookingCalculations'
 import { calculateServiceChargesFromConsumables } from '@/hooks/usePricingRules'
+import { fetchServiceChargeSummary, type ServiceChargeDetail } from '@/hooks/useBookingServiceCharges'
 import { MobileBookingsPage } from './MobileBookingsPage'
 import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
 
@@ -149,6 +150,7 @@ export function BookingsPage() {
   const [suggestedEarlyCharge, setSuggestedEarlyCharge] = useState(0)
   const [checkoutCostBreakdown, setCheckoutCostBreakdown] = useState<BookingCostBreakdown | null>(null)
   const [checkoutDamageItems, setCheckoutDamageItems] = useState<DamageChargeItem[]>([])
+  const [checkoutServiceDetails, setCheckoutServiceDetails] = useState<ServiceChargeDetail[]>([])
   const [overdueCheckoutDate, setOverdueCheckoutDate] = useState<string | null>(null)
   const [isActionLoading, setIsActionLoading] = useState(false)
   
@@ -571,9 +573,18 @@ export function BookingsPage() {
       const checkOut = new Date(booking.check_out_date)
       const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
 
-      // Get consumables service charges
-      const consumablesTotal = await calculateServiceChargesFromConsumables(booking.id)
-      const serviceCharges = consumablesTotal > 0 ? consumablesTotal : ((booking as any).service_charges || 0)
+      // Get service charges from all sources (booking_service_charges + chargeable_consumptions)
+      let serviceCharges = 0
+      let serviceDetails: ServiceChargeDetail[] = []
+      try {
+        const summary = await fetchServiceChargeSummary(booking.id, tenantId!)
+        serviceCharges = summary.grandTotal
+        serviceDetails = summary.details
+      } catch (e) {
+        // Fallback to old method
+        const consumablesTotal = await calculateServiceChargesFromConsumables(booking.id)
+        serviceCharges = consumablesTotal > 0 ? consumablesTotal : ((booking as any).service_charges || 0)
+      }
 
       // Get chargeable consumptions total (minibar, paid items)
       const { data: chargeableTotal } = await supabase
@@ -660,6 +671,7 @@ export function BookingsPage() {
       })
 
       setCheckoutDamageItems(damageItems)
+      setCheckoutServiceDetails(serviceDetails)
       setCheckoutCostBreakdown(costBreakdown)
       setShowCheckoutSummary(true)
     } catch (error: any) {
@@ -1185,6 +1197,7 @@ export function BookingsPage() {
             monthlyRate={actionBooking.monthly_rate || undefined}
             bookingMonths={actionBooking.booking_months || undefined}
             damageItems={checkoutDamageItems}
+            serviceChargeDetails={checkoutServiceDetails}
             onConfirmCheckout={performCheckOut}
             onPayAndCheckout={handlePayAndCheckout}
             isLoading={isActionLoading}
@@ -1748,6 +1761,7 @@ export function BookingsPage() {
           monthlyRate={actionBooking.monthly_rate || undefined}
           bookingMonths={actionBooking.booking_months || undefined}
           damageItems={checkoutDamageItems}
+          serviceChargeDetails={checkoutServiceDetails}
           onConfirmCheckout={performCheckOut}
           onPayAndCheckout={handlePayAndCheckout}
           isLoading={isActionLoading}

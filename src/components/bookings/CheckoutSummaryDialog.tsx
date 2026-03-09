@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { AlertTriangle, CreditCard, Receipt, Clock, Check, Printer, Minimize2 } from 'lucide-react'
+import { AlertTriangle, CreditCard, Receipt, Clock, Check, Printer, Minimize2, ShoppingBag } from 'lucide-react'
 import { toast } from 'sonner'
 import { BookingPaymentDialog } from '@/components/bookings/BookingPaymentDialog'
+import type { ServiceChargeDetail } from '@/hooks/useBookingServiceCharges'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -92,6 +93,8 @@ interface CheckoutSummaryDialogProps {
   onMinimize?: () => void
   // Skip completion toast - used when restoring from minimized widget (widget already showed toast)
   skipCompletionToast?: boolean
+  // Service charge details for breakdown display
+  serviceChargeDetails?: ServiceChargeDetail[]
 }
 
 export function CheckoutSummaryDialog({
@@ -123,6 +126,7 @@ export function CheckoutSummaryDialog({
   onInspectionCompleted,
   onMinimize,
   skipCompletionToast = false,
+  serviceChargeDetails = [],
 }: CheckoutSummaryDialogProps) {
   const [adjustedLateCharge, setAdjustedLateCharge] = useState(costBreakdown.lateCheckoutCharge)
   const [adjustmentNote, setAdjustmentNote] = useState('')
@@ -695,12 +699,46 @@ export function CheckoutSummaryDialog({
                   </div>
                 )}
                 
-                {/* Services */}
+                {/* Services - Detailed Breakdown */}
                 {adjustedCostBreakdown.serviceCharges > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Dịch vụ sử dụng</span>
-                    <span>{formatCurrency(adjustedCostBreakdown.serviceCharges)}</span>
-                  </div>
+                  serviceChargeDetails.length > 0 ? (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <ShoppingBag className="h-3.5 w-3.5" />
+                        <span>Dịch vụ sử dụng</span>
+                      </div>
+                      {serviceChargeDetails.filter(d => d.source === 'service').length > 0 && (
+                        <div className="pl-5 space-y-0.5">
+                          {serviceChargeDetails.filter(d => d.source === 'service').map(d => (
+                            <div key={d.id} className="flex justify-between text-xs text-muted-foreground">
+                              <span>{d.service_name} ×{d.quantity}</span>
+                              <span className="font-mono">{formatCurrency(d.total_price)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {serviceChargeDetails.filter(d => d.source === 'minibar').length > 0 && (
+                        <div className="pl-5 space-y-0.5">
+                          <span className="text-xs text-muted-foreground font-medium">Minibar:</span>
+                          {serviceChargeDetails.filter(d => d.source === 'minibar').map(d => (
+                            <div key={d.id} className="flex justify-between text-xs text-muted-foreground">
+                              <span>{d.service_name} ×{d.quantity}</span>
+                              <span className="font-mono">{formatCurrency(d.total_price)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex justify-between font-medium text-sm pt-0.5">
+                        <span>Tổng dịch vụ</span>
+                        <span>{formatCurrency(adjustedCostBreakdown.serviceCharges)}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Dịch vụ sử dụng</span>
+                      <span>{formatCurrency(adjustedCostBreakdown.serviceCharges)}</span>
+                    </div>
+                  )
                 )}
                 
                 {adjustedCostBreakdown.extraCharges > 0 && (

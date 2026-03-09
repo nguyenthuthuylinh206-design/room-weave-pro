@@ -38,6 +38,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { cn, formatCurrency } from '@/lib/utils'
 import { CheckoutSummaryDialog } from '@/components/bookings/CheckoutSummaryDialog'
 import { BookingServiceCharges } from '@/components/services/BookingServiceCharges'
+import { fetchServiceChargeSummary, type ServiceChargeDetail } from '@/hooks/useBookingServiceCharges'
 import { CheckInConfirmDialog } from '@/components/bookings/CheckInConfirmDialog'
 import { ExtendBookingDialog } from '@/components/bookings/ExtendBookingDialog'
 import { 
@@ -93,6 +94,7 @@ export function RoomBookingDialog({
   const [suggestedEarlyCharge, setSuggestedEarlyCharge] = useState(0)
   const [showPaymentDetails, setShowPaymentDetails] = useState(false)
   const [checkoutDamageItems, setCheckoutDamageItems] = useState<DamageChargeItem[]>([])
+  const [checkoutServiceDetails, setCheckoutServiceDetails] = useState<ServiceChargeDetail[]>([])
   
   // Guest info
   const [guestName, setGuestName] = useState(booking?.guest_name || '')
@@ -475,6 +477,16 @@ export function RoomBookingDialog({
     const calculatedLateCharge = calculateLateCheckoutCharge(actualTime, roomPrice)
     setLateCheckoutCharge(calculatedLateCharge)
     
+    // Fetch latest service charge summary (services + minibar)
+    try {
+      const summary = await fetchServiceChargeSummary(booking.id, tenantId)
+      setServiceCharges(summary.grandTotal)
+      setCheckoutServiceDetails(summary.details)
+    } catch (error) {
+      console.error('Failed to fetch service charges:', error)
+      setCheckoutServiceDetails([])
+    }
+
     // Fetch latest room check for damage info
     try {
       const { data: latestCheck } = await supabase
@@ -955,6 +967,7 @@ export function RoomBookingDialog({
               <BookingServiceCharges
                 bookingId={booking.id}
                 readOnly={booking.status === 'checked_out' || booking.status === 'cancelled'}
+                onTotalChange={(total) => setServiceCharges(total)}
               />
             )}
 
@@ -1266,6 +1279,7 @@ export function RoomBookingDialog({
         scheduledCheckoutDate={overdueCheckoutDate ? new Date(overdueCheckoutDate) : (booking?.check_out_date ? new Date(booking.check_out_date) : new Date())}
         costBreakdown={costBreakdown}
         damageItems={checkoutDamageItems}
+        serviceChargeDetails={checkoutServiceDetails}
         onConfirmCheckout={performCheckOut}
         onPayAndCheckout={handlePayAndCheckout}
         isLoading={isSubmitting}
