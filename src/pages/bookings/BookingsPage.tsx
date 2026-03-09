@@ -1888,7 +1888,7 @@ export function BookingsPage() {
                 monthlyRate: updatedBooking.monthly_rate || 0,
                 months: updatedBooking.booking_months || 0,
                 serviceCharges,
-                extraCharges: ((updatedBooking as any).extra_charges || 0) + extraChargeableAmount,
+                extraCharges: (updatedBooking as any).extra_charges || 0,
                 damageCharges: totalDamageCharge,
                 damageItems,
                 vatRate: (updatedBooking as any).vat_rate ?? DEFAULT_PRICING_RULES.vatRate,
@@ -1898,6 +1898,7 @@ export function BookingsPage() {
               })
               
               setCheckoutDamageItems(damageItems)
+              setCheckoutServiceDetails(serviceDetails)
               setCheckoutCostBreakdown(costBreakdown)
               setShowCheckoutSummary(true)
             } catch (error: any) {
