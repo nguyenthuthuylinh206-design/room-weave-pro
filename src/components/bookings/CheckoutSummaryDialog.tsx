@@ -93,6 +93,8 @@ interface CheckoutSummaryDialogProps {
   onMinimize?: () => void
   // Skip completion toast - used when restoring from minimized widget (widget already showed toast)
   skipCompletionToast?: boolean
+  // Service charge details for breakdown display
+  serviceChargeDetails?: ServiceChargeDetail[]
 }
 
 export function CheckoutSummaryDialog({
