@@ -1273,13 +1273,14 @@ export function BookingsPage() {
                   lateCheckoutCharge: bType === 'daily' ? calculatedLateCharge : 0,
                   hourlyRate: updatedBooking.hourly_rate || 0, hours: updatedBooking.booking_hours || 0, hourlyOvertimeCharge,
                   monthlyRate: updatedBooking.monthly_rate || 0, months: updatedBooking.booking_months || 0,
-                  serviceCharges, extraCharges: ((updatedBooking as any).extra_charges || 0) + extraChargeableAmount,
+                   serviceCharges, extraCharges: (updatedBooking as any).extra_charges || 0,
                   damageCharges: totalDamageCharge, damageItems,
                   vatRate: (updatedBooking as any).vat_rate ?? DEFAULT_PRICING_RULES.vatRate,
                   serviceFeeRate: (updatedBooking as any).service_fee_rate ?? DEFAULT_PRICING_RULES.serviceFeeRate,
                   depositAmount: (updatedBooking as any).deposit_amount || 0, amountPaid: (updatedBooking as any).amount_paid || 0,
                 })
                 setCheckoutDamageItems(damageItems)
+                setCheckoutServiceDetails(serviceDetails)
                 setCheckoutCostBreakdown(costBreakdown)
                 setShowCheckoutSummary(true)
               } catch (error: any) {
