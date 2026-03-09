@@ -138,7 +138,7 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
       const { data: booking, error: fetchError } = await supabase
         .from('room_bookings')
         .select(`
-          room_price, early_checkin_charge, vat_rate, service_fee_rate, 
+          tenant_id, room_price, early_checkin_charge, vat_rate, service_fee_rate, 
           service_charges, extra_charges, deposit_amount, amount_paid, 
           check_in_date, check_out_date, booking_type,
           hourly_rate, booking_hours, hourly_end_time,
