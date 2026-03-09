@@ -1279,6 +1279,7 @@ export function RoomBookingDialog({
         scheduledCheckoutDate={overdueCheckoutDate ? new Date(overdueCheckoutDate) : (booking?.check_out_date ? new Date(booking.check_out_date) : new Date())}
         costBreakdown={costBreakdown}
         damageItems={checkoutDamageItems}
+        serviceChargeDetails={checkoutServiceDetails}
         onConfirmCheckout={performCheckOut}
         onPayAndCheckout={handlePayAndCheckout}
         isLoading={isSubmitting}
