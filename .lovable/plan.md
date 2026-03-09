@@ -1,87 +1,106 @@
 
+## Mục tiêu
+Sửa luồng “Thu tiền” để:
+1) **Còn lại** hiển thị đúng (phải trừ cả **tiền đặt cọc**).
+2) **Validation** số tiền thu đúng theo “còn lại” thực tế.
+3) **payment_status** trong backend cập nhật đúng (tính cả deposit), tránh case đã có cọc nhưng vẫn pending/partial sai.
 
-## Phan tich luong phieu giao hang (Distribution Order)
+---
 
-### Hien trang: Cau truc luong hien tai
+## Nguyên nhân gốc
+### 1) UI: `BookingPaymentDialog` tính “còn lại” sai
+Hiện tại:
+- `remainingAmount = booking.total_amount - booking.amount_paid`
+- **Không trừ `deposit_amount`** ⇒ còn lại bị **lớn hơn thực tế**, kéo theo validation sai.
 
-Luong hien tai co **3 cach tao** va **5 buoc xu ly**, kha phuc tap:
+### 2) Backend: RPC `update_booking_amount_paid` tính `payment_status` sai
+Trong migration `20260308053613_...sql`, function đang set:
+- `payment_status = (amount_paid + amount_to_add >= total_amount) ? 'paid' : 'partial'`
+- **Không cộng `deposit_amount`** ⇒ nếu booking có cọc, backend vẫn có thể báo `partial` dù thực tế đã đủ.
 
-#### 3 Dau vao (Entry Points)
-1. **Tao thu cong** (`/inventory/distributions/new`) - CreateDistributionPage.tsx
-2. **Tao tu yeu cau bo sung** (`/inventory/distributions/from-supplements`) - CreateFromSupplementsPage.tsx
-3. **Tao tu Xuat kho** (`/inventory/outbound` voi category `room_assign`) - OutboundPage.tsx dung cung DistributionForm
+---
 
-#### 5 Buoc xu ly (Lifecycle)
-```text
-pending --> released --> in_progress --> completed --> closed
-  (1)        (2)           (3)            (4)          (5)
-```
+## Thiết kế sửa (giữ đúng convention hiện tại: deposit tách riêng, amount_paid không bao gồm deposit)
+### A) Sửa `BookingPaymentDialog` (UI) để tính đúng số còn lại
+**File:** `src/components/bookings/BookingPaymentDialog.tsx`
 
-1. **pending** - Kho chuan bi hang, kiem tra ton kho, giao cho nhan vien (Warehouse Manager click "Kiem tra & Giao hang")
-2. **released** - Nhan vien xac nhan da nhan du hang (Assignee click "Xac nhan da nhan du hang")
-3. **in_progress** - Nhan vien di giao tung phong, click "GIAO" -> chuyen sang room check
-4. **completed** - Tat ca phong da giao xong
-5. **closed** - Manager dong phieu
+1) Mở rộng prop `booking`:
+- Thêm `deposit_amount?: number` (default 0)
 
-### Van de phat hien
+2) Tính lại các biến chuẩn:
+- `deposit = booking.deposit_amount ?? 0`
+- `totalPaid = deposit + booking.amount_paid`
+- `remaining = Math.max(0, booking.total_amount - totalPaid)`
 
-#### 1. Trung lap dau vao: OutboundPage dung trung DistributionForm
-- `OutboundPage.tsx` (Xuat kho) khi chon category `room_assign` se render cung `DistributionForm` va goi `useCreateDistributionOrder` - hoan toan giong `CreateDistributionPage.tsx`
-- Nguoi dung co 2 noi tao cung 1 thu -> nhầm lẫn
-- **De xuat**: Khi chon "Giao den phong" trong OutboundPage, chuyen huong (redirect) sang `/inventory/distributions/new` thay vi nhan doi form
+3) Update toàn bộ chỗ đang dùng `remainingAmount`:
+- init state `amount` khi mở dialog
+- `isValidAmount` và cảnh báo vượt số còn lại
+- hiển thị block “Còn lại”
 
-#### 2. Buoc "released" co the thua (khong can thiet voi nhieu truong hop)
-- Sau khi kho giao hang (pending -> released), nhan vien phai bam "Xac nhan da nhan du hang" de chuyen sang in_progress
-- Voi hotel nho (kho va nhan vien la 1 nguoi), buoc nay thua
-- Da co option `auto_release` nhung chi skip buoc kho, khong skip buoc nhan hang
-- **De xuat**: Them option "Tu dong bat dau giao" de skip ca buoc released, chuyen thang tu pending -> in_progress khi assignee la chinh nguoi tao
+4) UI hiển thị rõ ràng:
+- Nếu `deposit > 0`: thêm dòng “Đã đặt cọc: -xxx”
+- “Đã thanh toán” vẫn hiển thị `amount_paid` (thu thêm)
+- “Còn lại” dùng `remaining` mới
 
-#### 3. Qua trinh giao phong phuc tap - click "GIAO" -> navigate ra room check
-- Khi nhan vien click "GIAO" tren 1 phong, he thong navigate sang `/rooms/{id}/check?type=delivery&...`
-- Phai lam room check roi moi quay lai -> mat flow, phai quay lai trang phieu de giao phong tiep
-- **De xuat**: Sau khi hoan thanh room check, tu dong quay lai trang phieu giao hang thay vi o lai trang room check
+5) Chặn thao tác thu tiền khi remaining = 0:
+- Disable nút tiếp tục/thu tiền
+- (Optional) hiển thị note “Đã thanh toán đủ”
 
-#### 4. Thieu thong tin tong hop khi tao phieu
-- CreateDistributionPage khong hien thi summary (tong so phong, tong so item, tong so luong) truoc khi submit
-- DistributionForm hien thi 2 panel (chon phong + phan bo san pham) nhung khong co summary bar
-- **De xuat**: Them summary bar hien thi: X phong, Y loai SP, Z don vi truoc nut "Tao phieu"
+---
 
-#### 5. Auto-fill logic tot nhung UX chua ro rang
-- `useDistributionForm` co `autoFillMissingItems` va `autoFillMissingItemsForRoom` de tu dong tinh so luong theo tieu chuan phong
-- Nhung trong CreateDistributionPage, nut auto-fill khong duoc hien thi ro rang
-- **De xuat**: Them nut "Tu dong phan bo theo tieu chuan" noi bat hon trong form
+### B) Truyền `deposit_amount` vào `BookingPaymentDialog` ở các nơi gọi
+1) **RoomBookingDialog**
+**File:** `src/components/rooms/RoomBookingDialog.tsx`
+- Khi mở `BookingPaymentDialog`, truyền thêm:
+  - `deposit_amount: depositAmount`
 
-### Ke hoach khac phuc
+2) **CheckoutSummaryDialog**
+**File:** `src/components/bookings/CheckoutSummaryDialog.tsx`
+- Truyền thêm:
+  - `deposit_amount: adjustedCostBreakdown.depositAmount`
+- Đồng thời đảm bảo `amount_paid` & `total_amount` cùng “hệ” với breakdown đang hiển thị (ưu tiên dùng `adjustedCostBreakdown` cho nhất quán).
 
-#### Thay doi 1: Redirect OutboundPage khi chon "room_assign"
-**File**: `src/pages/inventory/OutboundPage.tsx`
-- Khi user chon category `room_assign`, hien thi thong bao va nut chuyen sang trang tao phieu giao hang chuyen dung thay vi render form trung lap
+---
 
-#### Thay doi 2: Them summary bar trong CreateDistributionPage
-**File**: `src/pages/inventory/CreateDistributionPage.tsx`
-- Hien thi summary compact (so phong, so SP, tong SL) ngay tren nut "Tao phieu"
-- Hien thi canh bao stock validation o footer thay vi chi trong form
+### C) Sửa RPC `update_booking_amount_paid` để cập nhật `payment_status` đúng (tính cả deposit)
+**File migration:** tạo migration mới (không sửa file cũ), `CREATE OR REPLACE FUNCTION public.update_booking_amount_paid(...)`
 
-#### Thay doi 3: Auto-navigate ve phieu sau room check
-**File**: `src/components/distribution/components/UnifiedRoomList.tsx`
-- Them query param `returnTo` khi navigate sang room check
-- Sau khi room check xong, tu dong quay ve trang phieu giao hang
+Logic mới đề xuất:
+1) Update `amount_paid = coalesce(amount_paid,0) + p_amount_to_add`
+2) Tính `v_total_paid = new_amount_paid + coalesce(deposit_amount,0)`
+3) Set:
+- `payment_status = 'paid'` nếu `v_total_paid >= p_total_amount`
+- `payment_status = 'partial'` nếu `v_total_paid > 0`
+- `payment_status = 'pending'` nếu `v_total_paid = 0`
+4) `paid_at = now()` chỉ khi chuyển sang `paid` (hoặc đạt điều kiện paid)
 
-#### Thay doi 4: Don gian hoa flow cho hotel nho
-**File**: `src/components/distribution/components/DeliveryStepWizard.tsx`
-- Khi nguoi tao phieu cung la nguoi duoc phan cong (assignee), gop buoc "Kiem tra kho" va "Nhan hang" thanh 1 buoc duy nhat
-- Giam so buoc tu 5 xuong 3-4 tuy truong hop
+(Tuỳ chọn an toàn) Reject nếu `p_amount_to_add <= 0` bằng `RAISE EXCEPTION`.
 
-#### Thay doi 5: Lam ro auto-fill trong form
-**File**: `src/components/distribution/forms/ItemAllocator.tsx`
-- Them nut "Tu dong phan bo" noi bat, co tooltip giai thich
-- Hien thi ket qua auto-fill (bao nhieu SP da them, bao nhieu thieu) ro rang hon
+**Tác động tích cực:** mọi nơi đang dùng RPC này (thu tiền thủ công, group payment, webhook xác nhận chuyển khoản) sẽ tự đồng bộ đúng `payment_status`.
 
-### Uu tien thuc hien
+---
 
-1. **Thay doi 2** (Summary bar) - De lam, giam nhầm lẫn ngay
-2. **Thay doi 1** (Redirect OutboundPage) - Loai bo trung lap
-3. **Thay doi 3** (Auto-navigate ve phieu) - Cai thien flow giao hang
-4. **Thay doi 4** (Don gian hoa step) - Giam buoc cho hotel nho
-5. **Thay doi 5** (Auto-fill ro rang) - Cai thien UX
+## Checklist test (E2E các case hay lỗi)
+1) **Có cọc**: total 1.243.000, deposit 500.000, amount_paid 0  
+   - Dialog Thu tiền phải hiện “Còn lại” = 743.000  
+   - Không cho nhập > 743.000  
+   - Thu 743.000 ⇒ `payment_status` backend = `paid`
 
+2) **Cọc đủ/ dư**: deposit >= total  
+   - Dialog Thu tiền còn lại = 0, nút thu tiền bị disable
+
+3) **Không cọc, đã thu 1 phần**: total 1.000.000, deposit 0, amount_paid 200.000  
+   - Còn lại = 800.000, validation đúng
+
+4) **Sau khi thu tiền**: quay lại /bookings hoặc mở lại dialog  
+   - Status/Remaining đồng bộ đúng (nhờ invalidate + backend `payment_status` chuẩn)
+
+---
+
+## Phạm vi thay đổi
+- Frontend:
+  - `src/components/bookings/BookingPaymentDialog.tsx`
+  - `src/components/rooms/RoomBookingDialog.tsx`
+  - `src/components/bookings/CheckoutSummaryDialog.tsx`
+- Backend (Lovable Cloud migration):
+  - `CREATE OR REPLACE FUNCTION public.update_booking_amount_paid(...)` (tính cả deposit)
