@@ -41,6 +41,7 @@ import { BookingServiceCharges } from '@/components/services/BookingServiceCharg
 import { fetchServiceChargeSummary, type ServiceChargeDetail } from '@/hooks/useBookingServiceCharges'
 import { CheckInConfirmDialog } from '@/components/bookings/CheckInConfirmDialog'
 import { ExtendBookingDialog } from '@/components/bookings/ExtendBookingDialog'
+import { BookingPaymentDialog } from '@/components/bookings/BookingPaymentDialog'
 import { 
   calculateBookingCost, 
   calculateEarlyCheckinCharge, 
@@ -91,6 +92,7 @@ export function RoomBookingDialog({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCheckoutSummary, setShowCheckoutSummary] = useState(false)
   const [showCheckinConfirm, setShowCheckinConfirm] = useState(false)
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [suggestedEarlyCharge, setSuggestedEarlyCharge] = useState(0)
   const [showPaymentDetails, setShowPaymentDetails] = useState(false)
   const [checkoutDamageItems, setCheckoutDamageItems] = useState<DamageChargeItem[]>([])
@@ -618,45 +620,6 @@ export function RoomBookingDialog({
     }
   }
 
-  const handleReceivePayment = async () => {
-    if (!booking) return
-    
-    // Set amount paid to cover remaining
-    const newAmountPaid = costBreakdown.totalAmount - depositAmount
-    setAmountPaid(newAmountPaid)
-    
-    setIsSubmitting(true)
-    try {
-      const { error } = await supabase
-        .from('room_bookings')
-        .update({
-          amount_paid: newAmountPaid,
-          payment_status: 'paid',
-          paid_at: new Date().toISOString(),
-          subtotal: costBreakdown.subtotal,
-          vat_amount: costBreakdown.vatAmount,
-          service_fee_amount: costBreakdown.serviceFeeAmount,
-          total_amount: costBreakdown.totalAmount,
-        })
-        .eq('id', booking.id)
-        
-      if (error) throw error
-      
-      toast({
-        title: 'Đã nhận thanh toán đầy đủ',
-      })
-      
-      invalidateQueries()
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Lỗi cập nhật thanh toán',
-        description: error.message,
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
 
   const handlePayAndCheckout = async (
     adjustedLateCharge: number, 
@@ -1154,11 +1117,11 @@ export function RoomBookingDialog({
                   variant="outline"
                   size="sm"
                   className="w-full border-green-500 text-green-600 hover:bg-green-50"
-                  onClick={handleReceivePayment}
+                  onClick={() => setShowPaymentDialog(true)}
                   disabled={isSubmitting}
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
-                  Nhận thanh toán đầy đủ ({formatCurrency(costBreakdown.remainingAmount)})
+                  Nhận thanh toán ({formatCurrency(costBreakdown.remainingAmount)})
                 </Button>
               )}
             </div>
@@ -1204,17 +1167,6 @@ export function RoomBookingDialog({
                     disabled={isSubmitting}
                   >
                     {t('booking.doCheckIn')}
-                  </Button>
-                )}
-                {booking.status === 'checked_in' && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex-1"
-                    onClick={handleCheckOutClick}
-                    disabled={isSubmitting}
-                  >
-                    {t('booking.doCheckOut')}
                   </Button>
                 )}
               </div>
@@ -1376,6 +1328,27 @@ export function RoomBookingDialog({
               title: 'Chuyển phòng',
               description: 'Tính năng chuyển phòng đang phát triển. Vui lòng xử lý thủ công.',
             })
+          }}
+        />
+      )}
+
+      {/* Booking Payment Dialog - xử lý thanh toán chuẩn với lịch sử giao dịch */}
+      {booking && (
+        <BookingPaymentDialog
+          open={showPaymentDialog}
+          onOpenChange={setShowPaymentDialog}
+          booking={{
+            id: booking.id,
+            guest_name: guestName,
+            room_number: roomNumber,
+            total_amount: costBreakdown.totalAmount,
+            amount_paid: amountPaid,
+            tenant_id: tenantId,
+            hotel_id: hotelId,
+          }}
+          onPaymentComplete={() => {
+            setShowPaymentDialog(false)
+            invalidateQueries()
           }}
         />
       )}
