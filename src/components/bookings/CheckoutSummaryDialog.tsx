@@ -699,12 +699,46 @@ export function CheckoutSummaryDialog({
                   </div>
                 )}
                 
-                {/* Services */}
+                {/* Services - Detailed Breakdown */}
                 {adjustedCostBreakdown.serviceCharges > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Dịch vụ sử dụng</span>
-                    <span>{formatCurrency(adjustedCostBreakdown.serviceCharges)}</span>
-                  </div>
+                  serviceChargeDetails.length > 0 ? (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <ShoppingBag className="h-3.5 w-3.5" />
+                        <span>Dịch vụ sử dụng</span>
+                      </div>
+                      {serviceChargeDetails.filter(d => d.source === 'service').length > 0 && (
+                        <div className="pl-5 space-y-0.5">
+                          {serviceChargeDetails.filter(d => d.source === 'service').map(d => (
+                            <div key={d.id} className="flex justify-between text-xs text-muted-foreground">
+                              <span>{d.service_name} ×{d.quantity}</span>
+                              <span className="font-mono">{formatCurrency(d.total_price)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {serviceChargeDetails.filter(d => d.source === 'minibar').length > 0 && (
+                        <div className="pl-5 space-y-0.5">
+                          <span className="text-xs text-muted-foreground font-medium">Minibar:</span>
+                          {serviceChargeDetails.filter(d => d.source === 'minibar').map(d => (
+                            <div key={d.id} className="flex justify-between text-xs text-muted-foreground">
+                              <span>{d.service_name} ×{d.quantity}</span>
+                              <span className="font-mono">{formatCurrency(d.total_price)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex justify-between font-medium text-sm pt-0.5">
+                        <span>Tổng dịch vụ</span>
+                        <span>{formatCurrency(adjustedCostBreakdown.serviceCharges)}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Dịch vụ sử dụng</span>
+                      <span>{formatCurrency(adjustedCostBreakdown.serviceCharges)}</span>
+                    </div>
+                  )
                 )}
                 
                 {adjustedCostBreakdown.extraCharges > 0 && (
