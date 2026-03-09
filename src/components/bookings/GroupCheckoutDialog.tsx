@@ -131,7 +131,6 @@ export function GroupCheckoutDialog({
     adjustDamageItemCharge,
     setDamageNote,
     resetCosts,
-    getAggregatedTotals,
   } = useGroupCheckoutCalculations()
   
   const [isProcessing, setIsProcessing] = useState(false)
@@ -309,26 +308,6 @@ export function GroupCheckoutDialog({
     refetchInterval: 10000,
   })
 
-  // Fetch chargeable consumptions
-  const { data: chargeableTotals, refetch: refetchChargeables } = useQuery({
-    queryKey: ['group-chargeable-totals', bookingGroupId],
-    queryFn: async (): Promise<Map<string, number>> => {
-      if (!groupData?.bookings) return new Map()
-      const bookingIds = groupData.bookings.map(b => b.id)
-      const { data, error } = await supabase
-        .from('chargeable_consumptions')
-        .select('booking_id, total_amount')
-        .in('booking_id', bookingIds)
-      if (error) throw error
-      const totalsMap = new Map<string, number>()
-      for (const row of data || []) {
-        const current = totalsMap.get(row.booking_id) || 0
-        totalsMap.set(row.booking_id, current + (row.total_amount || 0))
-      }
-      return totalsMap
-    },
-    enabled: !!groupData?.bookings && open,
-  })
 
   // Realtime subscriptions
   useEffect(() => {
@@ -350,17 +329,11 @@ export function GroupCheckoutDialog({
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'room_checks', filter: `room_id=in.(${roomIds.join(',')})` }, () => refetchInspections())
       .subscribe()
     
-    const chargeableChannel = supabase
-      .channel(`group-chargeables-realtime-${bookingGroupId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'chargeable_consumptions', filter: `booking_id=in.(${bookingIds.join(',')})` }, () => refetchChargeables())
-      .subscribe()
-    
     return () => {
       supabase.removeChannel(channel)
       supabase.removeChannel(roomChecksChannel)
-      supabase.removeChannel(chargeableChannel)
     }
-  }, [groupData?.bookings, bookingGroupId, open, refetchInspections, refetchChargeables, queryClient])
+  }, [groupData?.bookings, bookingGroupId, open, refetchInspections, queryClient])
 
   const inspectionMap = useMemo(() => {
     return new Map(inspectionStatuses?.map(i => [i.bookingId, i]) || [])
@@ -390,7 +363,7 @@ export function GroupCheckoutDialog({
       } else {
         roomTotal += b.total_amount || 0
         totalPaid += b.amount_paid || 0
-        serviceCharges += chargeableTotals?.get(b.id) || 0
+        serviceCharges += b.service_charges || 0
         const insp = inspectionMap.get(b.id)
         damageCharges += insp?.damageCharge || 0
       }
@@ -409,7 +382,7 @@ export function GroupCheckoutDialog({
     const remaining = grandTotal - totalPaid - depositApplied
 
     return { roomTotal, damageCharges, serviceCharges, lateCharges, earlyCheckinCharges, extraCharges, totalPaid, subtotal, vatAmount, serviceFeeAmount, grandTotal, remaining, depositApplied, holdingDeposit, isLastCheckout }
-  }, [groupData, inspectionStatuses, selectedRooms, inspectionMap, chargeableTotals, roomCosts])
+  }, [groupData, inspectionStatuses, selectedRooms, inspectionMap, roomCosts])
 
   // Room stats
   const roomStats = useMemo(() => {
@@ -1332,6 +1305,7 @@ export function GroupCheckoutDialog({
         bookingGroupId={bookingGroupId}
         tenantId={tenantId}
         hotelId={hotelId}
+        calculatedRemaining={totals.remaining}
         onPaymentComplete={() => {
           setShowPaymentDialog(false)
           queryClient.invalidateQueries({ queryKey: ['group-booking', bookingGroupId] })

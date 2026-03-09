@@ -43,6 +43,7 @@ export interface GroupPaymentDialogProps {
   tenantId: string
   hotelId: string
   onPaymentComplete?: () => void
+  calculatedRemaining?: number
 }
 
 type PaymentMethod = 'cash' | 'bank_transfer'
@@ -55,6 +56,7 @@ export function GroupPaymentDialog({
   tenantId,
   hotelId,
   onPaymentComplete,
+  calculatedRemaining,
 }: GroupPaymentDialogProps) {
   const { data: groupData, isLoading: isLoadingGroup } = useGroupBooking(bookingGroupId)
   
@@ -74,10 +76,11 @@ export function GroupPaymentDialog({
     if (open && groupData) {
       setStep('select')
       setPaymentMethod('cash')
-      setAmount(groupData.remainingAmount.toString())
+      const initAmount = calculatedRemaining ?? groupData.remainingAmount
+      setAmount(Math.max(0, initAmount).toString())
       setCreatedPayment(null)
     }
-  }, [open, groupData?.remainingAmount])
+  }, [open, calculatedRemaining, groupData?.remainingAmount])
 
   // Realtime subscription for bank transfer auto-confirmation
   useEffect(() => {
@@ -113,9 +116,9 @@ export function GroupPaymentDialog({
     }
   }, [step, createdPayment?.id])
 
-  const remainingAmount = groupData?.remainingAmount || 0
+  const remainingAmount = calculatedRemaining ?? (groupData?.remainingAmount || 0)
   const parsedAmount = parseFloat(amount.replace(/[^0-9]/g, '')) || 0
-  const isValidAmount = parsedAmount > 0 && parsedAmount <= remainingAmount
+  const isValidAmount = parsedAmount > 0
 
   const handleAmountChange = (value: string) => {
     const numericValue = value.replace(/[^0-9]/g, '')
