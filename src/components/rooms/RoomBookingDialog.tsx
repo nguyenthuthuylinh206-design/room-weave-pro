@@ -1343,6 +1343,7 @@ export function RoomBookingDialog({
             room_number: roomNumber,
             total_amount: costBreakdown.totalAmount,
             amount_paid: amountPaid,
+            deposit_amount: depositAmount,
             tenant_id: tenantId,
             hotel_id: hotelId,
           }}

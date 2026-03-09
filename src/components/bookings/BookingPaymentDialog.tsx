@@ -379,6 +379,7 @@ export function BookingPaymentDialog({
               </div>
 
               {/* Action Button */}
+              {!isFullyPaid && (
               <Button
                 className="w-full"
                 disabled={!isValidAmount || isProcessing}
@@ -387,6 +388,7 @@ export function BookingPaymentDialog({
                 {isProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {paymentMethod === 'cash' ? 'Xác nhận đã nhận tiền' : 'Tạo mã QR thanh toán'}
               </Button>
+              )}
             </div>
           )}
 
