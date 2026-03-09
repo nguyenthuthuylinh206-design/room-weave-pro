@@ -51,7 +51,10 @@ export function BookingPaymentDialog({
   booking,
   onPaymentComplete,
 }: BookingPaymentDialogProps) {
-  const remainingAmount = booking.total_amount - booking.amount_paid;
+  const depositAmount = booking.deposit_amount ?? 0;
+  const totalPaid = depositAmount + booking.amount_paid;
+  const remainingAmount = Math.max(0, booking.total_amount - totalPaid);
+  const isFullyPaid = remainingAmount <= 0;
   
   const [step, setStep] = useState<Step>('select');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
@@ -76,7 +79,7 @@ export function BookingPaymentDialog({
   }, [open, remainingAmount]);
 
   const parsedAmount = parseFloat(amount.replace(/[^0-9]/g, '')) || 0;
-  const isValidAmount = parsedAmount > 0 && parsedAmount <= remainingAmount;
+  const isValidAmount = !isFullyPaid && parsedAmount > 0 && parsedAmount <= remainingAmount;
 
   const handleAmountChange = (value: string) => {
     // Only allow numbers
