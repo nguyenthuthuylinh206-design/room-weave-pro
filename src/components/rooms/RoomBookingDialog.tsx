@@ -1330,6 +1330,16 @@ export function RoomBookingDialog({
               // Update local checkout date for cost calculation
               setCheckOutDate(checkOut)
               
+              // Fetch service charges summary
+              try {
+                const summary = await fetchServiceChargeSummary(booking.id, tenantId)
+                setServiceCharges(summary.grandTotal)
+                setCheckoutServiceDetails(summary.details)
+              } catch (err) {
+                console.error('Failed to fetch service charges:', err)
+                setCheckoutServiceDetails([])
+              }
+              
               // Fetch damage items
               const { data: latestCheck } = await supabase
                 .from('room_checks')
