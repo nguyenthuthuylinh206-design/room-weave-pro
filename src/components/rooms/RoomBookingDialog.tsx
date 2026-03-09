@@ -1169,17 +1169,6 @@ export function RoomBookingDialog({
                     {t('booking.doCheckIn')}
                   </Button>
                 )}
-                {booking.status === 'checked_in' && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex-1"
-                    onClick={handleCheckOutClick}
-                    disabled={isSubmitting}
-                  >
-                    {t('booking.doCheckOut')}
-                  </Button>
-                )}
               </div>
             )}
             
