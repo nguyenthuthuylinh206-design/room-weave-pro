@@ -1331,6 +1331,27 @@ export function RoomBookingDialog({
           }}
         />
       )}
+
+      {/* Booking Payment Dialog - xử lý thanh toán chuẩn với lịch sử giao dịch */}
+      {booking && (
+        <BookingPaymentDialog
+          open={showPaymentDialog}
+          onOpenChange={setShowPaymentDialog}
+          booking={{
+            id: booking.id,
+            guest_name: guestName,
+            room_number: roomNumber,
+            total_amount: costBreakdown.totalAmount,
+            amount_paid: amountPaid,
+            tenant_id: tenantId,
+            hotel_id: hotelId,
+          }}
+          onPaymentComplete={() => {
+            setShowPaymentDialog(false)
+            invalidateQueries()
+          }}
+        />
+      )}
     </>
   )
 }
