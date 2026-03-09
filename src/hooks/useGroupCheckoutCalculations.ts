@@ -9,7 +9,7 @@ import {
   DamageChargeItem,
   DEFAULT_PRICING_RULES,
 } from '@/lib/bookingCalculations'
-import { calculateServiceChargesFromConsumables } from '@/hooks/usePricingRules'
+import { fetchServiceChargeSummary } from '@/hooks/useBookingServiceCharges'
 
 export interface GroupBookingCostData {
   bookingId: string
