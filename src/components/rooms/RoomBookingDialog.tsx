@@ -92,6 +92,7 @@ export function RoomBookingDialog({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCheckoutSummary, setShowCheckoutSummary] = useState(false)
   const [showCheckinConfirm, setShowCheckinConfirm] = useState(false)
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [suggestedEarlyCharge, setSuggestedEarlyCharge] = useState(0)
   const [showPaymentDetails, setShowPaymentDetails] = useState(false)
   const [checkoutDamageItems, setCheckoutDamageItems] = useState<DamageChargeItem[]>([])
