@@ -118,8 +118,6 @@ i18n
     interpolation: {
       escapeValue: false,
     },
-    lng: 'vi',
-    detection: false,
   });
 
 export default i18n;
