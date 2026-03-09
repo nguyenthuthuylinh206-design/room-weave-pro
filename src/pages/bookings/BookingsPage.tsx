@@ -658,7 +658,7 @@ export function BookingsPage() {
         monthlyRate: bMonthlyRate,
         months: bMonths,
         serviceCharges,
-        extraCharges: ((booking as any).extra_charges || 0) + extraChargeableAmount,
+        extraCharges: (booking as any).extra_charges || 0,
         damageCharges: totalDamageCharge,
         damageItems,
         vatRate: (booking as any).vat_rate ?? DEFAULT_PRICING_RULES.vatRate,
