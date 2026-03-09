@@ -1834,12 +1834,15 @@ export function BookingsPage() {
               const checkOut = new Date(todayStr)
               const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
               
-              const consumablesTotal = await calculateServiceChargesFromConsumables(updatedBooking.id)
-              const serviceCharges = consumablesTotal > 0 ? consumablesTotal : ((updatedBooking as any).service_charges || 0)
-              
-              const { data: chargeableTotal } = await supabase
-                .rpc('get_booking_chargeable_total', { p_booking_id: updatedBooking.id })
-              const extraChargeableAmount = chargeableTotal || 0
+              let serviceCharges = (updatedBooking as any).service_charges || 0
+              let serviceDetails: ServiceChargeDetail[] = []
+              try {
+                const summary = await fetchServiceChargeSummary(updatedBooking.id, tenantId!)
+                serviceCharges = summary.grandTotal
+                serviceDetails = summary.details
+              } catch (e) {
+                console.warn('Failed to fetch service charge summary for mobile overdue checkout:', e)
+              }
               
               const { data: latestCheck } = await supabase
                 .from('room_checks')
