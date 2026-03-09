@@ -620,45 +620,6 @@ export function RoomBookingDialog({
     }
   }
 
-  const handleReceivePayment = async () => {
-    if (!booking) return
-    
-    // Set amount paid to cover remaining
-    const newAmountPaid = costBreakdown.totalAmount - depositAmount
-    setAmountPaid(newAmountPaid)
-    
-    setIsSubmitting(true)
-    try {
-      const { error } = await supabase
-        .from('room_bookings')
-        .update({
-          amount_paid: newAmountPaid,
-          payment_status: 'paid',
-          paid_at: new Date().toISOString(),
-          subtotal: costBreakdown.subtotal,
-          vat_amount: costBreakdown.vatAmount,
-          service_fee_amount: costBreakdown.serviceFeeAmount,
-          total_amount: costBreakdown.totalAmount,
-        })
-        .eq('id', booking.id)
-        
-      if (error) throw error
-      
-      toast({
-        title: 'Đã nhận thanh toán đầy đủ',
-      })
-      
-      invalidateQueries()
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Lỗi cập nhật thanh toán',
-        description: error.message,
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
 
   const handlePayAndCheckout = async (
     adjustedLateCharge: number, 
