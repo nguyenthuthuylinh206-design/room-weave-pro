@@ -116,9 +116,9 @@ export function GroupPaymentDialog({
     }
   }, [step, createdPayment?.id])
 
-  const remainingAmount = groupData?.remainingAmount || 0
+  const remainingAmount = calculatedRemaining ?? (groupData?.remainingAmount || 0)
   const parsedAmount = parseFloat(amount.replace(/[^0-9]/g, '')) || 0
-  const isValidAmount = parsedAmount > 0 && parsedAmount <= remainingAmount
+  const isValidAmount = parsedAmount > 0
 
   const handleAmountChange = (value: string) => {
     const numericValue = value.replace(/[^0-9]/g, '')
