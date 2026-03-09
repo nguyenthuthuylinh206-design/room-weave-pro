@@ -477,6 +477,16 @@ export function RoomBookingDialog({
     const calculatedLateCharge = calculateLateCheckoutCharge(actualTime, roomPrice)
     setLateCheckoutCharge(calculatedLateCharge)
     
+    // Fetch latest service charge summary (services + minibar)
+    try {
+      const summary = await fetchServiceChargeSummary(booking.id, tenantId)
+      setServiceCharges(summary.grandTotal)
+      setCheckoutServiceDetails(summary.details)
+    } catch (error) {
+      console.error('Failed to fetch service charges:', error)
+      setCheckoutServiceDetails([])
+    }
+
     // Fetch latest room check for damage info
     try {
       const { data: latestCheck } = await supabase
