@@ -119,11 +119,8 @@ i18n
     interpolation: {
       escapeValue: false,
     },
-    detection: {
-      order: ['localStorage', 'navigator'],
-      caches: ['localStorage'],
-      lookupLocalStorage: 'i18nextLng',
-    },
+    lng: 'vi',
+    detection: false,
   });
 
 export default i18n;
