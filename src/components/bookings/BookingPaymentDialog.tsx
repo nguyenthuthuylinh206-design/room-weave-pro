@@ -35,6 +35,7 @@ export interface BookingPaymentDialogProps {
     room_number: string;
     total_amount: number;
     amount_paid: number;
+    deposit_amount?: number;
     tenant_id: string;
     hotel_id: string;
   };
