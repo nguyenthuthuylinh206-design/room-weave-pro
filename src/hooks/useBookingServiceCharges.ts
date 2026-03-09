@@ -4,6 +4,74 @@ import { useTenant } from '@/hooks/useTenant'
 import { useToast } from '@/hooks/use-toast'
 import type { BookingServiceCharge } from '@/types/services.types'
 
+export interface ServiceChargeDetail {
+  id: string
+  service_name: string
+  quantity: number
+  unit_price: number
+  total_price: number
+  source: 'service' | 'minibar'
+}
+
+export interface ServiceChargeSummary {
+  totalServiceCharges: number
+  totalChargeableConsumptions: number
+  grandTotal: number
+  details: ServiceChargeDetail[]
+}
+
+/**
+ * Fetch total service charges for a booking (booking_service_charges + chargeable_consumptions)
+ */
+export async function fetchServiceChargeSummary(bookingId: string, tenantId: string): Promise<ServiceChargeSummary> {
+  // Fetch booking_service_charges
+  const { data: serviceCharges, error: scError } = await supabase
+    .from('booking_service_charges')
+    .select('id, service_name, quantity, unit_price, total_price')
+    .eq('booking_id', bookingId)
+    .eq('tenant_id', tenantId)
+
+  if (scError) throw scError
+
+  // Fetch chargeable_consumptions (minibar, paid items)
+  const { data: consumptions, error: ccError } = await supabase
+    .from('chargeable_consumptions')
+    .select('id, item_name, quantity, unit_price, total_amount')
+    .eq('booking_id', bookingId)
+    .eq('tenant_id', tenantId)
+    .eq('is_billed', false)
+
+  if (ccError) throw ccError
+
+  const serviceDetails: ServiceChargeDetail[] = (serviceCharges || []).map(sc => ({
+    id: sc.id,
+    service_name: sc.service_name,
+    quantity: sc.quantity,
+    unit_price: sc.unit_price,
+    total_price: sc.total_price,
+    source: 'service' as const,
+  }))
+
+  const consumptionDetails: ServiceChargeDetail[] = (consumptions || []).map(cc => ({
+    id: cc.id,
+    service_name: cc.item_name,
+    quantity: cc.quantity,
+    unit_price: cc.unit_price,
+    total_price: cc.total_amount || cc.quantity * cc.unit_price,
+    source: 'minibar' as const,
+  }))
+
+  const totalServiceCharges = serviceDetails.reduce((sum, d) => sum + d.total_price, 0)
+  const totalChargeableConsumptions = consumptionDetails.reduce((sum, d) => sum + d.total_price, 0)
+
+  return {
+    totalServiceCharges,
+    totalChargeableConsumptions,
+    grandTotal: totalServiceCharges + totalChargeableConsumptions,
+    details: [...serviceDetails, ...consumptionDetails],
+  }
+}
+
 export function useBookingServiceCharges(bookingId: string | undefined) {
   const { tenant } = useTenant()
   const tenantId = tenant?.id
@@ -76,9 +144,9 @@ export function useAddServiceCharge() {
         .update({ service_charges: totalServiceCharges })
         .eq('id', params.bookingId)
 
-      return data
+      return { data, totalServiceCharges }
     },
-    onSuccess: (_, params) => {
+    onSuccess: (result, params) => {
       queryClient.invalidateQueries({ queryKey: ['booking-service-charges', params.bookingId] })
       queryClient.invalidateQueries({ queryKey: ['room-booking'] })
       queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
@@ -119,8 +187,10 @@ export function useDeleteServiceCharge() {
         .from('room_bookings')
         .update({ service_charges: totalServiceCharges })
         .eq('id', bookingId)
+
+      return { totalServiceCharges }
     },
-    onSuccess: (_, params) => {
+    onSuccess: (result, params) => {
       queryClient.invalidateQueries({ queryKey: ['booking-service-charges', params.bookingId] })
       queryClient.invalidateQueries({ queryKey: ['room-booking'] })
       queryClient.invalidateQueries({ queryKey: ['all-bookings'] })

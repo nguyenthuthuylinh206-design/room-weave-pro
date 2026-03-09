@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -6,14 +6,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useBookingServiceCharges, useAddServiceCharge, useDeleteServiceCharge } from '@/hooks/useBookingServiceCharges'
 import { useHotelServices } from '@/hooks/useHotelServices'
 import { formatCurrency } from '@/lib/utils'
-import type { HotelService } from '@/types/services.types'
 
 interface BookingServiceChargesProps {
   bookingId: string
   readOnly?: boolean
+  onTotalChange?: (total: number) => void
 }
 
-export function BookingServiceCharges({ bookingId, readOnly = false }: BookingServiceChargesProps) {
+export function BookingServiceCharges({ bookingId, readOnly = false, onTotalChange }: BookingServiceChargesProps) {
   const { data: charges = [], isLoading } = useBookingServiceCharges(bookingId)
   const { data: services = [] } = useHotelServices(true)
   const addCharge = useAddServiceCharge()
@@ -26,6 +26,13 @@ export function BookingServiceCharges({ bookingId, readOnly = false }: BookingSe
 
   const selectedService = services.find(s => s.id === selectedServiceId)
   const unitPrice = customPrice ?? selectedService?.price ?? 0
+
+  const totalCharges = charges.reduce((sum, c) => sum + (c.total_price || 0), 0)
+
+  // Notify parent when total changes
+  useEffect(() => {
+    onTotalChange?.(totalCharges)
+  }, [totalCharges, onTotalChange])
 
   const handleAdd = () => {
     if (!selectedService) return
@@ -49,8 +56,6 @@ export function BookingServiceCharges({ bookingId, readOnly = false }: BookingSe
   const handleDelete = (chargeId: string) => {
     deleteCharge.mutate({ chargeId, bookingId })
   }
-
-  const totalCharges = charges.reduce((sum, c) => sum + (c.total_price || 0), 0)
 
   return (
     <div className="border rounded-lg p-3 space-y-2">
