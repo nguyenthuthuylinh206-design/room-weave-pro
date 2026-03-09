@@ -63,8 +63,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
 
       {/* Right Side Actions */}
       <div className="flex items-center gap-2">
-        {/* Language Switcher */}
-        <LanguageSwitcher />
+
 
         {/* Theme Toggle */}
         <Button
