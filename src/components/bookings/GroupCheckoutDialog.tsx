@@ -308,26 +308,6 @@ export function GroupCheckoutDialog({
     refetchInterval: 10000,
   })
 
-  // Fetch chargeable consumptions
-  const { data: chargeableTotals, refetch: refetchChargeables } = useQuery({
-    queryKey: ['group-chargeable-totals', bookingGroupId],
-    queryFn: async (): Promise<Map<string, number>> => {
-      if (!groupData?.bookings) return new Map()
-      const bookingIds = groupData.bookings.map(b => b.id)
-      const { data, error } = await supabase
-        .from('chargeable_consumptions')
-        .select('booking_id, total_amount')
-        .in('booking_id', bookingIds)
-      if (error) throw error
-      const totalsMap = new Map<string, number>()
-      for (const row of data || []) {
-        const current = totalsMap.get(row.booking_id) || 0
-        totalsMap.set(row.booking_id, current + (row.total_amount || 0))
-      }
-      return totalsMap
-    },
-    enabled: !!groupData?.bookings && open,
-  })
 
   // Realtime subscriptions
   useEffect(() => {
