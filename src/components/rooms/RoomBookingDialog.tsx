@@ -1117,11 +1117,11 @@ export function RoomBookingDialog({
                   variant="outline"
                   size="sm"
                   className="w-full border-green-500 text-green-600 hover:bg-green-50"
-                  onClick={handleReceivePayment}
+                  onClick={() => setShowPaymentDialog(true)}
                   disabled={isSubmitting}
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
-                  Nhận thanh toán đầy đủ ({formatCurrency(costBreakdown.remainingAmount)})
+                  Nhận thanh toán ({formatCurrency(costBreakdown.remainingAmount)})
                 </Button>
               )}
             </div>
