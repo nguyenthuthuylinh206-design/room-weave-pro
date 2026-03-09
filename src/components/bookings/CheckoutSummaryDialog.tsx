@@ -126,6 +126,7 @@ export function CheckoutSummaryDialog({
   onInspectionCompleted,
   onMinimize,
   skipCompletionToast = false,
+  serviceChargeDetails = [],
 }: CheckoutSummaryDialogProps) {
   const [adjustedLateCharge, setAdjustedLateCharge] = useState(costBreakdown.lateCheckoutCharge)
   const [adjustmentNote, setAdjustmentNote] = useState('')
