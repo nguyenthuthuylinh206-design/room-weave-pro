@@ -11,7 +11,7 @@ import {
   DEFAULT_PRICING_RULES 
 } from '@/lib/bookingCalculations'
 import { formatCurrency } from '@/lib/utils'
-import { calculateServiceChargesFromConsumables } from '@/hooks/usePricingRules'
+import { fetchServiceChargeSummary } from '@/hooks/useBookingServiceCharges'
 import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
 import { useUser } from '@/hooks/useUser'
 import { useTenant } from '@/hooks/useTenant'
