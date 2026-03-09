@@ -329,17 +329,11 @@ export function GroupCheckoutDialog({
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'room_checks', filter: `room_id=in.(${roomIds.join(',')})` }, () => refetchInspections())
       .subscribe()
     
-    const chargeableChannel = supabase
-      .channel(`group-chargeables-realtime-${bookingGroupId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'chargeable_consumptions', filter: `booking_id=in.(${bookingIds.join(',')})` }, () => refetchChargeables())
-      .subscribe()
-    
     return () => {
       supabase.removeChannel(channel)
       supabase.removeChannel(roomChecksChannel)
-      supabase.removeChannel(chargeableChannel)
     }
-  }, [groupData?.bookings, bookingGroupId, open, refetchInspections, refetchChargeables, queryClient])
+  }, [groupData?.bookings, bookingGroupId, open, refetchInspections, queryClient])
 
   const inspectionMap = useMemo(() => {
     return new Map(inspectionStatuses?.map(i => [i.bookingId, i]) || [])
