@@ -9,7 +9,7 @@ import {
   DamageChargeItem,
   DEFAULT_PRICING_RULES,
 } from '@/lib/bookingCalculations'
-import { calculateServiceChargesFromConsumables } from '@/hooks/usePricingRules'
+import { fetchServiceChargeSummary } from '@/hooks/useBookingServiceCharges'
 
 export interface GroupBookingCostData {
   bookingId: string
@@ -130,19 +130,22 @@ export function useGroupCheckoutCalculations() {
       )
     }
 
-    // 2. Get chargeable consumables
+    // 2. Get unified service charges (booking_service_charges + chargeable_consumptions)
     let serviceCharges = 0
     try {
-      serviceCharges = await calculateServiceChargesFromConsumables(booking.bookingId)
+      // Need tenant_id - fetch from booking
+      const { data: bookingData } = await supabase
+        .from('room_bookings')
+        .select('tenant_id')
+        .eq('id', booking.bookingId)
+        .single()
       
-      // Also get from RPC if available
-      const { data: chargeableTotal } = await supabase
-        .rpc('get_booking_chargeable_total', { p_booking_id: booking.bookingId })
-      if (chargeableTotal) {
-        serviceCharges = Math.max(serviceCharges, chargeableTotal)
+      if (bookingData?.tenant_id) {
+        const summary = await fetchServiceChargeSummary(booking.bookingId, bookingData.tenant_id)
+        serviceCharges = summary.grandTotal
       }
     } catch (e) {
-      console.error('Error fetching consumables:', e)
+      console.error('Error fetching service charges:', e)
     }
 
     // 3. Get damage items

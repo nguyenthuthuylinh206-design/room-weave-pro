@@ -11,7 +11,7 @@ import {
   DEFAULT_PRICING_RULES 
 } from '@/lib/bookingCalculations'
 import { formatCurrency } from '@/lib/utils'
-import { calculateServiceChargesFromConsumables } from '@/hooks/usePricingRules'
+import { fetchServiceChargeSummary } from '@/hooks/useBookingServiceCharges'
 import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
 import { useUser } from '@/hooks/useUser'
 import { useTenant } from '@/hooks/useTenant'
@@ -138,7 +138,7 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
       const { data: booking, error: fetchError } = await supabase
         .from('room_bookings')
         .select(`
-          room_price, early_checkin_charge, vat_rate, service_fee_rate, 
+          tenant_id, room_price, early_checkin_charge, vat_rate, service_fee_rate, 
           service_charges, extra_charges, deposit_amount, amount_paid, 
           check_in_date, check_out_date, booking_type,
           hourly_rate, booking_hours, hourly_end_time,
@@ -199,17 +199,16 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
         }
       }
 
-      // Auto-calculate service charges from consumables (complimentary items)
-      const consumablesTotal = await calculateServiceChargesFromConsumables(bookingId)
-      const serviceCharges = consumablesTotal > 0 ? consumablesTotal : (booking.service_charges || 0)
+      // Fetch unified service charges (booking_service_charges + chargeable_consumptions)
+      let serviceCharges = booking.service_charges || 0
+      try {
+        const summary = await fetchServiceChargeSummary(bookingId, booking.tenant_id)
+        serviceCharges = summary.grandTotal
+      } catch (e) {
+        console.error('Error fetching service charge summary:', e)
+      }
 
-      // Get chargeable consumptions total (minibar, paid items)
-      const { data: chargeableTotal } = await supabase
-        .rpc('get_booking_chargeable_total', { p_booking_id: bookingId })
-      const extraChargeableAmount = chargeableTotal || 0
-
-      // Calculate final cost breakdown based on booking type
-      const totalExtraCharges = (booking.extra_charges || 0) + extraChargeableAmount
+      const totalExtraCharges = booking.extra_charges || 0
       const costBreakdown = calculateBookingCost({
         bookingType,
         roomPrice: booking.room_price || 0,
