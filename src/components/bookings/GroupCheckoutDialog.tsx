@@ -382,7 +382,7 @@ export function GroupCheckoutDialog({
     const remaining = grandTotal - totalPaid - depositApplied
 
     return { roomTotal, damageCharges, serviceCharges, lateCharges, earlyCheckinCharges, extraCharges, totalPaid, subtotal, vatAmount, serviceFeeAmount, grandTotal, remaining, depositApplied, holdingDeposit, isLastCheckout }
-  }, [groupData, inspectionStatuses, selectedRooms, inspectionMap, chargeableTotals, roomCosts])
+  }, [groupData, inspectionStatuses, selectedRooms, inspectionMap, roomCosts])
 
   // Room stats
   const roomStats = useMemo(() => {
