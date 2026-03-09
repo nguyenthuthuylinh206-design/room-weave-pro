@@ -967,6 +967,7 @@ export function RoomBookingDialog({
               <BookingServiceCharges
                 bookingId={booking.id}
                 readOnly={booking.status === 'checked_out' || booking.status === 'cancelled'}
+                onTotalChange={(total) => setServiceCharges(total)}
               />
             )}
 
