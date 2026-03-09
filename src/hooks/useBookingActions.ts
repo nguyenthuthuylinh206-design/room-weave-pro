@@ -199,17 +199,16 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
         }
       }
 
-      // Auto-calculate service charges from consumables (complimentary items)
-      const consumablesTotal = await calculateServiceChargesFromConsumables(bookingId)
-      const serviceCharges = consumablesTotal > 0 ? consumablesTotal : (booking.service_charges || 0)
+      // Fetch unified service charges (booking_service_charges + chargeable_consumptions)
+      let serviceCharges = booking.service_charges || 0
+      try {
+        const summary = await fetchServiceChargeSummary(bookingId, booking.tenant_id)
+        serviceCharges = summary.grandTotal
+      } catch (e) {
+        console.error('Error fetching service charge summary:', e)
+      }
 
-      // Get chargeable consumptions total (minibar, paid items)
-      const { data: chargeableTotal } = await supabase
-        .rpc('get_booking_chargeable_total', { p_booking_id: bookingId })
-      const extraChargeableAmount = chargeableTotal || 0
-
-      // Calculate final cost breakdown based on booking type
-      const totalExtraCharges = (booking.extra_charges || 0) + extraChargeableAmount
+      const totalExtraCharges = booking.extra_charges || 0
       const costBreakdown = calculateBookingCost({
         bookingType,
         roomPrice: booking.room_price || 0,

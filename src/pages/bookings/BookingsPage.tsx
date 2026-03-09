@@ -959,11 +959,6 @@ export function BookingsPage() {
           const checkOut = new Date(actionBooking.check_out_date)
           const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
           
-          // Refetch chargeable total after inspection completed
-          const { data: chargeableTotal } = await supabase
-            .rpc('get_booking_chargeable_total', { p_booking_id: actionBooking.id })
-          const extraChargeableAmount = chargeableTotal || 0
-          
           const bType = actionBooking.booking_type || 'daily'
           const newCostBreakdown = calculateBookingCost({
             bookingType: bType,
@@ -977,7 +972,7 @@ export function BookingsPage() {
             monthlyRate: actionBooking.monthly_rate || 0,
             months: actionBooking.booking_months || 0,
             serviceCharges: checkoutCostBreakdown.serviceCharges,
-            extraCharges: ((actionBooking as any).extra_charges || 0) + extraChargeableAmount,
+            extraCharges: (actionBooking as any).extra_charges || 0,
             damageCharges: totalDamageCharge,
             damageItems,
             vatRate: checkoutCostBreakdown.vatRate,
