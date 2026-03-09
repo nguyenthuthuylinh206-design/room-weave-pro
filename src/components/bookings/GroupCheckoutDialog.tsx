@@ -363,7 +363,7 @@ export function GroupCheckoutDialog({
       } else {
         roomTotal += b.total_amount || 0
         totalPaid += b.amount_paid || 0
-        serviceCharges += chargeableTotals?.get(b.id) || 0
+        serviceCharges += b.service_charges || 0
         const insp = inspectionMap.get(b.id)
         damageCharges += insp?.damageCharge || 0
       }
