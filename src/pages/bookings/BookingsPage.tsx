@@ -1245,10 +1245,15 @@ export function BookingsPage() {
                 const checkIn = new Date(updatedBooking.check_in_date)
                 const checkOut = new Date(todayStr)
                 const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
-                const consumablesTotal = await calculateServiceChargesFromConsumables(updatedBooking.id)
-                const serviceCharges = consumablesTotal > 0 ? consumablesTotal : ((updatedBooking as any).service_charges || 0)
-                const { data: chargeableTotal } = await supabase.rpc('get_booking_chargeable_total', { p_booking_id: updatedBooking.id })
-                const extraChargeableAmount = chargeableTotal || 0
+                let serviceCharges = (updatedBooking as any).service_charges || 0
+                let serviceDetails: ServiceChargeDetail[] = []
+                try {
+                  const summary = await fetchServiceChargeSummary(updatedBooking.id, tenantId!)
+                  serviceCharges = summary.grandTotal
+                  serviceDetails = summary.details
+                } catch (e) {
+                  console.warn('Failed to fetch service charge summary for overdue checkout:', e)
+                }
                 const { data: latestCheck } = await supabase.from('room_checks').select('items_lost, items_damaged, items_consumed').eq('room_id', updatedBooking.room_id).in('check_type', ['checkout', 'daily']).order('checked_at', { ascending: false }).limit(1).maybeSingle()
                 const damageItems: DamageChargeItem[] = [
                   ...((latestCheck?.items_lost as any[]) || []).map(item => ({ item_id: item.item_id, item_name: item.item_name, item_type: 'lost' as const, quantity: item.quantity, charge_amount: item.estimated_value || 0 })),
@@ -1268,13 +1273,14 @@ export function BookingsPage() {
                   lateCheckoutCharge: bType === 'daily' ? calculatedLateCharge : 0,
                   hourlyRate: updatedBooking.hourly_rate || 0, hours: updatedBooking.booking_hours || 0, hourlyOvertimeCharge,
                   monthlyRate: updatedBooking.monthly_rate || 0, months: updatedBooking.booking_months || 0,
-                  serviceCharges, extraCharges: ((updatedBooking as any).extra_charges || 0) + extraChargeableAmount,
+                   serviceCharges, extraCharges: (updatedBooking as any).extra_charges || 0,
                   damageCharges: totalDamageCharge, damageItems,
                   vatRate: (updatedBooking as any).vat_rate ?? DEFAULT_PRICING_RULES.vatRate,
                   serviceFeeRate: (updatedBooking as any).service_fee_rate ?? DEFAULT_PRICING_RULES.serviceFeeRate,
                   depositAmount: (updatedBooking as any).deposit_amount || 0, amountPaid: (updatedBooking as any).amount_paid || 0,
                 })
                 setCheckoutDamageItems(damageItems)
+                setCheckoutServiceDetails(serviceDetails)
                 setCheckoutCostBreakdown(costBreakdown)
                 setShowCheckoutSummary(true)
               } catch (error: any) {
@@ -1828,12 +1834,15 @@ export function BookingsPage() {
               const checkOut = new Date(todayStr)
               const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
               
-              const consumablesTotal = await calculateServiceChargesFromConsumables(updatedBooking.id)
-              const serviceCharges = consumablesTotal > 0 ? consumablesTotal : ((updatedBooking as any).service_charges || 0)
-              
-              const { data: chargeableTotal } = await supabase
-                .rpc('get_booking_chargeable_total', { p_booking_id: updatedBooking.id })
-              const extraChargeableAmount = chargeableTotal || 0
+              let serviceCharges = (updatedBooking as any).service_charges || 0
+              let serviceDetails: ServiceChargeDetail[] = []
+              try {
+                const summary = await fetchServiceChargeSummary(updatedBooking.id, tenantId!)
+                serviceCharges = summary.grandTotal
+                serviceDetails = summary.details
+              } catch (e) {
+                console.warn('Failed to fetch service charge summary for mobile overdue checkout:', e)
+              }
               
               const { data: latestCheck } = await supabase
                 .from('room_checks')
@@ -1879,7 +1888,7 @@ export function BookingsPage() {
                 monthlyRate: updatedBooking.monthly_rate || 0,
                 months: updatedBooking.booking_months || 0,
                 serviceCharges,
-                extraCharges: ((updatedBooking as any).extra_charges || 0) + extraChargeableAmount,
+                extraCharges: (updatedBooking as any).extra_charges || 0,
                 damageCharges: totalDamageCharge,
                 damageItems,
                 vatRate: (updatedBooking as any).vat_rate ?? DEFAULT_PRICING_RULES.vatRate,
@@ -1889,6 +1898,7 @@ export function BookingsPage() {
               })
               
               setCheckoutDamageItems(damageItems)
+              setCheckoutServiceDetails(serviceDetails)
               setCheckoutCostBreakdown(costBreakdown)
               setShowCheckoutSummary(true)
             } catch (error: any) {
