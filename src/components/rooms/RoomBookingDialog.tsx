@@ -41,6 +41,7 @@ import { BookingServiceCharges } from '@/components/services/BookingServiceCharg
 import { fetchServiceChargeSummary, type ServiceChargeDetail } from '@/hooks/useBookingServiceCharges'
 import { CheckInConfirmDialog } from '@/components/bookings/CheckInConfirmDialog'
 import { ExtendBookingDialog } from '@/components/bookings/ExtendBookingDialog'
+import { BookingPaymentDialog } from '@/components/bookings/BookingPaymentDialog'
 import { 
   calculateBookingCost, 
   calculateEarlyCheckinCharge, 
