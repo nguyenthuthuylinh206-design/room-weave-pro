@@ -502,6 +502,44 @@ const router = createBrowserRouter([
         )
       },
 
+      // Guests
+      {
+        path: "guests",
+        element: (
+          <PermissionRoute module="bookings">
+            <GuestsPage />
+          </PermissionRoute>
+        ),
+      },
+      {
+        path: "guests/:id",
+        element: (
+          <PermissionRoute module="bookings">
+            <GuestDetailPage />
+          </PermissionRoute>
+        ),
+      },
+
+      // Lost & Found
+      {
+        path: "lost-found",
+        element: (
+          <PermissionRoute module="rooms">
+            <LostFoundPage />
+          </PermissionRoute>
+        ),
+      },
+
+      // Guest Invoices
+      {
+        path: "guest-invoices",
+        element: (
+          <PermissionRoute module="bookings">
+            <GuestInvoicesPage />
+          </PermissionRoute>
+        ),
+      },
+
       { 
         path: "laundry", 
         element: (
