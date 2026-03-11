@@ -233,7 +233,7 @@ export function GroupPaymentDialog({
         tenant_id: tenantId,
         hotel_id: hotelId,
         booking_id: firstBooking.id,
-        amount: parsedAmount,
+        amount: finalAmount,
         payment_method: 'bank_transfer',
         transaction_reference: reference,
         metadata: {
