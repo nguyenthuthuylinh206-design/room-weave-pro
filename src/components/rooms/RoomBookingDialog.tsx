@@ -403,37 +403,37 @@ export function RoomBookingDialog({
     setShowCheckinConfirm(false)
     
     try {
-      const now = new Date()
-      
-      // Update booking status with the (possibly adjusted) early checkin charge
-      const updateData: any = {
-        status: 'checked_in',
-        actual_check_in: now.toISOString(),
-        early_checkin_charge: finalEarlyCharge,
+      // Use atomic RPC for check-in (updates booking + room in single transaction)
+      const { data, error } = await supabase.rpc('perform_checkin', {
+        p_booking_id: booking.id,
+        p_room_id: roomId,
+        p_early_checkin_charge: finalEarlyCharge,
+      })
+
+      if (error) {
+        // Handle specific RPC errors
+        if (error.message?.includes('ROOM_OCCUPIED')) {
+          const guestName = error.message.split(':')[1] || 'unknown'
+          throw new Error(`Phòng đang có khách "${guestName}". Vui lòng checkout trước.`)
+        }
+        if (error.message?.includes('INVALID_ROOM_STATUS')) {
+          const status = error.message.split(':')[1] || 'unknown'
+          throw new Error(`Phòng đang ở trạng thái "${status}", không thể check-in.`)
+        }
+        throw error
       }
       
-      // Add adjustment note if provided
+      // Update adjustment note separately if provided
       if (adjustmentNote) {
         const existingNotes = notes || ''
-        updateData.notes = existingNotes 
+        const updateNotes = existingNotes 
           ? `${existingNotes}\n[Điều chỉnh phụ thu check-in sớm: ${adjustmentNote}]`
           : `[Điều chỉnh phụ thu check-in sớm: ${adjustmentNote}]`
+        await supabase
+          .from('room_bookings')
+          .update({ notes: updateNotes })
+          .eq('id', booking.id)
       }
-      
-      const { error: bookingError } = await supabase
-        .from('room_bookings')
-        .update(updateData)
-        .eq('id', booking.id)
-        
-      if (bookingError) throw bookingError
-
-      // Update room status to 'occupied'
-      const { error: roomError } = await supabase
-        .from('rooms')
-        .update({ status: 'occupied' })
-        .eq('id', roomId)
-        
-      if (roomError) throw roomError
       
       // Send check-in notification
       if (tenantId && hotelId) {
