@@ -497,9 +497,9 @@ export function GroupPaymentDialog({
                     onClick={() => {
                       setAmount(remainingAmount.toString())
                       if (paymentMethod === 'cash') {
-                        handleCashPayment()
+                        handleCashPayment(remainingAmount)
                       } else {
-                        handleBankTransfer()
+                        handleBankTransfer(remainingAmount)
                       }
                     }}
                   >
