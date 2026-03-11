@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { User, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { useSearchGuestByPhone, Guest } from '@/hooks/useGuests'
-import { useDebounce } from '@/hooks/useDebounce'
 
 interface GuestAutoCompleteProps {
   phone: string

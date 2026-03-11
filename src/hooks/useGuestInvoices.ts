@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useTenant } from '@/hooks/useTenant'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useToast } from '@/hooks/use-toast'
+import { Json } from '@/integrations/supabase/types'
 
 export interface GuestInvoice {
   id: string
@@ -74,7 +75,10 @@ export function useGuestInvoices(filters?: { status?: string; search?: string })
 
       const { data, error } = await query
       if (error) throw error
-      return data as GuestInvoice[]
+      return (data || []).map(row => ({
+        ...row,
+        line_items: (row.line_items || []) as unknown as InvoiceLineItem[],
+      })) as GuestInvoice[]
     },
     enabled: !!tenantId,
   })
@@ -85,7 +89,33 @@ export function useCreateGuestInvoice() {
   const { toast } = useToast()
 
   return useMutation({
-    mutationFn: async (invoice: Omit<GuestInvoice, 'id' | 'created_at' | 'updated_at' | 'invoice_number'>) => {
+    mutationFn: async (invoice: {
+      tenant_id: string
+      hotel_id: string
+      booking_id?: string | null
+      guest_name: string
+      guest_phone?: string | null
+      guest_address?: string | null
+      guest_tax_code?: string | null
+      company_name?: string | null
+      room_number?: string | null
+      check_in_date?: string | null
+      check_out_date?: string | null
+      line_items: InvoiceLineItem[]
+      subtotal: number
+      vat_rate: number
+      vat_amount: number
+      service_fee_rate: number
+      service_fee_amount: number
+      total_amount: number
+      deposit_amount: number
+      amount_paid: number
+      payment_method?: string | null
+      notes?: string | null
+      status: string
+      issued_at?: string | null
+      created_by?: string | null
+    }) => {
       // Generate invoice number
       const { data: numberData, error: numberError } = await supabase
         .rpc('generate_guest_invoice_number', { p_tenant_id: invoice.tenant_id })
@@ -96,13 +126,17 @@ export function useCreateGuestInvoice() {
         .from('guest_invoices')
         .insert({
           ...invoice,
+          line_items: invoice.line_items as unknown as Json,
           invoice_number: numberData as string,
         })
         .select()
         .single()
 
       if (error) throw error
-      return data as GuestInvoice
+      return {
+        ...data,
+        line_items: (data.line_items || []) as unknown as InvoiceLineItem[],
+      } as GuestInvoice
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['guest-invoices'] })
@@ -120,15 +154,23 @@ export function useUpdateGuestInvoice() {
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<GuestInvoice> & { id: string }) => {
+      const dbUpdates: Record<string, any> = { ...updates, updated_at: new Date().toISOString() }
+      if (updates.line_items) {
+        dbUpdates.line_items = updates.line_items as unknown as Json
+      }
+
       const { data, error } = await supabase
         .from('guest_invoices')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update(dbUpdates)
         .eq('id', id)
         .select()
         .single()
 
       if (error) throw error
-      return data as GuestInvoice
+      return {
+        ...data,
+        line_items: (data.line_items || []) as unknown as InvoiceLineItem[],
+      } as GuestInvoice
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['guest-invoices'] })
