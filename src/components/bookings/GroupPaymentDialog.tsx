@@ -586,7 +586,7 @@ export function GroupPaymentDialog({
                       variant="outline"
                       className="w-full"
                       disabled={!isValidAmount || isProcessing}
-                      onClick={paymentMethod === 'cash' ? handleCashPayment : handleBankTransfer}
+                      onClick={() => paymentMethod === 'cash' ? handleCashPayment() : handleBankTransfer()}
                     >
                       {isProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                       {paymentMethod === 'cash' ? 'Xác nhận tiền mặt' : 'Tạo mã QR'}
