@@ -193,10 +193,10 @@ export function GroupPaymentDialog({
       })
 
       // Distribute payment to individual bookings
-      await distributePayment(parsedAmount, groupData.bookings)
+      await distributePayment(finalAmount, groupData.bookings)
 
       setStep('success')
-      toast.success(`Đã nhận ${formatVNCurrency(parsedAmount)} tiền mặt cho ${groupData.roomCount} phòng`)
+      toast.success(`Đã nhận ${formatVNCurrency(finalAmount)} tiền mặt cho ${groupData.roomCount} phòng`)
 
       setTimeout(() => {
         onOpenChange(false)
