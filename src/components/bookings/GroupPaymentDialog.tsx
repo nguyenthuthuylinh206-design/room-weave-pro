@@ -210,8 +210,9 @@ export function GroupPaymentDialog({
     }
   }
 
-  const handleBankTransfer = async () => {
-    if (!isValidAmount || !groupData) {
+  const handleBankTransfer = async (overrideAmount?: number) => {
+    const finalAmount = overrideAmount ?? parsedAmount
+    if (finalAmount <= 0 || !groupData) {
       toast.error('Số tiền không hợp lệ')
       return
     }
