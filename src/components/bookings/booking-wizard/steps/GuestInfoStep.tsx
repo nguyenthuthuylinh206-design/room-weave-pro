@@ -11,6 +11,7 @@ import {
 import { BOOKING_SOURCES } from '@/lib/constants'
 import { BookingFormState, BookingFormComputed } from '../types'
 import { DocumentScanner, ScannedDocumentData } from '../../DocumentScanner'
+import { GuestAutoComplete } from '@/components/guests/GuestAutoComplete'
 
 interface GuestInfoStepProps {
   state: BookingFormState
