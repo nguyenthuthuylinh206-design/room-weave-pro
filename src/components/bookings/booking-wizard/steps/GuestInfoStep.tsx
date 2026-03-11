@@ -66,6 +66,23 @@ export function GuestInfoStep({ state, computed, onUpdate }: GuestInfoStepProps)
             onChange={(e) => onUpdate({ guestPhone: e.target.value })}
             placeholder="0909..."
           />
+          <GuestAutoComplete
+            phone={state.guestPhone}
+            onGuestFound={(guest) => {
+              onUpdate({
+                guestName: guest.full_name,
+                guestPhone: guest.phone || state.guestPhone,
+                guestEmail: guest.email || '',
+                guestIdType: guest.id_type || '',
+                guestIdNumber: guest.id_number || '',
+                guestNationality: guest.nationality || '',
+                guestAddress: guest.address || '',
+                guestGender: guest.gender || '',
+                guestDateOfBirth: guest.date_of_birth || '',
+                guestIdImageUrl: guest.id_image_url || '',
+              })
+            }}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="guestEmail" className="flex items-center gap-2">
