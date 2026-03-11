@@ -11,34 +11,34 @@ export interface RoomBooking {
   check_in_date: string
   check_out_date: string
   actual_check_in: string | null
-  actual_check_out: string | null
+  actual_check_out?: string | null
   status: string
   notes: string | null
   // Financial fields
-  room_price: number
-  extra_charges: number
-  deposit_amount: number
-  amount_paid: number
-  early_checkin_charge: number
-  late_checkout_charge: number
-  service_charges: number
-  subtotal: number
-  vat_rate: number
-  vat_amount: number
-  service_fee_rate: number
-  service_fee_amount: number
-  total_amount: number
-  damage_charges: number
-  payment_status: string | null
-  paid_at: string | null
+  room_price?: number
+  extra_charges?: number
+  deposit_amount?: number
+  amount_paid?: number
+  early_checkin_charge?: number
+  late_checkout_charge?: number
+  service_charges?: number
+  subtotal?: number
+  vat_rate?: number
+  vat_amount?: number
+  service_fee_rate?: number
+  service_fee_amount?: number
+  total_amount?: number
+  damage_charges?: number
+  payment_status?: string | null
+  paid_at?: string | null
   // Booking type fields
-  booking_type: 'daily' | 'hourly' | 'monthly'
-  booking_hours: number | null
-  booking_months: number | null
-  booking_source: string | null
+  booking_type?: 'daily' | 'hourly' | 'monthly'
+  booking_hours?: number | null
+  booking_months?: number | null
+  booking_source?: string | null
   // Time fields
-  expected_check_in_time: string | null
-  expected_check_out_time: string | null
+  expected_check_in_time?: string | null
+  expected_check_out_time?: string | null
 }
 
 export function useRoomBooking(roomId: string | undefined) {
