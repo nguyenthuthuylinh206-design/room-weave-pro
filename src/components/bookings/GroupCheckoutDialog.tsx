@@ -730,6 +730,7 @@ export function GroupCheckoutDialog({
                 <DoorOpen className="h-4 w-4" />
                 Checkout nhóm - {groupData.guestName} ({groupData.roomCount} phòng)
               </DialogTitle>
+              <DialogDescription className="sr-only">Checkout nhóm booking</DialogDescription>
               {onMinimize && (
                 <Button type="button" variant="ghost" size="icon" className="h-8 w-8 mr-6" onClick={onMinimize}>
                   <Minimize2 className="h-4 w-4" />
