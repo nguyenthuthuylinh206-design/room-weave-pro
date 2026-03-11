@@ -1378,8 +1378,12 @@ export function RoomBookingDialog({
             tenant_id: tenantId,
             hotel_id: hotelId,
           }}
-          onPaymentComplete={() => {
+          onPaymentComplete={(paidAmount?: number) => {
             setShowPaymentDialog(false)
+            // Sync local state so UI updates immediately without re-opening dialog
+            if (paidAmount && paidAmount > 0) {
+              setAmountPaid(prev => prev + paidAmount)
+            }
             invalidateQueries()
           }}
         />
