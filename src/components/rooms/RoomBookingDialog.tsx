@@ -118,25 +118,28 @@ export function RoomBookingDialog({
   const [notes, setNotes] = useState(booking?.notes || '')
   
   // Financial fields
-  const [roomPrice, setRoomPrice] = useState<number>((booking as any)?.room_price || defaultRoomPrice)
-  const [extraCharges, setExtraCharges] = useState<number>((booking as any)?.extra_charges || 0)
-  const [depositAmount, setDepositAmount] = useState<number>((booking as any)?.deposit_amount || 0)
-  const [amountPaid, setAmountPaid] = useState<number>((booking as any)?.amount_paid || 0)
+  const [roomPrice, setRoomPrice] = useState<number>(booking?.room_price || defaultRoomPrice)
+  const [extraCharges, setExtraCharges] = useState<number>(booking?.extra_charges || 0)
+  const [depositAmount, setDepositAmount] = useState<number>(booking?.deposit_amount || 0)
+  const [amountPaid, setAmountPaid] = useState<number>(booking?.amount_paid || 0)
   
   // Surcharges (auto-calculated)
-  const [earlyCheckinCharge, setEarlyCheckinCharge] = useState<number>((booking as any)?.early_checkin_charge || 0)
-  const [lateCheckoutCharge, setLateCheckoutCharge] = useState<number>((booking as any)?.late_checkout_charge || 0)
+  const [earlyCheckinCharge, setEarlyCheckinCharge] = useState<number>(booking?.early_checkin_charge || 0)
+  const [lateCheckoutCharge, setLateCheckoutCharge] = useState<number>(booking?.late_checkout_charge || 0)
   
   // Service charges from consumables
-  const [serviceCharges, setServiceCharges] = useState<number>((booking as any)?.service_charges || 0)
+  const [serviceCharges, setServiceCharges] = useState<number>(booking?.service_charges || 0)
 
   // State for extend booking dialog
   const [showExtendDialog, setShowExtendDialog] = useState(false)
   const [overdueCheckoutDate, setOverdueCheckoutDate] = useState<string | null>(null)
   
+  // Flag to track if user manually changed check-in time (prevent auto-overwrite on edit)
+  const [userChangedCheckInTime, setUserChangedCheckInTime] = useState(false)
+  
   // Tax rates
-  const [vatRate, setVatRate] = useState<number>((booking as any)?.vat_rate ?? DEFAULT_PRICING_RULES.vatRate)
-  const [serviceFeeRate, setServiceFeeRate] = useState<number>((booking as any)?.service_fee_rate ?? DEFAULT_PRICING_RULES.serviceFeeRate)
+  const [vatRate, setVatRate] = useState<number>(booking?.vat_rate ?? DEFAULT_PRICING_RULES.vatRate)
+  const [serviceFeeRate, setServiceFeeRate] = useState<number>(booking?.service_fee_rate ?? DEFAULT_PRICING_RULES.serviceFeeRate)
   
   // Calculate nights
   const nights = checkInDate && checkOutDate ? Math.max(1, differenceInDays(checkOutDate, checkInDate)) : 1
