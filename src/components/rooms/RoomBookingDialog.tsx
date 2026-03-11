@@ -855,7 +855,7 @@ export function RoomBookingDialog({
                         />
                       </PopoverContent>
                     </Popover>
-                    <Select value={checkInTime} onValueChange={setCheckInTime}>
+                    <Select value={checkInTime} onValueChange={(val) => { setCheckInTime(val); if (isEdit) setUserChangedCheckInTime(true); }}>
                       <SelectTrigger className="w-20 h-8">
                         <SelectValue />
                       </SelectTrigger>
