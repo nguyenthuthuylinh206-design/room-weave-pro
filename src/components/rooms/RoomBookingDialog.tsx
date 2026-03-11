@@ -111,8 +111,8 @@ export function RoomBookingDialog({
   const [checkOutDate, setCheckOutDate] = useState<Date | undefined>(
     booking?.check_out_date ? new Date(booking.check_out_date) : addDays(new Date(), 1)
   )
-  const [checkInTime, setCheckInTime] = useState<string>((booking as any)?.expected_check_in_time?.slice(0, 5) || '14:00')
-  const [checkOutTime, setCheckOutTime] = useState<string>((booking as any)?.expected_check_out_time?.slice(0, 5) || '12:00')
+  const [checkInTime, setCheckInTime] = useState<string>(booking?.expected_check_in_time?.slice(0, 5) || '14:00')
+  const [checkOutTime, setCheckOutTime] = useState<string>(booking?.expected_check_out_time?.slice(0, 5) || '12:00')
   
   const [status, setStatus] = useState(booking?.status || 'confirmed')
   const [notes, setNotes] = useState(booking?.notes || '')
