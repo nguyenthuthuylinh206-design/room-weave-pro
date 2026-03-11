@@ -931,9 +931,9 @@ export function RoomBookingDialog({
                   </div>
                   <div className="flex justify-between">
                     <span>Thực tế check-out:</span>
-                    <span className={(booking as any)?.actual_check_out ? 'text-green-600 font-medium' : ''}>
-                      {(booking as any)?.actual_check_out 
-                        ? format(new Date((booking as any).actual_check_out), 'dd/MM/yyyy HH:mm', { locale: vi })
+                    <span className={booking?.actual_check_out ? 'text-green-600 font-medium' : ''}>
+                      {booking?.actual_check_out 
+                        ? format(new Date(booking.actual_check_out), 'dd/MM/yyyy HH:mm', { locale: vi })
                         : '--'
                       }
                     </span>
