@@ -119,7 +119,7 @@ export function BookingPaymentDialog({
       
       setTimeout(() => {
         onOpenChange(false);
-        onPaymentComplete?.();
+        onPaymentComplete?.(parsedAmount);
       }, 1500);
     } catch (error) {
       console.error('Cash payment error:', error);
