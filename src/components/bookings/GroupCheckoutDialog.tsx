@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -703,7 +704,7 @@ export function GroupCheckoutDialog({
   if (isLoadingGroup) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-2xl" aria-describedby={undefined}>
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
@@ -729,6 +730,7 @@ export function GroupCheckoutDialog({
                 <DoorOpen className="h-4 w-4" />
                 Checkout nhóm - {groupData.guestName} ({groupData.roomCount} phòng)
               </DialogTitle>
+              <DialogDescription className="sr-only">Checkout nhóm booking</DialogDescription>
               {onMinimize && (
                 <Button type="button" variant="ghost" size="icon" className="h-8 w-8 mr-6" onClick={onMinimize}>
                   <Minimize2 className="h-4 w-4" />
