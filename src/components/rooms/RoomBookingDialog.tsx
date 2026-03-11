@@ -657,21 +657,11 @@ export function RoomBookingDialog({
         amountPaid,
       })
 
+      // Calculate the correct newAmountPaid: total minus deposit = what needs to be collected as amount_paid
+      // This correctly accounts for any previously paid amount (amountPaid) by setting the full required amount
       const newAmountPaid = adjustedCostBreakdown.totalAmount - depositAmount
       
-      // Update payment first with status and paid_at
-      const { error: paymentError } = await supabase
-        .from('room_bookings')
-        .update({ 
-          amount_paid: newAmountPaid,
-          payment_status: 'paid',
-          paid_at: new Date().toISOString(),
-        })
-        .eq('id', booking.id)
-        
-      if (paymentError) throw paymentError
-      
-      // Then use RPC for atomic checkout with damage params
+      // Only use RPC for atomic checkout - no separate .update() to avoid race conditions
       const { data, error } = await supabase.rpc('perform_checkout', {
         p_booking_id: booking.id,
         p_room_id: roomId,
