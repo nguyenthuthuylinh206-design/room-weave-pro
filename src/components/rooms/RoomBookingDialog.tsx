@@ -564,6 +564,7 @@ export function RoomBookingDialog({
       })
 
       // Use RPC for atomic checkout operation with damage params
+      // Pass current amount_paid so RPC can calculate correct payment_status
       const { data, error } = await supabase.rpc('perform_checkout', {
         p_booking_id: booking.id,
         p_room_id: roomId,
@@ -577,6 +578,7 @@ export function RoomBookingDialog({
         p_damage_notes: damageAdjustmentNote || null,
         p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
         p_check_out_date: overdueCheckoutDate,
+        p_new_amount_paid: amountPaid,
       })
       
       if (error) throw error
