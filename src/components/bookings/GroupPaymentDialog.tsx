@@ -181,7 +181,7 @@ export function GroupPaymentDialog({
         tenant_id: tenantId,
         hotel_id: hotelId,
         booking_id: firstBooking.id,
-        amount: parsedAmount,
+        amount: finalAmount,
         payment_method: 'cash',
         metadata: {
           is_group_payment: true,
