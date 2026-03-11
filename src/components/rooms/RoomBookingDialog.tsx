@@ -111,32 +111,35 @@ export function RoomBookingDialog({
   const [checkOutDate, setCheckOutDate] = useState<Date | undefined>(
     booking?.check_out_date ? new Date(booking.check_out_date) : addDays(new Date(), 1)
   )
-  const [checkInTime, setCheckInTime] = useState<string>((booking as any)?.expected_check_in_time?.slice(0, 5) || '14:00')
-  const [checkOutTime, setCheckOutTime] = useState<string>((booking as any)?.expected_check_out_time?.slice(0, 5) || '12:00')
+  const [checkInTime, setCheckInTime] = useState<string>(booking?.expected_check_in_time?.slice(0, 5) || '14:00')
+  const [checkOutTime, setCheckOutTime] = useState<string>(booking?.expected_check_out_time?.slice(0, 5) || '12:00')
   
   const [status, setStatus] = useState(booking?.status || 'confirmed')
   const [notes, setNotes] = useState(booking?.notes || '')
   
   // Financial fields
-  const [roomPrice, setRoomPrice] = useState<number>((booking as any)?.room_price || defaultRoomPrice)
-  const [extraCharges, setExtraCharges] = useState<number>((booking as any)?.extra_charges || 0)
-  const [depositAmount, setDepositAmount] = useState<number>((booking as any)?.deposit_amount || 0)
-  const [amountPaid, setAmountPaid] = useState<number>((booking as any)?.amount_paid || 0)
+  const [roomPrice, setRoomPrice] = useState<number>(booking?.room_price || defaultRoomPrice)
+  const [extraCharges, setExtraCharges] = useState<number>(booking?.extra_charges || 0)
+  const [depositAmount, setDepositAmount] = useState<number>(booking?.deposit_amount || 0)
+  const [amountPaid, setAmountPaid] = useState<number>(booking?.amount_paid || 0)
   
   // Surcharges (auto-calculated)
-  const [earlyCheckinCharge, setEarlyCheckinCharge] = useState<number>((booking as any)?.early_checkin_charge || 0)
-  const [lateCheckoutCharge, setLateCheckoutCharge] = useState<number>((booking as any)?.late_checkout_charge || 0)
+  const [earlyCheckinCharge, setEarlyCheckinCharge] = useState<number>(booking?.early_checkin_charge || 0)
+  const [lateCheckoutCharge, setLateCheckoutCharge] = useState<number>(booking?.late_checkout_charge || 0)
   
   // Service charges from consumables
-  const [serviceCharges, setServiceCharges] = useState<number>((booking as any)?.service_charges || 0)
+  const [serviceCharges, setServiceCharges] = useState<number>(booking?.service_charges || 0)
 
   // State for extend booking dialog
   const [showExtendDialog, setShowExtendDialog] = useState(false)
   const [overdueCheckoutDate, setOverdueCheckoutDate] = useState<string | null>(null)
   
+  // Flag to track if user manually changed check-in time (prevent auto-overwrite on edit)
+  const [userChangedCheckInTime, setUserChangedCheckInTime] = useState(false)
+  
   // Tax rates
-  const [vatRate, setVatRate] = useState<number>((booking as any)?.vat_rate ?? DEFAULT_PRICING_RULES.vatRate)
-  const [serviceFeeRate, setServiceFeeRate] = useState<number>((booking as any)?.service_fee_rate ?? DEFAULT_PRICING_RULES.serviceFeeRate)
+  const [vatRate, setVatRate] = useState<number>(booking?.vat_rate ?? DEFAULT_PRICING_RULES.vatRate)
+  const [serviceFeeRate, setServiceFeeRate] = useState<number>(booking?.service_fee_rate ?? DEFAULT_PRICING_RULES.serviceFeeRate)
   
   // Calculate nights
   const nights = checkInDate && checkOutDate ? Math.max(1, differenceInDays(checkOutDate, checkInDate)) : 1
@@ -158,12 +161,13 @@ export function RoomBookingDialog({
   }, [roomPrice, nights, earlyCheckinCharge, lateCheckoutCharge, serviceCharges, extraCharges, vatRate, serviceFeeRate, depositAmount, amountPaid])
 
   // Auto-calculate early check-in surcharge when time changes
+  // Only auto-calculate for new bookings OR when user explicitly changed the time
   useEffect(() => {
-    if (checkInTime && roomPrice) {
+    if (checkInTime && roomPrice && (!isEdit || userChangedCheckInTime)) {
       const charge = calculateEarlyCheckinCharge(checkInTime, roomPrice)
       setEarlyCheckinCharge(charge)
     }
-  }, [checkInTime, roomPrice])
+  }, [checkInTime, roomPrice, isEdit, userChangedCheckInTime])
 
   // Reset form when booking changes
   useEffect(() => {
@@ -174,19 +178,20 @@ export function RoomBookingDialog({
       setGuestCount(booking.guest_count || 1)
       setCheckInDate(booking.check_in_date ? new Date(booking.check_in_date) : new Date())
       setCheckOutDate(booking.check_out_date ? new Date(booking.check_out_date) : addDays(new Date(), 1))
-      setCheckInTime((booking as any)?.expected_check_in_time?.slice(0, 5) || '14:00')
-      setCheckOutTime((booking as any)?.expected_check_out_time?.slice(0, 5) || '12:00')
+      setCheckInTime(booking?.expected_check_in_time?.slice(0, 5) || '14:00')
+      setCheckOutTime(booking?.expected_check_out_time?.slice(0, 5) || '12:00')
       setStatus(booking.status || 'confirmed')
       setNotes(booking.notes || '')
-      setRoomPrice((booking as any)?.room_price || defaultRoomPrice)
-      setExtraCharges((booking as any)?.extra_charges || 0)
-      setDepositAmount((booking as any)?.deposit_amount || 0)
-      setAmountPaid((booking as any)?.amount_paid || 0)
-      setEarlyCheckinCharge((booking as any)?.early_checkin_charge || 0)
-      setLateCheckoutCharge((booking as any)?.late_checkout_charge || 0)
-      setServiceCharges((booking as any)?.service_charges || 0)
-      setVatRate((booking as any)?.vat_rate || DEFAULT_PRICING_RULES.vatRate)
-      setServiceFeeRate((booking as any)?.service_fee_rate || DEFAULT_PRICING_RULES.serviceFeeRate)
+      setRoomPrice(booking?.room_price || defaultRoomPrice)
+      setExtraCharges(booking?.extra_charges || 0)
+      setDepositAmount(booking?.deposit_amount || 0)
+      setAmountPaid(booking?.amount_paid || 0)
+      setEarlyCheckinCharge(booking?.early_checkin_charge || 0)
+      setLateCheckoutCharge(booking?.late_checkout_charge || 0)
+      setServiceCharges(booking?.service_charges || 0)
+      setVatRate(booking?.vat_rate || DEFAULT_PRICING_RULES.vatRate)
+      setServiceFeeRate(booking?.service_fee_rate || DEFAULT_PRICING_RULES.serviceFeeRate)
+      setUserChangedCheckInTime(false)
     }
   }, [booking, defaultRoomPrice])
   
@@ -398,37 +403,37 @@ export function RoomBookingDialog({
     setShowCheckinConfirm(false)
     
     try {
-      const now = new Date()
-      
-      // Update booking status with the (possibly adjusted) early checkin charge
-      const updateData: any = {
-        status: 'checked_in',
-        actual_check_in: now.toISOString(),
-        early_checkin_charge: finalEarlyCharge,
+      // Use atomic RPC for check-in (updates booking + room in single transaction)
+      const { data, error } = await supabase.rpc('perform_checkin', {
+        p_booking_id: booking.id,
+        p_room_id: roomId,
+        p_early_checkin_charge: finalEarlyCharge,
+      })
+
+      if (error) {
+        // Handle specific RPC errors
+        if (error.message?.includes('ROOM_OCCUPIED')) {
+          const guestName = error.message.split(':')[1] || 'unknown'
+          throw new Error(`Phòng đang có khách "${guestName}". Vui lòng checkout trước.`)
+        }
+        if (error.message?.includes('INVALID_ROOM_STATUS')) {
+          const status = error.message.split(':')[1] || 'unknown'
+          throw new Error(`Phòng đang ở trạng thái "${status}", không thể check-in.`)
+        }
+        throw error
       }
       
-      // Add adjustment note if provided
+      // Update adjustment note separately if provided
       if (adjustmentNote) {
         const existingNotes = notes || ''
-        updateData.notes = existingNotes 
+        const updateNotes = existingNotes 
           ? `${existingNotes}\n[Điều chỉnh phụ thu check-in sớm: ${adjustmentNote}]`
           : `[Điều chỉnh phụ thu check-in sớm: ${adjustmentNote}]`
+        await supabase
+          .from('room_bookings')
+          .update({ notes: updateNotes })
+          .eq('id', booking.id)
       }
-      
-      const { error: bookingError } = await supabase
-        .from('room_bookings')
-        .update(updateData)
-        .eq('id', booking.id)
-        
-      if (bookingError) throw bookingError
-
-      // Update room status to 'occupied'
-      const { error: roomError } = await supabase
-        .from('rooms')
-        .update({ status: 'occupied' })
-        .eq('id', roomId)
-        
-      if (roomError) throw roomError
       
       // Send check-in notification
       if (tenantId && hotelId) {
@@ -559,6 +564,7 @@ export function RoomBookingDialog({
       })
 
       // Use RPC for atomic checkout operation with damage params
+      // Pass current amount_paid so RPC can calculate correct payment_status
       const { data, error } = await supabase.rpc('perform_checkout', {
         p_booking_id: booking.id,
         p_room_id: roomId,
@@ -572,6 +578,7 @@ export function RoomBookingDialog({
         p_damage_notes: damageAdjustmentNote || null,
         p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
         p_check_out_date: overdueCheckoutDate,
+        p_new_amount_paid: amountPaid,
       })
       
       if (error) throw error
@@ -650,21 +657,11 @@ export function RoomBookingDialog({
         amountPaid,
       })
 
+      // Calculate the correct newAmountPaid: total minus deposit = what needs to be collected as amount_paid
+      // This correctly accounts for any previously paid amount (amountPaid) by setting the full required amount
       const newAmountPaid = adjustedCostBreakdown.totalAmount - depositAmount
       
-      // Update payment first with status and paid_at
-      const { error: paymentError } = await supabase
-        .from('room_bookings')
-        .update({ 
-          amount_paid: newAmountPaid,
-          payment_status: 'paid',
-          paid_at: new Date().toISOString(),
-        })
-        .eq('id', booking.id)
-        
-      if (paymentError) throw paymentError
-      
-      // Then use RPC for atomic checkout with damage params
+      // Only use RPC for atomic checkout - no separate .update() to avoid race conditions
       const { data, error } = await supabase.rpc('perform_checkout', {
         p_booking_id: booking.id,
         p_room_id: roomId,
@@ -729,7 +726,27 @@ export function RoomBookingDialog({
 
   // Get surcharge descriptions
   const earlyCheckinDesc = getEarlyCheckinDescription(checkInTime)
-  const lateCheckoutDesc = getLateCheckoutDescription(checkOutTime)
+  // Only show late checkout description during actual checkout process, not in edit form
+  const lateCheckoutDesc = !isEdit ? getLateCheckoutDescription(checkOutTime) : null
+  
+  // Determine which status options are allowed to prevent bypassing check-in/checkout logic
+  const getAllowedStatusOptions = () => {
+    if (!isEdit || !booking) return ['confirmed', 'checked_in', 'checked_out', 'cancelled', 'no_show']
+    const currentStatus = booking.status
+    switch (currentStatus) {
+      case 'confirmed':
+        return ['confirmed', 'cancelled', 'no_show'] // Must use Check-in button for checked_in
+      case 'checked_in':
+        return ['checked_in'] // Must use Checkout button, no manual status change
+      case 'checked_out':
+        return ['checked_out'] // Final state
+      case 'cancelled':
+        return ['cancelled', 'confirmed'] // Allow reactivate
+      default:
+        return ['confirmed', 'checked_in', 'checked_out', 'cancelled', 'no_show']
+    }
+  }
+  const allowedStatuses = getAllowedStatusOptions()
   
   return (
     <>
@@ -838,7 +855,7 @@ export function RoomBookingDialog({
                         />
                       </PopoverContent>
                     </Popover>
-                    <Select value={checkInTime} onValueChange={setCheckInTime}>
+                    <Select value={checkInTime} onValueChange={(val) => { setCheckInTime(val); if (isEdit) setUserChangedCheckInTime(true); }}>
                       <SelectTrigger className="w-20 h-8">
                         <SelectValue />
                       </SelectTrigger>
@@ -914,9 +931,9 @@ export function RoomBookingDialog({
                   </div>
                   <div className="flex justify-between">
                     <span>Thực tế check-out:</span>
-                    <span className={(booking as any)?.actual_check_out ? 'text-green-600 font-medium' : ''}>
-                      {(booking as any)?.actual_check_out 
-                        ? format(new Date((booking as any).actual_check_out), 'dd/MM/yyyy HH:mm', { locale: vi })
+                    <span className={booking?.actual_check_out ? 'text-green-600 font-medium' : ''}>
+                      {booking?.actual_check_out 
+                        ? format(new Date(booking.actual_check_out), 'dd/MM/yyyy HH:mm', { locale: vi })
                         : '--'
                       }
                     </span>
@@ -1134,13 +1151,16 @@ export function RoomBookingDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="confirmed">{t('booking.statusConfirmed')}</SelectItem>
-                  <SelectItem value="checked_in">{t('booking.statusCheckedIn')}</SelectItem>
-                  <SelectItem value="checked_out">{t('booking.statusCheckedOut')}</SelectItem>
-                  <SelectItem value="cancelled">{t('booking.statusCancelled')}</SelectItem>
-                  <SelectItem value="no_show">{t('booking.statusNoShow')}</SelectItem>
+                  {allowedStatuses.includes('confirmed') && <SelectItem value="confirmed">{t('booking.statusConfirmed')}</SelectItem>}
+                  {allowedStatuses.includes('checked_in') && <SelectItem value="checked_in">{t('booking.statusCheckedIn')}</SelectItem>}
+                  {allowedStatuses.includes('checked_out') && <SelectItem value="checked_out">{t('booking.statusCheckedOut')}</SelectItem>}
+                  {allowedStatuses.includes('cancelled') && <SelectItem value="cancelled">{t('booking.statusCancelled')}</SelectItem>}
+                  {allowedStatuses.includes('no_show') && <SelectItem value="no_show">{t('booking.statusNoShow')}</SelectItem>}
                 </SelectContent>
               </Select>
+              {isEdit && booking?.status === 'checked_in' && (
+                <p className="text-xs text-muted-foreground">Sử dụng nút "Trả phòng" bên dưới để checkout</p>
+              )}
             </div>
             
             {/* Notes */}
@@ -1167,6 +1187,17 @@ export function RoomBookingDialog({
                     disabled={isSubmitting}
                   >
                     {t('booking.doCheckIn')}
+                  </Button>
+                )}
+                {booking.status === 'checked_in' && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 border-red-500 text-red-600 hover:bg-red-50"
+                    onClick={handleCheckOutClick}
+                    disabled={isSubmitting}
+                  >
+                    Trả phòng (Check-out)
                   </Button>
                 )}
               </div>
@@ -1207,15 +1238,15 @@ export function RoomBookingDialog({
         actualCheckInTime={format(new Date(), 'HH:mm')}
         roomPrice={roomPrice}
         suggestedCharge={suggestedEarlyCharge}
-        bookingType={(booking as any)?.booking_type || 'daily'}
-        bookingHours={(booking as any)?.booking_hours || undefined}
-        bookingMonths={(booking as any)?.booking_months || undefined}
+        bookingType={(booking?.booking_type as 'daily' | 'hourly' | 'monthly') || 'daily'}
+        bookingHours={booking?.booking_hours || undefined}
+        bookingMonths={booking?.booking_months || undefined}
         checkInDate={checkInDate}
         checkOutDate={checkOutDate}
         totalNights={nights}
         totalAmount={costBreakdown.totalAmount}
         depositAmount={depositAmount}
-        bookingSource={(booking as any)?.booking_source}
+        bookingSource={booking?.booking_source}
         onConfirm={performCheckIn}
         isLoading={isSubmitting}
       />
@@ -1347,8 +1378,12 @@ export function RoomBookingDialog({
             tenant_id: tenantId,
             hotel_id: hotelId,
           }}
-          onPaymentComplete={() => {
+          onPaymentComplete={(paidAmount?: number) => {
             setShowPaymentDialog(false)
+            // Sync local state so UI updates immediately without re-opening dialog
+            if (paidAmount && paidAmount > 0) {
+              setAmountPaid(prev => prev + paidAmount)
+            }
             invalidateQueries()
           }}
         />

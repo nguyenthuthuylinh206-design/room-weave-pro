@@ -39,7 +39,7 @@ export interface BookingPaymentDialogProps {
     tenant_id: string;
     hotel_id: string;
   };
-  onPaymentComplete?: () => void;
+  onPaymentComplete?: (paidAmount?: number) => void;
 }
 
 type PaymentMethod = 'cash' | 'bank_transfer';
@@ -119,7 +119,7 @@ export function BookingPaymentDialog({
       
       setTimeout(() => {
         onOpenChange(false);
-        onPaymentComplete?.();
+        onPaymentComplete?.(parsedAmount);
       }, 1500);
     } catch (error) {
       console.error('Cash payment error:', error);
@@ -178,7 +178,7 @@ export function BookingPaymentDialog({
       
       setTimeout(() => {
         onOpenChange(false);
-        onPaymentComplete?.();
+        onPaymentComplete?.(parsedAmount);
       }, 1500);
     } catch (error) {
       console.error('Manual confirm error:', error);
