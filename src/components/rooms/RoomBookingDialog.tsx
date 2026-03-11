@@ -1238,15 +1238,15 @@ export function RoomBookingDialog({
         actualCheckInTime={format(new Date(), 'HH:mm')}
         roomPrice={roomPrice}
         suggestedCharge={suggestedEarlyCharge}
-        bookingType={(booking as any)?.booking_type || 'daily'}
-        bookingHours={(booking as any)?.booking_hours || undefined}
-        bookingMonths={(booking as any)?.booking_months || undefined}
+        bookingType={booking?.booking_type || 'daily'}
+        bookingHours={booking?.booking_hours || undefined}
+        bookingMonths={booking?.booking_months || undefined}
         checkInDate={checkInDate}
         checkOutDate={checkOutDate}
         totalNights={nights}
         totalAmount={costBreakdown.totalAmount}
         depositAmount={depositAmount}
-        bookingSource={(booking as any)?.booking_source}
+        bookingSource={booking?.booking_source}
         onConfirm={performCheckIn}
         isLoading={isSubmitting}
       />
