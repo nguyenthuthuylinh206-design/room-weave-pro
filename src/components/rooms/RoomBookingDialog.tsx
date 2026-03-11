@@ -726,7 +726,27 @@ export function RoomBookingDialog({
 
   // Get surcharge descriptions
   const earlyCheckinDesc = getEarlyCheckinDescription(checkInTime)
-  const lateCheckoutDesc = getLateCheckoutDescription(checkOutTime)
+  // Only show late checkout description during actual checkout process, not in edit form
+  const lateCheckoutDesc = !isEdit ? getLateCheckoutDescription(checkOutTime) : null
+  
+  // Determine which status options are allowed to prevent bypassing check-in/checkout logic
+  const getAllowedStatusOptions = () => {
+    if (!isEdit || !booking) return ['confirmed', 'checked_in', 'checked_out', 'cancelled', 'no_show']
+    const currentStatus = booking.status
+    switch (currentStatus) {
+      case 'confirmed':
+        return ['confirmed', 'cancelled', 'no_show'] // Must use Check-in button for checked_in
+      case 'checked_in':
+        return ['checked_in'] // Must use Checkout button, no manual status change
+      case 'checked_out':
+        return ['checked_out'] // Final state
+      case 'cancelled':
+        return ['cancelled', 'confirmed'] // Allow reactivate
+      default:
+        return ['confirmed', 'checked_in', 'checked_out', 'cancelled', 'no_show']
+    }
+  }
+  const allowedStatuses = getAllowedStatusOptions()
   
   return (
     <>
