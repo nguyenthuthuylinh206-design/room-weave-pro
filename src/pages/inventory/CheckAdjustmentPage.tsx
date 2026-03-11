@@ -81,7 +81,7 @@ export function CheckAdjustmentPage() {
   }, [adjustment, isLoading, canCheck, id, navigate, toast])
   
   // Auto-save debounce refs
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout>()
+  const autoSaveTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
   const lastSavedDataRef = useRef<string>('')
   
   // LocalStorage backup key
