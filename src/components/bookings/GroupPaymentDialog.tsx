@@ -166,8 +166,9 @@ export function GroupPaymentDialog({
     }
   }
 
-  const handleCashPayment = async () => {
-    if (!isValidAmount || !groupData) {
+  const handleCashPayment = async (overrideAmount?: number) => {
+    const finalAmount = overrideAmount ?? parsedAmount
+    if (finalAmount <= 0 || !groupData) {
       toast.error('Số tiền không hợp lệ')
       return
     }
