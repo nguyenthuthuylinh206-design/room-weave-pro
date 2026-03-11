@@ -1238,7 +1238,7 @@ export function RoomBookingDialog({
         actualCheckInTime={format(new Date(), 'HH:mm')}
         roomPrice={roomPrice}
         suggestedCharge={suggestedEarlyCharge}
-        bookingType={booking?.booking_type || 'daily'}
+        bookingType={(booking?.booking_type as 'daily' | 'hourly' | 'monthly') || 'daily'}
         bookingHours={booking?.booking_hours || undefined}
         bookingMonths={booking?.booking_months || undefined}
         checkInDate={checkInDate}
