@@ -120,6 +120,10 @@ import StaffManagementPage from "./pages/staff/StaffManagementPage";
 import MyTasksPage from "./pages/MyTasksPage";
 import PaymentQRPage from "./pages/payment/PaymentQRPage";
 import ScanDocumentPage from "./pages/scan/ScanDocumentPage";
+import GuestsPage from "./pages/guests/GuestsPage";
+import GuestDetailPage from "./pages/guests/GuestDetailPage";
+import LostFoundPage from "./pages/lost-found/LostFoundPage";
+import GuestInvoicesPage from "./pages/invoices/GuestInvoicesPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
