@@ -1,87 +1,88 @@
 
 
-## Phan tich luong phieu giao hang (Distribution Order)
+## Phân tích logic RoomBookingDialog - Các vấn đề cần cải thiện
 
-### Hien trang: Cau truc luong hien tai
+### 1. **Thiếu nút Checkout cho booking đang ở (CRITICAL)**
+`handleCheckOutClick` được định nghĩa (line 464) nhưng **không được gọi ở đâu trong UI**. Phần Quick Actions (line 1158-1173) chỉ hiện nút "Nhận phòng" cho trạng thái `confirmed`, không có nút "Trả phòng" cho `checked_in`.
 
-Luong hien tai co **3 cach tao** va **5 buoc xu ly**, kha phuc tap:
+**Sửa:** Thêm nút "Trả phòng" trong Quick Actions khi `booking.status === 'checked_in'`.
 
-#### 3 Dau vao (Entry Points)
-1. **Tao thu cong** (`/inventory/distributions/new`) - CreateDistributionPage.tsx
-2. **Tao tu yeu cau bo sung** (`/inventory/distributions/from-supplements`) - CreateFromSupplementsPage.tsx
-3. **Tao tu Xuat kho** (`/inventory/outbound` voi category `room_assign`) - OutboundPage.tsx dung cung DistributionForm
+---
 
-#### 5 Buoc xu ly (Lifecycle)
-```text
-pending --> released --> in_progress --> completed --> closed
-  (1)        (2)           (3)            (4)          (5)
-```
+### 2. **Cho phép thay đổi trạng thái thủ công qua dropdown - nguy hiểm**
+Dropdown trạng thái (line 1130-1143) cho phép set thủ công `checked_in`, `checked_out`... rồi bấm Lưu. Điều này **bypass** toàn bộ logic check-in/check-out (không cập nhật room status, không gửi notification, không tính phụ thu).
 
-1. **pending** - Kho chuan bi hang, kiem tra ton kho, giao cho nhan vien (Warehouse Manager click "Kiem tra & Giao hang")
-2. **released** - Nhan vien xac nhan da nhan du hang (Assignee click "Xac nhan da nhan du hang")
-3. **in_progress** - Nhan vien di giao tung phong, click "GIAO" -> chuyen sang room check
-4. **completed** - Tat ca phong da giao xong
-5. **closed** - Manager dong phieu
+**Sửa:** Khi đang edit booking đã checked_in, disable các option `checked_out` trong dropdown (buộc phải dùng nút Checkout chính thức). Hoặc cảnh báo khi user thay đổi status thủ công.
 
-### Van de phat hien
+---
 
-#### 1. Trung lap dau vao: OutboundPage dung trung DistributionForm
-- `OutboundPage.tsx` (Xuat kho) khi chon category `room_assign` se render cung `DistributionForm` va goi `useCreateDistributionOrder` - hoan toan giong `CreateDistributionPage.tsx`
-- Nguoi dung co 2 noi tao cung 1 thu -> nhầm lẫn
-- **De xuat**: Khi chon "Giao den phong" trong OutboundPage, chuyen huong (redirect) sang `/inventory/distributions/new` thay vi nhan doi form
+### 3. **Check-in không atomic (race condition)**
+`performCheckIn` (line 394) update booking rồi update room riêng biệt - 2 query tách rời. Nếu query thứ 2 fail, booking = `checked_in` nhưng room vẫn `vacant`.
 
-#### 2. Buoc "released" co the thua (khong can thiet voi nhieu truong hop)
-- Sau khi kho giao hang (pending -> released), nhan vien phai bam "Xac nhan da nhan du hang" de chuyen sang in_progress
-- Voi hotel nho (kho va nhan vien la 1 nguoi), buoc nay thua
-- Da co option `auto_release` nhung chi skip buoc kho, khong skip buoc nhan hang
-- **De xuat**: Them option "Tu dong bat dau giao" de skip ca buoc released, chuyen thang tu pending -> in_progress khi assignee la chinh nguoi tao
+**Sửa:** Sử dụng RPC `perform_checkin` (đã có trong DB theo memory) thay vì 2 query riêng.
 
-#### 3. Qua trinh giao phong phuc tap - click "GIAO" -> navigate ra room check
-- Khi nhan vien click "GIAO" tren 1 phong, he thong navigate sang `/rooms/{id}/check?type=delivery&...`
-- Phai lam room check roi moi quay lai -> mat flow, phai quay lai trang phieu de giao phong tiep
-- **De xuat**: Sau khi hoan thanh room check, tu dong quay lai trang phieu giao hang thay vi o lai trang room check
+---
 
-#### 4. Thieu thong tin tong hop khi tao phieu
-- CreateDistributionPage khong hien thi summary (tong so phong, tong so item, tong so luong) truoc khi submit
-- DistributionForm hien thi 2 panel (chon phong + phan bo san pham) nhung khong co summary bar
-- **De xuat**: Them summary bar hien thi: X phong, Y loai SP, Z don vi truoc nut "Tao phieu"
+### 4. **`handlePayAndCheckout` tính `newAmountPaid` sai**
+Line 653: `newAmountPaid = totalAmount - depositAmount`. Điều này **bỏ qua** `amountPaid` hiện tại. Nếu khách đã thu 200k trước đó, hàm vẫn tính `newAmountPaid = total - deposit`, khiến `amount_paid` bị ghi đè sai.
 
-#### 5. Auto-fill logic tot nhung UX chua ro rang
-- `useDistributionForm` co `autoFillMissingItems` va `autoFillMissingItemsForRoom` de tu dong tinh so luong theo tieu chuan phong
-- Nhung trong CreateDistributionPage, nut auto-fill khong duoc hien thi ro rang
-- **De xuat**: Them nut "Tu dong phan bo theo tieu chuan" noi bat hon trong form
+**Sửa:** `newAmountPaid = totalAmount - depositAmount - amountPaid + amountPaid` → đúng hơn: nên tính remaining rồi cộng thêm vào amount_paid hiện tại.
 
-### Ke hoach khac phuc
+---
 
-#### Thay doi 1: Redirect OutboundPage khi chon "room_assign"
-**File**: `src/pages/inventory/OutboundPage.tsx`
-- Khi user chon category `room_assign`, hien thi thong bao va nut chuyen sang trang tao phieu giao hang chuyen dung thay vi render form trung lap
+### 5. **`handlePayAndCheckout` có race condition**
+Line 656-664: Gọi `.update()` trực tiếp set `amount_paid` → rồi gọi RPC `perform_checkout` với `p_new_amount_paid`. RPC có thể **ghi đè** lại giá trị vừa update, hoặc 2 thao tác xung đột.
 
-#### Thay doi 2: Them summary bar trong CreateDistributionPage
-**File**: `src/pages/inventory/CreateDistributionPage.tsx`
-- Hien thi summary compact (so phong, so SP, tong SL) ngay tren nut "Tao phieu"
-- Hien thi canh bao stock validation o footer thay vi chi trong form
+**Sửa:** Bỏ `.update()` trực tiếp, chỉ dùng RPC `perform_checkout` với `p_new_amount_paid` đúng.
 
-#### Thay doi 3: Auto-navigate ve phieu sau room check
-**File**: `src/components/distribution/components/UnifiedRoomList.tsx`
-- Them query param `returnTo` khi navigate sang room check
-- Sau khi room check xong, tu dong quay ve trang phieu giao hang
+---
 
-#### Thay doi 4: Don gian hoa flow cho hotel nho
-**File**: `src/components/distribution/components/DeliveryStepWizard.tsx`
-- Khi nguoi tao phieu cung la nguoi duoc phan cong (assignee), gop buoc "Kiem tra kho" va "Nhan hang" thanh 1 buoc duy nhat
-- Giam so buoc tu 5 xuong 3-4 tuy truong hop
+### 6. **Early checkin charge bị tự động ghi đè khi mở dialog**
+`useEffect` (line 161-166) tính lại `earlyCheckinCharge` mỗi khi `checkInTime` thay đổi. Khi mở dialog edit, `checkInTime` được set → trigger useEffect → **ghi đè** giá trị thực tế từ DB (đã được nhân viên điều chỉnh khi check-in).
 
-#### Thay doi 5: Lam ro auto-fill trong form
-**File**: `src/components/distribution/forms/ItemAllocator.tsx`
-- Them nut "Tu dong phan bo" noi bat, co tooltip giai thich
-- Hien thi ket qua auto-fill (bao nhieu SP da them, bao nhieu thieu) ro rang hon
+**Sửa:** Chỉ auto-calculate khi tạo booking mới (`!isEdit`), hoặc khi user thay đổi thủ công check-in time (dùng flag `userChangedTime`).
 
-### Uu tien thuc hien
+---
 
-1. **Thay doi 2** (Summary bar) - De lam, giam nhầm lẫn ngay
-2. **Thay doi 1** (Redirect OutboundPage) - Loai bo trung lap
-3. **Thay doi 3** (Auto-navigate ve phieu) - Cai thien flow giao hang
-4. **Thay doi 4** (Don gian hoa step) - Giam buoc cho hotel nho
-5. **Thay doi 5** (Auto-fill ro rang) - Cai thien UX
+### 7. **Late checkout description hiển thị theo giờ dự kiến, không phải thực tế**
+Line 732: `lateCheckoutDesc` dùng `checkOutTime` (giờ expected). Điều này gây nhầm lẫn - hiển thị phụ thu checkout trễ dựa trên giờ dự kiến chứ không phải giờ thực tế checkout.
+
+**Sửa:** Chỉ hiện mô tả phụ thu này khi đang trong quá trình checkout thực tế, không hiện trong form edit thông thường.
+
+---
+
+### 8. **Sau khi thu tiền, state local không đồng bộ**
+`onPaymentComplete` (line 1350-1353) chỉ `invalidateQueries` nhưng dialog vẫn mở → `amountPaid` state cũ vẫn hiển thị. User thấy số "Còn lại" chưa cập nhật cho đến khi đóng/mở lại dialog.
+
+**Sửa:** Trong `onPaymentComplete`, fetch lại booking data hoặc update `setAmountPaid` trực tiếp dựa trên số tiền vừa thu.
+
+---
+
+### 9. **Type safety kém - dùng `(booking as any)` quá nhiều**
+Hơn 15 chỗ dùng `(booking as any)` để access các field như `room_price`, `deposit_amount`, `booking_type`... Điều này khiến không phát hiện được lỗi khi field bị đổi tên hoặc thiếu.
+
+**Sửa:** Mở rộng interface `RoomBooking` trong `useRoomBooking.ts` để include đầy đủ các field tài chính, hoặc tạo type riêng cho dialog.
+
+---
+
+### 10. **`performCheckOut` không truyền `p_new_amount_paid`**
+Line 562: RPC call thiếu `p_new_amount_paid`, nên payment status có thể không được update đúng trong trường hợp "Checkout không thu tiền".
+
+**Sửa:** Truyền `p_new_amount_paid: amountPaid` để RPC tính đúng payment_status.
+
+---
+
+## Tóm tắt mức ưu tiên
+
+| # | Vấn đề | Mức độ |
+|---|--------|--------|
+| 1 | Thiếu nút Checkout | 🔴 Critical |
+| 4,5 | PayAndCheckout tính sai + race condition | 🔴 Critical |
+| 3 | Check-in không atomic | 🟡 High |
+| 6 | Early charge bị ghi đè | 🟡 High |
+| 8 | State không đồng bộ sau thu tiền | 🟡 High |
+| 2 | Dropdown status bypass logic | 🟡 High |
+| 10 | Checkout không truyền amount_paid | 🟡 High |
+| 9 | Type safety | 🟢 Medium |
+| 7 | Late checkout desc misleading | 🟢 Low |
 
