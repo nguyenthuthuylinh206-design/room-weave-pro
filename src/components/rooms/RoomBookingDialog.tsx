@@ -161,12 +161,13 @@ export function RoomBookingDialog({
   }, [roomPrice, nights, earlyCheckinCharge, lateCheckoutCharge, serviceCharges, extraCharges, vatRate, serviceFeeRate, depositAmount, amountPaid])
 
   // Auto-calculate early check-in surcharge when time changes
+  // Only auto-calculate for new bookings OR when user explicitly changed the time
   useEffect(() => {
-    if (checkInTime && roomPrice) {
+    if (checkInTime && roomPrice && (!isEdit || userChangedCheckInTime)) {
       const charge = calculateEarlyCheckinCharge(checkInTime, roomPrice)
       setEarlyCheckinCharge(charge)
     }
-  }, [checkInTime, roomPrice])
+  }, [checkInTime, roomPrice, isEdit, userChangedCheckInTime])
 
   // Reset form when booking changes
   useEffect(() => {
