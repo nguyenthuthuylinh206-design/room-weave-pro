@@ -166,8 +166,9 @@ export function GroupPaymentDialog({
     }
   }
 
-  const handleCashPayment = async () => {
-    if (!isValidAmount || !groupData) {
+  const handleCashPayment = async (overrideAmount?: number) => {
+    const finalAmount = overrideAmount ?? parsedAmount
+    if (finalAmount <= 0 || !groupData) {
       toast.error('Số tiền không hợp lệ')
       return
     }
@@ -180,7 +181,7 @@ export function GroupPaymentDialog({
         tenant_id: tenantId,
         hotel_id: hotelId,
         booking_id: firstBooking.id,
-        amount: parsedAmount,
+        amount: finalAmount,
         payment_method: 'cash',
         metadata: {
           is_group_payment: true,
@@ -192,10 +193,10 @@ export function GroupPaymentDialog({
       })
 
       // Distribute payment to individual bookings
-      await distributePayment(parsedAmount, groupData.bookings)
+      await distributePayment(finalAmount, groupData.bookings)
 
       setStep('success')
-      toast.success(`Đã nhận ${formatVNCurrency(parsedAmount)} tiền mặt cho ${groupData.roomCount} phòng`)
+      toast.success(`Đã nhận ${formatVNCurrency(finalAmount)} tiền mặt cho ${groupData.roomCount} phòng`)
 
       setTimeout(() => {
         onOpenChange(false)
@@ -209,8 +210,9 @@ export function GroupPaymentDialog({
     }
   }
 
-  const handleBankTransfer = async () => {
-    if (!isValidAmount || !groupData) {
+  const handleBankTransfer = async (overrideAmount?: number) => {
+    const finalAmount = overrideAmount ?? parsedAmount
+    if (finalAmount <= 0 || !groupData) {
       toast.error('Số tiền không hợp lệ')
       return
     }
@@ -231,7 +233,7 @@ export function GroupPaymentDialog({
         tenant_id: tenantId,
         hotel_id: hotelId,
         booking_id: firstBooking.id,
-        amount: parsedAmount,
+        amount: finalAmount,
         payment_method: 'bank_transfer',
         transaction_reference: reference,
         metadata: {
@@ -268,7 +270,7 @@ export function GroupPaymentDialog({
         .eq('id', createdPayment.id)
 
       // Distribute payment
-      await distributePayment(parsedAmount, groupData.bookings)
+      await distributePayment(createdPayment.amount, groupData.bookings)
 
       setStep('success')
       toast.success('Đã xác nhận thanh toán nhóm')
@@ -495,9 +497,9 @@ export function GroupPaymentDialog({
                     onClick={() => {
                       setAmount(remainingAmount.toString())
                       if (paymentMethod === 'cash') {
-                        handleCashPayment()
+                        handleCashPayment(remainingAmount)
                       } else {
-                        handleBankTransfer()
+                        handleBankTransfer(remainingAmount)
                       }
                     }}
                   >
@@ -584,7 +586,7 @@ export function GroupPaymentDialog({
                       variant="outline"
                       className="w-full"
                       disabled={!isValidAmount || isProcessing}
-                      onClick={paymentMethod === 'cash' ? handleCashPayment : handleBankTransfer}
+                      onClick={() => paymentMethod === 'cash' ? handleCashPayment() : handleBankTransfer()}
                     >
                       {isProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                       {paymentMethod === 'cash' ? 'Xác nhận tiền mặt' : 'Tạo mã QR'}
