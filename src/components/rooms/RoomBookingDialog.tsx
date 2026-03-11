@@ -1151,13 +1151,16 @@ export function RoomBookingDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="confirmed">{t('booking.statusConfirmed')}</SelectItem>
-                  <SelectItem value="checked_in">{t('booking.statusCheckedIn')}</SelectItem>
-                  <SelectItem value="checked_out">{t('booking.statusCheckedOut')}</SelectItem>
-                  <SelectItem value="cancelled">{t('booking.statusCancelled')}</SelectItem>
-                  <SelectItem value="no_show">{t('booking.statusNoShow')}</SelectItem>
+                  {allowedStatuses.includes('confirmed') && <SelectItem value="confirmed">{t('booking.statusConfirmed')}</SelectItem>}
+                  {allowedStatuses.includes('checked_in') && <SelectItem value="checked_in">{t('booking.statusCheckedIn')}</SelectItem>}
+                  {allowedStatuses.includes('checked_out') && <SelectItem value="checked_out">{t('booking.statusCheckedOut')}</SelectItem>}
+                  {allowedStatuses.includes('cancelled') && <SelectItem value="cancelled">{t('booking.statusCancelled')}</SelectItem>}
+                  {allowedStatuses.includes('no_show') && <SelectItem value="no_show">{t('booking.statusNoShow')}</SelectItem>}
                 </SelectContent>
               </Select>
+              {isEdit && booking?.status === 'checked_in' && (
+                <p className="text-xs text-muted-foreground">Sử dụng nút "Trả phòng" bên dưới để checkout</p>
+              )}
             </div>
             
             {/* Notes */}
