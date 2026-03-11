@@ -1,102 +1,87 @@
 
 
-## Phân tích logic Phase 1 - Các vấn đề cần sửa
+## Phan tich luong phieu giao hang (Distribution Order)
 
-### 1. **Guest CRM: Thiếu trigger cập nhật `total_stays`, `total_spent`, `last_stay_date`** 🔴
+### Hien trang: Cau truc luong hien tai
 
-Migration chỉ tạo bảng `guests` với các cột thống kê nhưng **không có trigger/function** nào tự động cập nhật khi booking checkout. Các cột `total_stays`, `total_spent`, `last_stay_date` sẽ luôn = 0/null.
+Luong hien tai co **3 cach tao** va **5 buoc xu ly**, kha phuc tap:
 
-**Sửa:** Tạo trigger trên `room_bookings` - khi `status` chuyển sang `checked_out`, update `total_stays += 1`, `total_spent += total_amount`, `last_stay_date = check_out_date` cho guest tương ứng.
+#### 3 Dau vao (Entry Points)
+1. **Tao thu cong** (`/inventory/distributions/new`) - CreateDistributionPage.tsx
+2. **Tao tu yeu cau bo sung** (`/inventory/distributions/from-supplements`) - CreateFromSupplementsPage.tsx
+3. **Tao tu Xuat kho** (`/inventory/outbound` voi category `room_assign`) - OutboundPage.tsx dung cung DistributionForm
 
----
+#### 5 Buoc xu ly (Lifecycle)
+```text
+pending --> released --> in_progress --> completed --> closed
+  (1)        (2)           (3)            (4)          (5)
+```
 
-### 2. **Guest CRM: UNIQUE constraint `(tenant_id, phone)` lỗi khi phone = NULL** 🟡
+1. **pending** - Kho chuan bi hang, kiem tra ton kho, giao cho nhan vien (Warehouse Manager click "Kiem tra & Giao hang")
+2. **released** - Nhan vien xac nhan da nhan du hang (Assignee click "Xac nhan da nhan du hang")
+3. **in_progress** - Nhan vien di giao tung phong, click "GIAO" -> chuyen sang room check
+4. **completed** - Tat ca phong da giao xong
+5. **closed** - Manager dong phieu
 
-PostgreSQL cho phép nhiều row có `(tenant_id, NULL)` vì `NULL != NULL`. Điều này không gây lỗi nhưng logic code không handle trường hợp guest không có SĐT - `useBookingForm.ts` chỉ upsert khi `guestPhone.trim()` có giá trị, nghĩa là **booking không có SĐT sẽ không tạo guest record**. Đây là thiếu sót cho khách walk-in không cung cấp SĐT.
+### Van de phat hien
 
-**Sửa:** Cho phép tạo guest khi chỉ có `guestName` (không yêu cầu phone). Dùng `full_name` + `tenant_id` để tìm kiếm, hoặc luôn tạo guest mới khi không có phone.
+#### 1. Trung lap dau vao: OutboundPage dung trung DistributionForm
+- `OutboundPage.tsx` (Xuat kho) khi chon category `room_assign` se render cung `DistributionForm` va goi `useCreateDistributionOrder` - hoan toan giong `CreateDistributionPage.tsx`
+- Nguoi dung co 2 noi tao cung 1 thu -> nhầm lẫn
+- **De xuat**: Khi chon "Giao den phong" trong OutboundPage, chuyen huong (redirect) sang `/inventory/distributions/new` thay vi nhan doi form
 
----
+#### 2. Buoc "released" co the thua (khong can thiet voi nhieu truong hop)
+- Sau khi kho giao hang (pending -> released), nhan vien phai bam "Xac nhan da nhan du hang" de chuyen sang in_progress
+- Voi hotel nho (kho va nhan vien la 1 nguoi), buoc nay thua
+- Da co option `auto_release` nhung chi skip buoc kho, khong skip buoc nhan hang
+- **De xuat**: Them option "Tu dong bat dau giao" de skip ca buoc released, chuyen thang tu pending -> in_progress khi assignee la chinh nguoi tao
 
-### 3. **Guest CRM: `useBookingForm.ts` dùng `(b as any).guest_id`** 🟡
+#### 3. Qua trinh giao phong phuc tap - click "GIAO" -> navigate ra room check
+- Khi nhan vien click "GIAO" tren 1 phong, he thong navigate sang `/rooms/{id}/check?type=delivery&...`
+- Phai lam room check roi moi quay lai -> mat flow, phai quay lai trang phieu de giao phong tiep
+- **De xuat**: Sau khi hoan thanh room check, tu dong quay lai trang phieu giao hang thay vi o lai trang room check
 
-Line 568: `bookingsData.forEach(b => (b as any).guest_id = guestId)` - Type assertion bỏ qua type checking. Field `guest_id` đã có trong Supabase types (confirmed từ types.ts) nhưng code vẫn dùng `as any`.
+#### 4. Thieu thong tin tong hop khi tao phieu
+- CreateDistributionPage khong hien thi summary (tong so phong, tong so item, tong so luong) truoc khi submit
+- DistributionForm hien thi 2 panel (chon phong + phan bo san pham) nhung khong co summary bar
+- **De xuat**: Them summary bar hien thi: X phong, Y loai SP, Z don vi truoc nut "Tao phieu"
 
-**Sửa:** Thêm `guest_id: null` vào object trong `bookingsData` map function, rồi gán trực tiếp thay vì dùng `as any`.
+#### 5. Auto-fill logic tot nhung UX chua ro rang
+- `useDistributionForm` co `autoFillMissingItems` va `autoFillMissingItemsForRoom` de tu dong tinh so luong theo tieu chuan phong
+- Nhung trong CreateDistributionPage, nut auto-fill khong duoc hien thi ro rang
+- **De xuat**: Them nut "Tu dong phan bo theo tieu chuan" noi bat hon trong form
 
----
+### Ke hoach khac phuc
 
-### 4. **Guest Invoices: Không có nút "Tạo hóa đơn" từ booking** 🔴
+#### Thay doi 1: Redirect OutboundPage khi chon "room_assign"
+**File**: `src/pages/inventory/OutboundPage.tsx`
+- Khi user chon category `room_assign`, hien thi thong bao va nut chuyen sang trang tao phieu giao hang chuyen dung thay vi render form trung lap
 
-`GuestInvoicesPage` chỉ hiển thị danh sách hóa đơn đã tạo. **Không có UI nào** để tạo hóa đơn mới - không có `CreateInvoiceDialog`, không có nút trong `BookingDetailPage` hay `CheckoutSummaryDialog`. Người dùng không thể tạo hóa đơn.
+#### Thay doi 2: Them summary bar trong CreateDistributionPage
+**File**: `src/pages/inventory/CreateDistributionPage.tsx`
+- Hien thi summary compact (so phong, so SP, tong SL) ngay tren nut "Tao phieu"
+- Hien thi canh bao stock validation o footer thay vi chi trong form
 
-**Sửa:** Tạo `CreateInvoiceDialog` component với:
-- Nút "Tạo hóa đơn" trong `GuestInvoicesPage` (tạo mới)
-- Nút "Xuất hóa đơn" trong `CheckoutSummaryDialog` (pre-fill từ booking data)
-- Form cho phép nhập MST, tên công ty, sửa line items
+#### Thay doi 3: Auto-navigate ve phieu sau room check
+**File**: `src/components/distribution/components/UnifiedRoomList.tsx`
+- Them query param `returnTo` khi navigate sang room check
+- Sau khi room check xong, tu dong quay ve trang phieu giao hang
 
----
+#### Thay doi 4: Don gian hoa flow cho hotel nho
+**File**: `src/components/distribution/components/DeliveryStepWizard.tsx`
+- Khi nguoi tao phieu cung la nguoi duoc phan cong (assignee), gop buoc "Kiem tra kho" va "Nhan hang" thanh 1 buoc duy nhat
+- Giam so buoc tu 5 xuong 3-4 tuy truong hop
 
-### 5. **Guest Invoices: `vat_rate` lưu 0.1 (10%) nhưng PDF hiển thị `vat_rate * 100`** 🟡
+#### Thay doi 5: Lam ro auto-fill trong form
+**File**: `src/components/distribution/forms/ItemAllocator.tsx`
+- Them nut "Tu dong phan bo" noi bat, co tooltip giai thich
+- Hien thi ket qua auto-fill (bao nhieu SP da them, bao nhieu thieu) ro rang hon
 
-DB default `vat_rate = 0.1`. PDF template line 78: `${(invoice.vat_rate * 100).toFixed(0)}%` → hiển thị "10%". Nhưng `useCreateGuestInvoice` hook nhận `vat_rate` từ caller - cần đảm bảo consistency: nếu frontend dùng `10` (phần trăm) thì DB lưu `0.1` (tỷ lệ), hoặc ngược lại. Hiện tại không rõ convention.
+### Uu tien thuc hien
 
-**Sửa:** Chuẩn hóa: DB lưu tỷ lệ thập phân (0.1 = 10%), frontend hiển thị %. Thêm comment rõ ràng trong hook.
-
----
-
-### 6. **Lost & Found: Thiếu chức năng "Xử lý/Hủy" đồ** 🟡
-
-Chỉ có nút "Trả" (claim) cho status `stored`. Không có cách chuyển sang `disposed` (đã hủy bỏ sau thời gian lưu giữ) hoặc `donated`. Cũng thiếu chức năng sửa/xóa item đã đăng ký.
-
-**Sửa:** Thêm dropdown actions cho mỗi item: "Trả đồ", "Xử lý/Hủy bỏ", "Sửa thông tin".
-
----
-
-### 7. **Lost & Found: Thiếu item_code auto-generate** 🟢
-
-DB có cột `item_code` nhưng code `useCreateLostFoundItem` không generate mã tự động. Mã này hữu ích để dán nhãn lên đồ vật lưu giữ.
-
-**Sửa:** Tạo function tương tự `generate_guest_invoice_number` cho lost found item code (format: LF-YYYYMMDD-XXXX).
-
----
-
-### 8. **Guest CRM: `GuestDetailPage` không hiển thị id_image (ảnh CCCD)** 🟢
-
-DB có `id_image_url` nhưng detail page không render ảnh giấy tờ tùy thân đã scan.
-
-**Sửa:** Thêm hiển thị ảnh CCCD/Passport trong phần thông tin khách.
-
----
-
-### 9. **Invoice PDF: Không hỗ trợ tiếng Việt có dấu** 🔴
-
-`jsPDF` mặc định không hỗ trợ font Unicode/tiếng Việt có dấu. Template dùng text không dấu ("Khach hang", "Hoa don") là workaround nhưng **không chuyên nghiệp** cho hóa đơn chính thức.
-
-**Sửa:** Embed font Unicode (ví dụ Roboto hoặc Open Sans) vào jsPDF, hoặc dùng `html2canvas` + jsPDF để render HTML template có dấu thành PDF.
-
----
-
-### 10. **Guest Invoices: Thiếu chức năng hủy hóa đơn** 🟡
-
-Chỉ có hiển thị và download PDF. Không có cách đổi status sang `cancelled` hoặc `issued`.
-
-**Sửa:** Thêm actions dropdown trong list: "Xuất chính thức" (draft → issued), "Hủy" (→ cancelled).
-
----
-
-## Tóm tắt ưu tiên
-
-| # | Vấn đề | Mức độ |
-|---|--------|--------|
-| 1 | Thiếu trigger cập nhật stats guest | 🔴 Critical |
-| 4 | Không có UI tạo hóa đơn | 🔴 Critical |
-| 9 | PDF không hỗ trợ tiếng Việt có dấu | 🔴 Critical |
-| 2 | Guest không phone không được tạo | 🟡 High |
-| 3 | Type safety `as any` | 🟡 High |
-| 5 | vat_rate convention | 🟡 High |
-| 6 | Thiếu dispose/edit lost found | 🟡 High |
-| 10 | Thiếu actions hóa đơn | 🟡 High |
-| 7 | Lost found item_code | 🟢 Medium |
-| 8 | Thiếu hiển thị ảnh CCCD | 🟢 Low |
+1. **Thay doi 2** (Summary bar) - De lam, giam nhầm lẫn ngay
+2. **Thay doi 1** (Redirect OutboundPage) - Loai bo trung lap
+3. **Thay doi 3** (Auto-navigate ve phieu) - Cai thien flow giao hang
+4. **Thay doi 4** (Don gian hoa step) - Giam buoc cho hotel nho
+5. **Thay doi 5** (Auto-fill ro rang) - Cai thien UX
 

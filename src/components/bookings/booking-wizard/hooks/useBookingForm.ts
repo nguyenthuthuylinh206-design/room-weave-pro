@@ -508,36 +508,44 @@ export function useBookingForm() {
           guest_gender: state.guestGender || null,
           guest_address: state.guestAddress || null,
           guest_id_image_url: state.guestIdImageUrl || null,
+          guest_id: null as string | null,
         }
       })
 
-      // Upsert guest if phone is provided
+      // Upsert guest record - works with or without phone
       let guestId: string | null = null
-      if (state.guestPhone.trim() && tenant?.id) {
+      if (state.guestName.trim() && tenant?.id) {
         try {
-          const phone = state.guestPhone.trim()
-          const { data: existingGuest } = await supabase
-            .from('guests')
-            .select('id')
-            .eq('tenant_id', tenant.id)
-            .eq('phone', phone)
-            .maybeSingle()
+          const phone = state.guestPhone.trim() || null
+          
+          if (phone) {
+            // Look up by phone first
+            const { data: existingGuest } = await supabase
+              .from('guests')
+              .select('id')
+              .eq('tenant_id', tenant.id)
+              .eq('phone', phone)
+              .maybeSingle()
 
-          if (existingGuest) {
-            guestId = existingGuest.id
-            await supabase.from('guests').update({
-              full_name: state.guestName.trim(),
-              email: state.guestEmail.trim() || null,
-              id_type: state.guestIdType || null,
-              id_number: state.guestIdNumber || null,
-              nationality: state.guestNationality || null,
-              gender: state.guestGender || null,
-              date_of_birth: state.guestDateOfBirth || null,
-              address: state.guestAddress || null,
-              id_image_url: state.guestIdImageUrl || null,
-              updated_at: new Date().toISOString(),
-            }).eq('id', existingGuest.id)
-          } else {
+            if (existingGuest) {
+              guestId = existingGuest.id
+              await supabase.from('guests').update({
+                full_name: state.guestName.trim(),
+                email: state.guestEmail.trim() || null,
+                id_type: state.guestIdType || null,
+                id_number: state.guestIdNumber || null,
+                nationality: state.guestNationality || null,
+                gender: state.guestGender || null,
+                date_of_birth: state.guestDateOfBirth || null,
+                address: state.guestAddress || null,
+                id_image_url: state.guestIdImageUrl || null,
+                updated_at: new Date().toISOString(),
+              }).eq('id', existingGuest.id)
+            }
+          }
+
+          if (!guestId) {
+            // Create new guest (with or without phone)
             const { data: newGuest } = await supabase
               .from('guests')
               .insert({
@@ -565,7 +573,7 @@ export function useBookingForm() {
 
       // Add guest_id to all bookings
       if (guestId) {
-        bookingsData.forEach(b => (b as any).guest_id = guestId)
+        bookingsData.forEach(b => { b.guest_id = guestId })
       }
       
       const { error } = await supabase

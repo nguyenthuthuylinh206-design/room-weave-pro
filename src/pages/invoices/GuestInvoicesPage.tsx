@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, FileText, Download } from 'lucide-react'
+import { Search, FileText, Download, Plus, MoreHorizontal, CheckCircle, XCircle } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -10,10 +10,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useGuestInvoices } from '@/hooks/useGuestInvoices'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { useGuestInvoices, useUpdateGuestInvoice } from '@/hooks/useGuestInvoices'
 import { formatCurrency } from '@/lib/utils'
 import { format } from 'date-fns'
 import { generateInvoicePDF } from '@/components/invoices/InvoicePDFTemplate'
+import CreateInvoiceDialog from '@/components/invoices/CreateInvoiceDialog'
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'Tất cả' },
@@ -31,11 +38,21 @@ const STATUS_COLORS: Record<string, string> = {
 export default function GuestInvoicesPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [showCreate, setShowCreate] = useState(false)
 
   const { data: invoices = [], isLoading } = useGuestInvoices({ status: statusFilter, search })
+  const updateInvoice = useUpdateGuestInvoice()
 
   const handleExportPDF = (invoice: any) => {
     generateInvoicePDF(invoice)
+  }
+
+  const handleIssue = (id: string) => {
+    updateInvoice.mutate({ id, status: 'issued', issued_at: new Date().toISOString() })
+  }
+
+  const handleCancel = (id: string) => {
+    updateInvoice.mutate({ id, status: 'cancelled' })
   }
 
   return (
@@ -46,6 +63,9 @@ export default function GuestInvoicesPage() {
           <h1 className="text-lg font-semibold">Hóa đơn khách</h1>
           <Badge variant="secondary" className="text-xs">{invoices.length}</Badge>
         </div>
+        <Button type="button" size="sm" className="h-8" onClick={() => setShowCreate(true)}>
+          <Plus className="h-4 w-4 mr-1" /> Tạo hóa đơn
+        </Button>
       </div>
 
       {/* Filters */}
@@ -92,10 +112,31 @@ export default function GuestInvoicesPage() {
               <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExportPDF(inv)}>
                 <Download className="h-4 w-4" />
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {inv.status === 'draft' && (
+                    <DropdownMenuItem onClick={() => handleIssue(inv.id)}>
+                      <CheckCircle className="h-4 w-4 mr-2" /> Xuất chính thức
+                    </DropdownMenuItem>
+                  )}
+                  {inv.status !== 'cancelled' && (
+                    <DropdownMenuItem onClick={() => handleCancel(inv.id)} className="text-red-600">
+                      <XCircle className="h-4 w-4 mr-2" /> Hủy hóa đơn
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           ))}
         </div>
       )}
+
+      <CreateInvoiceDialog open={showCreate} onOpenChange={setShowCreate} />
     </div>
   )
 }
