@@ -1750,6 +1750,219 @@ export type Database = {
           },
         ]
       }
+      guest_invoices: {
+        Row: {
+          amount_paid: number
+          booking_id: string | null
+          check_in_date: string | null
+          check_out_date: string | null
+          company_name: string | null
+          created_at: string
+          created_by: string | null
+          deposit_amount: number
+          guest_address: string | null
+          guest_name: string
+          guest_phone: string | null
+          guest_tax_code: string | null
+          hotel_id: string
+          id: string
+          invoice_number: string
+          issued_at: string | null
+          line_items: Json
+          notes: string | null
+          payment_method: string | null
+          room_number: string | null
+          service_fee_amount: number
+          service_fee_rate: number
+          status: string
+          subtotal: number
+          tenant_id: string
+          total_amount: number
+          updated_at: string
+          vat_amount: number
+          vat_rate: number
+        }
+        Insert: {
+          amount_paid?: number
+          booking_id?: string | null
+          check_in_date?: string | null
+          check_out_date?: string | null
+          company_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          deposit_amount?: number
+          guest_address?: string | null
+          guest_name: string
+          guest_phone?: string | null
+          guest_tax_code?: string | null
+          hotel_id: string
+          id?: string
+          invoice_number: string
+          issued_at?: string | null
+          line_items?: Json
+          notes?: string | null
+          payment_method?: string | null
+          room_number?: string | null
+          service_fee_amount?: number
+          service_fee_rate?: number
+          status?: string
+          subtotal?: number
+          tenant_id: string
+          total_amount?: number
+          updated_at?: string
+          vat_amount?: number
+          vat_rate?: number
+        }
+        Update: {
+          amount_paid?: number
+          booking_id?: string | null
+          check_in_date?: string | null
+          check_out_date?: string | null
+          company_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          deposit_amount?: number
+          guest_address?: string | null
+          guest_name?: string
+          guest_phone?: string | null
+          guest_tax_code?: string | null
+          hotel_id?: string
+          id?: string
+          invoice_number?: string
+          issued_at?: string | null
+          line_items?: Json
+          notes?: string | null
+          payment_method?: string | null
+          room_number?: string | null
+          service_fee_amount?: number
+          service_fee_rate?: number
+          status?: string
+          subtotal?: number
+          tenant_id?: string
+          total_amount?: number
+          updated_at?: string
+          vat_amount?: number
+          vat_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_invoices_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "room_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_invoices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_invoices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_invoices_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "guest_invoices_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guests: {
+        Row: {
+          address: string | null
+          created_at: string
+          date_of_birth: string | null
+          email: string | null
+          full_name: string
+          gender: string | null
+          id: string
+          id_image_url: string | null
+          id_number: string | null
+          id_type: string | null
+          last_stay_date: string | null
+          nationality: string | null
+          notes: string | null
+          phone: string | null
+          tenant_id: string
+          total_spent: number
+          total_stays: number
+          updated_at: string
+          vip_level: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string | null
+          full_name: string
+          gender?: string | null
+          id?: string
+          id_image_url?: string | null
+          id_number?: string | null
+          id_type?: string | null
+          last_stay_date?: string | null
+          nationality?: string | null
+          notes?: string | null
+          phone?: string | null
+          tenant_id: string
+          total_spent?: number
+          total_stays?: number
+          updated_at?: string
+          vip_level?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string | null
+          full_name?: string
+          gender?: string | null
+          id?: string
+          id_image_url?: string | null
+          id_number?: string | null
+          id_type?: string | null
+          last_stay_date?: string | null
+          nationality?: string | null
+          notes?: string | null
+          phone?: string | null
+          tenant_id?: string
+          total_spent?: number
+          total_stays?: number
+          updated_at?: string
+          vip_level?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotel_services: {
         Row: {
           category: Database["public"]["Enums"]["service_category"]
@@ -3434,6 +3647,118 @@ export type Database = {
           },
         ]
       }
+      lost_found_items: {
+        Row: {
+          category: string
+          claimed_by_name: string | null
+          claimed_by_phone: string | null
+          claimed_date: string | null
+          created_at: string
+          description: string | null
+          found_by: string | null
+          found_date: string
+          found_location: string | null
+          hotel_id: string
+          id: string
+          item_code: string | null
+          item_name: string
+          notes: string | null
+          photo_urls: Json
+          room_id: string | null
+          status: string
+          storage_location: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          claimed_by_name?: string | null
+          claimed_by_phone?: string | null
+          claimed_date?: string | null
+          created_at?: string
+          description?: string | null
+          found_by?: string | null
+          found_date?: string
+          found_location?: string | null
+          hotel_id: string
+          id?: string
+          item_code?: string | null
+          item_name: string
+          notes?: string | null
+          photo_urls?: Json
+          room_id?: string | null
+          status?: string
+          storage_location?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          claimed_by_name?: string | null
+          claimed_by_phone?: string | null
+          claimed_date?: string | null
+          created_at?: string
+          description?: string | null
+          found_by?: string | null
+          found_date?: string
+          found_location?: string | null
+          hotel_id?: string
+          id?: string
+          item_code?: string | null
+          item_name?: string
+          notes?: string | null
+          photo_urls?: Json
+          room_id?: string | null
+          status?: string
+          storage_location?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lost_found_items_found_by_fkey"
+            columns: ["found_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lost_found_items_found_by_fkey"
+            columns: ["found_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lost_found_items_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_stats"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "lost_found_items_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lost_found_items_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lost_found_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maintenance_categories: {
         Row: {
           checklist_items: string[] | null
@@ -5025,6 +5350,7 @@ export type Database = {
           guest_date_of_birth: string | null
           guest_email: string | null
           guest_gender: string | null
+          guest_id: string | null
           guest_id_image_url: string | null
           guest_id_number: string | null
           guest_id_type: string | null
@@ -5086,6 +5412,7 @@ export type Database = {
           guest_date_of_birth?: string | null
           guest_email?: string | null
           guest_gender?: string | null
+          guest_id?: string | null
           guest_id_image_url?: string | null
           guest_id_number?: string | null
           guest_id_type?: string | null
@@ -5147,6 +5474,7 @@ export type Database = {
           guest_date_of_birth?: string | null
           guest_email?: string | null
           guest_gender?: string | null
+          guest_id?: string | null
           guest_id_image_url?: string | null
           guest_id_number?: string | null
           guest_id_type?: string | null
@@ -5194,6 +5522,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_bookings_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
             referencedColumns: ["id"]
           },
           {
@@ -8250,6 +8585,10 @@ export type Database = {
           p_room_order_id: string
         }
         Returns: Json
+      }
+      generate_guest_invoice_number: {
+        Args: { p_tenant_id: string }
+        Returns: string
       }
       generate_invoice_number: { Args: never; Returns: string }
       generate_laundry_request_code: {

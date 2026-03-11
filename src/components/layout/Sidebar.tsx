@@ -45,6 +45,7 @@ import {
   KeyRound,
   MessageCircle,
   HelpCircle,
+  PackageSearch,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -111,6 +112,9 @@ const navigation: NavItem[] = [
     children: [
       { titleKey: 'roomsList', href: '/rooms', icon: List },
       { titleKey: 'bookings', href: '/bookings', icon: CalendarDays },
+      { titleKey: 'guests', href: '/guests', icon: Users },
+      { titleKey: 'lostFound', href: '/lost-found', icon: PackageSearch },
+      { titleKey: 'guestInvoices', href: '/guest-invoices', icon: FileText },
       { titleKey: 'roomStandards', href: '/rooms/standards', icon: Settings },
       { titleKey: 'addRoom', href: '/rooms/new', icon: Plus },
     ],

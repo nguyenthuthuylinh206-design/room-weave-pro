@@ -510,6 +510,63 @@ export function useBookingForm() {
           guest_id_image_url: state.guestIdImageUrl || null,
         }
       })
+
+      // Upsert guest if phone is provided
+      let guestId: string | null = null
+      if (state.guestPhone.trim() && tenant?.id) {
+        try {
+          const phone = state.guestPhone.trim()
+          const { data: existingGuest } = await supabase
+            .from('guests')
+            .select('id')
+            .eq('tenant_id', tenant.id)
+            .eq('phone', phone)
+            .maybeSingle()
+
+          if (existingGuest) {
+            guestId = existingGuest.id
+            await supabase.from('guests').update({
+              full_name: state.guestName.trim(),
+              email: state.guestEmail.trim() || null,
+              id_type: state.guestIdType || null,
+              id_number: state.guestIdNumber || null,
+              nationality: state.guestNationality || null,
+              gender: state.guestGender || null,
+              date_of_birth: state.guestDateOfBirth || null,
+              address: state.guestAddress || null,
+              id_image_url: state.guestIdImageUrl || null,
+              updated_at: new Date().toISOString(),
+            }).eq('id', existingGuest.id)
+          } else {
+            const { data: newGuest } = await supabase
+              .from('guests')
+              .insert({
+                tenant_id: tenant.id,
+                full_name: state.guestName.trim(),
+                phone,
+                email: state.guestEmail.trim() || null,
+                id_type: state.guestIdType || null,
+                id_number: state.guestIdNumber || null,
+                nationality: state.guestNationality || null,
+                gender: state.guestGender || null,
+                date_of_birth: state.guestDateOfBirth || null,
+                address: state.guestAddress || null,
+                id_image_url: state.guestIdImageUrl || null,
+                vip_level: 'normal',
+              })
+              .select('id')
+              .single()
+            if (newGuest) guestId = newGuest.id
+          }
+        } catch (e) {
+          console.warn('Guest upsert failed, continuing without guest_id', e)
+        }
+      }
+
+      // Add guest_id to all bookings
+      if (guestId) {
+        bookingsData.forEach(b => (b as any).guest_id = guestId)
+      }
       
       const { error } = await supabase
         .from('room_bookings')

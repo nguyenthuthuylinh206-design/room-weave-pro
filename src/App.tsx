@@ -120,6 +120,10 @@ import StaffManagementPage from "./pages/staff/StaffManagementPage";
 import MyTasksPage from "./pages/MyTasksPage";
 import PaymentQRPage from "./pages/payment/PaymentQRPage";
 import ScanDocumentPage from "./pages/scan/ScanDocumentPage";
+import GuestsPage from "./pages/guests/GuestsPage";
+import GuestDetailPage from "./pages/guests/GuestDetailPage";
+import LostFoundPage from "./pages/lost-found/LostFoundPage";
+import GuestInvoicesPage from "./pages/invoices/GuestInvoicesPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -496,6 +500,44 @@ const router = createBrowserRouter([
             <BookingDetailPage />
           </PermissionRoute>
         )
+      },
+
+      // Guests
+      {
+        path: "guests",
+        element: (
+          <PermissionRoute module="bookings">
+            <GuestsPage />
+          </PermissionRoute>
+        ),
+      },
+      {
+        path: "guests/:id",
+        element: (
+          <PermissionRoute module="bookings">
+            <GuestDetailPage />
+          </PermissionRoute>
+        ),
+      },
+
+      // Lost & Found
+      {
+        path: "lost-found",
+        element: (
+          <PermissionRoute module="rooms">
+            <LostFoundPage />
+          </PermissionRoute>
+        ),
+      },
+
+      // Guest Invoices
+      {
+        path: "guest-invoices",
+        element: (
+          <PermissionRoute module="bookings">
+            <GuestInvoicesPage />
+          </PermissionRoute>
+        ),
       },
 
       { 

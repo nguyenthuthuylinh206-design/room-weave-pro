@@ -11,6 +11,7 @@ import {
 import { BOOKING_SOURCES } from '@/lib/constants'
 import { BookingFormState, BookingFormComputed } from '../types'
 import { DocumentScanner, ScannedDocumentData } from '../../DocumentScanner'
+import { GuestAutoComplete } from '@/components/guests/GuestAutoComplete'
 
 interface GuestInfoStepProps {
   state: BookingFormState
@@ -64,6 +65,23 @@ export function GuestInfoStep({ state, computed, onUpdate }: GuestInfoStepProps)
             value={state.guestPhone}
             onChange={(e) => onUpdate({ guestPhone: e.target.value })}
             placeholder="0909..."
+          />
+          <GuestAutoComplete
+            phone={state.guestPhone}
+            onGuestFound={(guest) => {
+              onUpdate({
+                guestName: guest.full_name,
+                guestPhone: guest.phone || state.guestPhone,
+                guestEmail: guest.email || '',
+                guestIdType: guest.id_type || '',
+                guestIdNumber: guest.id_number || '',
+                guestNationality: guest.nationality || '',
+                guestAddress: guest.address || '',
+                guestGender: guest.gender || '',
+                guestDateOfBirth: guest.date_of_birth || '',
+                guestIdImageUrl: guest.id_image_url || '',
+              })
+            }}
           />
         </div>
         <div className="space-y-2">
