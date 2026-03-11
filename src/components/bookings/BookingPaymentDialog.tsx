@@ -39,7 +39,7 @@ export interface BookingPaymentDialogProps {
     tenant_id: string;
     hotel_id: string;
   };
-  onPaymentComplete?: () => void;
+  onPaymentComplete?: (paidAmount?: number) => void;
 }
 
 type PaymentMethod = 'cash' | 'bank_transfer';
