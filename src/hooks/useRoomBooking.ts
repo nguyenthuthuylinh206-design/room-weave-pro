@@ -32,7 +32,7 @@ export interface RoomBooking {
   payment_status?: string | null
   paid_at?: string | null
   // Booking type fields
-  booking_type?: 'daily' | 'hourly' | 'monthly'
+  booking_type?: string
   booking_hours?: number | null
   booking_months?: number | null
   booking_source?: string | null
