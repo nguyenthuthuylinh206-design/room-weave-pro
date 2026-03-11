@@ -8595,6 +8595,10 @@ export type Database = {
         Args: { p_tenant_id: string }
         Returns: string
       }
+      generate_lost_found_item_code: {
+        Args: { p_tenant_id: string }
+        Returns: string
+      }
       generate_supplement_request_code: {
         Args: { p_tenant_id: string }
         Returns: string
