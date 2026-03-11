@@ -55,7 +55,7 @@ export function MinimizedCheckoutWidget({
   const [showConfirmClose, setShowConfirmClose] = useState(false)
   const [elapsedTime, setElapsedTime] = useState('')
   
-  const { inspection, refetch } = useCheckoutInspection(checkout.booking.id)
+  const { inspection, refetch } = useCheckoutInspection(checkout.isGroup ? undefined : checkout.booking.id)
   
   // Ref to ensure we only notify once per inspection completion
   const notifiedCompletedRef = useRef(false)
