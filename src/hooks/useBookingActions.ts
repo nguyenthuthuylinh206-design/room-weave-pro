@@ -202,7 +202,7 @@ export function useBookingActions(options?: UseBookingActionsOptions) {
       // Fetch unified service charges (booking_service_charges + chargeable_consumptions)
       let serviceCharges = booking.service_charges || 0
       try {
-        const summary = await fetchServiceChargeSummary(bookingId, booking.tenant_id)
+        const summary = await fetchServiceChargeSummary(bookingId, booking.tenant_id, { includeAllBilled: true })
         serviceCharges = summary.grandTotal
       } catch (e) {
         console.error('Error fetching service charge summary:', e)

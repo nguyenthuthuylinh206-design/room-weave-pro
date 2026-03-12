@@ -1,95 +1,87 @@
 
 
-## Phân tích logic tính phí Minibar - Phát hiện lỗi
+## Phan tich luong phieu giao hang (Distribution Order)
 
-### Nghiệp vụ hiện tại
+### Hien trang: Cau truc luong hien tai
 
-Hệ thống có **2 nguồn dữ liệu** ghi nhận đồ khách dùng, gây ra vấn đề tính phí trùng:
+Luong hien tai co **3 cach tao** va **5 buoc xu ly**, kha phuc tap:
 
+#### 3 Dau vao (Entry Points)
+1. **Tao thu cong** (`/inventory/distributions/new`) - CreateDistributionPage.tsx
+2. **Tao tu yeu cau bo sung** (`/inventory/distributions/from-supplements`) - CreateFromSupplementsPage.tsx
+3. **Tao tu Xuat kho** (`/inventory/outbound` voi category `room_assign`) - OutboundPage.tsx dung cung DistributionForm
+
+#### 5 Buoc xu ly (Lifecycle)
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                   ROOM CHECK (Checkout)                      │
-│                                                              │
-│  Step 1: ItemsCheckStep                                      │
-│  → items_consumed (JSON trong room_checks)                   │
-│  → Ghi nhận đồ tiêu hao: nước, snack, khăn... (ALL items)   │
-│  → Lưu unit_price vào JSON                                   │
-│                                                              │
-│  Step 2: ChargeableItemsStep                                 │
-│  → chargeable_consumptions (bảng riêng)                      │
-│  → Chỉ đồ có is_chargeable=true                             │
-│  → Lưu charge_price, tạo record billing chính thức           │
-└─────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│              CHECKOUT COST CALCULATION                        │
-│                                                              │
-│  Source 1: fetchServiceChargeSummary()                        │
-│  → Đọc chargeable_consumptions (is_billed=false)             │
-│  → Cộng vào serviceCharges                                   │
-│                                                              │
-│  Source 2: room_checks.items_consumed                        │
-│  → Đọc từ JSON room_checks                                   │
-│  → Cộng vào damageCharges (item_type='consumed')             │
-│                                                              │
-│  → CÙNG MỘT MÓN ĐỒ bị tính 2 LẦN!                         │
-└─────────────────────────────────────────────────────────────┘
+pending --> released --> in_progress --> completed --> closed
+  (1)        (2)           (3)            (4)          (5)
 ```
 
----
+1. **pending** - Kho chuan bi hang, kiem tra ton kho, giao cho nhan vien (Warehouse Manager click "Kiem tra & Giao hang")
+2. **released** - Nhan vien xac nhan da nhan du hang (Assignee click "Xac nhan da nhan du hang")
+3. **in_progress** - Nhan vien di giao tung phong, click "GIAO" -> chuyen sang room check
+4. **completed** - Tat ca phong da giao xong
+5. **closed** - Manager dong phieu
 
-### Bug 1: TÍNH PHÍ TRÙNG minibar/chargeable items 🔴 CRITICAL
+### Van de phat hien
 
-**Luồng lỗi:**
-1. Nhân viên checkout, bước "Items": đánh dấu nước ngọt đã dùng → `items_consumed` = [{name: "Coca", qty: 1, unit_price: 20k}]
-2. Bước "Chargeable Items": chọn Coca (is_chargeable=true) → `chargeable_consumptions` = [{name: "Coca", qty: 1, unit_price: 20k}]
-3. Khi tính tiền:
-   - `fetchServiceChargeSummary()` → serviceCharges += 20k (từ `chargeable_consumptions`)
-   - `items_consumed` từ room_checks → damageCharges += 20k (cộng như "consumed" damage)
-   - **Tổng = 40k thay vì 20k**
+#### 1. Trung lap dau vao: OutboundPage dung trung DistributionForm
+- `OutboundPage.tsx` (Xuat kho) khi chon category `room_assign` se render cung `DistributionForm` va goi `useCreateDistributionOrder` - hoan toan giong `CreateDistributionPage.tsx`
+- Nguoi dung co 2 noi tao cung 1 thu -> nhầm lẫn
+- **De xuat**: Khi chon "Giao den phong" trong OutboundPage, chuyen huong (redirect) sang `/inventory/distributions/new` thay vi nhan doi form
 
-**Ảnh hưởng:** Mọi file checkout đều bị: `BookingsPage.tsx`, `GroupCheckoutDialog.tsx`, `RoomBookingDialog.tsx`
+#### 2. Buoc "released" co the thua (khong can thiet voi nhieu truong hop)
+- Sau khi kho giao hang (pending -> released), nhan vien phai bam "Xac nhan da nhan du hang" de chuyen sang in_progress
+- Voi hotel nho (kho va nhan vien la 1 nguoi), buoc nay thua
+- Da co option `auto_release` nhung chi skip buoc kho, khong skip buoc nhan hang
+- **De xuat**: Them option "Tu dong bat dau giao" de skip ca buoc released, chuyen thang tu pending -> in_progress khi assignee la chinh nguoi tao
 
-**Sửa:** `items_consumed` từ `room_checks` KHÔNG nên cộng vào chi phí nếu đã có trong `chargeable_consumptions`. Cụ thể:
-- Khi build `damageItems` từ room_checks, **loại bỏ `items_consumed`** khỏi damage charges. Chỉ giữ `items_lost` và `items_damaged`.
-- Lý do: đồ consumed đã được track chính thức qua `chargeable_consumptions` table rồi (ChargeableItemsStep tạo record). `items_consumed` trong room_checks chỉ nên dùng cho **inventory tracking** (trừ kho), không phải billing.
+#### 3. Qua trinh giao phong phuc tap - click "GIAO" -> navigate ra room check
+- Khi nhan vien click "GIAO" tren 1 phong, he thong navigate sang `/rooms/{id}/check?type=delivery&...`
+- Phai lam room check roi moi quay lai -> mat flow, phai quay lai trang phieu de giao phong tiep
+- **De xuat**: Sau khi hoan thanh room check, tu dong quay lai trang phieu giao hang thay vi o lai trang room check
 
----
+#### 4. Thieu thong tin tong hop khi tao phieu
+- CreateDistributionPage khong hien thi summary (tong so phong, tong so item, tong so luong) truoc khi submit
+- DistributionForm hien thi 2 panel (chon phong + phan bo san pham) nhung khong co summary bar
+- **De xuat**: Them summary bar hien thi: X phong, Y loai SP, Z don vi truoc nut "Tao phieu"
 
-### Bug 2: `CustomerUsedDialog` KHÔNG tạo chargeable_consumptions 🟡 HIGH
+#### 5. Auto-fill logic tot nhung UX chua ro rang
+- `useDistributionForm` co `autoFillMissingItems` va `autoFillMissingItemsForRoom` de tu dong tinh so luong theo tieu chuan phong
+- Nhung trong CreateDistributionPage, nut auto-fill khong duoc hien thi ro rang
+- **De xuat**: Them nut "Tu dong phan bo theo tieu chuan" noi bat hon trong form
 
-**Vị trí:** `src/components/rooms/CustomerUsedDialog.tsx`
+### Ke hoach khac phuc
 
-**Vấn đề:** Khi nhân viên bấm "Khách đã dùng" từ danh sách đồ phòng:
-- Chỉ gọi `useUpdateRoomItemQuantity` → giảm số lượng trong phòng
-- **KHÔNG** tạo record `chargeable_consumptions`
-- Nếu item có `is_chargeable=true`, phí sẽ bị mất hoàn toàn
+#### Thay doi 1: Redirect OutboundPage khi chon "room_assign"
+**File**: `src/pages/inventory/OutboundPage.tsx`
+- Khi user chon category `room_assign`, hien thi thong bao va nut chuyen sang trang tao phieu giao hang chuyen dung thay vi render form trung lap
 
-**Sửa:** Sau khi giảm số lượng, kiểm tra item có `is_chargeable=true` không. Nếu có, tạo `chargeable_consumptions` record tự động. Cần thêm thông tin `booking_id` (từ current booking của phòng) và `is_chargeable`/`charge_price` vào props.
+#### Thay doi 2: Them summary bar trong CreateDistributionPage
+**File**: `src/pages/inventory/CreateDistributionPage.tsx`
+- Hien thi summary compact (so phong, so SP, tong SL) ngay tren nut "Tao phieu"
+- Hien thi canh bao stock validation o footer thay vi chi trong form
 
----
+#### Thay doi 3: Auto-navigate ve phieu sau room check
+**File**: `src/components/distribution/components/UnifiedRoomList.tsx`
+- Them query param `returnTo` khi navigate sang room check
+- Sau khi room check xong, tu dong quay ve trang phieu giao hang
 
-### Bug 3: `fetchServiceChargeSummary` chỉ đọc `is_billed=false` 🟡 MEDIUM
+#### Thay doi 4: Don gian hoa flow cho hotel nho
+**File**: `src/components/distribution/components/DeliveryStepWizard.tsx`
+- Khi nguoi tao phieu cung la nguoi duoc phan cong (assignee), gop buoc "Kiem tra kho" va "Nhan hang" thanh 1 buoc duy nhat
+- Giam so buoc tu 5 xuong 3-4 tuy truong hop
 
-**Vị trí:** `src/hooks/useBookingServiceCharges.ts` line 42
+#### Thay doi 5: Lam ro auto-fill trong form
+**File**: `src/components/distribution/forms/ItemAllocator.tsx`
+- Them nut "Tu dong phan bo" noi bat, co tooltip giai thich
+- Hien thi ket qua auto-fill (bao nhieu SP da them, bao nhieu thieu) ro rang hon
 
-```typescript
-.eq('is_billed', false)  // Chỉ lấy chưa thu
-```
+### Uu tien thuc hien
 
-**Vấn đề:** Khi tính `totalAmount` cho checkout, chỉ cộng phí minibar **chưa thu**. Nếu nhân viên đã "Đánh dấu đã thu" (mark as billed) trước checkout, phí đó biến mất khỏi tổng hóa đơn → `totalAmount` sai → `payment_status` sai.
-
-**Sửa:** Tách thành 2 trường hợp:
-- Khi hiển thị "còn lại cần thu" → filter `is_billed=false` (đúng)
-- Khi tính `totalAmount` cho checkout/invoice → lấy **TẤT CẢ** (bỏ filter `is_billed`) để tổng hóa đơn phản ánh đúng toàn bộ chi phí
-
----
-
-### Tóm tắt thay đổi
-
-| # | Mức độ | File | Thay đổi |
-|---|--------|------|----------|
-| 1 | 🔴 | `BookingsPage.tsx`, `GroupCheckoutDialog.tsx`, `RoomBookingDialog.tsx`, `useGroupCheckoutCalculations.ts` | Loại bỏ `items_consumed` khỏi damageItems — chỉ giữ `items_lost` + `items_damaged` |
-| 2 | 🟡 | `CustomerUsedDialog.tsx` | Tạo `chargeable_consumptions` khi item có `is_chargeable=true` |
-| 3 | 🟡 | `useBookingServiceCharges.ts` | Thêm param `includeAllBilled` cho `fetchServiceChargeSummary`, dùng khi tính tổng checkout |
+1. **Thay doi 2** (Summary bar) - De lam, giam nhầm lẫn ngay
+2. **Thay doi 1** (Redirect OutboundPage) - Loai bo trung lap
+3. **Thay doi 3** (Auto-navigate ve phieu) - Cai thien flow giao hang
+4. **Thay doi 4** (Don gian hoa step) - Giam buoc cho hotel nho
+5. **Thay doi 5** (Auto-fill ro rang) - Cai thien UX
 

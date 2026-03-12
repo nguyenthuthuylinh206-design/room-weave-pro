@@ -89,18 +89,7 @@ export function useGroupCheckoutCalculations() {
       })
     }
 
-    // Process consumed items
-    const consumedItems = (roomCheck.items_consumed as any[]) || []
-    for (const item of consumedItems) {
-      damageItems.push({
-        item_id: item.item_id,
-        item_name: item.item_name || 'Unknown',
-        item_type: 'consumed',
-        quantity: item.quantity || 1,
-        charge_amount: item.unit_price || 0,
-        notes: item.notes,
-      })
-    }
+    // items_consumed excluded — already tracked via chargeable_consumptions
 
     return damageItems
   }, [])
@@ -142,7 +131,7 @@ export function useGroupCheckoutCalculations() {
         .single()
       
       if (bookingData?.tenant_id) {
-        const summary = await fetchServiceChargeSummary(booking.bookingId, bookingData.tenant_id)
+        const summary = await fetchServiceChargeSummary(booking.bookingId, bookingData.tenant_id, { includeAllBilled: true })
         serviceCharges = summary.grandTotal
       }
     } catch (e) {

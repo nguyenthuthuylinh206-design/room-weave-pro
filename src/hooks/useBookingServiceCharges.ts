@@ -23,7 +23,11 @@ export interface ServiceChargeSummary {
 /**
  * Fetch total service charges for a booking (booking_service_charges + chargeable_consumptions)
  */
-export async function fetchServiceChargeSummary(bookingId: string, tenantId: string): Promise<ServiceChargeSummary> {
+export async function fetchServiceChargeSummary(
+  bookingId: string,
+  tenantId: string,
+  options?: { includeAllBilled?: boolean }
+): Promise<ServiceChargeSummary> {
   // Fetch booking_service_charges
   const { data: serviceCharges, error: scError } = await supabase
     .from('booking_service_charges')
@@ -34,12 +38,18 @@ export async function fetchServiceChargeSummary(bookingId: string, tenantId: str
   if (scError) throw scError
 
   // Fetch chargeable_consumptions (minibar, paid items)
-  const { data: consumptions, error: ccError } = await supabase
+  let ccQuery = supabase
     .from('chargeable_consumptions')
     .select('id, item_name, quantity, unit_price, total_amount')
     .eq('booking_id', bookingId)
     .eq('tenant_id', tenantId)
-    .eq('is_billed', false)
+
+  // For checkout totals, include all (billed + unbilled); for remaining balance, only unbilled
+  if (!options?.includeAllBilled) {
+    ccQuery = ccQuery.eq('is_billed', false)
+  }
+
+  const { data: consumptions, error: ccError } = await ccQuery
 
   if (ccError) throw ccError
 

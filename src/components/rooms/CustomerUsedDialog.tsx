@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Package } from 'lucide-react'
 import { useUpdateRoomItemQuantity } from '@/hooks/useRoomItems'
+import { useCreateChargeableConsumption } from '@/hooks/useChargeableConsumptions'
+import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { triggerHaptic } from '@/lib/haptics'
 
@@ -27,6 +29,7 @@ interface CustomerUsedDialogProps {
     room_item_id?: string | null
   } | null
   roomId: string
+  bookingId?: string | null
 }
 
 export function CustomerUsedDialog({
@@ -34,10 +37,12 @@ export function CustomerUsedDialog({
   onOpenChange,
   item,
   roomId,
+  bookingId,
 }: CustomerUsedDialogProps) {
   const { t } = useTranslation(['rooms', 'common'])
   const [quantity, setQuantity] = useState(1)
   const updateQuantity = useUpdateRoomItemQuantity()
+  const createChargeable = useCreateChargeableConsumption()
 
   const handleQuantityChange = (delta: number) => {
     triggerHaptic('light')
@@ -66,6 +71,45 @@ export function CustomerUsedDialog({
         quantity: newQuantity,
         roomItemId: item.room_item_id || null,
       })
+
+      // Check if item is chargeable and create billing record
+      try {
+        const { data: itemData } = await supabase
+          .from('items')
+          .select('is_chargeable, charge_price, unit_price')
+          .eq('id', item.item_id)
+          .single()
+
+        if (itemData?.is_chargeable) {
+          // Find active booking for this room
+          const activeBookingId = bookingId || await (async () => {
+            const { data: activeBooking } = await supabase
+              .from('room_bookings')
+              .select('id')
+              .eq('room_id', roomId)
+              .in('status', ['checked_in', 'confirmed'])
+              .order('check_in_date', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+            return activeBooking?.id || null
+          })()
+
+          if (activeBookingId) {
+            const chargePrice = itemData.charge_price ?? itemData.unit_price ?? 0
+            await createChargeable.mutateAsync({
+              booking_id: activeBookingId,
+              room_id: roomId,
+              item_id: item.item_id,
+              item_code: item.item_code,
+              item_name: item.item_name,
+              quantity,
+              unit_price: chargePrice,
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Failed to create chargeable consumption:', error)
+      }
       
       triggerHaptic('success')
       toast.success(t('quickActions.customerUsedSuccess', { 
@@ -131,6 +175,7 @@ export function CustomerUsedDialog({
               <Button
                 variant="outline"
                 size="icon"
+                type="button"
                 className="h-12 w-12"
                 disabled={quantity <= 1}
                 onClick={() => handleQuantityChange(-1)}
@@ -143,6 +188,7 @@ export function CustomerUsedDialog({
               <Button
                 variant="outline"
                 size="icon"
+                type="button"
                 className="h-12 w-12"
                 disabled={quantity >= item.current_quantity}
                 onClick={() => handleQuantityChange(1)}
@@ -160,6 +206,7 @@ export function CustomerUsedDialog({
                   key={n}
                   variant={quantity === n ? "default" : "outline"}
                   size="sm"
+                  type="button"
                   className="h-8 w-10"
                   onClick={() => {
                     triggerHaptic('light')
@@ -173,6 +220,7 @@ export function CustomerUsedDialog({
                 <Button
                   variant={quantity === item.current_quantity ? "default" : "outline"}
                   size="sm"
+                  type="button"
                   className="h-8"
                   onClick={() => {
                     triggerHaptic('light')
@@ -197,16 +245,16 @@ export function CustomerUsedDialog({
           <Button
             variant="outline"
             onClick={() => handleOpenChange(false)}
-            disabled={updateQuantity.isPending}
+            disabled={updateQuantity.isPending || createChargeable.isPending}
           >
             {t('common:cancel')}
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={updateQuantity.isPending}
+            disabled={updateQuantity.isPending || createChargeable.isPending}
             className="bg-amber-500 hover:bg-amber-600"
           >
-            {updateQuantity.isPending ? (
+            {(updateQuantity.isPending || createChargeable.isPending) ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 {t('common:processing')}
