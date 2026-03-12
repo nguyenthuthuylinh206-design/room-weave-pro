@@ -551,13 +551,7 @@ export function RoomBookingDialog({
           charge_amount: item.damage_cost || 0,
           damage_type: item.damage_type,
         })),
-        ...((latestCheck?.items_consumed as any[]) || []).map(item => ({
-          item_id: item.item_id,
-          item_name: item.item_name,
-          item_type: 'consumed' as const,
-          quantity: item.quantity,
-          charge_amount: item.unit_price || 0,
-        })),
+        // items_consumed excluded — already tracked via chargeable_consumptions
       ]
       
       setCheckoutDamageItems(damageItems)
