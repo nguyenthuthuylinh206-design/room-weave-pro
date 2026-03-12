@@ -19,12 +19,28 @@ export async function createInvoiceAfterCheckout({
   hotelId,
   userId,
 }: CreateInvoiceParams): Promise<void> {
+  // Wait for RPC commit and replication to sync before reading booking data
+  await new Promise(resolve => setTimeout(resolve, 500))
+
   // 1. Fetch latest booking data (after RPC has updated total_amount, etc.)
   const { data: booking, error: bookingError } = await supabase
     .from('room_bookings')
     .select('*, room:rooms(room_number)')
     .eq('id', bookingId)
     .single()
+
+  // Retry once if booking hasn't been updated yet
+  if (!bookingError && booking && booking.status !== 'checked_out') {
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    const { data: retryBooking, error: retryError } = await supabase
+      .from('room_bookings')
+      .select('*, room:rooms(room_number)')
+      .eq('id', bookingId)
+      .single()
+    if (!retryError && retryBooking) {
+      Object.assign(booking, retryBooking)
+    }
+  }
 
   if (bookingError || !booking) {
     console.error('Invoice: Failed to fetch booking', bookingError)
