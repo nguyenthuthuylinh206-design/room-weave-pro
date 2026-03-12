@@ -8671,15 +8671,40 @@ export type Database = {
         Args: { p_room_id: string }
         Returns: {
           actual_check_in: string
+          actual_check_out: string
+          amount_paid: number
+          booking_hours: number
+          booking_months: number
+          booking_source: string
+          booking_type: string
           check_in_date: string
           check_out_date: string
+          damage_charges: number
+          deposit_amount: number
+          early_checkin_charge: number
+          expected_check_in_time: string
+          expected_check_out_time: string
+          extra_charges: number
           guest_count: number
           guest_email: string
           guest_name: string
           guest_phone: string
+          hourly_rate: number
           id: string
+          late_checkout_charge: number
+          monthly_rate: number
           notes: string
+          paid_at: string
+          payment_status: string
+          room_price: number
+          service_charges: number
+          service_fee_amount: number
+          service_fee_rate: number
           status: string
+          subtotal: number
+          total_amount: number
+          vat_amount: number
+          vat_rate: number
         }[]
       }
       get_current_user_role: { Args: never; Returns: string }

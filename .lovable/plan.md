@@ -1,98 +1,87 @@
 
 
-## Kết quả kiểm tra chi tiết từng luồng logic đặt phòng
+## Phan tich luong phieu giao hang (Distribution Order)
 
-Sau khi kiểm tra kỹ tất cả các file, tôi phát hiện **5 vấn đề còn tồn tại**:
+### Hien trang: Cau truc luong hien tai
 
----
+Luong hien tai co **3 cach tao** va **5 buoc xu ly**, kha phuc tap:
 
-### Bug A: `RoomBookingDialog` costBreakdown + checkout KHÔNG hỗ trợ hourly/monthly 🔴 CRITICAL
+#### 3 Dau vao (Entry Points)
+1. **Tao thu cong** (`/inventory/distributions/new`) - CreateDistributionPage.tsx
+2. **Tao tu yeu cau bo sung** (`/inventory/distributions/from-supplements`) - CreateFromSupplementsPage.tsx
+3. **Tao tu Xuat kho** (`/inventory/outbound` voi category `room_assign`) - OutboundPage.tsx dung cung DistributionForm
 
-**Vị trí:** `RoomBookingDialog.tsx` line 149-162, 564-576, 660-679
-
-**Vấn đề:** `costBreakdown` useMemo tại line 149 luôn gọi `calculateBookingCost()` **không truyền** `bookingType`, `hourlyRate`, `hours`, `monthlyRate`, `months`. Mặc định function sẽ dùng `bookingType: 'daily'`.
-
-Khi checkout từ RoomBookingDialog (mở từ trang Sơ đồ phòng), booking hourly/monthly bị tính sai hoàn toàn:
-- Hourly 4 giờ × 100k = tính thành 1 đêm × roomPrice
-- Monthly 3 tháng × 5M = tính thành 1 đêm × roomPrice
-
-Cả `performCheckOut` (line 564) và `handlePayAndCheckout` (line 660) cũng không truyền `bookingType` → RPC nhận `total_amount` sai.
-
-**Sửa:** Đọc `booking.booking_type`, `booking.hourly_rate`, `booking.booking_hours`, `booking.monthly_rate`, `booking.booking_months` rồi truyền vào cả 3 nơi: `costBreakdown` useMemo, `performCheckOut`, `handlePayAndCheckout`.
-
----
-
-### Bug B: `BookingsPage.performCheckIn` KHÔNG dùng RPC `perform_checkin` 🟡 HIGH
-
-**Vị trí:** `BookingsPage.tsx` line 481-536
-
-**Vấn đề:** Trong khi `RoomBookingDialog.performCheckIn` (line 400) dùng RPC `perform_checkin` (atomic), `BookingsPage.performCheckIn` lại dùng 2 lệnh `.update()` riêng lẻ:
-1. `supabase.from('room_bookings').update(...)` (line 503)
-2. `supabase.from('rooms').update({ status: 'occupied' })` (line 511)
-
-Nếu lệnh 1 thành công nhưng lệnh 2 thất bại → booking = `checked_in` nhưng phòng vẫn `available`. Race condition cũng có thể xảy ra: 2 nhân viên check-in cùng lúc vào cùng 1 phòng.
-
-**Sửa:** Thay bằng `supabase.rpc('perform_checkin', { p_booking_id, p_room_id, p_early_checkin_charge })` giống `RoomBookingDialog`.
-
----
-
-### Bug C: `RoomBookingDialog` handleSubmit (tạo/sửa booking) không hỗ trợ hourly/monthly 🟡 HIGH
-
-**Vị trí:** `RoomBookingDialog.tsx` line 209-320
-
-**Vấn đề:** `handleSubmit` (tạo booking mới hoặc edit booking) insert/update `bookingData` nhưng không bao gồm các trường:
-- `booking_type`
-- `hourly_rate`, `monthly_rate`
-- `booking_hours`, `booking_months`
-- `hourly_start_time`, `hourly_end_time`
-
-Khi user edit booking từ RoomBookingDialog (mở từ sơ đồ phòng hoặc click vào booking), các trường booking type bị null. Tuy nhiên, trang này chỉ dùng cho Daily booking (form chỉ có ngày check-in/out, không có UI chọn giờ/tháng), nên tác động thực tế thấp — NHƯNG nếu edit 1 hourly booking, `booking_type` có thể bị reset về null.
-
-**Sửa:** Khi edit, preserve các trường booking type hiện có. Không cho phép thay đổi `booking_type` từ form này (chỉ AddBookingDialog/Wizard mới hỗ trợ đầy đủ).
-
----
-
-### Bug D: `RoomBookingDialog` checkout dialog nhận `costBreakdown` thiếu damage charges 🟡 MEDIUM
-
-**Vị trí:** `RoomBookingDialog.tsx` line 1287
-
-```
-costBreakdown={costBreakdown}
+#### 5 Buoc xu ly (Lifecycle)
+```text
+pending --> released --> in_progress --> completed --> closed
+  (1)        (2)           (3)            (4)          (5)
 ```
 
-Khi `handleCheckOutClick` (line 470-542), code cập nhật `lateCheckoutCharge` và `serviceCharges` qua `setState`, nhưng `costBreakdown` useMemo sẽ re-render với state mới. Tuy nhiên **damage charges** từ `room_checks` được lưu vào `checkoutDamageItems` state — KHÔNG được inject vào `costBreakdown`.
+1. **pending** - Kho chuan bi hang, kiem tra ton kho, giao cho nhan vien (Warehouse Manager click "Kiem tra & Giao hang")
+2. **released** - Nhan vien xac nhan da nhan du hang (Assignee click "Xac nhan da nhan du hang")
+3. **in_progress** - Nhan vien di giao tung phong, click "GIAO" -> chuyen sang room check
+4. **completed** - Tat ca phong da giao xong
+5. **closed** - Manager dong phieu
 
-Kết quả: `CheckoutSummaryDialog` nhận `costBreakdown` với `damageCharges: 0`, dù đã fetch damage items. Dialog phải tự tính lại — tùy thuộc vào implementation bên trong dialog.
+### Van de phat hien
 
-**Sửa:** Tính damage charges từ `checkoutDamageItems` rồi truyền vào costBreakdown hoặc sử dụng state riêng.
+#### 1. Trung lap dau vao: OutboundPage dung trung DistributionForm
+- `OutboundPage.tsx` (Xuat kho) khi chon category `room_assign` se render cung `DistributionForm` va goi `useCreateDistributionOrder` - hoan toan giong `CreateDistributionPage.tsx`
+- Nguoi dung co 2 noi tao cung 1 thu -> nhầm lẫn
+- **De xuat**: Khi chon "Giao den phong" trong OutboundPage, chuyen huong (redirect) sang `/inventory/distributions/new` thay vi nhan doi form
 
----
+#### 2. Buoc "released" co the thua (khong can thiet voi nhieu truong hop)
+- Sau khi kho giao hang (pending -> released), nhan vien phai bam "Xac nhan da nhan du hang" de chuyen sang in_progress
+- Voi hotel nho (kho va nhan vien la 1 nguoi), buoc nay thua
+- Da co option `auto_release` nhung chi skip buoc kho, khong skip buoc nhan hang
+- **De xuat**: Them option "Tu dong bat dau giao" de skip ca buoc released, chuyen thang tu pending -> in_progress khi assignee la chinh nguoi tao
 
-### Bug E: `BookingsPage` handlePayAndCheckout `newAmountPaid` tính sai 🟡 MEDIUM
+#### 3. Qua trinh giao phong phuc tap - click "GIAO" -> navigate ra room check
+- Khi nhan vien click "GIAO" tren 1 phong, he thong navigate sang `/rooms/{id}/check?type=delivery&...`
+- Phai lam room check roi moi quay lai -> mat flow, phai quay lai trang phieu de giao phong tiep
+- **De xuat**: Sau khi hoan thanh room check, tu dong quay lai trang phieu giao hang thay vi o lai trang room check
 
-**Vị trí:** `BookingsPage.tsx` line 846
+#### 4. Thieu thong tin tong hop khi tao phieu
+- CreateDistributionPage khong hien thi summary (tong so phong, tong so item, tong so luong) truoc khi submit
+- DistributionForm hien thi 2 panel (chon phong + phan bo san pham) nhung khong co summary bar
+- **De xuat**: Them summary bar hien thi: X phong, Y loai SP, Z don vi truoc nut "Tao phieu"
 
-```
-const newAmountPaid = adjustedCostBreakdown.totalAmount - checkoutCostBreakdown.depositAmount
-```
+#### 5. Auto-fill logic tot nhung UX chua ro rang
+- `useDistributionForm` co `autoFillMissingItems` va `autoFillMissingItemsForRoom` de tu dong tinh so luong theo tieu chuan phong
+- Nhung trong CreateDistributionPage, nut auto-fill khong duoc hien thi ro rang
+- **De xuat**: Them nut "Tu dong phan bo theo tieu chuan" noi bat hon trong form
 
-Nếu khách đã thanh toán partial trước đó (`amount_paid = 200k`, `deposit = 500k`, `total = 1M`), `newAmountPaid = 1M - 500k = 500k`. RPC set `amount_paid = 500k`. Nhưng thực tế khách đã trả 200k trước → tổng = 500k + 200k = 700k, còn thiếu 300k.
+### Ke hoach khac phuc
 
-So sánh `RoomBookingDialog.tsx` line 683: `newAmountPaid = adjustedCostBreakdown.totalAmount - depositAmount` — cùng logic. Cả hai đều sai nếu có partial payment trước đó.
+#### Thay doi 1: Redirect OutboundPage khi chon "room_assign"
+**File**: `src/pages/inventory/OutboundPage.tsx`
+- Khi user chon category `room_assign`, hien thi thong bao va nut chuyen sang trang tao phieu giao hang chuyen dung thay vi render form trung lap
 
-**Sửa:** `newAmountPaid = totalAmount - depositAmount - existingAmountPaid + existingAmountPaid = totalAmount - depositAmount` — đúng rồi nếu RPC **SET** (không ADD). Cần xác nhận RPC behavior: nếu RPC SET `amount_paid = newAmountPaid` thì đúng vì `newAmountPaid` = toàn bộ số tiền cần trả ngoài deposit. Nếu RPC ADD thì sai.
+#### Thay doi 2: Them summary bar trong CreateDistributionPage
+**File**: `src/pages/inventory/CreateDistributionPage.tsx`
+- Hien thi summary compact (so phong, so SP, tong SL) ngay tren nut "Tao phieu"
+- Hien thi canh bao stock validation o footer thay vi chi trong form
 
-Đây cần xác nhận lại logic RPC `perform_checkout` để đảm bảo.
+#### Thay doi 3: Auto-navigate ve phieu sau room check
+**File**: `src/components/distribution/components/UnifiedRoomList.tsx`
+- Them query param `returnTo` khi navigate sang room check
+- Sau khi room check xong, tu dong quay ve trang phieu giao hang
 
----
+#### Thay doi 4: Don gian hoa flow cho hotel nho
+**File**: `src/components/distribution/components/DeliveryStepWizard.tsx`
+- Khi nguoi tao phieu cung la nguoi duoc phan cong (assignee), gop buoc "Kiem tra kho" va "Nhan hang" thanh 1 buoc duy nhat
+- Giam so buoc tu 5 xuong 3-4 tuy truong hop
 
-### Tóm tắt thay đổi
+#### Thay doi 5: Lam ro auto-fill trong form
+**File**: `src/components/distribution/forms/ItemAllocator.tsx`
+- Them nut "Tu dong phan bo" noi bat, co tooltip giai thich
+- Hien thi ket qua auto-fill (bao nhieu SP da them, bao nhieu thieu) ro rang hon
 
-| # | Mức độ | File | Thay đổi |
-|---|--------|------|----------|
-| A | 🔴 | `RoomBookingDialog.tsx` L149, L564, L660 | Truyền `bookingType`, `hourlyRate`, `hours`, `monthlyRate`, `months` vào `calculateBookingCost` |
-| B | 🟡 | `BookingsPage.tsx` L481-536 | Thay 2 lệnh `.update()` bằng `perform_checkin` RPC |
-| C | 🟡 | `RoomBookingDialog.tsx` L239-268 | Preserve booking type fields khi edit |
-| D | 🟡 | `RoomBookingDialog.tsx` L470-542 | Inject damage charges vào costBreakdown trước khi truyền cho CheckoutSummaryDialog |
-| E | 🟡 | `BookingsPage.tsx` L846 | Xác nhận RPC behavior, sửa nếu cần |
+### Uu tien thuc hien
+
+1. **Thay doi 2** (Summary bar) - De lam, giam nhầm lẫn ngay
+2. **Thay doi 1** (Redirect OutboundPage) - Loai bo trung lap
+3. **Thay doi 3** (Auto-navigate ve phieu) - Cai thien flow giao hang
+4. **Thay doi 4** (Don gian hoa step) - Giam buoc cho hotel nho
+5. **Thay doi 5** (Auto-fill ro rang) - Cai thien UX
 
