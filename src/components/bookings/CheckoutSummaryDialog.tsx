@@ -915,7 +915,7 @@ export function CheckoutSummaryDialog({
             guest_name: guestName,
             room_number: roomNumber,
             total_amount: adjustedCostBreakdown.totalAmount,
-            amount_paid: costBreakdown.amountPaid,
+            amount_paid: adjustedCostBreakdown.amountPaid,
             deposit_amount: adjustedCostBreakdown.depositAmount,
             tenant_id: tenantId,
             hotel_id: hotelId,

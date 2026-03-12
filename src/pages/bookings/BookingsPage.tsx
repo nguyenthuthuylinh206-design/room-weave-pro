@@ -745,6 +745,7 @@ export function BookingsPage() {
         p_damage_charges: damageCharges || 0,
         p_damage_notes: damageAdjustmentNote || null,
         p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
+        p_new_amount_paid: null,
         p_check_out_date: overdueCheckoutDate,
       })
 
@@ -844,9 +845,8 @@ export function BookingsPage() {
         amountPaid: checkoutCostBreakdown.amountPaid,
       })
 
-      const newAmountPaid = adjustedCostBreakdown.totalAmount - checkoutCostBreakdown.depositAmount
-
-      // Use RPC for atomic pay & checkout (p_new_amount_paid handles payment atomically)
+      // BookingPaymentDialog already updated amount_paid via update_booking_amount_paid RPC (ADD operation)
+      // Pass null to perform_checkout to preserve the DB value and avoid overwriting partial payments
       const { error } = await supabase.rpc('perform_checkout', {
         p_booking_id: actionBooking.id,
         p_room_id: actionBooking.room_id,
@@ -859,7 +859,7 @@ export function BookingsPage() {
         p_damage_charges: damageCharges || 0,
         p_damage_notes: damageAdjustmentNote || null,
         p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
-        p_new_amount_paid: newAmountPaid,
+        p_new_amount_paid: null,
         p_check_out_date: overdueCheckoutDate,
       })
 
