@@ -137,9 +137,9 @@ export async function createInvoiceAfterCheckout({
     })
   }
 
-  // Late checkout charge
+  // Late checkout charge (only for daily/monthly bookings; hourly uses overtime above)
   const lateCheckout = booking.late_checkout_charge || 0
-  if (lateCheckout > 0) {
+  if (lateCheckout > 0 && booking.booking_type !== 'hourly') {
     lineItems.push({
       description: 'Phụ thu trả phòng muộn',
       quantity: 1,
