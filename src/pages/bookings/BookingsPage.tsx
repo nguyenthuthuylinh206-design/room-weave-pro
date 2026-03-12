@@ -82,6 +82,7 @@ import { calculateServiceChargesFromConsumables } from '@/hooks/usePricingRules'
 import { fetchServiceChargeSummary, type ServiceChargeDetail } from '@/hooks/useBookingServiceCharges'
 import { MobileBookingsPage } from './MobileBookingsPage'
 import { triggerRoomCheckoutNotification } from '@/hooks/useNotificationTriggers'
+import { createInvoiceAfterCheckout } from '@/lib/invoiceHelpers'
 
 type BookingStatus = 'all' | 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show' | 'conflict' | 'overdue'
 
@@ -744,6 +745,11 @@ export function BookingsPage() {
 
       if (error) throw error
 
+      // Fire-and-forget: create invoice
+      if (tenantId) {
+        createInvoiceAfterCheckout({ bookingId: actionBooking.id, tenantId, hotelId: actionBooking.hotel_id, userId: null }).catch(err => console.error('Failed to create invoice', err))
+      }
+
       // Update notes if adjusted
       const allNotes: string[] = []
       if (adjustmentNote) allNotes.push(`[Điều chỉnh phụ thu checkout: ${adjustmentNote}]`)
@@ -851,6 +857,11 @@ export function BookingsPage() {
       })
 
       if (error) throw error
+
+      // Fire-and-forget: create invoice
+      if (tenantId) {
+        createInvoiceAfterCheckout({ bookingId: actionBooking.id, tenantId, hotelId: actionBooking.hotel_id, userId: null }).catch(err => console.error('Failed to create invoice', err))
+      }
 
       // Update notes if adjusted
       const allNotes: string[] = []

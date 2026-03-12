@@ -54,6 +54,7 @@ import {
 } from '@/lib/bookingCalculations'
 import { triggerRoomCheckoutNotification, triggerRoomCheckinNotification, triggerNewBookingNotification } from '@/hooks/useNotificationTriggers'
 import type { RoomBooking } from '@/hooks/useRoomBooking'
+import { createInvoiceAfterCheckout } from '@/lib/invoiceHelpers'
 
 // Time options for check-in/check-out
 const TIME_OPTIONS = [
@@ -583,6 +584,9 @@ export function RoomBookingDialog({
       
       if (error) throw error
 
+      // Fire-and-forget: create invoice
+      createInvoiceAfterCheckout({ bookingId: booking.id, tenantId, hotelId, userId: null }).catch(err => console.error('Failed to create invoice', err))
+
       // Update notes if there was an adjustment
       const allNotes: string[] = []
       if (adjustmentNote) allNotes.push(`[Điều chỉnh phụ thu checkout: ${adjustmentNote}]`)
@@ -679,6 +683,9 @@ export function RoomBookingDialog({
       })
       
       if (error) throw error
+
+      // Fire-and-forget: create invoice
+      createInvoiceAfterCheckout({ bookingId: booking.id, tenantId, hotelId, userId: null }).catch(err => console.error('Failed to create invoice', err))
 
       // Update notes if there was an adjustment
       const allNotes: string[] = []

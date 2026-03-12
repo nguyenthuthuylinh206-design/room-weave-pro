@@ -56,6 +56,7 @@ import { useGroupBooking, GroupBookingRoom } from '@/hooks/useGroupBooking'
 import { useOnShiftStaffList, OnShiftStaffMember } from '@/hooks/useOnShiftStaffList'
 import { supabase } from '@/integrations/supabase/client'
 import { cn } from '@/lib/utils'
+import { createInvoiceAfterCheckout } from '@/lib/invoiceHelpers'
 import { GroupPaymentDialog } from './GroupPaymentDialog'
 import { useUser } from '@/hooks/useUser'
 import { useGroupCheckoutCalculations, GroupBookingCostData } from '@/hooks/useGroupCheckoutCalculations'
@@ -653,6 +654,16 @@ export function GroupCheckoutDialog({
         if (tenantId && hotelId) {
           triggerRoomCheckoutNotification({ tenantId, hotelId, roomId: booking.room_id, roomNumber: booking.room?.room_number || '' }).catch(console.error)
         }
+      }
+
+      // Fire-and-forget: create invoices for all checked-out bookings
+      for (const bookingId of bookingIds) {
+        createInvoiceAfterCheckout({
+          bookingId,
+          tenantId,
+          hotelId,
+          userId: user?.id,
+        }).catch(err => console.error('Failed to create invoice for booking', bookingId, err))
       }
       
       toast.success(`Đã checkout ${bookingIds.length} phòng thành công!`)
