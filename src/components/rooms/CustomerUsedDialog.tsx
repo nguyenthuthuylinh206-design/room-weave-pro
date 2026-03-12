@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Package } from 'lucide-react'
 import { useUpdateRoomItemQuantity } from '@/hooks/useRoomItems'
 import { useCreateChargeableConsumption } from '@/hooks/useChargeableConsumptions'
+import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { triggerHaptic } from '@/lib/haptics'
 
@@ -26,9 +27,6 @@ interface CustomerUsedDialogProps {
     item_thumbnail?: string
     current_quantity: number
     room_item_id?: string | null
-    is_chargeable?: boolean
-    charge_price?: number | null
-    unit_price?: number
   } | null
   roomId: string
   bookingId?: string | null
@@ -74,22 +72,29 @@ export function CustomerUsedDialog({
         roomItemId: item.room_item_id || null,
       })
 
-      // Create chargeable consumption record if item is chargeable and has active booking
-      if (item.is_chargeable && bookingId) {
-        const chargePrice = item.charge_price ?? item.unit_price ?? 0
+      // Check if item is chargeable and create billing record
+      if (bookingId) {
         try {
-          await createChargeable.mutateAsync({
-            booking_id: bookingId,
-            room_id: roomId,
-            item_id: item.item_id,
-            item_code: item.item_code,
-            item_name: item.item_name,
-            quantity,
-            unit_price: chargePrice,
-          })
+          const { data: itemData } = await supabase
+            .from('items')
+            .select('is_chargeable, charge_price, unit_price')
+            .eq('id', item.item_id)
+            .single()
+
+          if (itemData?.is_chargeable) {
+            const chargePrice = itemData.charge_price ?? itemData.unit_price ?? 0
+            await createChargeable.mutateAsync({
+              booking_id: bookingId,
+              room_id: roomId,
+              item_id: item.item_id,
+              item_code: item.item_code,
+              item_name: item.item_name,
+              quantity,
+              unit_price: chargePrice,
+            })
+          }
         } catch (error) {
           console.error('Failed to create chargeable consumption:', error)
-          // Don't block — inventory already updated
         }
       }
       
@@ -114,9 +119,6 @@ export function CustomerUsedDialog({
   }
 
   if (!item) return null
-
-  const isChargeable = item.is_chargeable && bookingId
-  const chargePrice = item.charge_price ?? item.unit_price ?? 0
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -223,14 +225,6 @@ export function CustomerUsedDialog({
             <p className="text-sm text-amber-800 dark:text-amber-200">
               {t('quickActions.afterUsed')}: <span className="font-bold">{item.current_quantity - quantity}</span>
             </p>
-            {isChargeable && chargePrice > 0 && (
-              <p className="text-xs text-amber-600 dark:text-amber-300 mt-1">
-                💰 {t('quickActions.chargeAmount', { 
-                  amount: (quantity * chargePrice).toLocaleString('vi-VN'),
-                  defaultValue: `Tính phí: ${(quantity * chargePrice).toLocaleString('vi-VN')}đ`
-                })}
-              </p>
-            )}
           </div>
         </div>
 
