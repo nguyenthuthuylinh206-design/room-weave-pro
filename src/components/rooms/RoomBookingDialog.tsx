@@ -146,20 +146,39 @@ export function RoomBookingDialog({
   const nights = checkInDate && checkOutDate ? Math.max(1, differenceInDays(checkOutDate, checkInDate)) : 1
   
   // Calculate cost breakdown
+  // Derive booking type params from booking data
+  const bookingType = (booking?.booking_type as 'daily' | 'hourly' | 'monthly') || 'daily'
+  const hourlyRate = booking?.hourly_rate || 0
+  const monthlyRate = booking?.monthly_rate || 0
+  const bookingHours = booking?.booking_hours || 0
+  const bookingMonths = booking?.booking_months || 0
+
+  // Calculate damage charges from checkoutDamageItems
+  const calculatedDamageCharges = useMemo(() => {
+    return checkoutDamageItems.reduce((sum, item) => sum + (item.charge_amount * item.quantity), 0)
+  }, [checkoutDamageItems])
+
   const costBreakdown = useMemo<BookingCostBreakdown>(() => {
     return calculateBookingCost({
+      bookingType,
       roomPrice,
       nights,
       earlyCheckinCharge,
       lateCheckoutCharge,
+      hourlyRate,
+      hours: bookingHours,
+      monthlyRate,
+      months: bookingMonths,
       serviceCharges,
       extraCharges,
+      damageCharges: calculatedDamageCharges,
+      damageItems: checkoutDamageItems.length > 0 ? checkoutDamageItems : undefined,
       vatRate,
       serviceFeeRate,
       depositAmount,
       amountPaid,
     })
-  }, [roomPrice, nights, earlyCheckinCharge, lateCheckoutCharge, serviceCharges, extraCharges, vatRate, serviceFeeRate, depositAmount, amountPaid])
+  }, [bookingType, roomPrice, nights, earlyCheckinCharge, lateCheckoutCharge, hourlyRate, bookingHours, monthlyRate, bookingMonths, serviceCharges, extraCharges, calculatedDamageCharges, checkoutDamageItems, vatRate, serviceFeeRate, depositAmount, amountPaid])
 
   // Auto-calculate early check-in surcharge when time changes
   // Only auto-calculate for new bookings OR when user explicitly changed the time
