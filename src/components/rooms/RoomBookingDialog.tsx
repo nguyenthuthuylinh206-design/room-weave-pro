@@ -515,7 +515,7 @@ export function RoomBookingDialog({
     
     // Fetch latest service charge summary (services + minibar)
     try {
-      const summary = await fetchServiceChargeSummary(booking.id, tenantId)
+      const summary = await fetchServiceChargeSummary(booking.id, tenantId, { includeAllBilled: true })
       setServiceCharges(summary.grandTotal)
       setCheckoutServiceDetails(summary.details)
     } catch (error) {
