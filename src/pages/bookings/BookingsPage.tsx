@@ -747,7 +747,7 @@ export function BookingsPage() {
 
       // Fire-and-forget: create invoice
       if (tenantId) {
-        createInvoiceAfterCheckout({ bookingId: actionBooking.id, tenantId, hotelId: actionBooking.hotel_id, userId: actionBooking.created_by }).catch(err => console.error('Failed to create invoice', err))
+        createInvoiceAfterCheckout({ bookingId: actionBooking.id, tenantId, hotelId: actionBooking.hotel_id, userId: null }).catch(err => console.error('Failed to create invoice', err))
       }
 
       // Update notes if adjusted
