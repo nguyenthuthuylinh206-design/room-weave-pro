@@ -420,11 +420,6 @@ export function GroupPaymentDialog({
             <DialogDescription>
               {groupData.guestName} • {groupData.roomCount} phòng
             </DialogDescription>
-            {step === 'select' && (
-              <p className="text-sm text-muted-foreground">
-                {groupData.guestName} • {groupData.roomCount} phòng
-              </p>
-            )}
           </DialogHeader>
 
           {/* Step: Select payment */}
