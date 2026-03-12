@@ -1260,7 +1260,7 @@ export function BookingsPage() {
                 const damageItems: DamageChargeItem[] = [
                   ...((latestCheck?.items_lost as any[]) || []).map(item => ({ item_id: item.item_id, item_name: item.item_name, item_type: 'lost' as const, quantity: item.quantity, charge_amount: item.estimated_value || 0 })),
                   ...((latestCheck?.items_damaged as any[]) || []).map(item => ({ item_id: item.item_id, item_name: item.item_name, item_type: 'damaged' as const, quantity: item.quantity, charge_amount: item.damage_cost || 0, damage_type: item.damage_type })),
-                  ...((latestCheck?.items_consumed as any[]) || []).map(item => ({ item_id: item.item_id, item_name: item.item_name, item_type: 'consumed' as const, quantity: item.quantity, charge_amount: item.unit_price || 0 })),
+                  // items_consumed excluded — already tracked via chargeable_consumptions
                 ]
                 const totalDamageCharge = damageItems.reduce((sum, item) => sum + item.charge_amount * item.quantity, 0)
                 let hourlyOvertimeCharge = 0
