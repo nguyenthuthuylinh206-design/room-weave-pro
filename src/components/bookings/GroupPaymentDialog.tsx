@@ -37,6 +37,11 @@ import { useGroupBooking, GroupBookingRoom } from '@/hooks/useGroupBooking'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/integrations/supabase/client'
 
+export interface RoomCostForPayment {
+  bookingId: string
+  calculatedTotal: number // Grand total including overdue, VAT, fees
+}
+
 export interface GroupPaymentDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -45,6 +50,8 @@ export interface GroupPaymentDialogProps {
   hotelId: string
   onPaymentComplete?: () => void
   calculatedRemaining?: number
+  calculatedTotal?: number
+  roomCostsByBooking?: RoomCostForPayment[]
 }
 
 type PaymentMethod = 'cash' | 'bank_transfer'
