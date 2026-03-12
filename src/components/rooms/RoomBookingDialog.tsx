@@ -54,6 +54,7 @@ import {
 } from '@/lib/bookingCalculations'
 import { triggerRoomCheckoutNotification, triggerRoomCheckinNotification, triggerNewBookingNotification } from '@/hooks/useNotificationTriggers'
 import type { RoomBooking } from '@/hooks/useRoomBooking'
+import { createInvoiceAfterCheckout } from '@/lib/invoiceHelpers'
 
 // Time options for check-in/check-out
 const TIME_OPTIONS = [
