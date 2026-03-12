@@ -379,10 +379,16 @@ export function GroupCheckoutDialog({
     const holdingDeposit = !isLastCheckout ? groupData.totalDeposit : 0
     
     const subtotal = roomTotal + damageCharges + serviceCharges + lateCharges + earlyCheckinCharges + extraCharges
-    const vatRate = 0
-    const serviceFeeRate = 0
-    const vatAmount = Math.round(subtotal * vatRate / 100)
-    const serviceFeeAmount = Math.round(subtotal * serviceFeeRate / 100)
+    // Aggregate VAT/service fee from per-room costBreakdown
+    let vatAmount = 0
+    let serviceFeeAmount = 0
+    for (const b of selectedBookings) {
+      const cost = roomCosts.get(b.id)
+      if (cost) {
+        vatAmount += cost.costBreakdown.vatAmount || 0
+        serviceFeeAmount += cost.costBreakdown.serviceFeeAmount || 0
+      }
+    }
     const grandTotal = subtotal + vatAmount + serviceFeeAmount
     const remaining = grandTotal - totalPaid - depositApplied
 
