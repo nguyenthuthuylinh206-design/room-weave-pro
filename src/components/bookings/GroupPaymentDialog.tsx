@@ -485,7 +485,7 @@ export function GroupPaymentDialog({
                         {/* Amount info */}
                         <div className="flex justify-between text-xs">
                           <span className="text-muted-foreground">
-                            {formatCompactCurrency(booking.amount_paid || 0)} / {formatCompactCurrency(booking.total_amount || 0)}
+                            {formatCompactCurrency(displayPaid)} / {formatCompactCurrency(displayTotal)}
                           </span>
                           {!isPaid && remaining > 0 && (
                             <span className="text-amber-600 font-medium">

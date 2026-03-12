@@ -650,10 +650,15 @@ export function RoomBookingDialog({
     setShowCheckoutSummary(false)
     
     try {
+      // Calculate effective nights for overdue bookings
+      const effectiveNights = overdueCheckoutDate 
+        ? Math.max(1, differenceInDays(new Date(overdueCheckoutDate), new Date(booking.check_in_date)))
+        : nights
+
       // Recalculate cost breakdown with adjusted late charge and damage
       const adjustedCostBreakdown = calculateBookingCost({
         roomPrice,
-        nights,
+        nights: effectiveNights,
         earlyCheckinCharge,
         lateCheckoutCharge: adjustedLateCharge,
         serviceCharges,
