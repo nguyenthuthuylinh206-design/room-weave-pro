@@ -581,7 +581,7 @@ export function BookingsPage() {
       let serviceCharges = 0
       let serviceDetails: ServiceChargeDetail[] = []
       try {
-        const summary = await fetchServiceChargeSummary(booking.id, tenantId!)
+        const summary = await fetchServiceChargeSummary(booking.id, tenantId!, { includeAllBilled: true })
         serviceCharges = summary.grandTotal
         serviceDetails = summary.details
       } catch (e) {
