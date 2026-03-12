@@ -457,7 +457,7 @@ export function useBookingForm() {
         } else {
           // Walk-in: deposit goes to deposit_amount only, amount_paid stays 0
           // Payment status based on deposit coverage
-          finalPaymentStatus = roomDeposit >= roomTotal ? 'paid' : roomDeposit > 0 ? 'partial' : 'pending'
+          finalPaymentStatus = roomDeposit >= roomTotal ? 'paid' : 'pending'
           // For walk-ins with deposit covering total, set amount_paid accordingly
           if (roomDeposit >= roomTotal) {
             finalAmountPaid = roomTotal - roomDeposit // Will be 0 or negative, use 0

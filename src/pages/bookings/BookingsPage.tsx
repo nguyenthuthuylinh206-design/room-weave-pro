@@ -1871,7 +1871,7 @@ export function BookingsPage() {
               
               let hourlyOvertimeCharge = 0
               if (bType === 'hourly' && updatedBooking.hourly_end_time) {
-                const scheduledEnd = new Date(`${todayStr}T${updatedBooking.hourly_end_time}`)
+                const scheduledEnd = new Date(updatedBooking.hourly_end_time)
                 const overtimeMinutes = (now.getTime() - scheduledEnd.getTime()) / (1000 * 60)
                 if (overtimeMinutes > 0) hourlyOvertimeCharge = Math.ceil(overtimeMinutes / 60) * (updatedBooking.hourly_rate || 0)
               }
