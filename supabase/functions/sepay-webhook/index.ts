@@ -256,6 +256,13 @@ Deno.serve(async (req) => {
                 if (groupQueryError) {
                   console.error('Error fetching group bookings:', groupQueryError);
                 } else if (groupBookings && groupBookings.length > 0) {
+                  // Build calculated totals map from metadata (includes overdue, VAT, fees)
+                  const roomCostsByBooking = (bpMetadata.room_costs_by_booking as Array<{ bookingId: string; calculatedTotal: number }>) || [];
+                  const calcTotalMap = new Map<string, number>();
+                  for (const rc of roomCostsByBooking) {
+                    calcTotalMap.set(rc.bookingId, rc.calculatedTotal);
+                  }
+
                   // Sort: checked_out first, then checked_in, then others
                   const sortedBookings = [...groupBookings].sort((a, b) => {
                     const statusOrder = { 'checked_out': 0, 'checked_in': 1 };
@@ -270,14 +277,15 @@ Deno.serve(async (req) => {
                     if (remainingAmount <= 0) break;
 
                     const currentPaid = booking.amount_paid || 0;
-                    const totalAmount = booking.total_amount || 0;
+                    // Use calculated total from metadata if available, fallback to DB total_amount
+                    const totalAmount = calcTotalMap.get(booking.id) ?? (booking.total_amount || 0);
                     const owed = totalAmount - currentPaid;
 
                     if (owed <= 0) continue;
 
                     const payForThis = Math.min(remainingAmount, owed);
 
-                    console.log(`  Distributing ${payForThis} to booking ${booking.id} (owed: ${owed})`);
+                    console.log(`  Distributing ${payForThis} to booking ${booking.id} (owed: ${owed}, calcTotal: ${totalAmount})`);
 
                     const { error: updateError } = await supabase.rpc('update_booking_amount_paid', {
                       p_booking_id: booking.id,
