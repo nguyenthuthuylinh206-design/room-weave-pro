@@ -1318,9 +1318,11 @@ export function GroupCheckoutDialog({
         tenantId={tenantId}
         hotelId={hotelId}
         calculatedRemaining={totals.remaining}
-        onPaymentComplete={() => {
+        onPaymentComplete={async () => {
           setShowPaymentDialog(false)
-          queryClient.invalidateQueries({ queryKey: ['group-booking', bookingGroupId] })
+          // Refetch group data to get updated amount_paid before checkout
+          await queryClient.invalidateQueries({ queryKey: ['group-booking', bookingGroupId] })
+          await queryClient.refetchQueries({ queryKey: ['group-booking', bookingGroupId] })
           // Auto checkout after payment
           const readyRooms = Array.from(selectedRooms).filter(bookingId => {
             const booking = groupData.bookings.find(b => b.id === bookingId)
