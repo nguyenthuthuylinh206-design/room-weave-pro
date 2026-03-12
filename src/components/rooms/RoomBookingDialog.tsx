@@ -309,7 +309,7 @@ export function RoomBookingDialog({
       } else {
         const { data: newBooking, error } = await supabase
           .from('room_bookings')
-          .insert(bookingData)
+          .insert(bookingData as any)
           .select('id')
           .single()
           
