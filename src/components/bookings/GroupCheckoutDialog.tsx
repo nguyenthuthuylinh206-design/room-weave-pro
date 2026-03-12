@@ -655,6 +655,16 @@ export function GroupCheckoutDialog({
           triggerRoomCheckoutNotification({ tenantId, hotelId, roomId: booking.room_id, roomNumber: booking.room?.room_number || '' }).catch(console.error)
         }
       }
+
+      // Fire-and-forget: create invoices for all checked-out bookings
+      for (const bookingId of bookingIds) {
+        createInvoiceAfterCheckout({
+          bookingId,
+          tenantId,
+          hotelId,
+          userId: user?.id,
+        }).catch(err => console.error('Failed to create invoice for booking', bookingId, err))
+      }
       
       toast.success(`Đã checkout ${bookingIds.length} phòng thành công!`)
       

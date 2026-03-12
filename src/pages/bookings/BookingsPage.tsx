@@ -858,6 +858,11 @@ export function BookingsPage() {
 
       if (error) throw error
 
+      // Fire-and-forget: create invoice
+      if (tenantId) {
+        createInvoiceAfterCheckout({ bookingId: actionBooking.id, tenantId, hotelId: actionBooking.hotel_id, userId: actionBooking.created_by }).catch(err => console.error('Failed to create invoice', err))
+      }
+
       // Update notes if adjusted
       const allNotes: string[] = []
       if (adjustmentNote) allNotes.push(`[Điều chỉnh phụ thu checkout: ${adjustmentNote}]`)
