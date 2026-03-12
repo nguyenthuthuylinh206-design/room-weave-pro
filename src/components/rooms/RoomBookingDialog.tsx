@@ -499,7 +499,7 @@ export function RoomBookingDialog({
     try {
       const { data: latestCheck } = await supabase
         .from('room_checks')
-        .select('items_lost, items_damaged')
+        .select('items_lost, items_damaged, items_consumed')
         .eq('room_id', roomId)
         .in('check_type', ['checkout', 'daily'])
         .order('checked_at', { ascending: false })
@@ -522,6 +522,13 @@ export function RoomBookingDialog({
           quantity: item.quantity,
           charge_amount: item.damage_cost || 0,
           damage_type: item.damage_type,
+        })),
+        ...((latestCheck?.items_consumed as any[]) || []).map(item => ({
+          item_id: item.item_id,
+          item_name: item.item_name,
+          item_type: 'consumed' as const,
+          quantity: item.quantity,
+          charge_amount: item.unit_price || 0,
         })),
       ]
       
@@ -584,7 +591,7 @@ export function RoomBookingDialog({
         p_damage_notes: damageAdjustmentNote || null,
         p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
         p_check_out_date: overdueCheckoutDate,
-        p_new_amount_paid: amountPaid,
+        p_new_amount_paid: null, // Let DB keep current amount_paid; only Pay & Checkout sets this
       })
       
       if (error) throw error
