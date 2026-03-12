@@ -702,8 +702,10 @@ export function BookingsPage() {
     try {
       const roomPrice = (actionBooking as any).room_price || 0
       const checkIn = new Date(actionBooking.check_in_date)
-      const checkOut = new Date(actionBooking.check_out_date)
-      const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
+      const effectiveCheckOut = overdueCheckoutDate 
+        ? new Date(overdueCheckoutDate) 
+        : new Date(actionBooking.check_out_date)
+      const nights = Math.max(1, Math.ceil((effectiveCheckOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
 
       // Recalculate with adjusted late charge and damage (with bookingType)
       const bType = actionBooking.booking_type || 'daily'
