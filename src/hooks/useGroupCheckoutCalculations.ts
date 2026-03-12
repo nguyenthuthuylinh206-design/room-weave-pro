@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { format } from 'date-fns'
+import { format, isAfter, startOfDay } from 'date-fns'
 import { supabase } from '@/integrations/supabase/client'
 import {
   calculateBookingCost,
@@ -110,11 +110,12 @@ export function useGroupCheckoutCalculations() {
     const actualTime = format(new Date(), 'HH:mm')
     const now = new Date()
 
-    // 1. Calculate late checkout charge (only for daily)
+    // 1. Calculate late checkout charge (only for daily, and NOT for overdue bookings)
     let lateCheckoutCharge = 0
     let hourlyOvertimeCharge = 0
+    const isOverdue = booking.bookingType === 'daily' && isAfter(startOfDay(now), startOfDay(booking.checkOutDate))
 
-    if (booking.bookingType === 'daily') {
+    if (booking.bookingType === 'daily' && !isOverdue) {
       lateCheckoutCharge = calculateLateCheckoutCharge(
         actualTime,
         booking.roomPrice,

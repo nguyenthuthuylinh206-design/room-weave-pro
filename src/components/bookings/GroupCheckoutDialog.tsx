@@ -186,7 +186,11 @@ export function GroupCheckoutDialog({
         if (!booking || booking.status === 'checked_out') return null
         const checkIn = new Date(booking.check_in_date)
         const checkOut = new Date(booking.check_out_date)
-        const nights = Math.max(1, differenceInDays(checkOut, checkIn))
+        const today = startOfDay(new Date())
+        const isOverdue = isAfter(today, startOfDay(checkOut))
+        // For overdue bookings, calculate nights from check-in to today
+        const effectiveCheckOut = isOverdue ? today : checkOut
+        const nights = Math.max(1, differenceInDays(effectiveCheckOut, checkIn))
         return {
           bookingId: booking.id,
           roomId: booking.room_id,
@@ -375,10 +379,16 @@ export function GroupCheckoutDialog({
     const holdingDeposit = !isLastCheckout ? groupData.totalDeposit : 0
     
     const subtotal = roomTotal + damageCharges + serviceCharges + lateCharges + earlyCheckinCharges + extraCharges
-    const vatRate = 0
-    const serviceFeeRate = 0
-    const vatAmount = Math.round(subtotal * vatRate / 100)
-    const serviceFeeAmount = Math.round(subtotal * serviceFeeRate / 100)
+    // Aggregate VAT/service fee from per-room costBreakdown
+    let vatAmount = 0
+    let serviceFeeAmount = 0
+    for (const b of selectedBookings) {
+      const cost = roomCosts.get(b.id)
+      if (cost) {
+        vatAmount += cost.costBreakdown.vatAmount || 0
+        serviceFeeAmount += cost.costBreakdown.serviceFeeAmount || 0
+      }
+    }
     const grandTotal = subtotal + vatAmount + serviceFeeAmount
     const remaining = grandTotal - totalPaid - depositApplied
 
@@ -622,7 +632,7 @@ export function GroupCheckoutDialog({
           p_damage_charges: damageCharges,
           p_damage_notes: damageNotesStr,
           p_damage_items: JSON.stringify(cost?.adjustedDamageItems || []),
-          p_new_amount_paid: booking.amount_paid || 0,
+          p_new_amount_paid: null,
           p_check_out_date: overdueDate,
         })
         
@@ -1308,9 +1318,11 @@ export function GroupCheckoutDialog({
         tenantId={tenantId}
         hotelId={hotelId}
         calculatedRemaining={totals.remaining}
-        onPaymentComplete={() => {
+        onPaymentComplete={async () => {
           setShowPaymentDialog(false)
-          queryClient.invalidateQueries({ queryKey: ['group-booking', bookingGroupId] })
+          // Refetch group data to get updated amount_paid before checkout
+          await queryClient.invalidateQueries({ queryKey: ['group-booking', bookingGroupId] })
+          await queryClient.refetchQueries({ queryKey: ['group-booking', bookingGroupId] })
           // Auto checkout after payment
           const readyRooms = Array.from(selectedRooms).filter(bookingId => {
             const booking = groupData.bookings.find(b => b.id === bookingId)
