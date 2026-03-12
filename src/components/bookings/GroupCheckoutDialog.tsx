@@ -186,7 +186,11 @@ export function GroupCheckoutDialog({
         if (!booking || booking.status === 'checked_out') return null
         const checkIn = new Date(booking.check_in_date)
         const checkOut = new Date(booking.check_out_date)
-        const nights = Math.max(1, differenceInDays(checkOut, checkIn))
+        const today = startOfDay(new Date())
+        const isOverdue = isAfter(today, startOfDay(checkOut))
+        // For overdue bookings, calculate nights from check-in to today
+        const effectiveCheckOut = isOverdue ? today : checkOut
+        const nights = Math.max(1, differenceInDays(effectiveCheckOut, checkIn))
         return {
           bookingId: booking.id,
           roomId: booking.room_id,
