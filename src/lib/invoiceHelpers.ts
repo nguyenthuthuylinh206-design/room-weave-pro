@@ -226,7 +226,9 @@ export async function createInvoiceAfterCheckout({
       guest_address: booking.guest_address || null,
       room_number: roomNumber,
       check_in_date: booking.check_in_date,
-      check_out_date: booking.actual_check_out || booking.check_out_date,
+      check_out_date: booking.actual_check_out
+        ? format(new Date(booking.actual_check_out), 'yyyy-MM-dd')
+        : booking.check_out_date,
       line_items: lineItems as unknown as Json,
       subtotal,
       vat_rate: vatRate,
