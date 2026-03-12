@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { format } from 'date-fns'
+import { format, isAfter, startOfDay } from 'date-fns'
 import { supabase } from '@/integrations/supabase/client'
 import {
   calculateBookingCost,
