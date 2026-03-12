@@ -568,7 +568,7 @@ export function BookingsPage() {
     try {
       const actualTime = format(now, 'HH:mm')
       const roomPrice = (booking as any).room_price || 0
-      const calculatedLateCharge = calculateLateCheckoutCharge(actualTime, roomPrice)
+      const calculatedLateCharge = calculateLateCheckoutCharge(actualTime, roomPrice, now, new Date(booking.check_out_date))
 
       // Calculate nights - use effective checkout date for overdue bookings
       const checkIn = new Date(booking.check_in_date)
