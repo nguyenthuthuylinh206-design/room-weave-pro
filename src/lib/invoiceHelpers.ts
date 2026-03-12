@@ -98,6 +98,16 @@ export async function createInvoiceAfterCheckout({
       unit_price: hourlyRate,
       amount: hours * hourlyRate,
     })
+    // Overtime charge for hourly bookings (stored in late_checkout_charge)
+    const overtimeCharge = booking.late_checkout_charge || 0
+    if (overtimeCharge > 0) {
+      lineItems.push({
+        description: 'Phí vượt giờ',
+        quantity: 1,
+        unit_price: overtimeCharge,
+        amount: overtimeCharge,
+      })
+    }
   } else if (booking.booking_type === 'monthly') {
     const months = booking.booking_months || 0
     const monthlyRate = booking.monthly_rate || 0
