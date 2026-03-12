@@ -1,81 +1,87 @@
 
 
-## Phân tích toàn diện lỗi thanh toán nhóm (Group Checkout)
+## Phan tich luong phieu giao hang (Distribution Order)
 
-Sau khi kiểm tra kỹ code, database, network requests và session replay, tôi phát hiện **6 lỗi** nghiêm trọng:
+### Hien trang: Cau truc luong hien tai
 
----
+Luong hien tai co **3 cach tao** va **5 buoc xu ly**, kha phuc tap:
 
-### Bug 1: `distributePayment` phân phối tiền dựa trên `total_amount` CŨ từ DB 🔴 CRITICAL
+#### 3 Dau vao (Entry Points)
+1. **Tao thu cong** (`/inventory/distributions/new`) - CreateDistributionPage.tsx
+2. **Tao tu yeu cau bo sung** (`/inventory/distributions/from-supplements`) - CreateFromSupplementsPage.tsx
+3. **Tao tu Xuat kho** (`/inventory/outbound` voi category `room_assign`) - OutboundPage.tsx dung cung DistributionForm
 
-**Đây là lỗi nghiêm trọng nhất.**
-
-`GroupPaymentDialog.distributePayment()` (line 137-167) tính `bookingOwed = booking.total_amount - booking.amount_paid`. Nhưng `booking.total_amount` lấy từ DB là giá trị **gốc** (VD: P107 = 2,599,000đ cho 1 đêm). Trong khi thực tế khách ở 37 đêm, chi phí tính toán (từ `roomCosts`) là ~50-80 triệu/phòng.
-
-Kết quả:
-- Hệ thống thu 215,313,025đ nhưng chỉ phân phối được ~7.7M (tổng `total_amount` DB)
-- 207M+ bị "mất" - không ghi nhận vào booking nào
-- Booking hiển thị `payment_status: paid` nhưng thực tế chưa cập nhật `total_amount` mới
-
-**Sửa:** `GroupPaymentDialog` cần nhận `calculatedRemaining` và danh sách `roomCosts` (tổng đã tính bao gồm overdue + VAT + phụ thu) để phân phối chính xác. Hoặc: Trước khi phân phối, cập nhật `total_amount` trên DB cho từng booking bằng giá trị tính toán mới.
-
-### Bug 2: `onPaymentComplete` auto-checkout dùng stale `groupData` 🔴 CRITICAL
-
-Line 1321-1336: Sau `refetchQueries`, `groupData` trong closure vẫn là giá trị cũ (React chưa re-render). `performCheckout()` lấy `booking.amount_paid` từ stale data.
-
-Đã fix `p_new_amount_paid: null` ở vòng trước, nhưng vấn đề thực sự là **auto-checkout không nên chạy ngay** vì:
-- User yêu cầu bắt buộc hoàn tất kiểm tra phòng
-- Dữ liệu chưa đồng bộ
-
-**Sửa:** Bỏ auto-checkout trong `onPaymentComplete`. Chỉ refetch data, hiển thị toast thành công, để user tự bấm checkout.
-
-### Bug 3: Booking status `confirmed` bị include vào checkout 🟡 HIGH
-
-DB cho thấy booking `60365f50` (P105) có status = `confirmed` (chưa check-in). Nhưng `selectedRooms` include tất cả (line 164: filter `status === 'checked_in'` đúng). Tuy nhiên `handleDirectCheckout` (line 572-576) chỉ filter `status === 'checked_out'`, **không filter `confirmed`**. RPC `perform_checkout` sẽ throw exception vì booking không ở trạng thái `checked_in`.
-
-**Sửa:** Thêm filter `booking.status === 'checked_in'` trong `handleDirectCheckout` và `performCheckout`.
-
-### Bug 4: `update_booking_amount_paid` RPC bỏ qua `deposit_amount` 🟡 HIGH
-
-RPC so sánh `amount_paid + p_amount_to_add >= p_total_amount` nhưng **không cộng `deposit_amount`**. Booking có deposit 500k + amount_paid 1.5M = 2M, nhưng RPC nghĩ chỉ có 1.5M + thêm → `payment_status` sai.
-
-**Sửa:** Sửa RPC để include `deposit_amount` trong phép tính payment_status:
-```sql
-WHEN COALESCE(amount_paid, 0) + p_amount_to_add + COALESCE(deposit_amount, 0) >= p_total_amount THEN 'paid'
-```
-
-### Bug 5: GroupPaymentDialog hiển thị số dư DB, không phải số tính toán 🟡 MEDIUM
-
-Lines 473-488: UI hiển thị `groupData.totalAmount` và `groupData.totalPaid` (từ DB gốc), không phải `calculatedRemaining`. User thấy "CÒN LẠI" khác với con số trong GroupCheckoutDialog.
-
-**Sửa:** Sử dụng `calculatedRemaining` nhất quán, và truyền thêm `calculatedTotal` cho phần hiển thị.
-
-### Bug 6: Missing `DialogDescription` trong GroupPaymentDialog 🟢 MINOR
-
-Loading state (line 370) và main dialog (line 386) thiếu `DialogDescription`.
-
----
-
-### Tóm tắt thay đổi
-
-| File | Thay đổi |
-|------|----------|
-| `GroupPaymentDialog.tsx` | Nhận thêm prop `roomCostsByBooking` để phân phối đúng; bỏ hiển thị total cũ; thêm DialogDescription |
-| `GroupCheckoutDialog.tsx` | Truyền `roomCosts` map cho PaymentDialog; bỏ auto-checkout trong `onPaymentComplete`; filter `status === 'checked_in'` kỹ hơn |
-| DB Migration | Sửa `update_booking_amount_paid` RPC để include `deposit_amount` |
-
-### Luồng mới sau sửa
-
+#### 5 Buoc xu ly (Lifecycle)
 ```text
-User bấm "Thu tiền"
-  → GroupPaymentDialog mở (hiển thị calculatedRemaining)
-  → User chọn thanh toán đủ
-  → Tạo payment record
-  → distributePayment dùng calculated total_amount (không phải DB gốc)
-    → Trước tiên gọi perform_checkout hoặc update total_amount trên DB
-    → Rồi phân phối tiền
-  → Toast "Thanh toán thành công"
-  → Dialog đóng, GroupCheckoutDialog refetch
-  → User kiểm tra → bấm "Checkout" thủ công
+pending --> released --> in_progress --> completed --> closed
+  (1)        (2)           (3)            (4)          (5)
 ```
+
+1. **pending** - Kho chuan bi hang, kiem tra ton kho, giao cho nhan vien (Warehouse Manager click "Kiem tra & Giao hang")
+2. **released** - Nhan vien xac nhan da nhan du hang (Assignee click "Xac nhan da nhan du hang")
+3. **in_progress** - Nhan vien di giao tung phong, click "GIAO" -> chuyen sang room check
+4. **completed** - Tat ca phong da giao xong
+5. **closed** - Manager dong phieu
+
+### Van de phat hien
+
+#### 1. Trung lap dau vao: OutboundPage dung trung DistributionForm
+- `OutboundPage.tsx` (Xuat kho) khi chon category `room_assign` se render cung `DistributionForm` va goi `useCreateDistributionOrder` - hoan toan giong `CreateDistributionPage.tsx`
+- Nguoi dung co 2 noi tao cung 1 thu -> nhầm lẫn
+- **De xuat**: Khi chon "Giao den phong" trong OutboundPage, chuyen huong (redirect) sang `/inventory/distributions/new` thay vi nhan doi form
+
+#### 2. Buoc "released" co the thua (khong can thiet voi nhieu truong hop)
+- Sau khi kho giao hang (pending -> released), nhan vien phai bam "Xac nhan da nhan du hang" de chuyen sang in_progress
+- Voi hotel nho (kho va nhan vien la 1 nguoi), buoc nay thua
+- Da co option `auto_release` nhung chi skip buoc kho, khong skip buoc nhan hang
+- **De xuat**: Them option "Tu dong bat dau giao" de skip ca buoc released, chuyen thang tu pending -> in_progress khi assignee la chinh nguoi tao
+
+#### 3. Qua trinh giao phong phuc tap - click "GIAO" -> navigate ra room check
+- Khi nhan vien click "GIAO" tren 1 phong, he thong navigate sang `/rooms/{id}/check?type=delivery&...`
+- Phai lam room check roi moi quay lai -> mat flow, phai quay lai trang phieu de giao phong tiep
+- **De xuat**: Sau khi hoan thanh room check, tu dong quay lai trang phieu giao hang thay vi o lai trang room check
+
+#### 4. Thieu thong tin tong hop khi tao phieu
+- CreateDistributionPage khong hien thi summary (tong so phong, tong so item, tong so luong) truoc khi submit
+- DistributionForm hien thi 2 panel (chon phong + phan bo san pham) nhung khong co summary bar
+- **De xuat**: Them summary bar hien thi: X phong, Y loai SP, Z don vi truoc nut "Tao phieu"
+
+#### 5. Auto-fill logic tot nhung UX chua ro rang
+- `useDistributionForm` co `autoFillMissingItems` va `autoFillMissingItemsForRoom` de tu dong tinh so luong theo tieu chuan phong
+- Nhung trong CreateDistributionPage, nut auto-fill khong duoc hien thi ro rang
+- **De xuat**: Them nut "Tu dong phan bo theo tieu chuan" noi bat hon trong form
+
+### Ke hoach khac phuc
+
+#### Thay doi 1: Redirect OutboundPage khi chon "room_assign"
+**File**: `src/pages/inventory/OutboundPage.tsx`
+- Khi user chon category `room_assign`, hien thi thong bao va nut chuyen sang trang tao phieu giao hang chuyen dung thay vi render form trung lap
+
+#### Thay doi 2: Them summary bar trong CreateDistributionPage
+**File**: `src/pages/inventory/CreateDistributionPage.tsx`
+- Hien thi summary compact (so phong, so SP, tong SL) ngay tren nut "Tao phieu"
+- Hien thi canh bao stock validation o footer thay vi chi trong form
+
+#### Thay doi 3: Auto-navigate ve phieu sau room check
+**File**: `src/components/distribution/components/UnifiedRoomList.tsx`
+- Them query param `returnTo` khi navigate sang room check
+- Sau khi room check xong, tu dong quay ve trang phieu giao hang
+
+#### Thay doi 4: Don gian hoa flow cho hotel nho
+**File**: `src/components/distribution/components/DeliveryStepWizard.tsx`
+- Khi nguoi tao phieu cung la nguoi duoc phan cong (assignee), gop buoc "Kiem tra kho" va "Nhan hang" thanh 1 buoc duy nhat
+- Giam so buoc tu 5 xuong 3-4 tuy truong hop
+
+#### Thay doi 5: Lam ro auto-fill trong form
+**File**: `src/components/distribution/forms/ItemAllocator.tsx`
+- Them nut "Tu dong phan bo" noi bat, co tooltip giai thich
+- Hien thi ket qua auto-fill (bao nhieu SP da them, bao nhieu thieu) ro rang hon
+
+### Uu tien thuc hien
+
+1. **Thay doi 2** (Summary bar) - De lam, giam nhầm lẫn ngay
+2. **Thay doi 1** (Redirect OutboundPage) - Loai bo trung lap
+3. **Thay doi 3** (Auto-navigate ve phieu) - Cai thien flow giao hang
+4. **Thay doi 4** (Don gian hoa step) - Giam buoc cho hotel nho
+5. **Thay doi 5** (Auto-fill ro rang) - Cai thien UX
 

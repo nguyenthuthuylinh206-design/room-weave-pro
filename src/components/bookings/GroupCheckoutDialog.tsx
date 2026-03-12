@@ -571,7 +571,8 @@ export function GroupCheckoutDialog({
     if (!groupData) return
     const readyRooms = Array.from(selectedRooms).filter(bookingId => {
       const booking = groupData.bookings.find(b => b.id === bookingId)
-      if (!booking || booking.status === 'checked_out') return false
+      // Only allow checked_in bookings (filter out confirmed, checked_out, etc.)
+      if (!booking || booking.status !== 'checked_in') return false
       const inspection = inspectionMap.get(bookingId)
       return inspection?.status === 'completed' || inspection?.status === 'not_requested'
     })
@@ -601,7 +602,7 @@ export function GroupCheckoutDialog({
     try {
       for (const bookingId of bookingIds) {
         const booking = groupData.bookings.find(b => b.id === bookingId)
-        if (!booking || booking.status === 'checked_out') continue
+        if (!booking || booking.status !== 'checked_in') continue
         
         const cost = roomCosts.get(bookingId)
         const lateCharge = cost?.adjustedLateCharge || 0
@@ -1318,21 +1319,20 @@ export function GroupCheckoutDialog({
         tenantId={tenantId}
         hotelId={hotelId}
         calculatedRemaining={totals.remaining}
+        calculatedTotal={totals.grandTotal}
+        roomCostsByBooking={
+          Array.from(roomCosts.entries()).map(([bookingId, cost]) => ({
+            bookingId,
+            calculatedTotal: cost.costBreakdown.totalAmount,
+          }))
+        }
         onPaymentComplete={async () => {
           setShowPaymentDialog(false)
-          // Refetch group data to get updated amount_paid before checkout
+          // Refetch group data to get updated amount_paid
           await queryClient.invalidateQueries({ queryKey: ['group-booking', bookingGroupId] })
           await queryClient.refetchQueries({ queryKey: ['group-booking', bookingGroupId] })
-          // Auto checkout after payment
-          const readyRooms = Array.from(selectedRooms).filter(bookingId => {
-            const booking = groupData.bookings.find(b => b.id === bookingId)
-            if (!booking || booking.status === 'checked_out') return false
-            const inspection = inspectionMap.get(bookingId)
-            return inspection?.status === 'completed' || inspection?.status === 'not_requested'
-          })
-          if (readyRooms.length > 0) {
-            performCheckout(readyRooms)
-          }
+          // Recalculate costs with fresh data
+          toast.success('Thanh toán thành công! Vui lòng kiểm tra phòng trước khi checkout.')
         }}
       />
       

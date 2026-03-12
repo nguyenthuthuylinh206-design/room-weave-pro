@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -36,6 +37,11 @@ import { useGroupBooking, GroupBookingRoom } from '@/hooks/useGroupBooking'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/integrations/supabase/client'
 
+export interface RoomCostForPayment {
+  bookingId: string
+  calculatedTotal: number // Grand total including overdue, VAT, fees
+}
+
 export interface GroupPaymentDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -44,6 +50,8 @@ export interface GroupPaymentDialogProps {
   hotelId: string
   onPaymentComplete?: () => void
   calculatedRemaining?: number
+  calculatedTotal?: number
+  roomCostsByBooking?: RoomCostForPayment[]
 }
 
 type PaymentMethod = 'cash' | 'bank_transfer'
@@ -57,6 +65,8 @@ export function GroupPaymentDialog({
   hotelId,
   onPaymentComplete,
   calculatedRemaining,
+  calculatedTotal,
+  roomCostsByBooking,
 }: GroupPaymentDialogProps) {
   const { data: groupData, isLoading: isLoadingGroup } = useGroupBooking(bookingGroupId)
   
@@ -135,12 +145,22 @@ export function GroupPaymentDialog({
    * Priority: Checked-out rooms first, then by remaining amount
    */
   const distributePayment = async (paymentAmount: number, bookings: GroupBookingRoom[]) => {
+    // Build a map of calculated totals per booking
+    const calcTotalMap = new Map<string, number>()
+    if (roomCostsByBooking) {
+      for (const rc of roomCostsByBooking) {
+        calcTotalMap.set(rc.bookingId, rc.calculatedTotal)
+      }
+    }
+
     // Sort: checked_out first, then by remaining amount descending
     const sortedBookings = [...bookings].sort((a, b) => {
       if (a.status === 'checked_out' && b.status !== 'checked_out') return -1
       if (b.status === 'checked_out' && a.status !== 'checked_out') return 1
-      const aRemaining = (a.total_amount || 0) - (a.amount_paid || 0)
-      const bRemaining = (b.total_amount || 0) - (b.amount_paid || 0)
+      const aTotal = calcTotalMap.get(a.id) ?? (a.total_amount || 0)
+      const bTotal = calcTotalMap.get(b.id) ?? (b.total_amount || 0)
+      const aRemaining = aTotal - (a.amount_paid || 0)
+      const bRemaining = bTotal - (b.amount_paid || 0)
       return bRemaining - aRemaining
     })
 
@@ -149,17 +169,18 @@ export function GroupPaymentDialog({
     for (const booking of sortedBookings) {
       if (remaining <= 0) break
 
-      const bookingOwed = (booking.total_amount || 0) - (booking.amount_paid || 0)
+      // Use calculated total (includes overdue, VAT, fees) instead of DB total_amount
+      const effectiveTotal = calcTotalMap.get(booking.id) ?? (booking.total_amount || 0)
+      const bookingOwed = effectiveTotal - (booking.amount_paid || 0)
       if (bookingOwed <= 0) continue
 
       const payForThis = Math.min(remaining, bookingOwed)
-      const totalAmount = booking.total_amount || 0
 
       // Use atomic RPC instead of direct UPDATE to prevent race conditions
       await supabase.rpc('update_booking_amount_paid', {
         p_booking_id: booking.id,
         p_amount_to_add: payForThis,
-        p_total_amount: totalAmount,
+        p_total_amount: effectiveTotal,
       })
 
       remaining -= payForThis
@@ -368,6 +389,10 @@ export function GroupPaymentDialog({
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Thanh toán nhóm</DialogTitle>
+            <DialogDescription>Đang tải thông tin...</DialogDescription>
+          </DialogHeader>
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
@@ -392,6 +417,9 @@ export function GroupPaymentDialog({
               {step === 'qr' && 'Quét mã QR'}
               {step === 'success' && 'Thành công'}
             </DialogTitle>
+            <DialogDescription>
+              {groupData.guestName} • {groupData.roomCount} phòng
+            </DialogDescription>
             {step === 'select' && (
               <p className="text-sm text-muted-foreground">
                 {groupData.guestName} • {groupData.roomCount} phòng
@@ -469,15 +497,17 @@ export function GroupPaymentDialog({
 
               <Separator />
 
-              {/* Totals Summary - Compact */}
+              {/* Totals Summary - Compact - Use calculated values */}
               <div className="bg-muted/50 rounded-lg p-3 space-y-1.5">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Tổng ({groupData.roomCount} phòng)</span>
-                  <span className="font-mono">{formatVNCurrency(groupData.totalAmount)}</span>
+                  <span className="text-muted-foreground">Tổng tính toán ({groupData.roomCount} phòng)</span>
+                  <span className="font-mono">{formatVNCurrency(calculatedTotal ?? groupData.totalAmount)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Đã thanh toán</span>
-                  <span className="font-mono text-green-600">-{formatVNCurrency(groupData.totalPaid)}</span>
+                  <span className="font-mono text-green-600">
+                    -{formatVNCurrency((calculatedTotal ?? groupData.totalAmount) - remainingAmount)}
+                  </span>
                 </div>
                 <Separator className="my-1.5" />
                 <div className="flex justify-between font-medium">

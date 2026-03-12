@@ -9751,7 +9751,7 @@ export type Database = {
           p_booking_id: string
           p_total_amount: number
         }
-        Returns: undefined
+        Returns: Json
       }
       update_distribution_order: {
         Args: {
