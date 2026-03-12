@@ -497,15 +497,17 @@ export function GroupPaymentDialog({
 
               <Separator />
 
-              {/* Totals Summary - Compact */}
+              {/* Totals Summary - Compact - Use calculated values */}
               <div className="bg-muted/50 rounded-lg p-3 space-y-1.5">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Tổng ({groupData.roomCount} phòng)</span>
-                  <span className="font-mono">{formatVNCurrency(groupData.totalAmount)}</span>
+                  <span className="text-muted-foreground">Tổng tính toán ({groupData.roomCount} phòng)</span>
+                  <span className="font-mono">{formatVNCurrency(calculatedTotal ?? groupData.totalAmount)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Đã thanh toán</span>
-                  <span className="font-mono text-green-600">-{formatVNCurrency(groupData.totalPaid)}</span>
+                  <span className="font-mono text-green-600">
+                    -{formatVNCurrency((calculatedTotal ?? groupData.totalAmount) - remainingAmount)}
+                  </span>
                 </div>
                 <Separator className="my-1.5" />
                 <div className="flex justify-between font-medium">
