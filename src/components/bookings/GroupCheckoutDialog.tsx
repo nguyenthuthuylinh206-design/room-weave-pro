@@ -571,7 +571,8 @@ export function GroupCheckoutDialog({
     if (!groupData) return
     const readyRooms = Array.from(selectedRooms).filter(bookingId => {
       const booking = groupData.bookings.find(b => b.id === bookingId)
-      if (!booking || booking.status === 'checked_out') return false
+      // Only allow checked_in bookings (filter out confirmed, checked_out, etc.)
+      if (!booking || booking.status !== 'checked_in') return false
       const inspection = inspectionMap.get(bookingId)
       return inspection?.status === 'completed' || inspection?.status === 'not_requested'
     })
