@@ -689,10 +689,16 @@ export function RoomBookingDialog({
 
       // Recalculate cost breakdown with adjusted late charge and damage
       const adjustedCostBreakdown = calculateBookingCost({
+        bookingType,
         roomPrice,
         nights: effectiveNights,
         earlyCheckinCharge,
         lateCheckoutCharge: adjustedLateCharge,
+        hourlyRate,
+        hours: bookingHours,
+        hourlyOvertimeCharge: bookingType === 'hourly' ? adjustedLateCharge : 0,
+        monthlyRate,
+        months: bookingMonths,
         serviceCharges,
         extraCharges,
         damageCharges: damageCharges || 0,
