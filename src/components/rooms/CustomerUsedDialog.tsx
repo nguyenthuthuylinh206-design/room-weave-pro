@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Package } from 'lucide-react'
 import { useUpdateRoomItemQuantity } from '@/hooks/useRoomItems'
+import { useCreateChargeableConsumption } from '@/hooks/useChargeableConsumptions'
 import { toast } from 'sonner'
 import { triggerHaptic } from '@/lib/haptics'
 
@@ -25,8 +26,12 @@ interface CustomerUsedDialogProps {
     item_thumbnail?: string
     current_quantity: number
     room_item_id?: string | null
+    is_chargeable?: boolean
+    charge_price?: number | null
+    unit_price?: number
   } | null
   roomId: string
+  bookingId?: string | null
 }
 
 export function CustomerUsedDialog({
@@ -34,10 +39,12 @@ export function CustomerUsedDialog({
   onOpenChange,
   item,
   roomId,
+  bookingId,
 }: CustomerUsedDialogProps) {
   const { t } = useTranslation(['rooms', 'common'])
   const [quantity, setQuantity] = useState(1)
   const updateQuantity = useUpdateRoomItemQuantity()
+  const createChargeable = useCreateChargeableConsumption()
 
   const handleQuantityChange = (delta: number) => {
     triggerHaptic('light')
@@ -66,6 +73,25 @@ export function CustomerUsedDialog({
         quantity: newQuantity,
         roomItemId: item.room_item_id || null,
       })
+
+      // Create chargeable consumption record if item is chargeable and has active booking
+      if (item.is_chargeable && bookingId) {
+        const chargePrice = item.charge_price ?? item.unit_price ?? 0
+        try {
+          await createChargeable.mutateAsync({
+            booking_id: bookingId,
+            room_id: roomId,
+            item_id: item.item_id,
+            item_code: item.item_code,
+            item_name: item.item_name,
+            quantity,
+            unit_price: chargePrice,
+          })
+        } catch (error) {
+          console.error('Failed to create chargeable consumption:', error)
+          // Don't block — inventory already updated
+        }
+      }
       
       triggerHaptic('success')
       toast.success(t('quickActions.customerUsedSuccess', { 
@@ -88,6 +114,9 @@ export function CustomerUsedDialog({
   }
 
   if (!item) return null
+
+  const isChargeable = item.is_chargeable && bookingId
+  const chargePrice = item.charge_price ?? item.unit_price ?? 0
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -131,6 +160,7 @@ export function CustomerUsedDialog({
               <Button
                 variant="outline"
                 size="icon"
+                type="button"
                 className="h-12 w-12"
                 disabled={quantity <= 1}
                 onClick={() => handleQuantityChange(-1)}
@@ -143,6 +173,7 @@ export function CustomerUsedDialog({
               <Button
                 variant="outline"
                 size="icon"
+                type="button"
                 className="h-12 w-12"
                 disabled={quantity >= item.current_quantity}
                 onClick={() => handleQuantityChange(1)}
@@ -160,6 +191,7 @@ export function CustomerUsedDialog({
                   key={n}
                   variant={quantity === n ? "default" : "outline"}
                   size="sm"
+                  type="button"
                   className="h-8 w-10"
                   onClick={() => {
                     triggerHaptic('light')
@@ -173,6 +205,7 @@ export function CustomerUsedDialog({
                 <Button
                   variant={quantity === item.current_quantity ? "default" : "outline"}
                   size="sm"
+                  type="button"
                   className="h-8"
                   onClick={() => {
                     triggerHaptic('light')
@@ -190,6 +223,14 @@ export function CustomerUsedDialog({
             <p className="text-sm text-amber-800 dark:text-amber-200">
               {t('quickActions.afterUsed')}: <span className="font-bold">{item.current_quantity - quantity}</span>
             </p>
+            {isChargeable && chargePrice > 0 && (
+              <p className="text-xs text-amber-600 dark:text-amber-300 mt-1">
+                💰 {t('quickActions.chargeAmount', { 
+                  amount: (quantity * chargePrice).toLocaleString('vi-VN'),
+                  defaultValue: `Tính phí: ${(quantity * chargePrice).toLocaleString('vi-VN')}đ`
+                })}
+              </p>
+            )}
           </div>
         </div>
 
@@ -197,16 +238,16 @@ export function CustomerUsedDialog({
           <Button
             variant="outline"
             onClick={() => handleOpenChange(false)}
-            disabled={updateQuantity.isPending}
+            disabled={updateQuantity.isPending || createChargeable.isPending}
           >
             {t('common:cancel')}
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={updateQuantity.isPending}
+            disabled={updateQuantity.isPending || createChargeable.isPending}
             className="bg-amber-500 hover:bg-amber-600"
           >
-            {updateQuantity.isPending ? (
+            {(updateQuantity.isPending || createChargeable.isPending) ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 {t('common:processing')}
