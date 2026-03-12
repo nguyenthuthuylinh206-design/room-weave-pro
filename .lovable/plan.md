@@ -1,87 +1,111 @@
 
 
-## Phan tich luong phieu giao hang (Distribution Order)
+## Kiểm tra toàn diện - Danh sách lỗi còn lại
 
-### Hien trang: Cau truc luong hien tai
+Sau khi kiểm tra kỹ toàn bộ code, tôi phát hiện **6 lỗi** cần sửa:
 
-Luong hien tai co **3 cach tao** va **5 buoc xu ly**, kha phuc tap:
+---
 
-#### 3 Dau vao (Entry Points)
-1. **Tao thu cong** (`/inventory/distributions/new`) - CreateDistributionPage.tsx
-2. **Tao tu yeu cau bo sung** (`/inventory/distributions/from-supplements`) - CreateFromSupplementsPage.tsx
-3. **Tao tu Xuat kho** (`/inventory/outbound` voi category `room_assign`) - OutboundPage.tsx dung cung DistributionForm
+### Bug 1: `onPaymentComplete` filter sai `b.room_id` thay vì `b.id` 🔴 CRITICAL
 
-#### 5 Buoc xu ly (Lifecycle)
-```text
-pending --> released --> in_progress --> completed --> closed
-  (1)        (2)           (3)            (4)          (5)
+**File:** `GroupCheckoutDialog.tsx` line 1348
+
+```
+.filter(b => selectedRooms.has(b.room_id) && b.status === 'checked_in')
 ```
 
-1. **pending** - Kho chuan bi hang, kiem tra ton kho, giao cho nhan vien (Warehouse Manager click "Kiem tra & Giao hang")
-2. **released** - Nhan vien xac nhan da nhan du hang (Assignee click "Xac nhan da nhan du hang")
-3. **in_progress** - Nhan vien di giao tung phong, click "GIAO" -> chuyen sang room check
-4. **completed** - Tat ca phong da giao xong
-5. **closed** - Manager dong phieu
+`selectedRooms` chứa **booking ID** (set từ line 167: `b.id`), nhưng filter so sánh `b.room_id`. Kết quả: **không booking nào match** → `bookingsToCalc` rỗng → costs không được recalculate sau payment → UI hiển thị số cũ.
 
-### Van de phat hien
+**Sửa:** Đổi `b.room_id` thành `b.id`.
 
-#### 1. Trung lap dau vao: OutboundPage dung trung DistributionForm
-- `OutboundPage.tsx` (Xuat kho) khi chon category `room_assign` se render cung `DistributionForm` va goi `useCreateDistributionOrder` - hoan toan giong `CreateDistributionPage.tsx`
-- Nguoi dung co 2 noi tao cung 1 thu -> nhầm lẫn
-- **De xuat**: Khi chon "Giao den phong" trong OutboundPage, chuyen huong (redirect) sang `/inventory/distributions/new` thay vi nhan doi form
+---
 
-#### 2. Buoc "released" co the thua (khong can thiet voi nhieu truong hop)
-- Sau khi kho giao hang (pending -> released), nhan vien phai bam "Xac nhan da nhan du hang" de chuyen sang in_progress
-- Voi hotel nho (kho va nhan vien la 1 nguoi), buoc nay thua
-- Da co option `auto_release` nhung chi skip buoc kho, khong skip buoc nhan hang
-- **De xuat**: Them option "Tu dong bat dau giao" de skip ca buoc released, chuyen thang tu pending -> in_progress khi assignee la chinh nguoi tao
+### Bug 2: `onPaymentComplete` dùng stale `groupData` + không tính overdue 🔴 CRITICAL
 
-#### 3. Qua trinh giao phong phuc tap - click "GIAO" -> navigate ra room check
-- Khi nhan vien click "GIAO" tren 1 phong, he thong navigate sang `/rooms/{id}/check?type=delivery&...`
-- Phai lam room check roi moi quay lai -> mat flow, phai quay lai trang phieu de giao phong tiep
-- **De xuat**: Sau khi hoan thanh room check, tu dong quay lai trang phieu giao hang thay vi o lai trang room check
+**File:** `GroupCheckoutDialog.tsx` line 1346-1365
 
-#### 4. Thieu thong tin tong hop khi tao phieu
-- CreateDistributionPage khong hien thi summary (tong so phong, tong so item, tong so luong) truoc khi submit
-- DistributionForm hien thi 2 panel (chon phong + phan bo san pham) nhung khong co summary bar
-- **De xuat**: Them summary bar hien thi: X phong, Y loai SP, Z don vi truoc nut "Tao phieu"
+Hai vấn đề:
+1. Sau `refetchQueries`, `groupData` trong closure vẫn là giá trị cũ (React chưa re-render). `b.amount_paid` vẫn = 0.
+2. Line 1355: `differenceInDays(new Date(b.check_out_date), new Date(b.check_in_date))` — không tính overdue nights (đã fix ở useEffect line 191-194 nhưng quên fix ở đây).
 
-#### 5. Auto-fill logic tot nhung UX chua ro rang
-- `useDistributionForm` co `autoFillMissingItems` va `autoFillMissingItemsForRoom` de tu dong tinh so luong theo tieu chuan phong
-- Nhung trong CreateDistributionPage, nut auto-fill khong duoc hien thi ro rang
-- **De xuat**: Them nut "Tu dong phan bo theo tieu chuan" noi bat hon trong form
+**Sửa:** Không recalculate ngay trong callback. Thay vào đó, thêm state flag `paymentJustCompleted`, rồi dùng useEffect watch `groupData` + flag để recalculate khi data mới nhất đã load.
 
-### Ke hoach khac phuc
+---
 
-#### Thay doi 1: Redirect OutboundPage khi chon "room_assign"
-**File**: `src/pages/inventory/OutboundPage.tsx`
-- Khi user chon category `room_assign`, hien thi thong bao va nut chuyen sang trang tao phieu giao hang chuyen dung thay vi render form trung lap
+### Bug 3: `RoomBookingDialog.performCheckOut` truyền `p_new_amount_paid: amountPaid` (giá trị cũ) 🟡 HIGH
 
-#### Thay doi 2: Them summary bar trong CreateDistributionPage
-**File**: `src/pages/inventory/CreateDistributionPage.tsx`
-- Hien thi summary compact (so phong, so SP, tong SL) ngay tren nut "Tao phieu"
-- Hien thi canh bao stock validation o footer thay vi chi trong form
+**File:** `RoomBookingDialog.tsx` line 587
 
-#### Thay doi 3: Auto-navigate ve phieu sau room check
-**File**: `src/components/distribution/components/UnifiedRoomList.tsx`
-- Them query param `returnTo` khi navigate sang room check
-- Sau khi room check xong, tu dong quay ve trang phieu giao hang
+```
+p_new_amount_paid: amountPaid,  // = state amountPaid cũ
+```
 
-#### Thay doi 4: Don gian hoa flow cho hotel nho
-**File**: `src/components/distribution/components/DeliveryStepWizard.tsx`
-- Khi nguoi tao phieu cung la nguoi duoc phan cong (assignee), gop buoc "Kiem tra kho" va "Nhan hang" thanh 1 buoc duy nhat
-- Giam so buoc tu 5 xuong 3-4 tuy truong hop
+Checkout bình thường (không phải Pay & Checkout) vẫn truyền `amountPaid` hiện tại. RPC sẽ SET `amount_paid = amountPaid` — đúng rồi nhưng cũng SET `payment_status` dựa trên giá trị này. Nếu user đã thanh toán partial qua BookingPaymentDialog trước, và sau đó checkout, giá trị `amountPaid` state có thể đã stale (lấy từ lúc mở dialog).
 
-#### Thay doi 5: Lam ro auto-fill trong form
-**File**: `src/components/distribution/forms/ItemAllocator.tsx`
-- Them nut "Tu dong phan bo" noi bat, co tooltip giai thich
-- Hien thi ket qua auto-fill (bao nhieu SP da them, bao nhieu thieu) ro rang hon
+**Sửa:** Truyền `p_new_amount_paid: null` cho checkout bình thường (giữ nguyên `amount_paid` DB hiện tại). Chỉ truyền giá trị khi Pay & Checkout.
 
-### Uu tien thuc hien
+---
 
-1. **Thay doi 2** (Summary bar) - De lam, giam nhầm lẫn ngay
-2. **Thay doi 1** (Redirect OutboundPage) - Loai bo trung lap
-3. **Thay doi 3** (Auto-navigate ve phieu) - Cai thien flow giao hang
-4. **Thay doi 4** (Don gian hoa step) - Giam buoc cho hotel nho
-5. **Thay doi 5** (Auto-fill ro rang) - Cai thien UX
+### Bug 4: `RoomBookingDialog.handleCheckOutClick` không fetch `items_consumed` 🟡 HIGH
+
+**File:** `RoomBookingDialog.tsx` line 501-526
+
+```
+.select('items_lost, items_damaged')  // THIẾU items_consumed!
+```
+
+So sánh với `BookingsPage.tsx` line 597 và `onCheckoutNow` line 1346: đều fetch `items_consumed`. Nhưng `handleCheckOutClick` (checkout bình thường, không overdue) bỏ sót → không tính phí minibar/đồ dùng.
+
+**Sửa:** Thêm `items_consumed` vào select và map tương tự.
+
+---
+
+### Bug 5: Webhook SePay dùng `total_amount` DB gốc cho group payment distribution 🟡 HIGH
+
+**File:** `supabase/functions/sepay-webhook/index.ts` line 273-274
+
+```
+const totalAmount = booking.total_amount || 0
+const owed = totalAmount - currentPaid
+```
+
+Webhook lấy `total_amount` từ DB — nếu booking quá hạn nhưng chưa checkout (total_amount chưa update), webhook sẽ tính `owed` sai. Tuy nhiên, nếu checkout đã xảy ra trước khi payment confirm, thì `total_amount` DB đã đúng vì `perform_checkout` RPC đã update.
+
+Vấn đề thực tế: Khi user thanh toán TRƯỚC khi checkout (flow: Thu tiền → Kiểm tra phòng → Checkout), `total_amount` DB vẫn là giá gốc. Webhook phân phối sai.
+
+**Sửa:** Khi tạo `booking_payments` cho group, lưu `roomCostsByBooking` vào `metadata` của payment record. Webhook đọc từ metadata thay vì DB.
+
+---
+
+### Bug 6: `GroupPaymentDialog` duplicate guest info trong DialogHeader 🟢 LOW
+
+**File:** `GroupPaymentDialog.tsx` line 420-427
+
+```
+<DialogDescription>
+  {groupData.guestName} • {groupData.roomCount} phòng
+</DialogDescription>
+{step === 'select' && (
+  <p className="text-sm text-muted-foreground">
+    {groupData.guestName} • {groupData.roomCount} phòng  ← TRÙNG!
+  </p>
+)}
+```
+
+Hiển thị tên khách 2 lần khi ở step `select`.
+
+**Sửa:** Xóa `<p>` trùng lặp.
+
+---
+
+### Tóm tắt thay đổi
+
+| # | Mức độ | File | Thay đổi |
+|---|--------|------|----------|
+| 1 | 🔴 | `GroupCheckoutDialog.tsx` L1348 | `b.room_id` → `b.id` |
+| 2 | 🔴 | `GroupCheckoutDialog.tsx` L1340-1367 | Dùng useEffect + flag thay vì recalculate trong stale closure; tính overdue nights |
+| 3 | 🟡 | `RoomBookingDialog.tsx` L587 | `p_new_amount_paid: null` cho checkout thường |
+| 4 | 🟡 | `RoomBookingDialog.tsx` L501 | Thêm `items_consumed` vào fetch |
+| 5 | 🟡 | `sepay-webhook/index.ts` L273 + `GroupPaymentDialog.tsx` | Lưu calculated totals vào metadata; webhook đọc từ metadata |
+| 6 | 🟢 | `GroupPaymentDialog.tsx` L423-427 | Xóa `<p>` trùng lặp |
 
