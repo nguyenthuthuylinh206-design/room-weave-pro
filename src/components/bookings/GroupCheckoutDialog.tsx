@@ -1345,7 +1345,7 @@ export function GroupCheckoutDialog({
           // Recalculate costs with fresh data after payment
           if (groupData) {
             const bookingsToCalc = groupData.bookings
-              .filter(b => selectedRooms.includes(b.room_id) && b.status === 'checked_in')
+              .filter(b => selectedRooms.has(b.room_id) && b.status === 'checked_in')
               .map(b => ({
                 bookingId: b.id,
                 roomId: b.room_id,
