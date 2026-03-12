@@ -622,7 +622,7 @@ export function GroupCheckoutDialog({
           p_damage_charges: damageCharges,
           p_damage_notes: damageNotesStr,
           p_damage_items: JSON.stringify(cost?.adjustedDamageItems || []),
-          p_new_amount_paid: booking.amount_paid || 0,
+          p_new_amount_paid: null,
           p_check_out_date: overdueDate,
         })
         
