@@ -718,11 +718,8 @@ export function RoomBookingDialog({
         amountPaid,
       })
 
-      // Calculate the correct newAmountPaid: total minus deposit = what needs to be collected as amount_paid
-      // This correctly accounts for any previously paid amount (amountPaid) by setting the full required amount
-      const newAmountPaid = adjustedCostBreakdown.totalAmount - depositAmount
-      
-      // Only use RPC for atomic checkout - no separate .update() to avoid race conditions
+      // BookingPaymentDialog already updated amount_paid via update_booking_amount_paid RPC (ADD operation)
+      // Pass null to preserve the DB value and avoid overwriting partial payments
       const { data, error } = await supabase.rpc('perform_checkout', {
         p_booking_id: booking.id,
         p_room_id: roomId,
@@ -735,7 +732,7 @@ export function RoomBookingDialog({
         p_damage_charges: damageCharges || 0,
         p_damage_notes: damageAdjustmentNote || null,
         p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
-        p_new_amount_paid: newAmountPaid,
+        p_new_amount_paid: null,
         p_check_out_date: overdueCheckoutDate,
       })
       
