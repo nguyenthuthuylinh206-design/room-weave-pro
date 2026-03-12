@@ -145,12 +145,22 @@ export function GroupPaymentDialog({
    * Priority: Checked-out rooms first, then by remaining amount
    */
   const distributePayment = async (paymentAmount: number, bookings: GroupBookingRoom[]) => {
+    // Build a map of calculated totals per booking
+    const calcTotalMap = new Map<string, number>()
+    if (roomCostsByBooking) {
+      for (const rc of roomCostsByBooking) {
+        calcTotalMap.set(rc.bookingId, rc.calculatedTotal)
+      }
+    }
+
     // Sort: checked_out first, then by remaining amount descending
     const sortedBookings = [...bookings].sort((a, b) => {
       if (a.status === 'checked_out' && b.status !== 'checked_out') return -1
       if (b.status === 'checked_out' && a.status !== 'checked_out') return 1
-      const aRemaining = (a.total_amount || 0) - (a.amount_paid || 0)
-      const bRemaining = (b.total_amount || 0) - (b.amount_paid || 0)
+      const aTotal = calcTotalMap.get(a.id) ?? (a.total_amount || 0)
+      const bTotal = calcTotalMap.get(b.id) ?? (b.total_amount || 0)
+      const aRemaining = aTotal - (a.amount_paid || 0)
+      const bRemaining = bTotal - (b.amount_paid || 0)
       return bRemaining - aRemaining
     })
 
@@ -159,17 +169,18 @@ export function GroupPaymentDialog({
     for (const booking of sortedBookings) {
       if (remaining <= 0) break
 
-      const bookingOwed = (booking.total_amount || 0) - (booking.amount_paid || 0)
+      // Use calculated total (includes overdue, VAT, fees) instead of DB total_amount
+      const effectiveTotal = calcTotalMap.get(booking.id) ?? (booking.total_amount || 0)
+      const bookingOwed = effectiveTotal - (booking.amount_paid || 0)
       if (bookingOwed <= 0) continue
 
       const payForThis = Math.min(remaining, bookingOwed)
-      const totalAmount = booking.total_amount || 0
 
       // Use atomic RPC instead of direct UPDATE to prevent race conditions
       await supabase.rpc('update_booking_amount_paid', {
         p_booking_id: booking.id,
         p_amount_to_add: payForThis,
-        p_total_amount: totalAmount,
+        p_total_amount: effectiveTotal,
       })
 
       remaining -= payForThis
