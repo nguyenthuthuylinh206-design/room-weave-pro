@@ -709,7 +709,7 @@ export function BookingsPage() {
         roomPrice,
         nights,
         earlyCheckinCharge: checkoutCostBreakdown.earlyCheckinCharge,
-        lateCheckoutCharge: adjustedLateCharge,
+        lateCheckoutCharge: bType === 'daily' ? adjustedLateCharge : 0,
         hourlyRate: actionBooking.hourly_rate || 0,
         hours: actionBooking.booking_hours || 0,
         hourlyOvertimeCharge: bType === 'hourly' ? adjustedLateCharge : 0,
