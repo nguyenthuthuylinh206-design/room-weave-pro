@@ -568,7 +568,7 @@ export function BookingsPage() {
     try {
       const actualTime = format(now, 'HH:mm')
       const roomPrice = (booking as any).room_price || 0
-      const calculatedLateCharge = calculateLateCheckoutCharge(actualTime, roomPrice)
+      const calculatedLateCharge = calculateLateCheckoutCharge(actualTime, roomPrice, now, new Date(booking.check_out_date))
 
       // Calculate nights - use effective checkout date for overdue bookings
       const checkIn = new Date(booking.check_in_date)
@@ -637,7 +637,7 @@ export function BookingsPage() {
       // Calculate hourly overtime if applicable
       let hourlyOvertimeCharge = 0
       if (bType === 'hourly' && booking.hourly_end_time) {
-        const scheduledEnd = new Date(`${booking.check_out_date}T${booking.hourly_end_time}`)
+        const scheduledEnd = new Date(booking.hourly_end_time)
         const overtimeMinutes = (now.getTime() - scheduledEnd.getTime()) / (1000 * 60)
         if (overtimeMinutes > 0) {
           hourlyOvertimeCharge = Math.ceil(overtimeMinutes / 60) * bHourlyRate
@@ -709,7 +709,7 @@ export function BookingsPage() {
         roomPrice,
         nights,
         earlyCheckinCharge: checkoutCostBreakdown.earlyCheckinCharge,
-        lateCheckoutCharge: adjustedLateCharge,
+        lateCheckoutCharge: bType === 'daily' ? adjustedLateCharge : 0,
         hourlyRate: actionBooking.hourly_rate || 0,
         hours: actionBooking.booking_hours || 0,
         hourlyOvertimeCharge: bType === 'hourly' ? adjustedLateCharge : 0,
@@ -823,7 +823,7 @@ export function BookingsPage() {
         roomPrice,
         nights,
         earlyCheckinCharge: checkoutCostBreakdown.earlyCheckinCharge,
-        lateCheckoutCharge: adjustedLateCharge,
+        lateCheckoutCharge: bType2 === 'daily' ? adjustedLateCharge : 0,
         hourlyRate: actionBooking.hourly_rate || 0,
         hours: actionBooking.booking_hours || 0,
         hourlyOvertimeCharge: bType2 === 'hourly' ? adjustedLateCharge : 0,
@@ -1192,7 +1192,7 @@ export function BookingsPage() {
             bookingType={actionBooking.booking_type || 'daily'}
             hourlyRate={actionBooking.hourly_rate || undefined}
             bookingHours={actionBooking.booking_hours || undefined}
-            scheduledEndTime={actionBooking.hourly_end_time ? new Date(`${actionBooking.check_out_date}T${actionBooking.hourly_end_time}`) : undefined}
+            scheduledEndTime={actionBooking.hourly_end_time ? new Date(actionBooking.hourly_end_time) : undefined}
             monthlyRate={actionBooking.monthly_rate || undefined}
             bookingMonths={actionBooking.booking_months || undefined}
             damageItems={checkoutDamageItems}
@@ -1265,7 +1265,7 @@ export function BookingsPage() {
                 const totalDamageCharge = damageItems.reduce((sum, item) => sum + item.charge_amount * item.quantity, 0)
                 let hourlyOvertimeCharge = 0
                 if (bType === 'hourly' && updatedBooking.hourly_end_time) {
-                  const scheduledEnd = new Date(`${todayStr}T${updatedBooking.hourly_end_time}`)
+                  const scheduledEnd = new Date(updatedBooking.hourly_end_time)
                   const overtimeMinutes = (now.getTime() - scheduledEnd.getTime()) / (1000 * 60)
                   if (overtimeMinutes > 0) hourlyOvertimeCharge = Math.ceil(overtimeMinutes / 60) * (updatedBooking.hourly_rate || 0)
                 }
@@ -1762,7 +1762,7 @@ export function BookingsPage() {
           bookingType={actionBooking.booking_type || 'daily'}
           hourlyRate={actionBooking.hourly_rate || undefined}
           bookingHours={actionBooking.booking_hours || undefined}
-          scheduledEndTime={actionBooking.hourly_end_time ? new Date(`${actionBooking.check_out_date}T${actionBooking.hourly_end_time}`) : undefined}
+          scheduledEndTime={actionBooking.hourly_end_time ? new Date(actionBooking.hourly_end_time) : undefined}
           monthlyRate={actionBooking.monthly_rate || undefined}
           bookingMonths={actionBooking.booking_months || undefined}
           damageItems={checkoutDamageItems}
@@ -1871,7 +1871,7 @@ export function BookingsPage() {
               
               let hourlyOvertimeCharge = 0
               if (bType === 'hourly' && updatedBooking.hourly_end_time) {
-                const scheduledEnd = new Date(`${todayStr}T${updatedBooking.hourly_end_time}`)
+                const scheduledEnd = new Date(updatedBooking.hourly_end_time)
                 const overtimeMinutes = (now.getTime() - scheduledEnd.getTime()) / (1000 * 60)
                 if (overtimeMinutes > 0) hourlyOvertimeCharge = Math.ceil(overtimeMinutes / 60) * (updatedBooking.hourly_rate || 0)
               }

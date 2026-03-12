@@ -1,96 +1,87 @@
 
 
-## Kiểm tra luồng Đặt phòng → Nhận phòng → Checkout: Phát hiện lỗi
+## Phan tich luong phieu giao hang (Distribution Order)
 
-Sau khi kiểm tra toàn bộ codebase, tôi phát hiện **4 lỗi**:
+### Hien trang: Cau truc luong hien tai
 
----
+Luong hien tai co **3 cach tao** va **5 buoc xu ly**, kha phuc tap:
 
-### Bug 1: `hourly_end_time` bị parse sai → overtime = NaN 🔴 CRITICAL
+#### 3 Dau vao (Entry Points)
+1. **Tao thu cong** (`/inventory/distributions/new`) - CreateDistributionPage.tsx
+2. **Tao tu yeu cau bo sung** (`/inventory/distributions/from-supplements`) - CreateFromSupplementsPage.tsx
+3. **Tao tu Xuat kho** (`/inventory/outbound` voi category `room_assign`) - OutboundPage.tsx dung cung DistributionForm
 
-**Vị trí:** `BookingsPage.tsx` line 640, 1195, 1268, 1765, 1874
-
-**Vấn đề:** `hourly_end_time` được lưu dưới dạng ISO timestamp đầy đủ (VD: `"2026-03-12T16:00:00.000Z"`) — xác nhận từ `useBookingForm.ts` line 325: `hourlyEndTime = endDateTime.toISOString()` và line 1542 dùng `new Date(booking.hourly_end_time)` trực tiếp.
-
-Nhưng ở nhiều nơi khác, code lại nối chuỗi:
-```typescript
-new Date(`${booking.check_out_date}T${booking.hourly_end_time}`)
-// → new Date("2026-03-12T2026-03-12T16:00:00.000Z")
-// → Invalid Date → NaN → overtimeMinutes = NaN → hourlyOvertimeCharge = NaN
+#### 5 Buoc xu ly (Lifecycle)
+```text
+pending --> released --> in_progress --> completed --> closed
+  (1)        (2)           (3)            (4)          (5)
 ```
 
-**Hậu quả:** Booking theo giờ KHÔNG BAO GIỜ tính được phí vượt giờ. `NaN` lan sang `costBreakdown.totalAmount` → toàn bộ hóa đơn sai.
+1. **pending** - Kho chuan bi hang, kiem tra ton kho, giao cho nhan vien (Warehouse Manager click "Kiem tra & Giao hang")
+2. **released** - Nhan vien xac nhan da nhan du hang (Assignee click "Xac nhan da nhan du hang")
+3. **in_progress** - Nhan vien di giao tung phong, click "GIAO" -> chuyen sang room check
+4. **completed** - Tat ca phong da giao xong
+5. **closed** - Manager dong phieu
 
-**Sửa:** Tại 5 vị trí, đổi thành `new Date(booking.hourly_end_time)` trực tiếp:
-- Line 640: `const scheduledEnd = new Date(booking.hourly_end_time)`
-- Line 1195: `scheduledEndTime={actionBooking.hourly_end_time ? new Date(actionBooking.hourly_end_time) : undefined}`
-- Line 1268: tương tự
-- Line 1765: tương tự
-- Line 1874: tương tự
+### Van de phat hien
 
----
+#### 1. Trung lap dau vao: OutboundPage dung trung DistributionForm
+- `OutboundPage.tsx` (Xuat kho) khi chon category `room_assign` se render cung `DistributionForm` va goi `useCreateDistributionOrder` - hoan toan giong `CreateDistributionPage.tsx`
+- Nguoi dung co 2 noi tao cung 1 thu -> nhầm lẫn
+- **De xuat**: Khi chon "Giao den phong" trong OutboundPage, chuyen huong (redirect) sang `/inventory/distributions/new` thay vi nhan doi form
 
-### Bug 2: `calculateLateCheckoutCharge` thiếu tham số ngày → early checkout bị tính phụ thu 🟡 HIGH
+#### 2. Buoc "released" co the thua (khong can thiet voi nhieu truong hop)
+- Sau khi kho giao hang (pending -> released), nhan vien phai bam "Xac nhan da nhan du hang" de chuyen sang in_progress
+- Voi hotel nho (kho va nhan vien la 1 nguoi), buoc nay thua
+- Da co option `auto_release` nhung chi skip buoc kho, khong skip buoc nhan hang
+- **De xuat**: Them option "Tu dong bat dau giao" de skip ca buoc released, chuyen thang tu pending -> in_progress khi assignee la chinh nguoi tao
 
-**Vị trí:** `BookingsPage.tsx` line 571
+#### 3. Qua trinh giao phong phuc tap - click "GIAO" -> navigate ra room check
+- Khi nhan vien click "GIAO" tren 1 phong, he thong navigate sang `/rooms/{id}/check?type=delivery&...`
+- Phai lam room check roi moi quay lai -> mat flow, phai quay lai trang phieu de giao phong tiep
+- **De xuat**: Sau khi hoan thanh room check, tu dong quay lai trang phieu giao hang thay vi o lai trang room check
 
-```typescript
-const calculatedLateCharge = calculateLateCheckoutCharge(actualTime, roomPrice)
-// Thiếu actualCheckoutDate và scheduledCheckoutDate
-```
+#### 4. Thieu thong tin tong hop khi tao phieu
+- CreateDistributionPage khong hien thi summary (tong so phong, tong so item, tong so luong) truoc khi submit
+- DistributionForm hien thi 2 panel (chon phong + phan bo san pham) nhung khong co summary bar
+- **De xuat**: Them summary bar hien thi: X phong, Y loai SP, Z don vi truoc nut "Tao phieu"
 
-**Vấn đề:** Nếu khách checkout sớm (VD: ngày 10 thay vì ngày 15), nhưng checkout lúc 14:00 (sau 12:00), hàm KHÔNG biết đây là early checkout → vẫn tính phụ thu 30%. Hàm `calculateLateCheckoutCharge` chỉ skip late charge khi có dates và `isBefore(actualDay, scheduledDay)`.
+#### 5. Auto-fill logic tot nhung UX chua ro rang
+- `useDistributionForm` co `autoFillMissingItems` va `autoFillMissingItemsForRoom` de tu dong tinh so luong theo tieu chuan phong
+- Nhung trong CreateDistributionPage, nut auto-fill khong duoc hien thi ro rang
+- **De xuat**: Them nut "Tu dong phan bo theo tieu chuan" noi bat hon trong form
 
-**Sửa:** Truyền đủ params:
-```typescript
-const calculatedLateCharge = calculateLateCheckoutCharge(
-  actualTime, roomPrice, now, new Date(booking.check_out_date)
-)
-```
+### Ke hoach khac phuc
 
----
+#### Thay doi 1: Redirect OutboundPage khi chon "room_assign"
+**File**: `src/pages/inventory/OutboundPage.tsx`
+- Khi user chon category `room_assign`, hien thi thong bao va nut chuyen sang trang tao phieu giao hang chuyen dung thay vi render form trung lap
 
-### Bug 3: Walk-in deposit → `payment_status = 'partial'` nhưng `amount_paid = 0` 🟡 MEDIUM
+#### Thay doi 2: Them summary bar trong CreateDistributionPage
+**File**: `src/pages/inventory/CreateDistributionPage.tsx`
+- Hien thi summary compact (so phong, so SP, tong SL) ngay tren nut "Tao phieu"
+- Hien thi canh bao stock validation o footer thay vi chi trong form
 
-**Vị trí:** `useBookingForm.ts` line 457-465
+#### Thay doi 3: Auto-navigate ve phieu sau room check
+**File**: `src/components/distribution/components/UnifiedRoomList.tsx`
+- Them query param `returnTo` khi navigate sang room check
+- Sau khi room check xong, tu dong quay ve trang phieu giao hang
 
-```typescript
-// Walk-in with deposit 200k, total 500k:
-finalPaymentStatus = 'partial' // ✓ đúng
-finalAmountPaid = 0 // amount_paid stays 0
-```
+#### Thay doi 4: Don gian hoa flow cho hotel nho
+**File**: `src/components/distribution/components/DeliveryStepWizard.tsx`
+- Khi nguoi tao phieu cung la nguoi duoc phan cong (assignee), gop buoc "Kiem tra kho" va "Nhan hang" thanh 1 buoc duy nhat
+- Giam so buoc tu 5 xuong 3-4 tuy truong hop
 
-**Vấn đề:** Khi checkout, `remainingAmount = totalAmount - deposit - amountPaid = 500k - 200k - 0 = 300k`. Đúng về mặt tính toán. Nhưng `payment_status = 'partial'` trong khi `amount_paid = 0` gây nhầm lẫn — "partial" thường nghĩa là "đã trả một phần". Thực tế deposit chưa phải payment.
+#### Thay doi 5: Lam ro auto-fill trong form
+**File**: `src/components/distribution/forms/ItemAllocator.tsx`
+- Them nut "Tu dong phan bo" noi bat, co tooltip giai thich
+- Hien thi ket qua auto-fill (bao nhieu SP da them, bao nhieu thieu) ro rang hon
 
-Đây là vấn đề **ngữ nghĩa**, không gây sai tính toán tài chính. Tuy nhiên nếu filter booking theo `payment_status = 'partial'`, sẽ lẫn booking chưa trả đồng nào (chỉ có deposit) với booking đã trả thật.
+### Uu tien thuc hien
 
-**Sửa:** Walk-in có deposit nhưng chưa trả tiền nên giữ `payment_status = 'pending'`. Chỉ set `'partial'` khi `amount_paid > 0`.
-
----
-
-### Bug 4: `performCheckOut` trong `BookingsPage` truyền `lateCheckoutCharge` kép cho hourly 🟡 MEDIUM
-
-**Vị trí:** `BookingsPage.tsx` line 707-715
-
-```typescript
-const adjustedCostBreakdown = calculateBookingCost({
-  lateCheckoutCharge: adjustedLateCharge,     // Line 712
-  hourlyOvertimeCharge: bType === 'hourly' ? adjustedLateCharge : 0,  // Line 715
-})
-```
-
-Với hourly booking, `adjustedLateCharge` được truyền vào **CẢ HAI** `lateCheckoutCharge` và `hourlyOvertimeCharge`. Trong `calculateBookingCost`, case `'daily'` dùng `lateCheckoutCharge`, case `'hourly'` dùng `hourlyOvertimeCharge`. Vì `switch` đúng case, nên thực tế chỉ tính 1 lần → **KHÔNG sai giá trị**. Nhưng code dễ gây nhầm lẫn.
-
-**Sửa:** Cho rõ ràng: `lateCheckoutCharge: bType === 'daily' ? adjustedLateCharge : 0`
-
----
-
-### Tóm tắt
-
-| # | Mức độ | File | Thay đổi |
-|---|--------|------|----------|
-| 1 | 🔴 | `BookingsPage.tsx` (5 chỗ) | Parse `hourly_end_time` trực tiếp bằng `new Date()` |
-| 2 | 🟡 | `BookingsPage.tsx` L571 | Truyền đủ 4 params cho `calculateLateCheckoutCharge` |
-| 3 | 🟡 | `useBookingForm.ts` L457-465 | Walk-in deposit → `payment_status = 'pending'` |
-| 4 | 🟡 | `BookingsPage.tsx` L707-715, 819-829 | Tách rõ `lateCheckoutCharge` vs `hourlyOvertimeCharge` |
+1. **Thay doi 2** (Summary bar) - De lam, giam nhầm lẫn ngay
+2. **Thay doi 1** (Redirect OutboundPage) - Loai bo trung lap
+3. **Thay doi 3** (Auto-navigate ve phieu) - Cai thien flow giao hang
+4. **Thay doi 4** (Don gian hoa step) - Giam buoc cho hotel nho
+5. **Thay doi 5** (Auto-fill ro rang) - Cai thien UX
 
