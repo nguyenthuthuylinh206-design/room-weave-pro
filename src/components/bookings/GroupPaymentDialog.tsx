@@ -434,8 +434,12 @@ export function GroupPaymentDialog({
               <ScrollArea className="max-h-[200px]">
                 <div className="space-y-2">
                   {groupData.bookings.map((booking) => {
-                    const percentage = getPaymentPercentage(booking)
-                    const remaining = (booking.total_amount || 0) - (booking.amount_paid || 0)
+                    // Use calculated total from roomCostsByBooking if available (accounts for overdue)
+                    const costEntry = roomCostsByBooking?.find(c => c.bookingId === booking.id)
+                    const displayTotal = costEntry?.calculatedTotal || booking.total_amount || 0
+                    const displayPaid = (booking.amount_paid || 0) + (booking.deposit_amount || 0)
+                    const percentage = displayTotal > 0 ? Math.min(100, Math.round((displayPaid / displayTotal) * 100)) : 0
+                    const remaining = displayTotal - displayPaid
                     const isPaid = remaining <= 0
                     
                     return (
