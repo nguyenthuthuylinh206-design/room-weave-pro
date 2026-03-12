@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client'
 import { Json } from '@/integrations/supabase/types'
-import { differenceInDays } from 'date-fns'
+import { differenceInDays, format } from 'date-fns'
 
 export interface CreateInvoiceParams {
   bookingId: string
@@ -19,12 +19,28 @@ export async function createInvoiceAfterCheckout({
   hotelId,
   userId,
 }: CreateInvoiceParams): Promise<void> {
+  // Wait for RPC commit and replication to sync before reading booking data
+  await new Promise(resolve => setTimeout(resolve, 500))
+
   // 1. Fetch latest booking data (after RPC has updated total_amount, etc.)
   const { data: booking, error: bookingError } = await supabase
     .from('room_bookings')
     .select('*, room:rooms(room_number)')
     .eq('id', bookingId)
     .single()
+
+  // Retry once if booking hasn't been updated yet
+  if (!bookingError && booking && booking.status !== 'checked_out') {
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    const { data: retryBooking, error: retryError } = await supabase
+      .from('room_bookings')
+      .select('*, room:rooms(room_number)')
+      .eq('id', bookingId)
+      .single()
+    if (!retryError && retryBooking) {
+      Object.assign(booking, retryBooking)
+    }
+  }
 
   if (bookingError || !booking) {
     console.error('Invoice: Failed to fetch booking', bookingError)
@@ -82,6 +98,16 @@ export async function createInvoiceAfterCheckout({
       unit_price: hourlyRate,
       amount: hours * hourlyRate,
     })
+    // Overtime charge for hourly bookings (stored in late_checkout_charge)
+    const overtimeCharge = booking.late_checkout_charge || 0
+    if (overtimeCharge > 0) {
+      lineItems.push({
+        description: 'Phí vượt giờ',
+        quantity: 1,
+        unit_price: overtimeCharge,
+        amount: overtimeCharge,
+      })
+    }
   } else if (booking.booking_type === 'monthly') {
     const months = booking.booking_months || 0
     const monthlyRate = booking.monthly_rate || 0
@@ -111,9 +137,9 @@ export async function createInvoiceAfterCheckout({
     })
   }
 
-  // Late checkout charge
+  // Late checkout charge (only for daily/monthly bookings; hourly uses overtime above)
   const lateCheckout = booking.late_checkout_charge || 0
-  if (lateCheckout > 0) {
+  if (lateCheckout > 0 && booking.booking_type !== 'hourly') {
     lineItems.push({
       description: 'Phụ thu trả phòng muộn',
       quantity: 1,
@@ -200,7 +226,9 @@ export async function createInvoiceAfterCheckout({
       guest_address: booking.guest_address || null,
       room_number: roomNumber,
       check_in_date: booking.check_in_date,
-      check_out_date: booking.actual_check_out || booking.check_out_date,
+      check_out_date: booking.actual_check_out
+        ? format(new Date(booking.actual_check_out), 'yyyy-MM-dd')
+        : booking.check_out_date,
       line_items: lineItems as unknown as Json,
       subtotal,
       vat_rate: vatRate,
