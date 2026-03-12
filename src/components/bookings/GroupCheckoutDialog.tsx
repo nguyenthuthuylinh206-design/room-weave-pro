@@ -602,7 +602,7 @@ export function GroupCheckoutDialog({
     try {
       for (const bookingId of bookingIds) {
         const booking = groupData.bookings.find(b => b.id === bookingId)
-        if (!booking || booking.status === 'checked_out') continue
+        if (!booking || booking.status !== 'checked_in') continue
         
         const cost = roomCosts.get(bookingId)
         const lateCharge = cost?.adjustedLateCharge || 0
