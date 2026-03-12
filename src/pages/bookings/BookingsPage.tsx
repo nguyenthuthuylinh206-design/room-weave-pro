@@ -483,37 +483,36 @@ export function BookingsPage() {
     setShowCheckinConfirm(false)
 
     try {
-      const now = new Date()
+      // Use atomic RPC for check-in (updates booking + room in single transaction)
+      const { error } = await supabase.rpc('perform_checkin', {
+        p_booking_id: booking.id,
+        p_room_id: booking.room_id,
+        p_early_checkin_charge: finalEarlyCharge,
+      })
 
-      // Update booking status with the (possibly adjusted) early checkin charge
-      const updateData: any = {
-        status: 'checked_in',
-        actual_check_in: now.toISOString(),
-        early_checkin_charge: finalEarlyCharge,
+      if (error) {
+        if (error.message?.includes('ROOM_OCCUPIED')) {
+          const gName = error.message.split(':')[1] || 'unknown'
+          throw new Error(`Phòng đang có khách "${gName}". Vui lòng checkout trước.`)
+        }
+        if (error.message?.includes('INVALID_ROOM_STATUS')) {
+          const roomStatus = error.message.split(':')[1] || 'unknown'
+          throw new Error(`Phòng đang ở trạng thái "${roomStatus}", không thể check-in.`)
+        }
+        throw error
       }
 
-      // Add adjustment note if provided
+      // Update adjustment note separately if provided
       if (adjustmentNote) {
         const existingNotes = (booking as any).notes || ''
-        updateData.notes = existingNotes
+        const updateNotes = existingNotes
           ? `${existingNotes}\n[Điều chỉnh phụ thu check-in sớm: ${adjustmentNote}]`
           : `[Điều chỉnh phụ thu check-in sớm: ${adjustmentNote}]`
+        await supabase
+          .from('room_bookings')
+          .update({ notes: updateNotes })
+          .eq('id', booking.id)
       }
-
-      const { error: bookingError } = await supabase
-        .from('room_bookings')
-        .update(updateData)
-        .eq('id', booking.id)
-
-      if (bookingError) throw bookingError
-
-      // Update room status to 'occupied'
-      const { error: roomError } = await supabase
-        .from('rooms')
-        .update({ status: 'occupied' })
-        .eq('id', booking.room_id)
-
-      if (roomError) throw roomError
 
       toast({
         title: 'Check-in thành công',
@@ -524,6 +523,8 @@ export function BookingsPage() {
 
       queryClient.invalidateQueries({ queryKey: ['all-bookings'] })
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
+      queryClient.invalidateQueries({ queryKey: ['booking-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['today-checkins'] })
     } catch (error: any) {
       toast({
         variant: 'destructive',

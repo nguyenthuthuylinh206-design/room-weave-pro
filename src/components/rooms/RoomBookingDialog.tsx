@@ -255,7 +255,7 @@ export function RoomBookingDialog({
     setIsSubmitting(true)
     
     try {
-      const bookingData = {
+      const bookingData: Record<string, any> = {
         room_id: roomId,
         hotel_id: hotelId,
         tenant_id: tenantId,
@@ -284,6 +284,15 @@ export function RoomBookingDialog({
         total_amount: costBreakdown.totalAmount,
         deposit_amount: depositAmount,
         amount_paid: amountPaid,
+      }
+
+      // Preserve booking type fields on edit to prevent resetting hourly/monthly data
+      if (isEdit && booking) {
+        bookingData.booking_type = booking.booking_type || 'daily'
+        bookingData.hourly_rate = booking.hourly_rate
+        bookingData.monthly_rate = booking.monthly_rate
+        bookingData.booking_hours = booking.booking_hours
+        bookingData.booking_months = booking.booking_months
       }
       
       if (isEdit && booking) {
