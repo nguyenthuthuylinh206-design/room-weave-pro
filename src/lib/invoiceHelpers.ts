@@ -31,6 +31,19 @@ export async function createInvoiceAfterCheckout({
     return
   }
 
+  // Check for duplicate invoice - prevent creating multiple invoices for same booking
+  const { data: existingInvoice } = await supabase
+    .from('guest_invoices')
+    .select('id')
+    .eq('booking_id', bookingId)
+    .eq('tenant_id', tenantId)
+    .limit(1)
+
+  if (existingInvoice && existingInvoice.length > 0) {
+    console.log('Invoice: Already exists for booking', bookingId)
+    return
+  }
+
   // 2. Fetch service charges
   const { data: services } = await supabase
     .from('booking_service_charges')
