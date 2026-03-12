@@ -65,6 +65,8 @@ export function GroupPaymentDialog({
   hotelId,
   onPaymentComplete,
   calculatedRemaining,
+  calculatedTotal,
+  roomCostsByBooking,
 }: GroupPaymentDialogProps) {
   const { data: groupData, isLoading: isLoadingGroup } = useGroupBooking(bookingGroupId)
   
