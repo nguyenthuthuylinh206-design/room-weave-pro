@@ -584,7 +584,7 @@ export function RoomBookingDialog({
         p_damage_notes: damageAdjustmentNote || null,
         p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
         p_check_out_date: overdueCheckoutDate,
-        p_new_amount_paid: amountPaid,
+        p_new_amount_paid: null, // Let DB keep current amount_paid; only Pay & Checkout sets this
       })
       
       if (error) throw error
