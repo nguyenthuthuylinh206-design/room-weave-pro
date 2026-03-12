@@ -1192,7 +1192,7 @@ export function BookingsPage() {
             bookingType={actionBooking.booking_type || 'daily'}
             hourlyRate={actionBooking.hourly_rate || undefined}
             bookingHours={actionBooking.booking_hours || undefined}
-            scheduledEndTime={actionBooking.hourly_end_time ? new Date(`${actionBooking.check_out_date}T${actionBooking.hourly_end_time}`) : undefined}
+            scheduledEndTime={actionBooking.hourly_end_time ? new Date(actionBooking.hourly_end_time) : undefined}
             monthlyRate={actionBooking.monthly_rate || undefined}
             bookingMonths={actionBooking.booking_months || undefined}
             damageItems={checkoutDamageItems}
