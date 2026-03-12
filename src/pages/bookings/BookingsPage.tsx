@@ -745,6 +745,7 @@ export function BookingsPage() {
         p_damage_charges: damageCharges || 0,
         p_damage_notes: damageAdjustmentNote || null,
         p_damage_items: adjustedDamageItems ? JSON.stringify(adjustedDamageItems) : '[]',
+        p_new_amount_paid: null,
         p_check_out_date: overdueCheckoutDate,
       })
 
