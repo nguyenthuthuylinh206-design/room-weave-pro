@@ -440,7 +440,7 @@ export function useBookingForm() {
         const roomNetRevenue = roomTotal - roomOtaCommission
         
         let finalPaymentStatus = 'pending'
-        let finalAmountPaid = roomDeposit
+        let finalAmountPaid = 0
         let finalDepositAmount = roomDeposit
         let roomOtaPaidAmount = 0
         
