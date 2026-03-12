@@ -440,7 +440,7 @@ export function useBookingForm() {
         const roomNetRevenue = roomTotal - roomOtaCommission
         
         let finalPaymentStatus = 'pending'
-        let finalAmountPaid = roomDeposit
+        let finalAmountPaid = 0
         let finalDepositAmount = roomDeposit
         let roomOtaPaidAmount = 0
         
@@ -455,7 +455,14 @@ export function useBookingForm() {
           finalAmountPaid = roomOtaPaidAmount
           finalPaymentStatus = roomOtaPaidAmount >= roomTotal ? 'paid' : 'partial'
         } else {
+          // Walk-in: deposit goes to deposit_amount only, amount_paid stays 0
+          // Payment status based on deposit coverage
           finalPaymentStatus = roomDeposit >= roomTotal ? 'paid' : roomDeposit > 0 ? 'partial' : 'pending'
+          // For walk-ins with deposit covering total, set amount_paid accordingly
+          if (roomDeposit >= roomTotal) {
+            finalAmountPaid = roomTotal - roomDeposit // Will be 0 or negative, use 0
+            finalAmountPaid = 0
+          }
         }
         
         return {

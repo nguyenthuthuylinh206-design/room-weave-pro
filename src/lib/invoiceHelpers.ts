@@ -31,6 +31,19 @@ export async function createInvoiceAfterCheckout({
     return
   }
 
+  // Check for duplicate invoice - prevent creating multiple invoices for same booking
+  const { data: existingInvoice } = await supabase
+    .from('guest_invoices')
+    .select('id')
+    .eq('booking_id', bookingId)
+    .eq('tenant_id', tenantId)
+    .limit(1)
+
+  if (existingInvoice && existingInvoice.length > 0) {
+    console.log('Invoice: Already exists for booking', bookingId)
+    return
+  }
+
   // 2. Fetch service charges
   const { data: services } = await supabase
     .from('booking_service_charges')
@@ -48,10 +61,15 @@ export async function createInvoiceAfterCheckout({
   // 4. Build line items
   const lineItems: Array<{ description: string; quantity: number; unit_price: number; amount: number }> = []
 
-  // Room charge
+  // Room charge - use actual_check_out for accurate nights calculation
   const roomPrice = booking.room_price || 0
   const checkIn = new Date(booking.check_in_date)
-  const checkOut = new Date(booking.actual_check_out || booking.check_out_date)
+  // For checked_out bookings: prefer actual_check_out, then updated_at, then check_out_date
+  const checkOut = booking.actual_check_out 
+    ? new Date(booking.actual_check_out)
+    : booking.status === 'checked_out' && booking.updated_at
+      ? new Date(booking.updated_at)
+      : new Date(booking.check_out_date)
   const nights = Math.max(1, differenceInDays(checkOut, checkIn))
   const roomNumber = (booking.room as any)?.room_number || ''
 

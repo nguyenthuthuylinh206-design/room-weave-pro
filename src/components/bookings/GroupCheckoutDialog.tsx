@@ -1342,7 +1342,29 @@ export function GroupCheckoutDialog({
           // Refetch group data to get updated amount_paid
           await queryClient.invalidateQueries({ queryKey: ['group-booking', bookingGroupId] })
           await queryClient.refetchQueries({ queryKey: ['group-booking', bookingGroupId] })
-          // Recalculate costs with fresh data
+          // Recalculate costs with fresh data after payment
+          if (groupData) {
+            const bookingsToCalc = groupData.bookings
+              .filter(b => selectedRooms.has(b.room_id) && b.status === 'checked_in')
+              .map(b => ({
+                bookingId: b.id,
+                roomId: b.room_id,
+                roomNumber: b.room?.room_number || '',
+                bookingType: (b.booking_type || 'daily') as 'daily' | 'hourly' | 'monthly',
+                roomPrice: b.room_price || 0,
+                nights: Math.max(1, differenceInDays(new Date(b.check_out_date), new Date(b.check_in_date))),
+                hourlyRate: b.hourly_rate || 0,
+                hours: b.booking_hours || 0,
+                monthlyRate: b.monthly_rate || 0,
+                months: b.booking_months || 0,
+                totalAmount: b.total_amount || 0,
+                depositAmount: b.deposit_amount || 0,
+                amountPaid: b.amount_paid || 0,
+                checkInDate: new Date(b.check_in_date),
+                checkOutDate: new Date(b.check_out_date),
+              }))
+            await calculateAllCosts(bookingsToCalc)
+          }
           toast.success('Thanh toán thành công! Vui lòng kiểm tra phòng trước khi checkout.')
         }}
       />
