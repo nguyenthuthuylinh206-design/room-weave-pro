@@ -1370,7 +1370,7 @@ export function RoomBookingDialog({
               
               // Fetch service charges summary
               try {
-                const summary = await fetchServiceChargeSummary(booking.id, tenantId)
+                const summary = await fetchServiceChargeSummary(booking.id, tenantId, { includeAllBilled: true })
                 setServiceCharges(summary.grandTotal)
                 setCheckoutServiceDetails(summary.details)
               } catch (err) {

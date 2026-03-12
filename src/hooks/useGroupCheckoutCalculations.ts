@@ -131,7 +131,7 @@ export function useGroupCheckoutCalculations() {
         .single()
       
       if (bookingData?.tenant_id) {
-        const summary = await fetchServiceChargeSummary(booking.bookingId, bookingData.tenant_id)
+        const summary = await fetchServiceChargeSummary(booking.bookingId, bookingData.tenant_id, { includeAllBilled: true })
         serviceCharges = summary.grandTotal
       }
     } catch (e) {
