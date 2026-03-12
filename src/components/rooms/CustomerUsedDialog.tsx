@@ -73,18 +73,31 @@ export function CustomerUsedDialog({
       })
 
       // Check if item is chargeable and create billing record
-      if (bookingId) {
-        try {
-          const { data: itemData } = await supabase
-            .from('items')
-            .select('is_chargeable, charge_price, unit_price')
-            .eq('id', item.item_id)
-            .single()
+      try {
+        const { data: itemData } = await supabase
+          .from('items')
+          .select('is_chargeable, charge_price, unit_price')
+          .eq('id', item.item_id)
+          .single()
 
-          if (itemData?.is_chargeable) {
+        if (itemData?.is_chargeable) {
+          // Find active booking for this room
+          const activeBookingId = bookingId || await (async () => {
+            const { data: activeBooking } = await supabase
+              .from('room_bookings')
+              .select('id')
+              .eq('room_id', roomId)
+              .in('status', ['checked_in', 'confirmed'])
+              .order('check_in_date', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+            return activeBooking?.id || null
+          })()
+
+          if (activeBookingId) {
             const chargePrice = itemData.charge_price ?? itemData.unit_price ?? 0
             await createChargeable.mutateAsync({
-              booking_id: bookingId,
+              booking_id: activeBookingId,
               room_id: roomId,
               item_id: item.item_id,
               item_code: item.item_code,
@@ -93,9 +106,9 @@ export function CustomerUsedDialog({
               unit_price: chargePrice,
             })
           }
-        } catch (error) {
-          console.error('Failed to create chargeable consumption:', error)
         }
+      } catch (error) {
+        console.error('Failed to create chargeable consumption:', error)
       }
       
       triggerHaptic('success')
