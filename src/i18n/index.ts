@@ -118,6 +118,7 @@ i18n
       'purchaseOrders',
       'distribution',
       'superAdmin',
+      'landing',
     ],
     interpolation: {
       escapeValue: false,

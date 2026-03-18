@@ -137,6 +137,9 @@ const queryClient = new QueryClient({
 });
 
 const router = createBrowserRouter([
+  // Landing page - public
+  { path: "/", element: <LandingPage /> },
+
   // Public routes
   { path: "/auth/login", element: <Login /> },
   { path: "/auth/register", element: <Register /> },
@@ -196,9 +199,9 @@ const router = createBrowserRouter([
     ],
   },
 
-  // Protected routes
+  // Protected routes - Dashboard
   {
-    path: "/",
+    path: "/dashboard",
     element: (
       <AuthGuard>
         <OnboardingGuard>
