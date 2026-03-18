@@ -12,6 +12,7 @@ import { PermissionRoute } from "@/components/auth/PermissionRoute";
 import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
 import { MainLayout } from "@/components/layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
+import LandingPage from "./pages/LandingPage";
 import { InventoryDashboardPage } from "./pages/inventory/InventoryDashboardPage";
 import { SupplementsPage } from "./pages/supplements/SupplementsPage";
 import { TransactionListPage } from "./pages/inventory/TransactionListPage";
@@ -136,6 +137,9 @@ const queryClient = new QueryClient({
 });
 
 const router = createBrowserRouter([
+  // Landing page - public
+  { path: "/landing", element: <LandingPage /> },
+
   // Public routes
   { path: "/auth/login", element: <Login /> },
   { path: "/auth/register", element: <Register /> },

@@ -1,0 +1,104 @@
+{
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "contact": "Contact",
+    "login": "Sign In",
+    "register": "Get Started Free",
+    "dashboard": "Go to Dashboard"
+  },
+  "hero": {
+    "badge": "#1 Hotel Management Platform in Vietnam",
+    "title": "Smart & comprehensive",
+    "titleHighlight": "hotel management",
+    "subtitle": "Optimize operations, control asset inventory, laundry, maintenance — all in one system. Save time, reduce losses, increase efficiency.",
+    "cta": "Start Free Trial",
+    "ctaSecondary": "View Pricing",
+    "noCard": "No credit card required • Setup in 5 minutes"
+  },
+  "stats": {
+    "rooms": "Rooms managed",
+    "hotels": "Hotels",
+    "transactions": "Transactions/month",
+    "uptime": "Uptime"
+  },
+  "features": {
+    "title": "All the tools you need",
+    "subtitle": "One platform to manage every aspect of hotel operations",
+    "rooms": {
+      "title": "Room Management",
+      "description": "Track room status, check-in/check-out, shift-based room inspections with standardized processes."
+    },
+    "inventory": {
+      "title": "Inventory & Assets",
+      "description": "Real-time stock management, inbound/outbound/audit, automatic low-stock alerts."
+    },
+    "laundry": {
+      "title": "Laundry",
+      "description": "Track laundry batches, manage vendors, auto-reconcile sent/received quantities."
+    },
+    "maintenance": {
+      "title": "Maintenance",
+      "description": "Create maintenance requests, assign tasks, track progress and detect recurring issues."
+    },
+    "bookings": {
+      "title": "Bookings",
+      "description": "Manage hourly/daily/monthly bookings, track payments and guest invoices."
+    },
+    "reports": {
+      "title": "Reports & Analytics",
+      "description": "Overview dashboard, inventory, revenue, operations reports with visual charts."
+    },
+    "distribution": {
+      "title": "Distribution",
+      "description": "Create distribution orders by floor/shift, track delivery to each room."
+    },
+    "multiHotel": {
+      "title": "Multi-Hotel",
+      "description": "Manage multiple hotels on one account with per-property permissions."
+    }
+  },
+  "pricing": {
+    "title": "Simple, transparent pricing",
+    "subtitle": "Pay only for rooms you use. No hidden fees.",
+    "perRoom": "/ room / day",
+    "popular": "Most Popular",
+    "cta": "Get Started",
+    "ctaEnterprise": "Contact Sales",
+    "starter": {
+      "name": "Starter",
+      "price": "Free",
+      "description": "For small hotels wanting to try",
+      "features": ["Up to 5 rooms", "Basic room management", "Inbound/outbound stock", "1 user", "Email support"]
+    },
+    "professional": {
+      "name": "Professional",
+      "price": "1,000đ",
+      "description": "For small and medium hotels",
+      "features": ["Unlimited rooms", "All features", "Laundry & Maintenance", "Multi-user & permissions", "Advanced reports", "Priority support"]
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": "Contact",
+      "description": "For large hotel chains",
+      "features": ["All Pro features", "Multi-hotel", "API integration", "Custom development", "Dedicated account manager", "99.9% SLA"]
+    }
+  },
+  "cta": {
+    "title": "Ready to optimize your hotel operations?",
+    "subtitle": "Start free today. No credit card required.",
+    "button": "Sign Up Free"
+  },
+  "footer": {
+    "description": "Comprehensive hotel operations management platform that helps you save time and reduce losses.",
+    "product": "Product",
+    "support": "Support",
+    "legal": "Legal",
+    "helpCenter": "Help Center",
+    "documentation": "Documentation",
+    "contactUs": "Contact Us",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "copyright": "© 2026 HotelOps. All rights reserved."
+  }
+}

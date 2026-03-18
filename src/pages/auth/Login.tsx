@@ -49,7 +49,7 @@ const Login = () => {
   }
 
   const handleLoginSuccess = () => {
-    navigate('/auth/callback')
+    navigate('/auth/callback', { replace: true })
   }
 
   // Show quick re-login if there's a remembered email and user hasn't clicked "switch account"
