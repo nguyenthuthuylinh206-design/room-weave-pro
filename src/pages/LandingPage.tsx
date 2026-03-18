@@ -13,7 +13,7 @@ const LandingPage = () => {
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      navigate('/dashboard', { replace: true })
+      navigate('/', { replace: true })
     }
   }, [isAuthenticated, loading, navigate])
 

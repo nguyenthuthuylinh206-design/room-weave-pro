@@ -14,7 +14,7 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth/login" replace />
+    return <Navigate to="/landing" replace />
   }
 
   return <>{children}</>

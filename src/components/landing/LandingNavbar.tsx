@@ -92,7 +92,7 @@ export const LandingNavbar = () => {
             <div className="border-t border-[hsl(215,20%,25%)] pt-3 mt-2 flex flex-col gap-2">
               {isAuthenticated ? (
                 <Button asChild size="sm">
-                  <Link to="/dashboard">{t('nav.dashboard')}</Link>
+                  <Link to="/">{t('nav.dashboard')}</Link>
                 </Button>
               ) : (
                 <>
