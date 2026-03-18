@@ -89,6 +89,7 @@ export const resources = {
     purchaseOrders: enPurchaseOrders,
     distribution: enDistribution,
     superAdmin: enSuperAdmin,
+    landing: enLanding,
   },
 };
 
