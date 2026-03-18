@@ -41,7 +41,7 @@ export function useSuperAdminAuth() {
         description: 'Bạn không có quyền truy cập cổng quản trị viên cấp cao.',
         variant: 'destructive',
       });
-      navigate('/dashboard');
+      navigate('/');
       return;
     }
   }, [user, isLoading, isSuperAdminUser, navigate, toast]);

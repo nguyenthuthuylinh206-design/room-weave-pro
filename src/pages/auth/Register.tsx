@@ -12,7 +12,7 @@ const Register = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard', { replace: true })
+      navigate('/', { replace: true })
     }
   }, [isAuthenticated, navigate])
 

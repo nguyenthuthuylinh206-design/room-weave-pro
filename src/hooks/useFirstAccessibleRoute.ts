@@ -31,7 +31,7 @@ export function useFirstAccessibleRoute() {
 
     // Super admin và owner có quyền truy cập tất cả
     if (hasAnyRole(['super_admin', 'owner'])) {
-      return '/dashboard'
+      return '/'
     }
 
     // Nếu chưa có permissions data, return null
