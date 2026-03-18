@@ -42,7 +42,7 @@ export function AccessDenied({ module, action, requiredRoles }: AccessDeniedProp
           <ArrowLeft className="mr-2 h-4 w-4" />
           {t('accessDenied.goBack', 'Quay lại')}
         </Button>
-        <Button onClick={() => navigate('/')}>
+        <Button onClick={() => navigate('/dashboard')}>
           <Home className="mr-2 h-4 w-4" />
           {t('accessDenied.goHome', 'Trang chủ')}
         </Button>
