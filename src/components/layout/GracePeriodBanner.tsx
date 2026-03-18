@@ -14,7 +14,7 @@ export function GracePeriodBanner() {
     isExpiringSoon,
     daysUntilExpiry,
     graceDaysRemaining,
-    isLoading,
+    isLoading
   } = useGracePeriod();
   const [dismissed, setDismissed] = useState(false);
   const [expiringSoonDismissed, setExpiringSoonDismissed] = useState(
@@ -37,12 +37,12 @@ export function GracePeriodBanner() {
           size="sm"
           variant="secondary"
           onClick={() => navigate('/settings/subscription')}
-          className="shrink-0"
-        >
+          className="shrink-0">
+          
           Gia hạn ngay
         </Button>
-      </div>
-    );
+      </div>);
+
   }
 
   // Priority 2: Grace period (expired but within 7-day grace)
@@ -60,8 +60,8 @@ export function GracePeriodBanner() {
             size="sm"
             variant="secondary"
             onClick={() => navigate('/settings/subscription')}
-            className="shrink-0"
-          >
+            className="shrink-0">
+            
             Gia hạn ngay
           </Button>
           <Button
@@ -69,13 +69,13 @@ export function GracePeriodBanner() {
             variant="ghost"
             type="button"
             onClick={() => setDismissed(true)}
-            className="h-7 w-7 p-0 text-white hover:bg-white/20"
-          >
+            className="h-7 w-7 p-0 text-white hover:bg-white/20">
+            
             <X className="h-4 w-4" />
           </Button>
         </div>
-      </div>
-    );
+      </div>);
+
   }
 
   // Priority 3: Expiring soon (≤7 days before expiry)
@@ -85,15 +85,15 @@ export function GracePeriodBanner() {
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 shrink-0 text-primary" />
           <span className="text-sm text-foreground">
-            Gói đăng ký sẽ hết hạn sau <strong className="text-primary">{daysUntilExpiry} ngày</strong>. Gia hạn ngay để không bị gián đoạn dịch vụ.
+            Gói đăng ký sẽ hết hạn sau <strong className="text-[#fa002a]">{daysUntilExpiry} ngày</strong>. Gia hạn ngay để không bị gián đoạn dịch vụ.
           </span>
         </div>
         <div className="flex items-center gap-2">
           <Button
             size="sm"
             onClick={() => navigate('/settings/subscription')}
-            className="shrink-0"
-          >
+            className="shrink-0 bg-[#e60000]">
+            
             Gia hạn ngay
           </Button>
           <Button
@@ -104,13 +104,13 @@ export function GracePeriodBanner() {
               setExpiringSoonDismissed(true);
               sessionStorage.setItem(DISMISS_KEY, 'true');
             }}
-            className="h-7 w-7 p-0 text-muted-foreground hover:bg-muted"
-          >
+            className="h-7 w-7 p-0 text-muted-foreground hover:bg-muted">
+            
             <X className="h-4 w-4" />
           </Button>
         </div>
-      </div>
-    );
+      </div>);
+
   }
 
   return null;
