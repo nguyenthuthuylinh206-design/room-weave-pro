@@ -23,6 +23,7 @@ import viUsers from './locales/vi/users.json';
 import viPurchaseOrders from './locales/vi/purchaseOrders.json';
 import viDistribution from './locales/vi/distribution.json';
 import viSuperAdmin from './locales/vi/superAdmin.json';
+import viLanding from './locales/vi/landing.json';
 
 // Import translations - English Common
 import enCommon from './locales/en/common.json';
