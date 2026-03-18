@@ -46,6 +46,7 @@ import enUsers from './locales/en/users.json';
 import enPurchaseOrders from './locales/en/purchaseOrders.json';
 import enDistribution from './locales/en/distribution.json';
 import enSuperAdmin from './locales/en/superAdmin.json';
+import enLanding from './locales/en/landing.json';
 
 export const resources = {
   vi: {
