@@ -50,7 +50,7 @@ export const LandingNavbar = () => {
           <div className="hidden md:flex items-center gap-3">
             {isAuthenticated ? (
               <Button asChild size="sm">
-                <Link to="/dashboard">{t('nav.dashboard')}</Link>
+                <Link to="/">{t('nav.dashboard')}</Link>
               </Button>
             ) : (
               <>
