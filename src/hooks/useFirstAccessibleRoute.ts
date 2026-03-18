@@ -4,7 +4,7 @@ import { useUser } from './useUser'
 
 // Thứ tự ưu tiên các route
 const ROUTE_PRIORITY: { module: string; path: string; label: string }[] = [
-  { module: 'dashboard', path: '/dashboard', label: 'Dashboard' },
+  { module: 'dashboard', path: '/', label: 'Dashboard' },
   { module: 'items', path: '/items', label: 'Vật tư' },
   { module: 'rooms', path: '/rooms', label: 'Phòng' },
   { module: 'inventory', path: '/inventory', label: 'Kho' },
