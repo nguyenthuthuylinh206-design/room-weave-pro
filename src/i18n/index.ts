@@ -68,6 +68,7 @@ export const resources = {
     purchaseOrders: viPurchaseOrders,
     distribution: viDistribution,
     superAdmin: viSuperAdmin,
+    landing: viLanding,
   },
   en: {
     common: enCommon,
