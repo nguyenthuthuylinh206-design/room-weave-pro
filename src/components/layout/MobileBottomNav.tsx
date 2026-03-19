@@ -26,6 +26,7 @@ export const MobileBottomNav = () => {
   const { data: modulePermissions } = useUserModulePermissions()
   const { data: pendingTaskCount = 0 } = usePendingTaskCount()
   const { data: pendingCounts } = usePendingCounts()
+  const { hasMode } = useUsageMode()
 
   // Hide MobileBottomNav when on room check pages (staff needs full screen for check workflow)
   if (location.pathname.includes('/check')) {
