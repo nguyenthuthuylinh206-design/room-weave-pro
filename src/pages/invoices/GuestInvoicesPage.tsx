@@ -1,26 +1,26 @@
 import { useState } from 'react'
-import { Search, FileText, Download, Plus, MoreHorizontal, CheckCircle, XCircle } from 'lucide-react'
+import { Search, FileText, Download, Plus, MoreHorizontal, CheckCircle, XCircle, Eye, Edit, Copy, Printer, Mail, FileSpreadsheet } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useGuestInvoices, useUpdateGuestInvoice } from '@/hooks/useGuestInvoices'
+import { useGuestInvoices, useUpdateGuestInvoice, useCreateGuestInvoice, GuestInvoice } from '@/hooks/useGuestInvoices'
+import { useTenant } from '@/hooks/useTenant'
+import { useHotelContext } from '@/contexts/HotelContext'
+import { useUser } from '@/hooks/useUser'
 import { formatCurrency } from '@/lib/utils'
 import { format } from 'date-fns'
-import { generateInvoicePDF } from '@/components/invoices/InvoicePDFTemplate'
+import { generateInvoicePDF, printInvoice } from '@/components/invoices/InvoicePDFTemplate'
+import { exportToExcel } from '@/utils/exportUtils'
 import CreateInvoiceDialog from '@/components/invoices/CreateInvoiceDialog'
+import InvoicePreviewDialog from '@/components/invoices/InvoicePreviewDialog'
+import EditInvoiceDialog from '@/components/invoices/EditInvoiceDialog'
+import SendInvoiceEmailDialog from '@/components/invoices/SendInvoiceEmailDialog'
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'Tất cả' },
@@ -39,13 +39,16 @@ export default function GuestInvoicesPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [showCreate, setShowCreate] = useState(false)
+  const [previewInvoice, setPreviewInvoice] = useState<GuestInvoice | null>(null)
+  const [editInvoice, setEditInvoice] = useState<GuestInvoice | null>(null)
+  const [emailInvoice, setEmailInvoice] = useState<GuestInvoice | null>(null)
 
+  const { tenant } = useTenant()
+  const { selectedHotel } = useHotelContext()
+  const { user } = useUser()
   const { data: invoices = [], isLoading } = useGuestInvoices({ status: statusFilter, search })
   const updateInvoice = useUpdateGuestInvoice()
-
-  const handleExportPDF = (invoice: any) => {
-    generateInvoicePDF(invoice)
-  }
+  const createInvoice = useCreateGuestInvoice()
 
   const handleIssue = (id: string) => {
     updateInvoice.mutate({ id, status: 'issued', issued_at: new Date().toISOString() })
@@ -53,6 +56,48 @@ export default function GuestInvoicesPage() {
 
   const handleCancel = (id: string) => {
     updateInvoice.mutate({ id, status: 'cancelled' })
+  }
+
+  const handleDuplicate = async (inv: GuestInvoice) => {
+    if (!tenant?.id || !selectedHotel?.id) return
+    await createInvoice.mutateAsync({
+      tenant_id: tenant.id,
+      hotel_id: selectedHotel.id,
+      guest_name: inv.guest_name,
+      guest_phone: inv.guest_phone,
+      guest_address: inv.guest_address,
+      guest_tax_code: inv.guest_tax_code,
+      company_name: inv.company_name,
+      room_number: inv.room_number,
+      check_in_date: inv.check_in_date,
+      check_out_date: inv.check_out_date,
+      line_items: inv.line_items,
+      subtotal: inv.subtotal,
+      vat_rate: inv.vat_rate,
+      vat_amount: inv.vat_amount,
+      service_fee_rate: inv.service_fee_rate,
+      service_fee_amount: inv.service_fee_amount,
+      total_amount: inv.total_amount,
+      deposit_amount: inv.deposit_amount,
+      amount_paid: 0,
+      payment_method: inv.payment_method,
+      notes: `Nhân bản từ ${inv.invoice_number}`,
+      status: 'draft',
+      created_by: user?.id || null,
+    })
+  }
+
+  const handleExportExcel = () => {
+    const data = invoices.map(inv => ({
+      'Số HĐ': inv.invoice_number,
+      'Khách hàng': inv.guest_name,
+      'Phòng': inv.room_number || '',
+      'Tổng tiền': inv.total_amount,
+      'Đã TT': inv.amount_paid,
+      'Trạng thái': STATUS_OPTIONS.find(s => s.value === inv.status)?.label || inv.status,
+      'Ngày tạo': inv.created_at ? format(new Date(inv.created_at), 'dd/MM/yyyy HH:mm') : '',
+    }))
+    exportToExcel(data, `hoa-don-khach-${format(new Date(), 'yyyy-MM-dd')}`, 'Hóa đơn')
   }
 
   return (
@@ -63,9 +108,14 @@ export default function GuestInvoicesPage() {
           <h1 className="text-lg font-semibold">Hóa đơn khách</h1>
           <Badge variant="secondary" className="text-xs">{invoices.length}</Badge>
         </div>
-        <Button type="button" size="sm" className="h-8" onClick={() => setShowCreate(true)}>
-          <Plus className="h-4 w-4 mr-1" /> Tạo hóa đơn
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" size="sm" className="h-8" onClick={handleExportExcel} disabled={invoices.length === 0}>
+            <FileSpreadsheet className="h-4 w-4 mr-1" /> Excel
+          </Button>
+          <Button type="button" size="sm" className="h-8" onClick={() => setShowCreate(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Tạo hóa đơn
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -93,13 +143,14 @@ export default function GuestInvoicesPage() {
       ) : (
         <div className="border rounded-lg divide-y">
           {invoices.map((inv) => (
-            <div key={inv.id} className="flex items-center gap-3 p-3">
+            <div key={inv.id} className="flex items-center gap-3 p-3 hover:bg-muted/30 cursor-pointer" onClick={() => setPreviewInvoice(inv)}>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs font-medium">{inv.invoice_number}</span>
                   <span className={`text-xs font-medium ${STATUS_COLORS[inv.status] || ''}`}>
                     {STATUS_OPTIONS.find(s => s.value === inv.status)?.label}
                   </span>
+                  {(inv as any).email_sent_at && <Mail className="h-3 w-3 text-muted-foreground" />}
                 </div>
                 <div className="text-sm">{inv.guest_name} {inv.room_number && `• P.${inv.room_number}`}</div>
                 <div className="text-xs text-muted-foreground">
@@ -109,16 +160,34 @@ export default function GuestInvoicesPage() {
               <div className="text-right flex-shrink-0">
                 <div className="font-mono text-sm font-medium">{formatCurrency(inv.total_amount)}</div>
               </div>
-              <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleExportPDF(inv)}>
-                <Download className="h-4 w-4" />
-              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenuItem onClick={() => setPreviewInvoice(inv)}>
+                    <Eye className="h-4 w-4 mr-2" /> Xem trước
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => generateInvoicePDF(inv)}>
+                    <Download className="h-4 w-4 mr-2" /> Tải PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => printInvoice(inv)}>
+                    <Printer className="h-4 w-4 mr-2" /> In
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setEmailInvoice(inv)}>
+                    <Mail className="h-4 w-4 mr-2" /> Gửi email
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {inv.status === 'draft' && (
+                    <DropdownMenuItem onClick={() => setEditInvoice(inv)}>
+                      <Edit className="h-4 w-4 mr-2" /> Chỉnh sửa
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => handleDuplicate(inv)}>
+                    <Copy className="h-4 w-4 mr-2" /> Nhân bản
+                  </DropdownMenuItem>
                   {inv.status === 'draft' && (
                     <DropdownMenuItem onClick={() => handleIssue(inv.id)}>
                       <CheckCircle className="h-4 w-4 mr-2" /> Xuất chính thức
@@ -137,6 +206,22 @@ export default function GuestInvoicesPage() {
       )}
 
       <CreateInvoiceDialog open={showCreate} onOpenChange={setShowCreate} />
+      <InvoicePreviewDialog
+        invoice={previewInvoice}
+        open={!!previewInvoice}
+        onOpenChange={(v) => { if (!v) setPreviewInvoice(null) }}
+        onSendEmail={(inv) => { setPreviewInvoice(null); setEmailInvoice(inv) }}
+      />
+      <EditInvoiceDialog
+        invoice={editInvoice}
+        open={!!editInvoice}
+        onOpenChange={(v) => { if (!v) setEditInvoice(null) }}
+      />
+      <SendInvoiceEmailDialog
+        invoice={emailInvoice}
+        open={!!emailInvoice}
+        onOpenChange={(v) => { if (!v) setEmailInvoice(null) }}
+      />
     </div>
   )
 }
