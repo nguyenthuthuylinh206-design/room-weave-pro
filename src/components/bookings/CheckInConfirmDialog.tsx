@@ -155,11 +155,11 @@ export function CheckInConfirmDialog({
             Xác nhận Check-in
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
-            <div className="space-y-4">
+            <div className="space-y-4 pt-1">
               {/* Guest & Room Info */}
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="grid grid-cols-2 gap-3 text-sm px-1">
                 <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
+                  <User className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span>Khách: <strong>{guestName}</strong></span>
                 </div>
                 <div className="flex items-center gap-2 justify-end">
@@ -167,13 +167,13 @@ export function CheckInConfirmDialog({
                 </div>
                 {guestPhone && (
                   <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="text-muted-foreground">{guestPhone}</span>
                   </div>
                 )}
                 {bookingSource && (
                   <div className="flex items-center gap-2 justify-end">
-                    <span className="text-xs text-muted-foreground">Nguồn: {bookingSource}</span>
+                    <span className="text-xs text-muted-foreground">Nguồn: {getBookingSourceLabel(bookingSource)}</span>
                   </div>
                 )}
               </div>
