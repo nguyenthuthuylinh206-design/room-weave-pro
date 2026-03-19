@@ -44,9 +44,13 @@ interface MenuItem {
   path: string
   module?: string
   badgeKey?: PendingCountKey
+  minMode?: UsageMode
 }
 
 interface MenuSection {
+  title?: string
+  items: MenuItem[]
+}
   title?: string
   items: MenuItem[]
 }
