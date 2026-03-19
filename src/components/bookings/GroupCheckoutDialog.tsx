@@ -8,50 +8,21 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
-import {
-  Users,
   DoorOpen,
-  CheckCircle,
-  Clock,
-  AlertCircle,
   AlertTriangle,
   Loader2,
   Minimize2,
-  CreditCard,
-  ClipboardCheck,
   Send,
-  CheckCircle2,
-  Check,
-  Phone,
-  ChevronDown,
-  ChevronUp,
-  Printer,
+  AlertCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format, differenceInDays, isAfter, startOfDay } from 'date-fns'
-import { vi } from 'date-fns/locale'
 import { formatVNCurrency } from '@/lib/pricing'
-import { formatCurrency } from '@/lib/utils'
 import { useGroupBooking, GroupBookingRoom, GroupBookingData } from '@/hooks/useGroupBooking'
 import { useOnShiftStaffList, OnShiftStaffMember } from '@/hooks/useOnShiftStaffList'
 import { supabase } from '@/integrations/supabase/client'
@@ -60,8 +31,7 @@ import { createInvoiceAfterCheckout } from '@/lib/invoiceHelpers'
 import { GroupPaymentDialog } from './GroupPaymentDialog'
 import { useUser } from '@/hooks/useUser'
 import { useGroupCheckoutCalculations, GroupBookingCostData } from '@/hooks/useGroupCheckoutCalculations'
-import { isEarlyCheckout, DamageChargeItem } from '@/lib/bookingCalculations'
-import { DamageChargesSection } from './DamageChargesSection'
+import { isEarlyCheckout } from '@/lib/bookingCalculations'
 import { DamageReportDocument } from './DamageReportDocument'
 import { 
   triggerRoomCheckoutNotification,
@@ -70,8 +40,11 @@ import {
   sendTelegramNotification 
 } from '@/hooks/useNotificationTriggers'
 import { StaffDetailSheet } from '@/components/staff/StaffDetailSheet'
-import { InspectionStatusCard } from './InspectionStatusCard'
 import type { StaffWithStatus } from '@/hooks/useStaffStatus'
+
+import { GroupCheckoutRoomCard } from './group-checkout/GroupCheckoutRoomCard'
+import { GroupCheckoutSummary } from './group-checkout/GroupCheckoutSummary'
+import { GroupCheckoutStickyFooter } from './group-checkout/GroupCheckoutStickyFooter'
 
 export interface GroupCheckoutDialogProps {
   open: boolean
@@ -103,14 +76,6 @@ interface InspectionStatus {
   phase1DamageData?: Phase1DamageData
 }
 
-// Late checkout tiers (same as CheckoutSummaryDialog)
-const LATE_CHECKOUT_TIERS = [
-  { id: 'before12', label: 'Trước 12:00', percent: 0, description: 'Miễn phí', minHour: 0, maxHour: 12 },
-  { id: '12to15', label: '12:00 - 15:00', percent: 30, description: '', minHour: 12, maxHour: 15 },
-  { id: '15to18', label: '15:00 - 18:00', percent: 50, description: '', minHour: 15, maxHour: 18 },
-  { id: 'after18', label: 'Sau 18:00', percent: 100, description: '= 1 đêm', minHour: 18, maxHour: 24 },
-]
-
 export function GroupCheckoutDialog({
   open,
   onOpenChange,
@@ -139,25 +104,15 @@ export function GroupCheckoutDialog({
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [expandedRooms, setExpandedRooms] = useState<Set<string>>(new Set())
   
-  // Staff detail sheet state
   const [selectedStaffForDetail, setSelectedStaffForDetail] = useState<StaffWithStatus | null>(null)
   const [staffDetailOpen, setStaffDetailOpen] = useState(false)
   
-  // Damage report
   const [showDamageReport, setShowDamageReport] = useState(false)
   const [selectedRoomForReport, setSelectedRoomForReport] = useState<string | null>(null)
   const reportRef = useRef<HTMLDivElement>(null)
   
-  // Room selection state
   const [selectedRooms, setSelectedRooms] = useState<Set<string>>(new Set())
-  
-  // Staff assignments per booking
   const [staffAssignments, setStaffAssignments] = useState<Map<string, string>>(new Map())
-
-  const currentHour = new Date().getHours()
-  const activeTier = LATE_CHECKOUT_TIERS.find(
-    tier => currentHour >= tier.minHour && currentHour < tier.maxHour
-  )
 
   // Initialize selected rooms when groupData loads
   useEffect(() => {
@@ -189,7 +144,6 @@ export function GroupCheckoutDialog({
         const checkOut = new Date(booking.check_out_date)
         const today = startOfDay(new Date())
         const isOverdue = isAfter(today, startOfDay(checkOut))
-        // For overdue bookings, calculate nights from check-in to today
         const effectiveCheckOut = isOverdue ? today : checkOut
         const nights = Math.max(1, differenceInDays(effectiveCheckOut, checkIn))
         return {
@@ -314,7 +268,6 @@ export function GroupCheckoutDialog({
     refetchInterval: 10000,
   })
 
-
   // Realtime subscriptions
   useEffect(() => {
     if (!groupData?.bookings || !open) return
@@ -380,7 +333,6 @@ export function GroupCheckoutDialog({
     const holdingDeposit = !isLastCheckout ? groupData.totalDeposit : 0
     
     const subtotal = roomTotal + damageCharges + serviceCharges + lateCharges + earlyCheckinCharges + extraCharges
-    // Aggregate VAT/service fee from per-room costBreakdown
     let vatAmount = 0
     let serviceFeeAmount = 0
     for (const b of selectedBookings) {
@@ -445,13 +397,6 @@ export function GroupCheckoutDialog({
       return newSet
     })
   }
-
-  // Check if a booking is early checkout
-  const isBookingEarlyCheckout = useCallback((booking: GroupBookingRoom) => {
-    if ((booking.booking_type || 'daily') !== 'daily') return false
-    const scheduledDate = new Date(booking.check_out_date)
-    return isEarlyCheckout(new Date(), scheduledDate)
-  }, [])
 
   // Batch send inspection requests
   const handleBatchInspectionRequest = async () => {
@@ -546,7 +491,7 @@ export function GroupCheckoutDialog({
     }
   }
 
-  // Check if adjustments are valid (notes required when reducing charges)
+  // Check if adjustments are valid
   const hasInvalidAdjustments = useMemo(() => {
     for (const bookingId of selectedRooms) {
       const cost = roomCosts.get(bookingId)
@@ -554,11 +499,9 @@ export function GroupCheckoutDialog({
       const booking = groupData?.bookings.find(b => b.id === bookingId)
       if (!booking) continue
       
-      // Late charge needs note when reduced
       if ((booking.booking_type || 'daily') === 'daily' && cost.adjustedLateCharge < cost.lateCheckoutCharge && !cost.lateAdjustmentNote.trim()) {
         return true
       }
-      // Damage needs note when reduced
       const currentDamageTotal = cost.adjustedDamageItems.reduce((s, i) => s + i.charge_amount * i.quantity, 0)
       if (currentDamageTotal < cost.originalDamageTotal && !cost.damageAdjustmentNote.trim()) {
         return true
@@ -567,12 +510,11 @@ export function GroupCheckoutDialog({
     return false
   }, [selectedRooms, roomCosts, groupData])
 
-  // Direct checkout (no payment dialog)
+  // Direct checkout
   const handleDirectCheckout = async () => {
     if (!groupData) return
     const readyRooms = Array.from(selectedRooms).filter(bookingId => {
       const booking = groupData.bookings.find(b => b.id === bookingId)
-      // Only allow checked_in bookings (filter out confirmed, checked_out, etc.)
       if (!booking || booking.status !== 'checked_in') return false
       const inspection = inspectionMap.get(bookingId)
       return inspection?.status === 'completed' || inspection?.status === 'not_requested'
@@ -586,7 +528,6 @@ export function GroupCheckoutDialog({
     await performCheckout(readyRooms)
   }
 
-  // Pay then checkout
   const handlePayAndCheckout = () => {
     if (totals.remaining > 0) {
       setShowPaymentDialog(true)
@@ -616,7 +557,6 @@ export function GroupCheckoutDialog({
         if (cost?.damageAdjustmentNote) allNotes.push(`[Đền bù: ${cost.damageAdjustmentNote}]`)
         const damageNotesStr = allNotes.join(' | ') || null
         
-        // Determine if booking is overdue - pass actual checkout date to RPC
         const today = startOfDay(new Date())
         const bookingCheckOut = startOfDay(new Date(booking.check_out_date))
         const isOverdue = isAfter(today, bookingCheckOut)
@@ -656,7 +596,6 @@ export function GroupCheckoutDialog({
         }
       }
 
-      // Fire-and-forget: create invoices for all checked-out bookings
       for (const bookingId of bookingIds) {
         createInvoiceAfterCheckout({
           bookingId,
@@ -707,19 +646,6 @@ export function GroupCheckoutDialog({
     }, 100)
   }
 
-  const getInspectionStatusBadge = (status: InspectionStatus['status']) => {
-    switch (status) {
-      case 'completed':
-        return <span className="flex items-center gap-1 text-xs text-green-600"><CheckCircle className="h-3 w-3" />Đã kiểm tra</span>
-      case 'in_progress':
-        return <span className="flex items-center gap-1 text-xs text-blue-600"><Clock className="h-3 w-3 animate-pulse" />Đang kiểm tra</span>
-      case 'pending':
-        return <span className="flex items-center gap-1 text-xs text-amber-600"><Clock className="h-3 w-3" />Chờ kiểm tra</span>
-      default:
-        return <span className="text-xs text-muted-foreground">Chưa gửi yêu cầu</span>
-    }
-  }
-
   const checkedInRooms = groupData?.bookings.filter(b => b.status === 'checked_in') || []
   const allSelected = selectedRooms.size === checkedInRooms.length && checkedInRooms.length > 0
 
@@ -737,7 +663,6 @@ export function GroupCheckoutDialog({
 
   if (!groupData) return null
 
-  // Get report data for printing
   const reportBooking = selectedRoomForReport ? groupData.bookings.find(b => b.id === selectedRoomForReport) : null
   const reportCost = selectedRoomForReport ? roomCosts.get(selectedRoomForReport) : null
 
@@ -764,6 +689,7 @@ export function GroupCheckoutDialog({
             )}
           </DialogHeader>
 
+          {/* Scrollable Content */}
           <ScrollArea className="flex-1 overflow-auto">
             <div className="flex flex-col gap-3 px-4 pb-4">
               {/* Select All */}
@@ -780,359 +706,54 @@ export function GroupCheckoutDialog({
               {overdueRooms.length > 0 && (
                 <div className="flex items-start gap-2 p-2.5 border rounded-lg">
                   <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
-                  <div className="text-xs text-red-600">
+                  <div className="text-sm text-red-600">
                     <span className="font-medium">{overdueRooms.length} phòng quá hạn checkout:</span>{' '}
                     {overdueRooms.map(b => `P.${b.room?.room_number}`).join(', ')}. Chi phí sẽ được tính đến ngày hôm nay.
                   </div>
                 </div>
               )}
 
-              {/* Room List - Collapsible per room */}
+              {/* Loading skeleton when calculating */}
+              {isCalculating && (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              )}
+
+              {/* Room List */}
               <div className="space-y-2">
-                {groupData.bookings.map((booking) => {
-                  const inspection = inspectionMap.get(booking.id)
-                  const isCheckedOut = booking.status === 'checked_out'
-                  const isSelected = selectedRooms.has(booking.id)
-                  const assignedStaff = staffAssignments.get(booking.id)
-                  const needsStaffAssignment = isSelected && !isCheckedOut && (!inspection || inspection.status === 'not_requested')
-                  const isExpanded = expandedRooms.has(booking.id)
-                  const cost = roomCosts.get(booking.id)
-                  const bookingType = (booking.booking_type as 'daily' | 'hourly' | 'monthly') || 'daily'
-                  const isEarly = isBookingEarlyCheckout(booking)
-                  const checkIn = new Date(booking.check_in_date)
-                  const checkOut = new Date(booking.check_out_date)
-                  const nights = Math.max(1, differenceInDays(checkOut, checkIn))
-                  const roomSubtotal = cost?.costBreakdown.totalAmount || booking.total_amount || 0
-                  
-                  return (
-                    <div
-                      key={booking.id}
-                      className={cn(
-                        "border rounded-lg overflow-hidden transition-colors",
-                        isCheckedOut && "bg-muted/50 opacity-60",
-                        isSelected && !isCheckedOut && "border-primary/30"
-                      )}
-                    >
-                      {/* Room Header */}
-                      <div className="flex items-start gap-3 p-3">
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={(checked) => handleRoomSelect(booking.id, !!checked)}
-                          disabled={isCheckedOut}
-                          className="mt-0.5"
-                        />
-                        
-                        <Collapsible open={isExpanded} onOpenChange={() => !isCheckedOut && toggleRoomExpand(booking.id)} className="flex-1">
-                          <CollapsibleTrigger asChild>
-                            <div className="flex items-center justify-between cursor-pointer hover:bg-muted/30 -mx-1 px-1 rounded">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-sm">P.{booking.room?.room_number}</span>
-                                <span className="text-xs text-muted-foreground capitalize">{bookingType === 'daily' ? 'Ngày' : bookingType === 'hourly' ? 'Giờ' : 'Tháng'}</span>
-                                {isCheckedOut ? (
-                                  <span className="text-xs text-muted-foreground">Đã trả</span>
-                                ) : (
-                                  getInspectionStatusBadge(inspection?.status || 'not_requested')
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono text-sm">{formatVNCurrency(roomSubtotal)}</span>
-                                {!isCheckedOut && (isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
-                              </div>
-                            </div>
-                          </CollapsibleTrigger>
-                          
-                          {/* Expanded Room Detail - like single checkout */}
-                          <CollapsibleContent>
-                            {!isCheckedOut && (
-                              <div className="mt-3 space-y-3 border-t pt-3">
-                                {/* Staff Assignment */}
-                                {needsStaffAssignment && (
-                                  <div className="flex items-center gap-2">
-                                    <Label className="text-xs text-muted-foreground whitespace-nowrap">NV kiểm tra:</Label>
-                                    <Select value={assignedStaff || ''} onValueChange={(value) => handleStaffChange(booking.id, value)}>
-                                      <SelectTrigger className="h-8 text-xs flex-1">
-                                        <SelectValue placeholder="Chọn nhân viên..." />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {staffList.map(staff => (
-                                          <SelectItem key={staff.id} value={staff.id}>
-                                            <div className="flex items-center gap-2">
-                                              <Avatar className="h-5 w-5">
-                                                <AvatarImage src={staff.avatar_url || undefined} />
-                                                <AvatarFallback className="text-xs">{staff.full_name?.[0]}</AvatarFallback>
-                                              </Avatar>
-                                              <span>{staff.full_name}</span>
-                                            </div>
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                )}
-                                
-                                {/* Inspection Status Card */}
-                                {isSelected && inspection && ['pending', 'in_progress', 'completed'].includes(inspection.status) && (
-                                  <InspectionStatusCard
-                                    inspection={inspection}
-                                    staffList={staffList}
-                                    onViewDetail={(staff) => {
-                                      setSelectedStaffForDetail(staff as StaffWithStatus)
-                                      setStaffDetailOpen(true)
-                                    }}
-                                    onCancelInspection={handleCancelInspection}
-                                    isProcessing={isProcessing}
-                                  />
-                                )}
-
-                                {/* Late Checkout Tiers - only for daily */}
-                                {bookingType === 'daily' && (
-                                  <>
-                                    {isEarly ? (
-                                      <div className="flex items-center gap-2 text-green-600 text-xs py-1">
-                                        <Check className="h-3.5 w-3.5" />
-                                        <span className="font-medium">Checkout sớm - Không phụ thu</span>
-                                      </div>
-                                    ) : currentHour <= 12 ? (
-                                      <div className="flex items-center gap-2 text-green-600 text-xs py-1">
-                                        <Check className="h-3.5 w-3.5" />
-                                        <span className="font-medium">Checkout đúng giờ</span>
-                                      </div>
-                                    ) : (
-                                      <div className="border rounded-lg overflow-hidden">
-                                        <div className="px-3 py-1.5 text-xs font-medium uppercase text-muted-foreground">
-                                          PHỤ THU CHECK-OUT TRỄ (tiêu chuẩn: 12:00)
-                                        </div>
-                                        <div className="divide-y">
-                                          {LATE_CHECKOUT_TIERS.map((tier) => {
-                                            const isActive = tier.id === activeTier?.id
-                                            const tierAmount = Math.round((booking.room_price || 0) * tier.percent / 100)
-                                            return (
-                                              <div key={tier.id} className={cn("flex items-center justify-between px-3 py-1.5 text-xs", isActive && "font-medium")}>
-                                                <div className="flex items-center gap-2">
-                                                  {isActive && <Check className="h-3 w-3 text-amber-600" />}
-                                                  <span className={cn(isActive && "font-medium text-foreground")}>{tier.label}</span>
-                                                  {tier.description && <span className="text-muted-foreground">({tier.description})</span>}
-                                                </div>
-                                                <span className={cn("font-mono", isActive && "font-medium text-amber-600")}>
-                                                  {tier.percent}% = {formatVNCurrency(tierAmount)}
-                                                </span>
-                                              </div>
-                                            )
-                                          })}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </>
-                                )}
-
-                                {/* Cost Breakdown */}
-                                <div className="space-y-1.5 text-sm">
-                                  <h4 className="font-medium text-xs text-muted-foreground uppercase">Chi tiết thanh toán</h4>
-                                  
-                                  {/* Room charges by type */}
-                                  {bookingType === 'hourly' ? (
-                                    <div className="flex justify-between text-xs">
-                                      <span className="text-muted-foreground">Tiền phòng ({booking.booking_hours || 0} giờ × {formatVNCurrency(booking.hourly_rate || 0)})</span>
-                                      <span className="font-mono">{formatVNCurrency(cost?.costBreakdown.roomTotal || 0)}</span>
-                                    </div>
-                                  ) : bookingType === 'monthly' ? (
-                                    <>
-                                      <div className="flex justify-between text-xs">
-                                        <span className="text-muted-foreground">Tiền phòng ({booking.booking_months || 0} tháng × {formatVNCurrency(booking.monthly_rate || 0)})</span>
-                                        <span className="font-mono">{formatVNCurrency(cost?.costBreakdown.roomTotal || 0)}</span>
-                                      </div>
-                                      {cost?.costBreakdown.monthlyDiscount && cost.costBreakdown.monthlyDiscount > 0 && (
-                                        <div className="flex justify-between text-xs text-green-600">
-                                          <span>Chiết khấu dài hạn</span>
-                                          <span>-{formatVNCurrency(cost.costBreakdown.monthlyDiscount)}</span>
-                                        </div>
-                                      )}
-                                    </>
-                                  ) : (
-                                    <div className="flex justify-between text-xs">
-                                      <span className="text-muted-foreground">Tiền phòng ({nights} đêm × {formatVNCurrency(booking.room_price || 0)})</span>
-                                      <span className="font-mono">{formatVNCurrency(cost?.costBreakdown.roomTotal || 0)}</span>
-                                    </div>
-                                  )}
-                                  
-                                  {/* Early checkin surcharge */}
-                                  {cost && (cost.costBreakdown.earlyCheckinCharge || 0) > 0 && (
-                                    <div className="flex justify-between text-xs">
-                                      <span className="text-muted-foreground">Phụ thu check-in sớm</span>
-                                      <span className="font-mono">{formatVNCurrency(cost.costBreakdown.earlyCheckinCharge)}</span>
-                                    </div>
-                                  )}
-
-                                  {/* Editable late checkout charge - daily */}
-                                  {bookingType === 'daily' && !isEarly && currentHour > 12 && cost && cost.lateCheckoutCharge > 0 && (
-                                    <div className="p-2 border rounded-lg space-y-2">
-                                      <div className="flex items-center justify-between">
-                                        <Label className="text-xs text-amber-600">Phụ thu checkout trễ ({activeTier?.percent || 0}%)</Label>
-                                        <div className="flex items-center gap-1">
-                                          <Input
-                                            type="text"
-                                            inputMode="numeric"
-                                            className="w-24 h-7 text-right font-mono text-xs"
-                                            value={cost.adjustedLateCharge > 0 ? cost.adjustedLateCharge.toString() : ''}
-                                            onChange={(e) => {
-                                              const value = e.target.value.replace(/[^0-9]/g, '')
-                                              adjustLateCharge(booking.id, parseInt(value) || 0, cost.lateAdjustmentNote)
-                                            }}
-                                            placeholder="0"
-                                          />
-                                          <span className="text-xs text-muted-foreground">đ</span>
-                                        </div>
-                                      </div>
-                                      <div className="flex gap-1">
-                                        <Button type="button" variant="ghost" size="sm" onClick={() => adjustLateCharge(booking.id, 0, cost.lateAdjustmentNote)} className="h-6 text-xs text-green-600" disabled={cost.adjustedLateCharge === 0}>
-                                          Miễn phí
-                                        </Button>
-                                        {cost.adjustedLateCharge !== cost.lateCheckoutCharge && (
-                                          <Button type="button" variant="ghost" size="sm" onClick={() => adjustLateCharge(booking.id, cost.lateCheckoutCharge, '')} className="h-6 text-xs">
-                                            Theo chuẩn
-                                          </Button>
-                                        )}
-                                      </div>
-                                      {cost.adjustedLateCharge < cost.lateCheckoutCharge && (
-                                        <div className="space-y-1">
-                                          <Textarea
-                                            placeholder="Lý do điều chỉnh phụ thu..."
-                                            className="h-10 text-xs"
-                                            value={cost.lateAdjustmentNote}
-                                            onChange={(e) => adjustLateCharge(booking.id, cost.adjustedLateCharge, e.target.value)}
-                                          />
-                                          {!cost.lateAdjustmentNote.trim() && (
-                                            <p className="text-xs text-destructive">Vui lòng nhập lý do</p>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {/* Editable hourly overtime */}
-                                  {bookingType === 'hourly' && cost && cost.adjustedLateCharge > 0 && (
-                                    <div className="p-2 border rounded-lg space-y-2">
-                                      <div className="flex items-center justify-between">
-                                        <Label className="text-xs text-amber-600">Phí vượt giờ</Label>
-                                        <div className="flex items-center gap-1">
-                                          <Input
-                                            type="text"
-                                            inputMode="numeric"
-                                            className="w-24 h-7 text-right font-mono text-xs"
-                                            value={cost.adjustedLateCharge > 0 ? cost.adjustedLateCharge.toString() : ''}
-                                            onChange={(e) => {
-                                              const value = e.target.value.replace(/[^0-9]/g, '')
-                                              adjustLateCharge(booking.id, parseInt(value) || 0, cost.lateAdjustmentNote)
-                                            }}
-                                            placeholder="0"
-                                          />
-                                          <span className="text-xs text-muted-foreground">đ</span>
-                                        </div>
-                                      </div>
-                                      <Button type="button" variant="ghost" size="sm" onClick={() => adjustLateCharge(booking.id, 0, cost.lateAdjustmentNote)} className="h-6 text-xs text-green-600" disabled={cost.adjustedLateCharge === 0}>
-                                        Miễn phí
-                                      </Button>
-                                    </div>
-                                  )}
-
-                                  {/* Service charges */}
-                                  {cost && cost.serviceCharges > 0 && (
-                                    <div className="flex justify-between text-xs">
-                                      <span className="text-muted-foreground">Dịch vụ sử dụng</span>
-                                      <span className="font-mono">{formatVNCurrency(cost.serviceCharges)}</span>
-                                    </div>
-                                  )}
-
-                                  {/* Extra charges */}
-                                  {cost && (cost.costBreakdown.extraCharges || 0) > 0 && (
-                                    <div className="flex justify-between text-xs">
-                                      <span className="text-muted-foreground">Chi phí khác</span>
-                                      <span className="font-mono">{formatVNCurrency(cost.costBreakdown.extraCharges)}</span>
-                                    </div>
-                                  )}
-
-                                  {/* Damage Charges Section */}
-                                  {cost && cost.adjustedDamageItems.length > 0 && (
-                                    <>
-                                      <Separator />
-                                      <DamageChargesSection
-                                        damageItems={cost.adjustedDamageItems}
-                                        originalItems={cost.damageItems}
-                                        onAdjustCharge={(itemId, newCharge) => adjustDamageItemCharge(booking.id, itemId, newCharge)}
-                                        onWaiveItem={(itemId) => adjustDamageItemCharge(booking.id, itemId, 0)}
-                                        onResetItem={(itemId) => {
-                                          const original = cost.damageItems.find(i => i.item_id === itemId)
-                                          if (original) adjustDamageItemCharge(booking.id, itemId, original.charge_amount)
-                                        }}
-                                      />
-                                      {/* Damage note */}
-                                      {(() => {
-                                        const currentDamageTotal = cost.adjustedDamageItems.reduce((s, i) => s + i.charge_amount * i.quantity, 0)
-                                        if (currentDamageTotal < cost.originalDamageTotal) {
-                                          return (
-                                            <div className="space-y-1">
-                                              <Textarea
-                                                placeholder="Lý do điều chỉnh phí đền bù..."
-                                                className="h-10 text-xs"
-                                                value={cost.damageAdjustmentNote}
-                                                onChange={(e) => setDamageNote(booking.id, e.target.value)}
-                                              />
-                                              {!cost.damageAdjustmentNote.trim() && (
-                                                <p className="text-xs text-destructive">Vui lòng nhập lý do</p>
-                                              )}
-                                            </div>
-                                          )
-                                        }
-                                        return null
-                                      })()}
-                                      <Button type="button" variant="outline" size="sm" onClick={() => handlePrintReport(booking.id)} className="w-full gap-2 h-7 text-xs">
-                                        <Printer className="h-3.5 w-3.5" />
-                                        In biên bản
-                                      </Button>
-                                    </>
-                                  )}
-
-                                  <Separator />
-
-                                  {/* Room subtotal */}
-                                  {cost && (
-                                    <>
-                                      <div className="flex justify-between text-xs">
-                                        <span className="text-muted-foreground">Subtotal</span>
-                                        <span className="font-mono">{formatVNCurrency(cost.costBreakdown.subtotal)}</span>
-                                      </div>
-                                      {cost.costBreakdown.vatAmount > 0 && (
-                                        <div className="flex justify-between text-xs">
-                                          <span className="text-muted-foreground">VAT ({cost.costBreakdown.vatRate}%)</span>
-                                          <span className="font-mono">{formatVNCurrency(cost.costBreakdown.vatAmount)}</span>
-                                        </div>
-                                      )}
-                                      {cost.costBreakdown.serviceFeeAmount > 0 && (
-                                        <div className="flex justify-between text-xs">
-                                          <span className="text-muted-foreground">Phí dịch vụ</span>
-                                          <span className="font-mono">{formatVNCurrency(cost.costBreakdown.serviceFeeAmount)}</span>
-                                        </div>
-                                      )}
-                                      <div className="flex justify-between font-medium text-xs">
-                                        <span>Tổng phòng này</span>
-                                        <span className="font-mono">{formatVNCurrency(cost.costBreakdown.totalAmount)}</span>
-                                      </div>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </CollapsibleContent>
-                        </Collapsible>
-                      </div>
-                    </div>
-                  )
-                })}
+                {groupData.bookings.map((booking) => (
+                  <GroupCheckoutRoomCard
+                    key={booking.id}
+                    booking={booking}
+                    inspection={inspectionMap.get(booking.id)}
+                    cost={roomCosts.get(booking.id)}
+                    isSelected={selectedRooms.has(booking.id)}
+                    isExpanded={expandedRooms.has(booking.id)}
+                    assignedStaff={staffAssignments.get(booking.id)}
+                    staffList={staffList}
+                    isProcessing={isProcessing}
+                    onSelect={handleRoomSelect}
+                    onToggleExpand={toggleRoomExpand}
+                    onStaffChange={handleStaffChange}
+                    onAdjustLateCharge={adjustLateCharge}
+                    onAdjustDamageItemCharge={adjustDamageItemCharge}
+                    onSetDamageNote={setDamageNote}
+                    onPrintReport={handlePrintReport}
+                    onViewStaffDetail={(staff) => {
+                      setSelectedStaffForDetail(staff)
+                      setStaffDetailOpen(true)
+                    }}
+                    onCancelInspection={handleCancelInspection}
+                  />
+                ))}
               </div>
 
               {/* Batch Inspection Request Button */}
               {roomStats.needsRequest > 0 && selectedRooms.size > 0 && (
-                <Button type="button" variant="outline" className="w-full" onClick={handleBatchInspectionRequest} disabled={isProcessing}>
+                <Button type="button" variant="outline" className="w-full h-9" onClick={handleBatchInspectionRequest} disabled={isProcessing}>
                   {isProcessing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
                   Gửi yêu cầu kiểm tra ({roomStats.needsRequest} phòng)
                 </Button>
@@ -1142,7 +763,7 @@ export function GroupCheckoutDialog({
               {(roomStats.inProgress > 0 || roomStats.pending > 0) && (
                 <div className="border rounded-lg p-2.5 flex items-center gap-2">
                   <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
-                  <span className="text-xs text-amber-600">
+                  <span className="text-sm text-amber-600">
                     {roomStats.inProgress > 0 && `${roomStats.inProgress} đang kiểm tra`}
                     {roomStats.inProgress > 0 && roomStats.pending > 0 && ', '}
                     {roomStats.pending > 0 && `${roomStats.pending} chờ kiểm tra`}
@@ -1151,174 +772,38 @@ export function GroupCheckoutDialog({
                 </div>
               )}
 
-              <Separator />
-
-              {/* === TỔNG HỢP === */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <CreditCard className="h-4 w-4" />
-                  Tổng hợp thanh toán ({selectedRooms.size} phòng)
-                </div>
-
-                <div className="space-y-1.5 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Tiền phòng</span>
-                    <span className="font-mono">{formatVNCurrency(totals.roomTotal)}</span>
-                  </div>
-                  
-                  {totals.earlyCheckinCharges > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Phụ thu check-in sớm</span>
-                      <span className="font-mono text-amber-600">{formatVNCurrency(totals.earlyCheckinCharges)}</span>
-                    </div>
-                  )}
-                  
-                  {totals.lateCharges > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Phụ thu checkout trễ</span>
-                      <span className="font-mono text-amber-600">{formatVNCurrency(totals.lateCharges)}</span>
-                    </div>
-                  )}
-                  
-                  {totals.damageCharges > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Phí đền bù thiệt hại</span>
-                      <span className="font-mono text-red-600">{formatVNCurrency(totals.damageCharges)}</span>
-                    </div>
-                  )}
-                  
-                  {totals.serviceCharges > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Dịch vụ sử dụng</span>
-                      <span className="font-mono">{formatVNCurrency(totals.serviceCharges)}</span>
-                    </div>
-                  )}
-                  
-                  {totals.extraCharges > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Chi phí khác</span>
-                      <span className="font-mono">{formatVNCurrency(totals.extraCharges)}</span>
-                    </div>
-                  )}
-
-                  <Separator className="my-1" />
-                  
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span className="font-mono">{formatVNCurrency(totals.subtotal)}</span>
-                  </div>
-                  
-                  {totals.vatAmount > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">VAT</span>
-                      <span className="font-mono">{formatVNCurrency(totals.vatAmount)}</span>
-                    </div>
-                  )}
-                  
-                  {totals.serviceFeeAmount > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Phí dịch vụ</span>
-                      <span className="font-mono">{formatVNCurrency(totals.serviceFeeAmount)}</span>
-                    </div>
-                  )}
-
-                  <Separator className="my-1" />
-                  
-                  <div className="flex justify-between font-bold">
-                    <span>TỔNG CỘNG</span>
-                    <span className="font-mono">{formatVNCurrency(totals.grandTotal)}</span>
-                  </div>
-                  
-                  {totals.depositApplied > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Tiền đặt cọc</span>
-                      <span className="font-mono">-{formatVNCurrency(totals.depositApplied)}</span>
-                    </div>
-                  )}
-                  
-                  {totals.holdingDeposit > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-1">
-                        Tiền cọc (giữ)
-                        <span className="text-xs">(còn {groupData.roomsRemaining - selectedRooms.size} phòng)</span>
-                      </span>
-                      <span className="font-mono text-amber-600">{formatVNCurrency(totals.holdingDeposit)}</span>
-                    </div>
-                  )}
-                  
-                  {totals.totalPaid > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Đã thanh toán</span>
-                      <span className="font-mono">-{formatVNCurrency(totals.totalPaid)}</span>
-                    </div>
-                  )}
-
-                  <Separator className="my-1" />
-                  
-                  <div className={cn("flex justify-between font-semibold text-sm", totals.remaining > 0 ? "text-red-600" : "text-green-600")}>
-                    <span>CÒN LẠI</span>
-                    <span className="font-mono">{formatVNCurrency(Math.max(0, totals.remaining))}</span>
-                  </div>
-                </div>
-              </div>
+              {/* Payment Summary Card */}
+              <GroupCheckoutSummary
+                totals={totals}
+                selectedRoomCount={selectedRooms.size}
+                roomsRemaining={groupData.roomsRemaining - selectedRooms.size}
+              />
 
               {/* Warning if unpaid */}
               {totals.remaining > 0 && (
-                <div className="flex items-start gap-2 p-2 border rounded-md">
+                <div className="flex items-start gap-2 p-2.5 border rounded-md">
                   <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-600">
+                  <p className="text-sm text-amber-600">
                     Khách chưa thanh toán đầy đủ. Vui lòng thu tiền trước khi cho trả phòng hoặc xác nhận checkout với số nợ.
                   </p>
                 </div>
               )}
-
-              {/* Footer Actions */}
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button type="button" variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
-                  Hủy
-                </Button>
-                {onMinimize && (
-                  <Button type="button" variant="outline" size="sm" onClick={onMinimize}>
-                    <Minimize2 className="h-4 w-4 mr-1.5" />
-                    Thu nhỏ
-                  </Button>
-                )}
-                
-                {totals.remaining > 0 ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      disabled={isProcessing || isCalculating || selectedRooms.size === 0 || hasInvalidAdjustments}
-                      onClick={handleDirectCheckout}
-                    >
-                      {isProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                      Cho trả phòng (nợ {formatVNCurrency(totals.remaining)})
-                    </Button>
-                    <Button
-                      className="flex-1"
-                      disabled={isProcessing || isCalculating || selectedRooms.size === 0 || hasInvalidAdjustments}
-                      onClick={handlePayAndCheckout}
-                    >
-                      {isProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                      <CreditCard className="h-4 w-4 mr-1.5" />
-                      Thu tiền & Trả phòng
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    className="flex-1"
-                    disabled={isProcessing || isCalculating || selectedRooms.size === 0 || hasInvalidAdjustments}
-                    onClick={handleDirectCheckout}
-                  >
-                    {isProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    <CheckCircle2 className="h-4 w-4 mr-1.5" />
-                    Xác nhận Checkout ({selectedRooms.size} phòng)
-                  </Button>
-                )}
-              </div>
             </div>
           </ScrollArea>
+
+          {/* Sticky Footer */}
+          <GroupCheckoutStickyFooter
+            remaining={totals.remaining}
+            grandTotal={totals.grandTotal}
+            selectedRoomCount={selectedRooms.size}
+            isProcessing={isProcessing}
+            isCalculating={isCalculating}
+            hasInvalidAdjustments={hasInvalidAdjustments}
+            onCancel={() => onOpenChange(false)}
+            onMinimize={onMinimize}
+            onDirectCheckout={handleDirectCheckout}
+            onPayAndCheckout={handlePayAndCheckout}
+          />
         </DialogContent>
       </Dialog>
 
@@ -1339,9 +824,7 @@ export function GroupCheckoutDialog({
         }
         onPaymentComplete={async () => {
           setShowPaymentDialog(false)
-          // Refetch group data to get updated amount_paid
           await queryClient.invalidateQueries({ queryKey: ['group-booking', bookingGroupId] })
-          // Wait for fresh data, then recalculate in the next effect cycle
           const freshResult = await queryClient.fetchQuery({ queryKey: ['group-booking', bookingGroupId] }) as GroupBookingData | null
           if (freshResult) {
             const today = startOfDay(new Date())
