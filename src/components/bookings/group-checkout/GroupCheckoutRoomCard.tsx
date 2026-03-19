@@ -68,7 +68,7 @@ interface GroupCheckoutRoomCardProps {
   onSetDamageNote: (bookingId: string, note: string) => void
   onPrintReport: (bookingId: string) => void
   onViewStaffDetail: (staff: StaffWithStatus) => void
-  onCancelInspection: (inspectionId: string) => void
+  onCancelInspection: (inspectionId: string) => Promise<void>
 }
 
 function formatNumberWithSeparator(value: number): string {
