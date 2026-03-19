@@ -20,6 +20,24 @@ import { formatCurrency } from '@/lib/utils'
 import { parseTimeToHours } from '@/lib/bookingCalculations'
 import { cn } from '@/lib/utils'
 
+// Map booking source codes to friendly labels
+const BOOKING_SOURCE_LABELS: Record<string, string> = {
+  walk_in: 'Khách vãng lai',
+  phone: 'Điện thoại',
+  email: 'Email',
+  website: 'Website',
+  booking_com: 'Booking.com',
+  agoda: 'Agoda',
+  traveloka: 'Traveloka',
+  expedia: 'Expedia',
+  airbnb: 'Airbnb',
+  other: 'Khác',
+}
+
+function getBookingSourceLabel(source: string): string {
+  return BOOKING_SOURCE_LABELS[source] || source.replace(/_/g, ' ')
+}
+
 interface CheckInConfirmDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -137,11 +155,11 @@ export function CheckInConfirmDialog({
             Xác nhận Check-in
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
-            <div className="space-y-4">
+            <div className="space-y-4 pt-1">
               {/* Guest & Room Info */}
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="grid grid-cols-2 gap-3 text-sm px-1">
                 <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
+                  <User className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span>Khách: <strong>{guestName}</strong></span>
                 </div>
                 <div className="flex items-center gap-2 justify-end">
@@ -149,13 +167,13 @@ export function CheckInConfirmDialog({
                 </div>
                 {guestPhone && (
                   <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="text-muted-foreground">{guestPhone}</span>
                   </div>
                 )}
                 {bookingSource && (
                   <div className="flex items-center gap-2 justify-end">
-                    <span className="text-xs text-muted-foreground">Nguồn: {bookingSource}</span>
+                    <span className="text-xs text-muted-foreground">Nguồn: {getBookingSourceLabel(bookingSource)}</span>
                   </div>
                 )}
               </div>
@@ -194,8 +212,8 @@ export function CheckInConfirmDialog({
                       </div>
                     )}
                     <div className="flex justify-between px-3 py-2">
-                      <span className="text-muted-foreground">Tổng tiền phòng</span>
-                      <span className="font-mono text-xs">{formatCurrency(totalAmount)}</span>
+                      <span className="font-medium">Tổng cộng</span>
+                      <span className="font-mono text-xs font-medium">{formatCurrency(totalAmount)}</span>
                     </div>
                     <div className="flex justify-between px-3 py-2">
                       <span className="text-muted-foreground">Đã đặt cọc</span>
@@ -204,7 +222,7 @@ export function CheckInConfirmDialog({
                     <div className="flex justify-between px-3 py-2 bg-muted/30">
                       <span className="font-medium">Còn phải thu</span>
                       <span className={cn(
-                        "font-mono text-xs font-bold",
+                        "font-mono text-sm font-bold",
                         remainingBalance > 0 ? "text-amber-600" : "text-green-600"
                       )}>
                         {formatCurrency(remainingBalance)}
@@ -299,26 +317,21 @@ export function CheckInConfirmDialog({
                             <Label className="text-sm">
                               Phụ thu áp dụng ({activeTier?.percent || 0}%)
                             </Label>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
                               <Input
                                 type="text"
                                 inputMode="numeric"
-                                className="w-32 h-8 text-right font-mono"
-                                value={adjustedCharge > 0 ? adjustedCharge.toString() : ''}
+                                className="w-36 h-8 text-right font-mono text-xs"
+                                value={adjustedCharge > 0 ? new Intl.NumberFormat('vi-VN').format(adjustedCharge) : ''}
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9]/g, '')
                                   setAdjustedCharge(parseInt(value) || 0)
                                 }}
                                 placeholder="0"
                               />
-                              <span className="text-sm text-muted-foreground">đ</span>
+                              <span className="text-xs text-muted-foreground">₫</span>
                             </div>
                           </div>
-                          {adjustedCharge > 0 && (
-                            <p className="text-xs text-muted-foreground text-right">
-                              {formatCurrency(adjustedCharge)}
-                            </p>
-                          )}
                         </div>
 
                         {/* Quick Actions */}
