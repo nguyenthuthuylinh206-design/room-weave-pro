@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Mail } from 'lucide-react'
-import { GuestInvoice, useUpdateGuestInvoice } from '@/hooks/useGuestInvoices'
+import { GuestInvoice } from '@/hooks/useGuestInvoices'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface Props {
   invoice: GuestInvoice | null
@@ -18,11 +19,11 @@ export default function SendInvoiceEmailDialog({ invoice, open, onOpenChange }: 
   const [email, setEmail] = useState('')
   const [sending, setSending] = useState(false)
   const { toast } = useToast()
-  const updateInvoice = useUpdateGuestInvoice()
+  const queryClient = useQueryClient()
 
   const handleOpen = () => {
     if (invoice) {
-      setEmail((invoice as any).guest_email || invoice.guest_phone || '')
+      setEmail(invoice.guest_email || invoice.guest_phone || '')
     }
   }
 
@@ -35,11 +36,7 @@ export default function SendInvoiceEmailDialog({ invoice, open, onOpenChange }: 
       })
       if (error) throw error
 
-      await updateInvoice.mutateAsync({
-        id: invoice.id,
-        email_sent_at: new Date().toISOString(),
-      } as any)
-
+      queryClient.invalidateQueries({ queryKey: ['guest-invoices'] })
       toast({ title: 'Đã gửi hóa đơn qua email' })
       onOpenChange(false)
     } catch (err: any) {
