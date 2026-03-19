@@ -317,26 +317,21 @@ export function CheckInConfirmDialog({
                             <Label className="text-sm">
                               Phụ thu áp dụng ({activeTier?.percent || 0}%)
                             </Label>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
                               <Input
                                 type="text"
                                 inputMode="numeric"
-                                className="w-32 h-8 text-right font-mono"
-                                value={adjustedCharge > 0 ? adjustedCharge.toString() : ''}
+                                className="w-36 h-8 text-right font-mono text-xs"
+                                value={adjustedCharge > 0 ? new Intl.NumberFormat('vi-VN').format(adjustedCharge) : ''}
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9]/g, '')
                                   setAdjustedCharge(parseInt(value) || 0)
                                 }}
                                 placeholder="0"
                               />
-                              <span className="text-sm text-muted-foreground">đ</span>
+                              <span className="text-xs text-muted-foreground">₫</span>
                             </div>
                           </div>
-                          {adjustedCharge > 0 && (
-                            <p className="text-xs text-muted-foreground text-right">
-                              {formatCurrency(adjustedCharge)}
-                            </p>
-                          )}
                         </div>
 
                         {/* Quick Actions */}
