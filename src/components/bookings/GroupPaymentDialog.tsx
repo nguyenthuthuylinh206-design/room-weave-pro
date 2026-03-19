@@ -638,6 +638,7 @@ export function GroupPaymentDialog({
 
           {/* Step: QR Code */}
           {step === 'qr' && bankSettings && createdPayment && (
+            <ScrollArea className="flex-1 min-h-0">
             <div className="space-y-3 px-4 pb-4">
               <div className="bg-muted/50 rounded-lg p-2 text-center text-sm">
                 <span className="text-muted-foreground">Phòng: </span>
@@ -689,6 +690,7 @@ export function GroupPaymentDialog({
                 Tự động xác nhận khi nhận chuyển khoản
               </p>
             </div>
+            </ScrollArea>
           )}
 
           {/* Step: Success */}
