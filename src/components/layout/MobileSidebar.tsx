@@ -51,9 +51,6 @@ interface MenuSection {
   title?: string
   items: MenuItem[]
 }
-  title?: string
-  items: MenuItem[]
-}
 
 interface MobileSidebarProps {
   onClose: () => void
