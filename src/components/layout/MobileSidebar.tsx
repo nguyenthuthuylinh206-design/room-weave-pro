@@ -141,19 +141,19 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
     {
       title: 'Vận hành',
       items: [
-        { title: 'Kho & Tài sản', icon: Package, path: '/inventory', module: 'inventory,items', badgeKey: 'inventoryTotal' },
+        { title: 'Kho & Tài sản', icon: Package, path: '/inventory', module: 'inventory,items', badgeKey: 'inventoryTotal', minMode: 'standard' },
         { title: 'Phòng', icon: DoorOpen, path: '/rooms', module: 'rooms' },
-        { title: 'Laundry', icon: Shirt, path: '/laundry', module: 'laundry', badgeKey: 'laundryTotal' },
-        { title: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badgeKey: 'maintenanceTotal' },
-        { title: 'Đơn mua hàng', icon: ShoppingCart, path: '/purchase-orders', module: 'purchase_orders' },
+        { title: 'Laundry', icon: Shirt, path: '/laundry', module: 'laundry', badgeKey: 'laundryTotal', minMode: 'standard' },
+        { title: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badgeKey: 'maintenanceTotal', minMode: 'standard' },
+        { title: 'Đơn mua hàng', icon: ShoppingCart, path: '/purchase-orders', module: 'purchase_orders', minMode: 'full' },
       ]
     },
     {
       title: 'Quản lý',
       items: [
         { title: 'Khách sạn', icon: Building2, path: '/hotels', module: 'hotels' },
-        { title: 'Nhân viên', icon: Users, path: '/users', module: 'users' },
-        { title: 'Nhà cung cấp', icon: Users, path: '/vendors', module: 'vendors' },
+        { title: 'Nhân viên', icon: Users, path: '/users', module: 'users', minMode: 'standard' },
+        { title: 'Nhà cung cấp', icon: Users, path: '/vendors', module: 'vendors', minMode: 'full' },
       ]
     },
     {
