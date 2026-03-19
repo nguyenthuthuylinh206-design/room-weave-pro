@@ -6,6 +6,7 @@ import { useUser } from '@/hooks/useUser'
 import { useTenant } from '@/hooks/useTenant'
 import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
 import { usePendingCounts, type PendingCounts } from '@/hooks/usePendingCounts'
+import { useUsageMode, type UsageMode } from '@/hooks/useUsageMode'
 import {
   LayoutDashboard,
   Package,
