@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
       <h2 style="margin:0;font-size:18px;color:#1a1a2e;font-weight:700;">HÓA ĐƠN THANH TOÁN</h2>
       <p style="margin:4px 0 0;font-size:13px;color:#888;">Số: <span style="font-family:monospace;font-weight:600;color:#333;">${invoice.invoice_number}</span></p>
       ${invoice.issued_at ? `<p style="margin:2px 0 0;font-size:12px;color:#999;">Ngày: ${formatDate(invoice.issued_at)}</p>` : ''}
+      ${pdf_base64 ? `<p style="margin:6px 0 0;font-size:12px;color:#16a34a;font-weight:500;">📎 File PDF hóa đơn đính kèm bên dưới</p>` : ''}
     </td>
   </tr>
 
