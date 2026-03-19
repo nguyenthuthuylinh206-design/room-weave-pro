@@ -79,7 +79,7 @@ export const BottomNav = () => {
   }
 
   // Filter tabs based on permissions
-  const visibleTabs = tabs.filter(tab => hasModuleAccess(tab.module))
+  const visibleTabs = tabs.filter(tab => hasModuleAccess(tab.module) && (!tab.minMode || hasMode(tab.minMode)))
 
   const isActive = (path: string) => {
     if (path === '/') {
