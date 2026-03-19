@@ -638,59 +638,59 @@ export function GroupPaymentDialog({
 
           {/* Step: QR Code */}
           {step === 'qr' && bankSettings && createdPayment && (
-            <ScrollArea className="flex-1 min-h-0">
-            <div className="space-y-3 px-4 pb-4">
-              <div className="bg-muted/50 rounded-lg p-2 text-center text-sm">
-                <span className="text-muted-foreground">Phòng: </span>
-                <span className="font-medium">
-                  {groupData.bookings.map(b => b.room?.room_number).join(', ')}
-                </span>
-              </div>
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <div className="space-y-3 px-4 pb-4">
+                <div className="bg-muted/50 rounded-lg p-2 text-center text-sm">
+                  <span className="text-muted-foreground">Phòng: </span>
+                  <span className="font-medium">
+                    {groupData.bookings.map(b => b.room?.room_number).join(', ')}
+                  </span>
+                </div>
 
-              <BankQRCode
-                bankCode={bankSettings.bank_code}
-                bankName={bankSettings.bank_name}
-                accountNumber={bankSettings.account_number}
-                accountHolder={bankSettings.account_holder}
-                amount={parsedAmount}
-                paymentContent={createdPayment.transaction_reference || ''}
-              />
+                <BankQRCode
+                  bankCode={bankSettings.bank_code}
+                  bankName={bankSettings.bank_name}
+                  accountNumber={bankSettings.account_number}
+                  accountHolder={bankSettings.account_holder}
+                  amount={parsedAmount}
+                  paymentContent={createdPayment.transaction_reference || ''}
+                />
 
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => setShowMobileQR(true)}
-                >
-                  <Maximize2 className="h-4 w-4 mr-1.5" />
-                  Toàn màn hình
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={() => setShowMobileQR(true)}
+                  >
+                    <Maximize2 className="h-4 w-4 mr-1.5" />
+                    Toàn màn hình
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={handleSendQRNotification}
+                    disabled={isSendingNotification}
+                  >
+                    {isSendingNotification ? (
+                      <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                    ) : (
+                      <Smartphone className="h-4 w-4 mr-1.5" />
+                    )}
+                    Gửi QR
+                  </Button>
+                </div>
+
+                <Button className="w-full" onClick={handleManualConfirm} disabled={isProcessing}>
+                  {isProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Đã nhận được tiền
                 </Button>
 
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={handleSendQRNotification}
-                  disabled={isSendingNotification}
-                >
-                  {isSendingNotification ? (
-                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                  ) : (
-                    <Smartphone className="h-4 w-4 mr-1.5" />
-                  )}
-                  Gửi QR
-                </Button>
+                <p className="text-xs text-center text-muted-foreground">
+                  Tự động xác nhận khi nhận chuyển khoản
+                </p>
               </div>
-
-              <Button className="w-full" onClick={handleManualConfirm} disabled={isProcessing}>
-                {isProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Đã nhận được tiền
-              </Button>
-
-              <p className="text-xs text-center text-muted-foreground">
-                Tự động xác nhận khi nhận chuyển khoản
-              </p>
             </div>
-            </ScrollArea>
           )}
 
           {/* Step: Success */}
