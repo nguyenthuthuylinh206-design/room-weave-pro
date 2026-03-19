@@ -6,6 +6,7 @@ import { useUser } from '@/hooks/useUser'
 import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
 import { usePendingTaskCount } from '@/hooks/useHousekeepingTasks'
 import { usePendingCounts, type PendingCounts } from '@/hooks/usePendingCounts'
+import { useUsageMode } from '@/hooks/useUsageMode'
 
 type PendingCountKey = keyof PendingCounts | 'tasks'
 
