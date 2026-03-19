@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { invoice_id, to_email } = await req.json()
+    const { invoice_id, to_email, pdf_base64, pdf_filename } = await req.json()
 
     if (!invoice_id || !to_email) {
       return new Response(JSON.stringify({ error: 'Missing invoice_id or to_email' }), {
