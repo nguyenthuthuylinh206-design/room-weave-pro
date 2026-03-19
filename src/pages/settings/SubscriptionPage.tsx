@@ -1,3 +1,4 @@
+import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SubscriptionOverview } from "@/components/settings/subscription/SubscriptionOverview";
 import { PlanComparison } from "@/components/settings/subscription/PlanComparison";
@@ -9,8 +10,17 @@ import { CreditCard, History, Package, Wallet, Clock } from "lucide-react";
 import { usePendingPaymentsCount } from "@/hooks/usePendingPayments";
 import { Badge } from "@/components/ui/badge";
 
+const VALID_TABS = ["overview", "plans", "pending", "payment", "history"];
+
 export default function SubscriptionPage() {
   const { data: pendingCount = 0 } = usePendingPaymentsCount();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get("tab");
+  const activeTab = VALID_TABS.includes(tabFromUrl || "") ? tabFromUrl! : "overview";
+
+  const handleTabChange = (value: string) => {
+    setSearchParams(value === "overview" ? {} : { tab: value }, { replace: true });
+  };
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -19,7 +29,7 @@ export default function SubscriptionPage() {
         description="Quản lý gói đăng ký, thanh toán và lịch sử giao dịch"
       />
 
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
