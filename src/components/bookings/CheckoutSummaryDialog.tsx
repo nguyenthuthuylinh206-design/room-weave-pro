@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { AlertTriangle, CreditCard, Receipt, Clock, Check, Printer, Minimize2, ShoppingBag } from 'lucide-react'
+import { AlertTriangle, CreditCard, Receipt, Clock, Check, Printer, Minimize2, ShoppingBag, User, DoorOpen, ChevronDown, ChevronRight, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { BookingPaymentDialog } from '@/components/bookings/BookingPaymentDialog'
 import type { ServiceChargeDetail } from '@/hooks/useBookingServiceCharges'
