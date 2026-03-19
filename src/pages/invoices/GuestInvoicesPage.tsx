@@ -150,7 +150,7 @@ export default function GuestInvoicesPage() {
                   <span className={`text-xs font-medium ${STATUS_COLORS[inv.status] || ''}`}>
                     {STATUS_OPTIONS.find(s => s.value === inv.status)?.label}
                   </span>
-                  {(inv as any).email_sent_at && <Mail className="h-3 w-3 text-muted-foreground" />}
+                  {inv.email_sent_at && <Mail className="h-3 w-3 text-muted-foreground" />}
                 </div>
                 <div className="text-sm">{inv.guest_name} {inv.room_number && `• P.${inv.room_number}`}</div>
                 <div className="text-xs text-muted-foreground">

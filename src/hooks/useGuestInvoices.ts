@@ -33,6 +33,8 @@ export interface GuestInvoice {
   status: string
   issued_at: string | null
   created_by: string | null
+  guest_email: string | null
+  email_sent_at: string | null
   created_at: string
   updated_at: string
 }
