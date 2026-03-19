@@ -109,17 +109,17 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
     {
       title: 'Báo cáo & Thống kê',
       items: [
-        { title: 'Tổng hợp', icon: TrendingUp, path: '/reports' },
-        { title: 'Báo cáo kho', icon: Package, path: '/reports/inventory' },
-        { title: 'Báo cáo phòng', icon: DoorOpen, path: '/reports/rooms' },
-        { title: 'Báo cáo vận hành', icon: LayoutDashboard, path: '/reports/operations' },
+        { title: 'Tổng hợp', icon: TrendingUp, path: '/reports', minMode: 'standard' },
+        { title: 'Báo cáo kho', icon: Package, path: '/reports/inventory', minMode: 'standard' },
+        { title: 'Báo cáo phòng', icon: DoorOpen, path: '/reports/rooms', minMode: 'standard' },
+        { title: 'Báo cáo vận hành', icon: LayoutDashboard, path: '/reports/operations', minMode: 'standard' },
       ]
     },
     {
       title: 'Quản lý',
       items: [
         { title: 'Khách sạn', icon: Building2, path: '/settings/hotels' },
-        { title: 'Nhân sự', icon: Users, path: '/settings/users' },
+        { title: 'Nhân sự', icon: Users, path: '/settings/users', minMode: 'standard' },
       ]
     },
     {
