@@ -18,6 +18,7 @@ interface NavTab {
   label: string
   path: string
   module?: string
+  minMode?: UsageMode
 }
 
 export const BottomNav = () => {
