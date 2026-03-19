@@ -1,87 +1,108 @@
 
 
-## Phan tich luong phieu giao hang (Distribution Order)
+## Đánh giá giao diện Group Checkout Dialog theo 7 tiêu chí UX
 
-### Hien trang: Cau truc luong hien tai
+### 1. Tính rõ ràng và trực quan (Clarity & Intuitive) — ⭐⭐⭐ 3/5
 
-Luong hien tai co **3 cach tao** va **5 buoc xu ly**, kha phuc tap:
+**Tốt:**
+- Header rõ ràng: "Checkout nhóm - [Tên khách] (N phòng)"
+- Badge trạng thái kiểm tra phòng cho mỗi phòng
+- Tổng cộng / Còn lại nổi bật với font-bold và màu đỏ/xanh
 
-#### 3 Dau vao (Entry Points)
-1. **Tao thu cong** (`/inventory/distributions/new`) - CreateDistributionPage.tsx
-2. **Tao tu yeu cau bo sung** (`/inventory/distributions/from-supplements`) - CreateFromSupplementsPage.tsx
-3. **Tao tu Xuat kho** (`/inventory/outbound` voi category `room_assign`) - OutboundPage.tsx dung cung DistributionForm
+**Cần cải thiện:**
+- **Thiếu card-based layout**: Tất cả nội dung nằm trong 1 ScrollArea dài, không có visual grouping rõ ràng giữa "Danh sách phòng", "Tổng hợp thanh toán", và "Actions". Lễ tân phải cuộn nhiều mới thấy tổng tiền
+- **"Subtotal" là thuật ngữ tiếng Anh** — nên đổi thành "Tạm tính"
+- **"VAT"** cũng là thuật ngữ chuyên ngành, nên hiển thị "Thuế GTGT (8%)"
+- **Phần phụ thu checkout trễ** hiển thị tất cả 4 tiers cùng lúc (trước 12h, 12-15h, 15-18h, sau 18h) → gây nhiễu. Chỉ nên highlight tier đang áp dụng
+- **Font quá nhỏ**: Hầu hết dùng `text-xs` (12px) — khó đọc trên màn hình lớn và rất khó trên mobile
 
-#### 5 Buoc xu ly (Lifecycle)
-```text
-pending --> released --> in_progress --> completed --> closed
-  (1)        (2)           (3)            (4)          (5)
-```
+### 2. Tính nhất quán (Consistency) — ⭐⭐⭐⭐ 4/5
 
-1. **pending** - Kho chuan bi hang, kiem tra ton kho, giao cho nhan vien (Warehouse Manager click "Kiem tra & Giao hang")
-2. **released** - Nhan vien xac nhan da nhan du hang (Assignee click "Xac nhan da nhan du hang")
-3. **in_progress** - Nhan vien di giao tung phong, click "GIAO" -> chuyen sang room check
-4. **completed** - Tat ca phong da giao xong
-5. **closed** - Manager dong phieu
+**Tốt:**
+- Sử dụng nhất quán `formatVNCurrency` cho tiền tệ
+- Lucide icons đồng bộ (DoorOpen, CreditCard, Check...)
+- Component UI từ shadcn/ui thống nhất
 
-### Van de phat hien
+**Cần cải thiện:**
+- **Không nhất quán với CheckoutSummaryDialog (lẻ)**: Dialog lẻ đã được redesign với card-based layout, nhưng dialog nhóm vẫn dùng layout cũ (flat list) → trải nghiệm khác nhau giữa checkout lẻ và nhóm
+- Footer actions không sticky (nằm trong ScrollArea) — khác với single checkout đã có sticky footer
 
-#### 1. Trung lap dau vao: OutboundPage dung trung DistributionForm
-- `OutboundPage.tsx` (Xuat kho) khi chon category `room_assign` se render cung `DistributionForm` va goi `useCreateDistributionOrder` - hoan toan giong `CreateDistributionPage.tsx`
-- Nguoi dung co 2 noi tao cung 1 thu -> nhầm lẫn
-- **De xuat**: Khi chon "Giao den phong" trong OutboundPage, chuyen huong (redirect) sang `/inventory/distributions/new` thay vi nhan doi form
+### 3. Phản hồi từ hệ thống (Feedback) — ⭐⭐⭐⭐ 4/5
 
-#### 2. Buoc "released" co the thua (khong can thiet voi nhieu truong hop)
-- Sau khi kho giao hang (pending -> released), nhan vien phai bam "Xac nhan da nhan du hang" de chuyen sang in_progress
-- Voi hotel nho (kho va nhan vien la 1 nguoi), buoc nay thua
-- Da co option `auto_release` nhung chi skip buoc kho, khong skip buoc nhan hang
-- **De xuat**: Them option "Tu dong bat dau giao" de skip ca buoc released, chuyen thang tu pending -> in_progress khi assignee la chinh nguoi tao
+**Tốt:**
+- Loading spinner khi đang xử lý (`isProcessing`, `isCalculating`)
+- InspectionStatusCard hiển thị real-time trạng thái kiểm tra phòng
+- Toast notifications khi thanh toán thành công
+- Nút disabled khi có `hasInvalidAdjustments`
 
-#### 3. Qua trinh giao phong phuc tap - click "GIAO" -> navigate ra room check
-- Khi nhan vien click "GIAO" tren 1 phong, he thong navigate sang `/rooms/{id}/check?type=delivery&...`
-- Phai lam room check roi moi quay lai -> mat flow, phai quay lai trang phieu de giao phong tiep
-- **De xuat**: Sau khi hoan thanh room check, tu dong quay lai trang phieu giao hang thay vi o lai trang room check
+**Cần cải thiện:**
+- Không có skeleton/loading state khi đang tính toán chi phí (`isCalculating`) — chỉ disable nút, không cho user biết đang tính
 
-#### 4. Thieu thong tin tong hop khi tao phieu
-- CreateDistributionPage khong hien thi summary (tong so phong, tong so item, tong so luong) truoc khi submit
-- DistributionForm hien thi 2 panel (chon phong + phan bo san pham) nhung khong co summary bar
-- **De xuat**: Them summary bar hien thi: X phong, Y loai SP, Z don vi truoc nut "Tao phieu"
+### 4. Điều hướng dễ dàng (Navigation) — ⭐⭐⭐ 3/5
 
-#### 5. Auto-fill logic tot nhung UX chua ro rang
-- `useDistributionForm` co `autoFillMissingItems` va `autoFillMissingItemsForRoom` de tu dong tinh so luong theo tieu chuan phong
-- Nhung trong CreateDistributionPage, nut auto-fill khong duoc hien thi ro rang
-- **De xuat**: Them nut "Tu dong phan bo theo tieu chuan" noi bat hon trong form
+**Tốt:**
+- Nút "Hủy", "Thu nhỏ", X rõ ràng
+- Collapsible cho từng phòng giúp quản lý complexity
+- "Select All" checkbox tiện lợi
 
-### Ke hoach khac phuc
+**Cần cải thiện:**
+- **Footer actions nằm trong scroll** → user phải cuộn xuống cuối mới thấy nút "Thu tiền & Trả phòng". Với nhóm 4+ phòng, đây là vấn đề lớn
+- **Không có tóm tắt nhanh** ở đầu: user phải cuộn qua toàn bộ danh sách phòng mới thấy tổng tiền
+- Thiếu breadcrumb/step indicator cho quy trình checkout nhóm (nhiều bước: chọn phòng → kiểm tra → thanh toán → xác nhận)
 
-#### Thay doi 1: Redirect OutboundPage khi chon "room_assign"
-**File**: `src/pages/inventory/OutboundPage.tsx`
-- Khi user chon category `room_assign`, hien thi thong bao va nut chuyen sang trang tao phieu giao hang chuyen dung thay vi render form trung lap
+### 5. Phòng ngừa và xử lý lỗi (Error Prevention) — ⭐⭐⭐⭐ 4/5
 
-#### Thay doi 2: Them summary bar trong CreateDistributionPage
-**File**: `src/pages/inventory/CreateDistributionPage.tsx`
-- Hien thi summary compact (so phong, so SP, tong SL) ngay tren nut "Tao phieu"
-- Hien thi canh bao stock validation o footer thay vi chi trong form
+**Tốt:**
+- Nút checkout disabled khi chưa hoàn thành kiểm tra
+- Cảnh báo "Khách chưa thanh toán đầy đủ" rõ ràng
+- Bắt buộc nhập lý do khi điều chỉnh phụ thu
+- Overdue warning hiển thị rõ ràng ở đầu
 
-#### Thay doi 3: Auto-navigate ve phieu sau room check
-**File**: `src/components/distribution/components/UnifiedRoomList.tsx`
-- Them query param `returnTo` khi navigate sang room check
-- Sau khi room check xong, tu dong quay ve trang phieu giao hang
+**Cần cải thiện:**
+- **Input phụ thu trễ hiển thị raw number** (không format) — dễ nhầm lần giữa 510000 và 5100000
+- Thiếu confirmation dialog trước khi "Cho trả phòng (nợ X)" — thao tác mang tính quyết định cao
 
-#### Thay doi 4: Don gian hoa flow cho hotel nho
-**File**: `src/components/distribution/components/DeliveryStepWizard.tsx`
-- Khi nguoi tao phieu cung la nguoi duoc phan cong (assignee), gop buoc "Kiem tra kho" va "Nhan hang" thanh 1 buoc duy nhat
-- Giam so buoc tu 5 xuong 3-4 tuy truong hop
+### 6. Hiệu quả và Tối giản (Efficiency) — ⭐⭐⭐ 3/5
 
-#### Thay doi 5: Lam ro auto-fill trong form
-**File**: `src/components/distribution/forms/ItemAllocator.tsx`
-- Them nut "Tu dong phan bo" noi bat, co tooltip giai thich
-- Hien thi ket qua auto-fill (bao nhieu SP da them, bao nhieu thieu) ro rang hon
+**Tốt:**
+- Batch inspection request cho nhiều phòng cùng lúc
+- Auto-select tất cả phòng đang ở khi mở dialog
+- Collapsible rooms giảm visual noise
 
-### Uu tien thuc hien
+**Cần cải thiện:**
+- **Quá nhiều thông tin chi tiết mặc định**: Mỗi phòng khi expand hiển thị late checkout tiers + cost breakdown + damage section + notes → rất dài
+- **Phần "Tổng hợp thanh toán" lặp lại thông tin** đã có trong từng phòng
+- Thiếu quick-action: không có nút "Checkout tất cả" nhanh khi mọi thứ đã ready
+- ~1400 dòng code trong 1 file → khó maintain
 
-1. **Thay doi 2** (Summary bar) - De lam, giam nhầm lẫn ngay
-2. **Thay doi 1** (Redirect OutboundPage) - Loai bo trung lap
-3. **Thay doi 3** (Auto-navigate ve phieu) - Cai thien flow giao hang
-4. **Thay doi 4** (Don gian hoa step) - Giam buoc cho hotel nho
-5. **Thay doi 5** (Auto-fill ro rang) - Cai thien UX
+### 7. Tính tiếp cận và tương thích (Accessibility) — ⭐⭐ 2/5
+
+**Cần cải thiện nghiêm trọng:**
+- **Font size quá nhỏ**: Đại đa số dùng `text-xs` (12px), kể cả số tiền quan trọng
+- **Tổng cộng dùng `font-bold` nhưng vẫn text-sm** → không đủ nổi bật cho số tiền quan trọng nhất
+- **Còn lại dùng `text-sm font-semibold`** → tương tự, quá nhỏ
+- **Nút action footer trên mobile** dùng `flex-col sm:flex-row` nhưng các nút vẫn nhỏ, text dài ("Cho trả phòng (nợ 11.729.500đ)") có thể bị cắt
+- **Dialog không có `max-h` rõ ràng** — trên mobile nhỏ có thể tràn ra ngoài viewport
+- **Contrast**: Nhiều label dùng `text-muted-foreground` + `text-xs` → rất khó đọc trên nền sáng
+
+---
+
+### Tổng điểm: ⭐⭐⭐ 3.3/5
+
+### Đề xuất cải thiện (ưu tiên cao → thấp)
+
+| # | Cải thiện | Mức ưu tiên |
+|---|-----------|-------------|
+| 1 | **Sticky footer**: Tách footer actions ra khỏi ScrollArea, luôn hiển thị ở dưới cùng | Cao |
+| 2 | **Tổng tiền mini-summary** sticky ở trên footer (TỔNG / CÒN LẠI) để user không cần cuộn | Cao |
+| 3 | **Tăng font size**: Tổng cộng → `text-lg font-bold`, Còn lại → `text-base font-bold`, các dòng chi tiết → `text-sm` thay vì `text-xs` | Cao |
+| 4 | **Collapse late checkout tiers**: Chỉ hiển thị tier đang áp dụng, cho phép expand xem tất cả | Trung bình |
+| 5 | **Đổi thuật ngữ**: "Subtotal" → "Tạm tính", "VAT" → "Thuế GTGT" | Trung bình |
+| 6 | **Format input số tiền** với dấu chấm phân cách (510.000 thay vì 510000) | Trung bình |
+| 7 | **Card-based grouping** cho phần Tổng hợp thanh toán (border + background nhẹ) | Trung bình |
+| 8 | **Thống nhất với single checkout**: Áp dụng card-based layout tương tự CheckoutSummaryDialog | Thấp |
+| 9 | **Loading skeleton** khi đang tính chi phí | Thấp |
+| 10 | **Tách component**: Chia file 1400 dòng thành sub-components | Thấp |
+
+Bạn muốn tôi triển khai những cải thiện nào?
 
