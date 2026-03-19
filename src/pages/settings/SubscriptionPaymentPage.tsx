@@ -103,7 +103,7 @@ export default function SubscriptionPaymentPage() {
     };
   }, [payment?.id, refetch]);
   const handleBack = () => {
-    navigate('/settings/subscription');
+    navigate('/settings/subscription?tab=pending');
   };
   const handleViewHistory = () => {
     navigate('/settings/subscription');
