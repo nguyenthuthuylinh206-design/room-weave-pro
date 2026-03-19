@@ -22,6 +22,7 @@ export function OwnerDashboard() {
   const { user } = useUser()
   const { isAllHotelsMode, selectedHotel } = useHotelContext()
   const { isMobile } = useBreakpoint()
+  const { hasMode } = useUsageMode()
   const [datePreset, setDatePreset] = useState<DateRangePreset>('1m')
 
   const dateRange = {
