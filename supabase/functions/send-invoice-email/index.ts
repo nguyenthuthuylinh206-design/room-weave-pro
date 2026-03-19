@@ -93,21 +93,39 @@ Deno.serve(async (req) => {
       .update({ guest_email: to_email, email_sent_at: new Date().toISOString() })
       .eq('id', invoice_id)
 
-    // Try to enqueue email if infrastructure exists, otherwise just log
-    try {
-      await supabase.rpc('enqueue_email', {
-        p_message_id: `invoice-${invoice_id}-${Date.now()}`,
-        p_queue_name: 'transactional_emails',
-        p_to_email: to_email,
-        p_subject: `Hóa đơn ${invoice.invoice_number}`,
-        p_html_body: emailHtml,
-        p_template_name: 'guest-invoice',
-        p_metadata: { invoice_id, invoice_number: invoice.invoice_number },
+    // Send email via Resend
+    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')?.trim()
+    if (!RESEND_API_KEY) {
+      return new Response(JSON.stringify({ error: 'RESEND_API_KEY not configured' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
-    } catch {
-      // Email infrastructure not set up, just update the record
-      console.log('Email queue not available, skipping send')
     }
+
+    const resendResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'RoomQc <notifications@roomqc.com>',
+        to: [to_email],
+        subject: `Hóa đơn ${invoice.invoice_number}`,
+        html: emailHtml,
+      }),
+    })
+
+    const resendText = await resendResponse.text()
+    if (!resendResponse.ok) {
+      console.error('Resend error:', resendText)
+      return new Response(JSON.stringify({ error: `Email send failed: ${resendText}` }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    console.log('Invoice email sent successfully via Resend:', resendText)
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
