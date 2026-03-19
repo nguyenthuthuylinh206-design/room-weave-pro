@@ -7130,6 +7130,7 @@ export type Database = {
           trial_end_date: string | null
           trial_ends_at: string | null
           updated_at: string | null
+          usage_mode: string
         }
         Insert: {
           approval_status?: string | null
@@ -7164,6 +7165,7 @@ export type Database = {
           trial_end_date?: string | null
           trial_ends_at?: string | null
           updated_at?: string | null
+          usage_mode?: string
         }
         Update: {
           approval_status?: string | null
@@ -7198,6 +7200,7 @@ export type Database = {
           trial_end_date?: string | null
           trial_ends_at?: string | null
           updated_at?: string | null
+          usage_mode?: string
         }
         Relationships: [
           {
