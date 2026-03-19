@@ -70,7 +70,7 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
   const { toast } = useToast()
   const [showInstallGuide, setShowInstallGuide] = useState(false)
   const { data: pendingCounts } = usePendingCounts()
-
+  const { hasMode } = useUsageMode()
   // Handle PWA install
   const handleInstallApp = async () => {
     if (isInstalled) return
