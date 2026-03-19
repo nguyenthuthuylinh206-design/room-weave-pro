@@ -263,7 +263,7 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
               )}
               <div className="space-y-1">
                 {section.items
-                  .filter((item) => hasModuleAccess(item.module))
+                  .filter((item) => hasModuleAccess(item.module) && (!item.minMode || hasMode(item.minMode)))
                   .map((item) => {
                     const Icon = item.icon
                     const active = isActive(item.path)

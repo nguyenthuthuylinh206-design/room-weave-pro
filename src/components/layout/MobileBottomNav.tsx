@@ -77,7 +77,7 @@ export const MobileBottomNav = () => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t safe-area-bottom md:hidden">
       <div className="flex items-center justify-around h-16">
-        {effectiveNavItems.filter(item => hasModuleAccess(item.module)).map((item) => {
+        {effectiveNavItems.filter(item => hasModuleAccess(item.module) && (!item.module || hasMode('homestay'))).map((item) => {
           const Icon = item.icon
           const active = isActive(item.path)
           const badgeCount = getBadgeCount(item.badgeKey)
