@@ -54,14 +54,16 @@ export const BottomNav = () => {
       icon: Shirt, 
       label: 'Laundry', 
       path: '/laundry',
-      module: 'laundry'
+      module: 'laundry',
+      minMode: 'standard' as UsageMode,
     },
     { 
       id: 'maintenance', 
       icon: Wrench, 
       label: 'Bảo trì', 
       path: '/maintenance',
-      module: 'maintenance'
+      module: 'maintenance',
+      minMode: 'standard' as UsageMode,
     }
   ]
 
