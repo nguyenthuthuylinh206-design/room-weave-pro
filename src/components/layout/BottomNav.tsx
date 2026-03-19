@@ -10,6 +10,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useUser } from '@/hooks/useUser'
 import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
+import { useUsageMode, type UsageMode } from '@/hooks/useUsageMode'
 
 interface NavTab {
   id: string
