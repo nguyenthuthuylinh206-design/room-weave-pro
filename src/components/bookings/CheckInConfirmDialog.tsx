@@ -212,8 +212,8 @@ export function CheckInConfirmDialog({
                       </div>
                     )}
                     <div className="flex justify-between px-3 py-2">
-                      <span className="text-muted-foreground">Tổng tiền phòng</span>
-                      <span className="font-mono text-xs">{formatCurrency(totalAmount)}</span>
+                      <span className="font-medium">Tổng cộng</span>
+                      <span className="font-mono text-xs font-medium">{formatCurrency(totalAmount)}</span>
                     </div>
                     <div className="flex justify-between px-3 py-2">
                       <span className="text-muted-foreground">Đã đặt cọc</span>
@@ -222,7 +222,7 @@ export function CheckInConfirmDialog({
                     <div className="flex justify-between px-3 py-2 bg-muted/30">
                       <span className="font-medium">Còn phải thu</span>
                       <span className={cn(
-                        "font-mono text-xs font-bold",
+                        "font-mono text-sm font-bold",
                         remainingBalance > 0 ? "text-amber-600" : "text-green-600"
                       )}>
                         {formatCurrency(remainingBalance)}
