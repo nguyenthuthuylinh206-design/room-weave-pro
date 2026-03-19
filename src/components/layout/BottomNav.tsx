@@ -26,6 +26,7 @@ export const BottomNav = () => {
   const location = useLocation()
   const { role } = useUser()
   const { data: modulePermissions } = useUserModulePermissions()
+  const { hasMode } = useUsageMode()
 
   // Only operations modules
   const tabs: NavTab[] = [
