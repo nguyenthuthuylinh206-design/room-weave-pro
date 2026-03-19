@@ -31,6 +31,7 @@ import { useUser } from '@/hooks/useUser'
 import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { usePendingCounts, type PendingCounts } from '@/hooks/usePendingCounts'
+import { useUsageMode, type UsageMode } from '@/hooks/useUsageMode'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 import { useToast } from '@/hooks/use-toast'
 import { InstallGuideSheet } from '@/components/pwa/InstallGuideSheet'
@@ -43,6 +44,7 @@ interface MenuItem {
   path: string
   module?: string
   badgeKey?: PendingCountKey
+  minMode?: UsageMode
 }
 
 interface MenuSection {
@@ -65,7 +67,7 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
   const { toast } = useToast()
   const [showInstallGuide, setShowInstallGuide] = useState(false)
   const { data: pendingCounts } = usePendingCounts()
-
+  const { hasMode } = useUsageMode()
   // Handle PWA install
   const handleInstallApp = async () => {
     if (isInstalled) return
@@ -104,17 +106,17 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
     {
       title: 'Báo cáo & Thống kê',
       items: [
-        { title: 'Tổng hợp', icon: TrendingUp, path: '/reports' },
-        { title: 'Báo cáo kho', icon: Package, path: '/reports/inventory' },
-        { title: 'Báo cáo phòng', icon: DoorOpen, path: '/reports/rooms' },
-        { title: 'Báo cáo vận hành', icon: LayoutDashboard, path: '/reports/operations' },
+        { title: 'Tổng hợp', icon: TrendingUp, path: '/reports', minMode: 'standard' },
+        { title: 'Báo cáo kho', icon: Package, path: '/reports/inventory', minMode: 'standard' },
+        { title: 'Báo cáo phòng', icon: DoorOpen, path: '/reports/rooms', minMode: 'standard' },
+        { title: 'Báo cáo vận hành', icon: LayoutDashboard, path: '/reports/operations', minMode: 'standard' },
       ]
     },
     {
       title: 'Quản lý',
       items: [
         { title: 'Khách sạn', icon: Building2, path: '/settings/hotels' },
-        { title: 'Nhân sự', icon: Users, path: '/settings/users' },
+        { title: 'Nhân sự', icon: Users, path: '/settings/users', minMode: 'standard' },
       ]
     },
     {
@@ -136,19 +138,19 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
     {
       title: 'Vận hành',
       items: [
-        { title: 'Kho & Tài sản', icon: Package, path: '/inventory', module: 'inventory,items', badgeKey: 'inventoryTotal' },
+        { title: 'Kho & Tài sản', icon: Package, path: '/inventory', module: 'inventory,items', badgeKey: 'inventoryTotal', minMode: 'standard' },
         { title: 'Phòng', icon: DoorOpen, path: '/rooms', module: 'rooms' },
-        { title: 'Laundry', icon: Shirt, path: '/laundry', module: 'laundry', badgeKey: 'laundryTotal' },
-        { title: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badgeKey: 'maintenanceTotal' },
-        { title: 'Đơn mua hàng', icon: ShoppingCart, path: '/purchase-orders', module: 'purchase_orders' },
+        { title: 'Laundry', icon: Shirt, path: '/laundry', module: 'laundry', badgeKey: 'laundryTotal', minMode: 'standard' },
+        { title: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badgeKey: 'maintenanceTotal', minMode: 'standard' },
+        { title: 'Đơn mua hàng', icon: ShoppingCart, path: '/purchase-orders', module: 'purchase_orders', minMode: 'full' },
       ]
     },
     {
       title: 'Quản lý',
       items: [
         { title: 'Khách sạn', icon: Building2, path: '/hotels', module: 'hotels' },
-        { title: 'Nhân viên', icon: Users, path: '/users', module: 'users' },
-        { title: 'Nhà cung cấp', icon: Users, path: '/vendors', module: 'vendors' },
+        { title: 'Nhân viên', icon: Users, path: '/users', module: 'users', minMode: 'standard' },
+        { title: 'Nhà cung cấp', icon: Users, path: '/vendors', module: 'vendors', minMode: 'full' },
       ]
     },
     {
@@ -261,7 +263,7 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
               )}
               <div className="space-y-1">
                 {section.items
-                  .filter((item) => hasModuleAccess(item.module))
+                  .filter((item) => hasModuleAccess(item.module) && (!item.minMode || hasMode(item.minMode)))
                   .map((item) => {
                     const Icon = item.icon
                     const active = isActive(item.path)

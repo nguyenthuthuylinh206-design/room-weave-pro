@@ -6,6 +6,7 @@ import { useUser } from '@/hooks/useUser'
 import { useTenant } from '@/hooks/useTenant'
 import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
 import { usePendingCounts, type PendingCounts } from '@/hooks/usePendingCounts'
+import { useUsageMode, type UsageMode } from '@/hooks/useUsageMode'
 import {
   LayoutDashboard,
   Package,
@@ -58,8 +59,9 @@ interface NavItem {
   href?: string
   icon: React.ElementType
   badge?: string
-  badgeKey?: PendingCountKey  // Key to get count from usePendingCounts
+  badgeKey?: PendingCountKey
   roles?: AppRole[]
+  minMode?: UsageMode
   children?: Omit<NavItem, 'children'>[]
 }
 
@@ -70,6 +72,7 @@ const navigation: NavItem[] = [
     href: '/',
     icon: LayoutDashboard,
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
+    minMode: 'homestay',
   },
   {
     titleKey: 'superAdmin',
@@ -90,6 +93,7 @@ const navigation: NavItem[] = [
     icon: Warehouse,
     badgeKey: 'inventoryTotal',
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
+    minMode: 'standard',
     children: [
       { titleKey: 'dashboard', href: '/inventory', icon: LayoutDashboard },
       { titleKey: 'itemsList', href: '/items', icon: List },
@@ -109,13 +113,14 @@ const navigation: NavItem[] = [
     titleKey: 'rooms',
     icon: Hotel,
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
+    minMode: 'homestay',
     children: [
       { titleKey: 'roomsList', href: '/rooms', icon: List },
       { titleKey: 'bookings', href: '/bookings', icon: CalendarDays },
       { titleKey: 'guests', href: '/guests', icon: Users },
       { titleKey: 'lostFound', href: '/lost-found', icon: PackageSearch },
       { titleKey: 'guestInvoices', href: '/guest-invoices', icon: FileText },
-      { titleKey: 'roomStandards', href: '/rooms/standards', icon: Settings },
+      { titleKey: 'roomStandards', href: '/rooms/standards', icon: Settings, minMode: 'standard' },
       { titleKey: 'addRoom', href: '/rooms/new', icon: Plus },
     ],
   },
@@ -124,6 +129,7 @@ const navigation: NavItem[] = [
     icon: Wind,
     badgeKey: 'laundryTotal',
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
+    minMode: 'standard',
     children: [
       { titleKey: 'laundryOverview', href: '/laundry', icon: LayoutDashboard },
       { titleKey: 'laundryRequests', href: '/laundry?tab=requests', icon: Inbox, badgeKey: 'laundryRequests' },
@@ -137,6 +143,7 @@ const navigation: NavItem[] = [
     titleKey: 'vendors',
     icon: Building,
     roles: ['owner', 'hotel_manager'],
+    minMode: 'full',
     children: [
       { titleKey: 'vendorsList', href: '/vendors', icon: List },
       { titleKey: 'addNewVendor', href: '/vendors/new', icon: Plus },
@@ -150,6 +157,7 @@ const navigation: NavItem[] = [
     icon: Wrench,
     badgeKey: 'maintenanceTotal',
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
+    minMode: 'standard',
     children: [
       { titleKey: 'maintenanceDashboard', href: '/maintenance', icon: LayoutDashboard },
       { titleKey: 'maintenanceRequests', href: '/maintenance/requests', icon: AlertCircle, badgeKey: 'maintenance' },
@@ -161,11 +169,13 @@ const navigation: NavItem[] = [
     href: '/staff',
     icon: Users,
     roles: ['owner', 'hotel_manager', 'department_manager'],
+    minMode: 'standard',
   },
   {
     titleKey: 'reports',
     icon: BarChart3,
     roles: ['owner', 'hotel_manager', 'department_manager'],
+    minMode: 'standard',
     children: [
       { titleKey: 'reportsDashboard', href: '/reports', icon: LayoutDashboard },
       { titleKey: 'inventoryReport', href: '/reports/inventory', icon: Warehouse },
@@ -179,18 +189,19 @@ const navigation: NavItem[] = [
     titleKey: 'settings',
     icon: Settings,
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
+    minMode: 'homestay',
     children: [
       { titleKey: 'generalSettings', href: '/settings/general', icon: Settings },
       { titleKey: 'hotels', href: '/settings/hotels', icon: Building2 },
-      { titleKey: 'usersPermissions', href: '/settings/users', icon: Users },
+      { titleKey: 'usersPermissions', href: '/settings/users', icon: Users, minMode: 'standard' },
       { titleKey: 'changePassword', href: '/settings/change-password', icon: KeyRound },
       { titleKey: 'subscription', href: '/settings/subscription', icon: CreditCard },
-      { titleKey: 'usage', href: '/settings/usage', icon: BarChart3 },
+      { titleKey: 'usage', href: '/settings/usage', icon: BarChart3, minMode: 'standard' },
       { titleKey: 'notifications', href: '/settings/notifications', icon: Bell },
       { titleKey: 'telegram', href: '/settings/telegram', icon: MessageCircle },
-      { titleKey: 'businessConfig', href: '/settings/business', icon: Briefcase },
-      { titleKey: 'pricingRules', href: '/settings/pricing-rules', icon: DollarSign },
-      { titleKey: 'automation', href: '/settings/workflows', icon: Zap },
+      { titleKey: 'businessConfig', href: '/settings/business', icon: Briefcase, minMode: 'standard' },
+      { titleKey: 'pricingRules', href: '/settings/pricing-rules', icon: DollarSign, minMode: 'standard' },
+      { titleKey: 'automation', href: '/settings/workflows', icon: Zap, minMode: 'full' },
     ],
   },
 ]
@@ -224,6 +235,7 @@ export const Sidebar = () => {
   const { tenant, isLoading: tenantLoading } = useTenant()
   const { data: modulePermissions, isLoading: permissionsLoading } = useUserModulePermissions()
   const { data: pendingCounts } = usePendingCounts()
+  const { hasMode } = useUsageMode()
   const [expandedItems, setExpandedItems] = useState<string[]>(() => {
     const expanded: string[] = []
     navigation.forEach((item) => {
@@ -280,15 +292,19 @@ export const Sidebar = () => {
   // Select navigation based on role
   const effectiveNavigation = navigation
 
-  // Filter navigation based on permissions
+  // Filter navigation based on permissions and usage mode
   const filteredNavigation = effectiveNavigation.filter((item) => {
     if (item.roles && !item.roles.includes(role || 'staff')) return false
+    if (item.minMode && !hasMode(item.minMode)) return false
     return hasModuleAccess(item.titleKey)
   }).map((item) => {
     if (item.children) {
       return {
         ...item,
-        children: item.children.filter(child => hasChildAccess(item.titleKey, child.titleKey))
+        children: item.children.filter(child => {
+          if ((child as NavItem).minMode && !hasMode((child as NavItem).minMode!)) return false
+          return hasChildAccess(item.titleKey, child.titleKey)
+        })
       }
     }
     return item

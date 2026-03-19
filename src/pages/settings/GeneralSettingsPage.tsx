@@ -22,6 +22,7 @@ import { useAutoSave } from '@/hooks/useAutoSave'
 import { logUpdate } from '@/lib/activityLogger'
 import { SeedDataButton } from '@/components/settings/SeedDataButton'
 import { Switch } from '@/components/ui/switch'
+import { UsageModeSelector } from '@/components/settings/UsageModeSelector'
 
 const createGeneralSettingsSchema = (t: (key: string) => string) => z.object({
   name: z.string().min(2, t('settings:general.validation.companyNameMin')),
@@ -290,6 +291,9 @@ export function GeneralSettingsPage() {
             </div>
           </div>
         </div>
+
+        {/* Usage Mode */}
+        <UsageModeSelector />
 
         {/* Demo Data Section */}
         <div className="border rounded-lg p-4 space-y-3">

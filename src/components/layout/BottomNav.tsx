@@ -10,6 +10,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useUser } from '@/hooks/useUser'
 import { useUserModulePermissions } from '@/hooks/useUserModulePermissions'
+import { useUsageMode, type UsageMode } from '@/hooks/useUsageMode'
 
 interface NavTab {
   id: string
@@ -17,6 +18,7 @@ interface NavTab {
   label: string
   path: string
   module?: string
+  minMode?: UsageMode
 }
 
 export const BottomNav = () => {
@@ -24,6 +26,7 @@ export const BottomNav = () => {
   const location = useLocation()
   const { role } = useUser()
   const { data: modulePermissions } = useUserModulePermissions()
+  const { hasMode } = useUsageMode()
 
   // Only operations modules
   const tabs: NavTab[] = [
@@ -51,14 +54,16 @@ export const BottomNav = () => {
       icon: Shirt, 
       label: 'Laundry', 
       path: '/laundry',
-      module: 'laundry'
+      module: 'laundry',
+      minMode: 'standard' as UsageMode,
     },
     { 
       id: 'maintenance', 
       icon: Wrench, 
       label: 'Bảo trì', 
       path: '/maintenance',
-      module: 'maintenance'
+      module: 'maintenance',
+      minMode: 'standard' as UsageMode,
     }
   ]
 
@@ -74,7 +79,7 @@ export const BottomNav = () => {
   }
 
   // Filter tabs based on permissions
-  const visibleTabs = tabs.filter(tab => hasModuleAccess(tab.module))
+  const visibleTabs = tabs.filter(tab => hasModuleAccess(tab.module) && (!tab.minMode || hasMode(tab.minMode)))
 
   const isActive = (path: string) => {
     if (path === '/') {

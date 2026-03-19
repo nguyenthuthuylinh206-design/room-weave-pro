@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { useUser } from '@/hooks/useUser'
 import { useHotelContext } from '@/contexts/HotelContext'
 import { useBreakpoint } from '@/lib/breakpoints'
+import { useUsageMode } from '@/hooks/useUsageMode'
 import { FinancialOverview } from './FinancialOverview'
 import { HotelPerformanceTable } from './HotelPerformanceTable'
 import { OwnerSmartAlerts } from './OwnerSmartAlerts'
@@ -21,6 +22,7 @@ export function OwnerDashboard() {
   const { user } = useUser()
   const { isAllHotelsMode, selectedHotel } = useHotelContext()
   const { isMobile } = useBreakpoint()
+  const { hasMode } = useUsageMode()
   const [datePreset, setDatePreset] = useState<DateRangePreset>('1m')
 
   const dateRange = {
@@ -73,11 +75,13 @@ export function OwnerDashboard() {
       {/* Quick Links */}
       <OwnerQuickLinks />
 
-      {/* Expense Trend Chart */}
-      <ExpenseChart months={parseInt(datePreset)} showBarChart={true} />
+      {/* Expense Trend Chart - Standard mode and above */}
+      {hasMode('standard') && (
+        <ExpenseChart months={parseInt(datePreset)} showBarChart={true} />
+      )}
 
-      {/* Hotel Performance Comparison - Only show in All Hotels mode */}
-      {isAllHotelsMode && <HotelPerformanceTable dateRange={dateRange} />}
+      {/* Hotel Performance Comparison - Only show in All Hotels mode & full mode */}
+      {isAllHotelsMode && hasMode('full') && <HotelPerformanceTable dateRange={dateRange} />}
     </div>
   )
 }
