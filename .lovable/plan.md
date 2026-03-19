@@ -1,68 +1,87 @@
 
 
-## Kế hoạch nâng cấp hệ thống Hóa đơn khách
+## Phan tich luong phieu giao hang (Distribution Order)
 
-### Tổng quan
-Nâng cấp trang Hóa đơn khách từ hệ thống đơn giản (chỉ tạo + xuất PDF) thành hệ thống quản lý hóa đơn đầy đủ với: chọn kích thước in, xem trước, chỉnh sửa, gửi email, và các tính năng bổ sung.
+### Hien trang: Cau truc luong hien tai
 
----
+Luong hien tai co **3 cach tao** va **5 buoc xu ly**, kha phuc tap:
 
-### 1. Xem trước hóa đơn (Invoice Preview Dialog)
-- Tạo component `InvoicePreviewDialog.tsx` hiển thị hóa đơn dạng HTML trong dialog lớn (preview trực quan trước khi in/xuất PDF)
-- Render cùng template HTML đã có trong `InvoicePDFTemplate.ts` nhưng hiển thị trực tiếp trên màn hình
-- Nút hành động: In, Tải PDF, Gửi email, Đóng
+#### 3 Dau vao (Entry Points)
+1. **Tao thu cong** (`/inventory/distributions/new`) - CreateDistributionPage.tsx
+2. **Tao tu yeu cau bo sung** (`/inventory/distributions/from-supplements`) - CreateFromSupplementsPage.tsx
+3. **Tao tu Xuat kho** (`/inventory/outbound` voi category `room_assign`) - OutboundPage.tsx dung cung DistributionForm
 
-### 2. Chọn kích thước giấy in (Paper Size Selector)
-- Hỗ trợ các khổ giấy: **A4** (210×297mm), **A5** (148×210mm), **K80** (80mm thermal receipt), **K58** (58mm thermal receipt)
-- Cập nhật `generateInvoicePDF` nhận tham số `paperSize` để điều chỉnh width, padding, font-size tương ứng
-- K80/K58: Layout thu gọn dạng receipt (1 cột, font nhỏ, không có phần ký tên)
-- A5: Thu nhỏ tỷ lệ so với A4
-- Dropdown chọn kích thước nằm trong Preview Dialog và khi xuất PDF
-
-### 3. Chỉnh sửa hóa đơn (Edit Invoice)
-- Tạo `EditInvoiceDialog.tsx` — tái sử dụng form từ `CreateInvoiceDialog` với prefill từ invoice hiện có
-- Chỉ cho phép chỉnh sửa khi status = `draft`; hóa đơn `issued` phải hủy trước mới sửa được
-- Thêm menu item "Chỉnh sửa" vào DropdownMenu trong danh sách
-
-### 4. Gửi hóa đơn qua email
-- Tạo `SendInvoiceEmailDialog.tsx` với field nhập email (prefill từ `guest_email` của booking nếu có)
-- Tạo edge function `send-invoice-email` để:
-  - Render HTML hóa đơn server-side
-  - Gửi email kèm nội dung hóa đơn (HTML inline)
-- Thêm cột `guest_email` vào bảng `guest_invoices` (migration)
-- Lưu lịch sử gửi: thêm cột `email_sent_at` vào `guest_invoices`
-
-### 5. Các tính năng bổ sung gợi ý
-- **Nhân bản hóa đơn**: Tạo bản sao từ hóa đơn có sẵn (Duplicate)
-- **In trực tiếp**: Nút "In" mở `window.print()` với CSS `@media print` phù hợp khổ giấy
-- **Xuất Excel danh sách**: Export toàn bộ danh sách hóa đơn ra Excel (đã có `exportToExcel` util)
-- **Logo khách sạn trên hóa đơn**: Lấy logo từ cấu hình hotel hiển thị trên header hóa đơn
-
----
-
-### Chi tiết kỹ thuật
-
-**Files mới:**
-- `src/components/invoices/InvoicePreviewDialog.tsx` — Preview + chọn khổ giấy + actions
-- `src/components/invoices/EditInvoiceDialog.tsx` — Chỉnh sửa hóa đơn draft
-- `src/components/invoices/SendInvoiceEmailDialog.tsx` — Form gửi email
-- `src/components/invoices/PaperSizeSelector.tsx` — Dropdown chọn khổ giấy
-- `supabase/functions/send-invoice-email/index.ts` — Edge function gửi email
-
-**Files sửa:**
-- `src/components/invoices/InvoicePDFTemplate.ts` — Thêm param `paperSize`, tạo các template variant cho A4/A5/K80/K58
-- `src/pages/invoices/GuestInvoicesPage.tsx` — Thêm menu items (Xem, Sửa, Gửi email, Nhân bản, In, Export Excel)
-- `src/hooks/useGuestInvoices.ts` — Thêm field `guest_email`, `email_sent_at`
-
-**Migration:**
-- Thêm cột `guest_email TEXT`, `email_sent_at TIMESTAMPTZ` vào `guest_invoices`
-
-**Khổ giấy — cấu hình:**
-
+#### 5 Buoc xu ly (Lifecycle)
 ```text
-A4:  width=794px, padding=40px 50px, font=13px
-A5:  width=560px, padding=30px 35px, font=11px
-K80: width=302px, padding=8px,      font=10px (receipt layout)
-K58: width=218px, padding=6px,      font=9px  (receipt layout)
+pending --> released --> in_progress --> completed --> closed
+  (1)        (2)           (3)            (4)          (5)
 ```
+
+1. **pending** - Kho chuan bi hang, kiem tra ton kho, giao cho nhan vien (Warehouse Manager click "Kiem tra & Giao hang")
+2. **released** - Nhan vien xac nhan da nhan du hang (Assignee click "Xac nhan da nhan du hang")
+3. **in_progress** - Nhan vien di giao tung phong, click "GIAO" -> chuyen sang room check
+4. **completed** - Tat ca phong da giao xong
+5. **closed** - Manager dong phieu
+
+### Van de phat hien
+
+#### 1. Trung lap dau vao: OutboundPage dung trung DistributionForm
+- `OutboundPage.tsx` (Xuat kho) khi chon category `room_assign` se render cung `DistributionForm` va goi `useCreateDistributionOrder` - hoan toan giong `CreateDistributionPage.tsx`
+- Nguoi dung co 2 noi tao cung 1 thu -> nhầm lẫn
+- **De xuat**: Khi chon "Giao den phong" trong OutboundPage, chuyen huong (redirect) sang `/inventory/distributions/new` thay vi nhan doi form
+
+#### 2. Buoc "released" co the thua (khong can thiet voi nhieu truong hop)
+- Sau khi kho giao hang (pending -> released), nhan vien phai bam "Xac nhan da nhan du hang" de chuyen sang in_progress
+- Voi hotel nho (kho va nhan vien la 1 nguoi), buoc nay thua
+- Da co option `auto_release` nhung chi skip buoc kho, khong skip buoc nhan hang
+- **De xuat**: Them option "Tu dong bat dau giao" de skip ca buoc released, chuyen thang tu pending -> in_progress khi assignee la chinh nguoi tao
+
+#### 3. Qua trinh giao phong phuc tap - click "GIAO" -> navigate ra room check
+- Khi nhan vien click "GIAO" tren 1 phong, he thong navigate sang `/rooms/{id}/check?type=delivery&...`
+- Phai lam room check roi moi quay lai -> mat flow, phai quay lai trang phieu de giao phong tiep
+- **De xuat**: Sau khi hoan thanh room check, tu dong quay lai trang phieu giao hang thay vi o lai trang room check
+
+#### 4. Thieu thong tin tong hop khi tao phieu
+- CreateDistributionPage khong hien thi summary (tong so phong, tong so item, tong so luong) truoc khi submit
+- DistributionForm hien thi 2 panel (chon phong + phan bo san pham) nhung khong co summary bar
+- **De xuat**: Them summary bar hien thi: X phong, Y loai SP, Z don vi truoc nut "Tao phieu"
+
+#### 5. Auto-fill logic tot nhung UX chua ro rang
+- `useDistributionForm` co `autoFillMissingItems` va `autoFillMissingItemsForRoom` de tu dong tinh so luong theo tieu chuan phong
+- Nhung trong CreateDistributionPage, nut auto-fill khong duoc hien thi ro rang
+- **De xuat**: Them nut "Tu dong phan bo theo tieu chuan" noi bat hon trong form
+
+### Ke hoach khac phuc
+
+#### Thay doi 1: Redirect OutboundPage khi chon "room_assign"
+**File**: `src/pages/inventory/OutboundPage.tsx`
+- Khi user chon category `room_assign`, hien thi thong bao va nut chuyen sang trang tao phieu giao hang chuyen dung thay vi render form trung lap
+
+#### Thay doi 2: Them summary bar trong CreateDistributionPage
+**File**: `src/pages/inventory/CreateDistributionPage.tsx`
+- Hien thi summary compact (so phong, so SP, tong SL) ngay tren nut "Tao phieu"
+- Hien thi canh bao stock validation o footer thay vi chi trong form
+
+#### Thay doi 3: Auto-navigate ve phieu sau room check
+**File**: `src/components/distribution/components/UnifiedRoomList.tsx`
+- Them query param `returnTo` khi navigate sang room check
+- Sau khi room check xong, tu dong quay ve trang phieu giao hang
+
+#### Thay doi 4: Don gian hoa flow cho hotel nho
+**File**: `src/components/distribution/components/DeliveryStepWizard.tsx`
+- Khi nguoi tao phieu cung la nguoi duoc phan cong (assignee), gop buoc "Kiem tra kho" va "Nhan hang" thanh 1 buoc duy nhat
+- Giam so buoc tu 5 xuong 3-4 tuy truong hop
+
+#### Thay doi 5: Lam ro auto-fill trong form
+**File**: `src/components/distribution/forms/ItemAllocator.tsx`
+- Them nut "Tu dong phan bo" noi bat, co tooltip giai thich
+- Hien thi ket qua auto-fill (bao nhieu SP da them, bao nhieu thieu) ro rang hon
+
+### Uu tien thuc hien
+
+1. **Thay doi 2** (Summary bar) - De lam, giam nhầm lẫn ngay
+2. **Thay doi 1** (Redirect OutboundPage) - Loai bo trung lap
+3. **Thay doi 3** (Auto-navigate ve phieu) - Cai thien flow giao hang
+4. **Thay doi 4** (Don gian hoa step) - Giam buoc cho hotel nho
+5. **Thay doi 5** (Auto-fill ro rang) - Cai thien UX
 
