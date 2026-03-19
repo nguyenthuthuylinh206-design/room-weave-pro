@@ -236,7 +236,6 @@ export const Sidebar = () => {
   const { data: modulePermissions, isLoading: permissionsLoading } = useUserModulePermissions()
   const { data: pendingCounts } = usePendingCounts()
   const { hasMode } = useUsageMode()
-  const { data: pendingCounts } = usePendingCounts()
   const [expandedItems, setExpandedItems] = useState<string[]>(() => {
     const expanded: string[] = []
     navigation.forEach((item) => {
