@@ -293,15 +293,19 @@ export const Sidebar = () => {
   // Select navigation based on role
   const effectiveNavigation = navigation
 
-  // Filter navigation based on permissions
+  // Filter navigation based on permissions and usage mode
   const filteredNavigation = effectiveNavigation.filter((item) => {
     if (item.roles && !item.roles.includes(role || 'staff')) return false
+    if (item.minMode && !hasMode(item.minMode)) return false
     return hasModuleAccess(item.titleKey)
   }).map((item) => {
     if (item.children) {
       return {
         ...item,
-        children: item.children.filter(child => hasChildAccess(item.titleKey, child.titleKey))
+        children: item.children.filter(child => {
+          if ((child as NavItem).minMode && !hasMode((child as NavItem).minMode!)) return false
+          return hasChildAccess(item.titleKey, child.titleKey)
+        })
       }
     }
     return item
