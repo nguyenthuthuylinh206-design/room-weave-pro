@@ -1760,7 +1760,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           deposit_amount: number
+          email_sent_at: string | null
           guest_address: string | null
+          guest_email: string | null
           guest_name: string
           guest_phone: string | null
           guest_tax_code: string | null
@@ -1791,7 +1793,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deposit_amount?: number
+          email_sent_at?: string | null
           guest_address?: string | null
+          guest_email?: string | null
           guest_name: string
           guest_phone?: string | null
           guest_tax_code?: string | null
@@ -1822,7 +1826,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deposit_amount?: number
+          email_sent_at?: string | null
           guest_address?: string | null
+          guest_email?: string | null
           guest_name?: string
           guest_phone?: string | null
           guest_tax_code?: string | null
