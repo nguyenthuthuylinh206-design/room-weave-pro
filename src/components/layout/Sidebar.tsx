@@ -59,8 +59,9 @@ interface NavItem {
   href?: string
   icon: React.ElementType
   badge?: string
-  badgeKey?: PendingCountKey  // Key to get count from usePendingCounts
+  badgeKey?: PendingCountKey
   roles?: AppRole[]
+  minMode?: UsageMode
   children?: Omit<NavItem, 'children'>[]
 }
 
