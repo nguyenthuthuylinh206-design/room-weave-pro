@@ -221,6 +221,12 @@ export default function GuestInvoicesPage() {
         invoice={emailInvoice}
         open={!!emailInvoice}
         onOpenChange={(v) => { if (!v) setEmailInvoice(null) }}
+        hotelInfo={selectedHotel ? {
+          name: selectedHotel.name,
+          address: (selectedHotel as any).address,
+          phone: (selectedHotel as any).phone,
+          taxCode: (selectedHotel as any).tax_code,
+        } : undefined}
       />
     </div>
   )

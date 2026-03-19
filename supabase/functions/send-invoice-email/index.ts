@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { invoice_id, to_email } = await req.json()
+    const { invoice_id, to_email, pdf_base64, pdf_filename } = await req.json()
 
     if (!invoice_id || !to_email) {
       return new Response(JSON.stringify({ error: 'Missing invoice_id or to_email' }), {
@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
       <h2 style="margin:0;font-size:18px;color:#1a1a2e;font-weight:700;">HÓA ĐƠN THANH TOÁN</h2>
       <p style="margin:4px 0 0;font-size:13px;color:#888;">Số: <span style="font-family:monospace;font-weight:600;color:#333;">${invoice.invoice_number}</span></p>
       ${invoice.issued_at ? `<p style="margin:2px 0 0;font-size:12px;color:#999;">Ngày: ${formatDate(invoice.issued_at)}</p>` : ''}
+      ${pdf_base64 ? `<p style="margin:6px 0 0;font-size:12px;color:#16a34a;font-weight:500;">📎 File PDF hóa đơn đính kèm bên dưới</p>` : ''}
     </td>
   </tr>
 
@@ -233,6 +234,12 @@ Deno.serve(async (req) => {
         to: [to_email],
         subject: `Hóa đơn ${invoice.invoice_number} - ${hotelName}`,
         html: emailHtml,
+        ...(pdf_base64 && pdf_filename ? {
+          attachments: [{
+            filename: pdf_filename,
+            content: pdf_base64,
+          }]
+        } : {}),
       }),
     })
 
