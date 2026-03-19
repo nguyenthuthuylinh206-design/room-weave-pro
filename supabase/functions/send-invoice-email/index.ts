@@ -234,6 +234,12 @@ Deno.serve(async (req) => {
         to: [to_email],
         subject: `Hóa đơn ${invoice.invoice_number} - ${hotelName}`,
         html: emailHtml,
+        ...(pdf_base64 && pdf_filename ? {
+          attachments: [{
+            filename: pdf_filename,
+            content: pdf_base64,
+          }]
+        } : {}),
       }),
     })
 

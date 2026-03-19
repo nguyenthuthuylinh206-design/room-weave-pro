@@ -145,9 +145,9 @@ export function buildInvoiceHTML(
 }
 
 /**
- * Generate invoice PDF using html2canvas + jsPDF for proper Vietnamese Unicode support.
+ * Internal: render invoice HTML to a jsPDF doc instance
  */
-export async function generateInvoicePDF(
+async function renderInvoiceToPDF(
   invoice: GuestInvoice,
   paperSize: PaperSize = 'A4',
   hotelInfo?: { name?: string; address?: string; phone?: string; taxCode?: string }
@@ -171,17 +171,41 @@ export async function generateInvoicePDF(
 
     const imgWidth = config.pdfWidth
     const imgHeight = (canvas.height * imgWidth) / canvas.width
-    const orientation = config.isReceipt ? 'portrait' : (imgHeight > imgWidth * 1.5 ? 'portrait' : 'portrait')
     const doc = new jsPDF({
-      orientation,
+      orientation: 'portrait',
       unit: 'mm',
       format: config.isReceipt ? [config.pdfWidth, imgHeight] : [config.pdfWidth, config.pdfHeight],
     })
     doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight)
-    doc.save(`${invoice.invoice_number}.pdf`)
+    return doc
   } finally {
     document.body.removeChild(container)
   }
+}
+
+/**
+ * Generate invoice PDF and trigger download.
+ */
+export async function generateInvoicePDF(
+  invoice: GuestInvoice,
+  paperSize: PaperSize = 'A4',
+  hotelInfo?: { name?: string; address?: string; phone?: string; taxCode?: string }
+) {
+  const doc = await renderInvoiceToPDF(invoice, paperSize, hotelInfo)
+  doc.save(`${invoice.invoice_number}.pdf`)
+}
+
+/**
+ * Generate invoice PDF and return as base64 string (for email attachment).
+ */
+export async function generateInvoicePDFBase64(
+  invoice: GuestInvoice,
+  paperSize: PaperSize = 'A4',
+  hotelInfo?: { name?: string; address?: string; phone?: string; taxCode?: string }
+): Promise<string> {
+  const doc = await renderInvoiceToPDF(invoice, paperSize, hotelInfo)
+  // Returns raw base64 without data URI prefix
+  return doc.output('datauristring').split(',')[1]
 }
 
 /**
