@@ -20,6 +20,24 @@ import { formatCurrency } from '@/lib/utils'
 import { parseTimeToHours } from '@/lib/bookingCalculations'
 import { cn } from '@/lib/utils'
 
+// Map booking source codes to friendly labels
+const BOOKING_SOURCE_LABELS: Record<string, string> = {
+  walk_in: 'Khách vãng lai',
+  phone: 'Điện thoại',
+  email: 'Email',
+  website: 'Website',
+  booking_com: 'Booking.com',
+  agoda: 'Agoda',
+  traveloka: 'Traveloka',
+  expedia: 'Expedia',
+  airbnb: 'Airbnb',
+  other: 'Khác',
+}
+
+function getBookingSourceLabel(source: string): string {
+  return BOOKING_SOURCE_LABELS[source] || source.replace(/_/g, ' ')
+}
+
 interface CheckInConfirmDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
