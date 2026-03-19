@@ -690,6 +690,7 @@ export function GroupPaymentDialog({
                 Tự động xác nhận khi nhận chuyển khoản
               </p>
             </div>
+            </ScrollArea>
           )}
 
           {/* Step: Success */}
