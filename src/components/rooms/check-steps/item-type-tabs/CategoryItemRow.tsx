@@ -539,109 +539,112 @@ export function CategoryItemRow({
         </div>
       )}
 
-      {/* Inline Lost Form - Compact */}
-      {expanded && pendingType === 'lost' && (
-        <div className="px-2 pb-3 pt-1">
-          <div className="p-3 bg-red-50 rounded-lg border border-red-200 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-red-700">Đền bù</span>
-              <span className="text-sm font-mono text-red-700">
-                {formatCurrency(unitPrice)}
-              </span>
-            </div>
-            <Textarea
-              value={actionNotes}
-              onChange={(e) => setActionNotes(e.target.value)}
-              placeholder="Lý do mất (tùy chọn)..."
-              className="h-16 text-sm resize-none"
-            />
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                className="h-9 flex-1"
-                onClick={handleConfirmLostDamaged}
-              >
-                Xác nhận mất
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-9"
-                onClick={() => { setPendingType(null); setExpanded(false) }}
-              >
-                Hủy
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Inline Damaged Form - Compact */}
-      {expanded && pendingType === 'damaged' && (
-        <div className="px-2 pb-3 pt-1">
-          <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 space-y-3">
-            <RadioGroup 
-              value={damageType} 
-              onValueChange={(v) => {
-                setDamageType(v as 'repairable' | 'replacement_needed')
-                setDamageCost(v === 'repairable' ? Math.round(unitPrice * 0.5) : unitPrice)
-              }}
-              className="flex gap-4"
-            >
-              <label className="flex items-center gap-2 cursor-pointer">
-                <RadioGroupItem value="repairable" id={`r-${item.item_id}`} />
-                <span className="text-sm">Sửa chữa (50%)</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <RadioGroupItem value="replacement_needed" id={`rn-${item.item_id}`} />
-                <span className="text-sm">Thay thế (100%)</span>
-              </label>
-            </RadioGroup>
-            
-            <div className="flex items-center gap-2">
-              <Label className="text-sm text-amber-700 shrink-0">Chi phí:</Label>
-              <Input
-                type="text"
-                inputMode="numeric"
-                className="h-9 w-28 text-right font-mono"
-                value={damageCost > 0 ? damageCost.toLocaleString('vi-VN') : ''}
-                onChange={(e) => setDamageCost(parseInt(e.target.value.replace(/\D/g, '')) || 0)}
-              />
-              <span className="text-sm text-muted-foreground">đ</span>
-            </div>
-            
-            <Textarea
-              value={actionNotes}
-              onChange={(e) => setActionNotes(e.target.value)}
-              placeholder="Mô tả hư hỏng (tùy chọn)..."
-              className="h-16 text-sm resize-none"
-            />
-            
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                size="sm"
-                className="h-9 flex-1 bg-amber-600 hover:bg-amber-700"
-                onClick={handleConfirmLostDamaged}
-              >
-                Xác nhận hỏng
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-9"
-                onClick={() => { setPendingType(null); setExpanded(false) }}
-              >
-                Hủy
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
+
+    {/* Bottom Drawer - Lost Form */}
+    <Drawer open={expanded && pendingType === 'lost'} onOpenChange={(open) => { if (!open) { setPendingType(null); setExpanded(false) } }}>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle className="text-base">Đánh dấu mất — {item.item_name}</DrawerTitle>
+        </DrawerHeader>
+        <div className="px-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Chi phí đền bù</span>
+            <span className="text-base font-mono font-semibold text-destructive">
+              {formatCurrency(unitPrice)}
+            </span>
+          </div>
+          <Textarea
+            value={actionNotes}
+            onChange={(e) => setActionNotes(e.target.value)}
+            placeholder="Lý do mất (tùy chọn)..."
+            className="h-20 text-sm resize-none"
+          />
+        </div>
+        <DrawerFooter>
+          <Button
+            type="button"
+            variant="destructive"
+            className="h-11 w-full"
+            onClick={handleConfirmLostDamaged}
+          >
+            Xác nhận mất
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 w-full"
+            onClick={() => { setPendingType(null); setExpanded(false) }}
+          >
+            Hủy
+          </Button>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
+
+    {/* Bottom Drawer - Damaged Form */}
+    <Drawer open={expanded && pendingType === 'damaged'} onOpenChange={(open) => { if (!open) { setPendingType(null); setExpanded(false) } }}>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle className="text-base">Đánh dấu hỏng — {item.item_name}</DrawerTitle>
+        </DrawerHeader>
+        <div className="px-4 space-y-4">
+          <RadioGroup 
+            value={damageType} 
+            onValueChange={(v) => {
+              setDamageType(v as 'repairable' | 'replacement_needed')
+              setDamageCost(v === 'repairable' ? Math.round(unitPrice * 0.5) : unitPrice)
+            }}
+            className="flex gap-4"
+          >
+            <label className="flex items-center gap-2 cursor-pointer">
+              <RadioGroupItem value="repairable" id={`r-${item.item_id}`} />
+              <span className="text-sm">Sửa chữa (50%)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <RadioGroupItem value="replacement_needed" id={`rn-${item.item_id}`} />
+              <span className="text-sm">Thay thế (100%)</span>
+            </label>
+          </RadioGroup>
+          
+          <div className="flex items-center gap-2">
+            <Label className="text-sm shrink-0">Chi phí:</Label>
+            <Input
+              type="text"
+              inputMode="numeric"
+              className="h-10 w-32 text-right font-mono"
+              value={damageCost > 0 ? damageCost.toLocaleString('vi-VN') : ''}
+              onChange={(e) => setDamageCost(parseInt(e.target.value.replace(/\D/g, '')) || 0)}
+            />
+            <span className="text-sm text-muted-foreground">đ</span>
+          </div>
+          
+          <Textarea
+            value={actionNotes}
+            onChange={(e) => setActionNotes(e.target.value)}
+            placeholder="Mô tả hư hỏng (tùy chọn)..."
+            className="h-20 text-sm resize-none"
+          />
+        </div>
+        <DrawerFooter>
+          <Button
+            type="button"
+            className="h-11 w-full bg-amber-600 hover:bg-amber-700"
+            onClick={handleConfirmLostDamaged}
+          >
+            Xác nhận hỏng
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 w-full"
+            onClick={() => { setPendingType(null); setExpanded(false) }}
+          >
+            Hủy
+          </Button>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
+    </>
   )
 }

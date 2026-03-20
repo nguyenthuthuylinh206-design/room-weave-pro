@@ -554,15 +554,8 @@ export function CategoryBasedItemsCheck({
 
         {/* Individual category tabs */}
         {categories.map((category) => (
-          <TabsContent key={category.id} value={category.id} className="mt-4">
-            <div className="space-y-3">
-              <BulkActionsHeader
-                totalItems={category.items.length}
-                checkedCount={category.items.filter(item => 
-                  getItemStatus(item.item_id, item.item_type) !== 'pending'
-                ).length}
-                onMarkAllOk={() => handleCategoryMarkAllOk(category.items)}
-              />
+          <TabsContent key={category.id} value={category.id} className="mt-3">
+            <div className="space-y-2">
 
               <div className="border rounded-lg divide-y-0">
                 {filterBySearch(category.items).map(item => {

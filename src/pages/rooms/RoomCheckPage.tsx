@@ -1302,47 +1302,6 @@ export function RoomCheckPage() {
       
       {/* Main content - div instead of Card for compact mobile */}
       <div className="border rounded-lg">
-        <div className="p-3 border-b">
-          <h4 className="text-sm font-medium flex items-center gap-2">
-            <span>Bước {currentStep}/{totalSteps}:</span>
-            {currentStep === 1 && 'Chọn loại kiểm tra'}
-            {/* Delivery type - step 2 */}
-            {currentStep === 2 && !quickMode && isDeliveryType && 'Xác nhận đồ giao & Dọn dẹp'}
-            {/* Replenish type - step 2 */}
-            {currentStep === 2 && !quickMode && isReplenishType && 'Bổ sung đồ & Tình trạng dọn dẹp'}
-            {/* Non-checkout, non-delivery, non-replenish - step 2 */}
-            {currentStep === 2 && !quickMode && !isCheckoutType && !isDeliveryType && !isReplenishType && 'Kiểm tra đồ dùng trong phòng'}
-            {currentStep === 2 && !quickMode && isCheckoutType && (
-              <>
-                <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300 text-[10px] px-1.5">GĐ1</Badge>
-                Kiểm tra đồ tính phí & mất/hỏng
-              </>
-            )}
-            {currentStep === 2 && quickMode && 'Đánh giá & Hoàn tất'}
-            {currentStep === 3 && !quickMode && isCheckoutType && (
-              <>
-                <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300 text-[10px] px-1.5">GĐ1</Badge>
-                Gửi báo cáo cho lễ tân
-              </>
-            )}
-            {/* Delivery/Replenish type - step 3 = Review */}
-            {currentStep === 3 && !quickMode && (isDeliveryType || isReplenishType) && 'Đánh giá & Hoàn tất'}
-            {/* Non-checkout, non-delivery, non-replenish - step 3 = Review */}
-            {currentStep === 3 && !quickMode && !isCheckoutType && !isDeliveryType && !isReplenishType && 'Đánh giá & Hoàn tất'}
-            {currentStep === 4 && isCheckoutType && (
-              <>
-                <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300 text-[10px] px-1.5">GĐ2</Badge>
-                Kiểm tra đồ bổ sung & giặt/thay
-              </>
-            )}
-            {currentStep === 5 && isCheckoutType && (
-              <>
-                <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300 text-[10px] px-1.5">Hoàn tất</Badge>
-                Đánh giá & Dọn dẹp
-              </>
-            )}
-          </h4>
-        </div>
         
         <div className="p-4">
           <Form {...form}>
