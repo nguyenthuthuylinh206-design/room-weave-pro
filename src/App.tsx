@@ -125,6 +125,7 @@ import GuestsPage from "./pages/guests/GuestsPage";
 import GuestDetailPage from "./pages/guests/GuestDetailPage";
 import LostFoundPage from "./pages/lost-found/LostFoundPage";
 import GuestInvoicesPage from "./pages/invoices/GuestInvoicesPage";
+import HousekeepingStaffDashboard from "./pages/HousekeepingStaffDashboard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -665,6 +666,11 @@ const router = createBrowserRouter([
       {
         path: "my-tasks",
         element: <MyTasksPage />
+      },
+      // Housekeeping Staff Dashboard - dedicated mobile-first view
+      {
+        path: "staff/housekeeping",
+        element: <HousekeepingStaffDashboard />
       },
       {
         path: "settings/warehouses", 
