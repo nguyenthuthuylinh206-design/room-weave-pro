@@ -10,7 +10,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { supabase } from '@/integrations/supabase/client'
 import { CategoryGroup } from './item-type-tabs/CategoryGroup'
 import { CategoryItemRow, type ItemAction } from './item-type-tabs/CategoryItemRow'
-import { BulkActionsHeader } from './item-type-tabs/BulkActionsHeader'
 import type { 
   RoomItemWithDetails, 
   LaundryItem, 
@@ -339,7 +338,7 @@ export function CategoryBasedItemsCheck({
   return (
     <div className="space-y-3">
       {/* Compact Sticky Progress Header */}
-      <div className="sticky top-12 z-10 bg-background/95 backdrop-blur -mx-4 px-4 py-2 border-b">
+      <div className="sticky top-12 z-10 bg-background/95 backdrop-blur -mx-4 px-4 py-1.5 border-b">
         {/* Progress bar - larger and more visible */}
         <div className="flex items-center gap-3 mb-2">
           <div className="flex items-center gap-2 shrink-0">
@@ -434,69 +433,63 @@ export function CategoryBasedItemsCheck({
         </div>
       )}
 
-      {/* Tabs by Category - Horizontal scroll */}
+      {/* Tabs by Category - Horizontal scroll with fade indicator */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1">
-          <TabsList className="inline-flex gap-1 bg-transparent p-0 min-w-max">
-            <TabsTrigger 
-              value="all" 
-              className={cn(
-                "h-9 gap-1.5 px-3 text-xs rounded-full border",
-                "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary",
-                "data-[state=inactive]:bg-background data-[state=inactive]:border-border"
-              )}
-            >
-              <Package className="h-3.5 w-3.5" />
-              Tất cả
-              <span className="bg-background/20 px-1.5 py-0.5 rounded text-[10px] font-medium">
-                {totalItems}
-              </span>
-            </TabsTrigger>
-            
-            {categories.map((category) => {
-              const catChecked = getCategoryCheckedCount(category.items)
-              const isComplete = catChecked === category.items.length
+        <div className="relative -mx-4 px-4">
+          <div className="overflow-x-auto scrollbar-hide pb-1">
+            <TabsList className="inline-flex gap-1 bg-transparent p-0 min-w-max">
+              <TabsTrigger 
+                value="all" 
+                className={cn(
+                  "h-8 gap-1.5 px-3 text-xs rounded-full border",
+                  "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary",
+                  "data-[state=inactive]:bg-background data-[state=inactive]:border-border"
+                )}
+              >
+                <Package className="h-3.5 w-3.5" />
+                Tất cả
+                <span className="bg-background/20 px-1.5 py-0.5 rounded text-[10px] font-medium">
+                  {totalItems}
+                </span>
+              </TabsTrigger>
               
-              return (
-                <TabsTrigger 
-                  key={category.id} 
-                  value={category.id}
-                  className={cn(
-                    "h-9 gap-1.5 px-3 text-xs rounded-full border",
-                    "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary",
-                    "data-[state=inactive]:bg-background data-[state=inactive]:border-border",
-                    isComplete && "data-[state=inactive]:border-green-300 data-[state=inactive]:bg-green-50"
-                  )}
-                >
-                  {category.name}
-                  {isComplete ? (
-                    <Check className="h-3.5 w-3.5 text-green-600 data-[state=active]:text-primary-foreground" />
-                  ) : (
-                    <span className="bg-background/20 px-1.5 py-0.5 rounded text-[10px] font-medium">
-                      {category.items.length}
-                    </span>
-                  )}
-                </TabsTrigger>
-              )
-            })}
-          </TabsList>
+              {categories.map((category) => {
+                const catChecked = getCategoryCheckedCount(category.items)
+                const isComplete = catChecked === category.items.length
+                
+                return (
+                  <TabsTrigger 
+                    key={category.id} 
+                    value={category.id}
+                    className={cn(
+                      "h-8 gap-1.5 px-3 text-xs rounded-full border",
+                      "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary",
+                      "data-[state=inactive]:bg-background data-[state=inactive]:border-border",
+                      isComplete && "data-[state=inactive]:border-green-300 data-[state=inactive]:bg-green-50"
+                    )}
+                  >
+                    {category.name}
+                    {isComplete ? (
+                      <Check className="h-3.5 w-3.5 text-green-600 data-[state=active]:text-primary-foreground" />
+                    ) : (
+                      <span className="bg-background/20 px-1.5 py-0.5 rounded text-[10px] font-medium">
+                        {category.items.length}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                )
+              })}
+            </TabsList>
+          </div>
+          {/* Scroll fade indicator */}
+          {categories.length > 3 && (
+            <div className="absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+          )}
         </div>
 
         {/* All items tab */}
-        <TabsContent value="all" className="mt-4">
-          <div className="space-y-3">
-            <BulkActionsHeader
-              totalItems={totalItems}
-              checkedCount={checkedCount}
-              onMarkAllOk={() => {
-                itemsWithDetails.forEach(item => {
-                  const status = getItemStatus(item.item_id, item.item_type)
-                  if (status === 'pending') {
-                    setCheckedItems(prev => new Set(prev).add(item.item_id))
-                  }
-                })
-              }}
-            />
+        <TabsContent value="all" className="mt-3">
+          <div className="space-y-2">
 
             {categories.map((category) => {
               const filteredItems = filterBySearch(category.items)
@@ -560,15 +553,8 @@ export function CategoryBasedItemsCheck({
 
         {/* Individual category tabs */}
         {categories.map((category) => (
-          <TabsContent key={category.id} value={category.id} className="mt-4">
-            <div className="space-y-3">
-              <BulkActionsHeader
-                totalItems={category.items.length}
-                checkedCount={category.items.filter(item => 
-                  getItemStatus(item.item_id, item.item_type) !== 'pending'
-                ).length}
-                onMarkAllOk={() => handleCategoryMarkAllOk(category.items)}
-              />
+          <TabsContent key={category.id} value={category.id} className="mt-3">
+            <div className="space-y-2">
 
               <div className="border rounded-lg divide-y-0">
                 {filterBySearch(category.items).map(item => {

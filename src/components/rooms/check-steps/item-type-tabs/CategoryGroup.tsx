@@ -59,7 +59,7 @@ export function CategoryGroup({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "sticky top-0 z-10 w-full flex items-center justify-between px-3 py-2.5 transition-colors touch-manipulation",
+          "sticky top-[6.5rem] z-[9] w-full flex items-center justify-between px-3 py-2 transition-colors touch-manipulation",
           colors.bg,
           "active:opacity-80"
         )}

@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils'
 import type { RoomItemWithDetails, ConsumedItem, DamagedItem, LostItem, LaundryItem } from '@/types/rooms.types'
@@ -271,21 +272,13 @@ export function CategoryItemRow({
     return null
   }
 
-  return (
+    return (
+    <>
     <div className="border-b border-border last:border-b-0">
-      {/* Main Row - With thumbnail for consumables */}
+      {/* Main Row */}
       <div
-        role={isPending ? "button" : undefined}
-        tabIndex={isPending ? 0 : undefined}
-        onClick={isPending ? handleMarkOk : undefined}
-        onKeyDown={(e) => {
-          if (isPending && (e.key === 'Enter' || e.key === ' ')) {
-            e.preventDefault()
-            handleMarkOk()
-          }
-        }}
         className={cn(
-          "flex items-center gap-2 py-3 px-2 transition-colors touch-manipulation",
+          "flex items-center gap-2 min-h-[3rem] px-2 transition-colors touch-manipulation",
           isPending && "cursor-pointer hover:bg-muted/50 active:bg-muted",
           isOk && "bg-green-50/30",
           status === 'consumed' && "bg-cyan-50/30",
@@ -293,20 +286,26 @@ export function CategoryItemRow({
           status === 'lost' && "bg-red-50/30"
         )}
       >
-        {/* Status indicator - Larger for touch */}
-        <div className={cn(
-          "w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all",
-          isPending && "border-2 border-dashed border-muted-foreground/30",
-          !isPending && !isOk && statusInfo.bg,
-          isOk && "bg-green-500"
-        )}>
-          {isOk && <Check className="h-3.5 w-3.5 text-white" />}
-          {isSaving && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
-          {!isPending && !isOk && <Check className="h-3 w-3 text-white" />}
-        </div>
+        {/* OK button - explicit touch target */}
+        <button
+          type="button"
+          onClick={isPending ? handleMarkOk : undefined}
+          disabled={!isPending}
+          className={cn(
+            "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all",
+            isPending && "border-2 border-dashed border-muted-foreground/30 active:scale-95 active:bg-green-100",
+            isPending && "animate-pulse",
+            !isPending && !isOk && statusInfo.bg,
+            isOk && "bg-green-500"
+          )}
+        >
+          {isOk && <Check className="h-4 w-4 text-white" />}
+          {isSaving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+          {!isPending && !isOk && <Check className="h-3.5 w-3.5 text-white" />}
+        </button>
 
-        {/* Item info - Single line with quantity badge */}
-        <div className="flex items-center gap-2 flex-1 min-w-0">
+        {/* Item info */}
+        <div className="flex items-center gap-2 flex-1 min-w-0" onClick={isPending ? handleMarkOk : undefined}>
           <span className="text-sm font-medium truncate">{item.item_name}</span>
           {standardQuantity > 1 && (
             <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
@@ -317,7 +316,7 @@ export function CategoryItemRow({
 
         {/* Actions or Status display */}
         {isPending ? (
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-0.5 flex-shrink-0">
             {itemActions.map((actionType) => {
               const config = ACTION_CONFIG[actionType]
               if (!config) return null
@@ -330,15 +329,16 @@ export function CategoryItemRow({
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "h-9 px-2.5 text-xs font-medium",
+                    "h-10 w-10 p-0",
                     config.color
                   )}
                   onClick={(e) => {
                     e.stopPropagation()
                     handleQuickAction(actionType)
                   }}
+                  title={config.label}
                 >
-                  {config.label}
+                  <Icon className="h-5 w-5" />
                 </Button>
               )
             })}
@@ -539,109 +539,112 @@ export function CategoryItemRow({
         </div>
       )}
 
-      {/* Inline Lost Form - Compact */}
-      {expanded && pendingType === 'lost' && (
-        <div className="px-2 pb-3 pt-1">
-          <div className="p-3 bg-red-50 rounded-lg border border-red-200 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-red-700">Đền bù</span>
-              <span className="text-sm font-mono text-red-700">
-                {formatCurrency(unitPrice)}
-              </span>
-            </div>
-            <Textarea
-              value={actionNotes}
-              onChange={(e) => setActionNotes(e.target.value)}
-              placeholder="Lý do mất (tùy chọn)..."
-              className="h-16 text-sm resize-none"
-            />
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                className="h-9 flex-1"
-                onClick={handleConfirmLostDamaged}
-              >
-                Xác nhận mất
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-9"
-                onClick={() => { setPendingType(null); setExpanded(false) }}
-              >
-                Hủy
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Inline Damaged Form - Compact */}
-      {expanded && pendingType === 'damaged' && (
-        <div className="px-2 pb-3 pt-1">
-          <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 space-y-3">
-            <RadioGroup 
-              value={damageType} 
-              onValueChange={(v) => {
-                setDamageType(v as 'repairable' | 'replacement_needed')
-                setDamageCost(v === 'repairable' ? Math.round(unitPrice * 0.5) : unitPrice)
-              }}
-              className="flex gap-4"
-            >
-              <label className="flex items-center gap-2 cursor-pointer">
-                <RadioGroupItem value="repairable" id={`r-${item.item_id}`} />
-                <span className="text-sm">Sửa chữa (50%)</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <RadioGroupItem value="replacement_needed" id={`rn-${item.item_id}`} />
-                <span className="text-sm">Thay thế (100%)</span>
-              </label>
-            </RadioGroup>
-            
-            <div className="flex items-center gap-2">
-              <Label className="text-sm text-amber-700 shrink-0">Chi phí:</Label>
-              <Input
-                type="text"
-                inputMode="numeric"
-                className="h-9 w-28 text-right font-mono"
-                value={damageCost > 0 ? damageCost.toLocaleString('vi-VN') : ''}
-                onChange={(e) => setDamageCost(parseInt(e.target.value.replace(/\D/g, '')) || 0)}
-              />
-              <span className="text-sm text-muted-foreground">đ</span>
-            </div>
-            
-            <Textarea
-              value={actionNotes}
-              onChange={(e) => setActionNotes(e.target.value)}
-              placeholder="Mô tả hư hỏng (tùy chọn)..."
-              className="h-16 text-sm resize-none"
-            />
-            
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                size="sm"
-                className="h-9 flex-1 bg-amber-600 hover:bg-amber-700"
-                onClick={handleConfirmLostDamaged}
-              >
-                Xác nhận hỏng
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-9"
-                onClick={() => { setPendingType(null); setExpanded(false) }}
-              >
-                Hủy
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
+
+    {/* Bottom Drawer - Lost Form */}
+    <Drawer open={expanded && pendingType === 'lost'} onOpenChange={(open) => { if (!open) { setPendingType(null); setExpanded(false) } }}>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle className="text-base">Đánh dấu mất — {item.item_name}</DrawerTitle>
+        </DrawerHeader>
+        <div className="px-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Chi phí đền bù</span>
+            <span className="text-base font-mono font-semibold text-destructive">
+              {formatCurrency(unitPrice)}
+            </span>
+          </div>
+          <Textarea
+            value={actionNotes}
+            onChange={(e) => setActionNotes(e.target.value)}
+            placeholder="Lý do mất (tùy chọn)..."
+            className="h-20 text-sm resize-none"
+          />
+        </div>
+        <DrawerFooter>
+          <Button
+            type="button"
+            variant="destructive"
+            className="h-11 w-full"
+            onClick={handleConfirmLostDamaged}
+          >
+            Xác nhận mất
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 w-full"
+            onClick={() => { setPendingType(null); setExpanded(false) }}
+          >
+            Hủy
+          </Button>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
+
+    {/* Bottom Drawer - Damaged Form */}
+    <Drawer open={expanded && pendingType === 'damaged'} onOpenChange={(open) => { if (!open) { setPendingType(null); setExpanded(false) } }}>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle className="text-base">Đánh dấu hỏng — {item.item_name}</DrawerTitle>
+        </DrawerHeader>
+        <div className="px-4 space-y-4">
+          <RadioGroup 
+            value={damageType} 
+            onValueChange={(v) => {
+              setDamageType(v as 'repairable' | 'replacement_needed')
+              setDamageCost(v === 'repairable' ? Math.round(unitPrice * 0.5) : unitPrice)
+            }}
+            className="flex gap-4"
+          >
+            <label className="flex items-center gap-2 cursor-pointer">
+              <RadioGroupItem value="repairable" id={`r-${item.item_id}`} />
+              <span className="text-sm">Sửa chữa (50%)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <RadioGroupItem value="replacement_needed" id={`rn-${item.item_id}`} />
+              <span className="text-sm">Thay thế (100%)</span>
+            </label>
+          </RadioGroup>
+          
+          <div className="flex items-center gap-2">
+            <Label className="text-sm shrink-0">Chi phí:</Label>
+            <Input
+              type="text"
+              inputMode="numeric"
+              className="h-10 w-32 text-right font-mono"
+              value={damageCost > 0 ? damageCost.toLocaleString('vi-VN') : ''}
+              onChange={(e) => setDamageCost(parseInt(e.target.value.replace(/\D/g, '')) || 0)}
+            />
+            <span className="text-sm text-muted-foreground">đ</span>
+          </div>
+          
+          <Textarea
+            value={actionNotes}
+            onChange={(e) => setActionNotes(e.target.value)}
+            placeholder="Mô tả hư hỏng (tùy chọn)..."
+            className="h-20 text-sm resize-none"
+          />
+        </div>
+        <DrawerFooter>
+          <Button
+            type="button"
+            className="h-11 w-full bg-amber-600 hover:bg-amber-700"
+            onClick={handleConfirmLostDamaged}
+          >
+            Xác nhận hỏng
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 w-full"
+            onClick={() => { setPendingType(null); setExpanded(false) }}
+          >
+            Hủy
+          </Button>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
+    </>
   )
 }
