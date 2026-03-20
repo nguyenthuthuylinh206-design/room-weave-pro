@@ -489,20 +489,8 @@ export function CategoryBasedItemsCheck({
         </div>
 
         {/* All items tab */}
-        <TabsContent value="all" className="mt-4">
-          <div className="space-y-3">
-            <BulkActionsHeader
-              totalItems={totalItems}
-              checkedCount={checkedCount}
-              onMarkAllOk={() => {
-                itemsWithDetails.forEach(item => {
-                  const status = getItemStatus(item.item_id, item.item_type)
-                  if (status === 'pending') {
-                    setCheckedItems(prev => new Set(prev).add(item.item_id))
-                  }
-                })
-              }}
-            />
+        <TabsContent value="all" className="mt-3">
+          <div className="space-y-2">
 
             {categories.map((category) => {
               const filteredItems = filterBySearch(category.items)
