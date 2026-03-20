@@ -10,7 +10,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { supabase } from '@/integrations/supabase/client'
 import { CategoryGroup } from './item-type-tabs/CategoryGroup'
 import { CategoryItemRow, type ItemAction } from './item-type-tabs/CategoryItemRow'
-import { BulkActionsHeader } from './item-type-tabs/BulkActionsHeader'
 import type { 
   RoomItemWithDetails, 
   LaundryItem, 
