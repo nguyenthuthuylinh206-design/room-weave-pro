@@ -274,7 +274,7 @@ export function CategoryItemRow({
 
     return (
     <>
-    <div className="border-b border-border last:border-b-0">
+    <div>
       {/* Main Row */}
       <div
         className={cn(
