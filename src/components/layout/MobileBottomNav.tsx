@@ -34,9 +34,12 @@ export const MobileBottomNav = () => {
   }
 
   // Navigation items - 5 tabs max for mobile usability
+  // Determine tasks path based on user department
+  const tasksPath = user?.department === 'housekeeping' ? '/staff/housekeeping' : '/my-tasks'
+
   const NAV_ITEMS: NavItem[] = [
     { id: 'home', label: 'Home', icon: Home, path: '/' },
-    { id: 'my-tasks', label: 'Tasks', icon: ClipboardList, path: '/my-tasks', badgeKey: 'tasks' },
+    { id: 'my-tasks', label: 'Tasks', icon: ClipboardList, path: tasksPath, badgeKey: 'tasks' },
     { id: 'bookings', label: 'Đặt phòng', icon: CalendarDays, path: '/bookings', module: 'bookings' },
     { id: 'rooms', label: 'Phòng', icon: DoorOpen, path: '/rooms', module: 'rooms' },
     { id: 'more', label: 'Thêm', icon: MoreHorizontal, path: '/more' },
