@@ -339,7 +339,7 @@ export function CategoryBasedItemsCheck({
   return (
     <div className="space-y-3">
       {/* Compact Sticky Progress Header */}
-      <div className="sticky top-12 z-10 bg-background/95 backdrop-blur -mx-4 px-4 py-2 border-b">
+      <div className="sticky top-12 z-10 bg-background/95 backdrop-blur -mx-4 px-4 py-1.5 border-b">
         {/* Progress bar - larger and more visible */}
         <div className="flex items-center gap-3 mb-2">
           <div className="flex items-center gap-2 shrink-0">
