@@ -518,7 +518,7 @@ export function CategoryBasedItemsCheck({
                     </Button>
                   }
                 >
-                  <div className="divide-y-0">
+                  <div className="divide-y divide-border/50">
                     {filteredItems.map(item => {
                       const status = getItemStatus(item.item_id, item.item_type)
                       const allowedActions = getAllowedActions(item.item_type)

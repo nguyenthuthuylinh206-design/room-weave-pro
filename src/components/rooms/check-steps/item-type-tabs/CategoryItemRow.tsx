@@ -368,44 +368,24 @@ export function CategoryItemRow({
       {/* Inline Status Info - After action taken */}
       {!isPending && renderStatusInfo()}
 
-      {/* Inline Consumable Form - Full featured */}
-      {expanded && pendingType === 'consumed' && (
-        <div className="px-2 pb-3 pt-1">
-          <div className="p-3 bg-muted/50 rounded-lg space-y-3">
-            {/* Item Name */}
-            <div>
-              <span className="font-medium text-sm">{item.item_name}</span>
-              <p className="text-xs text-muted-foreground">Tiêu chuẩn: {standardQuantity}</p>
-            </div>
+      {/* Consumed Form - Bottom Drawer */}
+      <Drawer open={expanded && pendingType === 'consumed'} onOpenChange={(open) => { if (!open) { setPendingType(null); setExpanded(false) } }}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>{item.item_name} — Đánh dấu hết</DrawerTitle>
+          </DrawerHeader>
+          <div className="px-4 pb-4 space-y-3">
+            <p className="text-xs text-muted-foreground">Tiêu chuẩn: {standardQuantity}</p>
 
             {/* Quantity selector */}
             <div className="flex items-center gap-2">
               <Label className="text-xs shrink-0">Số lượng hết:</Label>
               <div className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setConsumedQty(Math.max(1, consumedQty - 1))}
-                >
+                <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => setConsumedQty(Math.max(1, consumedQty - 1))}>
                   <Minus className="h-4 w-4" />
                 </Button>
-                <Input
-                  type="number"
-                  min={1}
-                  max={standardQuantity}
-                  value={consumedQty}
-                  onChange={(e) => setConsumedQty(Math.max(1, Math.min(parseInt(e.target.value) || 1, standardQuantity)))}
-                  className="w-14 h-8 text-center text-sm font-medium"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setConsumedQty(Math.min(standardQuantity, consumedQty + 1))}
-                >
+                <Input type="number" min={1} max={standardQuantity} value={consumedQty} onChange={(e) => setConsumedQty(Math.max(1, Math.min(parseInt(e.target.value) || 1, standardQuantity)))} className="w-14 h-8 text-center text-sm font-medium" />
+                <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => setConsumedQty(Math.min(standardQuantity, consumedQty + 1))}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -414,10 +394,7 @@ export function CategoryItemRow({
 
             {/* Need refill switch */}
             <div className="flex items-center gap-2">
-              <Switch
-                checked={needRefill}
-                onCheckedChange={setNeedRefill}
-              />
+              <Switch checked={needRefill} onCheckedChange={setNeedRefill} />
               <Label className="text-sm">Cần bổ sung từ kho</Label>
             </div>
 
@@ -425,43 +402,22 @@ export function CategoryItemRow({
             {needRefill && isOutOfStock && (
               <Alert variant="destructive" className="py-2">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertDescription className="text-xs">
-                  Hết hàng trong kho! Không thể bổ sung ngay.
-                </AlertDescription>
+                <AlertDescription className="text-xs">Hết hàng trong kho! Không thể bổ sung ngay.</AlertDescription>
               </Alert>
             )}
             {needRefill && isLowStock && (
               <Alert className="py-2 border-amber-500/50 bg-amber-500/10">
                 <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-xs text-amber-700">
-                  Tồn kho thấp: còn {availableStock}
-                </AlertDescription>
+                <AlertDescription className="text-xs text-amber-700">Tồn kho thấp: còn {availableStock}</AlertDescription>
               </Alert>
             )}
-
-            {/* Action buttons */}
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                size="sm"
-                className="h-9 flex-1"
-                onClick={handleConfirmConsumed}
-              >
-                Xác nhận
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-9"
-                onClick={() => { setPendingType(null); setExpanded(false) }}
-              >
-                Hủy
-              </Button>
-            </div>
           </div>
-        </div>
-      )}
+          <DrawerFooter>
+            <Button type="button" onClick={handleConfirmConsumed}>Xác nhận</Button>
+            <Button type="button" variant="outline" onClick={() => { setPendingType(null); setExpanded(false) }}>Hủy</Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
       {/* Inline Quantity Adjuster - For laundry/add/change */}
       {expanded && needsQuantity && !pendingType && (
