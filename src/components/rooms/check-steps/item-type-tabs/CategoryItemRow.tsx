@@ -272,21 +272,13 @@ export function CategoryItemRow({
     return null
   }
 
-  return (
+    return (
+    <>
     <div className="border-b border-border last:border-b-0">
-      {/* Main Row - With thumbnail for consumables */}
+      {/* Main Row */}
       <div
-        role={isPending ? "button" : undefined}
-        tabIndex={isPending ? 0 : undefined}
-        onClick={isPending ? handleMarkOk : undefined}
-        onKeyDown={(e) => {
-          if (isPending && (e.key === 'Enter' || e.key === ' ')) {
-            e.preventDefault()
-            handleMarkOk()
-          }
-        }}
         className={cn(
-          "flex items-center gap-2 py-3 px-2 transition-colors touch-manipulation",
+          "flex items-center gap-2 min-h-[3rem] px-2 transition-colors touch-manipulation",
           isPending && "cursor-pointer hover:bg-muted/50 active:bg-muted",
           isOk && "bg-green-50/30",
           status === 'consumed' && "bg-cyan-50/30",
@@ -294,20 +286,26 @@ export function CategoryItemRow({
           status === 'lost' && "bg-red-50/30"
         )}
       >
-        {/* Status indicator - Larger for touch */}
-        <div className={cn(
-          "w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all",
-          isPending && "border-2 border-dashed border-muted-foreground/30",
-          !isPending && !isOk && statusInfo.bg,
-          isOk && "bg-green-500"
-        )}>
-          {isOk && <Check className="h-3.5 w-3.5 text-white" />}
-          {isSaving && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
-          {!isPending && !isOk && <Check className="h-3 w-3 text-white" />}
-        </div>
+        {/* OK button - explicit touch target */}
+        <button
+          type="button"
+          onClick={isPending ? handleMarkOk : undefined}
+          disabled={!isPending}
+          className={cn(
+            "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all",
+            isPending && "border-2 border-dashed border-muted-foreground/30 active:scale-95 active:bg-green-100",
+            isPending && "animate-pulse",
+            !isPending && !isOk && statusInfo.bg,
+            isOk && "bg-green-500"
+          )}
+        >
+          {isOk && <Check className="h-4 w-4 text-white" />}
+          {isSaving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+          {!isPending && !isOk && <Check className="h-3.5 w-3.5 text-white" />}
+        </button>
 
-        {/* Item info - Single line with quantity badge */}
-        <div className="flex items-center gap-2 flex-1 min-w-0">
+        {/* Item info */}
+        <div className="flex items-center gap-2 flex-1 min-w-0" onClick={isPending ? handleMarkOk : undefined}>
           <span className="text-sm font-medium truncate">{item.item_name}</span>
           {standardQuantity > 1 && (
             <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
@@ -318,7 +316,7 @@ export function CategoryItemRow({
 
         {/* Actions or Status display */}
         {isPending ? (
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-0.5 flex-shrink-0">
             {itemActions.map((actionType) => {
               const config = ACTION_CONFIG[actionType]
               if (!config) return null
@@ -331,15 +329,16 @@ export function CategoryItemRow({
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "h-9 px-2.5 text-xs font-medium",
+                    "h-10 w-10 p-0",
                     config.color
                   )}
                   onClick={(e) => {
                     e.stopPropagation()
                     handleQuickAction(actionType)
                   }}
+                  title={config.label}
                 >
-                  {config.label}
+                  <Icon className="h-5 w-5" />
                 </Button>
               )
             })}
