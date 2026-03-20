@@ -49,7 +49,7 @@ export function CategoryGroup({
   const isComplete = checkedCount !== undefined && checkedCount === itemCount
 
   return (
-    <div className="overflow-hidden transition-all">
+    <div className="transition-all">
       {/* Header */}
       <button
         type="button"
