@@ -312,6 +312,20 @@ export function CategoryItemRow({
         {/* Actions or Status display */}
         {isPending ? (
           <div className="flex items-center gap-1 flex-shrink-0 flex-wrap justify-end">
+            {itemActions.length === 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 px-3 text-xs text-green-600 border-green-300 hover:bg-green-50"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleMarkOk()
+                }}
+              >
+                OK
+              </Button>
+            )}
             {itemActions.map((actionType) => {
               const config = ACTION_CONFIG[actionType]
               if (!config) return null

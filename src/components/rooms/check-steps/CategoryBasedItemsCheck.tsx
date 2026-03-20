@@ -336,14 +336,13 @@ export function CategoryBasedItemsCheck({
   }
 
   return (
-    <div className="space-y-3">
-      {/* Compact Sticky Progress Header */}
+    <div className="space-y-2">
+      {/* Single sticky header: progress + summary */}
       <div className="sticky top-0 z-10 bg-background -mx-2 px-2 py-1.5 border-b">
-        {/* Progress bar - larger and more visible */}
-        <div className="flex items-center gap-3 mb-2">
-          <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <CheckCircle2 className={cn(
-              "h-5 w-5 transition-colors",
+              "h-4 w-4",
               progressPercent === 100 ? 'text-green-600' : 'text-muted-foreground'
             )} />
             <span className={cn(
@@ -352,71 +351,52 @@ export function CategoryBasedItemsCheck({
             )}>
               {checkedCount}/{totalItems}
             </span>
+            <Progress 
+              value={progressPercent} 
+              className={cn(
+                "h-1.5 w-20",
+                progressPercent === 100 && "[&>div]:bg-green-500"
+              )} 
+            />
           </div>
-          <Progress 
-            value={progressPercent} 
-            className={cn(
-              "h-2 flex-1",
-              progressPercent === 100 && "[&>div]:bg-green-500"
-            )} 
-          />
-        </div>
-        
-        {/* Summary with separators */}
-        <div className="flex items-center justify-between">
+          
           <div className="flex items-center gap-2 text-xs">
             {laundryItems.length > 0 && (
               <span className="text-blue-600 font-medium">{laundryItems.length} giặt</span>
             )}
-            {laundryItems.length > 0 && (lostItems.length > 0 || damagedItems.length > 0) && (
-              <span className="text-muted-foreground">•</span>
-            )}
             {lostItems.length > 0 && (
               <span className="text-destructive font-medium">{lostItems.length} mất</span>
-            )}
-            {lostItems.length > 0 && damagedItems.length > 0 && (
-              <span className="text-muted-foreground">•</span>
             )}
             {damagedItems.length > 0 && (
               <span className="text-amber-600 font-medium">{damagedItems.length} hỏng</span>
             )}
             {consumedItems.length > 0 && (
-              <>
-                {(laundryItems.length > 0 || lostItems.length > 0 || damagedItems.length > 0) && (
-                  <span className="text-muted-foreground">•</span>
-                )}
-                <span className="text-cyan-600 font-medium">{consumedItems.length} hết</span>
-              </>
+              <span className="text-cyan-600 font-medium">{consumedItems.length} hết</span>
+            )}
+            
+            {checkedCount < totalItems && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-6 px-2 text-xs border-green-500 text-green-600 hover:bg-green-50"
+                onClick={() => {
+                  itemsWithDetails.forEach(item => {
+                    const status = getItemStatus(item.item_id, item.item_type)
+                    if (status === 'pending') {
+                      setCheckedItems(prev => new Set(prev).add(item.item_id))
+                    }
+                  })
+                }}
+              >
+                Tất cả OK
+              </Button>
+            )}
+            
+            {progressPercent === 100 && (
+              <span className="text-green-600 font-medium">✓ Xong</span>
             )}
           </div>
-          
-          {/* Mark all OK button when items remaining */}
-          {checkedCount < totalItems && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 px-2 text-xs border-green-500 text-green-600 hover:bg-green-50"
-              onClick={() => {
-                itemsWithDetails.forEach(item => {
-                  const status = getItemStatus(item.item_id, item.item_type)
-                  if (status === 'pending') {
-                    setCheckedItems(prev => new Set(prev).add(item.item_id))
-                  }
-                })
-              }}
-            >
-              <Check className="h-3 w-3 mr-1" />
-              Tất cả OK
-            </Button>
-          )}
-          
-          {progressPercent === 100 && (
-            <Badge variant="outline" className="h-6 px-2 text-xs border-green-500 text-green-600 bg-green-50">
-              <Check className="h-3 w-3 mr-1" />
-              Hoàn thành
-            </Badge>
-          )}
         </div>
       </div>
 
@@ -506,16 +486,17 @@ export function CategoryBasedItemsCheck({
                   itemCount={category.items.length}
                   checkedCount={categoryCheckedCount}
                   actions={
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-green-600"
-                      onClick={() => handleCategoryMarkAllOk(category.items)}
-                      title="Tất cả OK"
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
+                    categoryCheckedCount < category.items.length ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs text-green-600"
+                        onClick={() => handleCategoryMarkAllOk(category.items)}
+                      >
+                        OK tất cả
+                      </Button>
+                    ) : undefined
                   }
                 >
                   <div className="divide-y divide-border/50">
