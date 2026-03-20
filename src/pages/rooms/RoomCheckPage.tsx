@@ -813,206 +813,41 @@ export function RoomCheckPage() {
         console.log('[RoomCheckPage] Saving chargeable consumptions (non-phase1):', chargeableItems.length)
         const savedItems = await createChargeableConsumptions.mutateAsync(chargeableItems)
         
-        // Trigger notify-chargeable edge function
+        // Fire-and-forget: notify chargeable
         if (savedItems && savedItems.length > 0) {
-          try {
-            const totalAmount = savedItems.reduce((sum, item) => sum + (item.total_amount || 0), 0)
-            await supabase.functions.invoke('notify-chargeable', {
-              body: {
-                tenant_id: room?.tenant_id,
-                hotel_id: room?.hotel_id,
-                booking_id: currentBooking?.id,
-                room_id: id,
-                room_number: room?.room_number,
-                items: savedItems.map(item => ({
-                  name: item.item_name,
-                  quantity: item.quantity,
-                  total: item.total_amount,
-                })),
-                total_amount: totalAmount,
-                recorded_by_name: user?.full_name || user?.email,
-              },
-            })
-            console.log('[RoomCheckPage] Chargeable notification sent')
-          } catch (notifyError) {
-            console.error('[RoomCheckPage] Failed to send chargeable notification:', notifyError)
-          }
+          const totalAmount = savedItems.reduce((sum, item) => sum + (item.total_amount || 0), 0)
+          supabase.functions.invoke('notify-chargeable', {
+            body: {
+              tenant_id: room?.tenant_id,
+              hotel_id: room?.hotel_id,
+              booking_id: currentBooking?.id,
+              room_id: id,
+              room_number: room?.room_number,
+              items: savedItems.map(item => ({
+                name: item.item_name,
+                quantity: item.quantity,
+                total: item.total_amount,
+              })),
+              total_amount: totalAmount,
+              recorded_by_name: user?.full_name || user?.email,
+            },
+          }).catch(e => console.error('[RoomCheckPage] Chargeable notification error:', e))
         }
       }
       
+      // === BƯỚC QUAN TRỌNG: Chỉ await lưu dữ liệu chính ===
       const createdCheck = await createCheck.mutateAsync({
         roomId: id,
         data,
         itemQuantities: Object.keys(itemQuantities).length > 0 ? itemQuantities : undefined,
-        inspectionId: finalInspectionId || undefined, // Pass checkout inspection ID
+        inspectionId: finalInspectionId || undefined,
       })
       
-      // Auto-complete related housekeeping task if this is a checkout
-      if (data.check_type === 'checkout' && room?.id && user?.id) {
-        try {
-          // Lấy thông tin inspection để gửi thông báo ngược
-          const { data: inspectionData } = await supabase
-            .from('checkout_inspection_requests')
-            .select('id, requested_by, hotel_id')
-            .eq('room_id', room.id)
-            .in('status', ['pending', 'in_progress'])
-            .maybeSingle()
-          
-          const { data: relatedTask } = await supabase
-            .from('housekeeping_tasks')
-            .select('id')
-            .eq('room_id', room.id)
-            .eq('task_type', 'checkout_inspection')
-            .in('status', ['pending', 'in_progress'])
-            .maybeSingle()
-          
-          if (relatedTask) {
-            console.log('[RoomCheckPage] Auto-completing housekeeping task:', relatedTask.id)
-            await supabase
-              .from('housekeeping_tasks')
-              .update({ 
-                status: 'completed',
-                completed_at: new Date().toISOString(),
-                room_check_id: createdCheck?.id,
-              })
-              .eq('id', relatedTask.id)
-            
-            // Invalidate housekeeping task queries to update UI
-            queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
-            queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
-            queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
-          }
-          
-          // THÊM: Gửi thông báo ngược cho người yêu cầu khi hoàn thành
-          if (inspectionData?.requested_by && user?.tenant_id) {
-            const roomNumber = room?.room_number || ''
-            const staffName = user?.full_name || 'Nhân viên'
-            
-            console.log('[RoomCheckPage] Sending checkout completion notification to:', inspectionData.requested_by)
-            
-            // Gửi thông báo song song
-            await Promise.allSettled([
-              // 1. In-app notification
-              createInAppNotification({
-                userId: inspectionData.requested_by,
-                tenantId: user.tenant_id,
-                title: `✅ Hoàn thành kiểm tra phòng ${roomNumber}`,
-                body: `${staffName} đã hoàn thành kiểm tra checkout.`,
-                type: 'room_checkout',
-                actionUrl: '/bookings',
-              }),
-              // 2. Telegram notification
-              sendTelegramNotification({
-                tenantId: user.tenant_id,
-                hotelId: inspectionData.hotel_id,
-                userIds: [inspectionData.requested_by],
-                title: `✅ Hoàn thành kiểm tra phòng ${roomNumber}`,
-                message: `${staffName} đã hoàn thành kiểm tra checkout. Phòng sẵn sàng để checkout.`,
-                notificationType: 'checkout',
-                actionUrl: '/bookings',
-              }),
-            ])
-          }
-            queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })
-        } catch (taskError) {
-          console.error('[RoomCheckPage] Error auto-completing housekeeping task:', taskError)
-          // Non-critical error - don't block the flow
-        }
-      }
-
-      // Auto-complete related checkin_prep task
-      if (data.check_type === 'checkin' && room?.id) {
-        try {
-          const { data: relatedTask } = await supabase
-            .from('housekeeping_tasks')
-            .select('id')
-            .eq('room_id', room.id)
-            .eq('task_type', 'checkin_prep')
-            .in('status', ['pending', 'in_progress'])
-            .maybeSingle()
-          
-          if (relatedTask) {
-            console.log('[RoomCheckPage] Auto-completing checkin_prep task:', relatedTask.id)
-            await supabase
-              .from('housekeeping_tasks')
-              .update({ status: 'completed', completed_at: new Date().toISOString(), room_check_id: createdCheck?.id })
-              .eq('id', relatedTask.id)
-            queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
-            queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
-            queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
-            queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })
-          }
-        } catch (e) {
-          console.error('[RoomCheckPage] Error auto-completing checkin_prep task:', e)
-        }
-      }
-
-      // Auto-complete related amenity_request task
-      if (data.check_type === 'replenish' && room?.id) {
-        try {
-          const { data: relatedTask } = await supabase
-            .from('housekeeping_tasks')
-            .select('id')
-            .eq('room_id', room.id)
-            .eq('task_type', 'amenity_request')
-            .in('status', ['pending', 'in_progress'])
-            .maybeSingle()
-          
-          if (relatedTask) {
-            console.log('[RoomCheckPage] Auto-completing amenity_request task:', relatedTask.id)
-            await supabase
-              .from('housekeeping_tasks')
-              .update({ status: 'completed', completed_at: new Date().toISOString(), room_check_id: createdCheck?.id })
-              .eq('id', relatedTask.id)
-            queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
-            queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
-            queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
-            queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })
-          }
-        } catch (e) {
-          console.error('[RoomCheckPage] Error auto-completing amenity_request task:', e)
-        }
-      }
-
-      // Auto-complete related cleaning task when daily check
-      if (data.check_type === 'daily' && room?.id) {
-        try {
-          const { data: relatedTask } = await supabase
-            .from('housekeeping_tasks')
-            .select('id')
-            .eq('room_id', room.id)
-            .eq('task_type', 'cleaning')
-            .in('status', ['pending', 'in_progress'])
-            .maybeSingle()
-          
-          if (relatedTask) {
-            console.log('[RoomCheckPage] Auto-completing cleaning task:', relatedTask.id)
-            await supabase
-              .from('housekeeping_tasks')
-              .update({ status: 'completed', completed_at: new Date().toISOString(), room_check_id: createdCheck?.id })
-              .eq('id', relatedTask.id)
-            queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
-            queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
-            queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
-            queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })
-          }
-        } catch (e) {
-          console.error('[RoomCheckPage] Error auto-completing cleaning task:', e)
-        }
-      }
-      
-      if (id) {
-        await deleteSession(id)
-        setSessionCompleted(true)
-      }
-      
+      // === THÀNH CÔNG → Navigate ngay, không chờ thêm ===
       clearSavedProgress()
-      
-      // Đóng dialog SAU KHI thành công
       setShowSubmitDialog(false)
       setShowCheckinBlockDialog(false)
       
-      // Toast message tùy theo check_type
       if (data.check_type === 'delivery' && distributionOrderId) {
         toast({
           title: 'Đã hoàn tất giao hàng',
@@ -1026,25 +861,119 @@ export function RoomCheckPage() {
         })
         navigate(isManager ? `/rooms/${id}` : '/rooms')
       }
+      
+      // === CHẠY NỀN: Các task không cần chờ ===
+      const backgroundTasks: Promise<any>[] = []
+      
+      // Delete session
+      if (id) {
+        backgroundTasks.push(
+          deleteSession(id).then(() => setSessionCompleted(true)).catch(e => console.error('[BG] Delete session error:', e))
+        )
+      }
+      
+      // Auto-complete housekeeping tasks by check type
+      const taskTypeMap: Record<string, string> = {
+        checkout: 'checkout_inspection',
+        checkin: 'checkin_prep',
+        replenish: 'amenity_request',
+        daily: 'cleaning',
+      }
+      const taskType = taskTypeMap[data.check_type]
+      if (taskType && room?.id) {
+        backgroundTasks.push(
+          (async () => {
+            try {
+              const { data: relatedTask } = await supabase
+                .from('housekeeping_tasks')
+                .select('id')
+                .eq('room_id', room.id)
+                .eq('task_type', taskType)
+                .in('status', ['pending', 'in_progress'])
+                .maybeSingle()
+              
+              if (relatedTask) {
+                console.log('[BG] Auto-completing task:', relatedTask.id)
+                await supabase
+                  .from('housekeeping_tasks')
+                  .update({ 
+                    status: 'completed',
+                    completed_at: new Date().toISOString(),
+                    room_check_id: createdCheck?.id,
+                  })
+                  .eq('id', relatedTask.id)
+              }
+              
+              queryClient.invalidateQueries({ queryKey: ['my-housekeeping-tasks'] })
+              queryClient.invalidateQueries({ queryKey: ['pending-task-count'] })
+              queryClient.invalidateQueries({ queryKey: ['hotel-housekeeping-tasks'] })
+              queryClient.invalidateQueries({ queryKey: ['unified-tasks'] })
+            } catch (e) {
+              console.error('[BG] Auto-complete task error:', e)
+            }
+          })()
+        )
+      }
+      
+      // Checkout-specific: send completion notification back to requester
+      if (data.check_type === 'checkout' && room?.id && user?.id) {
+        backgroundTasks.push(
+          (async () => {
+            try {
+              const { data: inspectionData } = await supabase
+                .from('checkout_inspection_requests')
+                .select('id, requested_by, hotel_id')
+                .eq('room_id', room.id)
+                .in('status', ['pending', 'in_progress'])
+                .maybeSingle()
+              
+              if (inspectionData?.requested_by && user?.tenant_id) {
+                const roomNumber = room?.room_number || ''
+                const staffName = user?.full_name || 'Nhân viên'
+                
+                await Promise.allSettled([
+                  createInAppNotification({
+                    userId: inspectionData.requested_by,
+                    tenantId: user.tenant_id,
+                    title: `✅ Hoàn thành kiểm tra phòng ${roomNumber}`,
+                    body: `${staffName} đã hoàn thành kiểm tra checkout.`,
+                    type: 'room_checkout',
+                    actionUrl: '/bookings',
+                  }),
+                  sendTelegramNotification({
+                    tenantId: user.tenant_id,
+                    hotelId: inspectionData.hotel_id,
+                    userIds: [inspectionData.requested_by],
+                    title: `✅ Hoàn thành kiểm tra phòng ${roomNumber}`,
+                    message: `${staffName} đã hoàn thành kiểm tra checkout. Phòng sẵn sàng để checkout.`,
+                    notificationType: 'checkout',
+                    actionUrl: '/bookings',
+                  }),
+                ])
+              }
+            } catch (e) {
+              console.error('[BG] Checkout notification error:', e)
+            }
+          })()
+        )
+      }
+      
+      // Fire-and-forget all background tasks
+      Promise.allSettled(backgroundTasks).catch(() => {})
+      
     } catch (error) {
       console.error('Error creating room check:', error)
       
-      // KHÔNG đóng dialog - giữ mở để user có thể thử lại
-      // setShowSubmitDialog(false) - BỎ DÒNG NÀY
-      
-      // Handle duplicate error
       if (error instanceof Error && error.message.includes('Duplicate')) {
         toast({
           title: 'Lỗi',
           description: 'Bạn vừa kiểm tra phòng này rồi. Vui lòng đợi 5 phút.',
           variant: 'destructive',
         })
-        // Đóng dialog và navigate cho trường hợp duplicate
         setShowSubmitDialog(false)
         setShowCheckinBlockDialog(false)
         navigate(isManager ? `/rooms/${id}` : '/rooms')
       } else {
-        // Hiển thị toast lỗi chi tiết cho user
         toast({
           title: 'Lỗi',
           description: error instanceof Error 
