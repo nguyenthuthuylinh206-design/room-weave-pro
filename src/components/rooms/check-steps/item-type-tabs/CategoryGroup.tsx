@@ -49,28 +49,23 @@ export function CategoryGroup({
   const isComplete = checkedCount !== undefined && checkedCount === itemCount
 
   return (
-    <div className={cn(
-      "rounded-lg border overflow-hidden transition-all",
-      colors.border,
-      isComplete && "ring-1 ring-green-400"
-    )}>
-      {/* Header - Improved touch target */}
+    <div className="overflow-hidden transition-all">
+      {/* Header */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "sticky top-[2.75rem] z-[9] w-full flex items-center justify-between px-3 py-2 transition-colors touch-manipulation",
-          colors.bg,
+          "sticky top-[2.75rem] z-[9] w-full flex items-center justify-between px-3 py-2 bg-muted/50 border-b transition-colors touch-manipulation",
           "active:opacity-80"
         )}
       >
         <div className="flex items-center gap-2 flex-1 min-w-0">
           {isOpen ? (
-            <ChevronDown className={cn("h-4 w-4 shrink-0", colors.text)} />
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
           ) : (
-            <ChevronRight className={cn("h-4 w-4 shrink-0", colors.text)} />
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
           )}
-          <span className={cn("font-semibold text-sm truncate", colors.text)}>
+          <span className="font-semibold text-sm truncate text-foreground">
             {categoryName}
           </span>
           
@@ -78,15 +73,13 @@ export function CategoryGroup({
           {checkedCount !== undefined && (
             <div className="flex items-center gap-1.5 ml-auto mr-2">
               <span className={cn(
-                "text-xs font-medium tabular-nums",
-                isComplete ? "text-green-600" : colors.text
+                "text-xs font-medium tabular-nums text-muted-foreground",
+                isComplete && "text-green-600"
               )}>
                 {checkedCount}/{itemCount}
               </span>
               {isComplete && (
-                <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
-                  <Check className="h-3 w-3 text-white" />
-                </div>
+                <Check className="h-4 w-4 text-green-600" />
               )}
             </div>
           )}
@@ -99,7 +92,7 @@ export function CategoryGroup({
         )}
       </button>
 
-      {/* Content - No extra padding */}
+      {/* Content */}
       {isOpen && (
         <div className="bg-background">
           {children}

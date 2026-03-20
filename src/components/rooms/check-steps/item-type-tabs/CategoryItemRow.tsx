@@ -278,30 +278,25 @@ export function CategoryItemRow({
       {/* Main Row */}
       <div
         className={cn(
-          "flex items-center gap-2 min-h-[3rem] px-2 transition-colors touch-manipulation",
+          "flex items-center gap-2 min-h-[3rem] px-3 transition-colors touch-manipulation",
           isPending && "cursor-pointer hover:bg-muted/50 active:bg-muted",
-          isOk && "bg-green-50/30",
-          status === 'consumed' && "bg-cyan-50/30",
-          status === 'damaged' && "bg-amber-50/30",
-          status === 'lost' && "bg-red-50/30"
         )}
       >
-        {/* OK button - explicit touch target */}
+        {/* Status circle */}
         <button
           type="button"
           onClick={isPending ? handleMarkOk : undefined}
           disabled={!isPending}
           className={cn(
-            "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all",
-            isPending && "border-2 border-dashed border-muted-foreground/30 active:scale-95 active:bg-green-100",
-            isPending && "animate-pulse",
-            !isPending && !isOk && statusInfo.bg,
-            isOk && "bg-green-500"
+            "w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all border",
+            isPending && "border-dashed border-muted-foreground/40 active:scale-95",
+            isOk && "bg-green-600 border-green-600",
+            !isPending && !isOk && "bg-muted-foreground border-muted-foreground",
           )}
         >
-          {isOk && <Check className="h-4 w-4 text-white" />}
-          {isSaving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-          {!isPending && !isOk && <Check className="h-3.5 w-3.5 text-white" />}
+          {isOk && <Check className="h-3.5 w-3.5 text-white" />}
+          {isSaving && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+          {!isPending && !isOk && <Check className="h-3 w-3 text-white" />}
         </button>
 
         {/* Item info */}
