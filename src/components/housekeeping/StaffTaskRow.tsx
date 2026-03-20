@@ -217,8 +217,9 @@ export function StaffTaskRow({ task, onTap }: StaffTaskRowProps) {
           open={showDeliveryModal}
           onOpenChange={setShowDeliveryModal}
           taskId={task.id}
-          distributionOrderRoomId={task.distribution_order_room_id || ''}
+          roomOrderId={deliveryData.roomOrderId}
           roomNumber={roomNumber || ''}
+          orderCode={deliveryData.orderCode}
           items={deliveryData.items}
         />
       )}
@@ -228,8 +229,8 @@ export function StaffTaskRow({ task, onTap }: StaffTaskRowProps) {
           open={showCleaningComplete}
           onOpenChange={setShowCleaningComplete}
           roomId={task.room_id}
-          taskId={task.id}
-          onMarkReady={handleCleaningCompleted}
+          roomNumber={roomNumber || ''}
+          onComplete={handleCleaningCompleted}
         />
       )}
     </>
