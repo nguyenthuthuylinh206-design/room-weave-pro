@@ -67,6 +67,10 @@ export const MobileBottomNav = () => {
     if (path === '/more') {
       return location.pathname === '/more'
     }
+    // Handle both /my-tasks and /staff/housekeeping for Tasks tab
+    if (path === tasksPath) {
+      return location.pathname.startsWith('/my-tasks') || location.pathname.startsWith('/staff/housekeeping')
+    }
     return location.pathname.startsWith(path)
   }
 
