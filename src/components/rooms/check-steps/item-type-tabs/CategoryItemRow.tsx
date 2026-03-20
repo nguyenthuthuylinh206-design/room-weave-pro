@@ -316,29 +316,27 @@ export function CategoryItemRow({
 
         {/* Actions or Status display */}
         {isPending ? (
-          <div className="flex items-center gap-0.5 flex-shrink-0">
+          <div className="flex items-center gap-1 flex-shrink-0 flex-wrap justify-end">
             {itemActions.map((actionType) => {
               const config = ACTION_CONFIG[actionType]
               if (!config) return null
-              const Icon = config.icon
               
               return (
                 <Button
                   key={actionType}
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   className={cn(
-                    "h-10 w-10 p-0",
+                    "h-8 px-2 text-xs",
                     config.color
                   )}
                   onClick={(e) => {
                     e.stopPropagation()
                     handleQuickAction(actionType)
                   }}
-                  title={config.label}
                 >
-                  <Icon className="h-5 w-5" />
+                  {config.label}
                 </Button>
               )
             })}
