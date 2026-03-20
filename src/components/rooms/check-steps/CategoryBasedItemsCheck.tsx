@@ -509,11 +509,12 @@ export function CategoryBasedItemsCheck({
                     <Button
                       type="button"
                       variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs px-2 text-green-600"
+                      size="icon"
+                      className="h-6 w-6 text-green-600"
                       onClick={() => handleCategoryMarkAllOk(category.items)}
+                      title="Tất cả OK"
                     >
-                      Tất cả OK
+                      <Check className="h-4 w-4" />
                     </Button>
                   }
                 >
