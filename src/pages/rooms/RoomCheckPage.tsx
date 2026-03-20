@@ -1363,8 +1363,7 @@ export function RoomCheckPage() {
               )}
               {currentStep === 5 && !quickMode && isCheckoutType && (
                 <div className="bg-muted/50 rounded-lg px-3 py-2 text-sm text-muted-foreground">
-                  <p className="font-medium text-foreground">📝 Bước 4: Xem lại & hoàn tất</p>
-                  <p className="text-xs mt-0.5">Kiểm tra tổng kết lần cuối. Yêu cầu dọn dẹp nếu cần, rồi bấm Hoàn tất để kết thúc kiểm tra.</p>
+                  <p className="font-medium text-foreground">📝 Xem lại & hoàn tất</p>
                 </div>
               )}
 
