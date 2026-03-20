@@ -1470,9 +1470,12 @@ export function RoomCheckPage() {
               )}
               {/* Step 5 for Checkout: Review + Cleaning (merged) */}
               {currentStep === 5 && !quickMode && isCheckoutType && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <CleaningRequestStep form={form} />
-                  <ReviewStep form={form} room={room} checkType={watchedCheckType as CheckType} currentBooking={currentBooking} />
+                  <div className="border-t pt-4">
+                    <p className="text-sm font-medium mb-3">Đánh giá & ghi chú</p>
+                    <ReviewStep form={form} room={room} checkType={watchedCheckType as CheckType} currentBooking={currentBooking} />
+                  </div>
                 </div>
               )}
               {/* Review Step - adjusts based on check type */}
