@@ -667,6 +667,11 @@ const router = createBrowserRouter([
         path: "my-tasks",
         element: <MyTasksPage />
       },
+      // Housekeeping Staff Dashboard - dedicated mobile-first view
+      {
+        path: "staff/housekeeping",
+        element: <HousekeepingStaffDashboard />
+      },
       {
         path: "settings/warehouses", 
         element: (
