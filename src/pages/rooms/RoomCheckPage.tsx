@@ -1313,6 +1313,61 @@ export function RoomCheckPage() {
                   setQuickMode={setQuickMode}
                 />
               )}
+              {/* Step instruction banners */}
+              {currentStep === 2 && !quickMode && (
+                <div className="bg-muted/50 rounded-lg px-3 py-2 text-sm text-muted-foreground">
+                  {isCheckoutType ? (
+                    <>
+                      <p className="font-medium text-foreground">📋 Bước 1: Kiểm tra đồ tính phí & mất/hỏng</p>
+                      <p className="text-xs mt-0.5">Kiểm tra từng món đồ trong phòng. Nếu OK thì bấm ✓. Nếu đồ bị <strong>mất</strong> hoặc <strong>hỏng</strong> thì bấm nút tương ứng — sẽ tính phí cho khách.</p>
+                    </>
+                  ) : isDeliveryType ? (
+                    <>
+                      <p className="font-medium text-foreground">📦 Xác nhận đồ đã giao</p>
+                      <p className="text-xs mt-0.5">So sánh đồ thực tế với danh sách giao. Xác nhận số lượng đúng hoặc ghi nhận chênh lệch.</p>
+                    </>
+                  ) : isReplenishType ? (
+                    <>
+                      <p className="font-medium text-foreground">🔄 Kiểm tra & bổ sung đồ dùng</p>
+                      <p className="text-xs mt-0.5">Kiểm tra đồ còn đủ không. Nếu <strong>thiếu</strong> hoặc <strong>hết</strong> thì đánh dấu để yêu cầu bổ sung từ kho.</p>
+                    </>
+                  ) : watchedCheckType === 'checkin' ? (
+                    <>
+                      <p className="font-medium text-foreground">✅ Kiểm tra phòng trước khi khách nhận</p>
+                      <p className="text-xs mt-0.5">Đảm bảo tất cả đồ dùng đầy đủ và hoạt động tốt. Nếu <strong>thiếu</strong> hoặc <strong>hỏng</strong> — đánh dấu để xử lý trước khi khách vào.</p>
+                    </>
+                  ) : watchedCheckType === 'daily' ? (
+                    <>
+                      <p className="font-medium text-foreground">🧹 Kiểm tra vệ sinh & đồ dùng hàng ngày</p>
+                      <p className="text-xs mt-0.5">Duyệt nhanh từng món. Nếu OK bấm ✓. Đồ vải cần <strong>đổi</strong> thì bấm Đổi. Đồ tiêu hao <strong>hết</strong> thì đánh dấu.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-medium text-foreground">🔧 Kiểm tra sau bảo trì</p>
+                      <p className="text-xs mt-0.5">Xác nhận các thiết bị đã sửa hoạt động bình thường. Đánh dấu OK hoặc báo vẫn còn hỏng.</p>
+                    </>
+                  )}
+                </div>
+              )}
+              {currentStep === 3 && !quickMode && isCheckoutType && (
+                <div className="bg-muted/50 rounded-lg px-3 py-2 text-sm text-muted-foreground">
+                  <p className="font-medium text-foreground">💰 Bước 2: Xác nhận phụ thu cho khách</p>
+                  <p className="text-xs mt-0.5">Xem lại danh sách đồ mất/hỏng/đã dùng. Xác nhận các khoản tính phí trước khi gửi cho lễ tân.</p>
+                </div>
+              )}
+              {currentStep === 4 && !quickMode && isCheckoutType && (
+                <div className="bg-muted/50 rounded-lg px-3 py-2 text-sm text-muted-foreground">
+                  <p className="font-medium text-foreground">🔄 Bước 3: Dọn phòng & bổ sung đồ</p>
+                  <p className="text-xs mt-0.5">Giặt ga, thay khăn, bổ sung đồ tiêu hao. Đánh dấu những gì cần <strong>giặt</strong>, <strong>đổi</strong> hoặc <strong>thêm</strong> từ kho.</p>
+                </div>
+              )}
+              {currentStep === 5 && !quickMode && isCheckoutType && (
+                <div className="bg-muted/50 rounded-lg px-3 py-2 text-sm text-muted-foreground">
+                  <p className="font-medium text-foreground">📝 Bước 4: Xem lại & hoàn tất</p>
+                  <p className="text-xs mt-0.5">Kiểm tra tổng kết lần cuối. Yêu cầu dọn dẹp nếu cần, rồi bấm Hoàn tất để kết thúc kiểm tra.</p>
+                </div>
+              )}
+
               {/* Step 2: Items Check - Phase 1 for checkout, DeliveryItems for delivery, regular for others */}
               {currentStep === 2 && !quickMode && isDeliveryType && distributionOrderId && roomOrderId && (
                 <div className="space-y-6">
