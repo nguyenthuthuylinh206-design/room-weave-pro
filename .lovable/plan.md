@@ -1,40 +1,86 @@
 
 
-## Đính kèm file PDF hóa đơn trong email
+## Thiết kế lại Housekeeping Staff Dashboard
 
-### Vấn đề
-- Email hóa đơn hiện tại chỉ hiển thị HTML inline, khách không thể tải file PDF về
-- PDF cần đúng chuẩn hóa đơn: có đầy đủ header khách sạn, bảng chi tiết, tổng kết, khối chữ ký
+### Mục tiêu
+Tạo trang dashboard chuyên dụng cho nhân viên buồng phòng — mở lên là thấy ngay việc cần làm, không cần suy nghĩ. Tối giản, font lớn, phân biệt bằng màu sắc.
 
-### Giải pháp
-Tạo PDF ngay trên trình duyệt (client-side, dùng html2canvas + jsPDF đã hoạt động tốt) → chuyển sang base64 → gửi lên Edge Function → đính kèm vào email qua Resend API.
+### Thay đổi hiện trạng
+Hiện tại trang `/my-tasks` dùng `MyTasksPage` → `StaffTasksTab` với giao diện card khá nhiều thông tin. Chưa có lọc theo tầng, chưa tối ưu cho nhân viên buồng phòng chuyên dụng.
 
-Lý do chọn cách này: Edge Function (Deno) không có html2canvas/DOM, nên không thể render HTML thành PDF server-side. Client-side đã có sẵn code tạo PDF chuẩn Vietnamese Unicode.
+---
 
-### Thay đổi
+### Thiết kế mới: `HousekeepingStaffDashboard`
 
-**1. Cập nhật `src/components/invoices/InvoicePDFTemplate.ts`**
-- Thêm function `generateInvoicePDFBase64()` trả về base64 string thay vì tải file (tái sử dụng logic hiện có, chỉ thay `doc.save()` bằng `doc.output('datauristring')`)
+**Layout tổng thể (mobile-first, 390px):**
 
-**2. Cập nhật `src/components/invoices/SendInvoiceEmailDialog.tsx`**
-- Khi bấm "Gửi email": gọi `generateInvoicePDFBase64()` để tạo PDF trước
-- Gửi cả `pdf_base64` và `filename` lên Edge Function cùng với `invoice_id` và `to_email`
-- Cần truyền thêm `hotelInfo` prop vào dialog để tạo PDF đúng thông tin khách sạn
+```text
+┌─────────────────────────────┐
+│  🟢 3 việc cần làm          │  ← Header tối giản, chỉ số lượng
+│  ▸ Tầng 2  ▸ Tầng 3  ▸ Tất cả │  ← Lọc tầng (chip ngang)
+├─────────────────────────────┤
+│  ⚡ CẦN LÀM GẤP             │  ← Section đỏ nếu có urgent
+│  ┌─────────────────────────┐│
+│  │ 🔴 P.201  Dọn phòng    ││  ← Row lớn, font 16px
+│  │    Khẩn cấp · 14:00    ││
+│  │              [Bắt đầu] ││
+│  └─────────────────────────┘│
+├─────────────────────────────┤
+│  📋 CHƯA LÀM (2)            │
+│  ┌─────────────────────────┐│
+│  │ P.305  Kiểm tra checkout││
+│  │    Cao · 15:00          ││
+│  │              [Bắt đầu] ││
+│  └─────────────────────────┘│
+│  ┌─────────────────────────┐│
+│  │ P.410  Chuẩn bị check-in││
+│  │    TB                   ││
+│  │              [Bắt đầu] ││
+│  └─────────────────────────┘│
+├─────────────────────────────┤
+│  🔵 ĐANG LÀM (1)            │
+│  ┌─────────────────────────┐│
+│  │ P.302  Dọn phòng  ⏱ 12p││
+│  │         [Tiếp tục] [✓]  ││
+│  └─────────────────────────┘│
+├─────────────────────────────┤
+│  ✅ ĐÃ XONG HÔM NAY (5)     │  ← Thu gọn, tap để mở
+└─────────────────────────────┘
+```
 
-**3. Cập nhật `supabase/functions/send-invoice-email/index.ts`**
-- Nhận thêm `pdf_base64` và `filename` từ request body
-- Gửi qua Resend với `attachments: [{ filename, content: pdf_base64 }]`
-- Giữ nguyên HTML email đẹp + thêm dòng "Hóa đơn PDF đính kèm bên dưới"
+### Nguyên tắc thiết kế
+- **Không dialog trung gian**: Mọi action (Bắt đầu, Hoàn thành) trực tiếp trên row
+- **Font lớn**: Số phòng 16-18px bold, loại công việc 14px
+- **Màu tối thiểu**: Đỏ = gấp, Xanh dương = đang làm, Xám = chờ, Xanh lá = xong
+- **Lọc tầng**: Chip ngang scroll, lấy từ `room.floor` của tasks
+- **Section "Đã xong"**: Thu gọn (collapsible), hiển thị số lượng hoàn thành hôm nay để tạo cảm giác thành tựu
+- **Auto-refresh**: Realtime đã có sẵn từ `useUnifiedTasks`
 
-**4. Cập nhật nơi gọi `SendInvoiceEmailDialog`**
-- Truyền thêm `hotelInfo` prop từ `GuestInvoicesPage`
-
-### File thay đổi
+### Files
 
 | File | Thay đổi |
 |------|----------|
-| `src/components/invoices/InvoicePDFTemplate.ts` | Thêm `generateInvoicePDFBase64()` |
-| `src/components/invoices/SendInvoiceEmailDialog.tsx` | Tạo PDF client-side, gửi base64 lên server |
-| `supabase/functions/send-invoice-email/index.ts` | Nhận PDF base64, đính kèm qua Resend attachments |
-| `src/pages/invoices/GuestInvoicesPage.tsx` | Truyền `hotelInfo` vào SendInvoiceEmailDialog |
+| `src/pages/HousekeepingStaffDashboard.tsx` | **Mới** — Trang dashboard chuyên dụng |
+| `src/components/housekeeping/StaffTaskRow.tsx` | **Mới** — Row tối giản thay TaskCard, font lớn, action inline |
+| `src/components/housekeeping/FloorFilter.tsx` | **Mới** — Chip lọc tầng ngang |
+| `src/hooks/useCompletedTasksToday.ts` | **Mới** — Query tasks hoàn thành hôm nay |
+| `src/App.tsx` | Thêm route `/staff/housekeeping` |
+| `src/components/layout/MobileBottomNav.tsx` | Redirect nhân viên buồng phòng đến dashboard mới |
+
+### Chi tiết `StaffTaskRow`
+- Một row 60-72px height
+- Trái: Icon loại việc (nhỏ) + Số phòng (bold lớn) + Loại công việc
+- Phải: Badge ưu tiên (chỉ màu, không text cho medium/low) + Deadline + Nút action
+- Pending → nút "Bắt đầu" (primary)
+- In progress → nút "Tiếp tục" + "✓ Xong"
+- Tap vào row → mở TaskDetailDialog (giữ nguyên logic hiện có)
+
+### Chi tiết `FloorFilter`
+- Tự động lấy danh sách tầng từ tasks đang có
+- Chip: "Tất cả (5)" | "T.1 (2)" | "T.2 (3)" — scroll ngang
+- Không hiển thị nếu tất cả tasks cùng 1 tầng
+
+### "Đã xong hôm nay"
+- Query `housekeeping_tasks` WHERE `completed_at >= today` AND `assigned_to = userId`
+- Collapsible section, mặc định thu gọn, chỉ hiện count
 
