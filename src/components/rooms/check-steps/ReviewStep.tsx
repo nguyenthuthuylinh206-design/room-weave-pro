@@ -229,7 +229,7 @@ export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStep
                 ) : (
                   <Badge variant="outline" className="text-xs text-green-600 border-green-300">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
-                    OK
+                    Tất cả OK
                   </Badge>
                 )}
               </div>
