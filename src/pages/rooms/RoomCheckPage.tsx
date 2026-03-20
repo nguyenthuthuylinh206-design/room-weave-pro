@@ -1363,8 +1363,7 @@ export function RoomCheckPage() {
               )}
               {currentStep === 5 && !quickMode && isCheckoutType && (
                 <div className="bg-muted/50 rounded-lg px-3 py-2 text-sm text-muted-foreground">
-                  <p className="font-medium text-foreground">📝 Bước 4: Xem lại & hoàn tất</p>
-                  <p className="text-xs mt-0.5">Kiểm tra tổng kết lần cuối. Yêu cầu dọn dẹp nếu cần, rồi bấm Hoàn tất để kết thúc kiểm tra.</p>
+                  <p className="font-medium text-foreground">📝 Xem lại & hoàn tất</p>
                 </div>
               )}
 
@@ -1470,9 +1469,12 @@ export function RoomCheckPage() {
               )}
               {/* Step 5 for Checkout: Review + Cleaning (merged) */}
               {currentStep === 5 && !quickMode && isCheckoutType && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <CleaningRequestStep form={form} />
-                  <ReviewStep form={form} room={room} checkType={watchedCheckType as CheckType} currentBooking={currentBooking} />
+                  <div className="border-t pt-4">
+                    <p className="text-sm font-medium mb-3">Đánh giá & ghi chú</p>
+                    <ReviewStep form={form} room={room} checkType={watchedCheckType as CheckType} currentBooking={currentBooking} />
+                  </div>
                 </div>
               )}
               {/* Review Step - adjusts based on check type */}
@@ -1482,7 +1484,7 @@ export function RoomCheckPage() {
                 <ReviewStep form={form} room={room} checkType={watchedCheckType as CheckType} currentBooking={currentBooking} />
               )}
               
-              <div className="sticky bottom-0 z-10 bg-background border-t p-3 -mx-4 md:relative md:mx-0 md:p-0 md:pt-6 md:border-t">
+              <div className="sticky bottom-0 z-10 bg-background border-t p-3 -mx-2 md:relative md:mx-0 md:p-0 md:pt-6 md:border-t">
                 <div className="flex items-center justify-between">
                 <div className="flex gap-2">
                   {currentStep > 1 && (

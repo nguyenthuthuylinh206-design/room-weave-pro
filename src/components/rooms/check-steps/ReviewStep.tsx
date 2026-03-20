@@ -167,37 +167,45 @@ export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStep
         </div>
       )}
       
-      {/* Cleanliness Score - Inline compact */}
+      {/* Cleanliness Score - Auto-filled from room condition, still editable */}
       <FormField
         control={form.control}
         name="cleanliness_score"
-        render={({ field }) => (
-          <FormItem>
-            <div className="flex items-center justify-between">
-              <FormLabel className="text-sm">Đánh giá độ sạch</FormLabel>
-              <div className="flex items-center gap-1">
-                {[1, 2, 3, 4, 5].map((score) => (
-                  <button
-                    key={score}
-                    type="button"
-                    onClick={() => field.onChange(score)}
-                    className="p-1 transition-transform hover:scale-110"
-                  >
-                    <Star
-                      className={cn(
-                        'h-7 w-7',
-                        score <= (cleanlinessScore || 0)
-                          ? 'fill-yellow-400 text-yellow-400'
-                          : 'text-muted-foreground'
-                      )}
-                    />
-                  </button>
-                ))}
+        render={({ field }) => {
+          const roomCondition = form.watch('room_condition')
+          // Auto-fill if not yet set manually
+          if (roomCondition && !field.value) {
+            const autoScore = roomCondition === 'clean' ? 4 : roomCondition === 'dirty' ? 2 : 1
+            field.onChange(autoScore)
+          }
+          return (
+            <FormItem>
+              <div className="flex items-center justify-between">
+                <FormLabel className="text-sm">Đánh giá độ sạch</FormLabel>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((score) => (
+                    <button
+                      key={score}
+                      type="button"
+                      onClick={() => field.onChange(score)}
+                      className="p-1 transition-transform hover:scale-110"
+                    >
+                      <Star
+                        className={cn(
+                          'h-7 w-7',
+                          score <= (cleanlinessScore || 0)
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-muted-foreground'
+                        )}
+                      />
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <FormMessage />
-          </FormItem>
-        )}
+              <FormMessage />
+            </FormItem>
+          )
+        }}
       />
       
       {/* Summary - Collapsible */}
@@ -221,7 +229,7 @@ export function ReviewStep({ form, room, checkType, currentBooking }: ReviewStep
                 ) : (
                   <Badge variant="outline" className="text-xs text-green-600 border-green-300">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
-                    OK
+                    Tất cả OK
                   </Badge>
                 )}
               </div>
