@@ -1,65 +1,40 @@
 
 
-## Phân tích UX/UI — Bước 3: Dọn phòng & bổ sung đồ (Checkout Phase 2)
+## Tối ưu tốc độ xác nhận kiểm tra phòng
 
-### Hiện trạng trên 390x707px
+### Vấn đề
+Khi bấm "Xác nhận hoàn tất", nhân viên phải chờ rất lâu vì hệ thống chạy tuần tự hơn **15 bước** trước khi chuyển trang:
+- Lưu dữ liệu kiểm tra
+- Tạo yêu cầu giặt, bổ sung đồ
+- Cập nhật trạng thái phòng
+- Gửi thông báo (in-app, push, telegram)
+- Hoàn tất task housekeeping
+- Xóa session
 
-Từ text-content và code review, viewport hiển thị:
-- Instruction banner (~60px)
-- Progress header sticky top-0 (~56px): "0/9" + progress bar + "Tất cả OK"
-- Category tabs scroll ngang (~40px): Tất cả | Ẩm thực | Điện tử | Đồ vải | Phòng tắm
-- Category group header sticky top-[2.75rem] (~36px): "Ẩm thực 0/2"
-- Item rows với action buttons
+Tổng thời gian: **10-15 giây** (theo console logs).
 
-**Tổng header area khi scroll: ~192px / 707px = 27% viewport bị header chiếm**
+### Giải pháp: Tách "quan trọng" vs "nền"
 
----
+**Bước 1 (chờ - ~2-3s):** Chỉ chờ `createCheck.mutateAsync` hoàn tất (lưu dữ liệu chính + xử lý theo loại check).
 
-### Vấn đề cần sửa
+**Bước 2 (nền - không chờ):** Đóng dialog, toast thành công, navigate ngay. Các task sau chạy fire-and-forget:
+- Auto-complete housekeeping tasks
+- Gửi thông báo checkout completion
+- Gửi thông báo chargeable
+- Delete session
 
-**1. Quá nhiều lớp sticky header — chiếm 27% viewport**
-- Progress header sticky `top-0` (56px)
-- Category group header sticky `top-[2.75rem]` (36px)
-- Cộng instruction banner (không sticky nhưng chiếm chỗ ban đầu)
-- Chỉ còn ~500px cho nội dung, scroll nhiều hơn cần thiết
-
-**Sửa**: Gộp progress info (0/9) vào cùng hàng category tabs để tiết kiệm 1 lớp header (~40px). Bỏ sticky trên category group header — chỉ giữ 1 lớp sticky duy nhất.
-
-**2. Instruction banner step 3 không cần thiết**
-- Banner "🔄 Bước 3: Dọn phòng & bổ sung đồ" + giải thích dài 2 dòng → chiếm 60px
-- Nhân viên đã biết workflow, thông tin này chỉ cần xem 1 lần
-- Các action buttons trên item (Giặt/Đổi/Thêm/Hết) đã tự giải thích
-
-**Sửa**: Thu gọn banner thành 1 dòng ngắn hoặc bỏ hẳn cho step 3+ (giữ cho step 1-2 vì phức tạp hơn).
-
-**3. Items không có action button trông "trống" — gây nhầm lẫn**
-- "Điện thoại bàn", "Điều hòa", "Máy sưởi", "Ổ cắm điện" (equipment) → chỉ hiện vòng tròn pending, không có nút gì
-- Nhân viên phải đoán: tap vào đâu? Tap row = OK nhưng không rõ ràng
-- So với "Ga chun" có 3 nút (Giặt/Đổi/Thêm) → trải nghiệm không đồng nhất
-
-**Sửa**: Thêm nút "OK" text nhỏ bên phải cho items không có action khác, hoặc hiển thị hint "Bấm ✓ nếu OK" trên vòng tròn pending.
-
-**4. Category group header "Điện tử 0/4" sticky chồng lên progress**
-- `top-[2.75rem]` = 44px, progress header `top-0` height ~56px
-- Category header bị đè dưới progress header → chồng 12px
-
-**Sửa**: Nếu giữ sticky, điều chỉnh `top` offset cho khớp. Nếu gộp theo đề xuất #1, bỏ sticky category group.
-
-**5. Nút "Tất cả OK" — nhập nhằng scope**
-- Ở progress header: "Tất cả OK" → đánh dấu toàn bộ 9 items OK
-- Ở step dọn phòng (phase 2), "Tất cả OK" có ý nghĩa khác: equipment đúng là OK, nhưng đồ vải/tiêu hao thường cần giặt/đổi/bổ sung
-- Bấm "Tất cả OK" → bỏ qua giặt/đổi → sai workflow
-
-**Sửa**: Ẩn "Tất cả OK" ở phase 2 checkout. Thay bằng "OK thiết bị" chỉ mark OK cho equipment/furniture, giữ đồ vải/tiêu hao chờ xử lý thủ công.
-
----
-
-### Kế hoạch sửa
+### Thay đổi
 
 | File | Thay đổi |
 |------|----------|
-| `CategoryBasedItemsCheck.tsx` | Gộp progress count vào hàng tabs, bỏ sticky riêng cho progress. Ẩn/đổi "Tất cả OK" ở phase 2 |
-| `CategoryGroup.tsx` | Bỏ sticky header, chỉ dùng border-b phân cách đơn giản |
-| `CategoryItemRow.tsx` | Thêm nút "OK" text cho items không có action button (equipment) |
-| `RoomCheckPage.tsx` | Thu gọn instruction banner step 3-4 thành 1 dòng |
+| `src/pages/rooms/RoomCheckPage.tsx` | Tách onSubmit: chỉ await createCheck, còn lại chạy nền (Promise.allSettled không await). Đóng dialog + navigate ngay sau createCheck thành công |
+
+### Chi tiết kỹ thuật
+
+Trong `onSubmit`:
+1. `await createCheck.mutateAsync(...)` — giữ nguyên, cần chờ
+2. Ngay sau đó: `setShowSubmitDialog(false)` + toast + navigate
+3. Tất cả phần auto-complete tasks, send notifications, delete session → gom vào 1 block `Promise.allSettled([...])` **không await**, chạy nền
+
+Điều này giảm thời gian chờ từ ~15s xuống ~2-3s mà không mất dữ liệu.
 
