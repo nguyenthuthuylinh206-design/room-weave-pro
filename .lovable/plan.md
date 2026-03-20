@@ -1,50 +1,56 @@
 
 
-## Phân tích UX/UI trang Kiểm tra Phòng — Bước 4 (Checkout Step 5)
+## Phân tích UX/UI — Bước 3: Dọn phòng & bổ sung đồ (Checkout Phase 2)
 
-User đang ở bước cuối cùng checkout (Step 5: Review + Cleaning). Dựa trên text-content của element đã chọn và code review:
+### Hiện trạng trên 390x707px
+
+Từ text-content và code review, viewport hiển thị:
+- Instruction banner (~60px)
+- Progress header sticky top-0 (~56px): "0/9" + progress bar + "Tất cả OK"
+- Category tabs scroll ngang (~40px): Tất cả | Ẩm thực | Điện tử | Đồ vải | Phòng tắm
+- Category group header sticky top-[2.75rem] (~36px): "Ẩm thực 0/2"
+- Item rows với action buttons
+
+**Tổng header area khi scroll: ~192px / 707px = 27% viewport bị header chiếm**
 
 ---
 
-### Vấn đề phát hiện
+### Vấn đề cần sửa
 
-**1. Bước cuối quá tải thông tin — Cleaning + Review dồn chung**
-- Step 5 render `CleaningRequestStep` + `ReviewStep` trong cùng `space-y-6` (line 1472-1476)
-- Trên 390px, user phải scroll qua: instruction banner → Tình trạng phòng (3 radio cards) → Priority selector → Cleaning notes → Review summary → Đánh giá sao → Ghi chú → Ảnh → Sticky footer
-- Quá nhiều section liên tiếp, không có phân tách rõ ràng giữa "Dọn dẹp" và "Đánh giá"
+**1. Quá nhiều lớp sticky header — chiếm 27% viewport**
+- Progress header sticky `top-0` (56px)
+- Category group header sticky `top-[2.75rem]` (36px)
+- Cộng instruction banner (không sticky nhưng chiếm chỗ ban đầu)
+- Chỉ còn ~500px cho nội dung, scroll nhiều hơn cần thiết
 
-**Sửa**: Thêm section header/divider rõ ràng giữa Cleaning và Review. Thu gọn CleaningRequestStep — bỏ radio card lớn, dùng 3 chip nhỏ ngang hàng cho room condition.
+**Sửa**: Gộp progress info (0/9) vào cùng hàng category tabs để tiết kiệm 1 lớp header (~40px). Bỏ sticky trên category group header — chỉ giữ 1 lớp sticky duy nhất.
 
-**2. Room condition cards chiếm quá nhiều không gian**
-- 3 radio cards (Sạch/Bẩn nhẹ/Rất bẩn) mỗi cái có icon + label + description → chiếm ~200px vertical
-- Trên mobile 390px, đây là phần chiếm nhiều viewport nhất
+**2. Instruction banner step 3 không cần thiết**
+- Banner "🔄 Bước 3: Dọn phòng & bổ sung đồ" + giải thích dài 2 dòng → chiếm 60px
+- Nhân viên đã biết workflow, thông tin này chỉ cần xem 1 lần
+- Các action buttons trên item (Giặt/Đổi/Thêm/Hết) đã tự giải thích
 
-**Sửa**: Chuyển sang 3 chip/button ngang hàng (Sạch | Bẩn nhẹ | Rất bẩn) — chỉ cần 1 hàng ~48px.
+**Sửa**: Thu gọn banner thành 1 dòng ngắn hoặc bỏ hẳn cho step 3+ (giữ cho step 1-2 vì phức tạp hơn).
 
-**3. Instruction banner step 5 lặp thông tin**
-- Banner "Bước 4: Xem lại & hoàn tất" + mô tả → chiếm ~60px
-- Thông tin "Sau khi hoàn tất: Phòng sẽ chuyển sang trạng thái Trống" trong banner — không cần ở đây, gây nhiễu
+**3. Items không có action button trông "trống" — gây nhầm lẫn**
+- "Điện thoại bàn", "Điều hòa", "Máy sưởi", "Ổ cắm điện" (equipment) → chỉ hiện vòng tròn pending, không có nút gì
+- Nhân viên phải đoán: tap vào đâu? Tap row = OK nhưng không rõ ràng
+- So với "Ga chun" có 3 nút (Giặt/Đổi/Thêm) → trải nghiệm không đồng nhất
 
-**Sửa**: Rút gọn banner, bỏ phần giải thích trạng thái phòng.
+**Sửa**: Thêm nút "OK" text nhỏ bên phải cho items không có action khác, hoặc hiển thị hint "Bấm ✓ nếu OK" trên vòng tròn pending.
 
-**4. Đánh giá độ sạch (star rating) bị trùng với Room Condition**
-- CleaningRequestStep đã hỏi "Tình trạng phòng" (Sạch/Bẩn/Rất bẩn)
-- ReviewStep lại hỏi "Đánh giá độ sạch" (sao 1-10)
-- 2 câu hỏi gần như giống nhau → nhân viên bối rối
+**4. Category group header "Điện tử 0/4" sticky chồng lên progress**
+- `top-[2.75rem]` = 44px, progress header `top-0` height ~56px
+- Category header bị đè dưới progress header → chồng 12px
 
-**Sửa**: Bỏ star rating trong ReviewStep khi đã có room condition từ CleaningRequestStep. Hoặc auto-fill dựa trên condition (Sạch=8, Bẩn nhẹ=5, Rất bẩn=2).
+**Sửa**: Nếu giữ sticky, điều chỉnh `top` offset cho khớp. Nếu gộp theo đề xuất #1, bỏ sticky category group.
 
-**5. "Tóm tắt" section trong ReviewStep không hiển thị rõ**
-- Chỉ hiện "OK" nếu không có vấn đề → không cho nhân viên cảm giác "đã kiểm tra xong"
-- Nên hiện rõ: "✓ 25/25 đồ dùng OK" hoặc "23 OK, 1 giặt, 1 hỏng"
+**5. Nút "Tất cả OK" — nhập nhằng scope**
+- Ở progress header: "Tất cả OK" → đánh dấu toàn bộ 9 items OK
+- Ở step dọn phòng (phase 2), "Tất cả OK" có ý nghĩa khác: equipment đúng là OK, nhưng đồ vải/tiêu hao thường cần giặt/đổi/bổ sung
+- Bấm "Tất cả OK" → bỏ qua giặt/đổi → sai workflow
 
-**Sửa**: Cải thiện ReviewStep summary với thống kê cụ thể.
-
-**6. Sticky footer `-mx-4` không khớp với wrapper `px-2`**
-- Sticky footer dùng `-mx-4` (line 1485) nhưng wrapper đã giảm xuống `px-2 py-3` (line 1306)
-- Kết quả: footer bị lệch so với content area
-
-**Sửa**: Đổi `-mx-4` thành `-mx-2` cho khớp.
+**Sửa**: Ẩn "Tất cả OK" ở phase 2 checkout. Thay bằng "OK thiết bị" chỉ mark OK cho equipment/furniture, giữ đồ vải/tiêu hao chờ xử lý thủ công.
 
 ---
 
@@ -52,7 +58,8 @@ User đang ở bước cuối cùng checkout (Step 5: Review + Cleaning). Dựa 
 
 | File | Thay đổi |
 |------|----------|
-| `CleaningRequestStep.tsx` | Chuyển Room Condition từ radio cards sang 3 chip ngang hàng, giảm chiều cao ~150px |
-| `ReviewStep.tsx` | Auto-fill cleanliness score từ room condition, cải thiện summary hiển thị thống kê rõ ràng |
-| `RoomCheckPage.tsx` | Rút gọn instruction banner step 5, fix sticky footer margin `-mx-4` → `-mx-2`, thêm divider giữa Cleaning và Review |
+| `CategoryBasedItemsCheck.tsx` | Gộp progress count vào hàng tabs, bỏ sticky riêng cho progress. Ẩn/đổi "Tất cả OK" ở phase 2 |
+| `CategoryGroup.tsx` | Bỏ sticky header, chỉ dùng border-b phân cách đơn giản |
+| `CategoryItemRow.tsx` | Thêm nút "OK" text cho items không có action button (equipment) |
+| `RoomCheckPage.tsx` | Thu gọn instruction banner step 3-4 thành 1 dòng |
 
