@@ -1,56 +1,50 @@
 
 
-## Phân tích UX/UI trang Kiểm tra Phòng — Hiện trạng sau cải tiến
+## Phân tích UX/UI trang Kiểm tra Phòng — Bước 4 (Checkout Step 5)
 
-Sau khi review code hiện tại (đã áp dụng các fix trước đó), đánh giá trên viewport 390x707px:
-
----
-
-### Đã tốt (không cần sửa)
-- Bottom drawer cho form Hỏng/Mất — hoạt động đúng, không chiếm inline space
-- Action buttons dùng icon 40x40px (`h-10 w-10`) — touch target đạt chuẩn
-- OK button 32x32px với `animate-pulse` cho pending — trực quan
-- Scroll fade indicator cho category tabs — đã có
-- Sticky footer Next/Back — hoạt động đúng
-- Search ẩn khi < 10 items — tiết kiệm không gian
+User đang ở bước cuối cùng checkout (Step 5: Review + Cleaning). Dựa trên text-content của element đã chọn và code review:
 
 ---
 
-### Vấn đề còn tồn tại
+### Vấn đề phát hiện
 
-**1. Sticky header chồng nhau — vẫn còn**
-- `CategoryBasedItemsCheck` progress header: `sticky top-12` (line 341)
-- `CategoryGroup` header: `sticky top-[6.5rem]` (line 73 trong CategoryGroup.tsx)
-- Trên 390px, top-12 = 48px, top-[6.5rem] = 104px → CategoryGroup nằm dưới progress header ~56px → đúng logic **nhưng** cả hai cùng sticky → khi scroll, 2 header cùng dính trên cùng chiếm ~120px. Cộng thêm Check Type Header (không sticky nhưng vẫn hiện) → tổng header area vẫn lớn.
-- `top-12` (48px) giả định có header cha 48px phía trên, nhưng Check Type Header không sticky → khi scroll, progress header bị kẹt ở 48px trong khi không có gì ở trên → lãng phí 48px trống.
+**1. Bước cuối quá tải thông tin — Cleaning + Review dồn chung**
+- Step 5 render `CleaningRequestStep` + `ReviewStep` trong cùng `space-y-6` (line 1472-1476)
+- Trên 390px, user phải scroll qua: instruction banner → Tình trạng phòng (3 radio cards) → Priority selector → Cleaning notes → Review summary → Đánh giá sao → Ghi chú → Ảnh → Sticky footer
+- Quá nhiều section liên tiếp, không có phân tách rõ ràng giữa "Dọn dẹp" và "Đánh giá"
 
-**Sửa**: Đổi progress header về `sticky top-0` khi Check Type Header đã scroll ra khỏi viewport. Hoặc giảm xuống `top-0` trực tiếp vì Check Type Header không sticky.
+**Sửa**: Thêm section header/divider rõ ràng giữa Cleaning và Review. Thu gọn CleaningRequestStep — bỏ radio card lớn, dùng 3 chip nhỏ ngang hàng cho room condition.
 
-**2. Nút "Tất cả OK" — vẫn trùng lặp**
-- Xuất hiện ở 2 nơi: progress header (line 395-411) VÀ CategoryGroup actions (line 508-517)
-- Cả hai đều có label "Tất cả OK" → user không phân biệt scope
+**2. Room condition cards chiếm quá nhiều không gian**
+- 3 radio cards (Sạch/Bẩn nhẹ/Rất bẩn) mỗi cái có icon + label + description → chiếm ~200px vertical
+- Trên mobile 390px, đây là phần chiếm nhiều viewport nhất
 
-**Sửa**: CategoryGroup dùng label ngắn hơn: "OK ✓" hoặc chỉ icon checkmark. Progress header giữ "Tất cả OK".
+**Sửa**: Chuyển sang 3 chip/button ngang hàng (Sạch | Bẩn nhẹ | Rất bẩn) — chỉ cần 1 hàng ~48px.
 
-**3. Main content wrapper có padding thừa**
-- `<div className="p-4">` (line 1306) bọc toàn bộ form → mỗi bên có 16px padding
-- Bên trong, `CategoryBasedItemsCheck` dùng `-mx-4 px-4` để mở rộng progress header → hack ngược padding cha
-- CategoryItemRow chỉ có `px-2` → nội dung bị thu hẹp thêm
+**3. Instruction banner step 5 lặp thông tin**
+- Banner "Bước 4: Xem lại & hoàn tất" + mô tả → chiếm ~60px
+- Thông tin "Sau khi hoàn tất: Phòng sẽ chuyển sang trạng thái Trống" trong banner — không cần ở đây, gây nhiễu
 
-**Sửa**: Giảm padding wrapper xuống `p-2` hoặc `px-2 py-3`, bỏ negative margin hack.
+**Sửa**: Rút gọn banner, bỏ phần giải thích trạng thái phòng.
 
-**4. Inline consumed form vẫn inline (không dùng drawer)**
-- Form "Hết" (consumed) vẫn hiển thị inline (line 372-463) với ~200px height
-- Chỉ "Mất" và "Hỏng" dùng drawer
-- Inconsistency: 3 loại form phức tạp nhưng chỉ 2 dùng drawer
+**4. Đánh giá độ sạch (star rating) bị trùng với Room Condition**
+- CleaningRequestStep đã hỏi "Tình trạng phòng" (Sạch/Bẩn/Rất bẩn)
+- ReviewStep lại hỏi "Đánh giá độ sạch" (sao 1-10)
+- 2 câu hỏi gần như giống nhau → nhân viên bối rối
 
-**Sửa**: Chuyển consumed form sang drawer cho nhất quán, hoặc giữ inline nhưng thu gọn hơn (switch + quantity trên cùng 1 hàng).
+**Sửa**: Bỏ star rating trong ReviewStep khi đã có room condition từ CleaningRequestStep. Hoặc auto-fill dựa trên condition (Sạch=8, Bẩn nhẹ=5, Rất bẩn=2).
 
-**5. Border-b trên mỗi item row tạo visual noise**
-- `border-b border-border last:border-b-0` (line 277) + CategoryGroup có border riêng → double border
-- Khi nhiều items, các đường kẻ dày gây rối mắt
+**5. "Tóm tắt" section trong ReviewStep không hiển thị rõ**
+- Chỉ hiện "OK" nếu không có vấn đề → không cho nhân viên cảm giác "đã kiểm tra xong"
+- Nên hiện rõ: "✓ 25/25 đồ dùng OK" hoặc "23 OK, 1 giặt, 1 hỏng"
 
-**Sửa**: Dùng `divide-y` ở container thay vì border trên từng row. Hoặc dùng khoảng cách (gap) thay border.
+**Sửa**: Cải thiện ReviewStep summary với thống kê cụ thể.
+
+**6. Sticky footer `-mx-4` không khớp với wrapper `px-2`**
+- Sticky footer dùng `-mx-4` (line 1485) nhưng wrapper đã giảm xuống `px-2 py-3` (line 1306)
+- Kết quả: footer bị lệch so với content area
+
+**Sửa**: Đổi `-mx-4` thành `-mx-2` cho khớp.
 
 ---
 
@@ -58,8 +52,7 @@ Sau khi review code hiện tại (đã áp dụng các fix trước đó), đán
 
 | File | Thay đổi |
 |------|----------|
-| `CategoryBasedItemsCheck.tsx` | Đổi sticky progress về `top-0`, giảm label "Tất cả OK" trong CategoryGroup thành icon |
-| `CategoryItemRow.tsx` | Chuyển consumed form sang drawer, bỏ `border-b` trên row |
-| `CategoryGroup.tsx` | Điều chỉnh `top` offset theo progress header mới |
-| `RoomCheckPage.tsx` | Giảm padding wrapper `p-4` → `px-2 py-3` |
+| `CleaningRequestStep.tsx` | Chuyển Room Condition từ radio cards sang 3 chip ngang hàng, giảm chiều cao ~150px |
+| `ReviewStep.tsx` | Auto-fill cleanliness score từ room condition, cải thiện summary hiển thị thống kê rõ ràng |
+| `RoomCheckPage.tsx` | Rút gọn instruction banner step 5, fix sticky footer margin `-mx-4` → `-mx-2`, thêm divider giữa Cleaning và Review |
 
