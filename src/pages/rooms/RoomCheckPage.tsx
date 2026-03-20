@@ -1356,9 +1356,9 @@ export function RoomCheckPage() {
                 </div>
               )}
               {currentStep === 4 && !quickMode && isCheckoutType && (
-                <div className="bg-muted/50 rounded-lg px-3 py-2 text-sm text-muted-foreground">
-                  <p className="font-medium text-foreground">🔄 Bước 3: Dọn phòng & bổ sung đồ</p>
-                  <p className="text-xs mt-0.5">Giặt ga, thay khăn, bổ sung đồ tiêu hao. Đánh dấu những gì cần <strong>giặt</strong>, <strong>đổi</strong> hoặc <strong>thêm</strong> từ kho.</p>
+                <div className="bg-muted/50 rounded-lg px-3 py-1.5 text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">🔄 Dọn phòng & bổ sung đồ</span>
+                  <span className="ml-1">— Giặt, đổi, thêm từ kho</span>
                 </div>
               )}
               {currentStep === 5 && !quickMode && isCheckoutType && (

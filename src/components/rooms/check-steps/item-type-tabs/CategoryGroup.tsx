@@ -50,12 +50,12 @@ export function CategoryGroup({
 
   return (
     <div className="transition-all">
-      {/* Header */}
+      {/* Header — non-sticky, simple separator */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "sticky top-[2.75rem] z-[9] w-full flex items-center justify-between px-3 py-2 bg-muted border-b transition-colors touch-manipulation",
+          "w-full flex items-center justify-between px-3 py-2 bg-muted/50 border-b transition-colors touch-manipulation",
           "active:opacity-80"
         )}
       >

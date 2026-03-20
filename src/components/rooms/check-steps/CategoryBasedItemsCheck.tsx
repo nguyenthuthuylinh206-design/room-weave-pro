@@ -486,16 +486,17 @@ export function CategoryBasedItemsCheck({
                   itemCount={category.items.length}
                   checkedCount={categoryCheckedCount}
                   actions={
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-green-600"
-                      onClick={() => handleCategoryMarkAllOk(category.items)}
-                      title="Tất cả OK"
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
+                    categoryCheckedCount < category.items.length ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs text-green-600"
+                        onClick={() => handleCategoryMarkAllOk(category.items)}
+                      >
+                        OK tất cả
+                      </Button>
+                    ) : undefined
                   }
                 >
                   <div className="divide-y divide-border/50">
