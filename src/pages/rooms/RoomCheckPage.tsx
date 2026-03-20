@@ -1303,7 +1303,7 @@ export function RoomCheckPage() {
       {/* Main content - div instead of Card for compact mobile */}
       <div className="border rounded-lg">
         
-        <div className="p-4">
+        <div className="px-2 py-3">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {currentStep === 1 && (

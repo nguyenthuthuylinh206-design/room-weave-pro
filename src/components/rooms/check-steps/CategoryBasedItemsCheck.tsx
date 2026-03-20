@@ -338,7 +338,7 @@ export function CategoryBasedItemsCheck({
   return (
     <div className="space-y-3">
       {/* Compact Sticky Progress Header */}
-      <div className="sticky top-12 z-10 bg-background/95 backdrop-blur -mx-4 px-4 py-1.5 border-b">
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur -mx-2 px-2 py-1.5 border-b">
         {/* Progress bar - larger and more visible */}
         <div className="flex items-center gap-3 mb-2">
           <div className="flex items-center gap-2 shrink-0">
@@ -509,15 +509,16 @@ export function CategoryBasedItemsCheck({
                     <Button
                       type="button"
                       variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs px-2 text-green-600"
+                      size="icon"
+                      className="h-6 w-6 text-green-600"
                       onClick={() => handleCategoryMarkAllOk(category.items)}
+                      title="Tất cả OK"
                     >
-                      Tất cả OK
+                      <Check className="h-4 w-4" />
                     </Button>
                   }
                 >
-                  <div className="divide-y-0">
+                  <div className="divide-y divide-border/50">
                     {filteredItems.map(item => {
                       const status = getItemStatus(item.item_id, item.item_type)
                       const allowedActions = getAllowedActions(item.item_type)
