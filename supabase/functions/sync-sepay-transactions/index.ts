@@ -251,13 +251,25 @@ Deno.serve(async (req) => {
                 const newEndDate = new Date(currentEndDate);
                 newEndDate.setDate(newEndDate.getDate() + durationDays);
 
+                // Get plan max_rooms for validation
+                const { data: tenantWithPlan } = await supabase
+                  .from('tenants')
+                  .select('subscription_plan_id, subscription_plans(max_rooms)')
+                  .eq('id', tenantId)
+                  .single();
+
+                const planMaxRooms = (tenantWithPlan?.subscription_plans as any)?.max_rooms;
+
                 const updateData: Record<string, unknown> = {
                   subscription_end_date: newEndDate.toISOString(),
+                  subscription_status: 'active',
+                  grace_period_ends_at: null,
                   updated_at: new Date().toISOString()
                 };
 
                 if (rooms) {
-                  updateData.registered_rooms = rooms;
+                  // Cap rooms to plan limit
+                  updateData.registered_rooms = planMaxRooms ? Math.min(rooms, planMaxRooms) : rooms;
                 }
 
                 await supabase
@@ -275,7 +287,20 @@ Deno.serve(async (req) => {
                 .single();
 
               if (tenant) {
-                const newTotalRooms = (tenant.registered_rooms || 0) + (metadata.additional_rooms as number);
+                // Get plan max_rooms for validation
+                const { data: tenantPlan } = await supabase
+                  .from('tenants')
+                  .select('subscription_plans(max_rooms)')
+                  .eq('id', tenantId)
+                  .single();
+
+                const maxRooms = (tenantPlan?.subscription_plans as any)?.max_rooms;
+                let newTotalRooms = (tenant.registered_rooms || 0) + (metadata.additional_rooms as number);
+                
+                // Cap to plan limit
+                if (maxRooms) {
+                  newTotalRooms = Math.min(newTotalRooms, maxRooms);
+                }
                 
                 await supabase
                   .from('tenants')

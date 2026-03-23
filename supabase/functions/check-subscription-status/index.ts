@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
       })
       .lt('subscription_end_date', now)
       .gte('grace_period_ends_at', now)
-      .eq('subscription_status', 'active')
+      .in('subscription_status', ['active', 'trial'])
       .select('id, name, subscription_end_date, grace_period_ends_at');
 
     if (graceError) {
