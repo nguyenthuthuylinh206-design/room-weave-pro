@@ -12,11 +12,13 @@ import { useUser } from '@/hooks/useUser'
 import { useTenantSubscription } from '@/hooks/useSubscription'
 import { isTenantOwner, isManager } from '@/lib/userAccess'
 import { Gift, Phone, Mail, Calendar, CheckCircle2 } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
 
 const STORAGE_KEY = 'free_trial_popup_dismissed'
 
 export const FreeTrialPopup = () => {
   const [open, setOpen] = useState(false)
+  const [dontShowAgain, setDontShowAgain] = useState(false)
   const { user } = useUser()
   const { data: subscription } = useTenantSubscription()
 
@@ -28,14 +30,15 @@ export const FreeTrialPopup = () => {
     const dismissed = localStorage.getItem(STORAGE_KEY)
 
     if (isEligibleRole && isTrial && !dismissed) {
-      // Delay slightly so it doesn't flash on load
       const timer = setTimeout(() => setOpen(true), 1000)
       return () => clearTimeout(timer)
     }
   }, [user, subscription])
 
   const handleDismiss = () => {
-    localStorage.setItem(STORAGE_KEY, 'true')
+    if (dontShowAgain) {
+      localStorage.setItem(STORAGE_KEY, 'true')
+    }
     setOpen(false)
   }
 
@@ -112,7 +115,17 @@ export const FreeTrialPopup = () => {
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="mt-2">
+        <AlertDialogFooter className="mt-2 space-y-3">
+          <div className="flex items-center gap-2 w-full">
+            <Checkbox
+              id="dont-show"
+              checked={dontShowAgain}
+              onCheckedChange={(v) => setDontShowAgain(v === true)}
+            />
+            <label htmlFor="dont-show" className="text-xs text-muted-foreground cursor-pointer">
+              Không hiển thị lại
+            </label>
+          </div>
           <AlertDialogAction onClick={handleDismiss} className="w-full">
             Đã hiểu, bắt đầu sử dụng
           </AlertDialogAction>
