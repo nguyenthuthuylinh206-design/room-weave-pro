@@ -312,7 +312,8 @@ export function TransactionListPage() {
               <SelectItem value="all">{t('transactionType.all')}</SelectItem>
               <SelectItem value="in">{t('transactionLabel.in')}</SelectItem>
               <SelectItem value="out">{t('transactionLabel.out')}</SelectItem>
-              <SelectItem value="adjustment">{t('transactionType.adjustment')}</SelectItem>
+              <SelectItem value="transfer">Chuyển kho</SelectItem>
+              <SelectItem value="adjust">{t('transactionType.adjustment')}</SelectItem>
             </SelectContent>
           </Select>
           
