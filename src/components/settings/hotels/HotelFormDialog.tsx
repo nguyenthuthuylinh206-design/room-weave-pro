@@ -260,7 +260,7 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Step 1: Thông tin cơ bản */}
-            {step === 1 && (
+            {(step === 1 || !!hotel) && (
               <div className="space-y-4">
                 {/* Logo Upload */}
                 <div className="flex flex-col items-center gap-2">
@@ -394,7 +394,7 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
             )}
 
             {/* Step 2: Quy mô & Trạng thái */}
-            {step === 2 && (
+            {(step === 2 || !!hotel) && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
