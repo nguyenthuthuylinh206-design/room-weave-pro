@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Download, Search, Eye, Package, TrendingUp, TrendingDown } from 'lucide-react'
+import { ArrowLeft, Download, Search, Eye, Package, TrendingUp, TrendingDown, Plus, ClipboardCheck, ArrowRightLeft } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
