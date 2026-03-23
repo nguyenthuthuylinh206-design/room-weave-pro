@@ -394,7 +394,7 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
             )}
 
             {/* Step 2: Quy mô & Trạng thái */}
-            {step === 2 && (
+            {(step === 2 || !!hotel) && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
