@@ -212,10 +212,40 @@ export function TransactionListPage() {
             <ArrowLeft className="mr-2 h-4 w-4" />
             {t('back')}
           </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate('/inventory/adjustments')}>
+            <ClipboardCheck className="mr-2 h-4 w-4" />
+            Kiểm kê
+          </Button>
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
             {t('exportExcel')}
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Tạo mới
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => navigate('/inventory/inbound/new')}>
+                <TrendingDown className="mr-2 h-4 w-4 text-green-600" />
+                Nhập kho
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/inventory/outbound/new')}>
+                <TrendingUp className="mr-2 h-4 w-4 text-amber-600" />
+                Xuất kho
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/inventory/transfer/new')}>
+                <ArrowRightLeft className="mr-2 h-4 w-4 text-purple-600" />
+                Chuyển kho
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/inventory/adjustments/new')}>
+                <ClipboardCheck className="mr-2 h-4 w-4 text-cyan-600" />
+                Kiểm kê
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </PageHeader>
       
