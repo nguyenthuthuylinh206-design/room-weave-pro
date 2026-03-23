@@ -260,7 +260,7 @@ export function HotelFormDialog({ open, onOpenChange, hotel }: HotelFormDialogPr
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Step 1: Thông tin cơ bản */}
-            {step === 1 && (
+            {(step === 1 || !!hotel) && (
               <div className="space-y-4">
                 {/* Logo Upload */}
                 <div className="flex flex-col items-center gap-2">
