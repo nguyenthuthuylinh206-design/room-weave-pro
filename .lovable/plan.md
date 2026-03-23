@@ -1,51 +1,51 @@
 
 
-## Đơn giản hóa trang Quản lý Tài sản
+## Gộp menu "Kho & Tài sản" — từ 12 mục xuống 5
 
-### Vấn đề hiện tại (từ screenshot)
-Trên 765px, trang hiện có **quá nhiều lớp** chồng nhau:
-1. Header: "Quản lý Tài sản" + nút "Thêm tài sản mới"
-2. Tabs: Tài sản | Dịch vụ
-3. Category tabs: Tất cả 0
-4. **5 bộ lọc** ngang hàng: Search + Danh mục + Tồn kho + Kho + Trạng thái
-5. **4 nút action**: Import + Xuất Excel + Quét QR + Đồng bộ
-
-→ User chưa thấy data đã phải scroll qua ~200px toolbar. Nhiều chức năng gây bối rối.
-
-### Chức năng nên bỏ/ẩn
-
-| Chức năng | Lý do bỏ |
-|-----------|----------|
-| **Quét QR** | Chưa hoạt động — chỉ hiện toast "đang phát triển" |
-| **Đồng bộ** | Chức năng nội bộ (sync categories), user thường không cần |
-| **Category Tabs** (ItemTabs) | Trùng với dropdown "Tất cả danh mục" — cùng chức năng lọc theo category |
-| **Trạng thái filter** (Đang dùng/Ngừng dùng) | Hầu như luôn là "Đang dùng", hiếm khi đổi — chuyển vào menu phụ |
-| **Kho filter** | Giữ lại nhưng chỉ hiện khi có >1 kho |
-
-### Cấu trúc mới
+### Hiện tại: 12 sub-items (quá nhiều)
 
 ```text
-┌─────────────────────────────────────────────────┐
-│ Quản lý Tài sản          [Import] [Export] [+]  │
-│ Quản lý tất cả tài sản...                      │
-├─────────────────────────────────────────────────┤
-│ Tài sản | Dịch vụ                               │
-├─────────────────────────────────────────────────┤
-│ 🔍 Tìm kiếm...  [Danh mục ▾] [Tồn kho ▾]     │
-├─────────────────────────────────────────────────┤
-│ (Bảng dữ liệu)                                 │
-└─────────────────────────────────────────────────┘
+Kho & Tài sản
+├── Bảng điều khiển        ← gộp vào Danh sách tài sản
+├── Danh sách tài sản      ← GIỮ (trang chính)
+├── Danh mục               ← bỏ khỏi menu, truy cập từ trang tài sản
+├── Thêm tài sản mới       ← bỏ, đã có nút trên trang danh sách
+├── Giao dịch kho          ← GIỮ (gộp Nhập/Xuất/Chuyển/Kiểm kê vào đây)
+├── Bổ sung đồ             ← GIỮ (có badge riêng, workflow riêng)
+├── Nhập kho               ← gộp vào Giao dịch kho
+├── Xuất kho               ← gộp vào Giao dịch kho
+├── Chuyển kho             ← gộp vào Giao dịch kho
+├── Kiểm kê               ← gộp vào Giao dịch kho
+├── Phiếu giao hàng        ← GIỮ (có badge riêng)
+└── Quản lý kho            ← chuyển sang Cài đặt
 ```
 
-- Search + 2 filter chính trên 1 hàng duy nhất
-- Import/Export lên header cạnh nút Thêm (gọn hơn)
-- Bỏ: Quét QR, Đồng bộ, Category Tabs, Status filter
-- Kho filter: chỉ hiện khi tenant có >1 warehouse
+### Sau khi gộp: 5 mục
+
+```text
+Kho & Tài sản
+├── Tài sản                (trang chính, bao gồm dashboard + list)
+├── Giao dịch kho          (tabs: Tất cả | Nhập | Xuất | Chuyển | Kiểm kê)
+├── Bổ sung đồ             (giữ nguyên, có badge)
+├── Phiếu giao hàng        (giữ nguyên, có badge)
+└── Quản lý kho            (chỉ hiện khi có >1 kho)
+```
+
+### Logic gộp
+
+| Mục bỏ/gộp | Lý do |
+|-------------|-------|
+| **Bảng điều khiển** | Trang `/inventory` đã hiện overview stats, không cần mục riêng — đổi link tài sản về `/inventory` |
+| **Danh mục** | Truy cập từ trang danh sách tài sản (đã có filter danh mục), hoặc từ Cài đặt |
+| **Thêm tài sản mới** | Đã có nút "+" trên trang danh sách, không cần menu riêng |
+| **Nhập/Xuất/Chuyển/Kiểm kê** | Đều là loại giao dịch kho — gộp thành tabs trong trang Giao dịch kho |
+| **Quản lý kho** | Chỉ hiện khi tenant có >1 kho (giống logic filter đã làm) |
 
 ### Kế hoạch sửa
 
 | File | Thay đổi |
 |------|----------|
-| `src/components/items/ItemFilters.tsx` | Bỏ nút Quét QR + Đồng bộ. Bỏ Status filter. Kho filter chỉ hiện khi >1 kho. Di chuyển Import/Export lên props callback cho header |
-| `src/pages/items/ItemsPage.tsx` | Bỏ `<ItemTabs>`. Di chuyển Import/Export buttons lên cạnh nút "Thêm tài sản" trong PageHeader |
+| `src/components/layout/Sidebar.tsx` | Giảm children của `inventory` từ 12 xuống 5 mục. Bỏ: dashboard, categories, addItem, inbound, outbound, transfer. Giữ: itemsList (→ `/inventory`), transactions, supplements, distribution, warehouses (conditional) |
+| `src/i18n/locales/en/navigation.json` | Không cần thay đổi (keys đã có) |
+| `src/i18n/locales/vi/navigation.json` | Không cần thay đổi (keys đã có) |
 
