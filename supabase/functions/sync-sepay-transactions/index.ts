@@ -251,13 +251,25 @@ Deno.serve(async (req) => {
                 const newEndDate = new Date(currentEndDate);
                 newEndDate.setDate(newEndDate.getDate() + durationDays);
 
+                // Get plan max_rooms for validation
+                const { data: tenantWithPlan } = await supabase
+                  .from('tenants')
+                  .select('subscription_plan_id, subscription_plans(max_rooms)')
+                  .eq('id', tenantId)
+                  .single();
+
+                const planMaxRooms = (tenantWithPlan?.subscription_plans as any)?.max_rooms;
+
                 const updateData: Record<string, unknown> = {
                   subscription_end_date: newEndDate.toISOString(),
+                  subscription_status: 'active',
+                  grace_period_ends_at: null,
                   updated_at: new Date().toISOString()
                 };
 
                 if (rooms) {
-                  updateData.registered_rooms = rooms;
+                  // Cap rooms to plan limit
+                  updateData.registered_rooms = planMaxRooms ? Math.min(rooms, planMaxRooms) : rooms;
                 }
 
                 await supabase
