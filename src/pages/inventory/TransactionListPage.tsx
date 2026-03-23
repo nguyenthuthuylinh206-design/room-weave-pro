@@ -25,6 +25,12 @@ import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import { TransactionTypeBadge } from '@/components/inventory/TransactionTypeBadge'
 import { TransactionDetailDialog } from '@/components/inventory/TransactionDetailDialog'
 import { useInventoryTransactions } from '@/hooks/useInventoryTransactions'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 import { format } from 'date-fns'
 import { vi, enUS } from 'date-fns/locale'
