@@ -40,6 +40,32 @@ export function useBulkCreateRooms() {
     }): Promise<BulkCreateResult> => {
       if (!tenantId) throw new Error('No tenant ID')
 
+      // Check quota before importing
+      const [{ data: usage }, { data: tenant }] = await Promise.all([
+        supabase
+          .from('tenant_usage')
+          .select('current_rooms_count')
+          .eq('tenant_id', tenantId)
+          .single(),
+        supabase
+          .from('tenants')
+          .select('subscription_plan_id, subscription_plans:subscription_plan_id(max_rooms)')
+          .eq('id', tenantId)
+          .single()
+      ])
+
+      const currentRooms = usage?.current_rooms_count || 0
+      const maxRooms = (tenant?.subscription_plans as any)?.max_rooms
+      
+      if (maxRooms !== null && maxRooms !== undefined) {
+        const remainingSlots = maxRooms - currentRooms
+        if (rooms.length > remainingSlots) {
+          throw new Error(
+            `Vượt quá giới hạn gói dịch vụ. Hiện tại: ${currentRooms}/${maxRooms} phòng, chỉ có thể thêm ${remainingSlots} phòng nữa nhưng đang import ${rooms.length} phòng.`
+          )
+        }
+      }
+
       const result: BulkCreateResult = {
         success: 0,
         failed: 0,
