@@ -12,6 +12,7 @@ import { PushNotificationPrompt } from '@/components/notifications'
 import { PWAUpdatePrompt } from '@/components/pwa'
 import { ShiftStatusBanner } from '@/components/staff/ShiftStatusBanner'
 import { GracePeriodBanner } from './GracePeriodBanner'
+import { FreeTrialPopup } from '@/components/promotions/FreeTrialPopup'
 import { useUser } from '@/hooks/useUser'
 import { isStaff, isTenantOwner, isManager } from '@/lib/userAccess'
 
