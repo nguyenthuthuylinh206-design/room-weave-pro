@@ -35,6 +35,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   active: { label: 'Đang hoạt động', variant: 'default' },
+  trial: { label: 'Dùng thử', variant: 'secondary' },
   trialing: { label: 'Dùng thử', variant: 'secondary' },
   past_due: { label: 'Quá hạn', variant: 'destructive' },
   canceled: { label: 'Đã hủy', variant: 'outline' },

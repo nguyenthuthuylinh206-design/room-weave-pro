@@ -287,7 +287,20 @@ Deno.serve(async (req) => {
                 .single();
 
               if (tenant) {
-                const newTotalRooms = (tenant.registered_rooms || 0) + (metadata.additional_rooms as number);
+                // Get plan max_rooms for validation
+                const { data: tenantPlan } = await supabase
+                  .from('tenants')
+                  .select('subscription_plans(max_rooms)')
+                  .eq('id', tenantId)
+                  .single();
+
+                const maxRooms = (tenantPlan?.subscription_plans as any)?.max_rooms;
+                let newTotalRooms = (tenant.registered_rooms || 0) + (metadata.additional_rooms as number);
+                
+                // Cap to plan limit
+                if (maxRooms) {
+                  newTotalRooms = Math.min(newTotalRooms, maxRooms);
+                }
                 
                 await supabase
                   .from('tenants')
