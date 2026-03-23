@@ -1,40 +1,43 @@
 
 
-## Tối ưu tốc độ xác nhận kiểm tra phòng
+## Popup chương trình hỗ trợ chuyển đổi số + Giới hạn phòng cho tenant mới
 
 ### Vấn đề
-Khi bấm "Xác nhận hoàn tất", nhân viên phải chờ rất lâu vì hệ thống chạy tuần tự hơn **15 bước** trước khi chuyển trang:
-- Lưu dữ liệu kiểm tra
-- Tạo yêu cầu giặt, bổ sung đồ
-- Cập nhật trạng thái phòng
-- Gửi thông báo (in-app, push, telegram)
-- Hoàn tất task housekeeping
-- Xóa session
+1. Tenant mới tạo tài khoản không có `subscription_plan_id` → `check_tenant_can_add` trả về NULL (unlimited) → tạo phòng không giới hạn
+2. Chưa có thông báo về chương trình miễn phí 5 tháng
 
-Tổng thời gian: **10-15 giây** (theo console logs).
+### Giải pháp
 
-### Giải pháp: Tách "quan trọng" vs "nền"
+**1. Database: Tự động gán gói trial 5 tháng cho tenant mới**
 
-**Bước 1 (chờ - ~2-3s):** Chỉ chờ `createCheck.mutateAsync` hoàn tất (lưu dữ liệu chính + xử lý theo loại check).
+Migration SQL:
+- Tạo gói `free_trial` trong `subscription_plans` với giới hạn hợp lý (ví dụ: max 50 phòng, 2 khách sạn, 5 users)
+- Cập nhật function `approve_tenant` để tự động gán `subscription_plan_id = free_trial`, `subscription_status = 'trial'`, `subscription_end_date = NOW() + 5 months`, `subscription_start_date = NOW()`
+- Cập nhật các tenant hiện tại chưa có plan → gán trial 5 tháng từ ngày approved_at hoặc created_at
 
-**Bước 2 (nền - không chờ):** Đóng dialog, toast thành công, navigate ngay. Các task sau chạy fire-and-forget:
-- Auto-complete housekeeping tasks
-- Gửi thông báo checkout completion
-- Gửi thông báo chargeable
-- Delete session
+**2. Component: Popup thông báo chương trình**
 
-### Thay đổi
+Tạo `src/components/promotions/FreeTrialPopup.tsx`:
+- AlertDialog hiển thị 1 lần khi user đăng nhập lần đầu (lưu flag vào localStorage `free_trial_popup_dismissed`)
+- Nội dung:
+  - Tiêu đề: "Chương trình hỗ trợ chuyển đổi số"
+  - Miễn phí sử dụng phần mềm trong 5 tháng
+  - Miễn phí setup, cài đặt phần mềm
+  - Sau 5 tháng sẽ bắt đầu tính phí
+  - Hotline/email hỗ trợ
+- Nút: "Đã hiểu" để đóng
+- Chỉ hiển thị cho tenant_owner và manager (không hiện cho staff)
+- Chỉ hiện khi `subscription_status = 'trial'`
+
+**3. Tích hợp vào MainLayout**
+
+Thêm `<FreeTrialPopup />` vào `MainLayout.tsx` cạnh các prompt khác.
+
+### Files
 
 | File | Thay đổi |
 |------|----------|
-| `src/pages/rooms/RoomCheckPage.tsx` | Tách onSubmit: chỉ await createCheck, còn lại chạy nền (Promise.allSettled không await). Đóng dialog + navigate ngay sau createCheck thành công |
-
-### Chi tiết kỹ thuật
-
-Trong `onSubmit`:
-1. `await createCheck.mutateAsync(...)` — giữ nguyên, cần chờ
-2. Ngay sau đó: `setShowSubmitDialog(false)` + toast + navigate
-3. Tất cả phần auto-complete tasks, send notifications, delete session → gom vào 1 block `Promise.allSettled([...])` **không await**, chạy nền
-
-Điều này giảm thời gian chờ từ ~15s xuống ~2-3s mà không mất dữ liệu.
+| Migration SQL | Tạo gói `free_trial`, cập nhật `approve_tenant`, gán plan cho tenant hiện tại |
+| `src/components/promotions/FreeTrialPopup.tsx` | **Mới** — Popup thông báo chương trình |
+| `src/components/layout/MainLayout.tsx` | Thêm `<FreeTrialPopup />` |
 
