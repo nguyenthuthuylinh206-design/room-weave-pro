@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Download, Search, Eye, Package, TrendingUp, TrendingDown } from 'lucide-react'
+import { ArrowLeft, Download, Search, Eye, Package, TrendingUp, TrendingDown, Plus, ClipboardCheck, ArrowRightLeft } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,6 +25,12 @@ import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import { TransactionTypeBadge } from '@/components/inventory/TransactionTypeBadge'
 import { TransactionDetailDialog } from '@/components/inventory/TransactionDetailDialog'
 import { useInventoryTransactions } from '@/hooks/useInventoryTransactions'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 import { format } from 'date-fns'
 import { vi, enUS } from 'date-fns/locale'
@@ -206,10 +212,40 @@ export function TransactionListPage() {
             <ArrowLeft className="mr-2 h-4 w-4" />
             {t('back')}
           </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate('/inventory/adjustments')}>
+            <ClipboardCheck className="mr-2 h-4 w-4" />
+            Kiểm kê
+          </Button>
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
             {t('exportExcel')}
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Tạo mới
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => navigate('/inventory/inbound/new')}>
+                <TrendingDown className="mr-2 h-4 w-4 text-green-600" />
+                Nhập kho
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/inventory/outbound/new')}>
+                <TrendingUp className="mr-2 h-4 w-4 text-amber-600" />
+                Xuất kho
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/inventory/transfer/new')}>
+                <ArrowRightLeft className="mr-2 h-4 w-4 text-purple-600" />
+                Chuyển kho
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/inventory/adjustments/new')}>
+                <ClipboardCheck className="mr-2 h-4 w-4 text-cyan-600" />
+                Kiểm kê
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </PageHeader>
       
@@ -276,7 +312,8 @@ export function TransactionListPage() {
               <SelectItem value="all">{t('transactionType.all')}</SelectItem>
               <SelectItem value="in">{t('transactionLabel.in')}</SelectItem>
               <SelectItem value="out">{t('transactionLabel.out')}</SelectItem>
-              <SelectItem value="adjustment">{t('transactionType.adjustment')}</SelectItem>
+              <SelectItem value="transfer">Chuyển kho</SelectItem>
+              <SelectItem value="adjust">{t('transactionType.adjustment')}</SelectItem>
             </SelectContent>
           </Select>
           
