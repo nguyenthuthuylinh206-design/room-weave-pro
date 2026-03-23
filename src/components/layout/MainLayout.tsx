@@ -79,6 +79,7 @@ export const MainLayout = () => {
       <MainLayoutContent />
       <PushNotificationPrompt />
       <PWAUpdatePrompt />
+      <FreeTrialPopup />
     </HotelProvider>
   )
 }
