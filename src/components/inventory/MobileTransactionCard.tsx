@@ -8,6 +8,7 @@ import { vi } from 'date-fns/locale'
 import { 
   ArrowDownCircle, 
   ArrowUpCircle, 
+  ArrowRightLeft,
   Package, 
   MapPin,
   Calendar,
@@ -17,7 +18,7 @@ import {
 interface TransactionData {
   id: string
   transaction_code: string
-  transaction_type: 'in' | 'out' | 'adjustment'
+  transaction_type: 'in' | 'out' | 'adjustment' | 'transfer'
   transaction_category?: string
   item_name: string
   item_code?: string
@@ -50,6 +51,13 @@ const typeConfig = {
     bgColor: 'bg-blue-50 dark:bg-blue-950',
     borderColor: 'border-blue-200 dark:border-blue-800',
     label: 'Xuất'
+  },
+  transfer: {
+    icon: ArrowRightLeft,
+    color: 'text-purple-600 dark:text-purple-400',
+    bgColor: 'bg-purple-50 dark:bg-purple-950',
+    borderColor: 'border-purple-200 dark:border-purple-800',
+    label: 'Chuyển kho'
   },
   adjustment: {
     icon: Package,

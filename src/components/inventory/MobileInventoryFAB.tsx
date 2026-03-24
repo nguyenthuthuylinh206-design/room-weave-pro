@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, X, PackagePlus, PackageMinus, ClipboardList, QrCode } from 'lucide-react'
+import { Plus, X, PackagePlus, PackageMinus, ClipboardList, QrCode, ArrowRightLeft } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -40,13 +40,22 @@ export function MobileInventoryFAB() {
       color: 'bg-orange-500',
     },
     {
+      icon: ArrowRightLeft,
+      label: 'Chuyển kho',
+      onClick: () => {
+        setIsOpen(false)
+        navigate('/inventory/transfer/new')
+      },
+      color: 'bg-purple-500',
+    },
+    {
       icon: ClipboardList,
       label: t('adjustment.title'),
       onClick: () => {
         setIsOpen(false)
         navigate('/inventory/adjustments/new')
       },
-      color: 'bg-purple-500',
+      color: 'bg-cyan-500',
     },
     {
       icon: QrCode,
