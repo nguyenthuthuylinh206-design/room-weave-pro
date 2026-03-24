@@ -544,7 +544,7 @@ export const helpGuides: RoleGuides[] = [
         description: 'Nhập hàng mới vào kho từ nhà cung cấp',
         detailedDescription: 'Nhập kho là thao tác ghi nhận hàng hóa mới vào hệ thống khi nhận từ nhà cung cấp. Mỗi lần nhập tạo 1 phiếu nhập có mã riêng, ghi nhận: sản phẩm gì, số lượng, đơn giá, nhà cung cấp. Tồn kho tự động tăng sau khi phiếu nhập được xác nhận.',
         icon: Warehouse,
-        navigateTo: '/inventory/inbound',
+        navigateTo: '/inventory/inbound/new',
         prerequisites: [
           'Sản phẩm cần nhập phải đã tồn tại trong danh mục sản phẩm (nếu chưa có, thêm ở mục Sản phẩm trước)',
         ],
