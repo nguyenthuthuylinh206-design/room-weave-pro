@@ -35,6 +35,7 @@ const createInboundSchema = (t: (key: string) => string) => z.object({
   transaction_category: z.enum(['purchase', 'return', 'laundry', 'other']),
   from_location: z.string().min(1, t('inventory:mobileForm.validation.fromLocationRequired')),
   to_location: z.string().min(1, t('inventory:mobileForm.validation.toLocationRequired')),
+  to_warehouse_id: z.string().uuid().optional().nullable(),
   items: z.array(z.object({
     item_id: z.string().uuid(t('inventory:mobileForm.validation.itemRequired')),
     quantity: z.number().min(1, t('inventory:mobileForm.validation.quantityMin')),
