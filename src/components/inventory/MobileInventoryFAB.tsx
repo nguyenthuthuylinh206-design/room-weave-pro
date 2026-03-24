@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, X, PackagePlus, PackageMinus, ClipboardList, QrCode } from 'lucide-react'
+import { Plus, X, PackagePlus, PackageMinus, ClipboardList, QrCode, ArrowRightLeft } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
