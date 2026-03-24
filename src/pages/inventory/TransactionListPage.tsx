@@ -118,12 +118,47 @@ export function TransactionListPage() {
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <div>
+                <div className="flex-1">
                   <h1 className="text-base font-semibold">{t('transactionHistory')}</h1>
                   <p className="text-xs text-muted-foreground">
                     {data?.total || 0} giao dịch
                   </p>
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => navigate('/inventory/adjustments')}
+                >
+                  <ClipboardCheck className="h-3.5 w-3.5 mr-1" />
+                  Kiểm kê
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" className="h-8">
+                      <Plus className="h-3.5 w-3.5 mr-1" />
+                      Tạo mới
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => navigate('/inventory/inbound/new')}>
+                      <TrendingDown className="mr-2 h-4 w-4 text-green-600" />
+                      Nhập kho
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/inventory/outbound/new')}>
+                      <TrendingUp className="mr-2 h-4 w-4 text-amber-600" />
+                      Xuất kho
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/inventory/transfer/new')}>
+                      <ArrowRightLeft className="mr-2 h-4 w-4 text-purple-600" />
+                      Chuyển kho
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/inventory/adjustments/new')}>
+                      <ClipboardCheck className="mr-2 h-4 w-4 text-cyan-600" />
+                      Kiểm kê
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
 
