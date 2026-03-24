@@ -40,13 +40,22 @@ export function MobileInventoryFAB() {
       color: 'bg-orange-500',
     },
     {
+      icon: ArrowRightLeft,
+      label: 'Chuyển kho',
+      onClick: () => {
+        setIsOpen(false)
+        navigate('/inventory/transfer/new')
+      },
+      color: 'bg-purple-500',
+    },
+    {
       icon: ClipboardList,
       label: t('adjustment.title'),
       onClick: () => {
         setIsOpen(false)
         navigate('/inventory/adjustments/new')
       },
-      color: 'bg-purple-500',
+      color: 'bg-cyan-500',
     },
     {
       icon: QrCode,

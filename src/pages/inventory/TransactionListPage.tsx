@@ -197,7 +197,7 @@ export function TransactionListPage() {
                       transaction={{
                         id: transaction.id,
                         transaction_code: transaction.transaction_code,
-                        transaction_type: transaction.transaction_type as 'in' | 'out' | 'adjustment',
+                        transaction_type: transaction.transaction_type as 'in' | 'out' | 'adjustment' | 'transfer',
                         transaction_category: transaction.transaction_category,
                         item_name: transaction.item_name,
                         item_code: transaction.item_code,
