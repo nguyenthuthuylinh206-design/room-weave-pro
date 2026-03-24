@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ImageUpload } from '@/components/shared/ImageUpload';
 import { useCreateInboundTransaction } from '@/hooks/useInventoryTransactions';
+import { useWarehouses } from '@/hooks/useWarehouses';
 import { useItems } from '@/hooks/useItems';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
