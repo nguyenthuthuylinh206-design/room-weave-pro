@@ -93,6 +93,7 @@ export function MobileInboundForm() {
       transaction_category: 'purchase',
       from_location: hasPrefill ? 'Bổ sung kiểm kê' : '',
       to_location: t('inventory:mobileForm.inbound.toPlaceholder'),
+      to_warehouse_id: null,
       items: hasPrefill && prefillFromAdjustment?.items?.length 
         ? prefillFromAdjustment.items.map(i => ({ item_id: i.item_id, quantity: i.quantity, notes: '' }))
         : [],
@@ -103,6 +104,13 @@ export function MobileInboundForm() {
       related_id: prefillFromAdjustment?.adjustmentId,
     }
   });
+
+  // Auto-set default warehouse when loaded
+  useEffect(() => {
+    if (defaultWarehouseId && !form.getValues('to_warehouse_id')) {
+      form.setValue('to_warehouse_id', defaultWarehouseId);
+    }
+  }, [defaultWarehouseId]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
