@@ -5,7 +5,11 @@ import {
   Upload, 
   ClipboardCheck, 
   FileText, 
-  Package 
+  Package,
+  ArrowRightLeft,
+  Truck,
+  FolderTree,
+  Warehouse as WarehouseIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -38,6 +42,12 @@ export function CompactActionBar({ onInbound, onOutbound }: CompactActionBarProp
       className: 'text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20',
     },
     {
+      icon: ArrowRightLeft,
+      label: 'Chuyển kho',
+      onClick: () => navigate('/inventory/transfer/new'),
+      className: '',
+    },
+    {
       icon: ClipboardCheck,
       label: t('adjustment.title'),
       onClick: () => navigate('/inventory/adjustments'),
@@ -50,9 +60,27 @@ export function CompactActionBar({ onInbound, onOutbound }: CompactActionBarProp
       className: '',
     },
     {
+      icon: Truck,
+      label: 'Phiếu giao hàng',
+      onClick: () => navigate('/inventory/distributions'),
+      className: '',
+    },
+    {
       icon: Package,
       label: t('quickActions.manageItems'),
       onClick: () => navigate('/items'),
+      className: '',
+    },
+    {
+      icon: FolderTree,
+      label: 'Danh mục',
+      onClick: () => navigate('/settings/categories'),
+      className: '',
+    },
+    {
+      icon: WarehouseIcon,
+      label: 'Quản lý kho',
+      onClick: () => navigate('/settings/warehouses'),
       className: '',
     },
   ]
