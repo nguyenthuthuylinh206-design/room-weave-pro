@@ -13,7 +13,6 @@ import { Card } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ImageUpload } from '@/components/shared/ImageUpload';
 import { useCreateInboundTransaction } from '@/hooks/useInventoryTransactions';
-import { useWarehouses } from '@/hooks/useWarehouses';
 import { useItems } from '@/hooks/useItems';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -36,7 +35,6 @@ const createInboundSchema = (t: (key: string) => string) => z.object({
   transaction_category: z.enum(['purchase', 'return', 'laundry', 'other']),
   from_location: z.string().min(1, t('inventory:mobileForm.validation.fromLocationRequired')),
   to_location: z.string().min(1, t('inventory:mobileForm.validation.toLocationRequired')),
-  to_warehouse_id: z.string().uuid().optional().nullable(),
   items: z.array(z.object({
     item_id: z.string().uuid(t('inventory:mobileForm.validation.itemRequired')),
     quantity: z.number().min(1, t('inventory:mobileForm.validation.quantityMin')),
@@ -82,8 +80,6 @@ export function MobileInboundForm() {
 
   const { mutate: createInbound, isPending: isLoading } = useCreateInboundTransaction();
   const { data: itemsData, isLoading: isLoadingItems } = useItems({ search: searchQuery }, 1, 50);
-  const { data: warehouses } = useWarehouses();
-  const defaultWarehouseId = warehouses?.[0]?.id || null;
 
   const inboundSchema = createInboundSchema(t);
 
@@ -93,7 +89,6 @@ export function MobileInboundForm() {
       transaction_category: 'purchase',
       from_location: hasPrefill ? 'Bổ sung kiểm kê' : '',
       to_location: t('inventory:mobileForm.inbound.toPlaceholder'),
-      to_warehouse_id: null,
       items: hasPrefill && prefillFromAdjustment?.items?.length 
         ? prefillFromAdjustment.items.map(i => ({ item_id: i.item_id, quantity: i.quantity, notes: '' }))
         : [],
@@ -104,13 +99,6 @@ export function MobileInboundForm() {
       related_id: prefillFromAdjustment?.adjustmentId,
     }
   });
-
-  // Auto-set default warehouse when loaded
-  useEffect(() => {
-    if (defaultWarehouseId && !form.getValues('to_warehouse_id')) {
-      form.setValue('to_warehouse_id', defaultWarehouseId);
-    }
-  }, [defaultWarehouseId]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,

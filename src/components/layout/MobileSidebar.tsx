@@ -104,15 +104,6 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
       ]
     },
     {
-      title: 'Vận hành',
-      items: [
-        { title: 'Kho & Tài sản', icon: Package, path: '/inventory', module: 'inventory,items', badgeKey: 'inventoryTotal', minMode: 'standard' },
-        { title: 'Laundry', icon: Shirt, path: '/laundry', module: 'laundry', badgeKey: 'laundryTotal', minMode: 'standard' },
-        { title: 'Bảo trì', icon: Wrench, path: '/maintenance', module: 'maintenance', badgeKey: 'maintenanceTotal', minMode: 'standard' },
-        { title: 'Đơn mua hàng', icon: ShoppingCart, path: '/purchase-orders', module: 'purchase_orders', minMode: 'full' },
-      ]
-    },
-    {
       title: 'Báo cáo & Thống kê',
       items: [
         { title: 'Tổng hợp', icon: TrendingUp, path: '/reports', minMode: 'standard' },
@@ -126,7 +117,6 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
       items: [
         { title: 'Khách sạn', icon: Building2, path: '/settings/hotels' },
         { title: 'Nhân sự', icon: Users, path: '/settings/users', minMode: 'standard' },
-        { title: 'Nhà cung cấp', icon: Users, path: '/vendors', module: 'vendors', minMode: 'full' },
       ]
     },
     {

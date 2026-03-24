@@ -93,7 +93,7 @@ export function PostApprovalActions({
     }))
     
     // Navigate to inbound page with pre-filled data
-    navigate('/inventory/inbound/new', {
+    navigate('/inventory/inbound', {
       state: {
         prefillFromAdjustment: {
           adjustmentId,

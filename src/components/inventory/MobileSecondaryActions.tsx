@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ClipboardList, FileText, Package, BarChart3, FolderTree, Warehouse, Truck } from 'lucide-react'
+import { ClipboardList, FileText, Package, BarChart3 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { motion } from 'framer-motion'
 
@@ -35,27 +35,6 @@ export function MobileSecondaryActions() {
       onClick: () => navigate('/items'),
       iconBg: 'bg-emerald-100 dark:bg-emerald-900/30',
       iconColor: 'text-emerald-500',
-    },
-    {
-      icon: Truck,
-      label: 'Giao hàng',
-      onClick: () => navigate('/inventory/distributions'),
-      iconBg: 'bg-amber-100 dark:bg-amber-900/30',
-      iconColor: 'text-amber-500',
-    },
-    {
-      icon: FolderTree,
-      label: 'Danh mục',
-      onClick: () => navigate('/settings/categories'),
-      iconBg: 'bg-pink-100 dark:bg-pink-900/30',
-      iconColor: 'text-pink-500',
-    },
-    {
-      icon: Warehouse,
-      label: 'Kho',
-      onClick: () => navigate('/settings/warehouses'),
-      iconBg: 'bg-slate-100 dark:bg-slate-900/30',
-      iconColor: 'text-slate-500',
     },
     {
       icon: BarChart3,

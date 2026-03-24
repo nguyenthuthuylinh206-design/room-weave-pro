@@ -44,7 +44,6 @@ export function MorePage() {
     { icon: CalendarDays, label: 'Đặt phòng', path: '/bookings', module: 'bookings', color: 'text-primary' },
     { icon: Package, label: 'Kho & Tài sản', path: '/inventory', module: 'inventory,items', color: 'text-blue-600' },
     { icon: ClipboardList, label: 'Bổ sung đồ', path: '/supplements', module: 'inventory', color: 'text-amber-600' },
-    { icon: FileText, label: 'Giao dịch kho', path: '/inventory/transactions', module: 'inventory', color: 'text-cyan-600' },
     { icon: DoorOpen, label: 'Phòng', path: '/rooms', module: 'rooms', color: 'text-green-600' },
     { icon: Shirt, label: 'Laundry', path: '/laundry', module: 'laundry', color: 'text-cyan-600' },
     { icon: Wrench, label: 'Bảo trì', path: '/maintenance', module: 'maintenance', color: 'text-orange-600' },

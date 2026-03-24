@@ -113,8 +113,7 @@ export function MobileFilterSheet({ filters, onFiltersChange }: MobileFilterShee
                 <SelectItem value="">Tất cả</SelectItem>
                 <SelectItem value="in">Nhập kho</SelectItem>
                 <SelectItem value="out">Xuất kho</SelectItem>
-                <SelectItem value="transfer">Chuyển kho</SelectItem>
-                <SelectItem value="adjust">Điều chỉnh</SelectItem>
+                <SelectItem value="adjustment">Điều chỉnh</SelectItem>
               </SelectContent>
             </Select>
           </div>
