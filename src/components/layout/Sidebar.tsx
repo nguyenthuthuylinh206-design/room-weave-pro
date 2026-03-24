@@ -97,8 +97,10 @@ const navigation: NavItem[] = [
     children: [
       { titleKey: 'itemsList', href: '/items', icon: List },
       { titleKey: 'transactions', href: '/inventory/transactions', icon: List },
+      { titleKey: 'adjustments', href: '/inventory/adjustments', icon: ClipboardCheck },
       { titleKey: 'supplements', href: '/supplements', icon: Package, badgeKey: 'supplements' },
       { titleKey: 'distribution', href: '/inventory/distributions', icon: Truck, badgeKey: 'distributions' },
+      { titleKey: 'categories', href: '/settings/categories', icon: FolderTree },
       { titleKey: 'warehouses', href: '/settings/warehouses', icon: Warehouse },
     ],
   },
