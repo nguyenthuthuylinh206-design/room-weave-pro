@@ -585,7 +585,7 @@ export const helpGuides: RoleGuides[] = [
         description: 'Xuất hàng từ kho cho các mục đích khác nhau',
         detailedDescription: 'Xuất kho là thao tác ghi nhận hàng hóa ra khỏi kho. Có nhiều loại xuất kho: xuất sử dụng (cho phòng, cho bộ phận), xuất hỏng (đồ hỏng cần hủy), xuất trả nhà cung cấp, xuất khác. Tồn kho tự động giảm sau khi phiếu xuất được xác nhận.',
         icon: TruckIcon,
-        navigateTo: '/inventory/outbound',
+        navigateTo: '/inventory/outbound/new',
         steps: [
           { 
             title: 'Vào trang Xuất kho', 
