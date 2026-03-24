@@ -1,38 +1,25 @@
 
 
-## Kiểm tra các mục Kho & Tài sản — Vấn đề phát hiện
+## Kiểm tra tổng thể "Kho & Tài sản" — Các vấn đề còn thiếu
 
-Sau khi gộp sidebar từ 12 xuống 5, có **3 vấn đề** cần sửa:
+### Tổng hợp vấn đề phát hiện
 
-### Vấn đề 1: Kiểm kê (Adjustments) mất lối vào
-
-Đã xóa mục "Kiểm kê" khỏi sidebar nhưng **không thêm vào trang Giao dịch kho**. Trang `/inventory/adjustments` vẫn tồn tại và hoạt động, nhưng user không có cách nào truy cập từ navigation chính.
-
-Các nơi vẫn link tới `/inventory/adjustments`:
-- `MobileSecondaryActions.tsx` (dashboard mobile)
-- `CompactActionBar.tsx` (dashboard desktop)
-- `MobileInventoryFAB.tsx` (FAB tạo mới)
-- Báo cáo kiểm kê
-
-**Cần sửa**: Thêm nút/link "Kiểm kê" vào trang `TransactionListPage` (hoặc thêm lại vào sidebar).
-
-### Vấn đề 2: Trang Giao dịch kho thiếu action buttons
-
-`TransactionListPage.tsx` chỉ có 2 nút: "Quay lại" + "Xuất Excel". Không có nút tạo giao dịch mới (Nhập/Xuất/Chuyển/Kiểm kê).
-
-Trước đây, mỗi loại có menu riêng trong sidebar → user biết vào đâu. Giờ gộp hết vào 1 trang nhưng **không thêm action buttons** → user không biết cách tạo giao dịch mới từ trang này.
-
-**Cần sửa**: Thêm dropdown button "Tạo mới" với 4 options: Nhập kho, Xuất kho, Chuyển kho, Kiểm kê.
-
-### Vấn đề 3: Filter loại giao dịch thiếu "transfer"
-
-Dropdown filter `transaction_type` chỉ có: Tất cả | Nhập | Xuất | Điều chỉnh. **Thiếu "Chuyển kho" (transfer)** — một trong 4 loại giao dịch chính.
-
----
+| # | Vấn đề | Vị trí | Mức độ |
+|---|--------|--------|--------|
+| 1 | **Mobile TransactionListPage thiếu nút "Tạo mới"** | `TransactionListPage.tsx` mobile view (line 104-200) | Nghiêm trọng — mobile user không tạo được giao dịch |
+| 2 | **Mobile TransactionListPage thiếu nút "Kiểm kê"** | Cùng file, mobile view | Nghiêm trọng — không truy cập được danh sách kiểm kê |
+| 3 | **MobileFilterSheet thiếu "Chuyển kho" (transfer)** | `MobileFilterSheet.tsx` line 112-117 | Filter chỉ có: Nhập/Xuất/Điều chỉnh, thiếu "Chuyển kho" |
+| 4 | **MobileFilterSheet dùng sai value "adjustment"** | `MobileFilterSheet.tsx` line 116 | Desktop dùng `adjust`, mobile dùng `adjustment` — không khớp |
+| 5 | **MobileInventoryFAB thiếu "Chuyển kho"** | `MobileInventoryFAB.tsx` | FAB chỉ có: Nhập/Xuất/Kiểm kê/Scan, thiếu Chuyển kho |
+| 6 | **MobileTransactionCard type thiếu "transfer"** | `TransactionListPage.tsx` line 165 | Type cast chỉ có `'in' | 'out' | 'adjustment'`, thiếu `'transfer'` |
+| 7 | **Owner MobileSidebar thiếu mục Kho & Tài sản** | `MobileSidebar.tsx` line 98-128 | Owner menu không có link nào đến inventory/items |
 
 ### Kế hoạch sửa
 
 | File | Thay đổi |
 |------|----------|
-| `src/pages/inventory/TransactionListPage.tsx` | (1) Thêm dropdown "Tạo mới" với 4 options: Nhập (`/inventory/inbound/new`), Xuất (`/inventory/outbound/new`), Chuyển (`/inventory/transfer/new`), Kiểm kê (`/inventory/adjustments/new`). (2) Thêm "transfer" vào filter dropdown. (3) Thêm link "Xem danh sách kiểm kê" dẫn tới `/inventory/adjustments` |
+| `TransactionListPage.tsx` | (1) Thêm FAB hoặc header dropdown "Tạo mới" cho mobile view với 4 options. (2) Thêm nút "Kiểm kê" trên mobile. (3) Sửa type cast thêm `'transfer'` |
+| `MobileFilterSheet.tsx` | (1) Thêm `<SelectItem value="transfer">Chuyển kho</SelectItem>`. (2) Sửa `adjustment` → `adjust` cho khớp với desktop |
+| `MobileInventoryFAB.tsx` | Thêm action "Chuyển kho" navigate đến `/inventory/transfer/new` |
+| `MobileSidebar.tsx` | Thêm mục "Kho & Tài sản" vào owner menu section (giống manager đã có) |
 
