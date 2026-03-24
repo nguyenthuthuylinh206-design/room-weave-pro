@@ -18,7 +18,7 @@ import {
 interface TransactionData {
   id: string
   transaction_code: string
-  transaction_type: 'in' | 'out' | 'adjustment'
+  transaction_type: 'in' | 'out' | 'adjustment' | 'transfer'
   transaction_category?: string
   item_name: string
   item_code?: string
