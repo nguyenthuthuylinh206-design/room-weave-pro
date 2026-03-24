@@ -52,6 +52,13 @@ const typeConfig = {
     borderColor: 'border-blue-200 dark:border-blue-800',
     label: 'Xuất'
   },
+  transfer: {
+    icon: ArrowRightLeft,
+    color: 'text-purple-600 dark:text-purple-400',
+    bgColor: 'bg-purple-50 dark:bg-purple-950',
+    borderColor: 'border-purple-200 dark:border-purple-800',
+    label: 'Chuyển kho'
+  },
   adjustment: {
     icon: Package,
     color: 'text-orange-600 dark:text-orange-400',
