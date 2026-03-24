@@ -82,6 +82,8 @@ export function MobileInboundForm() {
 
   const { mutate: createInbound, isPending: isLoading } = useCreateInboundTransaction();
   const { data: itemsData, isLoading: isLoadingItems } = useItems({ search: searchQuery }, 1, 50);
+  const { data: warehouses } = useWarehouses();
+  const defaultWarehouseId = warehouses?.[0]?.id || null;
 
   const inboundSchema = createInboundSchema(t);
 
