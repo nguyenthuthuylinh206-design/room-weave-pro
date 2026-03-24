@@ -17,11 +17,11 @@ export function EmptyTransactions() {
         Bắt đầu bằng cách nhập hoặc xuất kho các đồ dùng của bạn
       </p>
       <div className="flex gap-2">
-        <Button onClick={() => navigate('/inventory/inbound')}>
+        <Button onClick={() => navigate('/inventory/inbound/new')}>
           <Plus className="mr-2 h-4 w-4" />
           Nhập kho
         </Button>
-        <Button variant="outline" onClick={() => navigate('/inventory/outbound')}>
+        <Button variant="outline" onClick={() => navigate('/inventory/outbound/new')}>
           <Minus className="mr-2 h-4 w-4" />
           Xuất kho
         </Button>

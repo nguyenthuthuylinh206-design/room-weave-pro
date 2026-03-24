@@ -16,7 +16,7 @@ export function EmptyAdjustments() {
       <p className="text-sm text-muted-foreground mb-6 max-w-sm">
         Tạo phiếu kiểm kê mới để theo dõi và đối chiếu tồn kho
       </p>
-      <Button onClick={() => navigate('/inventory/adjustments/create')}>
+      <Button onClick={() => navigate('/inventory/adjustments/new')}>
         <Plus className="mr-2 h-4 w-4" />
         Tạo phiếu kiểm kê
       </Button>

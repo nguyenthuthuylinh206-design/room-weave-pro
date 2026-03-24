@@ -544,7 +544,7 @@ export const helpGuides: RoleGuides[] = [
         description: 'Nhập hàng mới vào kho từ nhà cung cấp',
         detailedDescription: 'Nhập kho là thao tác ghi nhận hàng hóa mới vào hệ thống khi nhận từ nhà cung cấp. Mỗi lần nhập tạo 1 phiếu nhập có mã riêng, ghi nhận: sản phẩm gì, số lượng, đơn giá, nhà cung cấp. Tồn kho tự động tăng sau khi phiếu nhập được xác nhận.',
         icon: Warehouse,
-        navigateTo: '/inventory/inbound',
+        navigateTo: '/inventory/inbound/new',
         prerequisites: [
           'Sản phẩm cần nhập phải đã tồn tại trong danh mục sản phẩm (nếu chưa có, thêm ở mục Sản phẩm trước)',
         ],
@@ -585,7 +585,7 @@ export const helpGuides: RoleGuides[] = [
         description: 'Xuất hàng từ kho cho các mục đích khác nhau',
         detailedDescription: 'Xuất kho là thao tác ghi nhận hàng hóa ra khỏi kho. Có nhiều loại xuất kho: xuất sử dụng (cho phòng, cho bộ phận), xuất hỏng (đồ hỏng cần hủy), xuất trả nhà cung cấp, xuất khác. Tồn kho tự động giảm sau khi phiếu xuất được xác nhận.',
         icon: TruckIcon,
-        navigateTo: '/inventory/outbound',
+        navigateTo: '/inventory/outbound/new',
         steps: [
           { 
             title: 'Vào trang Xuất kho', 
@@ -622,7 +622,7 @@ export const helpGuides: RoleGuides[] = [
         description: 'Kiểm tra và đối soát số lượng thực tế với hệ thống',
         detailedDescription: 'Kiểm kê kho là quá trình đếm hàng thực tế và so sánh với số liệu trên hệ thống. Mục đích: phát hiện chênh lệch (thừa/thiếu) do sai sót nhập liệu, mất mát, hoặc các nguyên nhân khác. Nên thực hiện định kỳ (hàng tuần hoặc hàng tháng) để đảm bảo tồn kho chính xác.',
         icon: ClipboardList,
-        navigateTo: '/inventory/stock-audit',
+        navigateTo: '/inventory/adjustments',
         steps: [
           { 
             title: 'Vào trang Kiểm kê', 
