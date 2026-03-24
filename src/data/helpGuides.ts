@@ -622,7 +622,7 @@ export const helpGuides: RoleGuides[] = [
         description: 'Kiểm tra và đối soát số lượng thực tế với hệ thống',
         detailedDescription: 'Kiểm kê kho là quá trình đếm hàng thực tế và so sánh với số liệu trên hệ thống. Mục đích: phát hiện chênh lệch (thừa/thiếu) do sai sót nhập liệu, mất mát, hoặc các nguyên nhân khác. Nên thực hiện định kỳ (hàng tuần hoặc hàng tháng) để đảm bảo tồn kho chính xác.',
         icon: ClipboardList,
-        navigateTo: '/inventory/stock-audit',
+        navigateTo: '/inventory/adjustments',
         steps: [
           { 
             title: 'Vào trang Kiểm kê', 
