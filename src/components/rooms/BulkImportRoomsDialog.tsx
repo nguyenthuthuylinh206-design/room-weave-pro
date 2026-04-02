@@ -372,7 +372,7 @@ export function BulkImportRoomsDialog({
               onClick={handleImport}
               disabled={parsedRooms.length === 0 || isProcessing || !!importResult}
             >
-              {isProcessing ? 'Đang import...' : 'Bắt đầu import'}
+              {isProcessing ? 'Đang import...' : 'Bắt đầu tải lên'}
             </Button>
           </div>
         </div>
