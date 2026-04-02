@@ -461,10 +461,13 @@ export const Sidebar = () => {
                         return (
                           <Fragment key={child.titleKey}>
                             {showGroup && (
-                              <div className="pt-2 pb-1 px-3 first:pt-0">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                                  {child.group}
-                                </span>
+                              <div className="pt-3 pb-1.5 px-3 first:pt-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[11px] font-semibold text-muted-foreground/80">
+                                    {child.group}
+                                  </span>
+                                  <div className="flex-1 h-px bg-border/60" />
+                                </div>
                               </div>
                             )}
                             <Link
