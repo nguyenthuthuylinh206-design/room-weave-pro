@@ -235,7 +235,7 @@ export function BulkImportRoomsDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
-            Bulk Import Phòng - {hotelName}
+            Tải lên hàng loạt phòng - {hotelName}
           </DialogTitle>
         </DialogHeader>
 
