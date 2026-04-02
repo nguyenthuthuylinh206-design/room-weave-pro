@@ -140,6 +140,19 @@ const navigation: NavItem[] = [
     ],
   },
   {
+    titleKey: 'vendors',
+    icon: Building,
+    roles: ['owner', 'hotel_manager'],
+    minMode: 'full',
+    children: [
+      { titleKey: 'vendorsList', href: '/vendors', icon: List, group: 'Nhà cung cấp' },
+      { titleKey: 'addNewVendor', href: '/vendors/new', icon: Plus, group: 'Nhà cung cấp' },
+      { titleKey: 'compareVendors', href: '/vendors/compare', icon: GitCompare, group: 'Nhà cung cấp' },
+      { titleKey: 'purchaseOrders', href: '/purchase-orders', icon: ShoppingCart, group: 'Đơn hàng' },
+      { titleKey: 'newPO', href: '/purchase-orders/new', icon: Plus, group: 'Đơn hàng' },
+    ],
+  },
+  {
     titleKey: 'maintenance',
     icon: Wrench,
     badgeKey: 'maintenanceTotal',
