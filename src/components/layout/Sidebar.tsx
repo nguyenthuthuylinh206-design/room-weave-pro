@@ -18,7 +18,6 @@ import {
   Users,
   Building2,
   ChevronDown,
-  ChevronRight,
   Plus,
   List,
   Grid,
