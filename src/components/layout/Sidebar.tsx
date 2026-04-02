@@ -18,7 +18,6 @@ import {
   Users,
   Building2,
   ChevronDown,
-  ChevronRight,
   Plus,
   List,
   Grid,
@@ -318,7 +317,7 @@ export const Sidebar = () => {
 
   const toggleExpanded = (titleKey: string) => {
     setExpandedItems((prev) =>
-      prev.includes(titleKey) ? prev.filter((t) => t !== titleKey) : [...prev, titleKey]
+      prev.includes(titleKey) ? [] : [titleKey]
     )
   }
 
@@ -439,62 +438,66 @@ export const Sidebar = () => {
                     </Badge>
                   )}
                   {item.badge && <Badge variant="secondary">{item.badge}</Badge>}
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
-                  )}
+                  <ChevronDown className={cn(
+                    "h-4 w-4 transition-transform duration-300",
+                    isExpanded ? "rotate-0" : "-rotate-90"
+                  )} />
                 </button>
 
-                {isExpanded && (
-                  <div className="ml-4 space-y-1 border-l border-border pl-4">
-                    {(() => {
-                      let lastGroup = ''
-                      return item.children!.map((child) => {
-                        const ChildIcon = child.icon
-                        const isChildActive = child.href && currentPath === normalizePath(child.href)
-                        const childTitle = t(child.titleKey)
-                        const childBadgeCount = child.badgeKey && pendingCounts ? pendingCounts[child.badgeKey] : 0
-                        const showGroup = child.group && child.group !== lastGroup
-                        if (child.group) lastGroup = child.group
+                <div className={cn(
+                  "grid transition-[grid-template-rows] duration-300 ease-in-out",
+                  isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                )}>
+                  <div className="overflow-hidden">
+                    <div className="ml-4 space-y-1 border-l border-border pl-4 py-1">
+                      {(() => {
+                        let lastGroup = ''
+                        return item.children!.map((child) => {
+                          const ChildIcon = child.icon
+                          const isChildActive = child.href && currentPath === normalizePath(child.href)
+                          const childTitle = t(child.titleKey)
+                          const childBadgeCount = child.badgeKey && pendingCounts ? pendingCounts[child.badgeKey] : 0
+                          const showGroup = child.group && child.group !== lastGroup
+                          if (child.group) lastGroup = child.group
 
-                        return (
-                          <Fragment key={child.titleKey}>
-                            {showGroup && (
-                              <div className="pt-4 pb-1 px-3 first:pt-1">
-                                <span className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">
-                                  {child.group}
-                                </span>
-                              </div>
-                            )}
-                            <Link
-                              to={child.href || '#'}
-                              className={cn(
-                                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-                                isChildActive
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                          return (
+                            <Fragment key={child.titleKey}>
+                              {showGroup && (
+                                <div className="pt-4 pb-1 px-3 first:pt-1">
+                                  <span className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">
+                                    {child.group}
+                                  </span>
+                                </div>
                               )}
-                            >
-                              <ChildIcon className="h-4 w-4 flex-shrink-0" />
-                              <span className="flex-1">{childTitle}</span>
-                              {childBadgeCount > 0 && (
-                                <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs">
-                                  {childBadgeCount > 99 ? '99+' : childBadgeCount}
-                                </Badge>
-                              )}
-                              {child.badge && (
-                                <Badge variant="secondary" className="ml-auto">
-                                  {child.badge}
-                                </Badge>
-                              )}
-                            </Link>
-                          </Fragment>
-                        )
-                      })
-                    })()}
+                              <Link
+                                to={child.href || '#'}
+                                className={cn(
+                                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                                  isChildActive
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                                )}
+                              >
+                                <ChildIcon className="h-4 w-4 flex-shrink-0" />
+                                <span className="flex-1">{childTitle}</span>
+                                {childBadgeCount > 0 && (
+                                  <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs">
+                                    {childBadgeCount > 99 ? '99+' : childBadgeCount}
+                                  </Badge>
+                                )}
+                                {child.badge && (
+                                  <Badge variant="secondary" className="ml-auto">
+                                    {child.badge}
+                                  </Badge>
+                                )}
+                              </Link>
+                            </Fragment>
+                          )
+                        })
+                      })()}
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             )
           }
