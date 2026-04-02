@@ -1,50 +1,80 @@
+
+
 ## Sửa lỗi phân quyền bật rồi bị tắt + Tối ưu hệ thống
 
-### Vấn đề phát hiện
+### Nguyên nhân gốc
 
-**Lỗi 1 (NGHIÊM TRỌNG): `get_user_permissions_summary` thiếu `assign` và `manage`**
-Hàm SQL chỉ trả về 6 trường (`can_view, can_create, can_update, can_delete, can_export, can_approve`) nhưng hệ thống có 8 actions (`assign, manage` bị thiếu). Modules dùng `assign`/`manage` (maintenance, settings) bị đánh giá sai trạng thái.
+Sau khi kiểm tra kỹ database và code, phát hiện **5 lỗi**:
 
-**Lỗi 2 (NGHIÊM TRỌNG): `bookings` module thiếu trong bảng `permissions`**
-`get_user_permissions_summary` lấy danh sách module từ `SELECT DISTINCT module FROM permissions`. Bảng `permissions` không có `bookings` → quyền bookings lưu thành công nhưng khi đọc lại luôn hiển thị tắt.
+1. **`get_user_permissions_summary` thiếu `assign` và `manage`** — Hàm SQL chỉ trả 6 trường, thiếu 2 action `assign` và `manage`. Modules dùng actions này (maintenance, settings) bị hiển thị sai trạng thái sau khi lưu.
 
-**Lỗi 3 (NGHIÊM TRỌNG): `dashboard` thiếu action `view` trong bảng `permissions`**
-Dashboard chỉ có `approve, create, delete, export, update` — thiếu `view`. Nhưng `MODULE_ACTIONS.dashboard = ['view']`. Lưu `dashboard+view` thành công nhưng summary không tìm thấy.
+2. **`bookings` module không có trong bảng `permissions`** — Hàm summary lấy danh sách module từ `SELECT DISTINCT module FROM permissions`. Bảng `permissions` không có `bookings` → quyền bookings lưu OK nhưng đọc lại luôn hiển thị tắt.
 
-**Lỗi 4 (UX): Nút Lưu ở cuối scroll, dễ bỏ qua**
-User toggle xong tưởng đã lưu nhưng thực tế chưa click "Lưu thay đổi". Nút nằm cuối danh sách 13 modules, phải scroll xuống mới thấy.
+3. **`dashboard` thiếu action `view` trong bảng `permissions`** — `MODULE_ACTIONS.dashboard = ['view']` nhưng bảng permissions chỉ có `approve, create, delete, export, update` cho dashboard.
 
-**Lỗi 5 (UX): Không có cảnh báo khi rời trang mà chưa lưu**
-User toggle permissions, rời trang → mất hết thay đổi không báo trước.
+4. **Nút "Lưu thay đổi" nằm cuối ScrollArea** — User toggle xong tưởng đã lưu nhưng chưa click Save. Nút bị ẩn dưới danh sách 13 modules.
 
----
+5. **`UserPermissionsDialog` cũng insert `enabled: false` rows** — Gây rác trong DB dù không ảnh hưởng logic.
 
-### Kế hoạch sửa
+### Thay đổi cần thực hiện
 
 | # | File | Thay đổi |
 |---|------|----------|
-| 1 | Migration SQL | Cập nhật `get_user_permissions_summary`: thêm `can_assign` và `can_manage` |
-| 2 | Migration SQL | Thêm records cho `bookings` module và `dashboard.view` vào bảng `permissions` |
-| 3 | `src/hooks/useUserPermissions.ts` | Cập nhật `PermissionSummary` type: thêm `can_assign`, `can_manage` |
-| 4 | `src/hooks/useUserPermissionConfiguration.ts` | Cập nhật `hasAnyPermission` check: thêm `can_assign`, `can_manage` |
-| 5 | `src/components/permissions/UserPermissionPanel.tsx` | Di chuyển nút Lưu ra ngoài ScrollArea (sticky ở bottom), thêm visual indicator khi có thay đổi chưa lưu |
-| 6 | `src/hooks/useUserModulePermissions.ts` | Cập nhật type thêm `can_assign`, `can_manage` |
+| 1 | Migration SQL | Tạo lại `get_user_permissions_summary` thêm `can_assign`, `can_manage`. Insert missing permissions: `bookings.*`, `dashboard.view`, `maintenance.assign`, `settings.manage` |
+| 2 | `src/hooks/useUserPermissions.ts` | Thêm `can_assign`, `can_manage` vào `PermissionSummary` interface |
+| 3 | `src/hooks/useUserModulePermissions.ts` | Thêm `can_assign`, `can_manage` vào `PermissionSummary` interface |
+| 4 | `src/hooks/useUserPermissionConfiguration.ts` | Thêm `summary.can_assign \|\| summary.can_manage` vào `hasAnyPermission` check |
+| 5 | `src/components/permissions/UserPermissionPanel.tsx` | Di chuyển nút Lưu ra ngoài ScrollArea (sticky bottom), thêm visual indicator khi có thay đổi chưa lưu |
+| 6 | `src/components/users/UserPermissionsDialog.tsx` | Chỉ insert `enabled: true` rows thay vì cả `enabled: false` |
 
 ### Chi tiết kỹ thuật
 
-**SQL Migration:**
+**Migration SQL:**
 ```sql
--- 1. Fix function
-CREATE OR REPLACE FUNCTION get_user_permissions_summary(p_user_id uuid)
-RETURNS TABLE(..., can_assign boolean, can_manage boolean)
+-- Recreate function with 2 new columns
+DROP FUNCTION IF EXISTS public.get_user_permissions_summary(UUID);
+CREATE OR REPLACE FUNCTION public.get_user_permissions_summary(p_user_id UUID)
+RETURNS TABLE(
+  module TEXT, can_view BOOLEAN, can_create BOOLEAN, can_update BOOLEAN,
+  can_delete BOOLEAN, can_export BOOLEAN, can_approve BOOLEAN,
+  can_assign BOOLEAN, can_manage BOOLEAN  -- NEW
+) ...
 -- Add: EXISTS(... action = 'assign') as can_assign
 -- Add: EXISTS(... action = 'manage') as can_manage
 
--- 2. Add missing permissions
-INSERT INTO permissions (module, action, ...) VALUES
-('bookings', 'view', ...), ('bookings', 'create', ...), ...
-('dashboard', 'view', ...);
+-- Insert missing permission records
+INSERT INTO permissions ... bookings (view/create/update/delete/export)
+INSERT INTO permissions ... dashboard.view
+INSERT INTO permissions ... maintenance.assign, settings.manage
 ```
 
-**UI: Sticky save button**
-Di chuyển nút "Lưu thay đổi" ra khỏi `ScrollArea`, đặt cố định ở bottom panel. Khi có thay đổi chưa lưu, hiển thị border vàng + pulse animation trên nút.
+**UI: Sticky save button (UserPermissionPanel.tsx):**
+```tsx
+// Move save button OUTSIDE ScrollArea, fixed at bottom
+<ScrollArea className="flex-1">
+  <TabsContent value="modules">
+    {/* Module list only, no save button */}
+  </TabsContent>
+</ScrollArea>
+
+{/* Sticky save bar - always visible */}
+{hasChanges && !isProtectedUser && (
+  <div className="p-3 border-t bg-amber-50 border-amber-200">
+    <Button onClick={handleSave} className="w-full">
+      <Save /> Lưu thay đổi
+    </Button>
+  </div>
+)}
+```
+
+**UserPermissionsDialog fix:**
+```typescript
+// Before: pushes ALL actions including enabled: false
+permissionsArray.push({ module, action, enabled })
+
+// After: only push enabled actions
+if (enabled) {
+  permissionsArray.push({ module, action, enabled: true })
+}
+```
+
