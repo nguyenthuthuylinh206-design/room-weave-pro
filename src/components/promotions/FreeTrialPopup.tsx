@@ -105,11 +105,11 @@ export const FreeTrialPopup = () => {
                 <p className="text-xs text-muted-foreground font-medium">Liên hệ hỗ trợ:</p>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Phone className="h-3.5 w-3.5" />
-                  <span>0901 234 567</span>
+                  <span>0828686866</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Mail className="h-3.5 w-3.5" />
-                  <span>support@roomqc.com</span>
+                  <span>roomqc@gmail.com</span>
                 </div>
               </div>
             </div>
