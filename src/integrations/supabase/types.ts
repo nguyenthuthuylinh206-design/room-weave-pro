@@ -9453,9 +9453,11 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: {
           can_approve: boolean
+          can_assign: boolean
           can_create: boolean
           can_delete: boolean
           can_export: boolean
+          can_manage: boolean
           can_update: boolean
           can_view: boolean
           module: string
