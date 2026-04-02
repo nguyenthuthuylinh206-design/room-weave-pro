@@ -245,7 +245,7 @@ export function BulkImportRoomsDialog({
             <Download className="h-4 w-4" />
             <AlertDescription>
               <div className="flex items-center justify-between">
-                <span>Tải xuống file mẫu Excel để bắt đầu</span>
+                <span>Tải xuống file mẫu Excel để lấy dữ liệu mẫu</span>
                 <Button
                   variant="outline"
                   size="sm"
