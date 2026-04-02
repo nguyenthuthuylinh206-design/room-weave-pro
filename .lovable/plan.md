@@ -1,88 +1,32 @@
 
 
-## Chia nhóm menu Cài đặt theo chủ đề
+## Cải thiện group labels trong menu Cài đặt — rõ ràng hơn
 
-### Hiện tại
-11 mục cài đặt xếp phẳng trong 1 danh sách dài, khó phân biệt.
-
-### Đề xuất nhóm
-
-```text
-📋 Cài đặt
-├─ HỆ THỐNG
-│  ├ Cài đặt chung
-│  └ Khách sạn
-├─ TÀI KHOẢN
-│  ├ Người dùng & Phân quyền
-│  └ Đổi mật khẩu
-├─ THANH TOÁN
-│  ├ Đăng ký & Thanh toán
-│  └ Mức sử dụng
-├─ THÔNG BÁO
-│  ├ Thông báo
-│  └ Telegram
-└─ NGHIỆP VỤ
-   ├ Cấu hình nghiệp vụ
-   ├ Phụ thu & Thuế phí
-   └ Tự động hóa
-```
+### Vấn đề
+Group labels hiện tại quá mờ (`text-muted-foreground/80`), quá nhỏ (`11px`), và đường kẻ mảnh (`bg-border/60`) → khó phân biệt các nhóm.
 
 ### Thay đổi
 
 | # | File | Mô tả |
 |---|------|-------|
-| 1 | `src/components/layout/Sidebar.tsx` | Thêm property `group` vào `NavItem` interface. Gán group cho từng child của settings. Render group label (text nhỏ, uppercase, muted) khi group thay đổi giữa các children |
+| 1 | `src/components/layout/Sidebar.tsx` | Tăng độ rõ ràng của group labels |
 
-### Chi tiết kỹ thuật
+### Chi tiết styling mới
 
-**NavItem interface** — thêm `group?: string`:
-```typescript
-interface NavItem {
-  // ...existing
-  group?: string
-  children?: Omit<NavItem, 'children'>[]
-}
-```
-
-**Settings children** — gán group:
-```typescript
-children: [
-  { titleKey: 'generalSettings', ..., group: 'Hệ thống' },
-  { titleKey: 'hotels', ..., group: 'Hệ thống' },
-  { titleKey: 'usersPermissions', ..., group: 'Tài khoản' },
-  { titleKey: 'changePassword', ..., group: 'Tài khoản' },
-  { titleKey: 'subscription', ..., group: 'Thanh toán' },
-  { titleKey: 'usage', ..., group: 'Thanh toán' },
-  { titleKey: 'notifications', ..., group: 'Thông báo' },
-  { titleKey: 'telegram', ..., group: 'Thông báo' },
-  { titleKey: 'businessConfig', ..., group: 'Nghiệp vụ' },
-  { titleKey: 'pricingRules', ..., group: 'Nghiệp vụ' },
-  { titleKey: 'automation', ..., group: 'Nghiệp vụ' },
-]
-```
-
-**Render logic** — trong vòng lặp `item.children!.map()`, track `lastGroup` và render divider + label khi group thay đổi:
 ```tsx
-{(() => {
-  let lastGroup = ''
-  return item.children!.map((child) => {
-    const showGroup = child.group && child.group !== lastGroup
-    if (child.group) lastGroup = child.group
-    return (
-      <Fragment key={child.titleKey}>
-        {showGroup && (
-          <div className="pt-2 pb-1 px-3">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-              {child.group}
-            </span>
-          </div>
-        )}
-        <Link ...>{/* existing child link */}</Link>
-      </Fragment>
-    )
-  })
-})()}
+{showGroup && (
+  <div className="pt-4 pb-1 px-3 first:pt-1">
+    <span className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">
+      {child.group}
+    </span>
+  </div>
+)}
 ```
 
-Chỉ sửa 1 file `Sidebar.tsx`, không ảnh hưởng logic navigation hay routing.
+Thay đổi cụ thể:
+- **Font size**: `text-[11px]` → `text-xs` (12px) — lớn hơn, dễ đọc
+- **Màu chữ**: `text-muted-foreground/80` → `text-foreground/70` — đậm hơn hẳn, dùng foreground thay vì muted
+- **Uppercase + tracking**: Thêm lại `uppercase tracking-wide` để tạo cảm giác "section header" rõ ràng
+- **Bỏ đường kẻ ngang**: Loại bỏ div `h-px bg-border/60` — uppercase text đã đủ phân biệt, đường kẻ mờ chỉ làm rối thêm
+- **Spacing**: Tăng `pt-3` → `pt-4` để khoảng cách giữa các nhóm lớn hơn
 
