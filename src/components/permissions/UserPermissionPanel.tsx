@@ -92,6 +92,7 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
       }))
     }
     setHasActionChanges(true)
+    isDirtyRef.current = true
   }
 
   const handleActionToggle = (module: string, action: string, enabled: boolean) => {
@@ -105,6 +106,7 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
       },
     }))
     setHasActionChanges(true)
+    isDirtyRef.current = true
   }
 
   const handleSave = () => {
@@ -117,6 +119,7 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
     })
     
     setHasActionChanges(false)
+    isDirtyRef.current = false
   }
 
   const hasModuleChanges = permissionsData 
