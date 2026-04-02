@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
@@ -62,6 +62,7 @@ interface NavItem {
   badgeKey?: PendingCountKey
   roles?: AppRole[]
   minMode?: UsageMode
+  group?: string
   children?: Omit<NavItem, 'children'>[]
 }
 
@@ -191,17 +192,17 @@ const navigation: NavItem[] = [
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
     minMode: 'homestay',
     children: [
-      { titleKey: 'generalSettings', href: '/settings/general', icon: Settings },
-      { titleKey: 'hotels', href: '/settings/hotels', icon: Building2 },
-      { titleKey: 'usersPermissions', href: '/settings/users', icon: Users, minMode: 'standard' },
-      { titleKey: 'changePassword', href: '/settings/change-password', icon: KeyRound },
-      { titleKey: 'subscription', href: '/settings/subscription', icon: CreditCard },
-      { titleKey: 'usage', href: '/settings/usage', icon: BarChart3, minMode: 'standard' },
-      { titleKey: 'notifications', href: '/settings/notifications', icon: Bell },
-      { titleKey: 'telegram', href: '/settings/telegram', icon: MessageCircle },
-      { titleKey: 'businessConfig', href: '/settings/business', icon: Briefcase, minMode: 'standard' },
-      { titleKey: 'pricingRules', href: '/settings/pricing-rules', icon: DollarSign, minMode: 'standard' },
-      { titleKey: 'automation', href: '/settings/workflows', icon: Zap, minMode: 'full' },
+      { titleKey: 'generalSettings', href: '/settings/general', icon: Settings, group: 'Hệ thống' },
+      { titleKey: 'hotels', href: '/settings/hotels', icon: Building2, group: 'Hệ thống' },
+      { titleKey: 'usersPermissions', href: '/settings/users', icon: Users, minMode: 'standard', group: 'Tài khoản' },
+      { titleKey: 'changePassword', href: '/settings/change-password', icon: KeyRound, group: 'Tài khoản' },
+      { titleKey: 'subscription', href: '/settings/subscription', icon: CreditCard, group: 'Thanh toán' },
+      { titleKey: 'usage', href: '/settings/usage', icon: BarChart3, minMode: 'standard', group: 'Thanh toán' },
+      { titleKey: 'notifications', href: '/settings/notifications', icon: Bell, group: 'Thông báo' },
+      { titleKey: 'telegram', href: '/settings/telegram', icon: MessageCircle, group: 'Thông báo' },
+      { titleKey: 'businessConfig', href: '/settings/business', icon: Briefcase, minMode: 'standard', group: 'Nghiệp vụ' },
+      { titleKey: 'pricingRules', href: '/settings/pricing-rules', icon: DollarSign, minMode: 'standard', group: 'Nghiệp vụ' },
+      { titleKey: 'automation', href: '/settings/workflows', icon: Zap, minMode: 'full', group: 'Nghiệp vụ' },
     ],
   },
 ]
@@ -447,38 +448,51 @@ export const Sidebar = () => {
 
                 {isExpanded && (
                   <div className="ml-4 space-y-1 border-l border-border pl-4">
-                    {item.children!.map((child) => {
-                      const ChildIcon = child.icon
-                      const isChildActive = child.href && currentPath === normalizePath(child.href)
-                      const childTitle = t(child.titleKey)
-                      const childBadgeCount = child.badgeKey && pendingCounts ? pendingCounts[child.badgeKey] : 0
+                    {(() => {
+                      let lastGroup = ''
+                      return item.children!.map((child) => {
+                        const ChildIcon = child.icon
+                        const isChildActive = child.href && currentPath === normalizePath(child.href)
+                        const childTitle = t(child.titleKey)
+                        const childBadgeCount = child.badgeKey && pendingCounts ? pendingCounts[child.badgeKey] : 0
+                        const showGroup = child.group && child.group !== lastGroup
+                        if (child.group) lastGroup = child.group
 
-                      return (
-                        <Link
-                          key={child.titleKey}
-                          to={child.href || '#'}
-                          className={cn(
-                            'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-                            isChildActive
-                              ? 'bg-primary text-primary-foreground'
-                              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                          )}
-                        >
-                          <ChildIcon className="h-4 w-4 flex-shrink-0" />
-                          <span className="flex-1">{childTitle}</span>
-                          {childBadgeCount > 0 && (
-                            <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs">
-                              {childBadgeCount > 99 ? '99+' : childBadgeCount}
-                            </Badge>
-                          )}
-                          {child.badge && (
-                            <Badge variant="secondary" className="ml-auto">
-                              {child.badge}
-                            </Badge>
-                          )}
-                        </Link>
-                      )
-                    })}
+                        return (
+                          <Fragment key={child.titleKey}>
+                            {showGroup && (
+                              <div className="pt-2 pb-1 px-3 first:pt-0">
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                                  {child.group}
+                                </span>
+                              </div>
+                            )}
+                            <Link
+                              to={child.href || '#'}
+                              className={cn(
+                                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                                isChildActive
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                              )}
+                            >
+                              <ChildIcon className="h-4 w-4 flex-shrink-0" />
+                              <span className="flex-1">{childTitle}</span>
+                              {childBadgeCount > 0 && (
+                                <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs">
+                                  {childBadgeCount > 99 ? '99+' : childBadgeCount}
+                                </Badge>
+                              )}
+                              {child.badge && (
+                                <Badge variant="secondary" className="ml-auto">
+                                  {child.badge}
+                                </Badge>
+                              )}
+                            </Link>
+                          </Fragment>
+                        )
+                      })
+                    })()}
                   </div>
                 )}
               </div>
