@@ -103,7 +103,9 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
 
       Object.entries(permissions).forEach(([module, actions]) => {
         Object.entries(actions).forEach(([action, enabled]) => {
-          permissionsArray.push({ module, action, enabled })
+          if (enabled) {
+            permissionsArray.push({ module, action, enabled: true })
+          }
         })
       })
 
