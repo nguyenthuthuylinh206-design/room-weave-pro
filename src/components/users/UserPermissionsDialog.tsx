@@ -50,6 +50,8 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
           delete: false,
           export: false,
           approve: false,
+          assign: false,
+          manage: false,
         }
       })
       
