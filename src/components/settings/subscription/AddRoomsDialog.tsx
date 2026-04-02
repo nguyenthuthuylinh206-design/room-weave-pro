@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 import {
@@ -14,12 +14,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Calculator, Calendar, Percent, Info, CreditCard } from 'lucide-react';
+import { Plus, Calculator, Calendar, Percent, Info, CreditCard, Heart, Sparkles } from 'lucide-react';
 import { useRoomSubscriptionLimit } from '@/hooks/useRoomSubscriptionLimit';
 import { useUpdateTenantSubscription, useTenantSubscription } from '@/hooks/useSubscription';
 import { useSuperAdminBankPaymentSettings } from '@/hooks/useBankPaymentSettings';
 import { PRICE_PER_ROOM_DAILY, formatVNCurrency } from '@/lib/pricing';
 import { BankTransferPaymentDialog } from '@/components/payment/BankTransferPaymentDialog';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AddRoomsDialogProps {
   open: boolean;
@@ -30,6 +31,7 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
   const navigate = useNavigate();
   const [additionalRooms, setAdditionalRooms] = useState(10);
   const [showBankPayment, setShowBankPayment] = useState(false);
+  const [isAddingFreeRooms, setIsAddingFreeRooms] = useState(false);
   const {
     registeredRooms,
     actualRooms,
@@ -40,13 +42,16 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
   const { data: subscription } = useTenantSubscription();
   const { data: bankSettings, isLoading: isBankSettingsLoading } = useSuperAdminBankPaymentSettings();
 
-  // Max rooms from plan
-  const maxRooms = (subscription?.subscription_plan as any)?.max_rooms || 500;
-  const maxAdditional = Math.max(0, maxRooms - registeredRooms);
+  const subscriptionStatus = (subscription as any)?.subscription_status as string | undefined;
+  const isTrial = subscriptionStatus === 'trial';
 
-  // Calculate price for additional rooms
-  const pricing = useMemo(() => {
-    if (remainingDays <= 0) return null;
+  // Max rooms from plan (NULL = unlimited for trial)
+  const maxRooms = (subscription?.subscription_plan as any)?.max_rooms;
+  const maxAdditional = isTrial || !maxRooms ? Infinity : Math.max(0, maxRooms - registeredRooms);
+
+  // Calculate price for additional rooms (only for paid plans)
+  const pricing = (() => {
+    if (isTrial || remainingDays <= 0) return null;
     
     const basePrice = additionalRooms * PRICE_PER_ROOM_DAILY * remainingDays;
     const discount = Math.round(basePrice * (discountPercent / 100));
@@ -59,9 +64,37 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
       finalPrice,
       pricePerRoom: Math.round(finalPrice / additionalRooms),
     };
-  }, [additionalRooms, remainingDays, discountPercent]);
+  })();
+
+  const handleTrialAddRooms = async () => {
+    setIsAddingFreeRooms(true);
+    try {
+      const newTotal = registeredRooms + additionalRooms;
+      const { error } = await supabase
+        .from('tenants')
+        .update({ registered_rooms: newTotal, updated_at: new Date().toISOString() })
+        .eq('id', (subscription as any)?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Thành công! 🎉',
+        description: `Đã thêm ${additionalRooms} phòng miễn phí. Tổng: ${newTotal} phòng`,
+      });
+      onOpenChange(false);
+    } catch (error: any) {
+      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsAddingFreeRooms(false);
+    }
+  };
 
   const handleConfirm = async () => {
+    if (isTrial) {
+      await handleTrialAddRooms();
+      return;
+    }
+
     if (!pricing) return;
     if (isBankSettingsLoading) return;
     
@@ -82,7 +115,7 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
     setShowBankPayment(isOpen);
   };
 
-  if (remainingDays <= 0) {
+  if (!isTrial && remainingDays <= 0) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md">
@@ -107,16 +140,38 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5" />
-              Mua thêm phòng
+              {isTrial ? 'Thêm phòng miễn phí' : 'Mua thêm phòng'}
             </DialogTitle>
             <DialogDescription>
-              Thêm phòng vào gói đăng ký hiện tại. Giá được tính theo số ngày còn lại.
+              {isTrial
+                ? 'Thêm phòng để trải nghiệm đầy đủ tính năng trong chương trình dùng thử.'
+                : 'Thêm phòng vào gói đăng ký hiện tại. Giá được tính theo số ngày còn lại.'}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6 py-4">
+            {/* Trial - Friendly message */}
+            {isTrial && (
+              <Alert className="border-green-500/50 bg-green-500/10">
+                <Sparkles className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-700 space-y-2">
+                  <p className="font-medium">
+                    🎉 Chương trình Hỗ trợ chuyển đổi số — Hoàn toàn MIỄN PHÍ!
+                  </p>
+                  <p className="text-sm">
+                    Hãy thoải mái thêm phòng để trải nghiệm đầy đủ tính năng. 
+                    Chúng tôi luôn đồng hành cùng bạn trong quá trình số hóa quản lý khách sạn.
+                  </p>
+                  <p className="text-xs flex items-center gap-1">
+                    <Heart className="h-3 w-3 text-red-500" />
+                    Không giới hạn số lượng phòng trong thời gian dùng thử
+                  </p>
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Current Status */}
-            <div className="grid grid-cols-2 gap-4 p-4 rounded-lg bg-muted/50">
+            <div className={`grid ${isTrial ? 'grid-cols-2' : 'grid-cols-2'} gap-4 p-4 rounded-lg bg-muted/50`}>
               <div>
                 <div className="text-sm text-muted-foreground">Phòng đã đăng ký</div>
                 <div className="text-xl font-semibold">{registeredRooms}</div>
@@ -125,24 +180,28 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
                 <div className="text-sm text-muted-foreground">Phòng thực tế</div>
                 <div className="text-xl font-semibold">{actualRooms}</div>
               </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Ngày còn lại</div>
-                <div className="text-xl font-semibold flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  {remainingDays}
-                </div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Chiết khấu áp dụng</div>
-                <div className="text-xl font-semibold flex items-center gap-2">
-                  <Percent className="h-4 w-4" />
-                  {discountPercent}%
-                </div>
-              </div>
+              {!isTrial && (
+                <>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Ngày còn lại</div>
+                    <div className="text-xl font-semibold flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      {remainingDays}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Chiết khấu áp dụng</div>
+                    <div className="text-xl font-semibold flex items-center gap-2">
+                      <Percent className="h-4 w-4" />
+                      {discountPercent}%
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Discount Info */}
-            {discountPercent > 0 && (
+            {/* Discount Info - only for paid */}
+            {!isTrial && discountPercent > 0 && (
               <Alert className="border-green-500/50 bg-green-500/10">
                 <Info className="h-4 w-4 text-green-600" />
                 <AlertDescription className="text-green-700">
@@ -157,17 +216,22 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
               <Input
                 type="number"
                 min={1}
-                max={maxAdditional}
+                max={maxAdditional === Infinity ? undefined : maxAdditional}
                 value={additionalRooms}
-                onChange={(e) => setAdditionalRooms(Math.max(1, Math.min(maxAdditional, parseInt(e.target.value) || 1)))}
+                onChange={(e) => {
+                  const val = Math.max(1, parseInt(e.target.value) || 1);
+                  setAdditionalRooms(maxAdditional === Infinity ? val : Math.min(maxAdditional, val));
+                }}
               />
               <p className="text-sm text-muted-foreground">
-                Sau khi mua: {registeredRooms} + {additionalRooms} = {registeredRooms + additionalRooms} phòng
+                Sau khi thêm: {registeredRooms} + {additionalRooms} = {registeredRooms + additionalRooms} phòng
               </p>
-              <p className="text-xs text-muted-foreground">
-                Giới hạn tối đa: {maxRooms} phòng theo gói dịch vụ (có thể thêm tối đa {maxAdditional} phòng)
-              </p>
-              {maxAdditional <= 0 && (
+              {!isTrial && maxRooms && (
+                <p className="text-xs text-muted-foreground">
+                  Giới hạn tối đa: {maxRooms} phòng theo gói dịch vụ (có thể thêm tối đa {maxAdditional} phòng)
+                </p>
+              )}
+              {!isTrial && maxAdditional <= 0 && (
                 <Alert variant="destructive" className="py-2">
                   <Info className="h-4 w-4" />
                   <AlertDescription className="text-xs">
@@ -177,47 +241,48 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
               )}
             </div>
 
-            <Separator />
-
-            {/* Price Breakdown */}
-            {pricing && (
-              <div className="space-y-3 p-4 rounded-lg border">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <Calculator className="h-4 w-4" />
-                  Chi tiết giá
-                </div>
-                
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      {additionalRooms} phòng × {formatVNCurrency(PRICE_PER_ROOM_DAILY)} × {remainingDays} ngày
-                    </span>
-                    <span>{formatVNCurrency(pricing.basePrice)}</span>
+            {/* Price Breakdown - only for paid plans */}
+            {!isTrial && pricing && (
+              <>
+                <Separator />
+                <div className="space-y-3 p-4 rounded-lg border">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Calculator className="h-4 w-4" />
+                    Chi tiết giá
                   </div>
                   
-                  {pricing.discount > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Chiết khấu ({pricing.discountPercent}%)</span>
-                      <span>-{formatVNCurrency(pricing.discount)}</span>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        {additionalRooms} phòng × {formatVNCurrency(PRICE_PER_ROOM_DAILY)} × {remainingDays} ngày
+                      </span>
+                      <span>{formatVNCurrency(pricing.basePrice)}</span>
                     </div>
-                  )}
-                  
-                  <Separator />
-                  
-                  <div className="flex justify-between font-semibold text-base">
-                    <span>Tổng thanh toán</span>
-                    <span className="text-primary">{formatVNCurrency(pricing.finalPrice)}</span>
-                  </div>
-                  
-                  <div className="text-xs text-muted-foreground text-right">
-                    ≈ {formatVNCurrency(pricing.pricePerRoom)}/phòng cho {remainingDays} ngày còn lại
+                    
+                    {pricing.discount > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span>Chiết khấu ({pricing.discountPercent}%)</span>
+                        <span>-{formatVNCurrency(pricing.discount)}</span>
+                      </div>
+                    )}
+                    
+                    <Separator />
+                    
+                    <div className="flex justify-between font-semibold text-base">
+                      <span>Tổng thanh toán</span>
+                      <span className="text-primary">{formatVNCurrency(pricing.finalPrice)}</span>
+                    </div>
+                    
+                    <div className="text-xs text-muted-foreground text-right">
+                      ≈ {formatVNCurrency(pricing.pricePerRoom)}/phòng cho {remainingDays} ngày còn lại
+                    </div>
                   </div>
                 </div>
-              </div>
+              </>
             )}
 
-            {/* Payment Method Hint */}
-            {bankSettings && (
+            {/* Payment Method Hint - only for paid */}
+            {!isTrial && bankSettings && (
               <Alert className="border-primary/30 bg-primary/5">
                 <CreditCard className="h-4 w-4 text-primary" />
                 <AlertDescription>
@@ -231,14 +296,24 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Hủy
             </Button>
-            <Button 
-              onClick={handleConfirm} 
-              disabled={updateSubscription.isPending || isBankSettingsLoading || additionalRooms < 1 || maxAdditional <= 0}
-            >
-              {isBankSettingsLoading ? 'Đang tải...' :
-                updateSubscription.isPending ? 'Đang xử lý...' : 
-                'Tiếp tục thanh toán'}
-            </Button>
+            {isTrial ? (
+              <Button
+                onClick={handleConfirm}
+                disabled={isAddingFreeRooms || additionalRooms < 1}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isAddingFreeRooms ? 'Đang thêm...' : `Thêm ${additionalRooms} phòng miễn phí`}
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleConfirm} 
+                disabled={updateSubscription.isPending || isBankSettingsLoading || additionalRooms < 1 || maxAdditional <= 0}
+              >
+                {isBankSettingsLoading ? 'Đang tải...' :
+                  updateSubscription.isPending ? 'Đang xử lý...' : 
+                  'Tiếp tục thanh toán'}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
