@@ -50,6 +50,8 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
           delete: false,
           export: false,
           approve: false,
+          assign: false,
+          manage: false,
         }
       })
       
@@ -62,6 +64,8 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
           delete: summary.can_delete,
           export: summary.can_export,
           approve: summary.can_approve,
+          assign: summary.can_assign,
+          manage: summary.can_manage,
         }
       })
       
@@ -90,6 +94,8 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
         delete: enabled,
         export: enabled,
         approve: enabled,
+        assign: enabled,
+        manage: enabled,
       },
     }))
   }
@@ -103,7 +109,9 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
 
       Object.entries(permissions).forEach(([module, actions]) => {
         Object.entries(actions).forEach(([action, enabled]) => {
-          permissionsArray.push({ module, action, enabled })
+          if (enabled) {
+            permissionsArray.push({ module, action, enabled: true })
+          }
         })
       })
 
