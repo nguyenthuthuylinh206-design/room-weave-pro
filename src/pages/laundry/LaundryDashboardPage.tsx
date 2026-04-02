@@ -118,7 +118,7 @@ export function LaundryDashboardPage() {
           <TabsTrigger value="requests" className="flex items-center gap-2">
             <Inbox className="h-4 w-4" />
             Yêu cầu từ phòng
-            {pendingRequestsCount && pendingRequestsCount > 0 && (
+            {pendingRequestsCount !== undefined && pendingRequestsCount > 0 && (
               <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
                 {pendingRequestsCount}
               </Badge>
