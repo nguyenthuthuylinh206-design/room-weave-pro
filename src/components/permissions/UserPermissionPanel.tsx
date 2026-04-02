@@ -31,10 +31,11 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
   const [localPermissions, setLocalPermissions] = useState<Record<string, boolean>>({})
   const [localActions, setLocalActions] = useState<Record<string, Record<string, boolean>>>({})
   const [hasActionChanges, setHasActionChanges] = useState(false)
+  const isDirtyRef = useRef(false)
 
-  // Initialize local state from fetched data
+  // Initialize local state from fetched data - only when no unsaved changes
   useEffect(() => {
-    if (permissionsData) {
+    if (permissionsData && !isDirtyRef.current) {
       const initial: Record<string, boolean> = {}
       const initialActions: Record<string, Record<string, boolean>> = {}
       
