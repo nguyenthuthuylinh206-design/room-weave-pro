@@ -1,51 +1,52 @@
 
 
-## Fix: Toggle bật phòng lại bị tắt
+## Fix: Phân quyền bật lên vẫn bị tắt
 
-### Nguyên nhân gốc
+### Nguyên nhân gốc (3 lỗi)
 
-`UserPermissionPanel.tsx` dòng 36-51 có `useEffect` lắng nghe `permissionsData`:
+**Lỗi 1 — Migration chưa được áp dụng**: File `20260402160000_fix_permissions_summary.sql` tồn tại nhưng chưa chạy trên database. Hàm `get_user_permissions_summary` vẫn thiếu `can_assign`/`can_manage`. Bảng `permissions` vẫn thiếu `bookings`. Kết quả: modules dùng actions này luôn hiển thị tắt dù đã lưu thành công.
 
-```typescript
-useEffect(() => {
-  if (permissionsData) {
-    // Reset ALL local state from server data
-    setLocalPermissions(initial)
-    setLocalActions(initialActions)
-  }
-}, [permissionsData])  // ← Chạy lại mỗi khi React Query refetch
-```
+**Lỗi 2 — `isDirtyRef` reset quá sớm**: `handleSave()` gọi `saveConfiguration.mutate()` (fire-and-forget) rồi ngay lập tức set `isDirtyRef.current = false`. Mutation chưa hoàn thành → invalidate chưa chạy → nhưng `isDirtyRef` đã `false` → nếu có refetch nào xảy ra → `useEffect` ghi đè local state bằng dữ liệu cũ.
 
-Khi user bật toggle → local state cập nhật → nhưng React Query tự refetch khi focus window hoặc staleTime hết → `permissionsData` thay đổi reference → `useEffect` chạy lại → **ghi đè local state bằng dữ liệu cũ từ server** → toggle bị tắt lại.
+**Lỗi 3 — Summary function không thấy bookings**: Dù `user_permissions` table có data cho bookings (đã confirm có records), hàm `get_user_permissions_summary` lấy module list từ `SELECT DISTINCT module FROM permissions` — bảng permissions không có bookings → không bao giờ trả về bookings trong summary → UI luôn hiển thị tắt.
 
-### Giải pháp
+### Kế hoạch sửa
 
-| # | File | Thay đổi |
-|---|------|----------|
-| 1 | `UserPermissionPanel.tsx` | Thêm `isDirty` ref để chặn `useEffect` ghi đè khi user đang có thay đổi chưa lưu |
-| 2 | `useUserPermissionConfiguration.ts` | Set `staleTime: Infinity` và `refetchOnWindowFocus: false` cho query config để tránh refetch ngoài ý muốn |
+| # | Thay đổi | File |
+|---|----------|------|
+| 1 | Tạo migration MỚI (vì migration cũ không applied) | New migration SQL |
+| 2 | Fix `handleSave` — chuyển reset `isDirtyRef` vào callback `onSuccess` của mutation | `UserPermissionPanel.tsx` |
+| 3 | Dùng `mutateAsync` hoặc truyền callbacks vào `.mutate()` | `UserPermissionPanel.tsx` |
 
 ### Chi tiết
 
-**File 1 - UserPermissionPanel.tsx:**
-```typescript
-const isDirtyRef = useRef(false)
+**Migration mới** — cùng nội dung migration cũ (drop + recreate function với 8 columns, insert missing permissions):
+```sql
+DROP FUNCTION IF EXISTS public.get_user_permissions_summary(UUID);
+CREATE OR REPLACE FUNCTION ... RETURNS TABLE(..., can_assign BOOLEAN, can_manage BOOLEAN) ...
 
-useEffect(() => {
-  if (permissionsData && !isDirtyRef.current) {
-    // Chỉ sync khi KHÔNG có thay đổi chưa lưu
-    setLocalPermissions(initial)
-    setLocalActions(initialActions)
-  }
-}, [permissionsData])
-
-// Trong handleToggle & handleActionToggle:
-isDirtyRef.current = true
-
-// Trong handleSave onSuccess:
-isDirtyRef.current = false
+INSERT INTO permissions ... bookings (view/create/update/delete/export)
+INSERT INTO permissions ... dashboard.view
+INSERT INTO permissions ... maintenance.assign, settings.manage
 ```
 
-**File 2 - useUserPermissionConfiguration.ts:**
-Thêm `staleTime: Infinity` và `refetchOnWindowFocus: false` vào query options để chỉ refetch khi explicitly invalidate sau save.
+**Fix handleSave** — di chuyển reset logic vào mutation callbacks:
+```typescript
+const handleSave = () => {
+  if (!user) return
+  
+  saveConfiguration({ 
+    userId: user.id, 
+    modules: localPermissions,
+    actions: localActions,
+  }, {
+    onSuccess: () => {
+      setHasActionChanges(false)
+      isDirtyRef.current = false  // Chỉ reset SAU KHI mutation + invalidation thành công
+    }
+  })
+}
+```
+
+Thay đổi này đảm bảo `isDirtyRef` chỉ reset khi dữ liệu mới đã được lưu xong và cache đã invalidate, tránh useEffect ghi đè local state bằng data cũ.
 
