@@ -94,6 +94,8 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
         delete: enabled,
         export: enabled,
         approve: enabled,
+        assign: enabled,
+        manage: enabled,
       },
     }))
   }
