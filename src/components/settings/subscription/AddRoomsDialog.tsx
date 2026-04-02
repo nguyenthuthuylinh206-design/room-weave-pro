@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 import {
@@ -28,6 +29,7 @@ interface AddRoomsDialogProps {
 }
 
 export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [additionalRooms, setAdditionalRooms] = useState(10);
   const [showBankPayment, setShowBankPayment] = useState(false);
@@ -76,6 +78,12 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
         .eq('id', (subscription as any)?.id);
 
       if (error) throw error;
+
+      // Invalidate all related queries to refresh UI
+      queryClient.invalidateQueries({ queryKey: ['tenant-subscription'] });
+      queryClient.invalidateQueries({ queryKey: ['actual-room-count'] });
+      queryClient.invalidateQueries({ queryKey: ['tenant-usage'] });
+      queryClient.invalidateQueries({ queryKey: ['check-quota'] });
 
       toast({
         title: 'Thành công! 🎉',
