@@ -146,11 +146,11 @@ const navigation: NavItem[] = [
     roles: ['owner', 'hotel_manager'],
     minMode: 'full',
     children: [
-      { titleKey: 'vendorsList', href: '/vendors', icon: List },
-      { titleKey: 'addNewVendor', href: '/vendors/new', icon: Plus },
-      { titleKey: 'compareVendors', href: '/vendors/compare', icon: GitCompare },
-      { titleKey: 'purchaseOrders', href: '/purchase-orders', icon: ShoppingCart },
-      { titleKey: 'newPO', href: '/purchase-orders/new', icon: Plus },
+      { titleKey: 'vendorsList', href: '/vendors', icon: List, group: 'Nhà cung cấp' },
+      { titleKey: 'addNewVendor', href: '/vendors/new', icon: Plus, group: 'Nhà cung cấp' },
+      { titleKey: 'compareVendors', href: '/vendors/compare', icon: GitCompare, group: 'Nhà cung cấp' },
+      { titleKey: 'purchaseOrders', href: '/purchase-orders', icon: ShoppingCart, group: 'Đơn hàng' },
+      { titleKey: 'newPO', href: '/purchase-orders/new', icon: Plus, group: 'Đơn hàng' },
     ],
   },
   {
