@@ -42,6 +42,14 @@ Deno.serve(async (req) => {
 
   try {
     const now = new Date().toISOString();
+
+    // 0. Auto-offline inactive staff (last_seen > 30 min ago)
+    const { error: offlineError } = await supabase.rpc('auto_offline_inactive_staff');
+    if (offlineError) {
+      console.error('Error auto-offlining inactive staff:', offlineError);
+    } else {
+      console.log('Auto-offline check completed');
+    }
     
     // 1. Mark active subscriptions that have expired as 'grace_period'
     const { data: toGracePeriod, error: graceError } = await supabase

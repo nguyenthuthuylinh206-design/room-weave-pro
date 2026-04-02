@@ -128,6 +128,29 @@ export function useStaffStatus() {
     refetchOnWindowFocus: false,
   })
 
+  // Heartbeat: update last_seen_at every 5 minutes for current user
+  const { user } = useUser()
+  useEffect(() => {
+    if (!user?.id || !tenantId) return
+
+    // Initial heartbeat
+    supabase
+      .from('staff_status')
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq('user_id', user.id)
+      .then()
+
+    const interval = setInterval(() => {
+      supabase
+        .from('staff_status')
+        .update({ last_seen_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .then()
+    }, 5 * 60 * 1000) // 5 minutes
+
+    return () => clearInterval(interval)
+  }, [user?.id, tenantId])
+
   // Subscribe to realtime changes for staff_status, telegram_connections, and users
   useEffect(() => {
     if (!tenantId) return
