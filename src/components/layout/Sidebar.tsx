@@ -62,6 +62,7 @@ interface NavItem {
   badgeKey?: PendingCountKey
   roles?: AppRole[]
   minMode?: UsageMode
+  group?: string
   children?: Omit<NavItem, 'children'>[]
 }
 
