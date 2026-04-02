@@ -46,6 +46,7 @@ const typeIcons: Record<string, React.ReactNode> = {
   maintenance: <Wrench className="h-4 w-4 text-orange-500" />,
   system: <Settings className="h-4 w-4 text-muted-foreground" />,
   info: <Info className="h-4 w-4 text-primary" />,
+  welcome: <Sparkles className="h-4 w-4 text-primary" />,
 };
 
 export function NotificationCenter({ onClose, onMarkAllRead }: NotificationCenterProps) {
