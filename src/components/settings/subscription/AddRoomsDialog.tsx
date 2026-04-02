@@ -79,6 +79,12 @@ export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
 
       if (error) throw error;
 
+      // Invalidate all related queries to refresh UI
+      queryClient.invalidateQueries({ queryKey: ['tenant-subscription'] });
+      queryClient.invalidateQueries({ queryKey: ['actual-room-count'] });
+      queryClient.invalidateQueries({ queryKey: ['tenant-usage'] });
+      queryClient.invalidateQueries({ queryKey: ['check-quota'] });
+
       toast({
         title: 'Thành công! 🎉',
         description: `Đã thêm ${additionalRooms} phòng miễn phí. Tổng: ${newTotal} phòng`,
