@@ -439,11 +439,10 @@ export const Sidebar = () => {
                     </Badge>
                   )}
                   {item.badge && <Badge variant="secondary">{item.badge}</Badge>}
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
-                  )}
+                  <ChevronDown className={cn(
+                    "h-4 w-4 transition-transform duration-300",
+                    isExpanded ? "rotate-0" : "-rotate-90"
+                  )} />
                 </button>
 
                 {isExpanded && (
