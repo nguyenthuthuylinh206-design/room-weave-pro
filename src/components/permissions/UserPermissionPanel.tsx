@@ -116,10 +116,12 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
       userId: user.id, 
       modules: localPermissions,
       actions: localActions,
+    }, {
+      onSuccess: () => {
+        setHasActionChanges(false)
+        isDirtyRef.current = false
+      },
     })
-    
-    setHasActionChanges(false)
-    isDirtyRef.current = false
   }
 
   const hasModuleChanges = permissionsData 
