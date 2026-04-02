@@ -132,12 +132,12 @@ const navigation: NavItem[] = [
     roles: ['owner', 'hotel_manager', 'department_manager', 'staff'],
     minMode: 'standard',
     children: [
-      { titleKey: 'laundryOverview', href: '/laundry', icon: LayoutDashboard },
-      { titleKey: 'laundryRequests', href: '/laundry?tab=requests', icon: Inbox, badgeKey: 'laundryRequests' },
-      { titleKey: 'laundryBatches', href: '/laundry/batches', icon: Package },
-      { titleKey: 'newBatch', href: '/laundry/batches/new', icon: Plus },
-      { titleKey: 'laundryVendors', href: '/laundry/vendors', icon: Building2 },
-      { titleKey: 'addVendor', href: '/laundry/vendors/new', icon: Plus },
+      { titleKey: 'laundryOverview', href: '/laundry', icon: LayoutDashboard, group: 'Vận hành' },
+      { titleKey: 'laundryRequests', href: '/laundry?tab=requests', icon: Inbox, badgeKey: 'laundryRequests', group: 'Vận hành' },
+      { titleKey: 'laundryBatches', href: '/laundry/batches', icon: Package, group: 'Vận hành' },
+      { titleKey: 'newBatch', href: '/laundry/batches/new', icon: Plus, group: 'Vận hành' },
+      { titleKey: 'laundryVendors', href: '/laundry/vendors', icon: Building2, group: 'Nhà cung cấp' },
+      { titleKey: 'addVendor', href: '/laundry/vendors/new', icon: Plus, group: 'Nhà cung cấp' },
     ],
   },
   {
