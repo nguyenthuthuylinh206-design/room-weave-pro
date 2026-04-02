@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { UserWithRelations } from '@/types/database.types'
 import { UserAvatar } from '@/components/users/UserAvatar'
 import { Button } from '@/components/ui/button'
