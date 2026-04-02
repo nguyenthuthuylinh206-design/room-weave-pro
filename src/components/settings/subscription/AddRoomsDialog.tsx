@@ -29,6 +29,7 @@ interface AddRoomsDialogProps {
 }
 
 export function AddRoomsDialog({ open, onOpenChange }: AddRoomsDialogProps) {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [additionalRooms, setAdditionalRooms] = useState(10);
   const [showBankPayment, setShowBankPayment] = useState(false);
