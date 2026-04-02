@@ -12,6 +12,7 @@ import {
   Settings,
   Info,
   Loader2,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
