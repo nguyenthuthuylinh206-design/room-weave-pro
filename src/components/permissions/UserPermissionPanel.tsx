@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { UserWithRelations } from '@/types/database.types'
 import { UserAvatar } from '@/components/users/UserAvatar'
 import { Button } from '@/components/ui/button'
@@ -31,10 +31,11 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
   const [localPermissions, setLocalPermissions] = useState<Record<string, boolean>>({})
   const [localActions, setLocalActions] = useState<Record<string, Record<string, boolean>>>({})
   const [hasActionChanges, setHasActionChanges] = useState(false)
+  const isDirtyRef = useRef(false)
 
-  // Initialize local state from fetched data
+  // Initialize local state from fetched data - only when no unsaved changes
   useEffect(() => {
-    if (permissionsData) {
+    if (permissionsData && !isDirtyRef.current) {
       const initial: Record<string, boolean> = {}
       const initialActions: Record<string, Record<string, boolean>> = {}
       
@@ -91,6 +92,7 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
       }))
     }
     setHasActionChanges(true)
+    isDirtyRef.current = true
   }
 
   const handleActionToggle = (module: string, action: string, enabled: boolean) => {
@@ -104,6 +106,7 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
       },
     }))
     setHasActionChanges(true)
+    isDirtyRef.current = true
   }
 
   const handleSave = () => {
@@ -116,6 +119,7 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
     })
     
     setHasActionChanges(false)
+    isDirtyRef.current = false
   }
 
   const hasModuleChanges = permissionsData 

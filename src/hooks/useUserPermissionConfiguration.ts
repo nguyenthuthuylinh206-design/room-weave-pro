@@ -77,6 +77,8 @@ export function useUserPermissionConfiguration(userId?: string) {
       return moduleStates
     },
     enabled: !!userId,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   })
 
   // Toggle module ON/OFF
