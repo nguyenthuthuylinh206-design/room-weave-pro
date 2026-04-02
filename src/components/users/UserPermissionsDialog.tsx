@@ -62,6 +62,8 @@ export function UserPermissionsDialog({ user, open, onOpenChange }: UserPermissi
           delete: summary.can_delete,
           export: summary.can_export,
           approve: summary.can_approve,
+          assign: summary.can_assign,
+          manage: summary.can_manage,
         }
       })
       

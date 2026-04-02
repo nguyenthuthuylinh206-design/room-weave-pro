@@ -225,18 +225,6 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
                   ))}
                 </div>
 
-                {/* Save Button */}
-                <div className="pt-3 border-t">
-                  <Button
-                    onClick={handleSave}
-                    disabled={!hasChanges || isSaving || isProtectedUser}
-                    className="w-full h-9 text-xs"
-                    size="sm"
-                  >
-                    <Save className="h-3.5 w-3.5 mr-1.5" />
-                    {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
-                  </Button>
-                </div>
               </div>
             )}
           </TabsContent>
@@ -246,6 +234,24 @@ export function UserPermissionPanel({ user }: UserPermissionPanelProps) {
           </TabsContent>
         </ScrollArea>
       </Tabs>
+
+      {/* Sticky Save Bar - always visible when there are changes */}
+      {hasChanges && !isProtectedUser && (
+        <div className="p-3 border-t border-amber-200 bg-amber-50">
+          <Button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="w-full h-9 text-xs"
+            size="sm"
+          >
+            <Save className="h-3.5 w-3.5 mr-1.5" />
+            {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
+          </Button>
+          <p className="text-[10px] text-amber-600 text-center mt-1">
+            Bạn có thay đổi chưa lưu
+          </p>
+        </div>
+      )}
     </div>
   )
 }

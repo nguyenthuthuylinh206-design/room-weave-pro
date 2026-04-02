@@ -49,7 +49,9 @@ export function useUserPermissionConfiguration(userId?: string) {
           summary.can_update || 
           summary.can_delete || 
           summary.can_export || 
-          summary.can_approve
+          summary.can_approve ||
+          summary.can_assign ||
+          summary.can_manage
         )
 
         // Get action-level details
