@@ -8226,6 +8226,7 @@ export type Database = {
         Args: { p_item_id: string; p_quantity: number }
         Returns: undefined
       }
+      auto_offline_inactive_staff: { Args: never; Returns: undefined }
       batch_confirm_room_deliveries: {
         Args: { p_confirmed_by: string; p_room_order_ids: string[] }
         Returns: Json
