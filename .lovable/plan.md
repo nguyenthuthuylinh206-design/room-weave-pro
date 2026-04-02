@@ -1,52 +1,88 @@
 
 
-## Fix: Phân quyền bật lên vẫn bị tắt
+## Chia nhóm menu Cài đặt theo chủ đề
 
-### Nguyên nhân gốc (3 lỗi)
+### Hiện tại
+11 mục cài đặt xếp phẳng trong 1 danh sách dài, khó phân biệt.
 
-**Lỗi 1 — Migration chưa được áp dụng**: File `20260402160000_fix_permissions_summary.sql` tồn tại nhưng chưa chạy trên database. Hàm `get_user_permissions_summary` vẫn thiếu `can_assign`/`can_manage`. Bảng `permissions` vẫn thiếu `bookings`. Kết quả: modules dùng actions này luôn hiển thị tắt dù đã lưu thành công.
+### Đề xuất nhóm
 
-**Lỗi 2 — `isDirtyRef` reset quá sớm**: `handleSave()` gọi `saveConfiguration.mutate()` (fire-and-forget) rồi ngay lập tức set `isDirtyRef.current = false`. Mutation chưa hoàn thành → invalidate chưa chạy → nhưng `isDirtyRef` đã `false` → nếu có refetch nào xảy ra → `useEffect` ghi đè local state bằng dữ liệu cũ.
-
-**Lỗi 3 — Summary function không thấy bookings**: Dù `user_permissions` table có data cho bookings (đã confirm có records), hàm `get_user_permissions_summary` lấy module list từ `SELECT DISTINCT module FROM permissions` — bảng permissions không có bookings → không bao giờ trả về bookings trong summary → UI luôn hiển thị tắt.
-
-### Kế hoạch sửa
-
-| # | Thay đổi | File |
-|---|----------|------|
-| 1 | Tạo migration MỚI (vì migration cũ không applied) | New migration SQL |
-| 2 | Fix `handleSave` — chuyển reset `isDirtyRef` vào callback `onSuccess` của mutation | `UserPermissionPanel.tsx` |
-| 3 | Dùng `mutateAsync` hoặc truyền callbacks vào `.mutate()` | `UserPermissionPanel.tsx` |
-
-### Chi tiết
-
-**Migration mới** — cùng nội dung migration cũ (drop + recreate function với 8 columns, insert missing permissions):
-```sql
-DROP FUNCTION IF EXISTS public.get_user_permissions_summary(UUID);
-CREATE OR REPLACE FUNCTION ... RETURNS TABLE(..., can_assign BOOLEAN, can_manage BOOLEAN) ...
-
-INSERT INTO permissions ... bookings (view/create/update/delete/export)
-INSERT INTO permissions ... dashboard.view
-INSERT INTO permissions ... maintenance.assign, settings.manage
+```text
+📋 Cài đặt
+├─ HỆ THỐNG
+│  ├ Cài đặt chung
+│  └ Khách sạn
+├─ TÀI KHOẢN
+│  ├ Người dùng & Phân quyền
+│  └ Đổi mật khẩu
+├─ THANH TOÁN
+│  ├ Đăng ký & Thanh toán
+│  └ Mức sử dụng
+├─ THÔNG BÁO
+│  ├ Thông báo
+│  └ Telegram
+└─ NGHIỆP VỤ
+   ├ Cấu hình nghiệp vụ
+   ├ Phụ thu & Thuế phí
+   └ Tự động hóa
 ```
 
-**Fix handleSave** — di chuyển reset logic vào mutation callbacks:
+### Thay đổi
+
+| # | File | Mô tả |
+|---|------|-------|
+| 1 | `src/components/layout/Sidebar.tsx` | Thêm property `group` vào `NavItem` interface. Gán group cho từng child của settings. Render group label (text nhỏ, uppercase, muted) khi group thay đổi giữa các children |
+
+### Chi tiết kỹ thuật
+
+**NavItem interface** — thêm `group?: string`:
 ```typescript
-const handleSave = () => {
-  if (!user) return
-  
-  saveConfiguration({ 
-    userId: user.id, 
-    modules: localPermissions,
-    actions: localActions,
-  }, {
-    onSuccess: () => {
-      setHasActionChanges(false)
-      isDirtyRef.current = false  // Chỉ reset SAU KHI mutation + invalidation thành công
-    }
-  })
+interface NavItem {
+  // ...existing
+  group?: string
+  children?: Omit<NavItem, 'children'>[]
 }
 ```
 
-Thay đổi này đảm bảo `isDirtyRef` chỉ reset khi dữ liệu mới đã được lưu xong và cache đã invalidate, tránh useEffect ghi đè local state bằng data cũ.
+**Settings children** — gán group:
+```typescript
+children: [
+  { titleKey: 'generalSettings', ..., group: 'Hệ thống' },
+  { titleKey: 'hotels', ..., group: 'Hệ thống' },
+  { titleKey: 'usersPermissions', ..., group: 'Tài khoản' },
+  { titleKey: 'changePassword', ..., group: 'Tài khoản' },
+  { titleKey: 'subscription', ..., group: 'Thanh toán' },
+  { titleKey: 'usage', ..., group: 'Thanh toán' },
+  { titleKey: 'notifications', ..., group: 'Thông báo' },
+  { titleKey: 'telegram', ..., group: 'Thông báo' },
+  { titleKey: 'businessConfig', ..., group: 'Nghiệp vụ' },
+  { titleKey: 'pricingRules', ..., group: 'Nghiệp vụ' },
+  { titleKey: 'automation', ..., group: 'Nghiệp vụ' },
+]
+```
+
+**Render logic** — trong vòng lặp `item.children!.map()`, track `lastGroup` và render divider + label khi group thay đổi:
+```tsx
+{(() => {
+  let lastGroup = ''
+  return item.children!.map((child) => {
+    const showGroup = child.group && child.group !== lastGroup
+    if (child.group) lastGroup = child.group
+    return (
+      <Fragment key={child.titleKey}>
+        {showGroup && (
+          <div className="pt-2 pb-1 px-3">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+              {child.group}
+            </span>
+          </div>
+        )}
+        <Link ...>{/* existing child link */}</Link>
+      </Fragment>
+    )
+  })
+})()}
+```
+
+Chỉ sửa 1 file `Sidebar.tsx`, không ảnh hưởng logic navigation hay routing.
 
