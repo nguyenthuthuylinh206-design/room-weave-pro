@@ -1,98 +1,52 @@
 
 
-## Sắp xếp nhóm cho các danh mục sidebar
-
-### Phân tích hiện tại
-
-| Danh mục | Số mục | Cần nhóm? |
-|----------|--------|-----------|
-| Super Admin | 7 | Có |
-| **Kho vận (Inventory)** | **12** | **Rất cần** |
-| Phòng (Rooms) | 7 | Có |
-| Giặt ủi (Laundry) | 6 | Có |
-| Nhà cung cấp (Vendors) | 5 | Nhẹ |
-| Bảo trì (Maintenance) | 3 | Không |
-| Báo cáo (Reports) | 6 | Không (đã đồng nhất) |
-| Cài đặt (Settings) | 11 | Đã xong ✓ |
-
-### Đề xuất nhóm
-
-**1. Kho vận (Inventory) — 12 mục → 4 nhóm**
-```text
-├─ TỔNG QUAN
-│  ├ Dashboard
-│  └ Lịch sử giao dịch
-├─ SẢN PHẨM
-│  ├ Danh sách sản phẩm
-│  ├ Danh mục
-│  └ Thêm sản phẩm
-├─ XUẤT NHẬP KHO
-│  ├ Nhập kho
-│  ├ Xuất kho
-│  ├ Chuyển kho
-│  ├ Kiểm kê
-│  └ Phân phối
-└─ THIẾT LẬP
-   ├ Phụ kiện bổ sung
-   └ Kho hàng
-```
-
-**2. Phòng (Rooms) — 7 mục → 3 nhóm**
-```text
-├─ QUẢN LÝ PHÒNG
-│  ├ Danh sách phòng
-│  ├ Tiêu chuẩn phòng
-│  └ Thêm phòng
-├─ ĐẶT PHÒNG & KHÁCH
-│  ├ Đặt phòng
-│  ├ Khách hàng
-│  └ Hóa đơn khách
-└─ KHÁC
-   └ Thất lạc
-```
-
-**3. Giặt ủi (Laundry) — 6 mục → 2 nhóm**
-```text
-├─ VẬN HÀNH
-│  ├ Tổng quan
-│  ├ Yêu cầu giặt
-│  ├ Lô giặt
-│  └ Tạo lô mới
-└─ NHÀ CUNG CẤP
-   ├ DS nhà cung cấp
-   └ Thêm NCC
-```
-
-**4. Nhà cung cấp (Vendors) — 5 mục → 2 nhóm**
-```text
-├─ NHÀ CUNG CẤP
-│  ├ Danh sách
-│  ├ Thêm mới
-│  └ So sánh
-└─ ĐƠN HÀNG
-   ├ Đơn mua hàng
-   └ Tạo đơn mới
-```
-
-**5. Super Admin — 7 mục → 3 nhóm**
-```text
-├─ TỔNG QUAN
-│  ├ Dashboard
-│  └ Tenants
-├─ TÀI CHÍNH
-│  ├ Thanh toán
-│  ├ Mã khuyến mãi
-│  └ Gói giá
-└─ MARKETING
-   ├ Chiến dịch
-   └ Nhắc nhở
-```
+## Accordion sidebar — chỉ mở 1 menu tại 1 thời điểm + animation mượt
 
 ### Thay đổi
 
 | # | File | Mô tả |
 |---|------|-------|
-| 1 | `src/components/layout/Sidebar.tsx` | Thêm `group` property cho children của 5 danh mục trên |
+| 1 | `src/components/layout/Sidebar.tsx` | Sửa `toggleExpanded` thành accordion + thêm CSS transition cho submenu |
 
-Cùng cơ chế render group label đã có sẵn từ Settings, không cần thay đổi logic render.
+### Chi tiết
+
+**1. Sửa `toggleExpanded` (dòng 319-323):**
+```typescript
+const toggleExpanded = (titleKey: string) => {
+  setExpandedItems((prev) =>
+    prev.includes(titleKey) ? [] : [titleKey]
+  )
+}
+```
+Chỉ cho phép tối đa 1 item expanded. Click mở B → A tự đóng.
+
+**2. Thêm animation mượt cho submenu (dòng 449-497):**
+
+Thay `{isExpanded && <div>...}` bằng CSS transition sử dụng `grid-rows` trick:
+
+```tsx
+<div
+  className={cn(
+    "grid transition-[grid-template-rows] duration-300 ease-in-out",
+    isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+  )}
+>
+  <div className="overflow-hidden">
+    <div className="ml-4 space-y-1 border-l border-border pl-4 py-1">
+      {/* children render giữ nguyên */}
+    </div>
+  </div>
+</div>
+```
+
+Kỹ thuật `grid-rows-[0fr] → grid-rows-[1fr]` cho phép animate height từ 0 đến auto một cách mượt mà, không cần JS đo height.
+
+**3. Animate chevron icon:**
+```tsx
+<ChevronDown className={cn(
+  "h-4 w-4 transition-transform duration-300",
+  isExpanded ? "rotate-0" : "-rotate-90"
+)} />
+```
+Dùng 1 icon `ChevronDown` thay vì toggle giữa `ChevronDown`/`ChevronRight`, xoay bằng CSS.
 
