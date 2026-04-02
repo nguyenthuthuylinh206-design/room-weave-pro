@@ -235,7 +235,7 @@ export function BulkImportRoomsDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
-            Bulk Import Phòng - {hotelName}
+            Tải lên hàng loạt phòng - {hotelName}
           </DialogTitle>
         </DialogHeader>
 
@@ -245,7 +245,7 @@ export function BulkImportRoomsDialog({
             <Download className="h-4 w-4" />
             <AlertDescription>
               <div className="flex items-center justify-between">
-                <span>Tải xuống file mẫu Excel để bắt đầu</span>
+                <span>Tải xuống file mẫu Excel để lấy dữ liệu mẫu</span>
                 <Button
                   variant="outline"
                   size="sm"
@@ -372,7 +372,7 @@ export function BulkImportRoomsDialog({
               onClick={handleImport}
               disabled={parsedRooms.length === 0 || isProcessing || !!importResult}
             >
-              {isProcessing ? 'Đang import...' : 'Bắt đầu import'}
+              {isProcessing ? 'Đang import...' : 'Bắt đầu tải lên'}
             </Button>
           </div>
         </div>
