@@ -1,41 +1,21 @@
+## Sửa lỗi phân quyền bật rồi bị tắt + Tối ưu hệ thống
 
+### Vấn đề phát hiện
 
-## Phân tích Logic Online/Offline Nhân sự — Vấn đề phát hiện
+**Lỗi 1 (NGHIÊM TRỌNG): `get_user_permissions_summary` thiếu `assign` và `manage`**
+Hàm SQL chỉ trả về 6 trường (`can_view, can_create, can_update, can_delete, can_export, can_approve`) nhưng hệ thống có 8 actions (`assign, manage` bị thiếu). Modules dùng `assign`/`manage` (maintenance, settings) bị đánh giá sai trạng thái.
 
-### Cách hoạt động hiện tại
+**Lỗi 2 (NGHIÊM TRỌNG): `bookings` module thiếu trong bảng `permissions`**
+`get_user_permissions_summary` lấy danh sách module từ `SELECT DISTINCT module FROM permissions`. Bảng `permissions` không có `bookings` → quyền bookings lưu thành công nhưng khi đọc lại luôn hiển thị tắt.
 
-Trạng thái nhân viên được lưu trong bảng `staff_status` với 4 giá trị: `available`, `busy`, `break`, `offline`.
+**Lỗi 3 (NGHIÊM TRỌNG): `dashboard` thiếu action `view` trong bảng `permissions`**
+Dashboard chỉ có `approve, create, delete, export, update` — thiếu `view`. Nhưng `MODULE_ACTIONS.dashboard = ['view']`. Lưu `dashboard+view` thành công nhưng summary không tìm thấy.
 
-**Cách set trạng thái:**
-1. **Thủ công**: Nhân viên tự đổi trạng thái qua `useUpdateMyStatus` (upsert vào `staff_status`)
-2. **Tự động khi kiểm tra phòng**: Trigger `update_staff_status_from_room_check` → tự chuyển sang `busy` khi bắt đầu room check, về `available` khi kết thúc
-3. **Mặc định**: Nếu user chưa có record trong `staff_status` → hiển thị `offline` (fallback ở dòng 112: `status?.status || 'offline'`)
+**Lỗi 4 (UX): Nút Lưu ở cuối scroll, dễ bỏ qua**
+User toggle xong tưởng đã lưu nhưng thực tế chưa click "Lưu thay đổi". Nút nằm cuối danh sách 13 modules, phải scroll xuống mới thấy.
 
----
-
-### Lỗi 1 (NGHIÊM TRỌNG): Không có cơ chế tự động chuyển sang `offline`
-
-**Hiện tại**: Một khi nhân viên set trạng thái `available`, trạng thái đó giữ **MÃI MÃI** — kể cả khi họ đóng app, tắt máy, hoặc không hoạt động nhiều ngày.
-
-Dữ liệu thực tế chứng minh: Có nhân viên `last_seen_at = 2026-01-12` (gần 3 tháng trước) nhưng `status = available`.
-
-**Cần**: Cron job hoặc trigger tự động chuyển nhân viên sang `offline` khi `last_seen_at` quá X phút (ví dụ 30 phút không hoạt động).
-
-### Lỗi 2 (NGHIÊM TRỌNG): Không cập nhật `last_seen_at` khi user hoạt động
-
-**Hiện tại**: `last_seen_at` chỉ được cập nhật khi:
-- Nhân viên chủ động đổi trạng thái (`useUpdateMyStatus`)
-- Trigger room check chạy
-
-**Thiếu**: Không có heartbeat/ping định kỳ từ client. Nếu nhân viên đang dùng app nhưng không đổi trạng thái hay kiểm tra phòng → `last_seen_at` không cập nhật → hệ thống không biết họ còn online.
-
-### Lỗi 3 (TRUNG BÌNH): Kết thúc ca không chuyển offline
-
-Khi nhân viên kết thúc ca (`useShiftManagement` → `endShift`), chỉ set `shift_end_at` nhưng **không** chuyển `status` sang `offline`. Nhân viên hết ca vẫn hiển thị `available`.
-
-### Lỗi 4 (NHẸ): User mới chưa có record `staff_status`
-
-User mới tạo không tự động có record trong `staff_status`. Fallback `offline` đúng logic nhưng thiếu `last_seen_at` → không hiển thị "Hoạt động X phút trước".
+**Lỗi 5 (UX): Không có cảnh báo khi rời trang mà chưa lưu**
+User toggle permissions, rời trang → mất hết thay đổi không báo trước.
 
 ---
 
@@ -43,31 +23,28 @@ User mới tạo không tự động có record trong `staff_status`. Fallback `
 
 | # | File | Thay đổi |
 |---|------|----------|
-| 1 | Migration SQL | Tạo cron function `auto_offline_inactive_staff`: chuyển `status = 'offline'` cho staff có `last_seen_at < now() - interval '30 minutes'` và `status != 'offline'` |
-| 2 | `supabase/functions/check-subscription-status/index.ts` | Thêm gọi function `auto_offline_inactive_staff` vào cron hiện có (chạy mỗi 5 phút) |
-| 3 | `src/hooks/useStaffStatus.ts` | Thêm heartbeat: khi component mount, upsert `last_seen_at = now()` mỗi 5 phút cho user hiện tại (chỉ khi đã có record) |
-| 4 | `src/hooks/useShiftManagement.ts` | Khi `endShift`, set thêm `status: 'offline'` cùng lúc set `shift_end_at` |
-| 5 | Migration SQL | Tạo trigger: khi user mới được tạo trong `users`, auto insert record `staff_status` với `status = 'offline'` |
+| 1 | Migration SQL | Cập nhật `get_user_permissions_summary`: thêm `can_assign` và `can_manage` |
+| 2 | Migration SQL | Thêm records cho `bookings` module và `dashboard.view` vào bảng `permissions` |
+| 3 | `src/hooks/useUserPermissions.ts` | Cập nhật `PermissionSummary` type: thêm `can_assign`, `can_manage` |
+| 4 | `src/hooks/useUserPermissionConfiguration.ts` | Cập nhật `hasAnyPermission` check: thêm `can_assign`, `can_manage` |
+| 5 | `src/components/permissions/UserPermissionPanel.tsx` | Di chuyển nút Lưu ra ngoài ScrollArea (sticky ở bottom), thêm visual indicator khi có thay đổi chưa lưu |
+| 6 | `src/hooks/useUserModulePermissions.ts` | Cập nhật type thêm `can_assign`, `can_manage` |
 
 ### Chi tiết kỹ thuật
 
-**Heartbeat (client)**: Trong `useStaffStatus`, thêm `useEffect` với `setInterval` 5 phút, gọi:
-```typescript
-supabase.from('staff_status')
-  .update({ last_seen_at: new Date().toISOString() })
-  .eq('user_id', currentUserId)
-```
-
-**Auto-offline (DB function)**:
+**SQL Migration:**
 ```sql
-UPDATE staff_status 
-SET status = 'offline', updated_at = now()
-WHERE status != 'offline' 
-  AND last_seen_at < now() - interval '30 minutes';
+-- 1. Fix function
+CREATE OR REPLACE FUNCTION get_user_permissions_summary(p_user_id uuid)
+RETURNS TABLE(..., can_assign boolean, can_manage boolean)
+-- Add: EXISTS(... action = 'assign') as can_assign
+-- Add: EXISTS(... action = 'manage') as can_manage
+
+-- 2. Add missing permissions
+INSERT INTO permissions (module, action, ...) VALUES
+('bookings', 'view', ...), ('bookings', 'create', ...), ...
+('dashboard', 'view', ...);
 ```
 
-**End shift → offline**:
-```typescript
-.update({ shift_end_at: now, status: 'offline', last_seen_at: now })
-```
-
+**UI: Sticky save button**
+Di chuyển nút "Lưu thay đổi" ra khỏi `ScrollArea`, đặt cố định ở bottom panel. Khi có thay đổi chưa lưu, hiển thị border vàng + pulse animation trên nút.
