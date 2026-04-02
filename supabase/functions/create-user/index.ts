@@ -326,6 +326,23 @@ Deno.serve(async (req) => {
       console.error('Activity log error:', logError)
     }
 
+    // Create welcome notification for new user
+    try {
+      await supabaseAdmin.from('in_app_notifications').insert({
+        user_id: authUser.user.id,
+        tenant_id: tenantId,
+        title: 'Chào mừng bạn đến với hệ thống! 👋',
+        body: 'Tài khoản của bạn đã được tạo. Vui lòng đổi mật khẩu khi đăng nhập lần đầu.',
+        type: 'welcome',
+        icon: 'sparkles',
+        is_read: false,
+        metadata: { action: 'getting_started' }
+      })
+      console.log('Welcome notification created')
+    } catch (notifError) {
+      console.error('Welcome notification error:', notifError)
+    }
+
     console.log('User creation completed successfully')
 
     // Get requesting user's name and hotel name for welcome email
