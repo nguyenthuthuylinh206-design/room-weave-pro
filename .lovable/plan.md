@@ -1,33 +1,52 @@
 
 
-## Fix: Chỉ highlight 1 item tại 1 thời điểm
+## Thêm thông báo chào mừng cho người dùng mới
 
 ### Vấn đề
-Khi mở "Bảo trì" (expanded → `bg-primary`), "Quản lý Nhân sự" cũng sáng xanh vì route `/staff` đang active. Hai mục cùng xanh → khó nhìn.
+Khi người dùng mới đăng ký, phần thông báo trống rỗng. Cần có 1 thông báo chào mừng để tạo ấn tượng tốt và hướng dẫn sử dụng.
 
 ### Giải pháp
-Khi có menu đang **expanded**, các item khác không có children (hoặc đang đóng) chỉ dùng style nhẹ (`bg-accent`) thay vì `bg-primary` cho active state.
+Thêm logic tạo thông báo chào mừng vào trigger `handle_new_user` (cho user tự đăng ký) và edge function `create-user` (cho user được admin tạo).
 
-| # | File | Mô tả |
+### Thay đổi
+
+| # | Loại | Mô tả |
 |---|------|-------|
-| 1 | `src/components/layout/Sidebar.tsx` | Điều chỉnh logic highlight cho non-expandable items |
+| 1 | Migration SQL | Cập nhật `handle_new_user()` — thêm INSERT vào `in_app_notifications` sau khi tạo user |
+| 2 | Edge Function | Cập nhật `create-user/index.ts` — thêm INSERT thông báo chào mừng sau khi tạo user thành công |
 
 ### Chi tiết
 
-**Non-expandable items (dòng 513-518):** Khi có item khác đang expanded, giảm highlight xuống `bg-accent`:
-
-```tsx
-const anyExpanded = expandedItems.length > 0
-
-// Non-expandable item:
-isActive && !anyExpanded
-  ? 'bg-primary text-primary-foreground'
-  : isActive && anyExpanded
-    ? 'bg-accent text-accent-foreground font-semibold'
-    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+**1. Migration — Thêm vào cuối `handle_new_user()`:**
+```sql
+INSERT INTO public.in_app_notifications (
+  user_id, tenant_id, title, body, type, icon, is_read, metadata
+) VALUES (
+  NEW.id, new_tenant_id,
+  'Chào mừng bạn đến với Hotel Asset Manager! 🎉',
+  'Cảm ơn bạn đã đăng ký. Hãy bắt đầu bằng cách thiết lập khách sạn, thêm phòng và quản lý tài sản. Chúc bạn trải nghiệm tuyệt vời!',
+  'welcome', 'sparkles', false,
+  '{"action": "getting_started"}'::jsonb
+);
 ```
 
-**Parent items (dòng 426-432):** Giữ nguyên — expanded = `bg-primary`, hasActiveChild khi đóng = `bg-accent`.
+**2. Edge function `create-user` — Thêm sau khi tạo profile thành công:**
+```typescript
+await supabaseAdmin.from('in_app_notifications').insert({
+  user_id: authUser.user.id,
+  tenant_id: tenantId,
+  title: 'Chào mừng bạn đến với hệ thống! 👋',
+  body: `Tài khoản của bạn đã được tạo. Vui lòng đổi mật khẩu khi đăng nhập lần đầu.`,
+  type: 'welcome',
+  icon: 'sparkles',
+  is_read: false,
+});
+```
 
-Kết quả: Khi mở Bảo trì → chỉ Bảo trì sáng xanh, Quản lý Nhân sự chỉ highlight nhẹ.
+**3. NotificationCenter — Thêm icon `welcome` vào `typeIcons`:**
+```tsx
+welcome: <Sparkles className="h-4 w-4 text-primary" />,
+```
+
+Kết quả: Mọi user mới (tự đăng ký hoặc được admin tạo) đều nhận được thông báo chào mừng ngay khi vào hệ thống.
 
