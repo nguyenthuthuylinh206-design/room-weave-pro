@@ -1,4 +1,6 @@
 import * as XLSX from 'xlsx'
+import * as ExcelJS from 'exceljs'
+import { saveAs } from 'file-saver'
 
 // ============= ITEM IMPORT =============
 
@@ -31,21 +33,15 @@ export interface ImportResult<T> {
 }
 
 // Download template for Items
-export function downloadItemsTemplate() {
-  const headers = [
-    'Mã SP',
-    'Tên sản phẩm (*)',
-    'Danh mục',
-    'Đơn vị (*)',
-    'Đơn giá',
-    'Tồn kho (*)',
-    'Tồn tối thiểu',
-    'Tình trạng',
-    'Ghi chú'
-  ]
+export async function downloadItemsTemplate() {
+  const workbook = new ExcelJS.Workbook()
+  
+  // ===== Sheet 1: Tài sản =====
+  const ws = workbook.addWorksheet('Tài sản')
+  
+  const headers = ['Mã SP', 'Tên sản phẩm (*)', 'Danh mục', 'Đơn vị (*)', 'Đơn giá', 'Tồn kho (*)', 'Tồn tối thiểu', 'Tình trạng', 'Ghi chú']
   
   const exampleData: (string | number)[][] = [
-    // Đồ vải (21)
     ['DV-001', 'Khăn tắm lớn 70x140cm', 'Đồ vải', 'Cái', 50000, 100, 20, '✓ OK', 'Cotton trắng cao cấp'],
     ['DV-002', 'Khăn tay 40x70cm', 'Đồ vải', 'Cái', 25000, 200, 40, '✓ OK', ''],
     ['DV-003', 'Khăn mặt 30x50cm', 'Đồ vải', 'Cái', 15000, 200, 40, '✓ OK', ''],
@@ -67,7 +63,6 @@ export function downloadItemsTemplate() {
     ['DV-019', 'Khăn ăn vải', 'Đồ vải', 'Cái', 20000, 100, 20, '✓ OK', 'Nhà hàng'],
     ['DV-020', 'Rèm cản sáng', 'Đồ vải', 'Cái', 500000, 30, 5, '✓ OK', 'Blackout'],
     ['DV-021', 'Rèm voan', 'Đồ vải', 'Cái', 200000, 30, 5, '✓ OK', 'Trang trí'],
-    // Tiêu hao (42)
     ['TH-001', 'Bàn chải đánh răng', 'Tiêu hao', 'Cái', 5000, 500, 100, '✓ OK', 'Dùng 1 lần'],
     ['TH-002', 'Kem đánh răng mini', 'Tiêu hao', 'Tuýp', 3000, 500, 100, '✓ OK', '10g'],
     ['TH-003', 'Dầu gội đầu', 'Tiêu hao', 'Chai', 8000, 500, 100, '✓ OK', '30ml'],
@@ -110,7 +105,6 @@ export function downloadItemsTemplate() {
     ['TH-040', 'Xịt phòng thơm', 'Tiêu hao', 'Chai', 50000, 30, 5, '✓ OK', ''],
     ['TH-041', 'Túi rác nhỏ', 'Tiêu hao', 'Cái', 1000, 500, 100, '✓ OK', 'Phòng khách'],
     ['TH-042', 'Túi rác lớn', 'Tiêu hao', 'Cái', 2000, 300, 50, '✓ OK', 'Khu vực công cộng'],
-    // Thiết bị (28)
     ['TB-001', 'Ấm siêu tốc 1.8L', 'Thiết bị', 'Cái', 350000, 50, 5, '✓ OK', ''],
     ['TB-002', 'Máy sấy tóc', 'Thiết bị', 'Cái', 250000, 50, 5, '✓ OK', '1600W'],
     ['TB-003', 'Bàn ủi hơi nước', 'Thiết bị', 'Cái', 300000, 20, 3, '✓ OK', ''],
@@ -139,7 +133,6 @@ export function downloadItemsTemplate() {
     ['TB-026', 'Bình xịt vệ sinh', 'Thiết bị', 'Cái', 20000, 20, 5, '✓ OK', 'Cầm tay'],
     ['TB-027', 'Xô lau nhà có vắt', 'Thiết bị', 'Cái', 50000, 10, 2, '✓ OK', ''],
     ['TB-028', 'Bộ chổi + hót rác', 'Thiết bị', 'Bộ', 50000, 10, 2, '✓ OK', ''],
-    // Nội thất (31)
     ['NT-001', 'Khung giường đơn', 'Nội thất', 'Cái', 3000000, 20, 2, '✓ OK', '120x200cm'],
     ['NT-002', 'Khung giường đôi', 'Nội thất', 'Cái', 5000000, 40, 2, '✓ OK', '160x200cm'],
     ['NT-003', 'Khung giường King', 'Nội thất', 'Cái', 6000000, 30, 2, '✓ OK', '180x200cm'],
@@ -171,7 +164,6 @@ export function downloadItemsTemplate() {
     ['NT-029', 'Xô đá phòng', 'Nội thất', 'Cái', 50000, 50, 5, '✓ OK', ''],
     ['NT-030', 'Ly thuỷ tinh phòng', 'Nội thất', 'Cái', 10000, 100, 15, '✓ OK', ''],
     ['NT-031', 'Cốc sứ pha trà phòng', 'Nội thất', 'Cái', 20000, 100, 15, '✓ OK', ''],
-    // Nhà hàng (22)
     ['NH-001', 'Đĩa ăn chính 26cm', 'Nhà hàng', 'Cái', 40000, 100, 15, '✓ OK', 'Sứ trắng'],
     ['NH-002', 'Đĩa salad 20cm', 'Nhà hàng', 'Cái', 25000, 80, 10, '✓ OK', 'Sứ trắng'],
     ['NH-003', 'Bát súp', 'Nhà hàng', 'Cái', 20000, 80, 10, '✓ OK', 'Sứ trắng'],
@@ -194,7 +186,6 @@ export function downloadItemsTemplate() {
     ['NH-020', 'Bìa menu', 'Nhà hàng', 'Cái', 50000, 20, 3, '✓ OK', 'Da/gỗ'],
     ['NH-021', 'Khay đựng hóa đơn', 'Nhà hàng', 'Cái', 30000, 20, 3, '✓ OK', ''],
     ['NH-022', 'Đồ mở nắp chai', 'Nhà hàng', 'Cái', 20000, 10, 2, '✓ OK', ''],
-    // Đồng phục (6)
     ['DP-001', 'Đồng phục lễ tân', 'Đồng phục', 'Bộ', 500000, 10, 2, '✓ OK', ''],
     ['DP-002', 'Đồng phục housekeeping', 'Đồng phục', 'Bộ', 300000, 15, 2, '✓ OK', ''],
     ['DP-003', 'Đồng phục phục vụ', 'Đồng phục', 'Bộ', 400000, 15, 2, '✓ OK', 'Nhà hàng'],
@@ -203,47 +194,106 @@ export function downloadItemsTemplate() {
     ['DP-006', 'Thẻ tên nhân viên', 'Đồng phục', 'Cái', 20000, 30, 5, '✓ OK', ''],
   ]
   
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...exampleData])
-  
-  ws['!cols'] = [
-    { wch: 12 }, // Mã SP
-    { wch: 30 }, // Tên sản phẩm
-    { wch: 15 }, // Danh mục
-    { wch: 10 }, // Đơn vị
-    { wch: 12 }, // Đơn giá
-    { wch: 12 }, // Tồn kho
-    { wch: 15 }, // Tồn tối thiểu
-    { wch: 12 }, // Tình trạng
-    { wch: 25 }, // Ghi chú
+  // Column widths
+  ws.columns = [
+    { width: 12 }, { width: 30 }, { width: 15 }, { width: 10 },
+    { width: 12 }, { width: 12 }, { width: 15 }, { width: 12 }, { width: 25 },
   ]
   
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'Tài sản')
+  // Styles
+  const thinBorder: Partial<ExcelJS.Borders> = {
+    top: { style: 'thin' }, bottom: { style: 'thin' },
+    left: { style: 'thin' }, right: { style: 'thin' },
+  }
+  const headerFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } }
+  const headerFont: Partial<ExcelJS.Font> = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } }
+  const dataFont: Partial<ExcelJS.Font> = { name: 'Calibri', size: 11 }
+  const altFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD6E4F0' } }
+  const greenFont: Partial<ExcelJS.Font> = { name: 'Calibri', size: 11, color: { argb: 'FF228B22' } }
   
-  // Sheet Tổng hợp
-  const summaryData = [
-    ['TỔNG HỢP HÀNG HÓA THEO DANH MỤC'],
-    [''],
-    ['Danh mục', 'Số mặt hàng', 'Tổng giá trị tồn kho', 'Số mặt hàng cần đặt'],
+  // Header row
+  const headerRow = ws.addRow(headers)
+  headerRow.height = 22
+  headerRow.eachCell((cell) => {
+    cell.fill = headerFill
+    cell.font = headerFont
+    cell.border = thinBorder
+    cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
+  })
+  
+  // Data rows
+  exampleData.forEach((rowData, idx) => {
+    const row = ws.addRow(rowData)
+    row.eachCell((cell, colNumber) => {
+      cell.font = colNumber === 8 ? greenFont : dataFont
+      cell.border = thinBorder
+      cell.alignment = { vertical: 'middle' }
+      if (idx % 2 === 1) cell.fill = altFill
+      // Number format for price/stock columns
+      if (colNumber === 5) cell.numFmt = '#,##0'
+      if (colNumber === 6 || colNumber === 7) cell.numFmt = '#,##0'
+      // Center align: Mã SP, Đơn vị, Tồn kho, Tồn tối thiểu, Tình trạng
+      if ([1, 4, 6, 7, 8].includes(colNumber)) cell.alignment = { vertical: 'middle', horizontal: 'center' }
+    })
+  })
+  
+  // ===== Sheet 2: Tổng hợp =====
+  const wsSummary = workbook.addWorksheet('Tổng hợp')
+  wsSummary.columns = [{ width: 20 }, { width: 15 }, { width: 25 }, { width: 22 }]
+  
+  // Title
+  const titleRow = wsSummary.addRow(['TỔNG HỢP HÀNG HÓA THEO DANH MỤC'])
+  wsSummary.mergeCells('A1:D1')
+  titleRow.getCell(1).font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF4472C4' } }
+  titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
+  titleRow.height = 30
+  
+  wsSummary.addRow([]) // empty row
+  
+  // Summary header
+  const sumHeaders = ['Danh mục', 'Số mặt hàng', 'Tổng giá trị tồn kho', 'Số mặt hàng cần đặt']
+  const sumHeaderRow = wsSummary.addRow(sumHeaders)
+  sumHeaderRow.eachCell((cell) => {
+    cell.fill = headerFill
+    cell.font = headerFont
+    cell.border = thinBorder
+    cell.alignment = { vertical: 'middle', horizontal: 'center' }
+  })
+  
+  const summaryRows: (string | number)[][] = [
     ['Đồ vải', 21, 217100000, 0],
     ['Tiêu hao', 42, 63500000, 0],
     ['Thiết bị', 28, 1329400000, 0],
     ['Nội thất', 31, 1384150000, 0],
     ['Nhà hàng', 22, 36400000, 0],
     ['Đồng phục', 6, 21600000, 0],
-    ['TỔNG CỘNG', 150, 3052150000, 0],
   ]
   
-  const wsSummary = XLSX.utils.aoa_to_sheet(summaryData)
-  wsSummary['!cols'] = [
-    { wch: 20 },
-    { wch: 15 },
-    { wch: 25 },
-    { wch: 22 },
-  ]
-  XLSX.utils.book_append_sheet(wb, wsSummary, 'Tổng hợp')
+  summaryRows.forEach((r, idx) => {
+    const row = wsSummary.addRow(r)
+    row.eachCell((cell, colNumber) => {
+      cell.font = dataFont
+      cell.border = thinBorder
+      cell.alignment = { vertical: 'middle', horizontal: colNumber === 1 ? 'left' : 'center' }
+      if (colNumber === 3) cell.numFmt = '#,##0'
+      if (idx % 2 === 1) cell.fill = altFill
+    })
+  })
   
-  XLSX.writeFile(wb, `template-tai-san-${Date.now()}.xlsx`)
+  // Total row
+  const totalRow = wsSummary.addRow(['TỔNG CỘNG', 150, 3052150000, 0])
+  totalRow.eachCell((cell, colNumber) => {
+    cell.font = { name: 'Calibri', size: 11, bold: true }
+    cell.border = thinBorder
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } }
+    cell.alignment = { vertical: 'middle', horizontal: colNumber === 1 ? 'left' : 'center' }
+    if (colNumber === 3) cell.numFmt = '#,##0'
+  })
+  
+  // Generate and download
+  const buffer = await workbook.xlsx.writeBuffer()
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  saveAs(blob, `template-tai-san-${Date.now()}.xlsx`)
 }
 
 // Download template for Categories
