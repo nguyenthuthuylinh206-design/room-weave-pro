@@ -292,6 +292,10 @@ export function useUpdateBookingAmountPaid() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['room-bookings'] });
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['booking-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['revenue-report'] });
+      queryClient.invalidateQueries({ queryKey: ['owner-alerts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-pending-payments'] });
     },
   });
 }
