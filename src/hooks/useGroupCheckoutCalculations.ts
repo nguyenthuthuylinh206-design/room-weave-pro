@@ -37,6 +37,7 @@ export interface GroupRoomCostBreakdown {
   adjustedLateCharge: number
   lateAdjustmentNote: string
   serviceCharges: number
+  serviceDetails: ServiceChargeDetail[]
   damageItems: DamageChargeItem[]
   adjustedDamageItems: DamageChargeItem[]
   damageAdjustmentNote: string
