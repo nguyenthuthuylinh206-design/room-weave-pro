@@ -296,6 +296,8 @@ export function useOwnerAlerts() {
         .or('items_damaged.neq.{},items_lost.neq.{}')
         .order('created_at', { ascending: false })
         .limit(10)
+      if (tenantId) damagesQuery = damagesQuery.eq('tenant_id', tenantId)
+      if (!isAllHotelsMode && selectedHotel?.id) damagesQuery = damagesQuery.eq('hotel_id', selectedHotel.id)
       const { data: unresolvedDamages } = await damagesQuery
 
       return {

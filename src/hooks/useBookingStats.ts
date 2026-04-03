@@ -108,9 +108,9 @@ export function useBookingStats() {
       const occupiedBookings = occupiedResult.data
       const checkInsToday = checkInResult.count
       const checkOutsToday = checkOutResult.count
-      const paidBookings = revenueResult.data
+      const paidPayments = revenueResult.data
 
-      const todayRevenue = paidBookings?.reduce((sum, b) => sum + (b.total_amount || 0), 0) || 0
+      const todayRevenue = paidPayments?.reduce((sum, b) => sum + (b.amount || 0), 0) || 0
 
       // Projected revenue = currently occupied bookings
       const projectedRevenue = occupiedBookings?.reduce((sum, b) => sum + (b.total_amount || 0), 0) || 0

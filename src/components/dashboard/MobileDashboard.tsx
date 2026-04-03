@@ -82,7 +82,7 @@ export function MobileDashboard() {
 
       const [totalResult, availableResult, occupiedResult, maintenanceResult] = await Promise.all([
         buildQuery(),
-        buildQuery('available'),
+        buildQuery('vacant'),
         buildQuery('occupied'),
         buildQuery('maintenance')
       ])

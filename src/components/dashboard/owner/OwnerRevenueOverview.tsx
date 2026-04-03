@@ -132,10 +132,16 @@ export function OwnerRevenueOverview() {
                         'text-[10px]',
                         checkout.payment_status === 'paid' 
                           ? 'bg-green-500 hover:bg-green-600' 
+                          : checkout.payment_status === 'partial'
+                          ? 'bg-amber-500 text-white hover:bg-amber-600'
                           : 'bg-orange-500 text-white hover:bg-orange-600'
                       )}
                     >
-                      {checkout.payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                      {checkout.payment_status === 'paid' 
+                        ? 'Đã thanh toán' 
+                        : checkout.payment_status === 'partial'
+                        ? 'Thanh toán một phần'
+                        : 'Chờ thanh toán'}
                     </Badge>
                   </div>
                 </Link>
