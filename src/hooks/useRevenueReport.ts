@@ -179,11 +179,11 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
         const m = subMonths(today, i)
         const mBookings = bookings.filter(b => {
           const d = new Date(b.check_out_date)
-          return d >= startOfMonth(m) && d <= endOfMonth(m) && b.payment_status === 'paid'
+          return d >= startOfMonth(m) && d <= endOfMonth(m) && b.payment_status !== 'refunded'
         })
         monthlyTrends.push({
           month: format(m, 'MM/yyyy'),
-          revenue: mBookings.reduce((s, b) => s + (b.total_amount || 0), 0),
+          revenue: mBookings.reduce((s, b) => s + (b.amount_paid || 0), 0),
           bookings: mBookings.length,
         })
       }
