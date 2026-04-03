@@ -124,7 +124,7 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
       const sixMonthsAgoISO = startOfDay(sixMonthsAgo).toISOString()
 
       // Query bookings with only needed columns for revenue calculation
-      let query = supabase.from('room_bookings').select('check_out_date, total_amount, amount_paid, payment_status, booking_type, booking_source, ota_commission_amount, net_revenue, early_checkin_charge, late_checkout_charge, damage_charges, room_id, room:rooms!room_bookings_room_id_fkey(room_number, room_type)')
+      let query = supabase.from('room_bookings').select('check_out_date, total_amount, amount_paid, deposit_amount, payment_status, booking_type, booking_source, ota_commission_amount, net_revenue, early_checkin_charge, late_checkout_charge, damage_charges, room_id, room:rooms!room_bookings_room_id_fkey(room_number, room_type)')
         .gte('check_out_date', sixMonthsAgoISO)
         .limit(10000)
 
