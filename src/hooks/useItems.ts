@@ -349,6 +349,9 @@ export function useDeleteItems() {
     },
     onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] })
       
       if (result.failed_count > 0) {
         toast({
