@@ -83,11 +83,11 @@ export function useBookingStats() {
         checkOutQuery = checkOutQuery.eq('hotel_id', hotelId)
       }
 
+      // Revenue from booking_payments (actual money received today)
       let revenueQuery = supabase
-        .from('room_bookings')
-        .select('total_amount')
-        .eq('status', 'checked_out')
-        .eq('payment_status', 'paid')
+        .from('booking_payments')
+        .select('amount')
+        .eq('payment_status', 'completed')
         .eq('tenant_id', tenantId)
         .gte('paid_at', startOfDay(new Date()).toISOString())
         .lte('paid_at', endOfDay(new Date()).toISOString())
