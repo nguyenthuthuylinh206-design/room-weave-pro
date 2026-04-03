@@ -114,7 +114,7 @@ export function ServiceFormDialog({ open, onOpenChange, service }: ServiceFormDi
                 <SelectContent>
                   {Object.entries(SERVICE_CATEGORY_LABELS).map(([key, label]) => (
                     <SelectItem key={key} value={key}>
-                      {SERVICE_CATEGORY_ICONS[key as ServiceCategory]} {label}
+                      {label}
                     </SelectItem>
                   ))}
                 </SelectContent>

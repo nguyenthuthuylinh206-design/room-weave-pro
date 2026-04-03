@@ -66,7 +66,7 @@ export function ServiceListTab() {
             <SelectItem value="all">Tất cả</SelectItem>
             {Object.entries(SERVICE_CATEGORY_LABELS).map(([key, label]) => (
               <SelectItem key={key} value={key}>
-                {SERVICE_CATEGORY_ICONS[key as ServiceCategory]} {label}
+                {label}
               </SelectItem>
             ))}
           </SelectContent>
