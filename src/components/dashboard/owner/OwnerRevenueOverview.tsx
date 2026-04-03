@@ -22,7 +22,7 @@ export function OwnerRevenueOverview() {
     queryFn: async () => {
       let query = supabase
         .from('room_bookings')
-        .select('id, total_amount, amount_paid, payment_status')
+        .select('id, total_amount, amount_paid, deposit_amount, payment_status')
         .eq('tenant_id', tenantId!)
         .in('payment_status', ['pending', 'partial'])
 
