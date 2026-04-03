@@ -25,8 +25,9 @@ export function OwnerDashboard() {
   const { hasMode } = useUsageMode()
   const [datePreset, setDatePreset] = useState<DateRangePreset>('1m')
 
+  const monthsCount = parseInt(datePreset)
   const dateRange = {
-    start: startOfMonth(subMonths(new Date(), parseInt(datePreset))),
+    start: startOfMonth(subMonths(new Date(), monthsCount - 1)),
     end: endOfMonth(new Date()),
   }
 
