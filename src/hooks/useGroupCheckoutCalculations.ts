@@ -128,7 +128,7 @@ export function useGroupCheckoutCalculations() {
       // Need tenant_id - fetch from booking
       const { data: bookingData } = await supabase
         .from('room_bookings')
-        .select('tenant_id')
+        .select('tenant_id, service_charges')
         .eq('id', booking.bookingId)
         .single()
       
@@ -136,6 +136,19 @@ export function useGroupCheckoutCalculations() {
         const summary = await fetchServiceChargeSummary(booking.bookingId, bookingData.tenant_id, { includeAllBilled: true })
         serviceCharges = summary.grandTotal
         serviceDetails = summary.details
+      }
+
+      // Fallback: if no details but service_charges > 0 on booking, create a summary item
+      if (serviceDetails.length === 0 && serviceCharges === 0 && bookingData?.service_charges && Number(bookingData.service_charges) > 0) {
+        serviceCharges = Number(bookingData.service_charges)
+        serviceDetails = [{
+          id: 'fallback-service',
+          source: 'service' as const,
+          service_name: 'Dịch vụ (chưa có chi tiết)',
+          quantity: 1,
+          unit_price: serviceCharges,
+          total_price: serviceCharges,
+        }]
       }
     } catch (e) {
       console.error('Error fetching service charges:', e)
