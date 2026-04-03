@@ -9,7 +9,7 @@ import {
   DamageChargeItem,
   DEFAULT_PRICING_RULES,
 } from '@/lib/bookingCalculations'
-import { fetchServiceChargeSummary } from '@/hooks/useBookingServiceCharges'
+import { fetchServiceChargeSummary, type ServiceChargeDetail } from '@/hooks/useBookingServiceCharges'
 
 export interface GroupBookingCostData {
   bookingId: string
@@ -37,6 +37,7 @@ export interface GroupRoomCostBreakdown {
   adjustedLateCharge: number
   lateAdjustmentNote: string
   serviceCharges: number
+  serviceDetails: ServiceChargeDetail[]
   damageItems: DamageChargeItem[]
   adjustedDamageItems: DamageChargeItem[]
   damageAdjustmentNote: string
@@ -122,6 +123,7 @@ export function useGroupCheckoutCalculations() {
 
     // 2. Get unified service charges (booking_service_charges + chargeable_consumptions)
     let serviceCharges = 0
+    let serviceDetails: ServiceChargeDetail[] = []
     try {
       // Need tenant_id - fetch from booking
       const { data: bookingData } = await supabase
@@ -133,6 +135,7 @@ export function useGroupCheckoutCalculations() {
       if (bookingData?.tenant_id) {
         const summary = await fetchServiceChargeSummary(booking.bookingId, bookingData.tenant_id, { includeAllBilled: true })
         serviceCharges = summary.grandTotal
+        serviceDetails = summary.details
       }
     } catch (e) {
       console.error('Error fetching service charges:', e)
@@ -169,6 +172,7 @@ export function useGroupCheckoutCalculations() {
       adjustedLateCharge: surchargeForCalc,
       lateAdjustmentNote: '',
       serviceCharges,
+      serviceDetails,
       damageItems,
       adjustedDamageItems: [...damageItems],
       damageAdjustmentNote: '',

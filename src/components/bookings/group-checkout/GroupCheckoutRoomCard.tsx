@@ -341,8 +341,22 @@ export function GroupCheckoutRoomCard({
                     </div>
                   )}
 
-                  {/* Service charges */}
-                  {cost && cost.serviceCharges > 0 && (
+                  {/* Service charges - itemized */}
+                  {cost && cost.serviceDetails && cost.serviceDetails.length > 0 && (
+                    <div className="space-y-1">
+                      {cost.serviceDetails.map((detail) => (
+                        <div key={detail.id} className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            {detail.source === 'minibar' ? '🧊 ' : '🛎️ '}
+                            {detail.service_name}
+                            {detail.quantity > 1 && ` ×${detail.quantity}`}
+                          </span>
+                          <span className="font-mono">{formatVNCurrency(detail.total_price)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {cost && cost.serviceCharges > 0 && (!cost.serviceDetails || cost.serviceDetails.length === 0) && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Dịch vụ sử dụng</span>
                       <span className="font-mono">{formatVNCurrency(cost.serviceCharges)}</span>
