@@ -2,6 +2,7 @@ import { Separator } from '@/components/ui/separator'
 import { CreditCard } from 'lucide-react'
 import { formatVNCurrency } from '@/lib/pricing'
 import { cn } from '@/lib/utils'
+import type { ServiceChargeDetail } from '@/hooks/useBookingServiceCharges'
 
 interface GroupCheckoutTotals {
   roomTotal: number
@@ -25,9 +26,12 @@ interface GroupCheckoutSummaryProps {
   totals: GroupCheckoutTotals
   selectedRoomCount: number
   roomsRemaining: number
+  allServiceDetails?: ServiceChargeDetail[]
 }
 
-export function GroupCheckoutSummary({ totals, selectedRoomCount, roomsRemaining }: GroupCheckoutSummaryProps) {
+export function GroupCheckoutSummary({ totals, selectedRoomCount, roomsRemaining, allServiceDetails }: GroupCheckoutSummaryProps) {
+  const hasServiceDetails = allServiceDetails && allServiceDetails.length > 0
+
   return (
     <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
       <div className="flex items-center gap-2 text-sm font-medium">
@@ -62,12 +66,33 @@ export function GroupCheckoutSummary({ totals, selectedRoomCount, roomsRemaining
           </div>
         )}
         
-        {totals.serviceCharges > 0 && (
+        {/* Service & Minibar itemized details */}
+        {hasServiceDetails ? (
+          <div className="space-y-1">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium border-b border-border/50 pb-1 mt-1">
+              Dịch vụ & Minibar
+            </div>
+            {allServiceDetails.map((detail) => (
+              <div key={detail.id} className="flex justify-between text-sm py-0.5">
+                <span className="text-muted-foreground flex items-center gap-1.5">
+                  <span className="text-[10px] uppercase text-muted-foreground/60 w-12 shrink-0">
+                    {detail.source === 'minibar' ? 'Minibar' : 'Dịch vụ'}
+                  </span>
+                  <span className="truncate">
+                    {detail.service_name}
+                    {detail.quantity > 1 && ` ×${detail.quantity}`}
+                  </span>
+                </span>
+                <span className="font-mono shrink-0 ml-2">{formatVNCurrency(detail.total_price)}</span>
+              </div>
+            ))}
+          </div>
+        ) : totals.serviceCharges > 0 ? (
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Dịch vụ sử dụng</span>
             <span className="font-mono">{formatVNCurrency(totals.serviceCharges)}</span>
           </div>
-        )}
+        ) : null}
         
         {totals.extraCharges > 0 && (
           <div className="flex justify-between text-sm">

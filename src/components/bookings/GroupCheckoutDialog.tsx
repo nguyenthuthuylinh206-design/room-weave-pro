@@ -345,7 +345,16 @@ export function GroupCheckoutDialog({
     const grandTotal = subtotal + vatAmount + serviceFeeAmount
     const remaining = grandTotal - totalPaid - depositApplied
 
-    return { roomTotal, damageCharges, serviceCharges, lateCharges, earlyCheckinCharges, extraCharges, totalPaid, subtotal, vatAmount, serviceFeeAmount, grandTotal, remaining, depositApplied, holdingDeposit, isLastCheckout }
+    // Aggregate all service details from selected rooms
+    const allServiceDetails: import('@/hooks/useBookingServiceCharges').ServiceChargeDetail[] = []
+    for (const b of selectedBookings) {
+      const cost = roomCosts.get(b.id)
+      if (cost?.serviceDetails) {
+        allServiceDetails.push(...cost.serviceDetails)
+      }
+    }
+
+    return { roomTotal, damageCharges, serviceCharges, lateCharges, earlyCheckinCharges, extraCharges, totalPaid, subtotal, vatAmount, serviceFeeAmount, grandTotal, remaining, depositApplied, holdingDeposit, isLastCheckout, allServiceDetails }
   }, [groupData, inspectionStatuses, selectedRooms, inspectionMap, roomCosts])
 
   // Room stats
@@ -777,6 +786,7 @@ export function GroupCheckoutDialog({
                 totals={totals}
                 selectedRoomCount={selectedRooms.size}
                 roomsRemaining={groupData.roomsRemaining - selectedRooms.size}
+                allServiceDetails={totals.allServiceDetails}
               />
 
               {/* Warning if unpaid */}
