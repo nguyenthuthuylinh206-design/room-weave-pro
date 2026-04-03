@@ -143,7 +143,7 @@ export function useRevenueReport(period: ReportPeriod = 'month') {
         // paidRevenue = tổng amount_paid từ TẤT CẢ booking (không chỉ status 'paid')
         const paidRevenue = nonRefunded.reduce((s, b) => s + (b.amount_paid || 0), 0)
         // pendingRevenue = tổng số tiền chưa thu (total - paid) từ booking chưa thanh toán đủ
-        const pendingRevenue = nonRefunded.reduce((s, b) => s + Math.max(0, (b.total_amount || 0) - (b.amount_paid || 0)), 0)
+        const pendingRevenue = nonRefunded.reduce((s, b) => s + Math.max(0, (b.total_amount || 0) - (b.amount_paid || 0) - (b.deposit_amount || 0)), 0)
         const refundedRevenue = refunded.reduce((s, b) => s + (b.total_amount || 0), 0)
         const totalRevenue = paidRevenue + pendingRevenue
         const paidBookings = nonRefunded.filter(b => b.payment_status === 'paid')
