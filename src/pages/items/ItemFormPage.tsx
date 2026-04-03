@@ -278,6 +278,19 @@ export function ItemFormPage() {
             </AlertDescription>
           </Alert>}
 
+        {!isEdit && !warehousesLoading && warehouses && warehouses.length === 0 && (
+          <Alert className="py-3 border-amber-200 bg-amber-50">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-sm flex items-center justify-between">
+              <span>Vui lòng tạo kho hàng trước khi thêm tài sản.</span>
+              <Button size="sm" variant="outline" className="h-7 ml-3" type="button" onClick={() => navigate('/settings/warehouses')}>
+                Tạo kho hàng
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+      {!isEdit && !warehousesLoading && warehouses && warehouses.length === 0 ? null :
       <form key={item?.id || 'new'} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {isMobile ?
         // Mobile: Accordion layout
