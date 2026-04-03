@@ -59,12 +59,16 @@ const MainLayoutContent = () => {
         <Header onMenuClick={() => {}} />
         {isStaffUser && <ShiftStatusBanner />}
         <main className="flex-1 overflow-auto">
-          <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
-            <div className="mb-4">
-              <QuotaWarningBanner />
+          {isSuspended ? (
+            <SuspendedOverlay />
+          ) : (
+            <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
+              <div className="mb-4">
+                <QuotaWarningBanner />
+              </div>
+              <Outlet />
             </div>
-            <Outlet />
-          </div>
+          )}
         </main>
       </div>
     </div>
