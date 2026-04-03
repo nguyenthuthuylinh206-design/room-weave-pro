@@ -3,16 +3,13 @@ import * as XLSX from 'xlsx'
 // ============= ITEM IMPORT =============
 
 export interface ItemImportRow {
+  sku?: string
   name: string
-  name_en?: string
   category_name?: string
   unit: string
   unit_price: number
-  brand?: string
-  model?: string
   quantity_total: number
   minimum_stock: number
-  reorder_point?: number
   description?: string
 }
 
@@ -36,57 +33,56 @@ export interface ImportResult<T> {
 // Download template for Items
 export function downloadItemsTemplate() {
   const headers = [
-    'Tên tài sản (*)',
-    'Tên tiếng Anh',
+    'Mã SP',
+    'Tên sản phẩm (*)',
     'Danh mục',
     'Đơn vị (*)',
     'Đơn giá',
-    'Thương hiệu',
-    'Model',
-    'Số lượng (*)',
-    'Ngưỡng cảnh báo',
-    'Điểm đặt hàng',
-    'Mô tả'
+    'Tồn kho (*)',
+    'Tồn tối thiểu',
+    'Tình trạng',
+    'Ghi chú'
   ]
   
   const exampleData = [
-    ['Khăn tắm lớn', 'Large Bath Towel', 'Đồ vải', 'Cái', 50000, 'Mollis', 'MT-01', 100, 20, 30, 'Khăn tắm cotton cao cấp'],
-    ['Bàn chải đánh răng', 'Toothbrush', 'Tiêu hao', 'Cái', 5000, '', '', 500, 100, 150, 'Bàn chải dùng 1 lần'],
-    ['Ấm đun nước', 'Electric Kettle', 'Thiết bị', 'Cái', 350000, 'Sunhouse', 'SH-1820', 50, 5, 10, 'Ấm siêu tốc 1.8L'],
+    ['KT-001', 'Khăn tắm lớn', 'Đồ vải', 'Cái', 50000, 100, 20, 'Đủ hàng', 'Khăn tắm cotton cao cấp'],
+    ['BC-001', 'Bàn chải đánh răng', 'Tiêu hao', 'Cái', 5000, 500, 100, 'Đủ hàng', 'Bàn chải dùng 1 lần'],
+    ['AD-001', 'Ấm đun nước', 'Thiết bị', 'Cái', 350000, 50, 5, 'Đủ hàng', 'Ấm siêu tốc 1.8L'],
+    ['BG-001', 'Bàn ghế nhà hàng', 'Nội thất', 'Bộ', 2500000, 20, 3, 'Đủ hàng', 'Bàn ghế gỗ sồi'],
+    ['DP-001', 'Đồng phục nhân viên', 'Đồng phục', 'Bộ', 450000, 30, 5, 'Đủ hàng', 'Áo sơ mi + quần tây'],
   ]
   
   const ws = XLSX.utils.aoa_to_sheet([headers, ...exampleData])
   
-  // Set column widths
   ws['!cols'] = [
-    { wch: 25 }, // Tên
-    { wch: 20 }, // Tên EN
+    { wch: 12 }, // Mã SP
+    { wch: 25 }, // Tên sản phẩm
     { wch: 15 }, // Danh mục
     { wch: 10 }, // Đơn vị
     { wch: 12 }, // Đơn giá
-    { wch: 15 }, // Thương hiệu
-    { wch: 12 }, // Model
-    { wch: 12 }, // Số lượng
-    { wch: 15 }, // Ngưỡng
-    { wch: 15 }, // Điểm đặt hàng
-    { wch: 30 }, // Mô tả
+    { wch: 12 }, // Tồn kho
+    { wch: 15 }, // Tồn tối thiểu
+    { wch: 12 }, // Tình trạng
+    { wch: 30 }, // Ghi chú
   ]
   
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Tài sản')
   
-  // Add instruction sheet
   const instructions = [
     ['HƯỚNG DẪN IMPORT TÀI SẢN'],
     [''],
     ['1. Các cột có dấu (*) là bắt buộc'],
-    ['2. Tên tài sản: Tối thiểu 2 ký tự, tối đa 200 ký tự'],
+    ['2. Tên sản phẩm: Tối thiểu 2 ký tự, tối đa 200 ký tự'],
     ['3. Đơn vị: VD: Cái, Bộ, Kg, Lít...'],
     ['4. Đơn giá: Số nguyên >= 0'],
-    ['5. Số lượng: Số nguyên >= 0'],
-    ['6. Danh mục: Nhập tên danh mục. Nếu chưa có sẽ tự động tạo mới'],
-    ['7. Sản phẩm trùng tên sẽ được CẬP NHẬT (giá, danh mục, số lượng...) thay vì tạo mới'],
-    ['8. Xóa các dòng ví dụ trước khi import'],
+    ['5. Tồn kho: Số nguyên >= 0'],
+    ['6. Tồn tối thiểu: Số nguyên >= 0 (ngưỡng cảnh báo)'],
+    ['7. Danh mục: Nhập tên danh mục. Nếu chưa có sẽ tự động tạo mới'],
+    ['8. Mã SP: Không bắt buộc, hệ thống sẽ tự tạo nếu bỏ trống'],
+    ['9. Tình trạng: Hệ thống tự tính, không cần nhập'],
+    ['10. Sản phẩm trùng tên sẽ được CẬP NHẬT thay vì tạo mới'],
+    ['11. Xóa các dòng ví dụ trước khi import'],
   ]
   
   const wsInstructions = XLSX.utils.aoa_to_sheet(instructions)
@@ -167,15 +163,13 @@ export function parseItemsExcel(file: File): Promise<ImportResult<ItemImportRow>
         const errors: { row: number; message: string }[] = []
         
         rows.forEach((row, index) => {
-          const rowNum = index + 2 // Account for header + 0-based index
+          const rowNum = index + 2
           
-          const name = String(row[0] || '').trim()
+          const name = String(row[1] || '').trim()
           const unit = String(row[3] || '').trim()
-          const quantity = Number(row[7]) || 0
           
-          // Validate required fields
           if (!name || name.length < 2) {
-            errors.push({ row: rowNum, message: 'Tên tài sản bắt buộc (tối thiểu 2 ký tự)' })
+            errors.push({ row: rowNum, message: 'Tên sản phẩm bắt buộc (tối thiểu 2 ký tự)' })
             return
           }
           
@@ -185,17 +179,14 @@ export function parseItemsExcel(file: File): Promise<ImportResult<ItemImportRow>
           }
           
           items.push({
+            sku: row[0] ? String(row[0]).trim() : undefined,
             name,
-            name_en: row[1] ? String(row[1]).trim() : undefined,
             category_name: row[2] ? String(row[2]).trim() : undefined,
             unit,
             unit_price: Number(row[4]) || 0,
-            brand: row[5] ? String(row[5]).trim() : undefined,
-            model: row[6] ? String(row[6]).trim() : undefined,
-            quantity_total: quantity,
-            minimum_stock: Number(row[8]) || 0,
-            reorder_point: row[9] ? Number(row[9]) : undefined,
-            description: row[10] ? String(row[10]).trim() : undefined,
+            quantity_total: Number(row[5]) || 0,
+            minimum_stock: Number(row[6]) || 0,
+            description: row[8] ? String(row[8]).trim() : undefined,
           })
         })
         
