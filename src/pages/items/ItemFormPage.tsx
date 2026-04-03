@@ -17,6 +17,7 @@ import { ImageUpload } from '@/components/shared/ImageUpload';
 import { useItem, useCreateItem, useUpdateItem } from '@/hooks/useItems';
 import { useItemImages, useAddItemImage, useDeleteItemImage } from '@/hooks/useItemImages';
 import { useCategories } from '@/hooks/useCategories';
+import { useWarehouses } from '@/hooks/useWarehouses';
 import { useUser } from '@/hooks/useUser';
 import { useBreakpoint } from '@/lib/breakpoints';
 import { useHotelContext } from '@/contexts/HotelContext';
