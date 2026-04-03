@@ -400,8 +400,8 @@ export function ItemFilters({ filters, onFilterChange }: ItemFiltersProps) {
       <ImportExcelDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
-        title="Import Tài sản từ Excel"
-        description="Tải file mẫu, điền thông tin và upload để import hàng loạt"
+        title="Tải lên hàng loạt tài sản từ Excel"
+        description="Tải file mẫu bên dưới , điền thông tin và upload để import hàng loạt"
         onDownloadTemplate={downloadItemsTemplate}
         onParseFile={parseItemsExcel}
         onImport={handleImportItems}
