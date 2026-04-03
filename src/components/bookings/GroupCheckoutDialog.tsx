@@ -786,6 +786,7 @@ export function GroupCheckoutDialog({
                 totals={totals}
                 selectedRoomCount={selectedRooms.size}
                 roomsRemaining={groupData.roomsRemaining - selectedRooms.size}
+                allServiceDetails={totals.allServiceDetails}
               />
 
               {/* Warning if unpaid */}
